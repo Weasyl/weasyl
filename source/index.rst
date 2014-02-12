@@ -79,20 +79,20 @@ Submissions
    A basic submission object resembles::
 
      {
-       "type": "submission",
-       "subtype": "visual",
+       "media": {...},
+       "owner": "Caffeinated-Owl",
+       "owner_login": "caffeinatedowl",
+       "posted_at": "2014-02-12T07:33:17Z"
        "rating": "general",
+       "submitid": 466821,
+       "subtype": "visual",
        "tags": [
          "hunter",
          "snake",
          "pi"
        ],
-       "owner": "Caffeinated-Owl",
-       "owner_login": "caffeinatedowl",
-       "submitid": 466821,
        "title": "Tiny Little Pi",
-       "media": {...},
-       "posted_at": "2014-02-12T07:33:17Z"
+       "type": "submission",
      }
 
    The *type* key will be one of ``"submission"`` or ``"character"``.
@@ -103,7 +103,7 @@ Submissions
    The *rating* key will be one of ``"general"``, ``"moderate"``, ``"mature"``,
    or ``"explicit"``.
 
-   The *media* key is explained in the :ref:`media section <media>`.
+   The *media* key is the submission's :ref:`media <media>`.
 
    Slightly different keys are returned for the
    :http:get:`/api/submissions/(submitid)/view` endpoint::
@@ -135,8 +135,9 @@ Submissions
          "views": 6
      }
 
-   The *sub_media* key is the media for the submission itself, while the
-   *owner_media* key is the media for the owner of the submission.
+   The *sub_media* key is the :ref:`media <media>` for the submission itself,
+   while the *owner_media* key is the :ref:`media <media>` for the owner of the
+   submission.
 
    The *embedlink* key will be ``null`` for ``"visual"`` type submissions and
    potentially a URL for other submission types.

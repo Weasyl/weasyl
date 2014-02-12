@@ -67,7 +67,7 @@ Basic endpoints
 
    :query increment_views: If omitted, the view count will not be incremented
       for the specified submission. If specified as any non-empty string while
-      authenticated, the view count may be increased.
+      :ref:`authenticated <authentication>`, the view count may be increased.
 
    The result will be a JSON :ref:`submission object <submissions>`.
 
@@ -261,6 +261,24 @@ If *nextid* is not ``null``, there is a next page accessible by specifying that
 *nextid* as a query parameter, keeping all other query parameters the same.
 Similarly, if *backid* is not ``null``, there is a previous page accessible by
 specifying that *backid* as a query parameter.
+
+
+.. _authentication:
+
+Authentication
+--------------
+
+Authentication can be done in one of two ways: a Weasyl API key, or an OAuth2
+bearer token.
+
+Weasyl API keys are managed at <https://www.weasyl.com/control/apikeys>, and
+are extremely simple to use. To authenticate a request, set the
+``X-Weasyl-API-Key`` header to the value of an API key, and the user agent will
+be authenticated as the user who created the key.
+
+To authenticate a request with an OAuth2 bearer token, pass an ``Authorization:
+Bearer`` header along with the token, as described in
+<http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20#section-2.1>.
 
 
 Glossary

@@ -43,10 +43,11 @@ Basic endpoints
    A list of submissions from the front page, respecting the current user's
    browsing settings.
 
-   :query since: A UNIX epoch time. Only submissions posted after this time
-      will be returned.
+   :query since: A UNIX epoch time. If specified, only submissions posted after
+      this time will be returned.
 
-   :query count: No more than this many submissions will be returned.
+   :query count: If specified, no more than this many submissions will be
+      returned.
 
    This will return at most 100 submissions. If *count* is more than 100, at
    most 100 submissions will be returned. It is possible to receive less than
@@ -69,6 +70,29 @@ Basic endpoints
       authenticated, the view count may be increased.
 
    The result will be a :ref:`submission object <submissions>`.
+
+
+.. http:get:: /api/users/(login_name)/gallery
+
+   List a user's gallery by :term:`login name`.
+
+   :query since: A UNIX epoch time. If specified, only submissions posted after
+      this time will be returned.
+
+   :query count: If specified, no more than this many submissions will be
+      returned.
+
+   :query folderid: If specified, only return submissions from the specified
+      ``folderid``.
+
+   :query backid: If specified, only return submissions with a ``submitid``
+      greater than the ``backid``. This is used in pagination.
+
+   :query nextid: If specified, only return submissions with a ``submitid``
+      less than the ``nextid``. This is used in pagination.
+
+   This will return at most 100 submissions. If *count* is more than 100, at
+   most 100 submissions will be returned.
 
 
 .. _submissions:

@@ -69,7 +69,7 @@ Basic endpoints
       for the specified submission. If specified as any non-empty string while
       authenticated, the view count may be increased.
 
-   The result will be a :ref:`submission object <submissions>`.
+   The result will be a JSON :ref:`submission object <submissions>`.
 
 
 .. http:get:: /api/users/(login_name)/gallery
@@ -93,6 +93,11 @@ Basic endpoints
 
    This will return at most 100 submissions. If *count* is more than 100, at
    most 100 submissions will be returned.
+
+   The result will be a JSON object with three keys: *submissions*, *backid*,
+   and *nextid*. *submissions* will be a JSON array of :ref:`submission objects
+   <submissions>`. *backid* and *nexid* are used in :ref:`pagination
+   <pagination>`.
 
 
 .. _submissions:
@@ -240,6 +245,20 @@ Here is an example of the media for a visual submission::
       }
     ]
   }
+
+
+Pagination
+----------
+
+Pagination is done through *backid* and *nextid* response keys and request
+query parameters. Paginated API endpoints will return JSON objects with
+*backid* and *nextid* keys to indicate how to find the previous and next pages
+of results.
+
+If *nextid* is not ``null``, there is a next page accessible by specifying that
+*nextid* as a query parameter, keeping all other query parameters the same.
+Similarly, if *backid* is not ``null``, there is a previous page accessible by
+specifying that *backid* as a query parameter.
 
 
 Glossary

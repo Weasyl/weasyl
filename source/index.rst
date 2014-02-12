@@ -247,6 +247,8 @@ Here is an example of the media for a visual submission::
   }
 
 
+.. _pagination:
+
 Pagination
 ----------
 

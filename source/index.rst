@@ -54,7 +54,7 @@ Basic endpoints
    *count* submissions back if too many submissions are filtered by the user's
    e.g. tag filters.
 
-   The result will be a JSON array of :ref:`submissions <submissions>`.
+   The result will be a JSON array of :ref:`submission objects <submissions>`.
 
 
 .. http:get:: /api/submissions/(submitid)/view

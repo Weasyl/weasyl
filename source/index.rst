@@ -303,4 +303,5 @@ Glossary
 
    login name
 
-      A user's username, omitting all non-alphanumeric, non-ASCII characters.
+      A user's username, lowercase, and omitting all non-alphanumeric,
+      non-ASCII characters.

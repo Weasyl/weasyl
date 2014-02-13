@@ -169,6 +169,11 @@ OAuth2 endpoints
    <http://tools.ietf.org/html/rfc6749#section-4.1> and for refreshing tokens
    at <http://tools.ietf.org/html/rfc6749#section-6>.
 
+   .. note::
+
+      Access tokens currently expire after an hour, to be sure to use the
+      provided refresh token before then.
+
 
 .. _submissions:
 

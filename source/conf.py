@@ -11,6 +11,14 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+
+import sys
+import os
+
+
+sys.path.append(os.path.abspath('.'))
+
+
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -18,7 +26,7 @@
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinxcontrib.httpdomain']
+extensions = ['sphinxcontrib.httpdomain', 'edit_on_github']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -236,3 +244,4 @@ texinfo_documents = [
 
 
 highlight_languague = 'json'
+edit_on_github_project = 'Weasyl/weasyl-apidocs'

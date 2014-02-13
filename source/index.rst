@@ -100,6 +100,42 @@ Basic endpoints
    <pagination>`.
 
 
+.. http:get:: /api/messages/submissions
+
+   List submissions in an :ref:`authenticated <authentication>` user's inbox.
+
+   :query count: If specified, no more than this many submissions will be
+      returned.
+
+   :query backid: If specified, only return submissions with a ``submitid``
+      greater than the ``backid``. This is used in pagination.
+
+   :query nextid: If specified, only return submissions with a ``submitid``
+      less than the ``nextid``. This is used in pagination.
+
+   This will return at most 100 submissions. If *count* is more than 100, at
+   most 100 submissions will be returned.
+
+   The result will be a JSON object with three keys: *submissions*, *backid*,
+   and *nextid*. *submissions* will be a JSON array of :ref:`submission objects
+   <submissions>`. *backid* and *nexid* are used in :ref:`pagination
+   <pagination>`.
+
+
+.. http:get:: /api/messages/summary
+
+   List a summary of notifications for an :ref:`authenticated <authentication>`
+   user. The result will be a JSON object resembling::
+
+     {
+         "comments": 0,
+         "journals": 3,
+         "notifications": 1,
+         "submissions": 14,
+         "unread_notes": 0
+     }
+
+
 OAuth2 endpoints
 ----------------
 

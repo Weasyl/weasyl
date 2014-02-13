@@ -43,8 +43,8 @@ Basic endpoints
    A list of submissions from the front page, respecting the current user's
    browsing settings.
 
-   :query since: A UNIX epoch time. If specified, only submissions posted after
-      this time will be returned.
+   :query since: An :term:`ISO 8601 timestamp`. If specified, only submissions
+      posted after this time will be returned.
 
    :query count: If specified, no more than this many submissions will be
       returned.
@@ -76,8 +76,8 @@ Basic endpoints
 
    List a user's gallery by :term:`login name`.
 
-   :query since: A UNIX epoch time. If specified, only submissions posted after
-      this time will be returned.
+   :query since: An :term:`ISO 8601 timestamp`. If specified, only submissions
+      posted after this time will be returned.
 
    :query count: If specified, no more than this many submissions will be
       returned.
@@ -291,6 +291,14 @@ Glossary
       The image displayed on the submission page, which may be smaller than the
       actual submission file. Cover images will be no larger than 1024 pixels
       by 3000 pixels.
+
+
+   ISO 8601 timestamp
+
+      A string representing a particular moment in time. Weasyl requires
+      exactly one of the formats described by ISO 8601:
+      ``YYYY-MM-DDTHH:MM:SSZ``. For example, ``2014-02-12T17:00:00Z``. As this
+      includes a trailing ``Z``, the time is required to be in UTC.
 
 
    login name

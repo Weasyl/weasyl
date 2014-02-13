@@ -100,6 +100,40 @@ Basic endpoints
    <pagination>`.
 
 
+OAuth2 endpoints
+----------------
+
+.. http:get:: /api/oauth2/authorize
+
+   The standard OAuth2 authorization endpoint. Currently only authorization
+   code grants with callback URIs are supported.
+
+   :query client_id: The client identifier issued to the consumer by Weasyl.
+
+   :query redirect_uri: The callback URI the consumer provided to Weasyl before
+      the *client_id* was issued.
+
+   :query scope: Currently, only one scope is allowed: ``"wholesite"``
+
+   :query state: A random unguessable string.
+
+   On a successful authorization, the user agent will be redirected to the
+   *redirect_uri* with query parameters of *code* and *state*. *code* will be a
+   random string used to retrieve the authorization code grant, and *state*
+   will be the same *state* as was passed originally.
+
+
+.. http:post:: /api/oauth2/token
+
+   The endpoint for fetching and refreshing OAuth2 tokens.
+
+   :form client_secret: The client secret issued to the consumer by Weasyl.
+
+   Other form parameters are described for authorization code grants at
+   <http://tools.ietf.org/html/rfc6749#section-4.1> and for refreshing tokens
+   at <http://tools.ietf.org/html/rfc6749#section-6>.
+
+
 .. _submissions:
 
 Submissions

@@ -226,7 +226,7 @@ Submissions
          "owner_media": {...},
          "posted_at": "2014-02-12T07:33:17Z",
          "rating": "general",
-         "sub_media": {...},
+         "media": {...},
          "submitid": 466821,
          "subtype": "visual",
          "tags": [
@@ -239,15 +239,14 @@ Submissions
          "views": 6
      }
 
-   The *sub_media* key is the :ref:`media <media>` for the submission itself,
+   The *media* key is the :ref:`media <media>` for the submission itself,
    while the *owner_media* key is the :ref:`media <media>` for the owner of the
    submission.
 
    The *embedlink* key will be ``null`` for ``"visual"`` type submissions and
    potentially a URL for other submission types.
 
-   The *description* key is the Markdown-formatted description of the
-   submission.
+   The *description* key is the HTML-rendered description of the submission.
 
    The *favorited* key indicates whether or not the current user has favorited
    the submission.

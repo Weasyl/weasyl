@@ -142,6 +142,11 @@ Basic endpoints
          "unread_notes": 0
      }
 
+   .. note::
+
+      The result of this API endpoint is cached. New information is available
+      only every three minutes or when a note arrives.
+
 
 OAuth2 endpoints
 ----------------

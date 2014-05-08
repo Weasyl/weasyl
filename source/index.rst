@@ -107,19 +107,19 @@ Basic endpoints
    :query count: If specified, no more than this many submissions will be
       returned.
 
-   :query backid: If specified, only return submissions with a ``submitid``
-      greater than the ``backid``. This is used in pagination.
+   :query backtime: If specified, only return submissions with a ``unixtime``
+      greater than the ``backtime``. This is used in pagination.
 
-   :query nextid: If specified, only return submissions with a ``submitid``
-      less than the ``nextid``. This is used in pagination.
+   :query nexttime: If specified, only return submissions with a ``unixtime``
+      less than the ``nexttime``. This is used in pagination.
 
    This will return at most 100 submissions. If *count* is more than 100, at
    most 100 submissions will be returned.
 
-   The result will be a JSON object with three keys: *submissions*, *backid*,
-   and *nextid*. *submissions* will be a JSON array of :ref:`submission objects
-   <submissions>`. *backid* and *nexid* are used in :ref:`pagination
-   <pagination>`.
+   The result will be a JSON object with three keys: *submissions*, *backtime*,
+   and *nexttime*. *submissions* will be a JSON array of :ref:`submission
+   objects <submissions>`. *backtime* and *nextime* are used in
+   :ref:`pagination <pagination>`.
 
 
 .. http:get:: /api/messages/summary
@@ -326,10 +326,10 @@ Here is an example of the media for a visual submission::
 Pagination
 ----------
 
-Pagination is done through *backid* and *nextid* response keys and request
-query parameters. Paginated API endpoints will return JSON objects with
-*backid* and *nextid* keys to indicate how to find the previous and next pages
-of results.
+Pagination is done through *backid* and *nextid* (or, in some cases, *backtime*
+and *nexttime*) response keys and request query parameters. Paginated API
+endpoints will return JSON objects with *backid* and *nextid* keys to indicate
+how to find the previous and next pages of results.
 
 If *nextid* is not ``null``, there is a next page accessible by specifying that
 *nextid* as a query parameter, keeping all other query parameters the same.

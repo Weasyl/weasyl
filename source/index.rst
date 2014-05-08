@@ -72,6 +72,13 @@ Basic endpoints
    The result will be a JSON :ref:`submission object <submissions>`.
 
 
+.. http:get:: /api/users/(login_name)/view
+
+   Retrieve information about a user by :term:`login name`.
+
+   The result will be a JSON :ref:`user object <users>`.
+
+
 .. http:get:: /api/users/(login_name)/gallery
 
    List a user's gallery by :term:`login name`.
@@ -250,6 +257,119 @@ Submissions
 
    The *favorited* key indicates whether or not the current user has favorited
    the submission.
+
+
+.. _users:
+
+Users
+-----
+
+A user object contains many keys. Some of these keys include:
+
+   ``media``
+      The :ref:`media <media>` of the specified user's avatar and banner.
+
+   ``profile_text``
+      The rendered HTML of the specified user's description.
+
+   ``recent_submissions``
+      An array of :ref:`submission objects <submissions>`.
+
+   ``recent_type``
+      What kind of submissions are in the ``recent_submissions`` array. Can
+      be one of ``submissions``, ``characters``, or ``collections``.
+
+   ``relationship``
+      ``null`` if this is an unauthenticated request or an object
+      representing aspects of the relationship between the current user and
+      the specified user.
+
+   ``show_favorites_bar``
+      Whether the specified user's favorites are shown as icons at the top
+      of the profile page.
+
+   ``show_favorites_tab``
+      Whether the specified user's favorites should be shown at all.
+
+   ``statistics``
+      ``null`` if the specified user doesn't allow statistics to be shown or
+      an object of statistics about the specified user.
+
+
+A user object resembles::
+
+  {
+      "banned": false,
+      "catchphrase": "",
+      "commission_info": {
+          "commissions": null,
+          "details": "&lt;",
+          "price_classes": null,
+          "requests": null,
+          "trades": null
+      },
+      "created_at": "2012-11-03T17:01:37Z",
+      "featured_submission": null,
+      "folders": [],
+      "full_name": "weyk\u00ebnt",
+      "login_name": "weykent",
+      "media": {
+          "avatar": [
+              {
+                  "mediaid": 937444,
+                  "url": "https://www.weasyl.com/static/user/66/42/8d/0a/3f/8c//5756/avatar.png"
+              }
+          ],
+          "banner": [
+              {
+                  "mediaid": 937443,
+                  "url": "https://www.weasyl.com/static/user/66/42/8d/0a/3f/8c//5756/banner.gif"
+              }
+          ]
+      },
+      "profile_text": "<p>yo. I do weasyl coding and shit.</p><p>&#128572;</p>",
+      "recent_submissions": [...],
+      "recent_type": "collections",
+      "relationship": null,
+      "show_favorites_bar": false,
+      "show_favorites_tab": false,
+      "statistics": {
+          "faves_received": 0,
+          "faves_sent": 2,
+          "followed": 23,
+          "following": 56,
+          "journals": 0,
+          "page_views": 16354,
+          "submissions": 0,
+          "submit_views": 0
+      },
+      "stream_text": "",
+      "stream_url": "",
+      "streaming_status": "stopped",
+      "suspended": false,
+      "user_info": {
+          "age": null,
+          "aim": "",
+          "facebook": "",
+          "foursquare": "",
+          "gender": "h4x0r",
+          "googleplus": "",
+          "icq": "",
+          "location": "seattle, wa",
+          "msn": "",
+          "myspace": "",
+          "psn": "",
+          "reddit": "",
+          "skype": "",
+          "steam": "",
+          "tumblr": "",
+          "twitter": "",
+          "xboxlive": "",
+          "yahoo": "",
+          "youtube": ""
+      },
+      "username": "weykent"
+  }
 
 
 .. _media:

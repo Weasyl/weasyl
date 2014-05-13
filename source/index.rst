@@ -165,6 +165,9 @@ OAuth2 endpoints
 
    :query state: A random unguessable string.
 
+   :query response_type: Currently, only one response type is allowed:
+      ``"code"``.
+
    On a successful authorization, the user agent will be redirected to the
    *redirect_uri* with query parameters of *code* and *state*. *code* will be a
    random string used to retrieve the authorization code grant, and *state*

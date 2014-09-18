@@ -515,6 +515,13 @@ encountered. An object with neither key indicates that an unexpected error was
 encountered.
 
 
+OAuth2 errors
+~~~~~~~~~~~~~
+
+If a bearer token has expired, the :http:header:`WWW-Authenticate` header in
+the response will include ``error="invalid_token"``.
+
+
 Glossary
 ========
 

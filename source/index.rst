@@ -501,7 +501,7 @@ emitted by the Weasyl API:
   doesn't exist.
 
 - :http:statuscode:`422`. This is emitted if a parameter's value is unparsable
-  or invalid. For example, if a non-numeric value is specified for a field
+  or invalid. For example, if a non-numeric value is specified for a parameter
   requiring a numeric value.
 
 - :http:statuscode:`500`. This is emitted in the case of an unexpected error.

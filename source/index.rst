@@ -334,7 +334,7 @@ A user object resembles::
           ]
       },
       "profile_text": "<p>yo. I do weasyl coding and shit.</p><p>&#128572;</p>",
-      "recent_submissions": [...],
+      "recent_submissions": [],
       "recent_type": "collections",
       "relationship": null,
       "show_favorites_bar": false,

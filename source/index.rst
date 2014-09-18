@@ -196,7 +196,7 @@ Submissions
    A basic submission object resembles::
 
      {
-       "media": {...},
+       "media": {},
        "owner": "Caffeinated-Owl",
        "owner_login": "caffeinatedowl",
        "posted_at": "2014-02-12T07:33:17Z"
@@ -236,10 +236,10 @@ Submissions
          "friends_only": false,
          "owner": "Caffeinated-Owl",
          "owner_login": "caffeinatedowl",
-         "owner_media": {...},
+         "owner_media": {},
          "posted_at": "2014-02-12T07:33:17Z",
          "rating": "general",
-         "media": {...},
+         "media": {},
          "submitid": 466821,
          "subtype": "visual",
          "tags": [

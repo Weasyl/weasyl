@@ -245,5 +245,5 @@ texinfo_documents = [
 #texinfo_show_urls = 'footnote'
 
 
-highlight_languague = 'json'
+highlight_language = 'json'
 edit_on_github_project = 'Weasyl/weasyl-apidocs'

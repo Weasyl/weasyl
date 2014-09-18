@@ -20,9 +20,7 @@ Basic endpoints
 
      {"login": "weykent", "userid": 5756}
 
-   If there is no current user, the result will be::
-
-     {"login": null, "userid": 0}
+   If there is no current user, the response will be a :http:statuscode:`401`.
 
 
 .. http:get:: /api/useravatar
@@ -481,6 +479,40 @@ be authenticated as the user who created the key.
 To authenticate a request with an OAuth2 bearer token, pass an ``Authorization:
 Bearer`` header along with the token, as described in
 <http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20#section-2.1>.
+
+
+Errors
+------
+
+At the moment, these are the non-:http:statuscode:`200` statuses potentially
+emitted by the Weasyl API:
+
+- :http:statuscode:`401`. This is emitted for resources which require an
+  :ref:`authenticated <authentication>` user if no authorization is provided,
+  or if the provided authorization is invalid.
+
+- :http:statuscode:`403`. This is emitted in the case of an expected error.
+  That is, Weasyl was able to process your request, but is unable to return the
+  requested entity for some reason.
+
+- :http:statuscode:`404`. This is emitted if a URL is requested which doesn't
+  have matching data. For example, a request to
+  :http:get:`/api/users/(login_name)/gallery` for a :term:`login name` which
+  doesn't exist.
+
+- :http:statuscode:`422`. This is emitted if a parameter's value is unparsable
+  or invalid. For example, if a non-numeric value is specified for a field
+  requiring a numeric value.
+
+- :http:statuscode:`500`. This is emitted in the case of an unexpected error.
+  That is, Weasyl was unable to process your request.
+
+In addition to sending a non-:http:statuscode:`200` response, errors are
+signaled by returning a JSON object with an *error* key. The value of this key
+will be an object containing either a *code* key, a *name* key, or neither. An
+object with a *code* or *name* key will unambiguously specify the problem
+encountered. An object with neither key indicates that an unexpected error was
+encountered.
 
 
 Glossary

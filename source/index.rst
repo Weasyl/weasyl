@@ -514,6 +514,14 @@ object with a *code* or *name* key will unambiguously specify the problem
 encountered. An object with neither key indicates that an unexpected error was
 encountered.
 
+An error response resembles the following::
+
+    {
+      "error": {
+        "name": "RatingExceeded"
+      }
+    }
+
 
 OAuth2 errors
 ~~~~~~~~~~~~~

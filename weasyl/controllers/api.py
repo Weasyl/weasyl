@@ -70,6 +70,8 @@ _STANDARD_WWW_AUTHENTICATE = 'Bearer realm="Weasyl", Weasyl-API-Key realm="Weasy
 
 
 class api_base(controller_base):
+    oauth_scopes = []
+
     @api_method
     def status_check_fail(self, *args, **kwargs):
         web.ctx.status = '403 Forbidden'
@@ -88,6 +90,7 @@ class api_base(controller_base):
 
 
 class api_useravatar_(api_base):
+
     def GET(self):
         return self.POST()
 
@@ -135,6 +138,7 @@ class api_whoami_(api_base):
 
 
 class api_version_(api_base):
+
     @api_method
     def GET(self, format='.json'):
         if format == '.txt':
@@ -177,6 +181,7 @@ def tidy_submission(submission):
 
 
 class api_frontpage_(api_base):
+
     @api_method
     def GET(self):
         form = web.input(since=None, count=0)
@@ -205,6 +210,7 @@ class api_frontpage_(api_base):
 
 
 class api_submission_view_(api_base):
+
     @api_method
     def GET(self, submitid):
         form = web.input(anyway='', increment_views='')
@@ -215,6 +221,7 @@ class api_submission_view_(api_base):
 
 
 class api_user_view_(api_base):
+
     @api_method
     def GET(self, login):
         userid = self.user_id
@@ -370,6 +377,7 @@ class api_user_view_(api_base):
 
 
 class api_user_gallery_(api_base):
+
     @api_method
     def GET(self, login):
         userid = profile.resolve_by_login(login)
@@ -412,6 +420,7 @@ class api_user_gallery_(api_base):
 
 class api_messages_submissions_(api_base):
     login_required = True
+    oauth_scopes = ['notifications']
 
     @api_method
     def GET(self):
@@ -443,6 +452,7 @@ class api_messages_submissions_(api_base):
 
 class api_messages_summary_(api_base):
     login_required = True
+    oauth_scopes = ['notifications']
 
     @api_method
     def GET(self):
@@ -458,6 +468,7 @@ class api_messages_summary_(api_base):
 
 class api_favorite_(api_base):
     login_required = True
+    oauth_scopes = ['favourite']
 
     @api_method
     def POST(self, content_type, content_id):
@@ -474,6 +485,7 @@ class api_favorite_(api_base):
 
 class api_unfavorite_(api_base):
     login_required = True
+    oauth_scopes = ['favourite']
 
     @api_method
     def POST(self, content_type, content_id):

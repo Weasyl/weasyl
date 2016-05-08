@@ -23,6 +23,15 @@ _SCOPES = [
         'name': 'identity',
         'description': 'Permission to retrieve your weasyl username and account number'
     },
+    {
+        'name': 'notifications',
+        'description': 'Access to view your submission inbox, as well as notification counts '
+                       'for comments, favs, messages, etc.',
+    },
+    {
+        'name': 'favourite',
+        'description': 'The ability to favourite and unfavourite submissions'
+    },
 ]
 
 def extract_params():

@@ -1,4 +1,4 @@
-$def with (api_keys, consumers)
+$def with (api_keys, consumers, oauth_scopes, my_applications)
 $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
 
 <div id="apikeys-content" class="content form clear">
@@ -25,9 +25,8 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         New API Key
       </button>
     </form>
-  </div>
 
-  <div class="column">
+
     <h3>Manage API Keys</h3>
 
     <form name="manage-api-keys" action="" method="post" class="clear">
@@ -57,9 +56,11 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         <button class="button negative" style="float: right;">Delete Selected Keys</button>
       $else:
         <p style="padding-top: 1em;">You have no API keys!</p>
-
     </form>
 
+  </div>
+
+  <div class="column">
     <h3>Manage OAuth2 Consumers</h3>
 
     <form action="" method="post" class="clear">
@@ -78,9 +79,43 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         <button class="button negative" style="float: right;">Revoke Selected Consumers</button>
       $else:
         <p style="padding-top: 1em;">You have no OAuth2 consumers!</p>
-
-
     </form>
+
+    <h3>Register OAuth2 Application</h3>
+    <form action="" method="POST" class="clear">
+      $:{CSRF()}
+      <p style="padding-top: 1em;">
+        If you are a developer, you may register an application as an OAuth2 consumer.
+        You can then use your client id and client secret to request authorization tokens from
+        Weasyl. Your client secret MUST be stored securely and should not be accessible
+        by your application's users under any circumstance.
+      </p>
+      <label for="client-name">Application Name</label>
+      <input id="client-name" type="text" name="client-name" class="input" required />
+
+      <label>Scopes</label>
+      $for scope in oauth_scopes:
+        <label class="input-checkbox">
+          <input type="checkbox" name="client-scopes" value="${scope['name']}">
+          <strong>${scope['name']}</strong> - ${scope['description']}
+        </label>
+
+      <label for="redirect-uris">Redirect URIs</label>
+      <input id="redirect-uris" type="text" name="redirect-uris" class="input" required />
+
+      <button name="create-oauth2-client" value="y" style="float:right;margin-top:1em"
+              class="button last-input positive">Register Application</button>
+    </form>
+
+    <h3>Manage OAuth2 Applications</h3>
+      $if my_applications:
+        <form>
+        $for app in my_applications:
+          ${app.description}<br>
+        </form>
+      $else:
+        <p style="padding-top: 1em;">You have no registered applications!</p>
+
   </div>
 
   <h3>How to use API keys</h3>

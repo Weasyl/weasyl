@@ -417,18 +417,27 @@ class control_apikeys_(controller_base):
         return define.webpage(self.user_id, "control/edit_apikeys.html", [
             api.get_api_keys(self.user_id),
             oauth2.get_consumers_for_user(self.user_id),
+            oauth2.get_allowed_scopes(self.user_id),
+            oauth2.get_registered_applications(self.user_id),
         ])
 
     @define.token_checked
     def POST(self):
-        form = web.input(**{'delete-api-keys': [], 'revoke-oauth2-consumers': []})
+        form = web.input(**{'delete-api-keys': [], 'revoke-oauth2-consumers': [], 'client-scopes': []})
+
+        print(form)
 
         if form.get('add-api-key'):
             api.add_api_key(self.user_id, form.get('add-key-description'))
-        if form.get('delete-api-keys'):
+        elif form.get('delete-api-keys'):
             api.delete_api_keys(self.user_id, form['delete-api-keys'])
-        if form.get('revoke-oauth2-consumers'):
+        elif form.get('revoke-oauth2-consumers'):
             oauth2.revoke_consumers_for_user(self.user_id, form['revoke-oauth2-consumers'])
+        elif form.get('create-oauth2-client'):
+            oauth2.register_client(self.user_id,
+                                   form['client-name'],
+                                   form['client-scopes'],
+                                   form['redirect-uris'])
 
         raise web.seeother("/control/apikeys")
 

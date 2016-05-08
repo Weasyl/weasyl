@@ -3,15 +3,10 @@ from oauthlib.oauth2 import FatalClientError, OAuth2Error
 import web
 
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
+from libweasyl import staff
 from weasyl.controllers.base import controller_base
 from weasyl import define as d
 from weasyl import errorcode, login, media, orm
-
-'''
-EXISTING BEARER SCOPES:
-    'identity' - required for /api/whoami and /api/avatar
-    'wholesite' - total control
-'''
 
 _SCOPES = [
     {
@@ -33,6 +28,7 @@ _SCOPES = [
         'description': 'The ability to favourite and unfavourite submissions'
     },
 ]
+
 
 def extract_params():
     headers = {k[5:].replace('_', '-').title(): v for k, v in web.ctx.env.iteritems() if k.startswith('HTTP_')}
@@ -121,3 +117,50 @@ def get_userid_from_authorization(scopes=None):
 __all__ = [
     'get_consumers_for_user', 'revoke_consumers_for_user',
 ]
+
+
+def get_allowed_scopes(user_id):
+    """
+    Get a list of oauth scopes this user is allowed to request
+    :param user_id: the userid of the application owner
+    :return: a list of scopes
+    """
+    allowed = list(_SCOPES)
+    # only trusted individuals should be allowed to use the "wholesite" oauth grant
+    if user_id not in list(staff.ADMINS | staff.MODS | staff.DEVELOPERS):
+        allowed = [scope for scope in allowed if scope['name'] != 'wholesite']
+    return allowed
+
+
+def register_client(user_id, name, scopes, redirects, ):
+    """
+    Register an application as an OAuth2 consumer
+    :param user_id: the user registering this application
+    :param name: the name of the application
+    :param scopes: a list of the scopes registered for this application
+    :param redirects: allowed redirect URIs for this application
+    """
+
+    new_consumer = orm.OAuthConsumer(
+        clientid="test",
+        description=name,
+        ownerid=user_id,
+        grant_type="authorization_code",
+        response_type="code",
+        scopes=scopes,
+        redirect_uris=redirects,
+        client_secret="testsecret"
+    )
+    print(new_consumer)
+    return None
+
+
+def get_registered_applications(user_id):
+    """
+    Return a list of all OAuth2 consumers registered to this account
+    :param user_id:
+    :return:
+    """
+    q = (orm.OAuthConsumer.query
+         .filter_by(ownerid=user_id))
+    return q.all()

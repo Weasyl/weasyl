@@ -9,9 +9,21 @@ from weasyl import errorcode, login, media, orm
 
 '''
 EXISTING BEARER SCOPES:
-    "identity" - required for /api/whoami
-    "wholesite" - total control
+    'identity' - required for /api/whoami and /api/avatar
+    'wholesite' - total control
 '''
+
+_SCOPES = [
+    {
+        'name': 'wholesite',
+        'description': 'FULL CONTROL - Note that this means the application can '
+                       'perform almost any action as if you were logged in!',
+    },
+    {
+        'name': 'identity',
+        'description': 'Permission to retrieve your weasyl username and account number'
+    },
+]
 
 def extract_params():
     headers = {k[5:].replace('_', '-').title(): v for k, v in web.ctx.env.iteritems() if k.startswith('HTTP_')}
@@ -31,8 +43,9 @@ class authorize_(controller_base):
         else:
             user = user_media = None
         credentials['scopes'] = scopes
+        detail_scopes = [scope for scope in _SCOPES if scope['name'] in scopes]
         return d.render('oauth2/authorize.html', [
-            scopes, credentials, client, user, user_media, mobile, error,
+            detail_scopes, credentials, client, user, user_media, mobile, error,
             username, password, remember_me, not_me,
         ])
 
@@ -61,7 +74,7 @@ class authorize_(controller_base):
             if error:
                 error = errorcode.login_errors.get(error, 'Unknown error.')
         elif not self.user_id:
-            error = "You must specify a username and password."
+            error = 'You must specify a username and password.'
         else:
             userid = self.user_id
         if error:

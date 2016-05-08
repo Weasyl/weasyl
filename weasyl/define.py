@@ -343,7 +343,7 @@ def captcha_verify(form):
     return result[0] == 'true'
 
 
-def get_userid(sessionid=None):
+def get_userid(scopes=None):
     """
     Returns the userid corresponding to the user's sessionid; if no such session
     exists, zero is returned.
@@ -359,7 +359,7 @@ def get_userid(sessionid=None):
 
     elif authorization:
         from weasyl.oauth2 import get_userid_from_authorization
-        userid = get_userid_from_authorization()
+        userid = get_userid_from_authorization(scopes)
         if not userid:
             web.header('WWW-Authenticate', 'Bearer realm="Weasyl" error="invalid_token"')
             raise web.webapi.Unauthorized()

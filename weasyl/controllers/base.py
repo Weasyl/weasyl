@@ -12,6 +12,8 @@ class controller_base:
     moderator_only = False
     admin_only = False
     disallow_api = False
+    # passing None as a scope defaults to ['wholesite']
+    oauth_scopes = None
 
     def status_check_fail(self, *args, **kwargs):
         return define.common_status_page(self.user_id, self.status)
@@ -41,7 +43,7 @@ class controller_base:
         if (self.disallow_api or self.moderator_only or self.admin_only) and weasyl.api.is_api_user():
             raise web.forbidden()
 
-        self.user_id = define.get_userid()
+        self.user_id = define.get_userid(self.oauth_scopes)
         self.status = define.common_status_check(self.user_id)
 
         # Status check

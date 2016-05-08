@@ -7,6 +7,11 @@ from weasyl.controllers.base import controller_base
 from weasyl import define as d
 from weasyl import errorcode, login, media, orm
 
+'''
+EXISTING BEARER SCOPES:
+    "identity" - required for /api/whoami
+    "wholesite" - total control
+'''
 
 def extract_params():
     headers = {k[5:].replace('_', '-').title(): v for k, v in web.ctx.env.iteritems() if k.startswith('HTTP_')}
@@ -82,7 +87,9 @@ class token_(controller_base):
         return body
 
 
-def get_userid_from_authorization(scopes=['wholesite']):
+def get_userid_from_authorization(scopes=None):
+    if not scopes:
+        scopes = ['wholesite']
     valid, request = server.verify_request(*(extract_params() + (scopes,)))
     if not valid:
         return None

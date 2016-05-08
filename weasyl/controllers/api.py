@@ -124,6 +124,7 @@ class api_searchtagsuggest_(api_base):
 
 class api_whoami_(api_base):
     login_required = True
+    oauth_scopes = ['identity']
 
     @api_method
     def GET(self):

@@ -114,7 +114,10 @@ class WeasylValidator(RequestValidator):
         if not bearer:
             return False
         scopes = set(scopes)
-        if (scopes & set(bearer.scopes)) != scopes:
+        bearer_scopes = set(bearer.scopes)
+        # bearer only valid if it satisfied all scopes requested
+        # wholesite permission implicitly grants all others
+        if 'wholesite' not in bearer_scopes and (scopes & bearer_scopes) != scopes:
             return False
         request.userid = bearer.userid
         return True

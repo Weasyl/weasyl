@@ -103,6 +103,9 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
       <label for="client-name">Application Name</label>
       <input id="client-name" type="text" name="client-name" class="input" required />
 
+      <label for="client-homepage">Application Homepage</label>
+      <input id="client-homepage" type="url" name="client-homepage" class="input" placeholder="optional" />
+
       <label for="redirect-uris">Redirect URIs</label>
       <input id="redirect-uris" type="url" name="redirect-uris" class="input" required
           placeholder="separate multiple URIs with a space"/>
@@ -125,7 +128,10 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         $for app in my_applications:
           <label class="input-checkbox">
             <input type="checkbox" name="clientid" value="${app.clientid}" />
-            <strong>${app.description}</strong>
+            $if app.homepage:
+              <a href="${app.homepage}"><strong>${app.description}</strong></a>
+            $else:
+              <strong>${app.description}</strong>
             <p>client ID: <tt>${app.clientid}</tt></p>
             <p>client secret: <tt>${app.client_secret}</tt></p>
             <p>scopes: <tt>${", ".join(app.scopes)}</tt></p>

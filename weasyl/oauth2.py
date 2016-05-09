@@ -132,7 +132,7 @@ def get_allowed_scopes(user_id):
     return allowed
 
 
-def register_client(user_id, name, scopes, redirects, ):
+def register_client(user_id, name, scopes, redirects, homepage):
     """
     Register an application as an OAuth2 consumer
     :param user_id: the user registering this application
@@ -149,7 +149,8 @@ def register_client(user_id, name, scopes, redirects, ):
         response_type="code",
         scopes=scopes,
         redirect_uris=redirects,
-        client_secret=security.generate_key(64)
+        client_secret=security.generate_key(64),
+        homepage=homepage,
     )
     # this doesnt seem right
     session.begin()

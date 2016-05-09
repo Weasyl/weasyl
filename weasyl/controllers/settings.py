@@ -439,7 +439,8 @@ class control_apikeys_(controller_base):
             oauth2.register_client(self.user_id,
                                    form['client-name'],
                                    form['client-scopes'],
-                                   self._separator.split(form['redirect-uris']))
+                                   self._separator.split(form['redirect-uris']),
+                                   form['client-homepage'])
         elif form.get('remove-oauth2-client'):
             oauth2.remove_clients(self.user_id, form['clientid'])
         elif form.get('reissue-client-secret'):

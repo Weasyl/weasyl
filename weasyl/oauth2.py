@@ -3,7 +3,7 @@ from oauthlib.oauth2 import FatalClientError, OAuth2Error
 import web
 
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
-from libweasyl import staff
+from libweasyl import staff, security
 from weasyl.controllers.base import controller_base
 from weasyl import define as d
 from weasyl import errorcode, login, media, orm
@@ -140,18 +140,22 @@ def register_client(user_id, name, scopes, redirects, ):
     :param scopes: a list of the scopes registered for this application
     :param redirects: allowed redirect URIs for this application
     """
-
+    session = d.connect()
     new_consumer = orm.OAuthConsumer(
-        clientid="test",
+        clientid=security.generate_key(32),
         description=name,
         ownerid=user_id,
         grant_type="authorization_code",
         response_type="code",
         scopes=scopes,
         redirect_uris=redirects,
-        client_secret="testsecret"
+        client_secret=security.generate_key(64)
     )
-    print(new_consumer)
+    # this doesnt seem right
+    session.begin()
+    session.add(new_consumer)
+    session.commit()
+
     return None
 
 
@@ -164,3 +168,11 @@ def get_registered_applications(user_id):
     q = (orm.OAuthConsumer.query
          .filter_by(ownerid=user_id))
     return q.all()
+
+
+def remove_clients(user_id, clients):
+    q = (orm.OAuthConsumer.query
+         .filter_by(ownerid=user_id)
+         .filter(orm.OAuthConsumer.clientid.in_(clients)))
+    q.delete(synchronize_session='fetch')
+    return

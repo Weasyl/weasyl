@@ -21,7 +21,7 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         However, user agents accessing Weasyl with your API key also
         will <em>never</em> be able to see your password.
       </p>
-      <button name="add-api-key" value="y" class="button last-input positive" style="float: right;">
+      <button name="add-api-key" value="y" class="button positive" style="float: right;">
         New API Key
       </button>
     </form>
@@ -37,7 +37,7 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
           $for token, description in api_keys:
             <li>
               <label class="input-checkbox">
-                <input type="checkbox" name="delete-api-keys" value="${token}" /></th>
+                <input type="checkbox" name="delete-api-keys" value="${token}" />
 
                 <em>
                   $if description:
@@ -104,14 +104,26 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
       <input id="redirect-uris" type="text" name="redirect-uris" class="input" required />
 
       <button name="create-oauth2-client" value="y" style="float:right;margin-top:1em"
-              class="button last-input positive">Register Application</button>
+              class="button positive">Register Application</button>
     </form>
 
     <h3>Manage OAuth2 Applications</h3>
       $if my_applications:
-        <form>
+        <form action="" method="POST" class="clear">
+        $:{CSRF()}
         $for app in my_applications:
-          ${app.description}<br>
+          <label class="input-checkbox">
+            <input type="checkbox" name="clientid" value="${app.clientid}" />
+            <strong>${app.description}</strong>
+            <p>client ID: <tt>${app.clientid}</tt></p>
+            <p>client secret: <tt>${app.client_secret}</tt></p>
+            <p>scopes: <tt>${", ".join(app.scopes)}</tt></p>
+          </label>
+
+        <button name="remove-oauth2-client" value="y" style="float:right;margin-top:1em"
+                class="button negative">Delete Selected Applications</button>
+        <button name="reissue-client-secret" value="y" style="float:right;margin-top:1em"
+                class="button">Reissue Secrets</button>
         </form>
       $else:
         <p style="padding-top: 1em;">You have no registered applications!</p>

@@ -423,9 +423,10 @@ class control_apikeys_(controller_base):
 
     @define.token_checked
     def POST(self):
-        form = web.input(**{'delete-api-keys': [], 'revoke-oauth2-consumers': [], 'client-scopes': []})
-
-        print(form)
+        form = web.input(**{'delete-api-keys': [],
+                            'revoke-oauth2-consumers': [],
+                            'client-scopes': [],
+                            'clientid': []})
 
         if form.get('add-api-key'):
             api.add_api_key(self.user_id, form.get('add-key-description'))
@@ -438,6 +439,10 @@ class control_apikeys_(controller_base):
                                    form['client-name'],
                                    form['client-scopes'],
                                    form['redirect-uris'])
+        elif form.get('remove-oauth2-client'):
+            oauth2.remove_clients(self.user_id, form['clientid'])
+        elif form.get('reissue-client-secret'):
+            oauth2.renew_client_secrets(self.user_id, form['clientid'])
 
         raise web.seeother("/control/apikeys")
 

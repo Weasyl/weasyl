@@ -331,7 +331,7 @@ $code:
       $:{RENDER("common/comment_form.html", [myself, query['submitid'], "submit"])}
   </div><!-- /detail-comments -->
 
-  $ display_ads = ads.get_display_ads(myself['userid'], count=2)
+  $ display_ads = ads.get_display_ads(myself and myself['userid'], count=2)
   $if display_ads:
     <div id="submission-ads">
       <div class="ads-multiple">

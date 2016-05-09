@@ -1,4 +1,4 @@
-$def with (everything, randomized, visual, literary, media, characters, update, critique, streaming, popular=None)
+$def with (everything, randomized, visual, literary, media, characters, update, critique, streaming, popular, userid)
 $code:
   def _RATING(target):
     if target == R.MODERATE.code:
@@ -80,6 +80,12 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 </div><!-- /home-art -->
 
 <div id="home-content" class="content">
+  $ display_ads = ads.get_display_ads(userid, count=2)
+  $if display_ads:
+    <div id="home-ads" class="ads-multiple">
+      $for ad in display_ads:
+        <a href="${ad.link_target}" class="ad-multiple"><img src="${ad.image_path}" alt="" /></a>
+    </div>
 
   $if(update):
     <div id="hc-update" class="clear">

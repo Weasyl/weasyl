@@ -4828,3 +4828,27 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 .thumbnail-stack .caption .title {
     font-size: 13px;
 }
+
+/* Ads
+--------------------------------*/
+.ads-multiple {
+    padding-top: 2.8em;
+    text-align: center;
+    word-spacing: 2em;
+}
+
+.ad-multiple {
+    display: inline-block;
+}
+
+@media (max-width: 42em) {
+    .ads-multiple * + .ad-multiple {
+        display: none;
+    }
+}
+
+@media (max-width: 66em) {
+    #submission-ads .ads-multiple {
+        word-spacing: 1em;
+    }
+}

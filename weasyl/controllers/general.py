@@ -16,7 +16,7 @@ class index_(controller_base):
     def GET(self):
         now = time.time()
         page = define.common_page_start(self.user_id, options=["homepage"], title="Home")
-        page.append(define.render("etc/index.html", index.template_fields(self.user_id)))
+        page.append(define.render("etc/index.html", index.template_fields(self.user_id) + [self.user_id]))
         return define.common_page_end(self.user_id, page, now=now)
 
 

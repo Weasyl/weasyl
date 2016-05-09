@@ -226,6 +226,8 @@ def compile(template_name):
     template = _template_cache.get(template_name)
 
     if template is None or reload_templates:
+        from weasyl import ads
+
         template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
         _template_cache[template_name] = template = web.template.frender(
             template_path,
@@ -258,7 +260,9 @@ def compile(template_name):
                 "INLINE_JSON": html.inline_json,
                 "CDNIFY": cdnify_url,
                 "PATH": get_path,
+                "ads": ads,
                 "arrow": arrow,
+                "datetime": datetime,
                 "getattr": getattr,
                 "sorted": sorted,
                 "staff": staff,

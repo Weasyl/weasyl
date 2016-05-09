@@ -1,0 +1,53 @@
+$def with (created)
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta name="viewport" content="initial-scale=1" />
+
+        <title>Create Ad – Weasyl</title>
+
+        <style>
+        label {
+            display: block;
+            margin: 1em 0;
+        }
+
+        .created {
+            background-color: green;
+            color: white;
+            padding: 0.6em;
+        }
+        </style>
+    </head>
+    <body>
+        $if created:
+            <p class="created">Created ad ${created}</p>
+
+        <form method="POST" enctype="multipart/form-data">
+            $:{CSRF()}
+
+            <label>
+                300×100 image:
+                <input type="file" name="image" accept="image/*" required />
+            </label>
+
+            <label>
+                Owner’s e-mail address:
+                <input type="email" name="owner" value="" placeholder="user@example.com" required />
+            </label>
+
+            <label>
+                Link target:
+                <input type="url" name="target" value="" placeholder="https://example.com/" required />
+            </label>
+
+            <label>
+                End date (YYYY-MM-DD):
+                <input type="text" name="end" value="${(arrow.utcnow() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')}" required />
+            </label>
+
+            <button>Create Ad</button>
+        </form>
+    </body>
+</html>

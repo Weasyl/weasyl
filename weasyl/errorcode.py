@@ -40,6 +40,11 @@ offline_mode = (
     "this page cannot be accessed at this time.")
 
 error_messages = {
+    "adEndDateInvalid": "The specified end date is invalid.",
+    "adImageMissing": "An ad image is required.",
+    "adImageSizeInvalid": "The uploaded ad image is too large (over 200 KB).",
+    "adImageTypeInvalid": "The uploaded ad image is not a valid PNG or JPEG image.",
+    "adTargetInvalid": "The provided link is invalid.",
     "addressInvalid": "Your IP address does not match the location from which this request was made.",
     "AdminLocked": "This content has been locked from any editing by an admin.",
     "ArtistTags": "You cannot remove tags that have been added by the artist.",

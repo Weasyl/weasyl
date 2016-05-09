@@ -1,4 +1,4 @@
-$def with (query)
+$def with (query, userid)
 $code:
   def _PREVIOUS(x):
     if x in [1010, 1015]:         return [1010, 1015]
@@ -34,11 +34,17 @@ $code:
     elif x in [4040, 4045]:       return "Character Comments"
     else:                         return "Miscellaneous"
 
-$ previous_types = []
-$ previous_sections = set()
+  previous_types = []
+  previous_sections = set()
 $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
 
 <div id="messages-content" class="content">
+  $ display_ads = ads.get_display_ads(userid, count=2)
+  $if display_ads:
+    <div id="notification-ads" class="ads-multiple">
+      $for ad in display_ads:
+        <a href="${ad.link_target}" class="ad-multiple"><img src="${ad.image_path}" alt="" /></a>
+    </div>
 
   $if not query:
     <br>

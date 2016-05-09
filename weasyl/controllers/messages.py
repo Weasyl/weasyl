@@ -59,6 +59,7 @@ class messages_notifications_(controller_base):
         define._page_header_info.refresh(self.user_id)
         return define.webpage(self.user_id, "message/notifications.html", [
             sort_notifications(notifications),
+            self.user_id,
         ])
 
 
@@ -75,4 +76,5 @@ class messages_submissions_(controller_base):
             # Submissions
             message.select_submissions(self.user_id, 66,
                                        backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
+            self.user_id,
         ])

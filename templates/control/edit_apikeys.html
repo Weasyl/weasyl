@@ -58,6 +58,14 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         <p style="padding-top: 1em;">You have no API keys!</p>
     </form>
 
+
+    <h3>How to use API keys</h3>
+    <p>
+      To connect to Weasyl using an API key, set the value of
+      the <tt>X-Weasyl-API-Key</tt> HTTP header to the API key. This will
+      override any cookie-based authentication.
+    </p>
+
   </div>
 
   <div class="column">
@@ -88,10 +96,16 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         If you are a developer, you may register an application as an OAuth2 consumer.
         You can then use your client id and client secret to request authorization tokens from
         Weasyl. Your client secret MUST be stored securely and should not be accessible
-        by your application's users under any circumstance.
+        by your application's users under any circumstance. For more information see
+        <a href="https://projects.weasyl.com/weasylapi/#oauth2-endpoints">
+          https://projects.weasyl.com/weasylapi/#oauth2-endpoints</a>
       </p>
       <label for="client-name">Application Name</label>
       <input id="client-name" type="text" name="client-name" class="input" required />
+
+      <label for="redirect-uris">Redirect URIs</label>
+      <input id="redirect-uris" type="url" name="redirect-uris" class="input" required
+          placeholder="separate multiple URIs with a space"/>
 
       <label>Scopes</label>
       $for scope in oauth_scopes:
@@ -99,9 +113,6 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
           <input type="checkbox" name="client-scopes" value="${scope['name']}">
           <strong>${scope['name']}</strong> - ${scope['description']}
         </label>
-
-      <label for="redirect-uris">Redirect URIs</label>
-      <input id="redirect-uris" type="text" name="redirect-uris" class="input" required />
 
       <button name="create-oauth2-client" value="y" style="float:right;margin-top:1em"
               class="button positive">Register Application</button>
@@ -118,6 +129,7 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
             <p>client ID: <tt>${app.clientid}</tt></p>
             <p>client secret: <tt>${app.client_secret}</tt></p>
             <p>scopes: <tt>${", ".join(app.scopes)}</tt></p>
+            <p>redirects: ${" ".join(app.redirect_uris)}</p>
           </label>
 
         <button name="remove-oauth2-client" value="y" style="float:right;margin-top:1em"
@@ -129,12 +141,5 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         <p style="padding-top: 1em;">You have no registered applications!</p>
 
   </div>
-
-  <h3>How to use API keys</h3>
-  <p>
-    To connect to Weasyl using an API key, set the value of
-    the <tt>X-Weasyl-API-Key</tt> HTTP header to the API key. This will
-    override any cookie-based authentication.
-  </p>
 
 </div>

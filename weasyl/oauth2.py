@@ -156,7 +156,7 @@ def register_client(user_id, name, scopes, redirects, ):
     session.add(new_consumer)
     session.commit()
 
-    return None
+    return
 
 
 def get_registered_applications(user_id):
@@ -174,5 +174,15 @@ def remove_clients(user_id, clients):
     q = (orm.OAuthConsumer.query
          .filter_by(ownerid=user_id)
          .filter(orm.OAuthConsumer.clientid.in_(clients)))
-    q.delete(synchronize_session='fetch')
+    q.delete(synchronize_session=False)
+    return
+
+
+def renew_client_secrets(user_id, clients):
+    for cid in clients:
+        q = (orm.OAuthConsumer.query
+             .filter_by(ownerid=user_id)
+             .filter_by(clientid=cid))
+        q.update({orm.OAuthConsumer.client_secret: security.generate_key(64)},
+                 synchronize_session=False)
     return

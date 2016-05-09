@@ -1,5 +1,5 @@
 import os
-
+import re
 import web
 
 import libweasyl.ratings as ratings
@@ -412,6 +412,7 @@ class control_streaming_(controller_base):
 class control_apikeys_(controller_base):
     login_required = True
     disallow_api = True
+    _separator = re.compile(r"\s+")
 
     def GET(self):
         return define.webpage(self.user_id, "control/edit_apikeys.html", [
@@ -438,7 +439,7 @@ class control_apikeys_(controller_base):
             oauth2.register_client(self.user_id,
                                    form['client-name'],
                                    form['client-scopes'],
-                                   form['redirect-uris'])
+                                   self._separator.split(form['redirect-uris']))
         elif form.get('remove-oauth2-client'):
             oauth2.remove_clients(self.user_id, form['clientid'])
         elif form.get('reissue-client-secret'):

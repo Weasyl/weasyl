@@ -4852,3 +4852,11 @@ a.user-icon:hover > span, a.user-icon:focus > span {
         word-spacing: 1em;
     }
 }
+
+#ad-list {
+    table-layout: auto;
+}
+
+#ad-list td {
+    vertical-align: middle;
+}

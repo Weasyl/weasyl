@@ -12,7 +12,8 @@ from weasyl.error import WeasylError
 
 
 class Ad(object):
-    def __init__(self, link_target, start, end, image_path):
+    def __init__(self, id, link_target, start, end, image_path):
+        self.id = id
         self.link_target = link_target
         self.start = start
         self.end = end
@@ -35,6 +36,7 @@ def _from_row(row):
     filename = "%s.%s" % (row.sha256, row.file_type)
 
     return {
+        "id": row.id,
         "link_target": row.link_target,
         "start": _serializable_datetime(row.start),
         "end": _serializable_datetime(row.end),
@@ -47,7 +49,7 @@ def _from_row(row):
 @region.cache_on_arguments()
 def _get_all_ads():
     all_ads = engine.execute("""
-        SELECT ads.link_target, ads.start, ads.end, media.sha256, media.file_type
+        SELECT ads.id, ads.link_target, ads.start, ads.end, media.sha256, media.file_type
         FROM ads
             INNER JOIN media ON ads.file = media.mediaid
         WHERE NOW() <= ads.end AND ads.start IS NOT NULL
@@ -56,13 +58,17 @@ def _get_all_ads():
     return map(_from_row, all_ads)
 
 
-def get_current_ads():
+def _get_current_ads():
     now = _serializable_datetime(datetime.now())
     return [ad for ad in _get_all_ads() if ad["start"] <= now <= ad["end"]]
 
 
+def get_current_ads():
+    return [Ad(**ad) for ad in _get_current_ads()]
+
+
 def get_display_ads(userid, count):
-    current_ads = get_current_ads()
+    current_ads = _get_current_ads()
     return [Ad(**ad) for ad in random.sample(current_ads, min(count, len(current_ads)))]
 
 
@@ -98,3 +104,8 @@ def create_ad(form):
 
     _get_all_ads.invalidate()
     return ad_id
+
+
+def expire(ad_id):
+    engine.execute('UPDATE ads SET "end" = NOW() WHERE id = %(id)s', id=ad_id)
+    _get_all_ads.invalidate()

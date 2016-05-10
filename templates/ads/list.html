@@ -1,0 +1,38 @@
+$def with (userid, ads)
+$ is_mod = userid in staff.MODS
+$:{RENDER("common/stage_title.html", ["Advertisements"])}
+
+<div id="ads-content" class="content">
+  <h3>Current Advertisements</h3>
+
+  $if ads:
+    <form method="POST">
+      $:{CSRF()}
+
+      <table id="ad-list">
+        <thead>
+          <th>Image</th>
+          <th>Link</th>
+          $if is_mod:
+            <th>Actions</th>
+        </thead>
+        <tbody>
+          $for ad in ads:
+            <tr id="ad${ad.id}">
+              <td>
+                <img src="${CDNIFY(ad.image_path)}" alt="" />
+              </td>
+              <td>
+                <a href="${ad.link_target}">${ad.link_target}</a>
+              </td>
+              $if is_mod:
+                <td>
+                  <button name="takedown" value="${ad.id}" class="button">Take down</button>
+                </td>
+            </tr>
+        </tbody>
+      </table>
+    </form>
+  $else:
+    <p>No current advertisements.</p>
+</div>

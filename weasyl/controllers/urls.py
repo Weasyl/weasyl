@@ -207,6 +207,7 @@ controllers = (
     "/api/oauth2/authorize", "weasyl.oauth2.authorize_",
     "/api/oauth2/token", "weasyl.oauth2.token_",
 
+    "/ads", "weasyl.controllers.ads.list_",
     "/ads/create", "weasyl.controllers.ads.create_",
 
     "/events/halloweasyl2014", "weasyl.controllers.events.halloweasyl2014_",

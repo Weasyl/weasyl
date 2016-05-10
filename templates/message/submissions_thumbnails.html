@@ -12,7 +12,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     $if display_ads:
       <div id="notification-ads" class="ads-multiple">
         $for ad in display_ads:
-          <a href="${ad.link_target}" class="ad-multiple"><img src="${ad.image_path}" alt="" /></a>
+          <a href="${ad.link_target}" class="ad-multiple"><img src="${CDNIFY(ad.image_path)}" alt="" /></a>
       </div>
 
     <h3>Submission Notifications</h3>

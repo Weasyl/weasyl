@@ -32,36 +32,6 @@ def from_string(filedata):
         raise WeasylError('imageDecodeError')
 
 
-# Return a dictionary containing the image format, dimensions, and file size.
-# If a particular element of the result dictionary cannot be determined, it
-# will be assigned to None; if the filename does not appear to refer to a valid
-# image file, a ValueError will be raised if `exception` is True else None will
-# be returned.
-
-def get_info(filename, exception=False, printable=False):
-    assert not printable  # deprecated parameter
-
-    if not filename:
-        if exception:
-            raise ValueError
-        else:
-            return
-
-    im = read(filename)
-    filesize = os.path.getsize(filename)
-
-    return {
-        # File extension
-        "format": image_extension(im),
-        # File type flag
-        "setting": image_setting(im),
-        # Dimensions list
-        "dimensions": (im.size.width, im.size.height),
-        # File size
-        "filesize": filesize,
-    }
-
-
 def image_extension(im):
     if im.original_format in ('JPG', 'JPEG'):
         return '.jpg'
@@ -103,19 +73,6 @@ def unanimate(im):
     return ret
 
 
-def get_dimensions(filename, inline=False):
-    """
-    Return the dimension of the image file; if `inline` is True return the result
-    set as tuple, else return it as a list. The dimensions are returned as width
-    and height in either case.
-    """
-    im = read(filename)
-    size = im.size.width, im.size.height
-    if not inline:
-        size = list(size)
-    return size
-
-
 def check_crop(dim, x1, y1, x2, y2):
     """
     Return True if the specified crop coordinates are valid, else False.
@@ -125,19 +82,16 @@ def check_crop(dim, x1, y1, x2, y2):
         y1 <= dim[1] and x2 <= dim[0] and y2 <= dim[1] and x2 > x1 and y2 > y1)
 
 
-def check_type(filename, secure=True):
+def check_type(filename):
     """
     Return True if the filename corresponds to an image file, else False.
     """
-    if secure:
-        try:
-            im = Image.read(filename)
-        except SanperaError:
-            return False
-        else:
-            return im.original_format in ['JPEG', 'PNG', 'GIF']
+    try:
+        im = Image.read(filename)
+    except SanperaError:
+        return False
     else:
-        return filename and filename[-4:] in [".jpg", ".png", ".gif"]
+        return im.original_format in ['JPEG', 'PNG', 'GIF']
 
 
 def _resize(im, width, height):

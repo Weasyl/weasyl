@@ -1,4 +1,4 @@
-# errorcode.py
+# coding=utf-8
 
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
@@ -41,6 +41,7 @@ offline_mode = (
 
 error_messages = {
     "adEndDateInvalid": "The specified end date is invalid.",
+    "adImageDimensionsInvalid": u"Ad images must be 300×100.",
     "adImageMissing": "An ad image is required.",
     "adImageSizeInvalid": "The uploaded ad image is too large (over 200 KB).",
     "adImageTypeInvalid": "The uploaded ad image is not a valid PNG or JPEG image.",

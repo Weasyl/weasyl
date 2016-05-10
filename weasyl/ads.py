@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from libweasyl.files import fanout
 from libweasyl.models.media import fetch_or_create_media_item
+from sanpera.geometry import Size
 from weasyl import image
 from weasyl.define import engine, region
 from weasyl.error import WeasylError
@@ -18,6 +19,7 @@ class Ad(object):
         self.image_path = image_path
 
 
+IMAGE_DIMENSIONS = Size(300, 100)
 PERMITTED_TYPES = {"jpg", "png"}
 SIZE_LIMIT = 200 * 1024  # 200 KB
 
@@ -75,10 +77,13 @@ def create_ad(form):
         raise WeasylError("adImageSizeInvalid")
 
     im = image.from_string(form.image)
-    file_type = image.image_extension(im).lstrip(".")
+    file_type = image.image_file_type(im)
 
     if file_type not in PERMITTED_TYPES:
         raise WeasylError("adImageTypeInvalid")
+
+    if im.size != IMAGE_DIMENSIONS:
+        raise WeasylError("adImageDimensionsInvalid")
 
     ad_media = fetch_or_create_media_item(form.image, file_type=file_type, im=im)
     ad_media.dbsession.flush()

@@ -5,6 +5,7 @@ import web
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
 from libweasyl import staff, security
 from weasyl.controllers.base import controller_base
+from weasyl.error import WeasylError
 from weasyl import define as d
 from weasyl import errorcode, login, media, orm
 
@@ -140,6 +141,10 @@ def register_client(user_id, name, scopes, redirects, homepage):
     :param scopes: a list of the scopes registered for this application
     :param redirects: allowed redirect URIs for this application
     """
+
+    if not name.strip():
+        raise WeasylError("nameMissing")
+
     session = d.connect()
     new_consumer = orm.OAuthConsumer(
         clientid=security.generate_key(32),

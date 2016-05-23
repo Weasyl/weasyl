@@ -100,6 +100,7 @@ error_messages = {
         "name correctly and that the account you are trying to recover the password for actually exists."),
     "maxamountInvalid": "The maximum amount you entered is not valid.",
     "minamountInvalid": "The minimum amount you entered is not valid.",
+    "nameMissing": "You did not supply a valid name for this application",
     "noCover": "No cover exists for that submission.",
     "noImageSource": "No image exists from which to create a thumbnail.",
     "not-utf8": "Text submissions must be encoded in UTF-8.",

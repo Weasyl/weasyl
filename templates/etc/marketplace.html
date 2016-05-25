@@ -1,0 +1,56 @@
+$def with (results, form)
+$:{TITLE("Marketplace")}
+$code:
+  def opt_value(v):
+    return ' value={}'.format(v) if v else ""
+
+<div class="stage" style="background:#DDD">
+  <div class="content sectioned-sidebar">
+    <h3>Marketplace Search</h3>
+    <form id="marketplace-search" method="GET" class="form">
+      <!-- WIP
+      <label for="commission-type-tags">Search Terms</label>
+      <input id="commission-type-tags" name="q" title="Search for artists" type="search" tabindex="2" class="input">
+      -->
+      <label for="commission-min-price">Minimum Price</label>
+      <input id="commission-min-price" name="min" title="Minimum Price"
+             type="text" class="input"${opt_value(form.min)}>
+      <label for="commission-max-price">Maximum Price</label>
+      <input id="commission-max-price" name="max" title="maximum Price"
+             type="text" class="input last-input"${opt_value(form.max)}>
+
+      <button class="button">Search</button>
+    </form>
+  </div>
+
+  <div class="sectioned-main content">
+    <h3>Artist Results</h3>
+
+    $for artist in results:
+      <div class="clear" style="margin-bottom:1em">
+        <a href="/~${LOGIN(artist['username'])}" style="float:left;margin-right:2em">
+          $ avatar = artist['user_media']['avatar'][0]
+          <img src="${avatar['display_url']}" alt="" />
+        </a>
+        $# artist's commission info
+        <div class="marketplace-artist-info" style="font-size:1.6em">
+          <a href="/~${artist['username']}#user-commissions" class="username">${artist['username']}</a>
+          <a href="/submissions/${artist['username']}">[Gallery]</a>
+        </div>
+        <div class="marketplace-artist-prices" style="font-weight:bold">
+          $if artist['pricemin']:
+            <span>$:{'from ' if artist['pricemax'] else ''}$:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemin'])}</span>
+            $if(artist['pricemax']):
+              <span>to $:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemax'])}</span>
+          $else:
+            Price Not Declared
+        </div>
+        <div class="formatted-content" style="margin-left:150px">
+          $if artist.get('description'):
+            $:{MARKDOWN(artist['description'])}
+          $else:
+            No description provided
+        </div>
+      </div>
+  </div>
+</div>

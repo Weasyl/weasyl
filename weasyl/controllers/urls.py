@@ -107,6 +107,8 @@ controllers = (
     "/messages/notifications", "weasyl.controllers.messages.messages_notifications_",
     "/messages/submissions", "weasyl.controllers.messages.messages_submissions_",
 
+    "/marketplace", "weasyl.controllers.marketplace.search_",
+
     "/control", "weasyl.controllers.settings.control_",
     "/settings", "weasyl.controllers.settings.control_",
     "/control/uploadavatar", "weasyl.controllers.settings.control_uploadavatar_",

@@ -373,6 +373,52 @@ def select_streaming(userid, rating, limit, following=True, order_by=None):
     return ret
 
 
+def select_commissionable(userid, query, min_price, max_price, limit):
+    """
+    TODO write a description
+    :param userid:
+    :param limit:
+    :return:
+    """
+    # in this proof of concept, sort users by their most recent upload
+    # this has the benefit of displaying more active users most prominently
+    # TODO properly format this
+    stmt = [
+        "SELECT DISTINCT p.userid, p.username, p.settings, s.unixtime, "
+        "prices.pricemin, prices.pricemax, priceconfig.settings AS pricesettings, "
+        "d.content AS description "
+        "FROM profile p "
+        "JOIN submission s ON s.userid = p.userid "
+        "JOIN (SELECT cp.userid, MIN(cp.amount_min) AS pricemin, "
+        "GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax "
+        "FROM commishprice cp "
+        "WHERE cp.settings NOT LIKE '%%a' "
+        "GROUP BY cp.userid) "
+        "AS prices ON prices.userid = p.userid "
+        "JOIN commishdesc d ON d.userid = p.userid "
+        "LEFT JOIN (SELECT DISTINCT cp.settings, cp.userid, cp.amount_min "
+        "FROM commishprice cp "
+        "WHERE cp.settings NOT LIKE '%%a') "
+        "AS priceconfig ON priceconfig.userid = p.userid "
+        "AND priceconfig.amount_min = prices.pricemin "
+        "WHERE p.settings ~ '[os]..?' "
+        "AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) "
+    ]
+    if min_price:
+        stmt.append("AND prices.pricemin >= %(min)s ")
+    if max_price:
+        stmt.append("AND prices.pricemin <= %(max)s ")
+    stmt.append("ORDER BY s.unixtime DESC ")
+    stmt.append("LIMIT %(limit)s ")
+    print(min_price)
+    print(max_price)
+    print(stmt)
+    query = d.engine.execute("".join(stmt), limit=limit, min=min_price, max=max_price)
+    results = [dict(q) for q in query]
+    media.populate_with_user_media(results)
+    return results
+
+
 def select_avatars(userids):
     if not userids:
         return {}

@@ -19,6 +19,8 @@ def convert_currency(target):
         return 0
     # strip everything but digits and a decimal point
     digits = re.sub("[^0-9.]", "", target)
+    if not digits:
+        return 0
     return int(Decimal(digits) * (10 ** CURRENCY_PRECISION))
 
 

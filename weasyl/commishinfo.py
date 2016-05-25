@@ -3,14 +3,27 @@
 import error
 import define as d
 from decimal import Decimal
+from weasyl.cache import region
+from weasyl.error import WeasylError
 import re
 
 _MAX_PRICE = 99999999
 
 CURRENCY_PRECISION = 2
 
+# map database charset to ISO4217 currency codes
+# USD is default & is indicated by the existence of no other matching value
+_CURRENCY_CHARMAP = {
+    "e": "EUR",
+    "p": "GBP",
+    "y": "JPY",
+    "c": "CAD",
+    "m": "MXN",
+    "u": "AUD",
+}
 
-def convert_currency(target):
+
+def parse_currency(target):
     """
     Return the target string as a price integer; for example, "$1.23" becomes
     123 which can then be stored in the database.
@@ -22,6 +35,41 @@ def convert_currency(target):
     if not digits:
         return 0
     return int(Decimal(digits) * (10 ** CURRENCY_PRECISION))
+
+
+@region.cache_on_arguments(expiration_time=60*60*24)
+def _fetch_rates():
+    try:
+        return d.http_get("http://api.fixer.io/latest?base=USD").json()
+    except:
+        return None
+
+
+def _charmap_to_currency_code(charmap):
+    for c in charmap:
+        if c in _CURRENCY_CHARMAP:
+            return _CURRENCY_CHARMAP.get(c)
+    return "USD"
+
+
+def convert_currency(value, valuecode, targetcode):
+    valuecode = _charmap_to_currency_code(valuecode)
+    targetcode = _charmap_to_currency_code(targetcode)
+    if targetcode == valuecode:
+        return value
+    rates = _fetch_rates()
+    if not rates:
+        # in the unlikely event of an error, invalidate our rates
+        # (to try fetching again) and return value unaltered
+        _fetch_rates.invalidate()
+        return value
+    rates = rates["rates"]
+    rates["USD"] = 1.0
+    r1 = rates.get(valuecode)
+    r2 = rates.get(targetcode)
+    if not (r1 and r2):
+        raise WeasylError("Unexpected")
+    return value * r2/r1
 
 
 def select_list(userid):
@@ -52,6 +100,56 @@ def select_list(userid):
         } for i in query if "a" in i[4]],
         "content": content if content else "",
     }
+
+
+def select_commissionable(userid, query, min_price, max_price, currency, limit,):
+    """
+    TODO write a description
+    :param userid:
+    :param limit:
+    :return:
+    """
+    # in this proof of concept, sort users by their most recent upload
+    # this has the benefit of displaying more active users most prominently
+    # TODO properly format this
+    stmt = [
+        "SELECT DISTINCT p.userid, p.username, p.settings, s.unixtime, "
+        "prices.pricemin, prices.pricemax, priceconfig.settings AS pricesettings, "
+        "d.content AS description "
+        "FROM profile p "
+        "JOIN submission s ON s.userid = p.userid "
+        "JOIN (SELECT cp.userid, MIN(cp.amount_min) AS pricemin, "
+        "GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax "
+        "FROM commishprice cp "
+        "WHERE cp.settings NOT LIKE '%%a' "
+        "GROUP BY cp.userid) "
+        "AS prices ON prices.userid = p.userid "
+        "JOIN commishdesc d ON d.userid = p.userid "
+        "LEFT JOIN (SELECT DISTINCT cp.settings, cp.userid, cp.amount_min "
+        "FROM commishprice cp "
+        "WHERE cp.settings NOT LIKE '%%a') "
+        "AS priceconfig ON priceconfig.userid = p.userid "
+        "AND priceconfig.amount_min = prices.pricemin "
+        "WHERE p.settings ~ '[os]..?' "
+        "AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) "
+    ]
+    if min_price:
+        stmt.append("AND prices.pricemin >= %(min)s ")
+    if max_price:
+        stmt.append("AND prices.pricemin <= %(max)s ")
+    stmt.append("ORDER BY s.unixtime DESC ")
+    stmt.append("LIMIT %(limit)s ")
+    query = d.engine.execute("".join(stmt), limit=limit, min=min_price, max=max_price)
+
+    def prepare(info):
+        dinfo = dict(info)
+        dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
+        dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
+
+        return dinfo
+
+    results = [prepare(i) for i in query]
+    return results
 
 
 def create_commission_class(userid, title):

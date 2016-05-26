@@ -629,13 +629,19 @@ def text_price_symbol(target):
     elif "p" in target:
         return "&#163;"
     elif "y" in target:
-        return "&#165;"
+        return "J&#165;"
     elif "c" in target:
         return "C&#36;"
     elif "u" in target:
         return "A&#36;"
     elif "m" in target:
         return "M&#36;"
+    elif "f" in target:
+        return "Fr"
+    elif "z" in target:
+        return "NZ&#36"
+    elif "n" in target:
+        return "C&#165"
     else:
         return "&#36;"
 

@@ -304,21 +304,29 @@ class submit_tags_(controller_base):
 
     @define.token_checked
     def POST(self):
-        form = web.input(submitid="", charid="", journalid="", tags="")
+        form = web.input(submitid="", charid="", journalid="", userid="", tags="")
 
         tags = searchtag.parse_tags(form.tags)
 
         submitid = define.get_int(form.submitid)
         charid = define.get_int(form.charid)
         journalid = define.get_int(form.journalid)
+        userid = define.get_int(form.userid)
 
-        searchtag.associate(self.user_id, tags, submitid, charid, journalid)
+        if userid and userid != self.user_id:
+            raise WeasylError("insufficientActionPermissions")
+
+        searchtag.associate(self.user_id, tags, submitid, charid, journalid, userid)
         if submitid:
             raise web.seeother("/submission/%i" % (submitid,))
         elif charid:
             raise web.seeother("/character/%i" % (charid,))
-        else:
+        elif journalid:
             raise web.seeother("/journal/%i" % (journalid,))
+        elif userid:
+            raise web.seeother("/control/editcommissionprices")
+        else:
+            raise WeasylError("Unexpected")
 
 
 class reupload_submission_(controller_base):

@@ -246,3 +246,10 @@ report.settings ()
 ------------------
 
 r  Under review
+
+---------------------------
+searchmapartist.settings ()
+---------------------------
+
+n  Tag is for nope-list
+

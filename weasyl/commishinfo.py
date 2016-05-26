@@ -73,32 +73,38 @@ def convert_currency(value, valuecode, targetcode):
 
 
 def select_list(userid):
-    query = d.execute("SELECT classid, title, amount_min, amount_max, settings, priceid FROM commishprice"
-                      " WHERE userid = %i ORDER BY classid, title", [userid])
+    query = d.engine.execute("SELECT classid, title, amount_min, amount_max, settings, priceid FROM commishprice"
+                             " WHERE userid = %(userid)s ORDER BY classid, title", userid=userid)
 
     content = d.execute("SELECT content FROM commishdesc WHERE userid = %i", [userid], ["element"])
+    tags = d.engine.execute("SELECT DISTINCT tag.title FROM searchtag tag "
+                            "join searchmapartist sma on sma.tagid = tag.tagid "
+                            "join login l on l.userid = sma.targetid "
+                            "where l.userid = %(userid)s", userid=userid)
 
     return {
+        "userid": userid,
         "class": [{
             "classid": i[0],
             "title": i[1],
         } for i in d.execute("SELECT classid, title FROM commishclass WHERE userid = %i ORDER BY title", [userid])],
         "price": [{
-            "classid": i[0],
-            "title": i[1],
-            "amount_min": i[2],
-            "amount_max": i[3],
-            "settings": i[4],
-            "priceid": i[5],
-        } for i in query if "a" not in i[4]] + [{
-            "classid": i[0],
-            "title": i[1],
-            "amount_min": i[2],
-            "amount_max": i[3],
-            "settings": i[4],
-            "priceid": i[5],
-        } for i in query if "a" in i[4]],
+            "classid": i.classid,
+            "title": i.title,
+            "amount_min": i.amount_min,
+            "amount_max": i.amount_max,
+            "settings": i.settings,
+            "priceid": i.priceid,
+        } for i in query if "a" not in i.settings] + [{
+            "classid": i.classid,
+            "title": i.title,
+            "amount_min": i.amount_min,
+            "amount_max": i.amount_max,
+            "settings": i.settings,
+            "priceid": i.priceid,
+        } for i in query if "a" in i.settings],
         "content": content if content else "",
+        "tags": [tag.title for tag in tags],
     }
 
 

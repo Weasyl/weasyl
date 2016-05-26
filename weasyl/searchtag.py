@@ -130,7 +130,7 @@ def parse_tags(text):
     return tags
 
 
-def associate(userid, tags, submitid=None, charid=None, journalid=None):
+def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid=None):
     targetid = d.get_targetid(submitid, charid, journalid)
 
     # Assign table, feature, ownerid
@@ -140,9 +140,14 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     elif charid:
         table, feature = "searchmapchar", "char"
         ownerid = d.get_ownerid(charid=targetid)
-    else:
+    elif journalid:
         table, feature = "searchmapjournal", "journal"
         ownerid = d.get_ownerid(journalid=targetid)
+    elif artistid:
+        table, feature = "searchmapartist", "user"
+        targetid = ownerid = userid
+    else:
+        raise WeasylError("Unexpected")
 
     # Check permissions and invalid target
     if not ownerid:

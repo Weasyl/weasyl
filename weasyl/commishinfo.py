@@ -111,7 +111,7 @@ def select_list(userid):
     }
 
 
-def select_commissionable(userid, query, min_price, max_price, currency, limit,):
+def select_commissionable(userid, query, commishclass, min_price, max_price, currency, limit,):
     """
     TODO write a description
     :param userid:
@@ -122,33 +122,37 @@ def select_commissionable(userid, query, min_price, max_price, currency, limit,)
     # this has the benefit of displaying more active users most prominently
     # TODO properly format this
     stmt = [
-        "SELECT DISTINCT p.userid, p.username, p.settings, s.unixtime, "
-        "prices.pricemin, prices.pricemax, priceconfig.settings AS pricesettings, "
-        "d.content AS description "
-        "FROM profile p "
-        "JOIN submission s ON s.userid = p.userid "
-        "JOIN (SELECT cp.userid, MIN(cp.amount_min) AS pricemin, "
-        "GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax "
-        "FROM commishprice cp "
-        "WHERE cp.settings NOT LIKE '%%a' "
-        "GROUP BY cp.userid) "
-        "AS prices ON prices.userid = p.userid "
-        "JOIN commishdesc d ON d.userid = p.userid "
-        "LEFT JOIN (SELECT DISTINCT cp.settings, cp.userid, cp.amount_min "
-        "FROM commishprice cp "
-        "WHERE cp.settings NOT LIKE '%%a') "
-        "AS priceconfig ON priceconfig.userid = p.userid "
-        "AND priceconfig.amount_min = prices.pricemin "
-        "WHERE p.settings ~ '[os]..?' "
-        "AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) "
+        """SELECT p.userid, p.username, p.settings,
+                MIN(cp.amount_min) as pricemin,
+                GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) as pricemax,
+                cp.settings AS pricesettings,
+                d.content AS description
+            FROM profile p
+
+            RIGHT JOIN commishclass cc on cc.userid = p.userid
+                AND lower(cc.title) like %(cclass)s
+
+            JOIN submission s ON s.userid = p.userid
+
+            JOIN commishprice cp ON cp.classid = cc.classid
+                and cp.userid = p.userid
+                AND cp.settings not like '%%a'
+
+            JOIN commishdesc d ON d.userid = p.userid
+
+            WHERE p.settings ~ '[os]..?'
+            AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) """
     ]
     if min_price:
-        stmt.append("AND prices.pricemin >= %(min)s ")
+        stmt.append("AND cp.amount_min >= %(min)s ")
     if max_price:
-        stmt.append("AND prices.pricemin <= %(max)s ")
-    stmt.append("ORDER BY s.unixtime DESC ")
-    stmt.append("LIMIT %(limit)s ")
-    query = d.engine.execute("".join(stmt), limit=limit, min=min_price, max=max_price)
+        stmt.append("AND cp.amount_min <= %(max)s ")
+    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime "
+                "ORDER BY s.unixtime DESC "
+                "LIMIT %(limit)s ")
+    commishclass = "%" + commishclass + "%"
+    query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
+                             max=max_price, cclass=commishclass)
 
     def prepare(info):
         dinfo = dict(info)

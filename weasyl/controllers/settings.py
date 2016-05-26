@@ -110,7 +110,10 @@ class control_createcommishclass_(controller_base):
 
     @define.token_checked
     def POST(self):
-        form = web.input(title="")
+        form = web.input(titlepreset="", title="")
+        title = form.title if form.title else form.titlepreset
+        if not title:
+            raise WeasylError("titleInvalid")
 
         commishinfo.create_commission_class(self.user_id, form.title.strip())
         raise web.seeother("/control/editcommissionprices")

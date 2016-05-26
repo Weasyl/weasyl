@@ -4,14 +4,33 @@ $code:
   def opt_value(v):
     return ' value={}'.format(v) if v else ""
 
-<div class="stage" style="background:#DDD">
+<div style="background:#DDD">
   <div class="content sectioned-sidebar">
     <h3>Marketplace Search</h3>
+
     <form id="marketplace-search" method="GET" class="form">
-      <!-- WIP
-      <label for="commission-type-tags">Search Terms</label>
-      <input id="commission-type-tags" name="q" title="Search for artists" type="search" tabindex="2" class="input">
-      -->
+    <label for="commission-class-preset">Type of Commission</label>
+      <select class="input last-input" name="pc" id="commission-class-preset">
+        <option value="" selected="selected">Any/Other</option>
+        <option value="Sketch">Sketch</option>
+        <option value="Badge">Badge</option>
+        <option value="Icon">Icon</option>
+        <option value="Reference">Reference</option>
+        <option value="Story">Story</option>
+        <option value="Music">Music</option>
+        <option value="Fullbody">Fullbody</option>
+        <option value="Headshot">Headshot</option>
+        <option value="Chibi">Chibi</option>
+      </select>
+      <h4 class="or color-lighter"><i>&mdash; Or &mdash;</i></h4>
+      <label for="commission-class">Other Commission Type</label>
+      <input id="commission-class" name="c" title="Commission Type"
+             type="text" tabindex="2" class="input"${opt_value(form.c)}>
+
+      <label for="commission-type-tags">Content</label>
+      <input id="commission-type-tags" name="q" title="Search for artists"
+             type="text" class="input" ${opt_value(form.q)}>
+
       <label for="commission-min-price">Minimum Price</label>
       <input id="commission-min-price" name="min" title="Minimum Price"
              type="text" class="input"${opt_value(form.min)}>

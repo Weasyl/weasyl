@@ -11,9 +11,14 @@ class search_(controller_base):
     cache_name = "etc/marketplace.html"
 
     def GET(self):
-        form = web.input(q="", min="", max="", currency="")
+        form = web.input(q="", min="", max="", currency="", pc="", c="")
+        commishclass = form.c if form.c else form.pc
+        form.c = commishclass
+        commishclass = commishclass.lower()
+
         results = commishinfo.select_commissionable(self.user_id,
                                                     form.q,
+                                                    commishclass,
                                                     commishinfo.parse_currency(form.min),
                                                     commishinfo.parse_currency(form.max),
                                                     form.currency,

@@ -13,7 +13,7 @@ CURRENCY_PRECISION = 2
 
 # map database charset to ISO4217 currency codes
 CURRENCY_CHARMAP = {
-    "":  {"code": "USD", "name": "United States Dollar", "symbol": "&#36;"},
+    "": {"code": "USD", "name": "United States Dollar", "symbol": "&#36;"},
     "e": {"code": "EUR", "name": "Euro", "symbol": "&#8364;"},
     "p": {"code": "GBP", "name": "British Pound Sterling", "symbol": "&#163;"},
     "y": {"code": "JPY", "name": "Japanese Yen", "symbol": "J&#165;"},
@@ -40,15 +40,31 @@ def parse_currency(target):
     return int(Decimal(digits) * (10 ** CURRENCY_PRECISION))
 
 
-@region.cache_on_arguments(expiration_time=60*60*24)
+@region.cache_on_arguments(expiration_time=60 * 60 * 24)
 def _fetch_rates():
+    """
+    Retrieves most recent currency exchange rates from fixer.io, which uses
+    the European Central Bank as its upstream source.
+
+    This value is cached with a 24h expiry period
+
+    :return: see http://fixer.io/
+    """
     try:
         return d.http_get("http://api.fixer.io/latest?base=USD").json()
-    except:
+    except WeasylError:
+        # There was an HTTP error while fetching from the API
         return None
 
 
 def _charmap_to_currency_code(charmap):
+    """
+    Convert Weasyl's internal single-character representation of currencies
+    to standard ISO4217 codes for use in comparing against exchange rate APIs
+
+    :param charmap: String containing ideally one or zero characters used as currency indicators by Weasyl
+    :return: A 3-letter ISO4217 currency code. Returns "USD" if no match found.
+    """
     for c in charmap:
         if c in CURRENCY_CHARMAP:
             return CURRENCY_CHARMAP.get(c)['code']
@@ -56,6 +72,14 @@ def _charmap_to_currency_code(charmap):
 
 
 def convert_currency(value, valuecode, targetcode):
+    """
+    Convert between different currencies using the current exchange rate.
+
+    :param value: The amount of currency to be converted
+    :param valuecode: Weasyl-code of the currency $value is in currently
+    :param targetcode: Weasyl-code of the currency $value should be converted to
+    :return: The converted amount
+    """
     valuecode = _charmap_to_currency_code(valuecode)
     targetcode = _charmap_to_currency_code(targetcode)
     if targetcode == valuecode:
@@ -72,7 +96,7 @@ def convert_currency(value, valuecode, targetcode):
     r2 = rates.get(targetcode)
     if not (r1 and r2):
         raise WeasylError("Unexpected")
-    return value * r2/r1
+    return value * r2 / r1
 
 
 def select_list(userid):
@@ -111,43 +135,58 @@ def select_list(userid):
     }
 
 
-def select_commissionable(userid, q, commishclass, min_price, max_price, currency, limit,):
+def select_commissionable(userid, q, commishclass, min_price, max_price, currency, limit):
     """
-    TODO write a description
-    :param userid:
-    :param limit:
-    :return:
+    Select a list of artists whom are open for commissions
+    and have defined at least one commission class.
+
+    TODO:
+        - paginate results
+        - relax the requirement for setting up commission classes
+        - don't return results that are on the searching user's ignore list
+        - find a way to have max_price and min_price work with currency conversions
+        - redo the entire thing when (if) commissioninfo has (gets) a better schema
+        - support a "will not draw" taglist
+
+    :param userid: The user making the request
+    :param q: Weight artists with "preferred content" tags that match these higher
+    :param commishclass: Only return artists with at least one commission class containing this keyword
+    :param min_price: Do not return artists with a minimum price below this value
+    :param max_price: Do not return artists with a minimum price above this value
+    :param currency: The single-character currency code to convert the returned results in,
+                     as defined in commishprice.settings
+    :param limit: max number of results to return
+    :return: The resulting list of artists & their commission info
     """
     # in this proof of concept, sort users by their most recent upload
     # this has the benefit of displaying more active users most prominently
-    # TODO properly format this
     stmt = [
         """SELECT p.userid, p.username, p.settings,
-                MIN(cp.amount_min) as pricemin,
-                GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) as pricemax,
+                MIN(cp.amount_min) AS pricemin,
+                GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
                 cp.settings AS pricesettings,
                 d.content AS description,
                 tag.tagcount
             FROM profile p
 
-            RIGHT JOIN commishclass cc on cc.userid = p.userid
-                AND lower(cc.title) like %(cclass)s
+            RIGHT JOIN commishclass cc ON cc.userid = p.userid
+                AND lower(cc.title) LIKE %(cclass)s
 
             JOIN submission s ON s.userid = p.userid
 
             JOIN commishprice cp ON cp.classid = cc.classid
-                and cp.userid = p.userid
-                AND cp.settings not like '%%a'
+                AND cp.userid = p.userid
+                AND cp.settings NOT LIKE '%%a'
 
             JOIN commishdesc d ON d.userid = p.userid
 
             LEFT JOIN (
-                SELECT map.targetid, COUNT(tag.tagid) as tagcount
-                from searchtag tag
-                JOIN searchmapartist map on map.tagid = tag.tagid
+                SELECT map.targetid, COUNT(tag.tagid) AS tagcount
+                FROM searchtag tag
+                JOIN searchmapartist map ON map.tagid = tag.tagid
                 WHERE tag.title = ANY(%(tags)s)
-                group by map.targetid
-            ) as tag on tag.targetid = p.userid
+                GROUP BY map.targetid
+            ) AS tag ON tag.targetid = p.userid
 
             WHERE p.settings ~ '[os]..?'
             AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) """
@@ -168,7 +207,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo = dict(info)
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
-        print(dinfo['tagcount'])
         return dinfo
 
     results = [prepare(i) for i in query]

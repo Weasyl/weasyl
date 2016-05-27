@@ -101,8 +101,8 @@ c  Canadian dollar
 m  Mexican peso
 u  Australian dollar
 z  New Zealand dollar
-f  Swiss Franc
-n  Chinese Yuan
+f  Swiss franc
+n  Chinese yuan
 
 -------------------
 journal.settings ()
@@ -254,5 +254,5 @@ r  Under review
 searchmapartist.settings ()
 ---------------------------
 
-n  Tag is for nope-list
+n  Tag is for no-draw list
 

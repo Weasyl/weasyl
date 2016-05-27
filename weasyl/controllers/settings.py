@@ -91,6 +91,7 @@ class control_editcommissionprices_(controller_base):
         return define.webpage(self.user_id, "control/edit_commissionprices.html", [
             # Commission prices
             commishinfo.select_list(self.user_id),
+            commishinfo.CURRENCY_CHARMAP,
         ])
 
 

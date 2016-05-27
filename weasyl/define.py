@@ -624,26 +624,11 @@ def text_price_amount(target):
 
 
 def text_price_symbol(target):
-    if "e" in target:
-        return "&#8364;"
-    elif "p" in target:
-        return "&#163;"
-    elif "y" in target:
-        return "J&#165;"
-    elif "c" in target:
-        return "C&#36;"
-    elif "u" in target:
-        return "A&#36;"
-    elif "m" in target:
-        return "M&#36;"
-    elif "f" in target:
-        return "Fr"
-    elif "z" in target:
-        return "NZ&#36"
-    elif "n" in target:
-        return "C&#165"
-    else:
-        return "&#36;"
+    from weasyl.commishinfo import CURRENCY_CHARMAP
+    for c in target:
+        if c in CURRENCY_CHARMAP:
+            return CURRENCY_CHARMAP.get(c)['symbol']
+    return CURRENCY_CHARMAP.get("")['symbol']
 
 
 def text_first_line(target, strip=False):

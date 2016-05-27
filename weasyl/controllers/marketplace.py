@@ -22,5 +22,5 @@ class search_(controller_base):
                                                     30,)
 
         media.populate_with_user_media(results)
-        return define.webpage(self.user_id, "etc/marketplace.html", [results, form])
+        return define.webpage(self.user_id, "etc/marketplace.html", [results, form, commishinfo.CURRENCY_CHARMAP])
 

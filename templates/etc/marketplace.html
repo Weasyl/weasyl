@@ -1,5 +1,9 @@
-$def with (results, form)
+$def with (results, form, currencies)
 $:{TITLE("Marketplace")}
+$code:
+  def is_selected(from_form, code):
+    return 'selected="selected"' if code == from_form else ""
+
 
 <div style="background:#DDD">
   <div class="content sectioned-sidebar">
@@ -36,16 +40,8 @@ $:{TITLE("Marketplace")}
              type="text" class="input"value="${form.max}">
       <label for="commish-currency">Currency</label>
       <select class="input last-input" name="currency" id="commish-currency">
-        <option value="" selected="selected">United States Dollar</option>
-        <option value="e">Euro</option>
-        <option value="p">British Pound Sterling</option>
-        <option value="y">Japanese Yen</option>
-        <option value="c">Canadian Dollar</option>
-        <option value="m">Mexican Peso</option>
-        <option value="u">Australian Dollar</option>
-        <option value="f">Swiss Franc</option>
-        <option value="z">New Zealand Dollar</option>
-        <option value="n">Chinese Yuan</option>
+        $for char, info in currencies.iteritems():
+          <option value="${char}" $:{is_selected(form.currency, char)}>${info['name']}</option>
       </select>
 
       <button class="button">Search</button>

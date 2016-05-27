@@ -12,17 +12,17 @@ _MAX_PRICE = 99999999
 CURRENCY_PRECISION = 2
 
 # map database charset to ISO4217 currency codes
-# USD is default & is indicated by the existence of no other matching value
-_CURRENCY_CHARMAP = {
-    "e": "EUR",
-    "p": "GBP",
-    "y": "JPY",
-    "c": "CAD",
-    "m": "MXN",
-    "u": "AUD",
-    "z": "NZD",
-    "n": "CNY",
-    "f": "CHF",
+CURRENCY_CHARMAP = {
+    "":  {"code": "USD", "name": "United States Dollar", "symbol": "&#36;"},
+    "e": {"code": "EUR", "name": "Euro", "symbol": "&#8364;"},
+    "p": {"code": "GBP", "name": "British Pound Sterling", "symbol": "&#163;"},
+    "y": {"code": "JPY", "name": "Japanese Yen", "symbol": "J&#165;"},
+    "c": {"code": "CAD", "name": "Canadian Dollar", "symbol": "C&#36;"},
+    "m": {"code": "MXN", "name": "Mexican Peso", "symbol": "M&#36;"},
+    "u": {"code": "AUD", "name": "Australian Dollar", "symbol": "A&#36;"},
+    "z": {"code": "NZD", "name": "New Zealand Dollar", "symbol": "NZ&#36;"},
+    "n": {"code": "CNY", "name": "Chinese Yuan", "symbol": "C&#165;"},
+    "f": {"code": "CHF", "name": "Swiss Franc", "symbol": "Fr"},
 }
 
 
@@ -50,8 +50,8 @@ def _fetch_rates():
 
 def _charmap_to_currency_code(charmap):
     for c in charmap:
-        if c in _CURRENCY_CHARMAP:
-            return _CURRENCY_CHARMAP.get(c)
+        if c in CURRENCY_CHARMAP:
+            return CURRENCY_CHARMAP.get(c)['code']
     return "USD"
 
 
@@ -78,8 +78,8 @@ def convert_currency(value, valuecode, targetcode):
 def select_list(userid):
     query = d.engine.execute("SELECT classid, title, amount_min, amount_max, settings, priceid FROM commishprice"
                              " WHERE userid = %(userid)s ORDER BY classid, title", userid=userid)
-
-    content = d.execute("SELECT content FROM commishdesc WHERE userid = %i", [userid], ["element"])
+    classes = d.engine.execute("SELECT classid, title FROM commishclass WHERE userid = %(id)s ORDER BY title", id=userid)
+    content = d.engine.execute("SELECT content FROM commishdesc WHERE userid = %(id)s", id=userid).scalar()
     tags = d.engine.execute("SELECT DISTINCT tag.title FROM searchtag tag "
                             "join searchmapartist sma on sma.tagid = tag.tagid "
                             "join login l on l.userid = sma.targetid "
@@ -88,9 +88,9 @@ def select_list(userid):
     return {
         "userid": userid,
         "class": [{
-            "classid": i[0],
-            "title": i[1],
-        } for i in d.execute("SELECT classid, title FROM commishclass WHERE userid = %i ORDER BY title", [userid])],
+            "classid": i.classid,
+            "title": i.title,
+        } for i in classes],
         "price": [{
             "classid": i.classid,
             "title": i.title,

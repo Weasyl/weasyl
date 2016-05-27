@@ -1,6 +1,3 @@
-import itertools
-import time
-
 import web
 
 from weasyl import define, media, commishinfo

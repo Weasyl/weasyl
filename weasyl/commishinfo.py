@@ -111,7 +111,7 @@ def select_list(userid):
     }
 
 
-def select_commissionable(userid, query, commishclass, min_price, max_price, currency, limit,):
+def select_commissionable(userid, q, commishclass, min_price, max_price, currency, limit,):
     """
     TODO write a description
     :param userid:
@@ -126,7 +126,8 @@ def select_commissionable(userid, query, commishclass, min_price, max_price, cur
                 MIN(cp.amount_min) as pricemin,
                 GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) as pricemax,
                 cp.settings AS pricesettings,
-                d.content AS description
+                d.content AS description,
+                tag.tagcount
             FROM profile p
 
             RIGHT JOIN commishclass cc on cc.userid = p.userid
@@ -140,6 +141,14 @@ def select_commissionable(userid, query, commishclass, min_price, max_price, cur
 
             JOIN commishdesc d ON d.userid = p.userid
 
+            LEFT JOIN (
+                SELECT map.targetid, COUNT(tag.tagid) as tagcount
+                from searchtag tag
+                JOIN searchmapartist map on map.tagid = tag.tagid
+                WHERE tag.title = ANY(%(tags)s)
+                group by map.targetid
+            ) as tag on tag.targetid = p.userid
+
             WHERE p.settings ~ '[os]..?'
             AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) """
     ]
@@ -147,18 +156,19 @@ def select_commissionable(userid, query, commishclass, min_price, max_price, cur
         stmt.append("AND cp.amount_min >= %(min)s ")
     if max_price:
         stmt.append("AND cp.amount_min <= %(max)s ")
-    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime "
-                "ORDER BY s.unixtime DESC "
+    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, tag.tagcount "
+                "ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
                 "LIMIT %(limit)s ")
     commishclass = "%" + commishclass + "%"
+    tags = q.lower().split()
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
-                             max=max_price, cclass=commishclass)
+                             max=max_price, cclass=commishclass, tags=tags)
 
     def prepare(info):
         dinfo = dict(info)
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
-
+        print(dinfo['tagcount'])
         return dinfo
 
     results = [prepare(i) for i in query]

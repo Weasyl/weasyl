@@ -22,7 +22,7 @@ from sqlalchemy.dialects import postgresql
 
 
 def upgrade():
-    op.add_column('oauth_consumers', sa.Column('homepage', postgresql.TEXT(), nullable=True))
+    op.add_column('oauth_consumers', sa.Column('homepage', postgresql.TEXT(), nullable=False))
 
 
 def downgrade():

@@ -484,7 +484,7 @@ oauth_consumers = Table(
     Column('scopes', ARRAY(Text()), nullable=False),
     Column('redirect_uris', ARRAY(Text()), nullable=False),
     Column('client_secret', String(length=64), nullable=False),
-    Column('homepage', Text(), nullable=True),
+    Column('homepage', Text(), nullable=False),
     default_fkey(['ownerid'], ['login.userid'], name='oauth_consumers_owner_fkey'),
 )
 

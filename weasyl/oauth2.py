@@ -17,7 +17,7 @@ _SCOPES = [
     },
     {
         'name': 'identity',
-        'description': 'Permission to retrieve your weasyl username and account number'
+        'description': 'Permission to retrieve your weasyl username and account number',
     },
     {
         'name': 'notifications',
@@ -25,8 +25,8 @@ _SCOPES = [
                        'for comments, favs, messages, etc.',
     },
     {
-        'name': 'favourite',
-        'description': 'The ability to favourite and unfavourite submissions'
+        'name': 'favorite',
+        'description': 'The ability to favorite and unfavorite submissions',
     },
 ]
 
@@ -80,7 +80,7 @@ class authorize_(controller_base):
             if error:
                 error = errorcode.login_errors.get(error, 'Unknown error.')
         elif not self.user_id:
-            error = 'You must specify a username and password.'
+            error = "You must specify a username and password."
         else:
             userid = self.user_id
         if error:
@@ -126,9 +126,9 @@ def get_allowed_scopes(user_id):
     :param user_id: the userid of the application owner
     :return: a list of scopes
     """
-    allowed = list(_SCOPES)
+    allowed = _SCOPES
     # only trusted individuals should be allowed to use the "wholesite" oauth grant
-    if user_id not in list(staff.ADMINS | staff.MODS | staff.DEVELOPERS):
+    if user_id not in staff.ADMINS | staff.MODS | staff.DEVELOPERS:
         allowed = [scope for scope in allowed if scope['name'] != 'wholesite']
     return allowed
 
@@ -141,7 +141,6 @@ def register_client(user_id, name, scopes, redirects, homepage):
     :param scopes: a list of the scopes registered for this application
     :param redirects: allowed redirect URIs for this application
     """
-
     if not name.strip():
         raise WeasylError("nameMissing")
 
@@ -162,8 +161,6 @@ def register_client(user_id, name, scopes, redirects, homepage):
     session.add(new_consumer)
     session.commit()
 
-    return
-
 
 def get_registered_applications(user_id):
     """
@@ -181,7 +178,6 @@ def remove_clients(user_id, clients):
          .filter_by(ownerid=user_id)
          .filter(orm.OAuthConsumer.clientid.in_(clients)))
     q.delete(synchronize_session=False)
-    return
 
 
 def renew_client_secrets(user_id, clients):
@@ -191,4 +187,3 @@ def renew_client_secrets(user_id, clients):
              .filter_by(clientid=cid))
         q.update({orm.OAuthConsumer.client_secret: security.generate_key(64)},
                  synchronize_session=False)
-    return

@@ -1987,7 +1987,7 @@ blockquote + blockquote {
 	max-width: 30em;
 }
 
-.form label:not(.input-checkbox) {
+.label, .form label:not(.input-checkbox) {
 	display: block;
 	padding: 16px 0 4px;
 	padding: 1rem 0 0.25rem;

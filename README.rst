@@ -33,7 +33,7 @@ Next Steps
 ----------
 
 At this point weasyl is running within a virtual machine. Your weasyl repo
-is mounted as `/home/vagrant/weasyl` inside the guest so edits made locally
+is mounted as ``/home/vagrant/weasyl`` inside the guest so edits made locally
 will be reflected inside the VM. To make changes, stop the `make guest-run`
 process, edit the code, and rerun `make guest-run`.
 
@@ -60,8 +60,8 @@ All passwords in the database have been set to 'password'.
 Troubleshooting and Getting Help
 --------------------------------
 
-If the `make setup-vagrant` step fails halfway through, you can resume it with the
-standard vagrant commands `vagrant up` followed by `vagrant provision`.
+If the ``make setup-vagrant`` step fails halfway through, you can resume it with the
+standard vagrant commands ``vagrant up`` followed by ``vagrant provision``.
 
 If you have questions or get stuck, you can trying talking to weasyl project members in
 the project's `gitter room <https://gitter.im/Weasyl/weasyl>`_.

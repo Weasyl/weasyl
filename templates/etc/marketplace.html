@@ -1,4 +1,4 @@
-$def with (results, form, currencies)
+$def with (results, form, currencies, presets)
 $:{TITLE("Marketplace")}
 $code:
   def is_selected(from_form, code):
@@ -12,16 +12,9 @@ $code:
     <form id="marketplace-search" method="GET" class="form">
     <label for="commission-class-preset">Type of Commission</label>
       <select class="input last-input" name="pc" id="commission-class-preset">
-        <option value="" selected="selected">Any/Other</option>
-        <option value="Sketch">Sketch</option>
-        <option value="Badge">Badge</option>
-        <option value="Icon">Icon</option>
-        <option value="Reference">Reference</option>
-        <option value="Story">Story</option>
-        <option value="Music">Music</option>
-        <option value="Fullbody">Fullbody</option>
-        <option value="Headshot">Headshot</option>
-        <option value="Chibi">Chibi</option>
+        <option value="" $:{is_selected(form.pc, "")}>Any/Other</option>
+        $for c in presets:
+          <option value="${c}" $:{is_selected(form.pc, c)}>${c}</option>
       </select>
       <h4 class="or color-lighter"><i>&mdash; Or &mdash;</i></h4>
       <label for="commission-class">Other Commission Type</label>

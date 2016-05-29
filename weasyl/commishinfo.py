@@ -25,6 +25,21 @@ CURRENCY_CHARMAP = {
     "f": {"code": "CHF", "name": "Swiss Franc", "symbol": "Fr"},
 }
 
+# These are to be used as a general guide for both artists and commissioners
+# to standardize some commission types until a more robust system
+# of searching for commissions is put in place
+PRESET_COMMISSION_CLASSES = [
+    "Sketch",
+    "Badge",
+    "Icon",
+    "Reference",
+    "Story",
+    "Music",
+    "Fullbody",
+    "Headshot",
+    "Chibi",
+]
+
 
 def parse_currency(target):
     """

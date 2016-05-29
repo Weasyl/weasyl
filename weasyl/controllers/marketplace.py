@@ -10,7 +10,6 @@ class search_(controller_base):
     def GET(self):
         form = web.input(q="", min="", max="", currency="", pc="", c="")
         commishclass = form.c if form.c else form.pc
-        form.c = commishclass
         commishclass = commishclass.lower()
 
         results = commishinfo.select_commissionable(self.user_id,
@@ -22,4 +21,5 @@ class search_(controller_base):
                                                     30,)
 
         media.populate_with_user_media(results)
-        return define.webpage(self.user_id, "etc/marketplace.html", [results, form, commishinfo.CURRENCY_CHARMAP])
+        return define.webpage(self.user_id, "etc/marketplace.html",
+                              [results, form, commishinfo.CURRENCY_CHARMAP, commishinfo.PRESET_COMMISSION_CLASSES])

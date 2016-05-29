@@ -1,4 +1,4 @@
-$def with (query, currencies)
+$def with (query, currencies, presets)
 $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 
 <div id="commishprices-content" class="content form clear">
@@ -11,15 +11,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
       <label for="commishprices-addclass-preset">Class Presets</label>
       <select class="input last-input" name="titlepreset" id="commishprices-addclass-preset">
         <option value="" selected="selected">Any/Other</option>
-        <option value="Sketch">Sketch</option>
-        <option value="Badge">Badge</option>
-        <option value="Icon">Icon</option>
-        <option value="Reference">Reference</option>
-        <option value="Story">Story</option>
-        <option value="Music">Music</option>
-        <option value="Fullbody">Fullbody</option>
-        <option value="Headshot">Headshot</option>
-        <option value="Chibi">Chibi</option>
+        $for c in presets:
+          <option value="${c}">${c}</option>
       </select>
       <h4 class="or color-lighter"><i>&mdash; Or &mdash;</i></h4>
       <label for="commishprices-addclass">Custom Class</label>

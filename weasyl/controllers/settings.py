@@ -92,6 +92,7 @@ class control_editcommissionprices_(controller_base):
             # Commission prices
             commishinfo.select_list(self.user_id),
             commishinfo.CURRENCY_CHARMAP,
+            commishinfo.PRESET_COMMISSION_CLASSES,
         ])
 
 

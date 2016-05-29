@@ -25,7 +25,8 @@ To start the server inside the VM, run::
 
   $ make guest-run
 
-Weasyl will then start running on <https://lo.weasyl.com:8443/>.
+Weasyl will then start running on <https://lo.weasyl.com:8443/>. Ignore any
+warnings about the self-signed certificate.
 
 
 Next Steps

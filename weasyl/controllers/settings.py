@@ -192,7 +192,8 @@ class control_editemailpassword_(controller_base):
     disallow_api = True
 
     def GET(self):
-        return define.webpage(self.user_id, "control/edit_emailpassword.html")
+        return define.webpage(self.user_id, "control/edit_emailpassword.html",
+                              [profile.select_manage(self.user_id)["email"]])
 
     @define.token_checked
     def POST(self):

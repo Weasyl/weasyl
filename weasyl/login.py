@@ -99,14 +99,6 @@ def authenticate_bcrypt(username, password, session=True):
             # account has been temporarily suspended)
             return USERID, "suspended"
 
-    # Select the addresses from which the user is allowed to sign in (if the list
-    # is empty, the user may sign in from any address); if the user's current
-    # address is not on the list, return a zero userid and an error code
-    address = d.execute("SELECT address FROM loginaddress WHERE userid = %i", [USERID], ["within"])
-
-    if address and d.get_address() not in address:
-        return 0, "address"
-
     # Attempt to create a new session if `session` is True, then log the signin
     # if it succeeded.
     if session:

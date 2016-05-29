@@ -1,0 +1,21 @@
+$def with (error = None)
+$:{TITLE("Birthdate Reset Required")}
+
+<div class="content" style="padding-top: 2em;">
+  <div class="form skinny clear">
+    $if(error):
+      <div><strong>Whoops!</strong> The date of birth you entered does not appear to be valid. Enter your birthday in the specified format.<br /><br />Example: <strong>1 January 1990</strong></div>
+    $else:
+      <div>An administrator has required that you reset your date of birth before you can continue using the site.<br /><br />Example: <strong>1 January 1990</strong></div>
+
+    <form name="forceresetbirthday" action="/force/resetbirthday" method="post">
+      $:{CSRF()}
+
+      <label for="birthday">Date of Birth</label>
+      <input id="birthday" type="text" class="input last-input" name="birthday" autofocus="1 January 1990" />
+
+      <button type="submit" class="button positive" style="float: right;">Continue</button>
+      <a href="/signout?token=${TOKEN()[:8]}" class="button">Cancel and Sign Out</a>
+    </form>
+  </div>
+</div>

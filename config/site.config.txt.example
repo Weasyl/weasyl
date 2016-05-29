@@ -1,0 +1,27 @@
+[general]
+notice = 9387490
+warning = 12345
+adpath = ui/it/il/tx/
+allow_submit = true
+captcha_disable_verification = false
+# The max age in days for a submission to be considered for 'recently popular'.
+# In production, this should be set low, but giving it a high value (or 0) can
+# be useful for dev on an database.
+popular_max_age_days = 21
+
+[backend]
+run_periodic_tasks = false
+profile_responses = false
+time_endpoints = false
+# this should almost always be off in prod but it's a useful default for dev
+rough_shutdowns = true
+
+[sqlalchemy]
+url = postgres:///weasyl
+
+[sentry]
+# dsn = twisted+http://...
+
+[recaptcha-lo.weasyl.com]
+public_key = 6Le9U_0SAAAAAGXX5z9xg3LQC4tgGzWm_kC9-V_G
+private_key = 6Le9U_0SAAAAAKO9vYtaQJL01srJ-soG6l9vmTft

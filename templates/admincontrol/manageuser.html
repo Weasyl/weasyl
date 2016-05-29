@@ -1,0 +1,58 @@
+$def with (profile, can_impersonate)
+$:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
+
+<div class="content">
+
+  <form name="admincontrolmanageuser" class="form skinny clear" action="/admincontrol/manageuser" method="post">
+    $:{CSRF()}
+    <input type="hidden" name="userid" value="${profile['userid']}" />
+
+    <label>UserID</label>
+    <p>${profile['userid']}</p>
+    <label>Email</label>
+    <p>${profile['email']}</p>
+    <label>Registration Date</label>
+    <p>${DATE(profile['unixtime'])} ${TIME(profile['unixtime'])} (${profile['unixtime']})</p>
+    <label>Last Login</label>
+    <p>${DATE(profile['last_login'])} ${TIME(profile['last_login'])} (${profile['last_login']})</p>
+    <label>Staff Notes</label>
+    <p><a href="/staffnotes/${LOGIN(profile['username'])}">${profile['staff_notes']} of ’em</a></p>
+
+    <label>Username</label>
+    <p><input type="checkbox" name="ch_username" />Update value</p>
+    <input type="text" class="input" name="username" value="${profile['username']}" />
+
+    <label>Full Name</label>
+    <p><input type="checkbox" name="ch_full_name" />Update value</p>
+    <input type="text" class="input" name="full_name" value="${profile['full_name']}" />
+
+    <label>Catchphrase</label>
+    <p><input type="checkbox" name="ch_catchphrase" />Update value</p>
+    <input type="text" class="input" name="catchphrase" value="${profile['catchphrase']}" />
+
+    <!--label>Email</label>
+    <p><input type="checkbox" name="ch_email" />Update value</p>
+    <input type="text" class="input" name="email" value="${profile['email']}" /-->
+
+    <label>Date of Birth</label>
+    <p><input type="checkbox" name="ch_birthday" />Update value</p>
+    <input type="text" class="input" name="birthday" value="${DATE(profile['birthday'])}" />
+
+    <label>Gender</label>
+    <p><input type="checkbox" name="ch_gender" />Update value</p>
+    <input type="text" class="input" name="gender" value="${profile['gender']}" />
+
+    <label>Location</label>
+    <p><input type="checkbox" name="ch_country" />Update value</p>
+    <input type="text" class="input last-input" name="country" value="${profile['country']}" />
+
+    <button type="submit" class="button highlighted" style="float: right;">Save Changes</button>
+    <a class="button" href="/admincontrol">Go Back</a>
+    <a class="button" href="/~${LOGIN(profile['username'])}">Profile</a>
+    $if can_impersonate:
+      <button type="submit" class="button" style="float: right; clear: both;"
+              name="impersonate" value="yes">
+        Impersonate user
+      </button>
+  </form>
+</div>

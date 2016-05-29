@@ -1,0 +1,17 @@
+$:{TITLE("Submit Site Update", "Administrator Control Panel", "/admincontrol")}
+
+<div class="content">
+  <form name="admincontrolsiteupdate" class="form wide" action="/admincontrol/siteupdate" method="post">
+    $:{CSRF()}
+
+    <label for="siteupdatetitle">Title</label>
+    <input type="text" class="input" name="title" id="siteupdatetitle" />
+
+    <label for="siteupdatecontent">Content</label>
+    <textarea class="markdown input expanding last-input" name="content" rows="9" id="siteupdatecontent"></textarea>
+    <br />
+
+    <button type="submit" class="button highlighted" style="float: right;">Continue</button>
+    <a class="button" href="/admincontrol">Go Back</a>
+  </form>
+</div>

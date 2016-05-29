@@ -1,6 +1,19 @@
 Weasyl Changelog
 ================
 
+2016-05-28
+----------
+
+Internal changes:
+
+ * Open source release.
+ * Numerous changes to prepare for open source.
+   - Adds a license.
+   - Improves the README.
+ * Fixes a bug in how submission media link urls were handled.
+   - This was not visible in production due to nginx rewriting rules.
+ * Many library versions have been bumped.
+
 2016-04-16
 ----------
 

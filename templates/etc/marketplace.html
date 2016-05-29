@@ -5,7 +5,7 @@ $code:
     return 'selected="selected"' if code == from_form else ""
 
 
-<div style="background:#DDD">
+<div style="background:#DDD" class="clear">
   <div class="content sectioned-sidebar">
     <h3>Marketplace Search</h3>
 
@@ -51,36 +51,41 @@ $code:
   <div class="sectioned-main content">
     <h3>Artist Results</h3>
 
-    $for artist in results:
-      <div class="clear" style="margin-bottom:1em">
-        <a href="/~${LOGIN(artist['username'])}" style="float:left;margin-right:2em">
-          $ avatar = artist['user_media']['avatar'][0]
-          <img src="${avatar['display_url']}" alt="" />
-        </a>
-        $# artist's commission info
-        <div class="marketplace-artist-info" style="font-size:1.6em">
-          <a href="/~${artist['username']}#user-commissions" class="username">${artist['username']}</a>
-          <a href="/submissions/${artist['username']}">[Gallery]</a>
-        </div>
-        <div class="marketplace-artist-prices" style="font-weight:bold">
-          $if artist['pricemin']:
-            <span>$:{'from ' if artist['pricemax'] else ''}$:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemin'])}</span>
-            $if artist['pricemax'] and artist['pricemax'] != artist['pricemin']:
-              <span>to $:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemax'])}</span>
-            $if artist['localmin'] != artist['pricemin']:
-              ( <span>Approx. $:{SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>
+    $if results:
+      $for artist in results:
+        <div class="clear marketplace-result">
+          <a href="/~${LOGIN(artist['username'])}" class="avatar">
+            $ avatar = artist['user_media']['avatar'][0]
+            <img src="${avatar['display_url']}" alt="" />
+          </a>
+          $# artist's commission info
+          <div class="artist-links">
+            <a href="/~${artist['username']}#user-commissions" class="username">${artist['username']}</a>
+            <a href="/submissions/${artist['username']}">[Gallery]</a>
+          </div>
+          $# commission price range
+          <div class="artist-prices">
+            $if artist['pricemin']:
+              <span>$:{'from ' if artist['pricemax'] else ''}$:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemin'])}</span>
               $if artist['pricemax'] and artist['pricemax'] != artist['pricemin']:
-                <span>to $:{SYMBOL(form.currency)} ${PRICE(artist['localmax'])}</span>
-              )
-          $else:
-            Price Not Declared
+                <span>to $:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemax'])}</span>
+              $if artist['localmin'] != artist['pricemin']:
+                ( <span>Approx. $:{SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>
+                $if artist['pricemax'] and artist['pricemax'] != artist['pricemin']:
+                  <span>to $:{SYMBOL(form.currency)} ${PRICE(artist['localmax'])}</span>
+                )
+            $else:
+              Price Not Declared
+          </div>
+          $# commission description
+          <div class="formatted-content">
+            $if artist.get('description'):
+              $:{MARKDOWN(artist['description'])}
+            $else:
+              No description provided
+          </div>
         </div>
-        <div class="formatted-content" style="margin-left:150px">
-          $if artist.get('description'):
-            $:{MARKDOWN(artist['description'])}
-          $else:
-            No description provided
-        </div>
-      </div>
+    $else:
+      <p>No results found! Try searching with broader terms.</p>
   </div>
 </div>

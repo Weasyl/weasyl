@@ -121,20 +121,6 @@ def append(filename, content, encoding="utf-8", decode=False, formfeed=False):
 copy = shutil.copy
 
 
-def symlink(target, link):
-    """
-    Creates a symbolic link to the specified file.
-    """
-    if not (target or link):
-        return
-    try:
-        os.unlink(link)
-    except OSError, e:
-        if e.errno != errno.ENOENT:
-            raise
-    os.symlink(target, link)
-
-
 def remove(glob_path):
     """
     Removes the specified file.

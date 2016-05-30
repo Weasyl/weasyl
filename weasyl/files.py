@@ -70,15 +70,6 @@ def write(filename, content, encoding="utf-8", decode=False):
             fio.write(content)
 
 
-def uploadtext(filename, content):
-    try:
-        content = content.decode("utf-8")
-    except UnicodeDecodeError:
-        raise WeasylError("not-utf8")
-
-    write(filename, content)
-
-
 def easyupload(filename, content, feature):
     if feature == "text":
         write(filename, content, decode=True)

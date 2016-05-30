@@ -135,17 +135,6 @@ def remove(glob_path):
                 raise
 
 
-def get_size(filename):
-    """
-    Returns the size of the target file in bytes; returns None if the file does
-    not exist.
-    """
-    try:
-        return os.path.getsize(filename)
-    except OSError:
-        return
-
-
 def get_temporary(userid, feature):
     """
     Return the full pathname to a temporary file.

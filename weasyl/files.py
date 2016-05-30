@@ -70,15 +70,6 @@ def write(filename, content, encoding="utf-8", decode=False):
             fio.write(content)
 
 
-def uploadtext(filename, content):
-    try:
-        content = content.decode("utf-8")
-    except UnicodeDecodeError:
-        raise WeasylError("not-utf8")
-
-    write(filename, content)
-
-
 def easyupload(filename, content, feature):
     if feature == "text":
         write(filename, content, decode=True)
@@ -121,20 +112,6 @@ def append(filename, content, encoding="utf-8", decode=False, formfeed=False):
 copy = shutil.copy
 
 
-def symlink(target, link):
-    """
-    Creates a symbolic link to the specified file.
-    """
-    if not (target or link):
-        return
-    try:
-        os.unlink(link)
-    except OSError, e:
-        if e.errno != errno.ENOENT:
-            raise
-    os.symlink(target, link)
-
-
 def remove(glob_path):
     """
     Removes the specified file.
@@ -147,17 +124,6 @@ def remove(glob_path):
         except OSError, e:
             if e.errno != errno.ENOENT:
                 raise
-
-
-def get_size(filename):
-    """
-    Returns the size of the target file in bytes; returns None if the file does
-    not exist.
-    """
-    try:
-        return os.path.getsize(filename)
-    except OSError:
-        return
 
 
 def get_temporary(userid, feature):

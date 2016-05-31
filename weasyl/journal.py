@@ -117,11 +117,11 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     db = d.connect()
     journal = db.query(orm.Journal).get(journalid)
     if journal is None or 'hidden' in journal.settings:
-        raise WeasylError('submissionRecordMissing')
-    sub_rating = journal.rating.code
+        raise WeasylError('journalRecordMissing')
+    journal_rating = journal.rating.code
     if 'friends-only' in journal.settings and not frienduser.check(userid, journal.userid):
-        raise WeasylError('submissionRecordMissing')
-    elif sub_rating > rating and userid != journal.userid:
+        raise WeasylError('journalRecordMissing')
+    elif journal_rating > rating and userid != journal.userid:
         raise WeasylError('RatingExceeded')
     elif not anyway and ignoreuser.check(userid, journal.userid):
         raise WeasylError('UserIgnored')
@@ -129,7 +129,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         raise WeasylError('TagBlocked')
 
     views = journal.page_views
-    if increment_views and d.common_view_content(userid, journalid, 'submit'):
+    if increment_views and d.common_view_content(userid, journalid, 'journal'):
         views += 1
 
     content = files.read(files.make_resource(userid, journalid, 'journal/submit'))

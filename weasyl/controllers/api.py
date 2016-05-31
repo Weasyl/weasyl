@@ -223,6 +223,16 @@ class api_journal_view_(api_base):
         return json.dumps(result)
 
 
+class api_character_view_(api_base):
+    @api_method
+    def GET(self, charid):
+        form = web.input(anyway='', increment_views='')
+        result = character.select_view_api(
+            self.user_id, int(charid),
+            anyway=bool(form.anyway), increment_views=bool(form.increment_views))
+        return json.dumps(result)
+
+
 class api_user_view_(api_base):
     @api_method
     def GET(self, login):

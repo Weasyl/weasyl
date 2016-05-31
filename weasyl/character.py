@@ -24,7 +24,7 @@ import favorite
 from libweasyl import staff, text
 
 from weasyl import macro as m
-from weasyl import media
+from weasyl import media, api
 
 
 _MEGABYTE = 1048576
@@ -234,12 +234,60 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
         "page_views": query[12],
         "friends_only": "f" in query[11],
         "hidden_submission": "h" in query[11],
-        # todo
-        "fave_count": define.execute("SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 'f')",
-                                     [charid], ["element"]),
+        "fave_count": favorite.count(charid=charid),
         "comments": comment.select(userid, charid=charid),
         "sub_media": fake_media_items(charid, query[0], login, query[11]),
         "tags": searchtag.select(charid=charid),
+    }
+
+
+def select_view_api(userid, charid, anyway=False, increment_views=False):
+    query = define.execute("""
+        SELECT
+            ch.userid, pr.username, ch.unixtime, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
+            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
+        FROM character ch
+            INNER JOIN profile pr USING (userid)
+        WHERE ch.charid = %i
+    """, [charid], options=["single", "list"])
+    rating = define.get_rating(userid)
+
+    if not query or 'h' in query[11]:
+        raise WeasylError('characterRecordMissing')
+    elif 'f' in query[11] and not frienduser.check(userid, query[0]):
+        raise WeasylError('FriendsOnly')
+    elif query[10] > rating and ((userid != query[0] and userid not in staff.MODS) or define.is_sfw_mode()):
+        raise WeasylError('RatingExceeded')
+    elif not anyway and ignoreuser.check(userid, query[0]):
+        raise WeasylError('UserIgnored')
+    elif not anyway and blocktag.check(userid, charid=charid):
+        raise WeasylError('TagBlocked')
+
+    if increment_views and define.common_view_content(userid, charid, 'char'):
+        query[12] += 1
+    login = define.get_sysname(query[1])
+
+    return {
+        "charid": charid,
+        "owner": query[1],
+        "owner_login": login,
+        "owner_media": api.tidy_all_media(media.get_user_media(query[0])),
+        "posted_at": define.iso8601(query[2]),
+        "title": query[3],
+        "age": query[4],
+        "gender": query[5],
+        "height": query[6],
+        "weight": query[7],
+        "species": query[8],
+        "content": text.markdown(query[9]),
+        "rating": query[10],
+        "favorited": favorite.check(userid, charid=charid),
+        "views": query[12],
+        "friends_only": 'f' in query[11],
+        "favorites": favorite.count(charid=charid),
+        "comments": comment.count(charid=charid),
+        "media": fake_media_items(charid, query[0], login, query[11], True),
+        "tags": searchtag.select(charid=charid)
     }
 
 
@@ -359,10 +407,17 @@ def remove(userid, charid):
     return ownerid
 
 
-def fake_media_items(charid, userid, login, settings):
+def fake_media_items(charid, userid, login, settings, absolutify=False):
     submission_url = define.cdnify_url(
         define.url_make(charid, "char/submit", query=[userid, settings], file_prefix=login))
     cover_url = define.cdnify_url(define.url_make(charid, "char/cover", query=[settings], file_prefix=login))
+    thumbnail_url = define.cdnify_url(define.url_make(charid, "char/thumb", query=[settings]))
+
+    if absolutify:
+        submission_url = define.absolutify_url(submission_url)
+        cover_url = define.absolutify_url(cover_url)
+        thumbnail_url = define.absolutify_url(thumbnail_url)
+
     return {
         "submission": [{
             "display_url": submission_url,
@@ -373,8 +428,7 @@ def fake_media_items(charid, userid, login, settings):
             },
         }],
         "thumbnail-generated": [{
-            # Only serve thumbnails from CDN for now
-            "display_url": define.cdnify_url(define.url_make(charid, "char/thumb", query=[settings])),
+            "display_url": thumbnail_url,
         }],
         "cover": [{
             "display_url": cover_url,

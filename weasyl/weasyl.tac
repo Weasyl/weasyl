@@ -106,4 +106,5 @@ cache.region.configure(
         timeOut=0.4,
     ),
     wrap=[cache.ThreadCacheProxy, cache.JSONProxy],
+    replace_existing_backend=True
 )

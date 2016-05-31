@@ -18,12 +18,13 @@ import unicodedata
 
 import anyjson as json
 import arrow
+from psycopg2.extensions import QuotedString
+from pyramid.threadlocal import get_current_request  # TODO: Remove this.
+import pytz
 import requests
-import web
 import sqlalchemy as sa
 import sqlalchemy.orm
-from psycopg2.extensions import QuotedString
-import pytz
+import web
 
 import macro
 import errorcode
@@ -359,8 +360,9 @@ def get_userid(sessionid=None):
     Returns the userid corresponding to the user's sessionid; if no such session
     exists, zero is returned.
     """
-    api_token = web.ctx.env.get('HTTP_X_WEASYL_API_KEY')
-    authorization = web.ctx.env.get('HTTP_AUTHORIZATION')
+    request = get_current_request()  # TODO: This should be passed in instead.
+    api_token = request.headers.get('X_WEASYL_API_KEY')
+    authorization = request.headers.get('AUTHORIZATION')
     if api_token is not None:
         userid = engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
         if not userid:
@@ -377,7 +379,8 @@ def get_userid(sessionid=None):
         return userid
 
     else:
-        userid = web.ctx.weasyl_session.userid
+        # TODO: re-enable this sort of logic once middleware is working with pyramid
+        userid = None  # web.ctx.weasyl_session.userid
         return 0 if userid is None else userid
 
 
@@ -387,11 +390,13 @@ def get_token():
     if api.is_api_user():
         return ''
 
-    sess = web.ctx.weasyl_session
-    if sess.csrf_token is None:
-        sess.csrf_token = security.generate_key(64)
-        sess.save = True
-    return sess.csrf_token
+    return security.generate_key(64)
+    # TODO: Re-enable this once middle-ware is working.
+    # sess = web.ctx.weasyl_session
+    # if sess.csrf_token is None:
+    #     sess.csrf_token = security.generate_key(64)
+    #     sess.save = True
+    # return sess.csrf_token
 
 
 def get_csrf_token():
@@ -676,12 +681,14 @@ def text_bool(target, default=False):
 
 
 def convert_to_localtime(target):
-    tz = web.ctx.weasyl_session.timezone
-    if isinstance(target, arrow.Arrow):
-        return tz.localtime(target.datetime)
-    else:
-        target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
-        return tz.localtime_from_timestamp(target)
+    return datetime.datetime.now()
+    # TODO: Re-enable. Or clean this up.
+    # tz = web.ctx.weasyl_session.timezone
+    # if isinstance(target, arrow.Arrow):
+    #     return tz.localtime(target.datetime)
+    # else:
+    #     target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
+    #     return tz.localtime_from_timestamp(target)
 
 
 def convert_date(target=None):

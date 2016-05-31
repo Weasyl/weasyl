@@ -1,6 +1,8 @@
 import itertools
 import time
 
+from pyramid.view import view_config, view_defaults
+from pyramid.response import Response
 import web
 
 from libweasyl import ratings
@@ -10,14 +12,16 @@ from weasyl.controllers.base import controller_base
 
 
 # General browsing functions
+@view_defaults(route_name='index')
 class index_(controller_base):
     cache_name = "etc/index.html"
 
+    @view_config(request_method='GET')
     def GET(self):
         now = time.time()
         page = define.common_page_start(self.user_id, options=["homepage"], title="Home")
         page.append(define.render("etc/index.html", index.template_fields(self.user_id)))
-        return define.common_page_end(self.user_id, page, now=now)
+        return Response(define.common_page_end(self.user_id, page, now=now))
 
 
 class search_(controller_base):

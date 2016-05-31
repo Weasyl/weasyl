@@ -6,7 +6,7 @@ from weasyl import define, errorcode
 import weasyl.api
 
 
-class controller_base:
+class controller_base(object):
     login_required = False
     guest_required = False
     moderator_only = False
@@ -37,7 +37,8 @@ class controller_base:
     def POST(self, *args):
         raise web.notfound()
 
-    def __init__(self):
+    def __init__(self, request=None):
+        self.request = request
         if (self.disallow_api or self.moderator_only or self.admin_only) and weasyl.api.is_api_user():
             raise web.forbidden()
 

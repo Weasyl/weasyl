@@ -270,6 +270,6 @@ def remove(userid, feature=None, commentid=None):
     return query[1]
 
 
-def count(submitid):
+def count(submitid=None, journalid=None):
     # TODO(kailys): refactor to not select from media table
-    return len(select(0, submitid))
+    return len(select(0, submitid=submitid, journalid=journalid))

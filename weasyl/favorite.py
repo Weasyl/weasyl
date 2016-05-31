@@ -254,7 +254,7 @@ def check(userid, submitid=None, charid=None, journalid=None):
         ], options="bool")
 
 
-def count(submitid):
+def count(submitid=None, journalid=None):
     return d.execute(
-        "SELECT COUNT(*) FROM favorite WHERE targetid = %i AND type = 's'",
-        [submitid], options=['element'])
+        "SELECT COUNT(*) FROM favorite WHERE targetid = %i AND type = '%s'",
+        [submitid, 's' if submitid else 'j'], options=['element'])

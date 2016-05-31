@@ -194,6 +194,7 @@ controllers = (
     "/api/version(\.[^.]+)?", "weasyl.controllers.api.api_version_",
     "/api/submissions/frontpage", "weasyl.controllers.api.api_frontpage_",
     "/api/submissions/([0-9]+)/view", "weasyl.controllers.api.api_submission_view_",
+    "/api/journals/([0-9]+)/view", "weasyl.controllers.api.api_journal_view_",
     "/api/users/([^/]+)/view", "weasyl.controllers.api.api_user_view_",
     "/api/users/([^/]+)/gallery", "weasyl.controllers.api.api_user_gallery_",
     "/api/messages/submissions", "weasyl.controllers.api.api_messages_submissions_",

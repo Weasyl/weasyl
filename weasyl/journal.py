@@ -20,7 +20,7 @@ import favorite
 
 from libweasyl import text, staff
 
-from weasyl import media
+from weasyl import media, orm
 
 
 def create(userid, journal, friends_only=False, tags=None):
@@ -106,13 +106,52 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         "favorited": favorite.check(userid, journalid=journalid),
         "friends_only": "f" in journal.settings,
         "hidden_submission": "h" in journal.settings,
-        # todo
-        "fave_count": d.execute("SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 'j')",
-                                [journalid], ["element"]),
+        "fave_count": favorite.count(journalid=journalid),
         "tags": searchtag.select(journalid=journalid),
         "comments": comment.select(userid, journalid=journalid),
     }
 
+
+def select_view_api(userid, journalid, anyway=False, increment_views=False):
+    rating = d.get_rating(userid)
+    db = d.connect()
+    journal = db.query(orm.Journal).get(journalid)
+    if journal is None or 'hidden' in journal.settings:
+        raise WeasylError('submissionRecordMissing')
+    sub_rating = journal.rating.code
+    if 'friends-only' in journal.settings and not frienduser.check(userid, journal.userid):
+        raise WeasylError('submissionRecordMissing')
+    elif sub_rating > rating and userid != journal.userid:
+        raise WeasylError('RatingExceeded')
+    elif not anyway and ignoreuser.check(userid, journal.userid):
+        raise WeasylError('UserIgnored')
+    elif not anyway and blocktag.check(userid, journalid=journalid):
+        raise WeasylError('TagBlocked')
+
+    views = journal.page_views
+    if increment_views and d.common_view_content(userid, journalid, 'submit'):
+        views += 1
+
+    content = files.read(files.make_resource(userid, journalid, 'journal/submit'))
+
+    return {
+        'journalid': journalid,
+        'title': journal.title,
+        'owner': journal.owner.profile.username,
+        'owner_login': journal.owner.login_name,
+        'content': text.markdown(content),
+        'tags': searchtag.select(journalid=journalid),
+        'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal.title))),
+
+        'type': 'journal',
+        'rating': journal.rating.name,
+
+        'views': views,
+        'favorites': favorite.count(journalid=journalid),
+        'comments': comment.count(journalid=journalid),
+        'favorited': favorite.check(userid, journalid=journalid),
+        'friends_only': 'friends-only' in journal.settings
+    }
 
 def select_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):
     if config is None:

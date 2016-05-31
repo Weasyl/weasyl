@@ -69,7 +69,6 @@ controllers = (
     "/submit/comment", "weasyl.controllers.content.submit_comment_",
     "/submit/report", "weasyl.controllers.content.submit_report_",
     "/submit/tags", "weasyl.controllers.content.submit_tags_",
-    "/submit/thumbnail-select", "weasyl.controllers.content.thumb_select_",
 
     "/reupload/submission", "weasyl.controllers.content.reupload_submission_",
     "/reupload/character", "weasyl.controllers.content.reupload_character_",

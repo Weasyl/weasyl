@@ -343,14 +343,23 @@ def captcha_verify(form):
     return result[0] == 'true'
 
 
-def get_userid(scopes=None):
+def get_userid(scopes=['wholesite']):
     """
-    Returns the userid corresponding to the user's sessionid; if no such session
-    exists, zero is returned.
+    Returns the userid of the session for the current request.
+    May raise HTTP 401 UNAUTHORIZED if an invalid API key or
+    OAuth token has been provided via HTTP Headers.
+
+    :param scopes: Scopes associated with this action, for use with OAuth2 flow.
+                   If an OAuth2 token is used to validate this request,
+                   the application that issued it must match the scopes provided.
+                   Defaults to ['wholesite'], restricting access to only the most
+                   highly authorized applications
+    :return: a valid userid or 0 if the request has no login information associated.
     """
     api_token = web.ctx.env.get('HTTP_X_WEASYL_API_KEY')
     authorization = web.ctx.env.get('HTTP_AUTHORIZATION')
     if api_token is not None:
+        # attempt to validate the Weasyl API key
         userid = engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
         if not userid:
             web.header('WWW-Authenticate', 'Weasyl-API-Key realm="Weasyl"')
@@ -358,14 +367,18 @@ def get_userid(scopes=None):
         return userid
 
     elif authorization:
+        # attempt to validate the content of the Authorization header as an OAuth2 token.
         from weasyl.oauth2 import get_userid_from_authorization
         userid = get_userid_from_authorization(scopes)
         if not userid:
+            # there was no match for the token provided, OR the scopes requested exceeded
+            # the permissions allowed of the OAuth2 application that granted the token.
             web.header('WWW-Authenticate', 'Bearer realm="Weasyl" error="invalid_token"')
             raise web.webapi.Unauthorized()
         return userid
 
     else:
+        # attempt to retrieve a userid from the current session, if any
         userid = web.ctx.weasyl_session.userid
         return 0 if userid is None else userid
 

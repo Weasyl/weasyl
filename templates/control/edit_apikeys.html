@@ -97,8 +97,11 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         If you are a developer, you may register an application as an OAuth2 consumer.
         You can then use your client id and client secret to request authorization tokens from
         Weasyl. Your client secret MUST be stored securely and should not be accessible
-        by your application's users under any circumstance. For more information see
-        <a href="https://projects.weasyl.com/weasylapi/#oauth2-endpoints">
+        by your application's users under any circumstance. Anyone with your client secret
+        will be able to impersonate you and you will be held responsible for any actions
+        performed with it.
+        Do not share it or check it into source control, etc.<br />
+        For more information see <a href="https://projects.weasyl.com/weasylapi/#oauth2-endpoints">
           https://projects.weasyl.com/weasylapi/#oauth2-endpoints</a>
       </p>
       <label for="client-name">Application Name</label>
@@ -131,7 +134,7 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
           <label class="input-checkbox">
             <input type="checkbox" name="clientid" value="${app.clientid}" />
             $if app.homepage:
-              <a href="${app.homepage}"><strong>${app.description}</strong></a>
+              <a href="${app.homepage}" target="_blank"><strong>${app.description}</strong></a>
             $else:
               <strong>${app.description}</strong>
             <p>client ID: <tt>${app.clientid}</tt></p>

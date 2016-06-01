@@ -462,7 +462,7 @@ class api_messages_summary_(api_base):
 
 class api_favorite_(api_base):
     login_required = True
-    oauth_scopes = ['favourite']
+    oauth_scopes = ['favorite']
 
     @api_method
     def POST(self, content_type, content_id):
@@ -479,7 +479,7 @@ class api_favorite_(api_base):
 
 class api_unfavorite_(api_base):
     login_required = True
-    oauth_scopes = ['favourite']
+    oauth_scopes = ['favorite']
 
     @api_method
     def POST(self, content_type, content_id):

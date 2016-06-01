@@ -12,8 +12,8 @@ class controller_base:
     moderator_only = False
     admin_only = False
     disallow_api = False
-    # passing None as a scope defaults to ['wholesite']
-    oauth_scopes = None
+    # by default use the most restrictive permission for all controllers
+    oauth_scopes = ['wholesite']
 
     def status_check_fail(self, *args, **kwargs):
         return define.common_status_page(self.user_id, self.status)

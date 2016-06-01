@@ -106,9 +106,18 @@ class token_(controller_base):
         return body
 
 
-def get_userid_from_authorization(scopes=None):
-    if not scopes:
-        scopes = ['wholesite']
+def get_userid_from_authorization(scopes):
+    """
+    Attempt to validate an HTTP_Authorization request using OAuth2 workflow.
+    This method automagically extracts information it requires from HTTP
+    headers on the current request.
+
+    :param scopes: The set of scopes that are required for an authorization
+                   grant to be considered successful. scopes may be an empty
+                   list, meaning OAuth2 applications with any configuration
+                   of permissions should be allowed to access the requested resource.
+    :return: a valid userid if the request could be verified, else NONE
+    """
     valid, request = server.verify_request(*(extract_params() + (scopes,)))
     if not valid:
         return None
@@ -120,23 +129,23 @@ __all__ = [
 ]
 
 
-def get_allowed_scopes(user_id):
+def get_allowed_scopes(userid):
     """
     Get a list of oauth scopes this user is allowed to request
-    :param user_id: the userid of the application owner
+    :param userid: the userid of the application owner
     :return: a list of scopes
     """
     allowed = _SCOPES
     # only trusted individuals should be allowed to use the "wholesite" oauth grant
-    if user_id not in staff.ADMINS | staff.MODS | staff.DEVELOPERS:
+    if userid not in staff.ADMINS | staff.MODS | staff.DEVELOPERS:
         allowed = [scope for scope in allowed if scope['name'] != 'wholesite']
     return allowed
 
 
-def register_client(user_id, name, scopes, redirects, homepage):
+def register_client(userid, name, scopes, redirects, homepage):
     """
     Register an application as an OAuth2 consumer
-    :param user_id: the user registering this application
+    :param userid: the user registering this application
     :param name: the name of the application
     :param scopes: a list of the scopes registered for this application
     :param redirects: allowed redirect URIs for this application
@@ -150,7 +159,7 @@ def register_client(user_id, name, scopes, redirects, homepage):
     new_consumer = orm.OAuthConsumer(
         clientid=security.generate_key(32),
         description=name,
-        ownerid=user_id,
+        ownerid=userid,
         grant_type="authorization_code",
         response_type="code",
         scopes=scopes,
@@ -164,28 +173,38 @@ def register_client(user_id, name, scopes, redirects, homepage):
     session.commit()
 
 
-def get_registered_applications(user_id):
+def get_registered_applications(userid):
     """
     Return a list of all OAuth2 consumers registered to this account
-    :param user_id:
-    :return:
     """
     q = (orm.OAuthConsumer.query
-         .filter_by(ownerid=user_id))
+         .filter_by(ownerid=userid))
     return q.all()
 
 
-def remove_clients(user_id, clients):
+def remove_clients(userid, clients):
+    """
+    Delete a set of OAuth2 applications associated with a user.
+    :param userid: the user making the request
+    :param clients: a list of client ID's owned by this user to be removed
+    """
     q = (orm.OAuthConsumer.query
-         .filter_by(ownerid=user_id)
+         .filter_by(ownerid=userid)
          .filter(orm.OAuthConsumer.clientid.in_(clients)))
     q.delete(synchronize_session=False)
 
 
-def renew_client_secrets(user_id, clients):
+def renew_client_secrets(userid, clients):
+    """
+    Iterates over client IDs of OAuth2 applications
+    and assigns each one a new client secret.
+    To be used in the event of an oopsie.
+    :param userid: the user making the request
+    :param clients: a list of client ID's owned by this user to be renewed
+    """
     for cid in clients:
         q = (orm.OAuthConsumer.query
-             .filter_by(ownerid=user_id)
+             .filter_by(ownerid=userid)
              .filter_by(clientid=cid))
         q.update({orm.OAuthConsumer.client_secret: security.generate_key(64)},
                  synchronize_session=False)

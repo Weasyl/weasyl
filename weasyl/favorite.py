@@ -255,7 +255,7 @@ def check(userid, submitid=None, charid=None, journalid=None):
 
 
 def count(id, contenttype='submission'):
-    """Fetches the count of submissions on some type.
+    """Fetches the count of favorites on some content.
 
     Args:
         id (int): ID of the content to get the count for.

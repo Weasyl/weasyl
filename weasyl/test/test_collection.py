@@ -24,7 +24,7 @@ class CollectionsTestCase(unittest.TestCase):
     def test_offer_and_accept(self):
         self.offer()
         self.assertEqual(1, self.count_collections(True))
-        collection.offer_accept(self.collector, [self.s])
+        collection.pending_accept(self.collector, [(self.s, self.collector)])
         self.assertEqual(1, self.count_collections(False))
 
     def test_offer_with_errors(self):
@@ -34,14 +34,14 @@ class CollectionsTestCase(unittest.TestCase):
     def test_offer_and_reject(self):
         self.offer()
         self.assertEqual(1, self.count_collections(True))
-        collection.offer_reject(self.collector, [self.s])
+        collection.pending_reject(self.collector, [(self.s, self.collector)])
         self.assertEqual(0, self.count_collections(False))
         self.assertEqual(0, self.count_collections(True))
 
     def test_offer_accept_and_remove(self):
         self.offer()
         self.assertEqual(1, self.count_collections(True))
-        collection.offer_accept(self.collector, [self.s])
+        collection.pending_accept(self.collector, [(self.s, self.collector)])
         collection.remove(self.collector, [self.s])
         self.assertEqual(0, self.count_collections(False))
         self.assertEqual(0, self.count_collections(True))

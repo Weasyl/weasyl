@@ -1,6 +1,26 @@
 Weasyl Changelog
 ================
 
+2016-05-31
+----------
+
+Publicly visible changes:
+
+ * Removes legacy thumbnail restore tool.
+
+Internal changes:
+
+ * Drops support for IE 6–8.
+ * Removes unused functions in weasyl.files.
+ * Stops consulting the unused loginaddress table so it can be removed.
+
+2016-05-29
+----------
+
+Publicly visible changes:
+
+ * Adds current e-mail address to /control/editemailpassword.
+
 2016-05-28
 ----------
 

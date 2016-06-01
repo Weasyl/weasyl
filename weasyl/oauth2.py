@@ -142,7 +142,9 @@ def register_client(user_id, name, scopes, redirects, homepage):
     :param redirects: allowed redirect URIs for this application
     """
     if not name.strip():
-        raise WeasylError("nameMissing")
+        raise WeasylError("applicationNameMissing")
+    if not scopes:
+        raise WeasylError("applicationHasNoScope")
 
     session = d.connect()
     new_consumer = orm.OAuthConsumer(

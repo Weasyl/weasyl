@@ -112,6 +112,7 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
           placeholder="separate multiple URIs with a space"/>
 
       <label>Scopes</label>
+      <p>You must select at least one of the following:</p>
       $for scope in oauth_scopes:
         <label class="input-checkbox">
           <input type="checkbox" name="client-scopes" value="${scope['name']}">

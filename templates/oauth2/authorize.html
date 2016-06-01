@@ -222,14 +222,11 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
       (by <a href="/~${LOGIN(client.owner.profile.username)}">${client.owner.profile.username}</a>)
       should be authorized to make requests on your behalf with the following permissions:</p>
 
-    $if scopes:
-      <table id="permissions">
-        <tr><td><strong>PERMISSION</strong></td><td><strong>GRANTS</strong></td></tr>
-        $for scope in scopes:
-          <tr><td>${scope['name']}</td><td>${scope['description']}</td></tr>
-      </table>
-    $else:
-      <p>No elevated permissions requested</p>
+    <table id="permissions">
+      <tr><td><strong>PERMISSION</strong></td><td><strong>GRANTS</strong></td></tr>
+      $for scope in scopes:
+        <tr><td>${scope['name']}</td><td>${scope['description']}</td></tr>
+    </table>
 
     <p>
       Do not authorize this application if you do not trust it. However, this

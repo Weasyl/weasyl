@@ -42,6 +42,8 @@ offline_mode = (
 error_messages = {
     "addressInvalid": "Your IP address does not match the location from which this request was made.",
     "AdminLocked": "This content has been locked from any editing by an admin.",
+    "applicationHasNoScope": "Your OAuth2 application must have at least one access scope.",
+    "applicationNameMissing": "You did not supply a valid name for this application.",
     "ArtistTags": "You cannot remove tags that have been added by the artist.",
     "birthdayInsufficient": (
         "Your date of birth indicates that you are not allowed to set your content rating settings to the "
@@ -100,7 +102,6 @@ error_messages = {
         "name correctly and that the account you are trying to recover the password for actually exists."),
     "maxamountInvalid": "The maximum amount you entered is not valid.",
     "minamountInvalid": "The minimum amount you entered is not valid.",
-    "nameMissing": "You did not supply a valid name for this application.",
     "noCover": "No cover exists for that submission.",
     "noImageSource": "No image exists from which to create a thumbnail.",
     "not-utf8": "Text submissions must be encoded in UTF-8.",

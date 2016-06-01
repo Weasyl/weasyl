@@ -34,7 +34,7 @@ engine.execute(
 
 ## Docstrings
 
-Docstrings should generally follow [google's style guide], including arguments and return blocks for methods. Be sure to include types for all parameters and return, either at the start of the description or in parenthesis.  reStructuredText formatting is permitted. Example:
+Docstrings should generally follow [google's style guide], including arguments and return blocks for methods. Be sure to include types for all parameters and the return value, either at the start of the description or in parenthesis.  reStructuredText formatting is permitted. Example:
 ```
 def image_extension(im):
     """

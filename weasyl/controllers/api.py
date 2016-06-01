@@ -8,8 +8,8 @@ from weasyl.controllers.base import controller_base
 from weasyl.error import WeasylError
 from weasyl import define as d, macro as m
 from weasyl import (
-    api, character, collection, commishinfo, folder, media, message, profile,
-    index, searchtag, submission, favorite)
+    api, character, collection, commishinfo, favorite, folder,
+    index, journal, media, message, profile, searchtag, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -209,6 +209,26 @@ class api_submission_view_(api_base):
         form = web.input(anyway='', increment_views='')
         result = submission.select_view_api(
             self.user_id, int(submitid),
+            anyway=bool(form.anyway), increment_views=bool(form.increment_views))
+        return json.dumps(result)
+
+
+class api_journal_view_(api_base):
+    @api_method
+    def GET(self, journalid):
+        form = web.input(anyway='', increment_views='')
+        result = journal.select_view_api(
+            self.user_id, int(journalid),
+            anyway=bool(form.anyway), increment_views=bool(form.increment_views))
+        return json.dumps(result)
+
+
+class api_character_view_(api_base):
+    @api_method
+    def GET(self, charid):
+        form = web.input(anyway='', increment_views='')
+        result = character.select_view_api(
+            self.user_id, int(charid),
             anyway=bool(form.anyway), increment_views=bool(form.increment_views))
         return json.dumps(result)
 

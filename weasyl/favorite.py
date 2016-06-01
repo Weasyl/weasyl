@@ -254,7 +254,27 @@ def check(userid, submitid=None, charid=None, journalid=None):
         ], options="bool")
 
 
-def count(submitid):
-    return d.execute(
-        "SELECT COUNT(*) FROM favorite WHERE targetid = %i AND type = 's'",
-        [submitid], options=['element'])
+def count(id, contenttype='submission'):
+    """Fetches the count of favorites on some content.
+
+    Args:
+        id (int): ID of the content to get the count for.
+        contenttype (str): Type of content to fetch. It accepts one of the following:
+            submission, journal, or character
+
+    Returns:
+        An int with the number of favorites.
+    """
+
+    if contenttype == 'submission':
+        querytype = 's'
+    elif contenttype == 'journal':
+        querytype = 'j'
+    elif contenttype == 'character':
+        querytype = 'f'
+    else:
+        raise ValueError("type should be one of 'submission', 'journal', or 'character'")
+
+    return d.engine.execute(
+        "SELECT COUNT(*) FROM favorite WHERE targetid = %s AND type = %s",
+        [id, querytype]).scalar()

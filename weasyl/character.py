@@ -24,7 +24,7 @@ import favorite
 from libweasyl import staff, text
 
 from weasyl import macro as m
-from weasyl import media, api
+from weasyl import api, media
 
 
 _MEGABYTE = 1048576

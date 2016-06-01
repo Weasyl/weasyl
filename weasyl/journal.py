@@ -20,7 +20,8 @@ import favorite
 
 from libweasyl import text, staff
 
-from weasyl import media, orm
+from weasyl import media
+from weasyl import orm
 
 
 def create(userid, journal, friends_only=False, tags=None):
@@ -65,47 +66,49 @@ def create(userid, journal, friends_only=False, tags=None):
     return journalid
 
 
-def select_view(userid, rating, journalid, ignore=True, anyway=None):
-    journal = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
-        FROM journal jo JOIN profile pr ON jo.userid = pr.userid
-        WHERE jo.journalid = %(id)s
-    """, id=journalid).fetchone()
+def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anyway=False, increment_views=True):
+    db = d.connect()
+    query = db.query(orm.Journal).get(journalid)
 
-    if journal and userid in staff.MODS and anyway == "true":
+    if journalid and userid in staff.MODS and anyway:
         pass
-    elif not journal or "h" in journal.settings:
-        raise WeasylError("journalRecordMissing")
-    elif journal.rating > rating and ((userid != journal[0] and userid not in staff.MODS) or d.is_sfw_mode()):
-        raise WeasylError("RatingExceeded")
-    elif "f" in journal.settings and not frienduser.check(userid, journal.userid):
-        raise WeasylError("FriendsOnly")
-    elif ignore and ignoreuser.check(userid, journal.userid):
-        raise WeasylError("UserIgnored")
+    elif not query or 'hidden' in query.settings:
+        raise WeasylError('journalRecordMissing')
+    elif query.rating.code > rating and ((userid != query.userid and userid not in staff.MODS) or d.is_sfw_mode()):
+        raise WeasylError('RatingExceeded')
+    elif 'friends-only' in query.settings and not frienduser.check(userid, query.userid):
+        raise WeasylError('FriendsOnly')
+    elif ignore and ignoreuser.check(userid, query.userid):
+        raise WeasylError('UserIgnored')
     elif ignore and blocktag.check(userid, journalid=journalid):
-        raise WeasylError("TagBlocked")
+        raise WeasylError('TagBlocked')
 
-    page_views = journal.page_views
+    if increment_views and d.common_view_content(userid, journalid, 'journal'):
+        query.page_views += 1
 
-    if d.common_view_content(userid, journalid, "journal"):
-        page_views += 1
+    return query
+
+
+def select_view(userid, rating, journalid, ignore=True, anyway=None):
+    journal = _select_journal_and_check(
+        userid, journalid, rating=rating, ignore=ignore, anyway=anyway=="anyway")
 
     return {
         "journalid": journalid,
         "userid": journal.userid,
-        "username": journal.username,
+        "username": journal.owner.profile.username,
         "user_media": media.get_user_media(journal.userid),
         "mine": userid == journal.userid,
         "unixtime": journal.unixtime,
         "title": journal.title,
         "content": files.read(files.make_resource(userid, journalid, "journal/submit")),
-        "rating": journal.rating,
+        "rating": journal.rating.code,
         "settings": journal.settings,
-        "page_views": page_views,
+        "page_views": journal.page_views,
         "reported": report.check(journalid=journalid),
         "favorited": favorite.check(userid, journalid=journalid),
-        "friends_only": "f" in journal.settings,
-        "hidden_submission": "h" in journal.settings,
+        "friends_only": "friends-only" in journal.settings,
+        "hidden_submission": "hidden" in journal.settings,
         "fave_count": favorite.count(journalid, 'journal'),
         "tags": searchtag.select(journalid=journalid),
         "comments": comment.select(userid, journalid=journalid),
@@ -114,23 +117,9 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
 
 def select_view_api(userid, journalid, anyway=False, increment_views=False):
     rating = d.get_rating(userid)
-    db = d.connect()
-    journal = db.query(orm.Journal).get(journalid)
-    if journal is None or 'hidden' in journal.settings:
-        raise WeasylError('journalRecordMissing')
-    journal_rating = journal.rating.code
-    if 'friends-only' in journal.settings and not frienduser.check(userid, journal.userid):
-        raise WeasylError('journalRecordMissing')
-    elif journal_rating > rating and userid != journal.userid:
-        raise WeasylError('RatingExceeded')
-    elif not anyway and ignoreuser.check(userid, journal.userid):
-        raise WeasylError('UserIgnored')
-    elif not anyway and blocktag.check(userid, journalid=journalid):
-        raise WeasylError('TagBlocked')
 
-    views = journal.page_views
-    if increment_views and d.common_view_content(userid, journalid, 'journal'):
-        views += 1
+    journal = _select_journal_and_check(userid, journalid,
+        rating=rating, ignore=anyway, anyway=anyway, increment_views=increment_views)
 
     content = files.read(files.make_resource(userid, journalid, 'journal/submit'))
 
@@ -142,11 +131,9 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'content': text.markdown(content),
         'tags': searchtag.select(journalid=journalid),
         'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal.title))),
-
         'type': 'journal',
         'rating': journal.rating.name,
-
-        'views': views,
+        'views': journal.page_views,
         'favorites': favorite.count(journalid, 'journal'),
         'comments': comment.count(journalid=journalid),
         'favorited': favorite.check(userid, journalid=journalid),

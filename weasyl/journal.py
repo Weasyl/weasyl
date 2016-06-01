@@ -67,6 +67,20 @@ def create(userid, journal, friends_only=False, tags=None):
 
 
 def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anyway=False, increment_views=True):
+    """Selects a journal, after checking if the user is authorized, etc.
+
+    Args:
+        userid (int): Currently authenticating user ID.
+        journalid (int): Character ID to fetch.
+        rating (int): Maximum rating to display.
+        ignore (bool): If should respect ignored or blocked tags.
+        anyway (bool): If should ignore checks and display anyway.
+        increment_views (bool): If should increment the number of views on the submission.
+
+    Returns:
+        A journal and all needed data.
+    """
+
     db = d.connect()
     query = db.query(orm.Journal).get(journalid)
 

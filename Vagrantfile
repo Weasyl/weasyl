@@ -35,6 +35,7 @@ sudo -u postgres dropdb weasyl
 sudo -u postgres dropuser vagrant
 sudo -u postgres createuser -drs vagrant
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl
+sudo -u postgres createdb -E UTF8 -O vagrant weasyl_test
 sudo -u vagrant psql weasyl -c 'CREATE EXTENSION hstore;'
 curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.gz \
     | gunzip | sudo -u vagrant psql weasyl

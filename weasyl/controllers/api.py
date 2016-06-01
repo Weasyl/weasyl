@@ -8,8 +8,8 @@ from weasyl.controllers.base import controller_base
 from weasyl.error import WeasylError
 from weasyl import define as d, macro as m
 from weasyl import (
-    api, character, collection, commishinfo, folder, media, message, profile,
-    index, searchtag, submission, journal, favorite)
+    api, character, collection, commishinfo, favorite, folder,
+    index, journal, media, message, profile, searchtag, submission)
 
 
 _ERROR_UNEXPECTED = {

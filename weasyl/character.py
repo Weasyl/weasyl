@@ -196,13 +196,13 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
     Args:
         userid (int): Currently authenticating user ID.
         charid (int): Character ID to fetch.
-        rating (int): Maximum rating to display.
-        ignore (bool): If should respect ignored or blocked tags.
-        anyway (bool): If should ignore checks and display anyway.
-        increment_views (bool): If should increment the number of views on the submission.
+        rating (int): Maximum rating to display. Defaults to None.
+        ignore (bool): Whether to respect ignored or blocked tags. Defaults to True.
+        anyway (bool): Whether to ignore checks and display anyway. Defaults to False.
+        increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
 
     Returns:
-        A character and all needed data.
+        A character and all needed data as a dict.
     """
 
     query = define.engine.execute("""

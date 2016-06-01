@@ -19,8 +19,8 @@ import report
 import favorite
 
 from libweasyl import ratings
-from libweasyl import text
 from libweasyl import staff
+from libweasyl import text
 
 from weasyl import media
 from weasyl import orm
@@ -74,13 +74,13 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     Args:
         userid (int): Currently authenticating user ID.
         journalid (int): Character ID to fetch.
-        rating (int): Maximum rating to display.
-        ignore (bool): If should respect ignored or blocked tags.
-        anyway (bool): If should ignore checks and display anyway.
-        increment_views (bool): If should increment the number of views on the submission.
+        rating (int): Maximum rating to display. Defaults to None.
+        ignore (bool): Whether to respect ignored or blocked tags. Defaults to True.
+        anyway (bool): Whether ignore checks and display anyway. Defaults to False.
+        increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
 
     Returns:
-        A journal and all needed data.
+        A journal and all needed data as a dict.
     """
 
     query = d.engine.execute("""

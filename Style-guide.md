@@ -24,7 +24,8 @@ translations = {
 
 ```python
 engine.execute(
-    "INSERT INTO temperatures (high, low, average) VALUES (%(high)s, %(low)s, %(average)s)",
+    "INSERT INTO temperatures (high, low, average) "
+    "VALUES (%(high)s, %(low)s, %(average)s)",
     high=34.0,
     low=-4.0,
     average=19.6,  # here too

@@ -156,7 +156,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'favorites': favorite.count(journalid, 'journal'),
         'comments': comment.count(journalid, 'journal'),
         'favorited': favorite.check(userid, journalid=journalid),
-        'friends_only': 'f' in journal.settings
+        'friends_only': 'f' in journal.settings,
     }
 
 

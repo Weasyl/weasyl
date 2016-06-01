@@ -25,8 +25,8 @@ from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
 
-from weasyl import macro as m
 from weasyl import api
+from weasyl import macro as m
 from weasyl import media
 from weasyl import orm
 

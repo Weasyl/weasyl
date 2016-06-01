@@ -54,11 +54,6 @@ See libweasyl and [sphinx-napoleon] for more examples.
 
 We don't enforce a line length limit. That being said, lines longer than 100 characters should be avoided.
 
-## Imports
-
-Group imports in a way that makes sense. When in doubt, a good rule of thumb is three blocks: Python distribution imports, blank line, third party imports, blank line, weasyl project imports.
-
-Regardless of grouping, imports should be lexicographically sorted.
 
   [PEP 8]: https://www.python.org/dev/peps/pep-0008/ "PEP 8 -- Style Guide for Python Code"
   [google's style guide]: http://google.github.io/styleguide/pyguide.html?showone=Comments#Comments "Google's guidelines for docstrings"

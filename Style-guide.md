@@ -34,7 +34,7 @@ engine.execute(
 
 ## Docstrings
 
-Docstrings should generally follow [goog-style], including arguments and return blocks for methods. Be sure to include types for all parameters and return, either at the start of the description or in parenthesis.  reStructuredText formatting is permitted. Example:
+Docstrings should generally follow [google's style guide], including arguments and return blocks for methods. Be sure to include types for all parameters and return, either at the start of the description or in parenthesis.  reStructuredText formatting is permitted. Example:
 ```
 def image_extension(im):
     """
@@ -48,8 +48,8 @@ def image_extension(im):
     """
 ```
 
-See libweasyl and [sphinx-napoleon] for examples.
+See libweasyl and [sphinx-napoleon] for more examples.
 
   [PEP 8]: https://www.python.org/dev/peps/pep-0008/ "PEP 8 -- Style Guide for Python Code"
-  [goog-style]: http://google.github.io/styleguide/pyguide.html?showone=Comments#Comments "Google's guidelines for docstrings"
+  [google's style guide]: http://google.github.io/styleguide/pyguide.html?showone=Comments#Comments "Google's guidelines for docstrings"
   [sphinx-napoleon]: https://pypi.python.org/pypi/sphinxcontrib-napoleon 'the Sphinx "napoleon" extension documentation'

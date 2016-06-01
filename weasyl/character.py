@@ -24,7 +24,9 @@ import favorite
 from libweasyl import staff, text
 
 from weasyl import macro as m
-from weasyl import api, media
+from weasyl import api
+from weasyl import media
+from weasyl import orm
 
 
 _MEGABYTE = 1048576
@@ -186,108 +188,103 @@ def is_hidden(charid):
     return bool(results and results[0][0])
 
 
-def select_view(userid, charid, rating, ignore=True, anyway=None):
-    query = define.execute("""
-        SELECT
-            ch.userid, pr.username, ch.unixtime, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
-            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
-        FROM character ch
-            INNER JOIN profile pr USING (userid)
-        WHERE ch.charid = %i
-    """, [charid], options=["single", "list"])
+def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway=False, increment_views=True):
+    """Selects a character, after checking if the user is authorized, etc.
 
-    if query and userid in staff.MODS and anyway == "true":
+    Args:
+        userid (int): Currently authenticating user ID.
+        charid (int): Character ID to fetch.
+        rating (int): Maximum rating to display.
+        ignore (bool): If should respect ignored or blocked tags.
+        anyway (bool): If should ignore checks and display anyway.
+        increment_views (bool): If should increment the number of views on the submission.
+
+    Returns:
+        A character and all needed data.
+    """
+
+    db = define.connect()
+    query = db.query(orm.Character).get(charid)
+
+    if query and userid in staff.MODS and anyway:
         pass
-    elif not query or "h" in query[11]:
-        raise WeasylError("characterRecordMissing")
-    elif query[10] > rating and ((userid != query[0] and userid not in staff.MODS) or define.is_sfw_mode()):
-        raise WeasylError("RatingExceeded")
-    elif "f" in query[11] and not frienduser.check(userid, query[0]):
-        raise WeasylError("FriendsOnly")
-    elif ignore and ignoreuser.check(userid, query[0]):
-        raise WeasylError("UserIgnored")
+    elif not query or 'h' in query.settings:
+        raise WeasylError('characterRecordMissing')
+    elif query.rating.code > rating and ((userid != query.userid and userid not in staff.MODS) or define.is_sfw_mode()):
+        raise WeasylError('RatingExceeded')
+    elif 'f' in query.settings and not frienduser.check(userid, query.userid):
+        raise WeasylError('FriendsOnly')
+    elif ignore and ignoreuser.check(userid, query.userid):
+        raise WeasylError('UserIgnored')
     elif ignore and blocktag.check(userid, charid=charid):
-        raise WeasylError("TagBlocked")
+        raise WeasylError('TagBlocked')
 
-    if define.common_view_content(userid, charid, "char"):
-        query[12] += 1
-    login = define.get_sysname(query[1])
+    if increment_views and define.common_view_content(userid, charid, 'char'):
+        query.page_views += 1
+
+    return query
+
+
+def select_view(userid, charid, rating, ignore=True, anyway=None):
+    query = _select_character_and_check(
+        userid, charid, rating=rating, ignore=ignore, anyway=anyway=="anyway")
 
     return {
         "charid": charid,
-        "userid": query[0],
-        "username": query[1],
-        "user_media": media.get_user_media(query[0]),
-        "mine": userid == query[0],
-        "unixtime": query[2],
-        "title": query[3],
-        "age": query[4],
-        "gender": query[5],
-        "height": query[6],
-        "weight": query[7],
-        "species": query[8],
-        "content": query[9],
-        "rating": query[10],
-        "settings": query[11],
+        "userid": query.userid,
+        "username": query.owner.profile.username,
+        "user_media": media.get_user_media(query.userid),
+        "mine": userid == query.userid,
+        "unixtime": query.unixtime,
+        "title": query.char_name,
+        "age": query.age,
+        "gender": query.gender,
+        "height": query.height,
+        "weight": query.weight,
+        "species": query.species,
+        "content": query.content,
+        "rating": query.rating.code,
+        "settings": query.settings,
         "reported": report.check(charid=charid),
         "favorited": favorite.check(userid, charid=charid),
-        "page_views": query[12],
-        "friends_only": "f" in query[11],
-        "hidden_submission": "h" in query[11],
-        "fave_count": favorite.count(charid=charid),
+        "page_views": query.page_views,
+        "friends_only": "f" in query.settings,
+        "hidden_submission": "h" in query.settings,
+        "fave_count": favorite.count(charid, 'character'),
         "comments": comment.select(userid, charid=charid),
-        "sub_media": fake_media_items(charid, query[0], login, query[11]),
+        "sub_media": fake_media_items(charid, query.userid, query.owner.login_name, query.settings),
         "tags": searchtag.select(charid=charid),
     }
 
 
 def select_view_api(userid, charid, anyway=False, increment_views=False):
-    query = define.execute("""
-        SELECT
-            ch.userid, pr.username, ch.unixtime, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
-            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
-        FROM character ch
-            INNER JOIN profile pr USING (userid)
-        WHERE ch.charid = %i
-    """, [charid], options=["single", "list"])
     rating = define.get_rating(userid)
 
-    if not query or 'h' in query[11]:
-        raise WeasylError('characterRecordMissing')
-    elif 'f' in query[11] and not frienduser.check(userid, query[0]):
-        raise WeasylError('FriendsOnly')
-    elif query[10] > rating and ((userid != query[0] and userid not in staff.MODS) or define.is_sfw_mode()):
-        raise WeasylError('RatingExceeded')
-    elif not anyway and ignoreuser.check(userid, query[0]):
-        raise WeasylError('UserIgnored')
-    elif not anyway and blocktag.check(userid, charid=charid):
-        raise WeasylError('TagBlocked')
-
-    if increment_views and define.common_view_content(userid, charid, 'char'):
-        query[12] += 1
-    login = define.get_sysname(query[1])
+    query = _select_character_and_check(
+        userid, charid, rating=rating, ignore=anyway,
+        anyway=anyway, increment_views=increment_views)
 
     return {
         "charid": charid,
-        "owner": query[1],
-        "owner_login": login,
-        "owner_media": api.tidy_all_media(media.get_user_media(query[0])),
-        "posted_at": define.iso8601(query[2]),
-        "title": query[3],
-        "age": query[4],
-        "gender": query[5],
-        "height": query[6],
-        "weight": query[7],
-        "species": query[8],
-        "content": text.markdown(query[9]),
-        "rating": query[10],
+        "owner": query.owner.profile.username,
+        "owner_login": query.owner.login_name,
+        "owner_media": api.tidy_all_media(media.get_user_media(query.userid)),
+        "posted_at": define.iso8601(query.unixtime),
+        "title": query.char_name,
+        "age": query.age,
+        "gender": query.gender,
+        "height": query.height,
+        "weight": query.weight,
+        "species": query.species,
+        "content": text.markdown(query.content),
+        "rating": query.rating.name,
         "favorited": favorite.check(userid, charid=charid),
-        "views": query[12],
-        "friends_only": 'f' in query[11],
-        "favorites": favorite.count(charid=charid),
+        "views": query.page_views,
+        "friends_only": 'f' in query.settings,
+        "favorites": favorite.count(charid, 'character'),
         "comments": comment.count(charid=charid),
-        "media": fake_media_items(charid, query[0], login, query[11], True),
-        "tags": searchtag.select(charid=charid)
+        "media": fake_media_items(charid, query.userid, query.owner.login_name, query.settings, True),
+        "tags": searchtag.select(charid=charid),
     }
 
 
@@ -408,10 +405,9 @@ def remove(userid, charid):
 
 
 def fake_media_items(charid, userid, login, settings, absolutify=False):
-    submission_url = define.cdnify_url(
-        define.url_make(charid, "char/submit", query=[userid, settings], file_prefix=login))
-    cover_url = define.cdnify_url(define.url_make(charid, "char/cover", query=[settings], file_prefix=login))
-    thumbnail_url = define.cdnify_url(define.url_make(charid, "char/thumb", query=[settings]))
+    submission_url = define.cdnify_url(define.url_make(charid, "char/submit", file_prefix=login))
+    cover_url = define.cdnify_url(define.url_make(charid, "char/cover", file_prefix=login))
+    thumbnail_url = define.cdnify_url(define.url_make(charid, "char/thumb"))
 
     if absolutify:
         submission_url = define.absolutify_url(submission_url)

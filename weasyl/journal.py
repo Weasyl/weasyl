@@ -106,7 +106,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         "favorited": favorite.check(userid, journalid=journalid),
         "friends_only": "f" in journal.settings,
         "hidden_submission": "h" in journal.settings,
-        "fave_count": favorite.count(journalid=journalid),
+        "fave_count": favorite.count(journalid, 'journal'),
         "tags": searchtag.select(journalid=journalid),
         "comments": comment.select(userid, journalid=journalid),
     }
@@ -147,7 +147,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'rating': journal.rating.name,
 
         'views': views,
-        'favorites': favorite.count(journalid=journalid),
+        'favorites': favorite.count(journalid, 'journal'),
         'comments': comment.count(journalid=journalid),
         'favorited': favorite.check(userid, journalid=journalid),
         'friends_only': 'friends-only' in journal.settings

@@ -50,6 +50,10 @@ def image_extension(im):
 
 See libweasyl and [sphinx-napoleon] for more examples.
 
+## Line length
+
+We don't enforce a line length limit. That being said, lines longer than 100 characters should be avoided.
+
   [PEP 8]: https://www.python.org/dev/peps/pep-0008/ "PEP 8 -- Style Guide for Python Code"
   [google's style guide]: http://google.github.io/styleguide/pyguide.html?showone=Comments#Comments "Google's guidelines for docstrings"
   [sphinx-napoleon]: https://pypi.python.org/pypi/sphinxcontrib-napoleon 'the Sphinx "napoleon" extension documentation'

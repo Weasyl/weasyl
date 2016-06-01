@@ -12,7 +12,10 @@ from .legacy import login_name
 try:
     from html.parser import locatestarttagend
 except ImportError:
-    from HTMLParser import locatestarttagend
+    try:
+        from html.parser import locatestarttagend_tolerant as locatestarttagend
+    except ImportError:
+        from HTMLParser import locatestarttagend
 
 
 def slug_for(title):

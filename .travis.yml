@@ -1,0 +1,43 @@
+language: python
+# Run on Travis CI's docker infrastructure
+sudo: false
+
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27 CC=gcc
+    - python: 3.5
+      env: TOXENV=py35 CC=gcc
+    - python: 2.7
+      env: TOXENV=py27 CC=clang
+    - python: 3.5
+      env: TOXENV=py35 CC=clang
+    - python: 2.7
+      env: TOXENV=pep8
+    - python: 3.5
+      env: TOXENV=py3pep8
+
+addons:
+    postgresql: "9.4"
+
+services:
+    - memcached
+    - postgresql
+
+before_install:
+    - pip install -U pip
+    - pip --version
+    - export VE=$VIRTUAL_ENV  # Use the virtual environment travis provides.
+    - cp pip.conf $VE
+
+install:
+    - createdb -E UTF8 -O travis weasyl_test
+    - make .stamp-ve  # Setup up our own ve.
+
+script:
+    - make test
+
+branches:
+  only:
+    - master
+

@@ -32,4 +32,24 @@ engine.execute(
 )
 ```
 
+## Docstrings
+
+Docstrings should generally follow [goog-style], including arguments and return blocks for methods. Be sure to include types for all parameters and return, either at the start of the description or in parenthesis.  reStructuredText formatting is permitted. Example:
+```
+def image_extension(im):
+    """
+    Given a sanpera ``Image``, return the file extension corresponding with the
+    original format of the image.
+    Parameters:
+        im: A sanpera ``Image``.
+    Returns:
+        :term:`native string`: one of ``.jpg``, ``.png``, ``.gif``, or ``None``
+        if the format was unknown.
+    """
+```
+
+See libweasyl and [sphinx-napoleon] for examples.
+
   [PEP 8]: https://www.python.org/dev/peps/pep-0008/ "PEP 8 -- Style Guide for Python Code"
+  [goog-style]: http://google.github.io/styleguide/pyguide.html?showone=Comments#Comments "Google's guidelines for docstrings"
+  [sphinx-napoleon]: https://pypi.python.org/pypi/sphinxcontrib-napoleon 'the Sphinx "napoleon" extension documentation'

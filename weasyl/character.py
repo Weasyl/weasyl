@@ -21,7 +21,9 @@ import files
 import report
 import favorite
 
-from libweasyl import staff, text
+from libweasyl import ratings
+from libweasyl import staff
+from libweasyl import text
 
 from weasyl import macro as m
 from weasyl import api
@@ -203,16 +205,22 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
         A character and all needed data.
     """
 
-    db = define.connect()
-    query = db.query(orm.Character).get(charid)
+    query = define.engine.execute("""
+        SELECT
+            ch.userid, pr.username, ch.unixtime, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
+            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
+        FROM character ch
+            INNER JOIN profile pr USING (userid)
+        WHERE ch.charid = %(charid)s
+    """, charid=charid).fetchone()
 
     if query and userid in staff.MODS and anyway:
         pass
-    elif not query or 'hidden' in query.settings:
+    elif not query or 'h' in query.settings:
         raise WeasylError('characterRecordMissing')
-    elif query.rating.code > rating and ((userid != query.userid and userid not in staff.MODS) or define.is_sfw_mode()):
+    elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or define.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
-    elif 'friends-only' in query.settings and not frienduser.check(userid, query.userid):
+    elif 'f' in query.settings and not frienduser.check(userid, query.userid):
         raise WeasylError('FriendsOnly')
     elif ignore and ignoreuser.check(userid, query.userid):
         raise WeasylError('UserIgnored')
@@ -227,33 +235,35 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
 def select_view(userid, charid, rating, ignore=True, anyway=None):
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=ignore, anyway=anyway=="anyway")
+        userid, charid, rating=rating, ignore=ignore, anyway=anyway=='anyway')
+
+    login = define.get_sysname(query.username)
 
     return {
-        "charid": charid,
-        "userid": query.userid,
-        "username": query.owner.profile.username,
-        "user_media": media.get_user_media(query.userid),
-        "mine": userid == query.userid,
-        "unixtime": query.unixtime,
-        "title": query.char_name,
-        "age": query.age,
-        "gender": query.gender,
-        "height": query.height,
-        "weight": query.weight,
-        "species": query.species,
-        "content": query.content,
-        "rating": query.rating.code,
-        "settings": query.settings,
-        "reported": report.check(charid=charid),
-        "favorited": favorite.check(userid, charid=charid),
-        "page_views": query.page_views,
-        "friends_only": 'friends-only' in query.settings,
-        "hidden_submission": 'hidden' in query.settings,
-        "fave_count": favorite.count(charid, 'character'),
-        "comments": comment.select(userid, charid=charid),
-        "sub_media": fake_media_items(charid, query.userid, query.owner.login_name, query.settings),
-        "tags": searchtag.select(charid=charid),
+        'charid': charid,
+        'userid': query.userid,
+        'username': query.username,
+        'user_media': media.get_user_media(query.userid),
+        'mine': userid == query.userid,
+        'unixtime': query.unixtime,
+        'title': query.char_name,
+        'age': query.age,
+        'gender': query.gender,
+        'height': query.height,
+        'weight': query.weight,
+        'species': query.species,
+        'content': query.content,
+        'rating': query.rating,
+        'settings': query.settings,
+        'reported': report.check(charid=charid),
+        'favorited': favorite.check(userid, charid=charid),
+        'page_views': query.page_views,
+        'friends_only': 'f' in query.settings,
+        'hidden_submission': 'h' in query.settings,
+        'fave_count': favorite.count(charid, 'character'),
+        'comments': comment.select(userid, charid=charid),
+        'sub_media': fake_media_items(charid, query.userid, login, query.settings),
+        'tags': searchtag.select(charid=charid),
     }
 
 
@@ -264,10 +274,12 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         userid, charid, rating=rating, ignore=anyway,
         anyway=anyway, increment_views=increment_views)
 
+    login = define.get_sysname(query.username)
+
     return {
         'charid': charid,
-        'owner': query.owner.profile.username,
-        'owner_login': query.owner.login_name,
+        'owner': query.username,
+        'owner_login': login,
         'owner_media': api.tidy_all_media(media.get_user_media(query.userid)),
         'posted_at': define.iso8601(query.unixtime),
         'title': query.char_name,
@@ -277,16 +289,16 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         'weight': query.weight,
         'species': query.species,
         'content': text.markdown(query.content),
-        'rating': query.rating.name,
+        'rating': ratings.CODE_TO_NAME[query.rating],
         'favorited': favorite.check(userid, charid=charid),
         'views': query.page_views,
-        'friends_only': 'friends-only' in query.settings,
+        'friends_only': 'f' in query.settings,
         'favorites': favorite.count(charid, 'character'),
-        'comments': comment.count(charid=charid),
-        'media': fake_media_items(charid, query.userid, query.owner.login_name, query.settings, True),
+        'comments': comment.count(charid, 'character'),
+        'media': fake_media_items(charid, query.userid, login, query.settings, absolutify=True),
         'tags': searchtag.select(charid=charid),
         'type': 'character',
-        'link': define.absolutify_url('/character/%d/%s' % (charid, text.slug_for(query.title))),
+        'link': define.absolutify_url('/character/%d/%s' % (charid, text.slug_for(query.char_name))),
     }
 
 
@@ -407,9 +419,12 @@ def remove(userid, charid):
 
 
 def fake_media_items(charid, userid, login, settings, absolutify=False):
-    submission_url = define.cdnify_url(define.url_make(charid, "char/submit", file_prefix=login))
-    cover_url = define.cdnify_url(define.url_make(charid, "char/cover", file_prefix=login))
-    thumbnail_url = define.cdnify_url(define.url_make(charid, "char/thumb"))
+    submission_url = define.cdnify_url(define.url_make(
+        charid, "char/submit", query=[userid, settings], file_prefix=login))
+    cover_url = define.cdnify_url(define.url_make(
+        charid, "char/cover", query=[settings], file_prefix=login))
+    thumbnail_url = define.cdnify_url(define.url_make(
+        charid, "char/thumb", query=[settings]))
 
     if absolutify:
         submission_url = define.absolutify_url(submission_url)

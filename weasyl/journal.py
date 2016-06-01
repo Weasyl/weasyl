@@ -18,7 +18,9 @@ import ignoreuser
 import report
 import favorite
 
-from libweasyl import text, staff
+from libweasyl import ratings
+from libweasyl import text
+from libweasyl import staff
 
 from weasyl import media
 from weasyl import orm
@@ -81,16 +83,19 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
         A journal and all needed data.
     """
 
-    db = d.connect()
-    query = db.query(orm.Journal).get(journalid)
+    query = d.engine.execute("""
+        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
+        FROM journal jo JOIN profile pr ON jo.userid = pr.userid
+        WHERE jo.journalid = %(id)s
+    """, id=journalid).fetchone()
 
     if journalid and userid in staff.MODS and anyway:
         pass
-    elif not query or 'hidden' in query.settings:
+    elif not query or 'h' in query.settings:
         raise WeasylError('journalRecordMissing')
-    elif query.rating.code > rating and ((userid != query.userid and userid not in staff.MODS) or d.is_sfw_mode()):
+    elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or d.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
-    elif 'friends-only' in query.settings and not frienduser.check(userid, query.userid):
+    elif 'f' in query.settings and not frienduser.check(userid, query.userid):
         raise WeasylError('FriendsOnly')
     elif ignore and ignoreuser.check(userid, query.userid):
         raise WeasylError('UserIgnored')
@@ -105,27 +110,27 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
 
 def select_view(userid, rating, journalid, ignore=True, anyway=None):
     journal = _select_journal_and_check(
-        userid, journalid, rating=rating, ignore=ignore, anyway=anyway=="anyway")
+        userid, journalid, rating=rating, ignore=ignore, anyway=anyway=='anyway')
 
     return {
-        "journalid": journalid,
-        "userid": journal.userid,
-        "username": journal.owner.profile.username,
-        "user_media": media.get_user_media(journal.userid),
-        "mine": userid == journal.userid,
-        "unixtime": journal.unixtime,
-        "title": journal.title,
-        "content": files.read(files.make_resource(userid, journalid, "journal/submit")),
-        "rating": journal.rating.code,
-        "settings": journal.settings,
-        "page_views": journal.page_views,
-        "reported": report.check(journalid=journalid),
-        "favorited": favorite.check(userid, journalid=journalid),
-        "friends_only": "friends-only" in journal.settings,
-        "hidden_submission": "hidden" in journal.settings,
-        "fave_count": favorite.count(journalid, 'journal'),
-        "tags": searchtag.select(journalid=journalid),
-        "comments": comment.select(userid, journalid=journalid),
+        'journalid': journalid,
+        'userid': journal.userid,
+        'username': journal.username,
+        'user_media': media.get_user_media(journal.userid),
+        'mine': userid == journal.userid,
+        'unixtime': journal.unixtime,
+        'title': journal.title,
+        'content': files.read(files.make_resource(userid, journalid, 'journal/submit')),
+        'rating': journal.rating,
+        'settings': journal.settings,
+        'page_views': journal.page_views,
+        'reported': report.check(journalid=journalid),
+        'favorited': favorite.check(userid, journalid=journalid),
+        'friends_only': 'f' in journal.settings,
+        'hidden_submission': 'h' in journal.settings,
+        'fave_count': favorite.count(journalid, 'journal'),
+        'tags': searchtag.select(journalid=journalid),
+        'comments': comment.select(userid, journalid=journalid),
     }
 
 
@@ -140,19 +145,20 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     return {
         'journalid': journalid,
         'title': journal.title,
-        'owner': journal.owner.profile.username,
-        'owner_login': journal.owner.login_name,
+        'owner': journal.username,
+        'owner_login': d.get_sysname(journal.username),
         'content': text.markdown(content),
         'tags': searchtag.select(journalid=journalid),
         'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal.title))),
         'type': 'journal',
-        'rating': journal.rating.name,
+        'rating': ratings.CODE_TO_NAME[journal.rating],
         'views': journal.page_views,
         'favorites': favorite.count(journalid, 'journal'),
-        'comments': comment.count(journalid=journalid),
+        'comments': comment.count(journalid, 'journal'),
         'favorited': favorite.check(userid, journalid=journalid),
-        'friends_only': 'friends-only' in journal.settings
+        'friends_only': 'f' in journal.settings
     }
+
 
 def select_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):
     if config is None:

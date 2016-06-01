@@ -11,7 +11,7 @@ VE ?= ve
 PYVENV ?= virtualenv
 
 # Whether to install from wheels
-USE_WHEEL ?= --no-use-wheel
+USE_WHEEL ?= --no-binary :all:
 
 #
 # Rules

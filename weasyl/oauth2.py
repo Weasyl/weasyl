@@ -2,33 +2,10 @@ import anyjson as json
 from oauthlib.oauth2 import FatalClientError, OAuth2Error
 import web
 
-from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
-from libweasyl import staff, security
+from libweasyl.oauth import server, SCOPES
 from weasyl.controllers.base import controller_base
-from weasyl.error import WeasylError
 from weasyl import define as d
 from weasyl import errorcode, login, media, orm
-
-_SCOPES = [
-    {
-        'name': 'wholesite',
-        'description': 'FULL CONTROL - Note that this means the application can '
-                       'perform almost any action as if you were logged in!',
-    },
-    {
-        'name': 'identity',
-        'description': 'Permission to retrieve your weasyl username and account number',
-    },
-    {
-        'name': 'notifications',
-        'description': 'Access to view your submission inbox, as well as notification counts '
-                       'for comments, favs, messages, etc.',
-    },
-    {
-        'name': 'favorite',
-        'description': 'The ability to favorite and unfavorite submissions',
-    },
-]
 
 
 def extract_params():
@@ -49,7 +26,7 @@ class authorize_(controller_base):
         else:
             user = user_media = None
         credentials['scopes'] = scopes
-        detail_scopes = [scope for scope in _SCOPES if scope['name'] in scopes]
+        detail_scopes = [scope for scope in SCOPES if scope['name'] in scopes]
         return d.render('oauth2/authorize.html', [
             detail_scopes, credentials, client, user, user_media, mobile, error,
             username, password, remember_me, not_me,
@@ -123,88 +100,3 @@ def get_userid_from_authorization(scopes):
         return None
     return request.userid
 
-
-__all__ = [
-    'get_consumers_for_user', 'revoke_consumers_for_user',
-]
-
-
-def get_allowed_scopes(userid):
-    """
-    Get a list of oauth scopes this user is allowed to request
-    :param userid: the userid of the application owner
-    :return: a list of scopes
-    """
-    allowed = _SCOPES
-    # only trusted individuals should be allowed to use the "wholesite" oauth grant
-    if userid not in staff.ADMINS | staff.MODS | staff.DEVELOPERS:
-        allowed = [scope for scope in allowed if scope['name'] != 'wholesite']
-    return allowed
-
-
-def register_client(userid, name, scopes, redirects, homepage):
-    """
-    Register an application as an OAuth2 consumer
-    :param userid: the user registering this application
-    :param name: the name of the application
-    :param scopes: a list of the scopes registered for this application
-    :param redirects: allowed redirect URIs for this application
-    """
-    if not name.strip():
-        raise WeasylError("applicationNameMissing")
-    if not scopes:
-        raise WeasylError("applicationHasNoScope")
-
-    session = d.connect()
-    new_consumer = orm.OAuthConsumer(
-        clientid=security.generate_key(32),
-        description=name,
-        ownerid=userid,
-        grant_type="authorization_code",
-        response_type="code",
-        scopes=scopes,
-        redirect_uris=redirects,
-        client_secret=security.generate_key(64),
-        homepage=homepage,
-    )
-    # this doesnt seem right
-    session.begin()
-    session.add(new_consumer)
-    session.commit()
-
-
-def get_registered_applications(userid):
-    """
-    Return a list of all OAuth2 consumers registered to this account
-    """
-    q = (orm.OAuthConsumer.query
-         .filter_by(ownerid=userid))
-    return q.all()
-
-
-def remove_clients(userid, clients):
-    """
-    Delete a set of OAuth2 applications associated with a user.
-    :param userid: the user making the request
-    :param clients: a list of client ID's owned by this user to be removed
-    """
-    q = (orm.OAuthConsumer.query
-         .filter_by(ownerid=userid)
-         .filter(orm.OAuthConsumer.clientid.in_(clients)))
-    q.delete(synchronize_session=False)
-
-
-def renew_client_secrets(userid, clients):
-    """
-    Iterates over client IDs of OAuth2 applications
-    and assigns each one a new client secret.
-    To be used in the event of an oopsie.
-    :param userid: the user making the request
-    :param clients: a list of client ID's owned by this user to be renewed
-    """
-    for cid in clients:
-        q = (orm.OAuthConsumer.query
-             .filter_by(ownerid=userid)
-             .filter_by(clientid=cid))
-        q.update({orm.OAuthConsumer.client_secret: security.generate_key(64)},
-                 synchronize_session=False)

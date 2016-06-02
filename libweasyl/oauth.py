@@ -2,7 +2,30 @@ import arrow
 from oauthlib.oauth2 import RequestValidator, WebApplicationServer
 
 from libweasyl import cache
+from libweasyl import security
+from libweasyl import staff
 from libweasyl.models.api import OAuthBearerToken, OAuthConsumer
+
+SCOPES = [
+    {
+        'name': 'wholesite',
+        'description': 'FULL CONTROL - Note that this means the application can '
+                       'perform almost any action as if you were logged in!',
+    },
+    {
+        'name': 'identity',
+        'description': 'Permission to retrieve your weasyl username and account number',
+    },
+    {
+        'name': 'notifications',
+        'description': 'Access to view your submission inbox, as well as notification counts '
+                       'for comments, favs, messages, etc.',
+    },
+    {
+        'name': 'favorite',
+        'description': 'The ability to favorite and unfavorite submissions',
+    },
+]
 
 
 class WeasylValidator(RequestValidator):
@@ -158,3 +181,78 @@ def revoke_consumers_for_user(userid, clientids):
         .filter_by(userid=userid)
         .filter(OAuthBearerToken.clientid.in_(clientids)))
     q.delete('fetch')
+
+
+def register_client(userid, name, scopes, redirects, homepage):
+    """
+    Register an application as an OAuth2 consumer
+    :param userid: the user registering this application
+    :param name: the name of the application
+    :param scopes: a list of the scopes registered for this application
+    :param redirects: allowed redirect URIs for this application
+    """
+
+    session = OAuthConsumer.dbsession
+    new_consumer = OAuthConsumer(
+        clientid=security.generate_key(32),
+        description=name,
+        ownerid=userid,
+        grant_type="authorization_code",
+        response_type="code",
+        scopes=scopes,
+        redirect_uris=redirects,
+        client_secret=security.generate_key(64),
+        homepage=homepage,
+    )
+    session.add(new_consumer)
+    session.flush()
+
+
+def get_registered_applications(userid):
+    """
+    Return a list of all OAuth2 consumers registered to this account
+    """
+    q = (OAuthConsumer.query
+         .filter_by(ownerid=userid))
+    return q.all()
+
+
+def remove_clients(userid, clients):
+    """
+    Delete a set of OAuth2 applications associated with a user.
+    :param userid: the user making the request
+    :param clients: a list of client ID's owned by this user to be removed
+    """
+    q = (OAuthConsumer.query
+         .filter_by(ownerid=userid)
+         .filter(OAuthConsumer.clientid.in_(clients)))
+    q.delete(synchronize_session=False)
+
+
+def renew_client_secrets(userid, clients):
+    """
+    Iterates over client IDs of OAuth2 applications
+    and assigns each one a new client secret.
+    To be used in the event of an oopsie.
+    :param userid: the user making the request
+    :param clients: a list of client ID's owned by this user to be renewed
+    """
+    for cid in clients:
+        q = (OAuthConsumer.query
+             .filter_by(ownerid=userid)
+             .filter_by(clientid=cid))
+        q.update({OAuthConsumer.client_secret: security.generate_key(64)},
+                 synchronize_session=False)
+
+
+def get_allowed_scopes(userid):
+    """
+    Get a list of oauth scopes this user is allowed to request
+    :param userid: the userid of the application owner
+    :return: a list of scopes
+    """
+    allowed = SCOPES
+    # only trusted individuals should be allowed to use the "wholesite" oauth grant
+    if userid not in staff.ADMINS | staff.MODS | staff.DEVELOPERS:
+        allowed = [scope for scope in allowed if scope['name'] != 'wholesite']
+    return allowed

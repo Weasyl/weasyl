@@ -227,8 +227,10 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
     elif ignore and blocktag.check(userid, charid=charid):
         raise WeasylError('TagBlocked')
 
+    query = dict(query.items())
+
     if increment_views and define.common_view_content(userid, charid, 'char'):
-        query.page_views += 1
+        query['page_views'] += 1
 
     return query
 
@@ -237,32 +239,33 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
     query = _select_character_and_check(
         userid, charid, rating=rating, ignore=ignore, anyway=anyway=='anyway')
 
-    login = define.get_sysname(query.username)
+    login = define.get_sysname(query['username'])
 
     return {
         'charid': charid,
-        'userid': query.userid,
-        'username': query.username,
-        'user_media': media.get_user_media(query.userid),
-        'mine': userid == query.userid,
-        'unixtime': query.unixtime,
-        'title': query.char_name,
-        'age': query.age,
-        'gender': query.gender,
-        'height': query.height,
-        'weight': query.weight,
-        'species': query.species,
-        'content': query.content,
-        'rating': query.rating,
-        'settings': query.settings,
+        'userid': query['userid'],
+        'username': query['username'],
+        'user_media': media.get_user_media(query['userid']),
+        'mine': userid == query['userid'],
+        'unixtime': query['unixtime'],
+        'title': query['char_name'],
+        'age': query['age'],
+        'gender': query['gender'],
+        'height': query['height'],
+        'weight': query['weight'],
+        'species': query['species'],
+        'content': query['content'],
+        'rating': query['rating'],
+        'settings': query['settings'],
         'reported': report.check(charid=charid),
         'favorited': favorite.check(userid, charid=charid),
-        'page_views': query.page_views,
-        'friends_only': 'f' in query.settings,
-        'hidden_submission': 'h' in query.settings,
+        'page_views': query['page_views'],
+        'friends_only': 'f' in query['settings'],
+        'hidden_submission': 'h' in query['settings'],
         'fave_count': favorite.count(charid, 'character'),
         'comments': comment.select(userid, charid=charid),
-        'sub_media': fake_media_items(charid, query.userid, login, query.settings),
+        'sub_media': fake_media_items(
+            charid, query['userid'], login, query['settings']),
         'tags': searchtag.select(charid=charid),
     }
 
@@ -274,31 +277,34 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         userid, charid, rating=rating, ignore=anyway,
         anyway=anyway, increment_views=increment_views)
 
-    login = define.get_sysname(query.username)
+    login = define.get_sysname(query['username'])
 
     return {
         'charid': charid,
-        'owner': query.username,
+        'owner': query['username'],
         'owner_login': login,
-        'owner_media': api.tidy_all_media(media.get_user_media(query.userid)),
-        'posted_at': define.iso8601(query.unixtime),
-        'title': query.char_name,
-        'age': query.age,
-        'gender': query.gender,
-        'height': query.height,
-        'weight': query.weight,
-        'species': query.species,
-        'content': text.markdown(query.content),
-        'rating': ratings.CODE_TO_NAME[query.rating],
+        'owner_media': api.tidy_all_media(
+            media.get_user_media(query['userid'])),
+        'posted_at': define.iso8601(query['unixtime']),
+        'title': query['char_name'],
+        'age': query['age'],
+        'gender': query['gender'],
+        'height': query['height'],
+        'weight': query['weight'],
+        'species': query['species'],
+        'content': text.markdown(query['content']),
+        'rating': ratings.CODE_TO_NAME[query['rating']],
         'favorited': favorite.check(userid, charid=charid),
-        'views': query.page_views,
-        'friends_only': 'f' in query.settings,
+        'views': query['page_views'],
+        'friends_only': 'f' in query['settings'],
         'favorites': favorite.count(charid, 'character'),
         'comments': comment.count(charid, 'character'),
-        'media': fake_media_items(charid, query.userid, login, query.settings, absolutify=True),
+        'media': api.tidy_all_media(fake_media_items(
+            charid, query['userid'], login, query['settings'])),
         'tags': searchtag.select(charid=charid),
         'type': 'character',
-        'link': define.absolutify_url('/character/%d/%s' % (charid, text.slug_for(query.char_name))),
+        'link': define.absolutify_url(
+            '/character/%d/%s' % (charid, text.slug_for(query['char_name']))),
     }
 
 
@@ -418,18 +424,13 @@ def remove(userid, charid):
     return ownerid
 
 
-def fake_media_items(charid, userid, login, settings, absolutify=False):
+def fake_media_items(charid, userid, login, settings):
     submission_url = define.cdnify_url(define.url_make(
         charid, "char/submit", query=[userid, settings], file_prefix=login))
     cover_url = define.cdnify_url(define.url_make(
         charid, "char/cover", query=[settings], file_prefix=login))
     thumbnail_url = define.cdnify_url(define.url_make(
         charid, "char/thumb", query=[settings]))
-
-    if absolutify:
-        submission_url = define.absolutify_url(submission_url)
-        cover_url = define.absolutify_url(cover_url)
-        thumbnail_url = define.absolutify_url(thumbnail_url)
 
     return {
         "submission": [{

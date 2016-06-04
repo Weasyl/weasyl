@@ -1,4 +1,4 @@
-$def with (options=None, active_users_string='', current_year='')
+$def with (options=None, active_users_string='')
   <footer><div id="footer">
 
     <nav role="navigation"><div id="footer-nav" class="clear">
@@ -65,7 +65,7 @@ $def with (options=None, active_users_string='', current_year='')
       $if active_users_string:
         ${active_users_string}.
         <br>
-      ${SHA} &middot; Copyright &copy; 2012–${current_year} Weasyl LLC
+      ${SHA} &middot; Copyright &copy; 2012–${arrow.now().year} Weasyl LLC
     </p>
 
   </div><!-- /footer --></footer>

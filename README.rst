@@ -68,7 +68,9 @@ the project's `gitter room <https://gitter.im/Weasyl/weasyl>`_.
 
 The above instructions have been tested on Linux and OS X. It should be possible
 to run weasyl in a virtual environment under Windows, but it hasn't been thoroughly
-tested.
+tested. Ensure that either Intel VT-x/EPT or AMD-V/RVI are exposed to the virtual 
+machine or Vagrant/Virtualbox may hang attempting to SSH to the VM during the 
+``vagrant up`` command.
 
 
 .. _Weasyl: https://www.weasyl.com

@@ -872,8 +872,7 @@ def active_users():
 def common_page_end(userid, page, rating=None, config=None,
                     now=None, options=None):
     active_users_string = active_users()
-    current_year = datetime.datetime.now().year
-    data = render("common/page_end.html", [options, active_users_string, current_year])
+    data = render("common/page_end.html", [options, active_users_string])
     page.append(data)
     return "".join(page)
 

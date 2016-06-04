@@ -227,7 +227,7 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
     elif ignore and blocktag.check(userid, charid=charid):
         raise WeasylError('TagBlocked')
 
-    query = dict(query.items())
+    query = dict(query)
 
     if increment_views and define.common_view_content(userid, charid, 'char'):
         query['page_views'] += 1

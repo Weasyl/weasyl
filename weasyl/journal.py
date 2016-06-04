@@ -103,7 +103,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     elif ignore and blocktag.check(userid, journalid=journalid):
         raise WeasylError('TagBlocked')
 
-    query = dict(query.items())
+    query = dict(query)
 
     if increment_views and d.common_view_content(userid, journalid, 'journal'):
         query['page_views'] += 1

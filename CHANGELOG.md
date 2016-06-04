@@ -1,6 +1,21 @@
 Weasyl Changelog
 ================
 
+v1.1: 2016-06-03
+----------
+
+Publicly visible changes:
+
+ *  Adds API methods for journals and characters. (#22, #28, @Syfaro)
+ *  Changes the year in the page footer's copyright line to the current year. (#29, #31, @kfkitsune)
+ *  Recenters the positions of thumbnails. (#30, @strain-113)
+
+Internal changes:
+
+ * Updates versions of python library dependencies. (#23, @skylerbunny)
+ * Creates a weasyl_test database when creating a test VM environment. (#24, @strain-113)
+ * Fixes collection related Python tests. (#25, @charmander) 
+
 2016-05-31
 ----------
 

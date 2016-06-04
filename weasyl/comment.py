@@ -284,7 +284,7 @@ def count(id, contenttype='submission'):
 
     if contenttype == 'submission':
         return d.engine.execute(
-            'SELECT COUNT(*) FROM comment cm WHERE cm.target_sub = %s',
+            'SELECT COUNT(*) FROM comments cm WHERE cm.target_sub = %s',
             [id]).scalar()
     elif contenttype == 'journal':
         tablename = 'journalcomment'

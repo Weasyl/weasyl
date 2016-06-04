@@ -22,6 +22,7 @@ from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
 
+from weasyl import api
 from weasyl import media
 from weasyl import orm
 
@@ -102,8 +103,10 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     elif ignore and blocktag.check(userid, journalid=journalid):
         raise WeasylError('TagBlocked')
 
+    query = dict(query)
+
     if increment_views and d.common_view_content(userid, journalid, 'journal'):
-        query.page_views += 1
+        query['page_views'] += 1
 
     return query
 
@@ -114,20 +117,20 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
 
     return {
         'journalid': journalid,
-        'userid': journal.userid,
-        'username': journal.username,
-        'user_media': media.get_user_media(journal.userid),
-        'mine': userid == journal.userid,
-        'unixtime': journal.unixtime,
-        'title': journal.title,
+        'userid': journal['userid'],
+        'username': journal['username'],
+        'user_media': media.get_user_media(journal['userid']),
+        'mine': userid == journal['userid'],
+        'unixtime': journal['unixtime'],
+        'title': journal['title'],
         'content': files.read(files.make_resource(userid, journalid, 'journal/submit')),
-        'rating': journal.rating,
-        'settings': journal.settings,
-        'page_views': journal.page_views,
+        'rating': journal['rating'],
+        'settings': journal['settings'],
+        'page_views': journal['page_views'],
         'reported': report.check(journalid=journalid),
         'favorited': favorite.check(userid, journalid=journalid),
-        'friends_only': 'f' in journal.settings,
-        'hidden_submission': 'h' in journal.settings,
+        'friends_only': 'f' in journal['settings'],
+        'hidden_submission': 'h' in journal['settings'],
         'fave_count': favorite.count(journalid, 'journal'),
         'tags': searchtag.select(journalid=journalid),
         'comments': comment.select(userid, journalid=journalid),
@@ -144,19 +147,22 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
 
     return {
         'journalid': journalid,
-        'title': journal.title,
-        'owner': journal.username,
-        'owner_login': d.get_sysname(journal.username),
+        'title': journal['title'],
+        'owner': journal['username'],
+        'owner_login': d.get_sysname(journal['username']),
+        'owner_media': api.tidy_all_media(
+            media.get_user_media(journal['userid'])),
         'content': text.markdown(content),
         'tags': searchtag.select(journalid=journalid),
-        'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal.title))),
+        'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal['title']))),
         'type': 'journal',
-        'rating': ratings.CODE_TO_NAME[journal.rating],
-        'views': journal.page_views,
+        'rating': ratings.CODE_TO_NAME[journal['rating']],
+        'views': journal['page_views'],
         'favorites': favorite.count(journalid, 'journal'),
         'comments': comment.count(journalid, 'journal'),
         'favorited': favorite.check(userid, journalid=journalid),
-        'friends_only': 'f' in journal.settings,
+        'friends_only': 'f' in journal['settings'],
+        'posted_at': d.iso8601(journal['unixtime']),
     }
 
 

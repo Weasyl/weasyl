@@ -24,7 +24,6 @@ from libweasyl import text
 
 from weasyl import api
 from weasyl import media
-from weasyl import orm
 
 
 def create(userid, journal, friends_only=False, tags=None):
@@ -113,7 +112,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
 
 def select_view(userid, rating, journalid, ignore=True, anyway=None):
     journal = _select_journal_and_check(
-        userid, journalid, rating=rating, ignore=ignore, anyway=anyway=='anyway')
+        userid, journalid, rating=rating, ignore=ignore, anyway=anyway == 'anyway')
 
     return {
         'journalid': journalid,
@@ -140,7 +139,8 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
 def select_view_api(userid, journalid, anyway=False, increment_views=False):
     rating = d.get_rating(userid)
 
-    journal = _select_journal_and_check(userid, journalid,
+    journal = _select_journal_and_check(
+        userid, journalid,
         rating=rating, ignore=anyway, anyway=anyway, increment_views=increment_views)
 
     content = files.read(files.make_resource(userid, journalid, 'journal/submit'))

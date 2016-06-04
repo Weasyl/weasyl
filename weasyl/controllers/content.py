@@ -4,7 +4,6 @@ import web
 
 from libweasyl import ratings
 from libweasyl import staff
-from libweasyl.models.media import SubmissionMediaLink
 from libweasyl.text import slug_for
 
 from weasyl import (

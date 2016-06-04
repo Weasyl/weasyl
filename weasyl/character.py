@@ -28,7 +28,6 @@ from libweasyl import text
 from weasyl import api
 from weasyl import macro as m
 from weasyl import media
-from weasyl import orm
 
 
 _MEGABYTE = 1048576
@@ -237,7 +236,7 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
 def select_view(userid, charid, rating, ignore=True, anyway=None):
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=ignore, anyway=anyway=='anyway')
+        userid, charid, rating=rating, ignore=ignore, anyway=anyway == 'anyway')
 
     login = define.get_sysname(query['username'])
 

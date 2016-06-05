@@ -1,6 +1,13 @@
 Weasyl Changelog
 ================
 
+v1.1.1: 2016-06-05
+----------
+
+Publicly visible changes:
+
+ *  Fixes thumbnail alignments for Android stock browser. (#34, @taedixon)
+
 v1.1: 2016-06-03
 ----------
 

@@ -1427,6 +1427,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     position: absolute;
     left: 50%;
     top: 50%;
+    -webkit-transform: translate(-50%, -50%);
     transform: translate(-50%, -50%);
 }
 .thumbnail-grid .rating {

@@ -78,8 +78,8 @@ def select_list(userid, rating, limit, otherid=None, pending=False, backid=None,
     if config is None:
         config = d.get_config(userid)
 
-    statement = ["SELECT su.submitid, su.title, su.rating, co.unixtime, "
-                 "su.userid, pr.username, su.settings, cpr.username, cpr.userid "]
+    statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, "
+                 "su.userid, pr.username, cpr.username, cpr.userid "]
     statement.extend(select_query(userid, rating, otherid, pending,
                                   backid, nextid, config))
     statement.append(" ORDER BY co.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
@@ -91,10 +91,11 @@ def select_list(userid, rating, limit, otherid=None, pending=False, backid=None,
             "collection": True,
             "submitid": i[0],
             "title": i[1],
-            "rating": i[2],
-            "unixtime": i[3],
-            "userid": i[4],
-            "username": i[5],  # username of creator
+            "subtype": i[2],
+            "rating": i[3],
+            "unixtime": i[4],
+            "userid": i[5],
+            "username": i[6],  # username of creator
             "collector": i[7],  # username of collector
             "collectorid": i[8],
             "sub_media": media.get_submission_media(i[0]),
@@ -105,7 +106,7 @@ def select_list(userid, rating, limit, otherid=None, pending=False, backid=None,
 
 def select_manage(userid, rating, limit, pending, backid=None, nextid=None, config=None):
     query = []
-    statement = ["SELECT su.submitid, su.title, su.rating, co.unixtime, su.userid, pr.username, su.settings"
+    statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, su.userid, pr.username"
                  " FROM collection co"
                  " INNER JOIN submission su ON co.submitid = su.submitid"
                  " INNER JOIN profile pr ON su.userid = pr.userid"
@@ -132,10 +133,11 @@ def select_manage(userid, rating, limit, pending, backid=None, nextid=None, conf
                 "collection": True,
                 "submitid": i[0],
                 "title": i[1],
-                "rating": i[2],
-                "unixtime": i[3],
-                "userid": i[4],
-                "username": i[5],
+                "subtype": i[2],
+                "rating": i[3],
+                "unixtime": i[4],
+                "userid": i[5],
+                "username": i[6],
                 "sub_media": media.get_submission_media(i[0]),
             })
     except PostgresError:

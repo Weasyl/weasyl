@@ -68,9 +68,13 @@ the project's `gitter room <https://gitter.im/Weasyl/weasyl>`_.
 
 The above instructions have been tested on Linux and OS X. It should be possible
 to run weasyl in a virtual environment under Windows, but it hasn't been thoroughly
-tested. Ensure that either Intel VT-x/EPT or AMD-V/RVI are exposed to the virtual 
-machine or Vagrant/Virtualbox may hang attempting to SSH to the VM during the 
-``vagrant up`` command.
+tested. 
+
+When developing under Windows hosts with a Linux guest, ensure that either Intel VT-x/EPT 
+or AMD-V/RVI are exposed to the virtual machine (e.g., the ``Virtualize Intel VT-x/EPT or 
+AMD-V/RVI`` setting under the Processors device settings for the guest VM). If this setting 
+is not selected, the configuration of the Weasyl VM via ``make setup-vagrant`` may hang 
+when Vagrant attempts to SSH to the VM to perform configuration of the guest. 
 
 
 .. _Weasyl: https://www.weasyl.com

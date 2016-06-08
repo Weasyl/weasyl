@@ -68,15 +68,14 @@ If we ever put master in a state where it is not deployable, we should revert th
 
 ## Commit messages
 
-Shamelessly stolen from [http://chris.beams.io/posts/git-commit/]
+Shamelessly stolen from http://chris.beams.io/posts/git-commit/ and tweaked
 
  1. Separate subject from body with a blank line
- 2. Try to limit the subject line to 50 characters
+ 2. Try to limit the subject line to 50 characters and consider 69 a hard limit
  3. Capitalize the subject line
- 4. Do not end the subject line with a period
- 5. Use the imperative mood in the subject line (e.g. 'Fix a bug in page header notification display' and not 'Fixes a bug' or 'Header notification stuff' etc.)
- 6. Wrap the body at 72 characters
- 7. Use the body to explain what and why vs. how
+ 4. Use the imperative mood in the subject line (e.g. 'Fix a bug in page header notification display' and not 'Fixes a bug' or 'Header notification stuff' etc.)
+ 5. Wrap the body at 72 characters
+ 6. Use the body to explain what and why vs. how
 
   [PEP 8]: https://www.python.org/dev/peps/pep-0008/ "PEP 8 -- Style Guide for Python Code"
   [google's style guide]: http://google.github.io/styleguide/pyguide.html?showone=Comments#Comments "Google's guidelines for docstrings"

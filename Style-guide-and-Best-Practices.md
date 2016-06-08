@@ -68,6 +68,8 @@ If we ever put master in a state where it is not deployable, we should revert th
 
 ## Commit messages
 
+Shamelessly stolen from [http://chris.beams.io/posts/git-commit/]
+
  1. Separate subject from body with a blank line
  2. Try to limit the subject line to 50 characters
  3. Capitalize the subject line

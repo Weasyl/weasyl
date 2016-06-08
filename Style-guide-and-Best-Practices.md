@@ -56,7 +56,7 @@ See libweasyl and [sphinx-napoleon] for more examples.
 
 We don't enforce a line length limit. That being said, lines longer than 100 characters should be avoided.
 
-# Branch Hygiene
+# Git best practices
 
 Master should always be deployable. This means that no pull request should be merged until we consider it ready for production. Some rules of thumb for what that means in practice:
 

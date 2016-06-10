@@ -224,8 +224,8 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
 
     <table id="permissions">
       <tr><td><strong>PERMISSION</strong></td><td><strong>GRANTS</strong></td></tr>
-      $for scope in scopes:
-        <tr><td>${scope['name']}</td><td>${scope['description']}</td></tr>
+      $for scope, desc in scopes.iteritems():
+        <tr><td>${scope}</td><td>${desc}</td></tr>
     </table>
 
     <p>

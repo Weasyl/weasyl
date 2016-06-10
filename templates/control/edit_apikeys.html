@@ -116,10 +116,10 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
 
       <label>Scopes</label>
       <p>You must select at least one of the following:</p>
-      $for scope in oauth_scopes:
+      $for scope, description in oauth_scopes.iteritems():
         <label class="input-checkbox">
-          <input type="checkbox" name="client-scopes" value="${scope['name']}">
-          <strong>${scope['name']}</strong> - ${scope['description']}
+          <input type="checkbox" name="client-scopes" value="${scope}">
+          <strong>${scope}</strong> - ${description}
         </label>
 
       <button name="create-oauth2-client" value="y" style="float:right;margin-top:1em"

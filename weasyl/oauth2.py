@@ -26,7 +26,7 @@ class authorize_(controller_base):
         else:
             user = user_media = None
         credentials['scopes'] = scopes
-        detail_scopes = [scope for scope in SCOPES if scope['name'] in scopes]
+        detail_scopes = {scope: desc for scope, desc in SCOPES if scope in scopes}
         return d.render('oauth2/authorize.html', [
             detail_scopes, credentials, client, user, user_media, mobile, error,
             username, password, remember_me, not_me,

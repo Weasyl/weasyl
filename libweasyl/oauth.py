@@ -6,26 +6,14 @@ from libweasyl import security
 from libweasyl import staff
 from libweasyl.models.api import OAuthBearerToken, OAuthConsumer
 
-SCOPES = [
-    {
-        'name': 'wholesite',
-        'description': 'FULL CONTROL - Note that this means the application can '
-                       'perform almost any action as if you were logged in!',
-    },
-    {
-        'name': 'identity',
-        'description': 'Permission to retrieve your weasyl username and account number',
-    },
-    {
-        'name': 'notifications',
-        'description': 'Access to view your submission inbox, as well as notification counts '
-                       'for comments, favs, messages, etc.',
-    },
-    {
-        'name': 'favorite',
-        'description': 'The ability to favorite and unfavorite submissions',
-    },
-]
+SCOPES = {
+    'wholesite': 'FULL CONTROL - Note that this means the application can '
+                 'perform almost any action as if you were logged in!',
+    'identity': 'Permission to retrieve your weasyl username and account number',
+    'notifications': 'Access to view your submission inbox, as well as notification counts '
+                     'for comments, favs, messages, etc.',
+    'favorite': 'The ability to favorite and unfavorite submissions',
+}
 
 
 class WeasylValidator(RequestValidator):
@@ -251,8 +239,8 @@ def get_allowed_scopes(userid):
     :param userid: the userid of the application owner
     :return: a list of scopes
     """
-    allowed = SCOPES
+    allowed = SCOPES.copy()
     # only trusted individuals should be allowed to use the "wholesite" oauth grant
-    if userid not in staff.ADMINS | staff.MODS | staff.DEVELOPERS:
-        allowed = [scope for scope in allowed if scope['name'] != 'wholesite']
+    if userid not in staff.MODS | staff.DEVELOPERS:
+        allowed.pop('wholesite', None)
     return allowed

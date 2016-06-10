@@ -438,9 +438,9 @@ class control_apikeys_(controller_base):
             name = form['client-name']
             scopes = form['client-scopes']
             if not name.strip():
-                raise WeasylError("applicationNameMissing")
+                raise WeasylError("ApplicationNameMissing")
             if not scopes:
-                raise WeasylError("applicationHasNoScope")
+                raise WeasylError("ApplicationHasNoScope")
             oauth.register_client(self.user_id,
                                   name,
                                   scopes,

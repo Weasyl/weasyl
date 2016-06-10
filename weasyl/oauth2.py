@@ -4,6 +4,7 @@ import web
 
 from libweasyl.oauth import server, SCOPES
 from weasyl.controllers.base import controller_base
+from weasyl.error import WeasylError
 from weasyl import define as d
 from weasyl import errorcode, login, media, orm
 
@@ -25,8 +26,11 @@ class authorize_(controller_base):
             user_media = media.get_user_media(self.user_id)
         else:
             user = user_media = None
-        credentials['scopes'] = scopes
-        detail_scopes = {scope: desc for scope, desc in SCOPES if scope in scopes}
+        credentials['scopes'] = set(scopes)
+        if credentials['scopes'] - set(SCOPES.keys()):
+            # credentials contains scopes that are not in the list of established scopes
+            raise WeasylError("Unexpected")
+        detail_scopes = {scope: desc for scope, desc in SCOPES.iteritems() if scope in scopes}
         return d.render('oauth2/authorize.html', [
             detail_scopes, credentials, client, user, user_media, mobile, error,
             username, password, remember_me, not_me,

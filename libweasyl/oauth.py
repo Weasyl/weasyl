@@ -181,8 +181,9 @@ def register_client(userid, name, scopes, redirects, homepage):
     """
 
     session = OAuthConsumer.dbsession
+    clientid = "{}_{}".format(userid, security.generate_key(16))
     new_consumer = OAuthConsumer(
-        clientid=security.generate_key(32),
+        clientid=clientid,
         description=name,
         ownerid=userid,
         grant_type="authorization_code",

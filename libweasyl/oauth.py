@@ -15,6 +15,8 @@ SCOPES = {
     'favorite': 'The ability to favorite and unfavorite submissions',
 }
 
+_SECRET_LENGTH = 64
+
 
 class WeasylValidator(RequestValidator):
     def _get_client(self, client_id):
@@ -178,7 +180,13 @@ def register_client(userid, name, scopes, redirects, homepage):
     :param name: the name of the application
     :param scopes: a list of the scopes registered for this application
     :param redirects: allowed redirect URIs for this application
+    :param homepage: The url of the project this consumer is for (optional)
     """
+
+    allowed_scopes = set(get_allowed_scopes(userid).keys())
+    scopes = set(scopes) & allowed_scopes
+    if not scopes:
+        raise ValueError("Must contain at least one scope")
 
     session = OAuthConsumer.dbsession
     clientid = "{}_{}".format(userid, security.generate_key(16))
@@ -190,7 +198,7 @@ def register_client(userid, name, scopes, redirects, homepage):
         response_type="code",
         scopes=scopes,
         redirect_uris=redirects,
-        client_secret=security.generate_key(64),
+        client_secret=security.generate_key(_SECRET_LENGTH),
         homepage=homepage,
     )
     session.add(new_consumer)

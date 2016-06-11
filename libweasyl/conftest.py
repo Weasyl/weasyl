@@ -29,10 +29,13 @@ def setup(request):
 @pytest.fixture(autouse=True)
 def staticdir(tmpdir):
     tmpdir = tmpdir.join('libweasyl-staticdir')
+    # probably a better way to do this
+    staff_file = '../config/weasyl-staff.yaml'
     configure_libweasyl(
         dbsession=sessionmaker,
         not_found_exception=NotFound,
         base_file_path=tmpdir.strpath,
+        staff_config_path=staff_file,
         media_link_formatter_callback=media_link_formatter.format_media_link,
     )
     return tmpdir

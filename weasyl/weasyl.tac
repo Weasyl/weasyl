@@ -22,7 +22,10 @@ if os.environ.get('WEASYL_SERVE_STATIC_FILES'):
     weasylResource = weasyl.polecat.TryChildrenBeforeLeaf(weasylResource)
     staticResource = weasyl.polecat.NoDirectoryListingFile(
         os.path.join(os.environ['WEASYL_ROOT'], 'static'))
+    cssResource = weasyl.polecat.NoDirectoryListingFile(
+        os.path.join(os.environ['WEASYL_ROOT'], 'build/css'))
     weasylResource.putChild('static', staticResource)
+    weasylResource.putChild('css', cssResource)
     rewriters = [weasyl.polecat.rewriteSubmissionUploads]
 
     if os.environ.get('WEASYL_REVERSE_PROXY_STATIC'):

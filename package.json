@@ -1,0 +1,8 @@
+{
+    "devDependencies": {
+        "gulp": "^3.9.1",
+        "gulp-rename": "^1.2.2",
+        "gulp-rev": "^7.0.0",
+        "gulp-sass": "^2.3.1"
+    }
+}

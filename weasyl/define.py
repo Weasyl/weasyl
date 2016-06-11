@@ -329,16 +329,15 @@ def captcha_public():
 def captcha_verify(form):
     if config_read_bool("captcha_disable_verification", value=False):
         return True
-    if not form.recaptcha_response_field:
+    if not form.g_recaptcha_response:
         return False
 
     data = dict(
-        privatekey=config_obj.get(_captcha_section(), 'private_key'),
+        secret=config_obj.get(_captcha_section(), 'private_key'),
         remoteip=get_address(),
-        challenge=form.recaptcha_challenge_field.encode('utf-8'),
-        response=form.recaptcha_response_field.encode('utf-8'))
+        response=form.g_recaptcha_response)
 
-    response = http_post('https://www.google.com/recaptcha/api/verify', data=data)
+    response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
     result = response.text.splitlines()
     return result[0] == 'true'
 

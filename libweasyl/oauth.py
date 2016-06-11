@@ -176,11 +176,13 @@ def revoke_consumers_for_user(userid, clientids):
 def register_client(userid, name, scopes, redirects, homepage):
     """
     Register an application as an OAuth2 consumer
-    :param userid: the user registering this application
-    :param name: the name of the application
-    :param scopes: a list of the scopes registered for this application
-    :param redirects: allowed redirect URIs for this application
-    :param homepage: The url of the project this consumer is for (optional)
+
+    Parameters:
+        userid (int): the user registering this application
+        name (str): the name of the application
+        scopes (list of str): a list of the scopes registered for this application
+        redirects (list of str): allowed redirect URIs for this application
+        homepage (str): The url of the project this consumer is for (optional)
     """
 
     allowed_scopes = set(get_allowed_scopes(userid).keys())
@@ -217,8 +219,10 @@ def get_registered_applications(userid):
 def remove_clients(userid, clients):
     """
     Delete a set of OAuth2 applications associated with a user.
-    :param userid: the user making the request
-    :param clients: a list of client ID's owned by this user to be removed
+
+    Parameters:
+        userid (int): the user making the request
+        clients (list of int): a list of client ID's owned by this user to be removed
     """
     q = (OAuthConsumer.query
          .filter_by(ownerid=userid)
@@ -231,8 +235,10 @@ def renew_client_secrets(userid, clients):
     Iterates over client IDs of OAuth2 applications
     and assigns each one a new client secret.
     To be used in the event of an oopsie.
-    :param userid: the user making the request
-    :param clients: a list of client ID's owned by this user to be renewed
+
+    Parameters:
+        userid (int): the user making the request
+        clients (list of int): a list of client ID's owned by this user to be renewed
     """
     for cid in clients:
         q = (OAuthConsumer.query
@@ -245,8 +251,12 @@ def renew_client_secrets(userid, clients):
 def get_allowed_scopes(userid):
     """
     Get a list of oauth scopes this user is allowed to request
-    :param userid: the userid of the application owner
-    :return: a list of scopes
+
+    Parameters:
+        userid (int): the userid of the application owner
+        
+    Returns:
+        a list of scopes
     """
     allowed = SCOPES.copy()
     # only trusted individuals should be allowed to use the "wholesite" oauth grant

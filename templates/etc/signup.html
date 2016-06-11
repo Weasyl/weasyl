@@ -14,7 +14,7 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
     $if captcha_public_key:
       <label for="g-recaptcha-response">Captcha</label>
       <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-      <div class="g-recaptcha" data-sitekey="${captcha_public_key}"></div>
+      <div class="g-recaptcha" data-sitekey="${captcha_public_key}" data-theme="light"></div>
       <noscript>
         <div>
           <div style="width: 302px; height: 422px; position: relative;">
@@ -36,8 +36,6 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
           </div>
         </div>
       </noscript>
-
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>This helps verify that you are a not a robot.</i></p>
 
     <div class="form-2up clear">
       <div class="form-2up-1">

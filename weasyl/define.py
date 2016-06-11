@@ -334,12 +334,11 @@ def captcha_verify(form):
 
     data = dict(
         secret=config_obj.get(_captcha_section(), 'private_key'),
-        remoteip=get_address(),
-        response=form.g_recaptcha_response)
-
+        response=form.g_recaptcha_response,
+        remoteip=get_address())
     response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
-    result = response.text.splitlines()
-    return result[0] == 'true'
+    result = json.loads(response.read().decode('utf-8')) #Why does this error?!
+    return result['success']
 
 
 def get_userid(sessionid=None):

@@ -105,7 +105,7 @@ class signup_(controller_base):
         if not define.captcha_verify(form):
             return define.errorpage(
                 self.user_id,
-                "The image verification you entered was not correct; you should go back and try again.")
+                "There was an error verifying the data you entered; you should go back and try again.")
 
         login.create(form)
         return define.errorpage(

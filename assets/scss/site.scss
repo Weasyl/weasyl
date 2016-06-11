@@ -1,5 +1,23 @@
 @import '_reset';
 
+@mixin placeholder() {
+    &::-webkit-input-placeholder {
+        @content
+    }
+
+    &::-moz-placeholder {
+        @content
+    }
+
+    &:-ms-input-placeholder {
+        @content
+    }
+
+    &::placeholder {
+        @content
+    }
+}
+
 /* Basic styles
 --------------------------------*/
 html {
@@ -824,6 +842,14 @@ dl + h4, #uc-info {
     transition: all 0.15s linear;
 }
 
+.input {
+    @include placeholder() {
+        font-family: Georgia, serif;
+        font-style: italic;
+        line-height: 1.75rem;
+    }
+}
+
 input.input {
     height: 28px;
     height: 1.75rem;
@@ -837,24 +863,6 @@ select.input {
     padding-top: 0.3rem;
     padding-bottom: 5px;
     padding-bottom: 0.3rem;
-}
-
-.input::-webkit-input-placeholder {
-    font-family: "Georgia", serif;
-    font-style: italic;
-    line-height: 1.75rem;
-}
-
-.input:-moz-placeholder {
-    font-family: "Georgia", serif;
-    font-style: italic;
-    line-height: 1.75rem;
-}
-
-.input:-ms-input-placeholder {
-    font-family: "Georgia", serif;
-    font-style: italic;
-    line-height: 1.75rem;
 }
 
 .input:hover, input:focus, .listbuilder:hover, .listbuilder-focus {
@@ -1475,18 +1483,10 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     resize: none;
     outline: none;
     box-shadow: none;
-}
-.comment.hypothetical textarea::-webkit-input-placeholder {
-    font-style: italic;
-}
-.comment.hypothetical textarea::-moz-placeholder {
-    font-style: italic;
-}
-.comment.hypothetical textarea:-ms-input-placeholder {
-    font-style: italic;
-}
-.comment.hypothetical textarea::placeholder {
-    font-style: italic;
+
+    @include placeholder() {
+        font-style: italic;
+    }
 }
 
 .no-js .comment.hypothetical textarea {
@@ -2142,28 +2142,18 @@ blockquote + blockquote {
     border: 1px solid #272d2f;
     border-radius: 0;
     color: #ddd;
-    background: transparent url('./images/icon-search.png') no-repeat 5px 50%;
+    background: transparent url('../static/images/icon-search.png') no-repeat 5px 50%;
     background-color: rgba(255,255,255,0.02);
     box-shadow: 0 4px 0 #19354e;
     -webkit-transition: all 0.15s linear;
        -moz-transition: all 0.15s linear;
          -o-transition: all 0.15s linear;
             transition: all 0.15s linear;
-}
 
-#header-search input::-webkit-input-placeholder {
-    font-family: Georgia, serif;
-    font-style: italic;
-}
-
-#header-search input::-moz-placeholder {
-    font-family: Georgia, serif;
-    font-style: italic;
-}
-
-#header-search input:-ms-placeholder {
-    font-family: Georgia, serif;
-    font-style: italic;
+    @include placeholder() {
+        font-family: Georgia, serif;
+        font-style: italic;
+    }
 }
 
 #header-search input:focus {

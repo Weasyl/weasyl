@@ -337,8 +337,8 @@ def captcha_verify(form):
         response=form.g_recaptcha_response['g-recaptcha-response'],
         remoteip=get_address())
     response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
-    jsonResult = response.json()
-    return jsonResult['success']
+    captcha_validation_result = response.json()
+    return captcha_validation_result['success']
 
 
 def get_userid(sessionid=None):

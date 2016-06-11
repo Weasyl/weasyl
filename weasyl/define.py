@@ -337,7 +337,7 @@ def captcha_verify(form):
         response=form.g_recaptcha_response,
         remoteip=get_address())
     response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
-    result = json.loads(response.read().decode('utf-8')) #Why does this error?!
+    result = response.json()
     return result['success']
 
 

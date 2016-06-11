@@ -334,12 +334,19 @@ def captcha_verify(form):
 
     data = dict(
         secret=config_obj.get(_captcha_section(), 'private_key'),
-        response=form.g_recaptcha_response,
+        response=form.g_recaptcha_response['g-recaptcha-response'],
         remoteip=get_address())
     response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
     jsonResult = response.json()
     print jsonResult
-    return jsonResult['success'] == "true"
+    print jsonResult['success']
+    if jsonResult['success'] == 'True':
+        print 'Yay!'
+        return True
+    else:
+        print "Boo!"
+        return False
+    return (jsonResult['success'] is "True")
 
 
 def get_userid(sessionid=None):

@@ -38,8 +38,8 @@ before_install:
 
 install:
     - createdb -E UTF8 -O travis weasyl_test
-    - test "$TOXENV" ">" py3 || make -B ${VE}
-    - make -C libweasyl .stamp-ve .stamp-egg-info
+    - test "$TOXENV" ">" py3 || make -B ${VE} USE_WHEEL=
+    - make -C libweasyl .stamp-ve .stamp-egg-info USE_WHEEL=
 
 script:
     - test "$TOXENV" ">" py3 || make test

@@ -43,12 +43,8 @@ weasyl-env: etc/requirements.txt
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
 	touch $@
 
-libweasyl:
-	git clone https://github.com/Weasyl/libweasyl.git
-	ln -s ../weasyl-env libweasyl/ve
-
 .PHONY: install-libweasyl
-install-libweasyl: weasyl-env libweasyl
+install-libweasyl: weasyl-env
 	weasyl-env/bin/pip install $(USE_WHEEL) -Ue libweasyl
 
 .PHONY: guest-install-libweasyl
@@ -59,10 +55,10 @@ guest-install-libweasyl: .vagrant
 	vagrant up
 
 .PHONY: setup-vagrant
-setup-vagrant: libweasyl .vagrant
+setup-vagrant: .vagrant
 
 .PHONY: upgrade-db
-upgrade-db: libweasyl
+upgrade-db:
 	cd $< && make upgrade-db
 
 .PHONY: guest-upgrade-db

@@ -1,6 +1,4 @@
 # these are all pinned versions available from https://pypi.weasyldev.com
-libweasyl==0.11.2
-
 zope.interface==4.1.3       # for twisted
 service_identity==16.0.0    # Newer Twisted wants this for cert verification
 Twisted==16.2.0

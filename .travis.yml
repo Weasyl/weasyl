@@ -5,13 +5,7 @@ sudo: false
 matrix:
   include:
     - python: 2.7
-      env: TOXENV=py27 CC=gcc
     - python: 3.5
-      env: TOXENV=py35 CC=gcc
-    - python: 2.7
-      env: TOXENV=py27 CC=clang
-    - python: 3.5
-      env: TOXENV=py35 CC=clang
 
 env:
   global:
@@ -38,9 +32,10 @@ before_install:
 
 install:
     - createdb -E UTF8 -O travis weasyl_test
-    - test "$TOXENV" ">" py3 || make -B ${VE} USE_WHEEL=
-    - make -C libweasyl .stamp-ve .stamp-egg-info USE_WHEEL=
+    - ./.travis-install.sh
 
 script:
-    - test "$TOXENV" ">" py3 || make test
-    - make -C libweasyl test
+    - ./.travis-test.sh
+
+after_success:
+    - codecov

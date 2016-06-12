@@ -1,6 +1,8 @@
 import unittest
 import pytest
 
+import web
+
 from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
 
@@ -30,6 +32,31 @@ class SelectListTestCase(unittest.TestCase):
         # A user sees their own submissions regardless of the rating level
         self.assertEqual(4, len(submission.select_list(
             user1, ratings.GENERAL.code, 10, otherid=user1)))
+
+    def test_ratings_twittercard(self):
+        # For tests, this isn't set. absolutify_url requires it,
+        # so this test would fail if it wasn't set.
+        web.ctx.realhome = 'https://lo.weasyl.com:8443'
+
+        user = db_utils.create_user()
+
+        sub1 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
+        sub2 = db_utils.create_submission(user, rating=ratings.MODERATE.code)
+        sub3 = db_utils.create_submission(user, rating=ratings.MATURE.code)
+        sub4 = db_utils.create_submission(user, rating=ratings.EXPLICIT.code)
+
+        card1 = submission.twitter_card(sub1)
+        card2 = submission.twitter_card(sub2)
+        card3 = submission.twitter_card(sub3)
+        card4 = submission.twitter_card(sub4)
+
+        self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card1['description'])
+        self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
+        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card3['description'])
+        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card4['description'])
+
+        # Delete this so it cannot interfere with other things.
+        del web.ctx.realhome
 
     def test_filters(self):
         # Test filters of the following:

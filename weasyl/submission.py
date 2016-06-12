@@ -686,7 +686,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
 def twitter_card(submitid):
     query = d.execute("""
         SELECT
-            su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value
+            su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value, su.rating
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
@@ -696,7 +696,7 @@ def twitter_card(submitid):
 
     if not query:
         raise WeasylError("submissionRecordMissing")
-    title, settings, content, subtype, userid, username, full_name, config, twitter = query
+    title, settings, content, subtype, userid, username, full_name, config, twitter, rating = query
     if 'h' in settings:
         raise WeasylError("submissionRecordMissing")
     elif 'f' in settings:
@@ -709,9 +709,22 @@ def twitter_card(submitid):
         content = "[This submission has no description.]"
 
     ret = {
-        'url': d.absolutify_url('/submission/%s/%s' % (submitid, text.slug_for(title))),
-        'description': content,
+        'url': d.absolutify_url(
+            '/submission/%s/%s' % (submitid, text.slug_for(title))),
     }
+
+    if twitter:
+        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
+        ret['title'] = title
+    else:
+        ret['title'] = '%s by %s' % (title, full_name)
+
+    if ratings.CODE_MAP[rating].minimum_age >= 18:
+        ret['card'] = 'summary'
+        ret['description'] = 'This image is rated 18+ and only viewable on weasyl.com'
+        return ret
+
+    ret['description'] = content
 
     subcat = subtype / 1000 * 1000
     media_items = media.get_submission_media(submitid)
@@ -723,12 +736,6 @@ def twitter_card(submitid):
         thumb = media_items.get('thumbnail-custom') or media_items.get('thumbnail-generated')
         if thumb:
             ret['image:src'] = d.absolutify_url(thumb[0]['display_url'])
-
-    if twitter:
-        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
-        ret['title'] = title
-    else:
-        ret['title'] = '%s by %s' % (title, full_name)
 
     return ret
 

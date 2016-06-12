@@ -3,7 +3,6 @@
 *.py[co]
 __pycache__
 /ve
-/version.txt
 /libweasyl/_version.py
 /build
 /dist

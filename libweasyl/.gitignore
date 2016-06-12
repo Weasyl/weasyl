@@ -1,0 +1,16 @@
+*.egg
+*.egg-info
+*.py[co]
+__pycache__
+/ve
+/version.txt
+/libweasyl/_version.py
+/build
+/dist
+/alembic.ini
+/.coverage
+/htmlcov*
+/.tox
+/.stamp-*
+/.eggs
+/build-wheels.sh

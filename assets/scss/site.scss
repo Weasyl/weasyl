@@ -390,9 +390,7 @@ a.more-block:last-child {
 }
 
 .sectioned-sidebar, .sectioned-main {
-    -webkit-box-sizing: border-box;
-       -moz-box-sizing: border-box;
-            box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 @media (min-width: 45em) {
@@ -826,8 +824,6 @@ dl + h4, #uc-info {
 }
 
 .input, .listbuilder {
-        -webkit-box-sizing: border-box;
-        -moz-box-sizing: border-box;
     box-sizing: border-box;
     padding: 0 0.5em;
     border-style: solid;
@@ -1067,8 +1063,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 }
 
 .grid-unit, .avatar-grid > li, .avatar-grid > div {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     display: inline-block;
     width: 100%;
@@ -1171,8 +1165,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     text-rendering: auto;
 }
 .thumbnail-grid .item {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     display: inline-block;
     vertical-align: bottom;
@@ -1203,8 +1195,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     padding-bottom: 0;
 }
 .thumbnail-grid figcaption {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     width: 100%;
 }
@@ -1262,8 +1252,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     opacity: 1;
 }
 .thumbnail-grid .thumb-bounds {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     display: block;
     position: relative;
@@ -1641,8 +1629,6 @@ blockquote + blockquote {
 /* ------------------------------------ =tags -- */
 
 #tags-textarea, .listbuilder {
-        -webkit-box-sizing: border-box;
-        -moz-box-sizing: border-box;
     box-sizing: border-box;
     width: 100% !important;
 }
@@ -2133,8 +2119,6 @@ blockquote + blockquote {
 }
 
 #header-search input {
-        -webkit-box-sizing: border-box;
-        -moz-box-sizing: border-box;
     box-sizing: border-box;
     width: 100%;
     padding: 0.6em 0.5em 0.6em 25px;
@@ -2704,8 +2688,6 @@ blockquote + blockquote {
 }
 
 #uf-image a {
-        -webkit-box-sizing: border-box;
-        -moz-box-sizing: border-box;
     box-sizing: border-box;
     display: inline-block;
     max-width: 100%;
@@ -5037,8 +5019,6 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 }
 
 .thumb-opt-out-label {
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
     box-sizing: border-box;
     width: 49%;
     display: inline-block;

@@ -12,10 +12,6 @@ matrix:
       env: TOXENV=py27 CC=clang
     - python: 3.5
       env: TOXENV=py35 CC=clang
-    - python: 2.7
-      env: TOXENV=pep8
-    - python: 3.5
-      env: TOXENV=py3pep8
 
 env:
   global:

@@ -1,5 +1,5 @@
 #!/bin/sh -eux
-if [ "$(python -V)" ">" "Python 3" ]; then
+if [ "$(python -V 2>&1)" ">" "Python 3" ]; then
     weasyl_reqs=
 else
     weasyl_reqs='-r etc/requirements.txt -c etc/requirements.txt'

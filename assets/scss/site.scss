@@ -253,7 +253,7 @@ a.more:hover span {
     border-bottom: 1px solid #8cad47;
 }
 
-a.more:after {
+a.more::after {
     content: "";
     display: inline-block;
     width: 0;
@@ -283,7 +283,7 @@ a.more-block {
     text-align: left;
 }
 
-a.more-block:after {
+a.more-block::after {
     display: block;
     float: right;
     margin: 0.4em 0.4em 0 0;
@@ -305,7 +305,7 @@ a.more-block:last-child {
         font-size: 1rem;
     }
 
-    a.more-block:after {
+    a.more-block::after {
         margin: 0.5em 0.5em 0 0;
     }
 }
@@ -321,7 +321,7 @@ a.more-block:last-child {
     color: #4d4d4d;
 }
 
-.content a.more:after {
+.content a.more::after {
     border-left-color: #4d4d4d;
 }
 
@@ -453,7 +453,7 @@ a.bar {
     vertical-align: top;
 }
 
-.page-title a:before, .page-title a:after {
+.page-title a::before, .page-title a::after {
     display: block;
     width: 0;
     height: 0;
@@ -466,13 +466,13 @@ a.bar {
     z-index: 1;
 }
 
-.page-title a:before {
+.page-title a::before {
     border-color: transparent transparent transparent #334047;
     border-color: transparent transparent transparent rgba(150, 170, 189, 0.2);
     right: 0;
 }
 
-.page-title a:after {
+.page-title a::after {
     border-color: transparent transparent transparent #15181b;
     right: 4px;
 }
@@ -1024,7 +1024,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .icon-music, .ext-mp3 .icon-file { background-position: -40px -60px; }
 .icon-multi, .ext-swf .icon-file { background-position: -40px -80px; }
 
-.icon-status:after {
+.icon-status::after {
     content: "";
     display: block;
     width: 12px;
@@ -1036,17 +1036,17 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 }
 
 .icon-on { background-position: 0 0; }
-.icon-on:after {
+.icon-on::after {
     box-shadow: 0 0 15px rgba(99,219,90,0.6);
 }
 
 .icon-mid { background-position: -20px 0; }
-.icon-mid:after {
+.icon-mid::after {
     box-shadow: 0 0 15px rgba(219,198,90,0.6);
 }
 
 .icon-off { background-position: -40px 0; }
-.icon-off:after {
+.icon-off::after {
     box-shadow: 0 0 15px rgba(231,85,56,0.6);
 }
 
@@ -1526,7 +1526,7 @@ blockquote + blockquote {
     clear: both;
 }
 
-.comments li .comment + ul:before {
+.comments li .comment + ul::before {
     content: "";
     display: block;
     width: 50%;
@@ -1539,7 +1539,7 @@ blockquote + blockquote {
     z-index: -1;
 }
 
-.comments li ul li:after {
+.comments li ul li::after {
     content: "";
     display: block;
     width: 1%;
@@ -1553,12 +1553,12 @@ blockquote + blockquote {
     box-shadow: inset 0 1px 0 #eee;
 }
 
-.comments li ul > li:last-child:after {
+.comments li ul > li:last-child::after {
     height: auto;
     bottom: 0;
 }
 
-.comment-content li:after {
+.comment-content li::after {
     content: none !important;
 }
 
@@ -1591,7 +1591,7 @@ blockquote + blockquote {
         padding: 1rem;
     }
 
-    .comment .comment-content:before {
+    .comment .comment-content::before {
         content: "";
         display: block;
         width: 0;
@@ -1604,7 +1604,7 @@ blockquote + blockquote {
         top: 0.9em;
     }
 
-    .comment .comment-content:after {
+    .comment .comment-content::after {
         content: "";
         display: block;
         width: 0;
@@ -1617,11 +1617,11 @@ blockquote + blockquote {
         top: 1em;
     }
 
-    .comment.hypothetical .comment-content:before, .comment.hypothetical .comment-content:after {
+    .comment.hypothetical .comment-content::before, .comment.hypothetical .comment-content::after {
         display: none;
     }
 
-    .comments li .comment + ul:before {
+    .comments li .comment + ul::before {
         top: 96px;
     }
 }
@@ -1974,7 +1974,7 @@ blockquote + blockquote {
     z-index: 20;
 }
 
-#header:before, #footer:before {
+#header::before, #footer::before {
     content: ".";
     display: block;
     width: 100%;
@@ -1990,7 +1990,7 @@ blockquote + blockquote {
     background-image: linear-gradient(to right, #344347, #234142, #19354e, #303552, #344347);
 }
 
-#footer:before {
+#footer::before {
     top: auto;
     bottom: 100%;
 }
@@ -2853,11 +2853,11 @@ blockquote + blockquote {
         border: 6px solid #eee;
     }
 
-    #uf-image a, #uf-folders .stack img, #uf-folders .stack:before, #uf-folders .stack:after {
+    #uf-image a, #uf-folders .stack img, #uf-folders .stack::before, #uf-folders .stack::after {
         box-shadow: 0 1px 5px rgba(0,0,0,0.3);
     }
 
-    #uf-folders .stack:before, #uf-folders .stack:after {
+    #uf-folders .stack::before, #uf-folders .stack::after {
         content: "";
         display: block;
         width: auto;
@@ -2868,7 +2868,7 @@ blockquote + blockquote {
         background-color: #eee;
     }
 
-    #uf-folders .stack:before {
+    #uf-folders .stack::before {
             -webkit-transform: rotate(5deg);
             -moz-transform: rotate(5deg);
             -ms-transform: rotate(5deg);
@@ -2876,7 +2876,7 @@ blockquote + blockquote {
         transform: rotate(5deg);
     }
 
-    #uf-folders .stack:after {
+    #uf-folders .stack::after {
             -webkit-transform: rotate(-3deg);
             -moz-transform: rotate(-3deg);
             -ms-transform: rotate(-3deg);
@@ -3038,7 +3038,7 @@ blockquote + blockquote {
         position: relative;
     }
 
-    #user-content:before {
+    #user-content::before {
         content: "";
         display: block;
         width: 36%;
@@ -3153,7 +3153,7 @@ blockquote + blockquote {
 }
 
 @media (min-width: 83em) {
-    #user-content:before {
+    #user-content::before {
         width: 32.5%;
     }
 
@@ -4487,7 +4487,7 @@ img + #detail-art-text {
 
 /* ------------------------------------ =fixes --*/
 
-.clear:after, .thumbnail-grid:after, .content:after, .stage:after, .listbuilder:after {
+.clear::after, .thumbnail-grid::after, .content::after, .stage::after, .listbuilder::after {
     content: ".";
     display: block;
     height: 0;
@@ -4689,7 +4689,7 @@ templates/modcontrol/reports.html
     border: 1px solid #ccc;
 }
 
-.markdown-preview:after {
+.markdown-preview::after {
     content: "PREVIEW";
     position: absolute;
     z-index: -1;

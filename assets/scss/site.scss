@@ -2138,7 +2138,6 @@ blockquote + blockquote {
     box-sizing: border-box;
     width: 100%;
     padding: 0.6em 0.5em 0.6em 25px;
-    /*border: 1px solid #363f42;*/
     border: 1px solid #272d2f;
     border-radius: 0;
     color: #ddd;
@@ -3220,7 +3219,6 @@ blockquote + blockquote {
 
 #detail-art a {
     display: inline-block;
-    *display: inline;
     zoom: 1;
     max-width: 100%;
 }
@@ -4237,7 +4235,6 @@ img + #detail-art-text {
 
 .donator-list > li {
     display: inline-block;
-    *display: inline;
     zoom: 1;
     width: 47%;
     padding: 0 2% 0.5em 0;

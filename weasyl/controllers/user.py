@@ -99,12 +99,13 @@ class signup_(controller_base):
     def POST(self):
         form = web.input(
             username="", password="", passcheck="", email="", emailcheck="",
-            day="", month="", year="", recaptcha_challenge_field="", recaptcha_response_field="")
+            day="", month="", year="", recaptcha_challenge_field="", 
+            g_recaptcha_response=web.input("g-recaptcha-response"))
 
         if not define.captcha_verify(form):
             return define.errorpage(
                 self.user_id,
-                "The image verification you entered was not correct; you should go back and try again.")
+                "There was an error validating the CAPTCHA response; you should go back and try again.")
 
         login.create(form)
         return define.errorpage(

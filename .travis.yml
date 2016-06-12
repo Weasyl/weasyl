@@ -17,6 +17,15 @@ matrix:
     - python: 3.5
       env: TOXENV=py3pep8
 
+env:
+  global:
+    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+
+cache:
+  directories:
+    - ~/.cache/pip
+
 addons:
     postgresql: "9.4"
 
@@ -33,8 +42,8 @@ before_install:
 install:
     - createdb -E UTF8 -O travis weasyl_test
     - test "$TOXENV" ">" py3 || make -B ${VE}
-    - make -C libweasyl .stamp-ve
+    - make -C libweasyl .stamp-ve .stamp-egg-info
 
 script:
     - test "$TOXENV" ">" py3 || make test
-    - make -C libweasyl tox
+    - make -C libweasyl test

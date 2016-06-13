@@ -99,7 +99,7 @@ class signup_(controller_base):
     def POST(self):
         form = web.input(
             username="", password="", passcheck="", email="", emailcheck="",
-            day="", month="", year="", recaptcha_challenge_field="", 
+            day="", month="", year="", recaptcha_challenge_field="",
             g_recaptcha_response=web.input("g-recaptcha-response"))
 
         if not define.captcha_verify(form):

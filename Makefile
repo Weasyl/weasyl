@@ -75,9 +75,15 @@ $(STATIC_DIRS):
 $(TEMP_DIRS):
 	mkdir -p $@
 
+node_modules: package.json
+	npm install
+
+build/rev-manifest.json: node_modules
+	gulp sass
+
 # Phony setup target
 .PHONY: setup
-setup: $(VE) config/site.config.txt config/weasyl-staff.yaml $(STATIC_DIRS) $(TEMP_DIRS)
+setup: $(VE) config/site.config.txt config/weasyl-staff.yaml build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker
@@ -113,6 +119,7 @@ shell: setup
 .PHONY: clean
 clean:
 	find . -type f -name '*.py[co]' -delete
+	rm -rf build
 	rm -rf $(STATIC_DIRS)
 	rm -rf $(TEMP_DIRS)
 

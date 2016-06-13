@@ -64,6 +64,10 @@ server {
         try_files \\$uri @proxy;
     }
 
+    location /css {
+        root /home/vagrant/weasyl/build;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8880;
         if (\\$request_method = HEAD) {

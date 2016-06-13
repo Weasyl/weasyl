@@ -3,18 +3,18 @@ language: python
 sudo: false
 
 matrix:
-  include:
-    - python: 2.7
-    - python: 3.5
+    include:
+        - python: 2.7
+        - python: 3.5
 
 env:
-  global:
-    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
-    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+    global:
+        - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+        - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
 
 cache:
-  directories:
-    - ~/.cache/pip
+    directories:
+        - ~/.cache/pip
 
 addons:
     postgresql: "9.4"
@@ -29,9 +29,10 @@ before_install:
     - pip --version
     - export VE=$VIRTUAL_ENV  # Use the virtual environment travis provides.
     - cp etc/pip.conf $VE
+    - nvm install node
+    - npm install -g gulp
 
 install:
-    - npm install -g gulp
     - createdb -E UTF8 -O travis weasyl_test
     - ./.travis-install.sh
 

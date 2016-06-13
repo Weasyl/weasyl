@@ -1,29 +1,10 @@
 @import 'reset';
 @import 'components/password-meter';
 
-@mixin placeholder() {
-    &::-webkit-input-placeholder {
-        @content
-    }
-
-    &::-moz-placeholder {
-        @content
-    }
-
-    &:-ms-input-placeholder {
-        @content
-    }
-
-    &::placeholder {
-        @content
-    }
-}
-
 /* Basic styles
 --------------------------------*/
 html {
-    -webkit-text-size-adjust: 100%;
-        -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 body {
@@ -618,8 +599,7 @@ a.bar {
     background-color: #eee;
     margin-bottom: 1.5em;
     padding: 0.5em;
-    -moz-tab-size: 4;
-         tab-size: 4;
+    tab-size: 4;
     word-break: break-all;
     font-size: 0.82rem;
 }
@@ -730,17 +710,11 @@ dl + h4, #uc-info {
     border-radius: 2px;
     color: #444;
     background-color: transparent;
-    background-image: -webkit-linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
-    background-image:    -moz-linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
-    background-image:      -o-linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
-    background-image:         linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+    background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
     text-decoration: none;
     cursor: pointer;
     text-shadow: 0 1px 0 #fff;
-    -webkit-transition: background-color 0.25s ease;
-       -moz-transition: background-color 0.25s ease;
-         -o-transition: background-color 0.25s ease;
-            transition: background-color 0.25s ease;
+    transition: background-color 0.25s ease;
 }
 
 .stage .button {
@@ -748,10 +722,7 @@ dl + h4, #uc-info {
     border-top-color: #777;
     border-bottom-color: #444;
     color: #ddd;
-    background-image: -webkit-linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
-    background-image:    -moz-linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
-    background-image:      -o-linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
-    background-image:         linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
+    background-image: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
     text-shadow: 0 1px 0 rgba(0,0,0,0.2);
 }
 
@@ -815,18 +786,13 @@ dl + h4, #uc-info {
     border-radius: 0;
     background-color: #e4e4e4;
     box-shadow: 0 4px 0 #336979, inset 0 1px 2px #aaa;
-        -webkit-transition: all 0.15s linear;
-        -moz-transition: all 0.15s linear;
-        -o-transition: all 0.15s linear;
     transition: all 0.15s linear;
 }
 
-.input {
-    @include placeholder() {
-        font-family: Georgia, serif;
-        font-style: italic;
-        line-height: 1.75rem;
-    }
+.input::placeholder {
+    font-family: Georgia, serif;
+    font-style: italic;
+    line-height: 1.75rem;
 }
 
 input.input {
@@ -958,7 +924,7 @@ select.input {
     overflow: visible;
 }
 
-@media only screen and (-moz-min-device-pixel-ratio: 1.5), only screen and (-o-min-device-pixel-ratio: 3/2), only screen and (-webkit-min-device-pixel-ratio: 1.5), only screen and (min-device-pixel-ratio: 1.5) {
+@media only screen and (min-resolution: 1.5dppx) {
     .icon-20 {
         background-image: url('../static/images/icons-20@2x.png');
         background-size: 60px 260px;
@@ -1240,7 +1206,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     position: absolute;
     left: 50%;
     top: 50%;
-    -webkit-transform: translate(-50%, -50%);
     transform: translate(-50%, -50%);
 }
 .thumbnail-grid .rating {
@@ -1276,11 +1241,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     left: 50%;
     top: auto;
     bottom: 15px;
-    -webkit-transform: translateX(-50%);
-       -moz-transform: translateX(-50%);
-        -ms-transform: translateX(-50%);
-         -o-transform: translateX(-50%);
-            transform: translateX(-50%);
+    transform: translateX(-50%);
 }
 .thumbnail-grid .input-checkbox figcaption {
     padding-left: 8px;
@@ -1445,7 +1406,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     outline: none;
     box-shadow: none;
 
-    @include placeholder() {
+    &::placeholder {
         font-style: italic;
     }
 }
@@ -1548,9 +1509,6 @@ blockquote + blockquote {
 
     .comment .actions {
         opacity: 0.25;
-            -webkit-transition: opacity 0.15s ease;
-            -moz-transition: opacity 0.15s ease;
-            -o-transition: opacity 0.15s ease;
         transition: opacity 0.15s ease;
     }
 
@@ -1639,10 +1597,7 @@ blockquote + blockquote {
 
 .listbuilder-entry {
     padding-right: 2.5em;
-    -webkit-user-select: none;
-       -moz-user-select: none;
-        -ms-user-select: none;
-            user-select: none;
+    user-select: none;
 }
 
 .listbuilder-entry:hover {
@@ -1936,9 +1891,6 @@ blockquote + blockquote {
     top: 100%;
     text-indent: -999em;
     background-color: #344347;
-        background-image: -webkit-linear-gradient(to right, #344347, #234142, #19354e, #303552, #344347);
-        background-image: -moz-linear-gradient(to right, #344347, #234142, #19354e, #303552, #344347);
-        background-image: -o-linear-gradient(to right, #344347, #234142, #19354e, #303552, #344347);
     background-image: linear-gradient(to right, #344347, #234142, #19354e, #303552, #344347);
 }
 
@@ -2052,17 +2004,10 @@ blockquote + blockquote {
 }
 
 #nav-toggle .icon {
-        -webkit-transition: -webkit-transform 0.16s linear;
-        -moz-transition: -moz-transform 0.16s linear;
-        -o-transition: -o-transform 0.16s linear;
     transition: transform 0.16s linear;
 }
 
 #nav-toggle.open .icon {
-        -webkit-transform: rotate(-180deg);
-        -moz-transform: rotate(-180deg);
-        -ms-transform: rotate(-180deg);
-        -o-transform: rotate(-180deg);
     transform: rotate(-180deg);
 }
 
@@ -2080,12 +2025,9 @@ blockquote + blockquote {
     background: transparent url('../static/images/icon-search.png') no-repeat 5px 50%;
     background-color: rgba(255,255,255,0.02);
     box-shadow: 0 4px 0 #19354e;
-    -webkit-transition: all 0.15s linear;
-       -moz-transition: all 0.15s linear;
-         -o-transition: all 0.15s linear;
-            transition: all 0.15s linear;
+    transition: all 0.15s linear;
 
-    @include placeholder() {
+    &::placeholder {
         font-family: Georgia, serif;
         font-style: italic;
     }
@@ -2098,10 +2040,7 @@ blockquote + blockquote {
 #header-nav {
     overflow: hidden;
     max-height: 0;
-    -webkit-transition: max-height 0.2s ease;
-       -moz-transition: max-height 0.2s ease;
-         -o-transition: max-height 0.2s ease;
-            transition: max-height 0.2s ease;
+    transition: max-height 0.2s ease;
 }
 
 #header-nav.open {
@@ -2407,17 +2346,10 @@ blockquote + blockquote {
     right: 1rem;
     top: 50%;
     margin-top: -10px;
-        -webkit-transition: -webkit-transform 0.2s linear;
-        -moz-transition: -moz-transform 0.2s linear;
-        -o-transition: -o-transform 0.2s linear;
     transition: transform 0.2s linear;
 }
 
 .home-disclosure.loaded .icon {
-        -webkit-transform: rotate(90deg);
-        -moz-transform: rotate(90deg);
-        -ms-transform: rotate(90deg);
-        -o-transform: rotate(90deg);
     transform: rotate(90deg);
 }
 
@@ -2742,8 +2674,6 @@ blockquote + blockquote {
     }
 
     #user-stats dl {
-            -webkit-column-count: 2;
-            -moz-column-count: 2;
         column-count: 2;
     }
 
@@ -2816,18 +2746,10 @@ blockquote + blockquote {
     }
 
     #uf-folders .stack::before {
-            -webkit-transform: rotate(5deg);
-            -moz-transform: rotate(5deg);
-            -ms-transform: rotate(5deg);
-            -o-transform: rotate(5deg);
         transform: rotate(5deg);
     }
 
     #uf-folders .stack::after {
-            -webkit-transform: rotate(-3deg);
-            -moz-transform: rotate(-3deg);
-            -ms-transform: rotate(-3deg);
-            -o-transform: rotate(-3deg);
         transform: rotate(-3deg);
     }
 }
@@ -3023,8 +2945,6 @@ blockquote + blockquote {
     }
 
     #user-stats ul {
-            -webkit-column-count: 1;
-            -moz-column-count: 1;
         column-count: 1;
     }
 #user-contact td:nth-child(2) {
@@ -3093,8 +3013,6 @@ blockquote + blockquote {
     }
 
     #user-stats ul {
-            -webkit-column-count: 2;
-            -moz-column-count: 2;
         column-count: 2;
     }
 }
@@ -3429,11 +3347,7 @@ img + #detail-art-text {
     }
     .csstransforms .detail-folder-nav .nav-link {
         margin-top: 0;
-        -webkit-transform: translateY(-50%);
-           -moz-transform: translateY(-50%);
-            -ms-transform: translateY(-50%);
-             -o-transform: translateY(-50%);
-                transform: translateY(-50%);
+        transform: translateY(-50%);
     }
     .detail-folder-nav .thumb {
         display: inline-block;
@@ -4008,11 +3922,7 @@ img + #detail-art-text {
     position: absolute;
     left: 0.5em;
     top: 50%;
-    -webkit-transform: translateY(-50%);
-       -moz-transform: translateY(-50%);
-        -ms-transform: translateY(-50%);
-         -o-transform: translateY(-50%);
-            transform: translateY(-50%);
+    transform: translateY(-50%);
     z-index: 2;
 }
 
@@ -4179,11 +4089,7 @@ img + #detail-art-text {
 
 @media (min-width: 45em) {
     .donator-list {
-            -webkit-column-count: 4;
-            -moz-column-count: 4;
         column-count: 4;
-            -webkit-column-gap: 2em;
-            -moz-column-gap: 2em;
         column-gap: 2em;
     }
 
@@ -4199,8 +4105,6 @@ img + #detail-art-text {
 
 @media (min-width: 55em) {
     .donator-list {
-            -webkit-column-count: 5;
-            -moz-column-count: 5;
         column-count: 5;
     }
     .no-csscolumns .donator-list > li {
@@ -4210,8 +4114,6 @@ img + #detail-art-text {
 
 @media (min-width: 65em) {
     .donator-list {
-            -webkit-column-count: 6;
-            -moz-column-count: 6;
         column-count: 6;
     }
     .no-csscolumns .donator-list > li {
@@ -4221,8 +4123,6 @@ img + #detail-art-text {
 
 @media (min-width: 72em) {
     .donator-list {
-            -webkit-column-count: 7;
-            -moz-column-count: 7;
         column-count: 7;
     }
     .no-csscolumns .donator-list > li {
@@ -4232,8 +4132,6 @@ img + #detail-art-text {
 
 @media (min-width: 80em) {
     .donator-list {
-            -webkit-column-count: 8;
-            -moz-column-count: 8;
         column-count: 8;
     }
     .no-csscolumns .donator-list > li {
@@ -4658,8 +4556,7 @@ templates/modcontrol/reports.html
     background-color: #eee;
     margin-bottom: 1.5em;
     padding: 0.5em;
-    -moz-tab-size: 4;
-         tab-size: 4;
+    tab-size: 4;
     word-break: break-all;
     font-size: 0.82rem;
 }

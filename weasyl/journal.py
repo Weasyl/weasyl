@@ -87,7 +87,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
         SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
-    """, id=journalid).fetchone()
+    """, id=journalid).first()
 
     if journalid and userid in staff.MODS and anyway:
         pass

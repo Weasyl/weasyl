@@ -211,7 +211,7 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
         FROM character ch
             INNER JOIN profile pr USING (userid)
         WHERE ch.charid = %(charid)s
-    """, charid=charid).fetchone()
+    """, charid=charid).first()
 
     if query and userid in staff.MODS and anyway:
         pass

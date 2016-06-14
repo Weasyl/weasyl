@@ -10,8 +10,11 @@ apt-get install -y ca-certificates apt-transport-https
 
 echo >/etc/apt/sources.list.d/weasyl.list \
     'deb http://apt.weasyldev.com/repos/apt/debian jessie main'
+echo >/etc/apt/sources.list.d/postgresql.list \
+    'deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main 9.5'
 
 curl https://deploy.weasyldev.com/weykent-key.asc | apt-key add -
+curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
 apt-get update
 apt-mark hold grub-pc
@@ -28,7 +31,7 @@ dhclient eth0
 apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libpq-dev \
     libxml2-dev libxslt-dev memcached nginx pkg-config \
-    postgresql-9.4 postgresql-contrib-9.4 \
+    postgresql-9.5 postgresql-contrib-9.5 \
     liblzma-dev python-dev python-virtualenv
 
 sudo -u postgres dropdb weasyl

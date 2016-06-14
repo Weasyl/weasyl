@@ -287,21 +287,16 @@ def select_relation(userid, otherid):
 
     query = d.engine.execute("""
         SELECT
-            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(user)s, %(other)s))),
-            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE userid IN (%(user)s, %(other)s) AND otherid IN (%(user)s, %(other)s) AND settings !~ 'p')),
-            (SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%(user)s, %(other)s))),
-            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%(user)s, %(other)s) AND settings ~ 'p')),
-            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(other)s, %(user)s)))
+            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(user)s, %(other)s)) AS follow),
+            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE userid IN (%(user)s, %(other)s) AND otherid IN (%(user)s, %(other)s) AND settings !~ 'p') AS friend),
+            (SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%(user)s, %(other)s)) AS ignore),
+            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%(user)s, %(other)s) AND settings ~ 'p') AS friendreq),
+            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(other)s, %(user)s)) AS follower)
     """, user=userid, other=otherid).first()
 
-    return {
-        "follow": query[0],
-        "friend": query[1],
-        "ignore": query[2],
-        "friendreq": query[3],
-        "follower": query[4],
-        "is_self": False,
-    }
+    return dict(
+        query,
+        is_self=False)
 
 
 @region.cache_on_arguments(expiration_time=600)

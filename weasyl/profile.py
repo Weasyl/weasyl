@@ -285,21 +285,22 @@ def select_relation(userid, otherid):
             "is_self": userid == otherid,
         }
 
-    query = d.execute("""
+    query = """
         SELECT
-            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%i, %i))),
-            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND settings !~ 'p')),
-            (SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%i, %i))),
-            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%i, %i) AND settings ~ 'p')),
-            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (otherid, userid) = (%i, %i)))
-    """, [userid, otherid, userid, otherid, userid, otherid, userid, otherid, userid, otherid, otherid, userid], ["single"])
+            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = ({user_id}, {other_id}))),
+            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE userid IN ({user_id}, {other_id}) AND otherid IN ({user_id}, {other_id}) AND settings !~ 'p')),
+            (SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = ({user_id}, {other_id}))),
+            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = ({user_id}, {other_id}) AND settings ~ 'p')),
+            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = ({other_id}, {user_id})))
+    """.format(user_id=userid, other_id=otherid)
+    query = d.execute(query, None, ["single"])
 
     return {
         "follow": query[0],
         "friend": query[1],
         "ignore": query[2],
         "friendreq": query[3],
-        "followby": query[4],
+        "follower": query[4],
         "is_self": False,
     }
 

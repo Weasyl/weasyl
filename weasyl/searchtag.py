@@ -73,6 +73,14 @@ def select_list(map_table, targetids):
     return dict(list(db.execute(q)))
 
 
+def get_ids(names):
+    result = d.engine.execute(
+        "SELECT tagid, title FROM searchtag WHERE title = ANY (%(names)s)",
+        names=list(names))
+
+    return {row.title: row.tagid for row in result}
+
+
 def suggest(userid, target):
     if not target:
         return []

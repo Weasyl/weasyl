@@ -291,7 +291,7 @@ def select_relation(userid, otherid):
             (SELECT EXISTS (SELECT 0 FROM frienduser WHERE userid IN (%(user)s, %(other)s) AND otherid IN (%(user)s, %(other)s) AND settings !~ 'p')),
             (SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%(user)s, %(other)s))),
             (SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%(user)s, %(other)s) AND settings ~ 'p')),
-            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(user)s, %(other)s)))
+            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(other)s, %(user)s)))
     """, user=userid, other=otherid).first()
 
     return {

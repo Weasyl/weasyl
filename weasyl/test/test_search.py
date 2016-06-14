@@ -23,6 +23,46 @@ def test_query_parsing():
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [
+    (u'nothing', 0),
+    (u'more nothing', 0),
+    (u'walrus', 2),
+    (u'penguin', 3),
+    (u'walrus penguin', 1),
+    (u'walrus -penguin', 1),
+    (u'walrus -penguin #general #explicit', 1),
+    (u'walrus -penguin #general #moderate #mature', 0),
+    (u'-walrus +penguin', 2),
+    (u'|walrus |penguin', 4),
+    (u'+nothing |walrus |penguin', 0),
+    (u'-nothing', 4),
+])
+def test_submission_search(db, term, n_results):
+    user = db_utils.create_user()
+    tag1 = db_utils.create_tag('walrus')
+    tag2 = db_utils.create_tag('penguin')
+
+    s1 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
+    db_utils.create_submission_tag(tag1, s1)
+    db_utils.create_submission_tag(tag2, s1)
+
+    s2 = db_utils.create_submission(user, rating=ratings.EXPLICIT.code)
+    db_utils.create_submission_tag(tag1, s2)
+
+    s3 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
+    db_utils.create_submission_tag(tag2, s3)
+
+    s4 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
+    db_utils.create_submission_tag(tag2, s4)
+
+    results, _, _ = search.select(
+        search=search.Query.parse(term, 'submit'),
+        userid=user, rating=ratings.EXPLICIT.code, limit=100,
+        cat=None, subcat=None, within='', backid=None, nextid=None)
+
+    assert len(results) == n_results
+
+
+@pytest.mark.parametrize(['term', 'n_results'], [
     (u"shouldmatchnothing\\k", 0),
     (u"nobodyatall", 0),
     (u"JasonAG", 1),

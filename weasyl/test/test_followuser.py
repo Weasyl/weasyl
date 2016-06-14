@@ -5,7 +5,7 @@ import mock
 
 import db_utils
 
-from weasyl import followuser, orm, define as d
+from weasyl import profile, followuser, orm, define as d
 from weasyl.error import WeasylError
 
 

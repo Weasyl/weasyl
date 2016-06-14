@@ -61,7 +61,7 @@ setup-vagrant: .vagrant
 
 .PHONY: upgrade-db
 upgrade-db:
-	cd $< && make upgrade-db
+	cd libweasyl && make upgrade-db
 
 .PHONY: guest-upgrade-db
 guest-upgrade-db: .vagrant

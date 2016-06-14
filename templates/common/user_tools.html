@@ -44,6 +44,10 @@ $def with (profile, userinfo, relationship)
       <ul id="user-actions" class="toolset clear">
 
         $if not relationship['is_self']:
+		  <li>
+		    $if relationship['followby']:
+			  <span class="icon icon-20 icon-followed"></span>Following You
+		  </li>
           <li><form name="followuser" action="/followuser" method="post">
             $:{CSRF()}
             <input type="hidden" name="userid" value="${profile['userid']}" />

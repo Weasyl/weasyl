@@ -90,7 +90,7 @@ class Query:
             tag = d.get_search_tag(criterion)
             add_nonempty(self.required_includes, tag)
 
-    def __bool__(self):
+    def __nonzero__(self):
         return bool(
             self.possible_includes or
             self.required_includes or

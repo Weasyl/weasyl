@@ -740,6 +740,16 @@ Index('ind_submission_media_links_submitid', submission_media_links.c.submitid)
 Index('ind_submission_media_links_mediaid', submission_media_links.c.mediaid, unique=False)
 
 
+submission_tags = Table(
+    'submission_tags', metadata,
+    Column('submitid', Integer(), primary_key=True, nullable=False),
+    Column('tags', ARRAY(Integer()), nullable=False),
+    default_fkey(['submitid'], ['submission.submitid'], name='submission_tags_submitid_fkey'),
+)
+
+Index('ind_submission_tags_tags', submission_tags.c.tags, postgresql_using='gin')
+
+
 suspension = Table(
     'suspension', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),

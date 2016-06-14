@@ -135,7 +135,7 @@ def select_users(q):
 
 
 def select(userid, rating, limit,
-           search, within, rated, cat, subcat, backid, nextid):
+           search, within, cat, subcat, backid, nextid):
     type_code, type_letter, table, select, subtype = _table_information[search.find]
 
     # Begin statement

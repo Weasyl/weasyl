@@ -59,7 +59,6 @@ class search_(controller_base):
                     limit=63,
                     search=search_query,
                     within=meta["within"],
-                    rated=meta["rated"],
                     cat=meta["cat"],
                     subcat=meta["subcat"],
                     backid=meta["backid"],

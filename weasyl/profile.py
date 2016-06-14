@@ -282,6 +282,7 @@ def select_relation(userid, otherid):
             "friend": False,
             "ignore": False,
             "friendreq": False,
+            "follower": False,
             "is_self": userid == otherid,
         }
 

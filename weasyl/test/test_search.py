@@ -1,3 +1,4 @@
+import mock
 import pytest
 
 from libweasyl.models.helpers import CharSettings
@@ -97,6 +98,47 @@ def test_search_blocked_tags(db, rating, block_rating):
     else:
         check(u'walrus', 1)
         check(u'penguin', 0)
+
+
+_page_limit = 6
+
+
+@mock.patch.object(search, 'count_limit', 10)
+def test_search_pagination(db):
+    owner = db_utils.create_user()
+    submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
+    tag = db_utils.create_tag('penguin')
+    search_query = search.Query.parse(u'penguin', 'submit')
+
+    for submission in submissions:
+        db_utils.create_submission_tag(tag, submission)
+
+    result, next_count, back_count = search.select(
+        search=search_query,
+        userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
+        cat=None, subcat=None, within='', backid=None, nextid=None)
+
+    assert back_count == 0
+    assert next_count == search.count_limit
+    assert [item['submitid'] for item in result] == submissions[:-_page_limit-1:-1]
+
+    result, next_count, back_count = search.select(
+        search=search_query,
+        userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
+        cat=None, subcat=None, within='', backid=None, nextid=submissions[-_page_limit])
+
+    assert back_count == _page_limit
+    assert next_count == search.count_limit
+    assert [item['submitid'] for item in result] == submissions[-_page_limit-1:-2*_page_limit-1:-1]
+
+    result, next_count, back_count = search.select(
+        search=search_query,
+        userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
+        cat=None, subcat=None, within='', backid=submissions[_page_limit - 1], nextid=None)
+
+    assert back_count == search.count_limit
+    assert next_count == _page_limit
+    assert [item['submitid'] for item in result] == submissions[2*_page_limit-1:_page_limit-1:-1]
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [

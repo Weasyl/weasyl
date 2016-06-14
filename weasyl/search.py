@@ -31,6 +31,8 @@ _table_information = {
     "journal": (30, "j", "journal", "journalid", 3999),
 }
 
+count_limit = 10000
+
 
 class Query:
     def __init__(self):
@@ -309,6 +311,7 @@ def select(userid, rating, limit,
         "category": cat,
         "subcategory": subcat,
         "limit": limit,
+        "count_limit": count_limit,
         "backid": backid,
         "nextid": nextid,
         "required_include_count": len(search.required_includes),
@@ -339,22 +342,22 @@ def select(userid, rating, limit,
 
     if backid:
         back_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, ") _"), **params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), **params).scalar() - len(ret)
     elif nextid:
         back_count = (d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", ") _"),
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", " LIMIT %(count_limit)s) _"),
             **params).scalar())
     else:
         back_count = 0
 
     if backid:
         next_count = (d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", ") _"),
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", " LIMIT %(count_limit)s) _"),
             **params).scalar())
         return list(reversed(ret)), next_count, back_count
     else:
         next_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, ") _"), **params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), **params).scalar() - len(ret)
         return ret, next_count, back_count
 
 

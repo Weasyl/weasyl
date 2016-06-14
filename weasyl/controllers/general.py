@@ -75,6 +75,7 @@ class search_(controller_base):
                 back_count,
                 # Submission subcategories
                 macro.MACRO_SUBCAT_LIST,
+                search.count_limit,
             ]))
         elif form.find:
             query = search.browse(self.user_id, rating, 66, form)

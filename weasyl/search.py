@@ -158,11 +158,17 @@ def select(userid, rating, limit,
     statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
     statement_group = []
 
+    if search.find == "submit":
+        statement_from.append("INNER JOIN submission_tags ON content.submitid = submission_tags.submitid")
+
     if search.required_includes:
-        statement_from.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
-        statement_where.append("AND searchmap{find}.tagid = ANY (%(required_includes)s)")
-        statement_group.append(
-            "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
+        if search.find == "submit":
+            statement_from.append("AND submission_tags.tags @> %(required_includes)s")
+        else:
+            statement_from.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
+            statement_where.append("AND searchmap{find}.tagid = ANY (%(required_includes)s)")
+            statement_group.append(
+                "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
 
     # Submission category or subcategory
     if search.find == "submit":
@@ -213,22 +219,28 @@ def select(userid, rating, limit,
         """)
 
     if search.possible_includes:
-        statement_where.append("""
-            AND EXISTS (
-                SELECT 0 FROM searchmap{find}
-                WHERE targetid = content.{select}
-                    AND tagid = ANY (%(possible_includes)s)
-            )
-        """)
+        if search.find == "submit":
+            statement_where.append("AND submission_tags.tags && %(possible_includes)s")
+        else:
+            statement_where.append("""
+                AND EXISTS (
+                    SELECT 0 FROM searchmap{find}
+                    WHERE targetid = content.{select}
+                        AND tagid = ANY (%(possible_includes)s)
+                )
+            """)
 
     if search.required_excludes:
-        statement_where.append("""
-            AND NOT EXISTS (
-                SELECT 0 FROM searchmap{find}
-                WHERE targetid = content.{select}
-                    AND tagid = ANY (%(required_excludes)s)
-            )
-        """)
+        if search.find == "submit":
+            statement_where.append("AND NOT submission_tags.tags && %(required_excludes)s")
+        else:
+            statement_where.append("""
+                AND NOT EXISTS (
+                    SELECT 0 FROM searchmap{find}
+                    WHERE targetid = content.{select}
+                        AND tagid = ANY (%(required_excludes)s)
+                )
+            """)
 
     if search.required_user_includes:
         statement_from.append("INNER JOIN login login_include ON content.userid = login_include.userid")
@@ -276,7 +288,7 @@ def select(userid, rating, limit,
     tag_ids = searchtag.get_ids(all_names)
 
     def get_ids(names):
-        return [tag_ids[name] for name in names]
+        return [tag_ids.get(name, -1) for name in names]
 
     params = {
         "possible_includes": get_ids(search.possible_includes),

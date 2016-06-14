@@ -62,6 +62,43 @@ def test_submission_search(db, term, n_results):
     assert len(results) == n_results
 
 
+@pytest.mark.parametrize('rating', ratings.ALL_RATINGS)
+@pytest.mark.parametrize('block_rating', ratings.ALL_RATINGS)
+def test_search_blocked_tags(db, rating, block_rating):
+    owner = db_utils.create_user()
+    viewer = db_utils.create_user()
+
+    allowed_tag = db_utils.create_tag('walrus')
+    blocked_tag = db_utils.create_tag('penguin')
+
+    db_utils.create_blocktag(viewer, blocked_tag, block_rating.code)
+
+    s1 = db_utils.create_submission(owner, rating=rating.code)
+    db_utils.create_submission_tag(allowed_tag, s1)
+    db_utils.create_submission_tag(blocked_tag, s1)
+
+    s2 = db_utils.create_submission(owner, rating=rating.code)
+    db_utils.create_submission_tag(allowed_tag, s2)
+
+    s3 = db_utils.create_submission(owner, rating=rating.code)
+    db_utils.create_submission_tag(blocked_tag, s3)
+
+    def check(term, n_results):
+        results, _, _ = search.select(
+            search=search.Query.parse(term, 'submit'),
+            userid=viewer, rating=ratings.EXPLICIT.code, limit=100,
+            cat=None, subcat=None, within='', backid=None, nextid=None)
+
+        assert len(results) == n_results
+
+    if rating < block_rating:
+        check(u'walrus', 2)
+        check(u'penguin', 2)
+    else:
+        check(u'walrus', 1)
+        check(u'penguin', 0)
+
+
 @pytest.mark.parametrize(['term', 'n_results'], [
     (u"shouldmatchnothing\\k", 0),
     (u"nobodyatall", 0),

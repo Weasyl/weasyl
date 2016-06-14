@@ -139,6 +139,7 @@ def select(userid, rating, limit,
     type_code, type_letter, table, select, subtype = _table_information[search.find]
 
     # Begin statement
+    statement_with = ""
     statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]
     statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
     statement_group = []
@@ -197,11 +198,30 @@ def select(userid, rating, limit,
                 SELECT 0 FROM ignoreuser
                 WHERE userid = %(userid)s
                     AND otherid = content.userid)
-            AND NOT EXISTS (
-                SELECT 0 FROM searchmap{find}
-                WHERE targetid = content.{select}
-                    AND tagid IN (SELECT tagid FROM blocktag WHERE userid = %(userid)s AND rating <= content.rating))
         """)
+
+        if search.find == "submit":
+            statement_with = """
+                WITH
+                    bg AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 10),
+                    bm AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 20),
+                    ba AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 30),
+                    bp AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 40)
+            """
+
+            statement_where.append("""
+                AND NOT submission_tags.tags && (SELECT tags FROM bg)
+                AND (content.rating < 20 OR NOT submission_tags.tags && (SELECT tags FROM bm))
+                AND (content.rating < 30 OR NOT submission_tags.tags && (SELECT tags FROM ba))
+                AND (content.rating < 40 OR NOT submission_tags.tags && (SELECT tags FROM bp))
+            """)
+        else:
+            statement_where.append("""
+                AND NOT EXISTS (
+                    SELECT 0 FROM searchmap{find}
+                    WHERE targetid = content.{select}
+                        AND tagid IN (SELECT tagid FROM blocktag WHERE userid = %(userid)s AND rating <= content.rating))
+            """)
 
     if search.possible_includes:
         if search.find == "submit":
@@ -237,6 +257,7 @@ def select(userid, rating, limit,
 
     def make_statement(statement_select, statement_additional_where, statement_order):
         return " ".join([
+            statement_with,
             statement_select,
             " ".join(statement_from),
             " ".join(statement_where),

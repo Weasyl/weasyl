@@ -3,6 +3,8 @@ import time
 
 import web
 
+from libweasyl import ratings
+
 from weasyl import define, index, macro, search, template, profile, siteupdate, submission
 from weasyl.controllers.base import controller_base
 
@@ -43,7 +45,25 @@ class search_(controller_base):
                 "nextid": int(form.nextid) if form.nextid else None,
             }
 
-            query, next_count, back_count = search.select(self.user_id, rating, limit=63, **meta)
+            search_query = search.Query.parse(meta["q"], find)
+
+            if search_query.find == "user":
+                query = search.select_users(meta["q"])
+                next_count = back_count = 0
+            else:
+                search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
+
+                query, next_count, back_count = search.select(
+                    self.user_id,
+                    rating=rating,
+                    limit=63,
+                    search=search_query,
+                    within=meta["within"],
+                    rated=meta["rated"],
+                    cat=meta["cat"],
+                    subcat=meta["subcat"],
+                    backid=meta["backid"],
+                    nextid=meta["nextid"])
 
             page.append(define.render("etc/search.html", [
                 # Search method

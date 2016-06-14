@@ -31,17 +31,8 @@ _table_information = {
     "journal": (30, "j", "journal", "journalid", 3999),
 }
 
-_rating_codes = {
-    "g": GENERAL.code,
-    "m": MODERATE.code,
-    "a": MATURE.code,
-    "p": EXPLICIT.code,
-}
-
 
 class Query:
-    _find = None
-
     def __init__(self):
         self.possible_includes = set()
         self.required_includes = set()
@@ -49,10 +40,7 @@ class Query:
         self.required_user_includes = set()
         self.required_user_excludes = set()
         self.ratings = set()
-
-    @property
-    def find(self):
-        return self._find or "submit"
+        self.find = None
 
     def add_criterion(self, criterion):
         def add_nonempty(s, item):
@@ -62,7 +50,7 @@ class Query:
         find_modifier = _query_find_modifiers.get(criterion)
 
         if find_modifier:
-            self._find = find_modifier
+            self.find = find_modifier
             return
 
         rating_modifier = _query_rating_modifiers.get(criterion)
@@ -100,13 +88,13 @@ class Query:
             self.ratings)
 
     @classmethod
-    def parse(cls, query_string):
+    def parse(cls, query_string, find_default):
         """
         Parses a search query string into collections of tags and users.
         """
         query = Query()
 
-        for criterion in _query_delimiter.split(query_string):
+        for criterion in _query_delimiter.split(query_string.strip()):
             if criterion:
                 query.add_criterion(criterion)
 
@@ -114,44 +102,41 @@ class Query:
         query.required_excludes.difference_update(query.required_includes)
         query.possible_includes.difference_update(query.required_excludes)
 
+        if query.find is None:
+            query.find = find_default
+
+        query.text = query_string
+
         return query
 
 
+def select_users(q):
+    terms = q.lower().split()
+    statement = """
+        SELECT userid, full_name, unixtime, username FROM profile
+        WHERE LOWER(username) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
+            OR LOWER(full_name) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
+        ORDER BY username
+        LIMIT 100
+    """
+
+    query = d.engine.execute(statement, terms="|".join(terms))
+
+    ret = [{
+        "contype": 50,
+        "userid": i.userid,
+        "title": i.full_name,
+        "rating": "",
+        "unixtime": i.unixtime,
+        "username": i.username,
+    } for i in query]
+    media.populate_with_user_media(ret)
+    return ret
+
+
 def select(userid, rating, limit,
-           q, find, within, rated, cat, subcat, backid, nextid):
-    search = Query.parse(q)
-    search.ratings.update([_rating_codes[r] for r in rated])
-
-    if not search._find:
-        search._find = find
-
-    if search.find == "user":
-        terms = q.lower().split()
-        statement = """
-            SELECT userid, full_name, unixtime, username FROM profile
-            WHERE LOWER(username) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
-                OR LOWER(full_name) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
-            ORDER BY username
-            LIMIT 100
-        """
-
-        query = d.engine.execute(statement, terms="|".join(terms))
-
-        ret = [{
-            "contype": 50,
-            "userid": i.userid,
-            "title": i.full_name,
-            "rating": "",
-            "unixtime": i.unixtime,
-            "username": i.username,
-        } for i in query]
-        media.populate_with_user_media(ret)
-        return ret, 0, 0
-
+           search, within, rated, cat, subcat, backid, nextid):
     type_code, type_letter, table, select, subtype = _table_information[search.find]
-
-    if not search:
-        raise web.seeother("/search?type=" + search.find)
 
     # Begin statement
     statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]

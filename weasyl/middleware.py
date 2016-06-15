@@ -28,12 +28,18 @@ class ClientGoneAway(Exception):
     pass
 
 
-def db_connection_processor(handle):
-    try:
-        return handle()
-    finally:
-        if 'pg_connection' in web.ctx:
-            web.ctx.pg_connection.close()
+def db_connection_closer_tween_factory(handler, registry):
+    """
+    A tween that closes a database connection opened for a request.
+    """
+    def db_connection_closer_tween(request):
+        try:
+            return handler(request)
+        finally:
+            if 'pg_connection' in request:
+                request.pg_connection.close()
+
+    return db_connection_closer_tween
 
 
 def session_processor(handle):

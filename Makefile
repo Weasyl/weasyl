@@ -34,10 +34,6 @@ all: setup
 config/site.config.txt:
 	cp -n config/site.config.txt.example $@
 
-# Staff
-config/weasyl-staff.yaml:
-	cp -n config/weasyl-staff.yaml.example $@
-
 # Creates python environment
 $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
@@ -77,7 +73,7 @@ $(TEMP_DIRS):
 
 # Phony setup target
 .PHONY: setup
-setup: $(VE) config/site.config.txt config/weasyl-staff.yaml $(STATIC_DIRS) $(TEMP_DIRS)
+setup: $(VE) config/site.config.txt $(STATIC_DIRS) $(TEMP_DIRS)
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker

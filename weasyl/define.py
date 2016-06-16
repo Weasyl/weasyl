@@ -561,8 +561,6 @@ def get_timestamp():
 
 
 _hash_path_roots = {
-    "user": [macro.MACRO_SYS_USER_PATH],
-    "submit": [macro.MACRO_SYS_SUBMIT_PATH],
     "char": [macro.MACRO_SYS_CHAR_PATH],
     "journal": [macro.MACRO_SYS_JOURNAL_PATH],
     None: [],

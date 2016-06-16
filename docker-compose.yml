@@ -19,7 +19,11 @@ services:
     command: run
     volumes:
       - .:/weasyl-src
+      - ./config:/weasyl-app/config
       - ./static:/weasyl-app/static
+      - ws_character:/weasyl-app/static/character
+      - ws_journal:/weasyl-app/static/journal
+      - ws_media:/weasyl-app/static/media
     depends_on:
       - cache
       - db
@@ -32,7 +36,15 @@ services:
 
     volumes:
       - ./static:/weasyl-app/static
+      - ws_character:/weasyl-app/static/character
+      - ws_journal:/weasyl-app/static/journal
+      - ws_media:/weasyl-app/static/media
     depends_on:
       - weasyl-app-dev
     ports:
       - '80'
+
+volumes:
+  ws_character: {}
+  ws_journal: {}
+  ws_media: {}

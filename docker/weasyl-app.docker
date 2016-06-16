@@ -1,20 +1,22 @@
 FROM weasyl-base
 
 USER root
+ADD static /weasyl-app/static
+ADD config /weasyl-app/config
+RUN mkdir /weasyl-app/log
+RUN chown -R weasyl: /weasyl-app
 RUN apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1
 USER weasyl
 
 ADD wheelhouse /wheelhouse
 RUN pip install --no-index -f /wheelhouse weasyl libweasyl
 
+VOLUME /weasyl-app/config
 VOLUME /weasyl-app/log
-
-ADD static /weasyl-app/static
 VOLUME /weasyl-app/static/character
-VOLUME /weasyl-app/static/user/
-VOLUME /weasyl-app/static/submission/
+VOLUME /weasyl-app/static/journal
+VOLUME /weasyl-app/static/media
 
-ADD config /weasyl-app/config
 ENV WEASYL_ROOT=/weasyl-app
 ENV WEASYL_SERVE_STATIC_FILES=y
 ENV WEASYL_REVERSE_PROXY_STATIC=y

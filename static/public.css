@@ -4548,8 +4548,7 @@ img + #detail-art-text {
     color: #939699;
 }
 
-#footer-info a,
-#footer-info a:visited {
+#footer-info a {
     color: #bbb;
 }
 

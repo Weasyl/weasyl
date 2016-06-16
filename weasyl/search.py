@@ -3,7 +3,7 @@ import web
 
 from libweasyl.ratings import GENERAL, MODERATE, MATURE, EXPLICIT
 
-from weasyl import character, journal, media, submission
+from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
 
 
@@ -31,17 +31,8 @@ _table_information = {
     "journal": (30, "j", "journal", "journalid", 3999),
 }
 
-_rating_codes = {
-    "g": GENERAL.code,
-    "m": MODERATE.code,
-    "a": MATURE.code,
-    "p": EXPLICIT.code,
-}
-
 
 class Query:
-    _find = None
-
     def __init__(self):
         self.possible_includes = set()
         self.required_includes = set()
@@ -49,19 +40,7 @@ class Query:
         self.required_user_includes = set()
         self.required_user_excludes = set()
         self.ratings = set()
-
-    @property
-    def find(self):
-        return self._find or "submit"
-
-    def to_dict(self):
-        return {
-            "possible_includes": list(self.possible_includes - (self.required_includes | self.required_excludes)),
-            "required_includes": list(self.required_includes),
-            "required_excludes": list(self.required_excludes - self.required_includes),
-            "required_user_includes": list(self.required_user_includes),
-            "required_user_excludes": list(self.required_user_excludes),
-        }
+        self.find = None
 
     def add_criterion(self, criterion):
         def add_nonempty(s, item):
@@ -71,7 +50,7 @@ class Query:
         find_modifier = _query_find_modifiers.get(criterion)
 
         if find_modifier:
-            self._find = find_modifier
+            self.find = find_modifier
             return
 
         rating_modifier = _query_rating_modifiers.get(criterion)
@@ -99,68 +78,82 @@ class Query:
             tag = d.get_search_tag(criterion)
             add_nonempty(self.required_includes, tag)
 
+    def __nonzero__(self):
+        return bool(
+            self.possible_includes or
+            self.required_includes or
+            self.required_excludes or
+            self.required_user_includes or
+            self.required_user_excludes or
+            self.ratings)
+
     @classmethod
-    def parse(cls, query_string):
+    def parse(cls, query_string, find_default):
         """
         Parses a search query string into collections of tags and users.
         """
         query = Query()
 
-        for criterion in _query_delimiter.split(query_string):
+        for criterion in _query_delimiter.split(query_string.strip()):
             if criterion:
                 query.add_criterion(criterion)
+
+        query.possible_includes.difference_update(query.required_includes)
+        query.required_excludes.difference_update(query.required_includes)
+        query.possible_includes.difference_update(query.required_excludes)
+
+        if query.find is None:
+            query.find = find_default
+
+        query.text = query_string
 
         return query
 
 
+def select_users(q):
+    terms = q.lower().split()
+    statement = """
+        SELECT userid, full_name, unixtime, username FROM profile
+        WHERE LOWER(username) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
+            OR LOWER(full_name) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
+        ORDER BY username
+        LIMIT 100
+    """
+
+    query = d.engine.execute(statement, terms="|".join(terms))
+
+    ret = [{
+        "contype": 50,
+        "userid": i.userid,
+        "title": i.full_name,
+        "rating": "",
+        "unixtime": i.unixtime,
+        "username": i.username,
+    } for i in query]
+    media.populate_with_user_media(ret)
+    return ret
+
+
 def select(userid, rating, limit,
-           q, find, within, rated, cat, subcat, backid, nextid):
-    search = Query.parse(q)
-    search.ratings.update([_rating_codes[r] for r in rated])
-
-    if not search._find:
-        search._find = find
-
-    if search.find == "user":
-        terms = q.lower().split()
-        statement = """
-            SELECT userid, full_name, unixtime, username FROM profile
-            WHERE LOWER(username) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
-                OR LOWER(full_name) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
-            ORDER BY username
-            LIMIT 100
-        """
-
-        query = d.engine.execute(statement, terms="|".join(terms))
-
-        ret = [{
-            "contype": 50,
-            "userid": i.userid,
-            "title": i.full_name,
-            "rating": "",
-            "unixtime": i.unixtime,
-            "username": i.username,
-        } for i in query]
-        media.populate_with_user_media(ret)
-        return ret, 0, 0
-
+           search, within, cat, subcat, backid, nextid):
     type_code, type_letter, table, select, subtype = _table_information[search.find]
-    search_dict = search.to_dict()
-
-    if not any(search_dict.values()):
-        raise web.seeother("/search?type=" + search.find)
 
     # Begin statement
     statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]
     statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
     statement_group = []
 
+    if search.find == "submit":
+        statement_from.append("INNER JOIN submission_tags ON content.submitid = submission_tags.submitid")
+
     if search.required_includes:
-        statement_from.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
-        statement_from.append("INNER JOIN searchtag ON searchmap{find}.tagid = searchtag.tagid")
-        statement_where.append("AND searchtag.title = ANY (%(required_includes)s)")
-        statement_group.append(
-            "GROUP BY content.{select}, profile.username HAVING COUNT(searchtag.tagid) = %(required_include_count)s")
+        if search.find == "submit":
+            statement_from.append("AND submission_tags.tags @> %(required_includes)s")
+        else:
+            statement_from.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
+            statement_where.append("AND searchmap{find}.tagid = ANY (%(required_includes)s)")
+            statement_group.append(
+                "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
 
     # Submission category or subcategory
     if search.find == "submit":
@@ -211,25 +204,28 @@ def select(userid, rating, limit,
         """)
 
     if search.possible_includes:
-        statement_where.append("""
-            AND EXISTS (
-                SELECT 0 FROM searchmap{find}
-                WHERE targetid = content.{select}
-                    AND tagid IN (SELECT tagid FROM searchtag WHERE title = ANY (%(possible_includes)s))
-            )
-        """)
+        if search.find == "submit":
+            statement_where.append("AND submission_tags.tags && %(possible_includes)s")
+        else:
+            statement_where.append("""
+                AND EXISTS (
+                    SELECT 0 FROM searchmap{find}
+                    WHERE targetid = content.{select}
+                        AND tagid = ANY (%(possible_includes)s)
+                )
+            """)
 
     if search.required_excludes:
-        statement_where.append("""
-            AND NOT EXISTS (
-                SELECT 0 FROM searchmap{find}
-                WHERE targetid = content.{select}
-                    AND tagid IN (
-                        SELECT tagid FROM searchtag
-                        WHERE title = ANY (%(required_excludes)s)
-                    )
-            )
-        """)
+        if search.find == "submit":
+            statement_where.append("AND NOT submission_tags.tags && %(required_excludes)s")
+        else:
+            statement_where.append("""
+                AND NOT EXISTS (
+                    SELECT 0 FROM searchmap{find}
+                    WHERE targetid = content.{select}
+                        AND tagid = ANY (%(required_excludes)s)
+                )
+            """)
 
     if search.required_user_includes:
         statement_from.append("INNER JOIN login login_include ON content.userid = login_include.userid")
@@ -269,18 +265,33 @@ def select(userid, rating, limit,
         pagination_filter,
         "ORDER BY content.{{select}} {order} LIMIT %(limit)s".format(order="" if backid else "DESC"))
 
-    params = dict(
-        search_dict,
-        type=type_letter,
-        userid=userid,
-        rating=rating,
-        ratings=list(search.ratings),
-        category=cat,
-        subcategory=subcat,
-        limit=limit,
-        backid=backid,
-        nextid=nextid,
-        required_include_count=len(search.required_includes))
+    all_names = (
+        search.possible_includes |
+        search.required_includes |
+        search.required_excludes)
+
+    tag_ids = searchtag.get_ids(all_names)
+
+    def get_ids(names):
+        return [tag_ids.get(name, -1) for name in names]
+
+    params = {
+        "possible_includes": get_ids(search.possible_includes),
+        "required_includes": get_ids(search.required_includes),
+        "required_excludes": get_ids(search.required_excludes),
+        "required_user_includes": list(search.required_user_includes),
+        "required_user_excludes": list(search.required_user_excludes),
+        "type": type_letter,
+        "userid": userid,
+        "rating": rating,
+        "ratings": list(search.ratings),
+        "category": cat,
+        "subcategory": subcat,
+        "limit": limit,
+        "backid": backid,
+        "nextid": nextid,
+        "required_include_count": len(search.required_includes),
+    }
 
     query = d.engine.execute(statement, **params)
 

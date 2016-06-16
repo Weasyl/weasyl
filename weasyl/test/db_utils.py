@@ -2,6 +2,8 @@ import itertools
 
 import arrow
 
+from sqlalchemy import exc
+
 from libweasyl.models import content, users
 from libweasyl import legacy, ratings
 import weasyl.define as d
@@ -165,6 +167,17 @@ def create_submission_tag(tagid, targetid, settings=None):
     db.add(
         content.SubmissionTag(tagid=tagid, targetid=targetid, settings=settings))
     db.flush()
+
+    try:
+        db.execute(
+            'INSERT INTO submission_tags (submitid, tags) VALUES (:submission, ARRAY[:tag])',
+            {'submission': targetid, 'tag': tagid})
+    except exc.DBAPIError:
+        result = db.execute(
+            'UPDATE submission_tags SET tags = tags || :tag WHERE submitid = :submission',
+            {'submission': targetid, 'tag': tagid})
+
+        assert result.rowcount == 1
 
 
 def create_blocktag(userid, tagid, rating):

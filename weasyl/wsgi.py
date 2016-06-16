@@ -52,6 +52,6 @@ configure_libweasyl(
     dbsession=d.sessionmaker,
     not_found_exception=web.notfound,
     base_file_path=m.MACRO_SYS_BASE_PATH,
-    staff_config_path=m.MACRO_SYS_STAFF_CONFIG_PATH,
+    staff_config_dict=m.MACRO_SYS_STAFF_CONFIG,
     media_link_formatter_callback=format_media_link,
 )

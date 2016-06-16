@@ -1,70 +1,55 @@
 """
 Dictionaries of Weasyl staff.
 
-This module must be initialized with a call to `staff._init_staff()`
-with the path to a yaml config file where staff members are identified
-by their user id. Example contents of such a config file might look as
-follows:
+This module must be initialized with a call to `staff._init_staff(staffDict)`
+where ``staffDict`` is a nested dictionary of staff members identified by their
+user ID. An example of such a call might look as follows (comments optional):
 
-    directors:
-        - 1014   # Fiz
-        - 2061   # Ikani
-
-    technical_staff:
-        - 5756   # Weykent
-
-    admins:  # Directors and technical_staff also have admin privs.
-        - 23613  # Hendikins
-        - 3      # Kihari
-
-    mods:  # Admins also have mod privs.
-        - 40212  # pinardilla
-
-    developers:
-        - 38623  # 8BitFur
-        - 34165  # Charmander
-        - 15224  # Foximile
-        - 2475   # Kailys
-        - 8627   # Kauko
+MACRO_SYS_STAFF_CONFIG = {
+    #[Fiz, Ikani]
+    'directors': [1014, 2061],
+    #[Weykent]
+    'technical_staff': [5756],
+    #[Hendikins, Kihari]
+    'admins': [23613, 3],
+    #[pinardilla]
+    'mods': [40212],
+    #[8BitFur, Charmander, Foximile, Kailys, Kauko]
+    'developers': [38623, 34165, 15224, 2475, 8627],
+}
+staff._init_staff(staff_dict)
 
 We recommend storing staff members in lexicographic order by name
 within each group.
 """
 
-import yaml
 
-
-DIRECTORS = set()
 """ Directors have the same powers as admins. """
+DIRECTORS = set()
 
-
-TECHNICAL = set()
 """ Technical staff can moderate all content and manage all users. """
+TECHNICAL = set()
 
-
-ADMINS = set()
 """ Site administrators can update site news and moderate user content. """
+ADMINS = set()
 
-
-MODS = set()
 """ Site moderators can hide submissions, manage non-admin users, etc. """
+MODS = set()
 
-
-DEVELOPERS = set()
 """ Purely cosmetic group for users who contribute to site development. """
+DEVELOPERS = set()
 
 
-def _init_staff(staff_config_path):
+def _init_staff(staff_dict):
     """
     Loads staff from a yaml config file.
 
     Parameters:
-        staff_config_path: String path to a yaml file specifying staff.
+        staff_dict: Dict containing staff levels with user IDs.
     """
-    with open(staff_config_path) as config_file:
-        staff = yaml.safe_load(config_file)
-    DIRECTORS.update(staff['directors'])
-    TECHNICAL.update(DIRECTORS, staff['technical_staff'])
-    ADMINS.update(DIRECTORS, TECHNICAL, staff['admins'])
-    MODS.update(ADMINS, staff['mods'])
-    DEVELOPERS.update(staff['developers'])
+
+    DIRECTORS.update(staff_dict['directors'])
+    TECHNICAL.update(DIRECTORS, staff_dict['technical_staff'])
+    ADMINS.update(DIRECTORS, TECHNICAL, staff_dict['admins'])
+    MODS.update(ADMINS, staff_dict['mods'])
+    DEVELOPERS.update(staff_dict['developers'])

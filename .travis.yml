@@ -4,7 +4,13 @@ sudo: required
 services:
   - docker
 
+env:
+  DOCKER_COMPOSE_VERSION: 1.7.1
+
 before_install:
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
   - docker-compose -f docker-compose-build.yml build weasyl-base
   - docker-compose -f docker-compose-build.yml build weasyl-build
   - docker-compose -f docker-compose-build.yml run --rm weasyl-build-dev

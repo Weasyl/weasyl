@@ -1,41 +1,16 @@
 language: python
-# Run on Travis CI's docker infrastructure
-sudo: false
-
-matrix:
-  include:
-    - python: 2.7
-    - python: 3.5
-
-env:
-  global:
-    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
-    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
-
-cache:
-  directories:
-    - ~/.cache/pip
-
-addons:
-    postgresql: "9.4"
+sudo: required
 
 services:
-    - memcached
-    - postgresql
+  - docker
 
 before_install:
-    - mkdir -p ~/.cache/pip/wheels
-    - pip install -U pip setuptools pbr
-    - pip --version
-    - export VE=$VIRTUAL_ENV  # Use the virtual environment travis provides.
-    - cp etc/pip.conf $VE
-
-install:
-    - createdb -E UTF8 -O travis weasyl_test
-    - ./.travis-install.sh
+  - docker-compose -f docker-compose-build.yml build weasyl-base
+  - docker-compose -f docker-compose-build.yml build weasyl-build
+  - docker-compose -f docker-compose-build.yml run --rm weasyl-build-dev
+  - docker-compose -f docker-compose-build.yml build weasyl-app
+  - docker-compose build
 
 script:
-    - ./.travis-test.sh
-
-after_success:
-    - codecov
+  - docker-compose run --rm --entrypoint py.test weasyl-app-dev /weasyl-src/libweasyl/libweasyl
+  - docker-compose run --rm --entrypoint py.test weasyl-app-dev /weasyl-src/weasyl

@@ -197,6 +197,7 @@ def sql_string_series(target):
 
 
 CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
+FULL_SHA = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip()
 the_fake_request = FakePyramidRequest()
 
 
@@ -235,6 +236,7 @@ def render(template_name, argv=(), cached=False):
                 "SUMMARIZE": summarize,
                 "CONFIG": config_read_setting,
                 "SHA": CURRENT_SHA,
+                "FULLSHA": FULL_SHA,
                 "NOW": get_time,
                 "THUMB": thumb_for_sub,
                 "M": macro,

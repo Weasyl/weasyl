@@ -181,9 +181,21 @@ MACRO_SYS_LOG_PATH = MACRO_SYS_BASE_PATH + "log/"
 MACRO_SYS_SAVE_PATH = MACRO_SYS_BASE_PATH + "save/"
 MACRO_SYS_TEMP_PATH = MACRO_SYS_BASE_PATH + "temp/"
 MACRO_SYS_CONFIG_PATH = MACRO_SYS_BASE_PATH + "config/"
-MACRO_SYS_STAFF_CONFIG_PATH = MACRO_SYS_CONFIG_PATH + "weasyl-staff.yaml"
 MACRO_SYS_JOURNAL_PATH = MACRO_SYS_BASE_PATH + "static/journal/"
 MACRO_SYS_BEAKER_PATH = MACRO_SYS_BASE_PATH + "beaker/"
+
+MACRO_SYS_STAFF_CONFIG = {
+    #[Fiz, Ikani]
+    'directors': [1014, 2061],
+    #[Weykent]
+    'technical_staff': [5756],
+    #[Hendikins, Kihari]
+    'admins': [23613, 3],
+    #[pinardilla]
+    'mods': [40212],
+    #[8BitFur, Charmander, Foximile, Kailys, Kauko]
+    'developers': [38623, 34165, 15224, 2475, 8627],
+}
 
 MACRO_BLANK_THUMB = "/static/images/default-thumbs/visual.png"
 MACRO_DEFAULT_SUBMISSION_THUMBNAIL = [

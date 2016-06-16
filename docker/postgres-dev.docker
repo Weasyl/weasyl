@@ -1,0 +1,4 @@
+FROM postgres:9.5
+RUN apt-get update
+RUN apt-get -qyy install curl
+ADD db-import.sh /docker-entrypoint-initdb.d

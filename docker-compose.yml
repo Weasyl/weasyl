@@ -1,0 +1,38 @@
+version: '2'
+services:
+
+  cache:
+    image: memcached
+
+  db:
+    build:
+      context: ./docker
+      dockerfile: postgres-dev.docker
+    image: postgres-weasyl-dev
+
+  weasyl-app-dev:
+    build:
+      context: .
+      dockerfile: docker/weasyl-app-dev.docker
+    image: weasyl-app-dev
+
+    command: run
+    volumes:
+      - .:/weasyl-src
+      - ./static:/weasyl-app/static
+    depends_on:
+      - cache
+      - db
+
+  nginx:
+    build:
+      context: ./docker
+      dockerfile: nginx-dev.docker
+    image: nginx-weasyl-dev
+
+    volumes:
+      - ./static:/weasyl-app/static
+    depends_on:
+      - weasyl-app-dev
+    ports:
+      - '80'

@@ -1,0 +1,28 @@
+version: '2'
+services:
+
+  weasyl-base:
+    build:
+      context: ./docker
+      dockerfile: weasyl-base.docker
+    image: weasyl-base
+
+  weasyl-build:
+    build:
+      context: ./docker
+      dockerfile: weasyl-build.docker
+    image: weasyl-build
+    volumes:
+      - ".:/weasyl-src"
+      - "./wheelhouse:/wheelhouse"
+
+  weasyl-build-dev:
+    extends:
+      service: weasyl-build
+    entrypoint: ["pip", "wheel", "/weasyl-src", "/weasyl-src/libweasyl[development]"]
+
+  weasyl-app:
+    build:
+      context: .
+      dockerfile: docker/weasyl-app.docker
+    image: weasyl-app

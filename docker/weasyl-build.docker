@@ -1,0 +1,14 @@
+FROM weasyl-base
+
+USER root
+RUN apt-get install -qyy \
+  libffi-dev libmagickcore-dev libpq-dev libxml2-dev libxslt-dev pkg-config liblzma-dev python-dev
+
+ENV WHEELHOUSE=/wheelhouse
+ENV PIP_WHEEL_DIR=/wheelhouse
+ENV PIP_FIND_LINKS=/wheelhouse
+
+VOLUME /wheelhouse
+VOLUME /weasyl-src
+
+ENTRYPOINT ["pip", "wheel", "/weasyl-src", "/weasyl-src/libweasyl"]

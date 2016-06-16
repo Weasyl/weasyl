@@ -1,0 +1,4 @@
+include version.txt
+include weasyl/weasyl.tac
+graft weasyl/static
+graft weasyl/templates

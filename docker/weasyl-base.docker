@@ -1,0 +1,15 @@
+FROM ubuntu:xenial
+
+RUN apt-get update \
+ && apt-get -qyy dist-upgrade \
+ && apt-get -qyy install python-virtualenv libffi6 openssl
+RUN adduser --system --home /var/cache/weasyl weasyl
+RUN mkdir /appenv /weasyl-src /weasyl-app
+RUN chown weasyl: /appenv /weasyl-src /weasyl-app
+USER weasyl
+WORKDIR /var/cache/weasyl
+
+RUN virtualenv /appenv
+ADD pip.conf /appenv
+RUN /appenv/bin/pip install -U pip setuptools
+ENV PATH=/appenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

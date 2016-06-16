@@ -1,0 +1,9 @@
+FROM weasyl-app
+
+ADD . /weasyl-src
+USER root
+RUN chown -R weasyl: /weasyl-src
+USER weasyl
+RUN pip install --no-index -f /wheelhouse -e /weasyl-src -e '/weasyl-src/libweasyl[development]'
+
+ENV WEASYL_TEST_SQLALCHEMY_URL=postgres://postgres:postgres@db/weasyl_test

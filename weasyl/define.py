@@ -12,11 +12,11 @@ import urlparse
 import functools
 import traceback
 import string
-import subprocess
 import unicodedata
 
 import anyjson as json
 import arrow
+import pkg_resources
 import requests
 import web
 import sqlalchemy as sa
@@ -35,7 +35,7 @@ from libweasyl import html, text, ratings, security, staff
 from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read, config_read_setting, config_read_bool
 from weasyl.cache import region
-from weasyl import config
+from weasyl import config, _version
 
 
 _shush_pyflakes = [sqlalchemy.orm, config_read]
@@ -196,7 +196,7 @@ def sql_string_series(target):
     return ", ".join(sql_string_list(i) for i in target)
 
 
-CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
+CURRENT_SHA = _version.__sha__.lstrip('g')
 the_fake_request = FakePyramidRequest()
 
 
@@ -213,8 +213,9 @@ def render(template_name, argv=(), cached=False):
     else:
         template = template_name
     if template is None:
-        _template_cache[template_name] = template = web.template.frender(
-            "%stemplates/%s" % (macro.MACRO_SYS_BASE_PATH, template_name),
+        _template_cache[template_name] = template = web.template.Template(
+            pkg_resources.resource_string(__name__, 'templates/' + template_name),
+            filename=template_name,
             globals={
                 "INT": int,
                 "STR": str,
@@ -561,7 +562,6 @@ def get_timestamp():
 
 _hash_path_roots = {
     "user": [macro.MACRO_SYS_USER_PATH],
-    "save": [macro.MACRO_SYS_SAVE_PATH],
     "submit": [macro.MACRO_SYS_SUBMIT_PATH],
     "char": [macro.MACRO_SYS_CHAR_PATH],
     "journal": [macro.MACRO_SYS_JOURNAL_PATH],

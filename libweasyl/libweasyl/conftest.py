@@ -46,7 +46,7 @@ def staticdir(tmpdir):
         dbsession=sessionmaker,
         not_found_exception=NotFound,
         base_file_path=tmpdir.strpath,
-        staff_dict,
+        staff_config_dict=staff_dict,
         media_link_formatter_callback=media_link_formatter.format_media_link,
     )
     return tmpdir

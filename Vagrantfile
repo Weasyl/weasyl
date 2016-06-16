@@ -29,7 +29,10 @@ apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libpq-dev \
     libxml2-dev libxslt-dev memcached nginx pkg-config \
     postgresql-9.4 postgresql-contrib-9.4 \
-    liblzma-dev python-dev python-virtualenv
+    liblzma-dev python-dev python-virtualenv \
+    ruby-sass npm
+
+npm install -g gulp-cli
 
 sudo -u postgres dropdb weasyl
 sudo -u postgres dropuser vagrant

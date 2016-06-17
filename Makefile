@@ -43,6 +43,7 @@ $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
                $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
+	$@/bin/pip install $(USE_WHEEL) pytest flake8
 	touch $@
 
 .PHONY: install-libweasyl
@@ -108,7 +109,6 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
-	$(VE)/bin/pip install $(USE_WHEEL) pytest flake8
 	WEASYL_ROOT=$(shell pwd) $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell

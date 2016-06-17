@@ -75,3 +75,14 @@ class SelectUserCountTestCase(unittest.TestCase):
         self.assertEqual(
             my_journalid,
             journal.select_user_list(self.user1, ratings.GENERAL.code, 100)[0]['journalid'])
+
+    def test_remove(self):
+        j1 = db_utils.create_journal(self.user1, rating=ratings.GENERAL.code)
+        j2 = db_utils.create_journal(self.user1, rating=ratings.GENERAL.code)
+
+        journal.remove(self.user1, j1)
+
+        user_list = journal.select_user_list(self.user1, ratings.GENERAL.code, 100)
+
+        self.assertEqual(self.count + 1, len(user_list))
+        self.assertEqual(j2, user_list[0]['journalid'])

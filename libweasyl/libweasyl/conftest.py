@@ -10,7 +10,7 @@ from libweasyl.test.common import NotFound
 from libweasyl.test.common import datadir
 from libweasyl.test.common import media_link_formatter
 from libweasyl import cache
-
+from weasyl.weasyl import read_staff_yaml
 
 engine = sa.create_engine(os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgres:///weasyl_test'))
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
@@ -35,7 +35,7 @@ def staticdir(tmpdir):
         dbsession=sessionmaker,
         not_found_exception=NotFound,
         base_file_path=tmpdir.strpath,
-        staff_config_path=str(datadir.join("weasyl-staff.yaml")),
+        staff_config_dict=read_staff_yaml._load_staff_dict(),
         media_link_formatter_callback=media_link_formatter.format_media_link,
     )
     return tmpdir

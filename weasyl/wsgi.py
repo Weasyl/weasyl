@@ -6,6 +6,7 @@ import weasyl.define as d
 import weasyl.macro as m
 import weasyl.middleware as mw
 import weasyl.controllers.urls
+from weasyl import read_staff_yaml
 
 web.config.debug = False
 app = web.application(weasyl.controllers.urls.controllers, globals())
@@ -52,6 +53,6 @@ configure_libweasyl(
     dbsession=d.sessionmaker,
     not_found_exception=web.notfound,
     base_file_path=m.MACRO_SYS_BASE_PATH,
-    staff_config_path=m.MACRO_SYS_STAFF_CONFIG_PATH,
+    staff_config_dict=read_staff_yaml._load_staff_dict(),
     media_link_formatter_callback=format_media_link,
 )

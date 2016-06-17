@@ -4548,6 +4548,10 @@ img + #detail-art-text {
     color: #939699;
 }
 
+#footer-info a {
+    color: #bbb;
+}
+
 @media (min-width: 47em) {
     #footer-wesley {
         position: absolute;

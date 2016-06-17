@@ -10,7 +10,7 @@ from libweasyl.test.common import NotFound
 from libweasyl.test.common import datadir
 from libweasyl.test.common import media_link_formatter
 from libweasyl import cache
-from weasyl.weasyl import read_staff_yaml
+from weasyl import read_staff_yaml
 
 engine = sa.create_engine(os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgres:///weasyl_test'))
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))

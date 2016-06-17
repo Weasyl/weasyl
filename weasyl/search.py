@@ -317,7 +317,7 @@ def select(userid, rating, limit,
         "required_include_count": len(search.required_includes),
     }
 
-    query = d.engine.execute(statement, **params)
+    query = d.engine.execute(statement, params)
 
     ret = [{
         "contype": type_code,
@@ -342,22 +342,22 @@ def select(userid, rating, limit,
 
     if backid:
         back_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), **params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), params).scalar() - len(ret)
     elif nextid:
         back_count = (d.engine.execute(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", " LIMIT %(count_limit)s) _"),
-            **params).scalar())
+            params).scalar())
     else:
         back_count = 0
 
     if backid:
         next_count = (d.engine.execute(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", " LIMIT %(count_limit)s) _"),
-            **params).scalar())
+            params).scalar())
         return list(reversed(ret)), next_count, back_count
     else:
         next_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), **params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), params).scalar() - len(ret)
         return ret, next_count, back_count
 
 

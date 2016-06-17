@@ -717,3 +717,54 @@ def note_about(userid, target_user, title, message=None):
             userid=userid, target_user=target_user, unixtime=arrow.utcnow(),
             settings='s', content=staff_note,
         ))
+
+
+def audit_log(username=None, staff=None, start_date=None, end_date=None):
+    sql = """
+        SELECT
+            c.commentid,
+            c.content,
+            c.unixtime,
+            u.login_name user_name,
+            m.login_name mod_name
+        FROM comments c
+            INNER JOIN login m ON c.userid = m.userid
+            INNER JOIN login u ON c.target_user = u.userid
+        WHERE c.settings ~ 's'
+    """
+
+    params = {}
+
+    if username:
+        sql += ' AND u.login_name ~ %(user)s'
+        params['user'] = username
+
+    if staff:
+        sql += ' AND m.login_name ~ %(mod)s'
+        params['mod'] = staff
+
+    if end_date:
+        sql += ' AND c.unixtime < %(end)s'
+        params['end'] = arrow.get(end_date).timestamp
+
+    if start_date:
+        sql += ' AND c.unixtime > %(start)s'
+        params['start'] = arrow.get(start_date).timestamp
+
+    if not end_date or not start_date:
+        sql += ' LIMIT 100'
+
+    query = d.engine.execute(sql, **params).fetchall()
+
+    events = []
+
+    for event in query:
+        events.append({
+            'commentid': event[0],
+            'content': text.markdown(event[1]),
+            'unixtime': event[2],
+            'user_name': event[3],
+            'mod_name': event[4],
+        })
+
+    return events

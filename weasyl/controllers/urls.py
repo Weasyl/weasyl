@@ -159,6 +159,7 @@ controllers = (
     "/modcontrol/editcatchphrase", "weasyl.controllers.moderation.modcontrol_editcatchphrase_",
     "/modcontrol/edituserconfig", "weasyl.controllers.moderation.modcontrol_edituserconfig_",
     "/modcontrol/massaction", "weasyl.controllers.moderation.modcontrol_massaction_",
+    "/modcontrol/auditlog", "weasyl.controllers.moderation.modcontrol_auditlog_",
 
     "/admincontrol", "weasyl.controllers.admin.admincontrol_",
     "/admincontrol/siteupdate", "weasyl.controllers.admin.admincontrol_siteupdate_",

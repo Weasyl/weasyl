@@ -245,3 +245,17 @@ class modcontrol_edituserconfig_(controller_base):
 
         moderation.edituserconfig(form)
         raise web.seeother("/modcontrol")
+
+
+class modcontrol_auditlog_(controller_base):
+    login_required = True
+    moderator_only = True
+
+    def GET(self):
+        form = web.input(
+            username=None, staff=None, start_date=None, end_date=None)
+
+        return define.webpage(self.user_id, "modcontrol/auditlog.html", [
+            moderation.audit_log(**form),
+            form
+        ])

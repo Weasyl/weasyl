@@ -1,0 +1,46 @@
+$def with ( log, form={} )
+$:{RENDER("common/stage_title.html", ["Audit Log", "Moderator Control Panel", "/modcontrol"])}
+
+<div class="content audit-log">
+  <table>
+    <thead>
+      <tr>
+        <th width="15">User</th>
+        <th width="15">Staff member</th>
+        <th width="40">Change</th>
+        <th width="30">Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      $for event in log:
+        <tr>
+          <td>
+            <a href="/~$event['user_name']">$event['user_name']</a> &middot; <a href="/modcontrol/auditlog?username=$event['user_name']">All</a>
+          </td>
+          <td>
+            <a href="/~$event['user_name']">$event['mod_name']</a> &middot; <a href="/modcontrol/auditlog?staff=$event['user_name']">All</a>
+          </td>
+          <td>$:event['content']</td>
+          <td>${DATE(event['unixtime'])} at ${TIME(event['unixtime'])}</td>
+        </tr>
+    </tbody>
+  </table>
+
+  <div class="form skinny clear">
+    <form method="GET" action="/modcontrol/auditlog" class="clear">
+      <label for="username">Username</label>
+      <input type="text" name="username" class="input" id="username" value="$form['username']">
+
+      <label for="staff">Staff member</label>
+      <input type="text" name="staff" class="input" id="staff" value="$form['staff']">
+
+      <label for="start_date">Start date</label>
+      <input type="datetime" name="start_date" class="input" id="start_date" value="$form['start_date']">
+
+      <label for="end_date">End date</label>
+      <input type="datetime" name="end_date" class="input" id="end_date" value="$form['end_date']">
+
+      <button type="submit" class="button positive">Filter</button>
+    </form>
+  </div>
+</div>

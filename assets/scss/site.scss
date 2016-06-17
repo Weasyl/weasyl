@@ -3926,6 +3926,27 @@ img + #detail-art-text {
     z-index: 2;
 }
 
+.audit-log {
+    padding-top: 2em;
+
+    table {
+        max-width: 1000px;
+        margin: 0 auto;
+
+        border-collapse: separate;
+        border-spacing: 1em;
+    }
+
+    th {
+        text-align: left;
+    }
+
+    button {
+        float: right;
+        margin-top: 1em;
+    }
+}
+
 /* h4x */
 .content-by-user .thumb, .content-by-user .journal-thumb, .content-by-user .title, .content-by-user .rating, .content-by-user .time, .content-by-user .visibility {
     position: relative;

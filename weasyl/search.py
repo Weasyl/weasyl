@@ -136,8 +136,8 @@ def select_users(q):
     return ret
 
 
-def select(userid, rating, limit,
-           search, within, cat, subcat, backid, nextid):
+def _find_without_media(userid, rating, limit,
+                        search, within, cat, subcat, backid, nextid):
     type_code, type_letter, table, select, subtype = _table_information[search.find]
 
     # Begin statement
@@ -331,15 +331,6 @@ def select(userid, rating, limit,
         "settings": i.settings,
     } for i in query]
 
-    if search.find == "submit":
-        media.populate_with_submission_media(ret)
-    elif search.find == "char":
-        for r in ret:
-            r["sub_media"] = character.fake_media_items(
-                r["charid"], r["userid"], d.get_sysname(r["username"]), r["settings"])
-    elif search.find == "journal":
-        media.populate_with_user_media(ret)
-
     if backid:
         back_count = d.engine.execute(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), params).scalar() - len(ret)
@@ -359,6 +350,22 @@ def select(userid, rating, limit,
         next_count = d.engine.execute(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), params).scalar() - len(ret)
         return ret, next_count, back_count
+
+
+def select(**kwargs):
+    search = kwargs['search']
+    results, next_count, back_count = _find_without_media(**kwargs)
+
+    if search.find == 'submit':
+        media.populate_with_submission_media(results)
+    elif search.find == 'char':
+        for r in results:
+            r['sub_media'] = character.fake_media_items(
+                r['charid'], r['userid'], d.get_sysname(r['username']), r['settings'])
+    elif search.find == 'journal':
+        media.populate_with_user_media(results)
+
+    return results, next_count, back_count
 
 
 # form

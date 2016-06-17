@@ -54,7 +54,7 @@ class search_(controller_base):
                 search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
 
                 query, next_count, back_count = search.select(
-                    self.user_id,
+                    userid=self.user_id,
                     rating=rating,
                     limit=63,
                     search=search_query,

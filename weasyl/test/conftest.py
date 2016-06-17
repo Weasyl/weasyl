@@ -18,7 +18,7 @@ configure_libweasyl(
     dbsession=define.sessionmaker,
     not_found_exception=web.notfound,
     base_file_path='testing',
-    staff_config_dict=read_staff_yaml._load_staff_dict(),
+    staff_config_dict=read_staff_yaml.load_staff_dict(),
     media_link_formatter_callback=media.format_media_link,
 )
 

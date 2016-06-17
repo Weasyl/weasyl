@@ -11,6 +11,7 @@ from libweasyl.test.common import datadir
 from libweasyl.test.common import media_link_formatter
 from libweasyl import cache
 
+
 engine = sa.create_engine(os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgres:///weasyl_test'))
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
 
@@ -31,15 +32,15 @@ def setup(request):
 def staticdir(tmpdir):
     tmpdir = tmpdir.join('libweasyl-staticdir')
     staff_dict = {
-        #[Fiz, Ikani]
+        # [Fiz, Ikani]
         'directors': [1014, 2061],
-        #[Weykent]
+        # [Weykent]
         'technical_staff': [5756],
-        #[Hendikins, Kihari]
+        # [Hendikins, Kihari]
         'admins': [23613, 3],
-        #[pinardilla]
+        # [pinardilla]
         'mods': [40212],
-        #[8BitFur, Charmander, Foximile, Kailys, Kauko]
+        # [8BitFur, Charmander, Foximile, Kailys, Kauko]
         'developers': [38623, 34165, 15224, 2475, 8627],
     }
     configure_libweasyl(

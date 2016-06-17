@@ -54,10 +54,10 @@ DEVELOPERS = set()
 
 def _init_staff(staff_config_dict):
     """
-    Loads staff from a yaml config file.
+    Loads staff from a dictionary object.
 
     Parameters:
-        staff_config_path: String path to a yaml file specifying staff.
+        staff_config_dict: Dictionary object containing staff levels and user ids.
     """
 
     DIRECTORS.update(staff_config_dict['directors'])

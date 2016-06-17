@@ -2,8 +2,8 @@
 Common function or class decorators.
 """
 
-# lovingly stolen from pyramid
 
+# lovingly stolen from pyramid
 class reify(object):
     """ Use as a class method decorator.  It operates almost exactly like the
     Python ``@property`` decorator, but it puts the result of the method it

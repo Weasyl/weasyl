@@ -336,7 +336,6 @@ class Comment(Base):
         return len(comment_map), ret
 
 
-
 class Folder(Base):
     __table__ = tables.folder
 

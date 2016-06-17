@@ -1,5 +1,4 @@
 import re
-import web
 
 from libweasyl.ratings import GENERAL, MODERATE, MATURE, EXPLICIT
 

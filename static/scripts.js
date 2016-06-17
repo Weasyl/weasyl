@@ -1668,4 +1668,22 @@
             }
         });
     })();
+
+    // Confirm removing friends
+    (function () {
+        var hasUnfriend = $('input[name="action"][value="unfriend"]')[0];
+        if (!hasUnfriend) {
+            return;
+        }
+
+        $('form[name="frienduser"]').on('submit', function (e) {
+            e.preventDefault();
+
+            var shouldUnfriend = confirm('Are you sure you wish to remove this friend?');
+
+            if (shouldUnfriend) {
+                this.submit();
+            }
+        });
+    })();
 })();

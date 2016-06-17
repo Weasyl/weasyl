@@ -377,14 +377,10 @@ def select_avatars(userids):
     if not userids:
         return {}
 
-    results = d.execute(
-        "SELECT userid, username, config FROM profile pr WHERE userid IN %s" % (d.sql_number_list(userids),))
-    results = [
-        {
-            "username": username,
-            "userid": userid,
-        }
-        for userid, username, config in results]
+    results = d.engine.execute(
+        'SELECT userid, username FROM profile WHERE userid = ANY (%(users)s)',
+        users=userids)
+    results = [dict(row) for row in results]
     media.populate_with_user_media(results)
     return {d['userid']: d for d in results}
 

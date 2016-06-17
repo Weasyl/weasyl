@@ -103,7 +103,7 @@ def test_search_blocked_tags(db, rating, block_rating):
 _page_limit = 6
 
 
-@mock.patch.object(search, 'count_limit', 10)
+@mock.patch.object(search, 'COUNT_LIMIT', 10)
 def test_search_pagination(db):
     owner = db_utils.create_user()
     submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
@@ -119,7 +119,7 @@ def test_search_pagination(db):
         cat=None, subcat=None, within='', backid=None, nextid=None)
 
     assert back_count == 0
-    assert next_count == search.count_limit
+    assert next_count == search.COUNT_LIMIT
     assert [item['submitid'] for item in result] == submissions[:-_page_limit-1:-1]
 
     result, next_count, back_count = search.select(
@@ -128,7 +128,7 @@ def test_search_pagination(db):
         cat=None, subcat=None, within='', backid=None, nextid=submissions[-_page_limit])
 
     assert back_count == _page_limit
-    assert next_count == search.count_limit
+    assert next_count == search.COUNT_LIMIT
     assert [item['submitid'] for item in result] == submissions[-_page_limit-1:-2*_page_limit-1:-1]
 
     result, next_count, back_count = search.select(
@@ -136,7 +136,7 @@ def test_search_pagination(db):
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
         cat=None, subcat=None, within='', backid=submissions[_page_limit - 1], nextid=None)
 
-    assert back_count == search.count_limit
+    assert back_count == search.COUNT_LIMIT
     assert next_count == _page_limit
     assert [item['submitid'] for item in result] == submissions[2*_page_limit-1:_page_limit-1:-1]
 

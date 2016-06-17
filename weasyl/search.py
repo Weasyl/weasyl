@@ -7,23 +7,23 @@ from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
 
 
-_query_find_modifiers = {
+_QUERY_FIND_MODIFIERS = {
     "#submission": "submit",
     "#character": "char",
     "#journal": "journal",
     "#user": "user",
 }
 
-_query_rating_modifiers = {
+_QUERY_RATING_MODIFIERS = {
     "#general": GENERAL.code,
     "#moderate": MODERATE.code,
     "#mature": MATURE.code,
     "#explicit": EXPLICIT.code,
 }
 
-_query_delimiter = re.compile(r"[\s,;]+")
+_QUERY_DELIMITER = re.compile(r"[\s,;]+")
 
-_table_information = {
+_TABLE_INFORMATION = {
     "submit": (10, "s", "submission", "submitid", "subtype"),
     # The subtype values for characters and journals are fake
     # and set to permit us to reuse the same sql query.
@@ -31,7 +31,7 @@ _table_information = {
     "journal": (30, "j", "journal", "journalid", 3999),
 }
 
-count_limit = 10000
+COUNT_LIMIT = 10000
 
 
 class Query:
@@ -49,13 +49,13 @@ class Query:
             if item:
                 s.add(item)
 
-        find_modifier = _query_find_modifiers.get(criterion)
+        find_modifier = _QUERY_FIND_MODIFIERS.get(criterion)
 
         if find_modifier:
             self.find = find_modifier
             return
 
-        rating_modifier = _query_rating_modifiers.get(criterion)
+        rating_modifier = _QUERY_RATING_MODIFIERS.get(criterion)
 
         if rating_modifier:
             self.ratings.add(rating_modifier)
@@ -96,7 +96,7 @@ class Query:
         """
         query = Query()
 
-        for criterion in _query_delimiter.split(query_string.strip()):
+        for criterion in _QUERY_DELIMITER.split(query_string.strip()):
             if criterion:
                 query.add_criterion(criterion)
 
@@ -138,7 +138,7 @@ def select_users(q):
 
 def _find_without_media(userid, rating, limit,
                         search, within, cat, subcat, backid, nextid):
-    type_code, type_letter, table, select, subtype = _table_information[search.find]
+    type_code, type_letter, table, select, subtype = _TABLE_INFORMATION[search.find]
 
     # Begin statement
     statement_with = ""
@@ -310,7 +310,7 @@ def _find_without_media(userid, rating, limit,
         "category": cat,
         "subcategory": subcat,
         "limit": limit,
-        "count_limit": count_limit,
+        "count_limit": COUNT_LIMIT,
         "backid": backid,
         "nextid": nextid,
         "required_include_count": len(search.required_includes),

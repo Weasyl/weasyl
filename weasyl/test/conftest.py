@@ -9,7 +9,7 @@ config._in_test = True  # noqa
 
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
-from weasyl import cache, define, macro, media, read_staff_yaml
+from weasyl import cache, define, media, read_staff_yaml
 cache.region.configure('dogpile.cache.memory')
 define.metric = lambda *a, **kw: None
 

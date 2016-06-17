@@ -31,7 +31,7 @@ Examples of unacceptable behavior by participants include:
   professional setting
 
 Sexual imagery, language, or examples related to site behavior (such as
-explicit visual submissions that exhibit a bug) are permitted so long as:
+explicit visual submissions that exhibit a bug) are permitted only if:
 
 * They are relevant to the topic of discussion and presented in a
   respectful manner

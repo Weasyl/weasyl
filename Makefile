@@ -108,6 +108,7 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
+	$(VE)/bin/pip install $(USE_WHEEL) pytest flake8
 	WEASYL_ROOT=$(shell pwd) $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell

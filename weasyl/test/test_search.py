@@ -120,7 +120,7 @@ def test_search_pagination(db):
 
     assert back_count == 0
     assert next_count == search.COUNT_LIMIT
-    assert [item['submitid'] for item in result] == submissions[:-_page_limit-1:-1]
+    assert [item['submitid'] for item in result] == submissions[:-_page_limit - 1:-1]
 
     result, next_count, back_count = search.select(
         search=search_query,
@@ -129,7 +129,7 @@ def test_search_pagination(db):
 
     assert back_count == _page_limit
     assert next_count == search.COUNT_LIMIT
-    assert [item['submitid'] for item in result] == submissions[-_page_limit-1:-2*_page_limit-1:-1]
+    assert [item['submitid'] for item in result] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
 
     result, next_count, back_count = search.select(
         search=search_query,
@@ -138,7 +138,7 @@ def test_search_pagination(db):
 
     assert back_count == search.COUNT_LIMIT
     assert next_count == _page_limit
-    assert [item['submitid'] for item in result] == submissions[2*_page_limit-1:_page_limit-1:-1]
+    assert [item['submitid'] for item in result] == submissions[2 * _page_limit - 1:_page_limit - 1:-1]
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [

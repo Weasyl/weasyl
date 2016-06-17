@@ -169,17 +169,6 @@ def sql_number_list(target):
     return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
 
 
-def sql_number_series(target):
-    """
-    Returns a list of numbers suitable for placement after the SQL VALUES
-    operator in a query statement, as in "(1, 2), (3, 4), (5, 6)".
-    """
-    if not target:
-        raise ValueError
-
-    return ", ".join(sql_number_list(i) for i in target)
-
-
 CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
 the_fake_request = FakePyramidRequest()
 

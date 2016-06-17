@@ -189,12 +189,11 @@ def _find_without_media(userid, rating, limit,
             statement_from.append(
                 "INNER JOIN watchuser ON (watchuser.userid, watchuser.otherid) = (%(userid)s, content.userid)")
 
-    # Search within rating
-    if userid and search.ratings:
-        statement_where.append("AND content.rating = ANY (%(ratings)s)")
+        # Search within rating
+        if search.ratings:
+            statement_where.append("AND content.rating = ANY (%(ratings)s)")
 
-    # Blocked tags and ignored users
-    if userid:
+        # Blocked tags and ignored users
         statement_where.append("""
             AND NOT EXISTS (
                 SELECT 0 FROM ignoreuser

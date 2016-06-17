@@ -331,23 +331,51 @@ def _find_without_media(userid, rating, limit,
     } for i in query]
 
     if backid:
+        # backid is the item after the last item (display-order-wise) on the
+        # current page; the query will select items from there backwards,
+        # including the current page. Subtract the number of items on the
+        # current page to account for this, and add the maximum number of items
+        # on a page to the count limit so it still comes out to the count limit
+        # after subtracting if the limit is reached.
         back_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
+            params).scalar() - len(ret)
     elif nextid:
-        back_count = (d.engine.execute(
+        # nextid is the item before the first item (display-order-wise) on the
+        # current page; the query will select items from there backwards, so
+        # the current page is not included and no subtraction or modification
+        # of the limit is necessary.
+        back_count = d.engine.execute(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", " LIMIT %(count_limit)s) _"),
-            params).scalar())
+            params).scalar()
     else:
+        # The first page is being displayed; there’s nothing to go back to.
         back_count = 0
 
     if backid:
-        next_count = (d.engine.execute(
+        # backid is the item after the last item (display-order-wise) on the
+        # current page; the query will select items from there forwards, so the
+        # current page is not included and no subtraction or modification of
+        # the limit is necessary.
+        next_count = d.engine.execute(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", " LIMIT %(count_limit)s) _"),
-            params).scalar())
+            params).scalar()
+
+        # The ORDER BY is reversed when a backid is specified in order to LIMIT
+        # to the nearest items with a larger backid rather than the smallest
+        # ones, so reverse the items back to display order here.
         return list(reversed(ret)), next_count, back_count
     else:
+        # This is either the first page or a page based on a nextid. In both
+        # cases, the query will include the items in the current page in the
+        # count, so subtract the number of items on the current page to give a
+        # count of items after this page, and add the maximum number of items
+        # on a page to the count limit so it still comes out to the count limit
+        # after subtracting if the limit is reached.
         next_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"), params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
+            params).scalar() - len(ret)
+
         return ret, next_count, back_count
 
 

@@ -1,7 +1,9 @@
 *.py[co]
+/build
 /temp
 /backup
 /log
+/node_modules
 /save
 /static/character
 /static/fonts

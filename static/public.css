@@ -1169,6 +1169,7 @@ a:hover .icon-arrowDown, button:hover .icon-arrowDown { background-position: -20
 .icon-report { background-position: 0 -240px; }
 a:hover .icon-report, button:hover .icon-report { background-position: -20px -240px; }
 .active .icon-report { background-position: -40px -240px; }
+.icon-follower { background-position: 0 -260px; }
 
 .icon-file { background-position: -40px 0; }
 .icon-lit, .file-input-feedback-populated .icon-file { background-position: -40px -20px; }

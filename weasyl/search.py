@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 import re
 
 from libweasyl.ratings import GENERAL, MODERATE, MATURE, EXPLICIT
@@ -6,29 +8,31 @@ from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
 
 
-_query_find_modifiers = {
+_QUERY_FIND_MODIFIERS = {
     "#submission": "submit",
     "#character": "char",
     "#journal": "journal",
     "#user": "user",
 }
 
-_query_rating_modifiers = {
+_QUERY_RATING_MODIFIERS = {
     "#general": GENERAL.code,
     "#moderate": MODERATE.code,
     "#mature": MATURE.code,
     "#explicit": EXPLICIT.code,
 }
 
-_query_delimiter = re.compile(r"[\s,;]+")
+_QUERY_DELIMITER = re.compile(r"[\s,;]+")
 
-_table_information = {
+_TABLE_INFORMATION = {
     "submit": (10, "s", "submission", "submitid", "subtype"),
     # The subtype values for characters and journals are fake
     # and set to permit us to reuse the same sql query.
     "char": (20, "f", "character", "charid", 3999),
     "journal": (30, "j", "journal", "journalid", 3999),
 }
+
+COUNT_LIMIT = 10000
 
 
 class Query:
@@ -46,13 +50,13 @@ class Query:
             if item:
                 s.add(item)
 
-        find_modifier = _query_find_modifiers.get(criterion)
+        find_modifier = _QUERY_FIND_MODIFIERS.get(criterion)
 
         if find_modifier:
             self.find = find_modifier
             return
 
-        rating_modifier = _query_rating_modifiers.get(criterion)
+        rating_modifier = _QUERY_RATING_MODIFIERS.get(criterion)
 
         if rating_modifier:
             self.ratings.add(rating_modifier)
@@ -93,7 +97,7 @@ class Query:
         """
         query = Query()
 
-        for criterion in _query_delimiter.split(query_string.strip()):
+        for criterion in _QUERY_DELIMITER.split(query_string.strip()):
             if criterion:
                 query.add_criterion(criterion)
 
@@ -133,11 +137,12 @@ def select_users(q):
     return ret
 
 
-def select(userid, rating, limit,
-           search, within, cat, subcat, backid, nextid):
-    type_code, type_letter, table, select, subtype = _table_information[search.find]
+def _find_without_media(userid, rating, limit,
+                        search, within, cat, subcat, backid, nextid):
+    type_code, type_letter, table, select, subtype = _TABLE_INFORMATION[search.find]
 
     # Begin statement
+    statement_with = ""
     statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]
     statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
     statement_group = []
@@ -185,22 +190,40 @@ def select(userid, rating, limit,
             statement_from.append(
                 "INNER JOIN watchuser ON (watchuser.userid, watchuser.otherid) = (%(userid)s, content.userid)")
 
-    # Search within rating
-    if userid and search.ratings:
-        statement_where.append("AND content.rating = ANY (%(ratings)s)")
+        # Search within rating
+        if search.ratings:
+            statement_where.append("AND content.rating = ANY (%(ratings)s)")
 
-    # Blocked tags and ignored users
-    if userid:
+        # Blocked tags and ignored users
         statement_where.append("""
             AND NOT EXISTS (
                 SELECT 0 FROM ignoreuser
                 WHERE userid = %(userid)s
                     AND otherid = content.userid)
-            AND NOT EXISTS (
-                SELECT 0 FROM searchmap{find}
-                WHERE targetid = content.{select}
-                    AND tagid IN (SELECT tagid FROM blocktag WHERE userid = %(userid)s AND rating <= content.rating))
         """)
+
+        if search.find == "submit":
+            statement_with = """
+                WITH
+                    bg AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 10),
+                    bm AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 20),
+                    ba AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 30),
+                    bp AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 40)
+            """
+
+            statement_where.append("""
+                AND NOT submission_tags.tags && (SELECT tags FROM bg)
+                AND (content.rating < 20 OR NOT submission_tags.tags && (SELECT tags FROM bm))
+                AND (content.rating < 30 OR NOT submission_tags.tags && (SELECT tags FROM ba))
+                AND (content.rating < 40 OR NOT submission_tags.tags && (SELECT tags FROM bp))
+            """)
+        else:
+            statement_where.append("""
+                AND NOT EXISTS (
+                    SELECT 0 FROM searchmap{find}
+                    WHERE targetid = content.{select}
+                        AND tagid IN (SELECT tagid FROM blocktag WHERE userid = %(userid)s AND rating <= content.rating))
+            """)
 
     if search.possible_includes:
         if search.find == "submit":
@@ -236,6 +259,7 @@ def select(userid, rating, limit,
 
     def make_statement(statement_select, statement_additional_where, statement_order):
         return " ".join([
+            statement_with,
             statement_select,
             " ".join(statement_from),
             " ".join(statement_where),
@@ -287,12 +311,13 @@ def select(userid, rating, limit,
         "category": cat,
         "subcategory": subcat,
         "limit": limit,
+        "count_limit": COUNT_LIMIT,
         "backid": backid,
         "nextid": nextid,
         "required_include_count": len(search.required_includes),
     }
 
-    query = d.engine.execute(statement, **params)
+    query = d.engine.execute(statement, params)
 
     ret = [{
         "contype": type_code,
@@ -306,34 +331,69 @@ def select(userid, rating, limit,
         "settings": i.settings,
     } for i in query]
 
-    if search.find == "submit":
-        media.populate_with_submission_media(ret)
-    elif search.find == "char":
-        for r in ret:
-            r["sub_media"] = character.fake_media_items(
-                r["charid"], r["userid"], d.get_sysname(r["username"]), r["settings"])
-    elif search.find == "journal":
-        media.populate_with_user_media(ret)
-
     if backid:
+        # backid is the item after the last item (display-order-wise) on the
+        # current page; the query will select items from there backwards,
+        # including the current page. Subtract the number of items on the
+        # current page to account for this, and add the maximum number of items
+        # on a page to the count limit so it still comes out to the count limit
+        # after subtracting if the limit is reached.
         back_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, ") _"), **params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
+            params).scalar() - len(ret)
     elif nextid:
-        back_count = (d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", ") _"),
-            **params).scalar())
+        # nextid is the item before the first item (display-order-wise) on the
+        # current page; the query will select items from there backwards, so
+        # the current page is not included and no subtraction or modification
+        # of the limit is necessary.
+        back_count = d.engine.execute(
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", " LIMIT %(count_limit)s) _"),
+            params).scalar()
     else:
+        # The first page is being displayed; there’s nothing to go back to.
         back_count = 0
 
     if backid:
-        next_count = (d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", ") _"),
-            **params).scalar())
+        # backid is the item after the last item (display-order-wise) on the
+        # current page; the query will select items from there forwards, so the
+        # current page is not included and no subtraction or modification of
+        # the limit is necessary.
+        next_count = d.engine.execute(
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", " LIMIT %(count_limit)s) _"),
+            params).scalar()
+
+        # The ORDER BY is reversed when a backid is specified in order to LIMIT
+        # to the nearest items with a larger backid rather than the smallest
+        # ones, so reverse the items back to display order here.
         return list(reversed(ret)), next_count, back_count
     else:
+        # This is either the first page or a page based on a nextid. In both
+        # cases, the query will include the items in the current page in the
+        # count, so subtract the number of items on the current page to give a
+        # count of items after this page, and add the maximum number of items
+        # on a page to the count limit so it still comes out to the count limit
+        # after subtracting if the limit is reached.
         next_count = d.engine.execute(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, ") _"), **params).scalar() - len(ret)
+            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
+            params).scalar() - len(ret)
+
         return ret, next_count, back_count
+
+
+def select(**kwargs):
+    search = kwargs['search']
+    results, next_count, back_count = _find_without_media(**kwargs)
+
+    if search.find == 'submit':
+        media.populate_with_submission_media(results)
+    elif search.find == 'char':
+        for r in results:
+            r['sub_media'] = character.fake_media_items(
+                r['charid'], r['userid'], d.get_sysname(r['username']), r['settings'])
+    elif search.find == 'journal':
+        media.populate_with_user_media(results)
+
+    return results, next_count, back_count
 
 
 # form

@@ -54,7 +54,7 @@ class search_(controller_base):
                 search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
 
                 query, next_count, back_count = search.select(
-                    self.user_id,
+                    userid=self.user_id,
                     rating=rating,
                     limit=63,
                     search=search_query,
@@ -75,6 +75,7 @@ class search_(controller_base):
                 back_count,
                 # Submission subcategories
                 macro.MACRO_SUBCAT_LIST,
+                search.count_limit,
             ]))
         elif form.find:
             query = search.browse(self.user_id, rating, 66, form)

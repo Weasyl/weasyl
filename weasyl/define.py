@@ -166,7 +166,7 @@ def sql_number_list(target):
     elif not isinstance(target, list):
         target = [target]
 
-    return "(%s)" % (", ".join([str(i) for i in target]))
+    return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
 
 
 def sql_number_series(target):

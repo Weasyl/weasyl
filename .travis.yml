@@ -21,6 +21,8 @@ before_install:
 
   - ./wzl setup
   - ./wzl build --all
+  - touch .coverage
+  - chmod a=rw .coverage
 
 install:
   - pip install codecov

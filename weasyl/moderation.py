@@ -719,27 +719,6 @@ def note_about(userid, target_user, title, message=None):
         ))
 
 
-def get_userid_from_loginname(login_name):
-    """Selects a userid by their login_name.
-
-    Args:
-        login_name (str): Login name to get ID for.
-
-    Returns:
-        An int.
-    """
-
-    db = d.connect()
-
-    user = d.meta.tables['login']
-
-    query = d.sa.select([
-        user.c.userid,
-    ]).where(user.c.login_name.op('~')(login_name))
-
-    return db.execute(query).scalar()
-
-
 def audit_log(username=None, staff=None, start_date=None, end_date=None, timezone=None):
     """Selects all the data needed to display the staff action audit log.
     All arguments are optional and used to refine data.
@@ -760,43 +739,45 @@ def audit_log(username=None, staff=None, start_date=None, end_date=None, timezon
 
     db = d.connect()
 
-    comment = d.meta.tables['comments']
-    user = d.meta.tables['login']
+    comments = d.meta.tables['comments']
+    moderator = d.meta.tables['login'].alias('m')
+    user = d.meta.tables['login'].alias('u')
 
-    query = d.sa.select([
-        comment.c.commentid,
-        comment.c.content,
-        comment.c.unixtime,
-        (d.sa.select([user.c.login_name]) \
-             .select_from(user) \
-             .where(comment.c.target_user == user.c.userid)).label('user_name'),
-        (d.sa.select([user.c.login_name]) \
-             .select_from(user) \
-             .where(comment.c.userid == user.c.userid)).label('mod_name'),
-    ]).where(comment.c.settings.op('~')('s')) \
-      .order_by(comment.c.commentid.desc())
+    query = (
+        sa
+            .select([
+                comments.c.commentid,
+                comments.c.content,
+                comments.c.unixtime,
+                moderator.c.login_name.label('mod_name'),
+                user.c.login_name.label('user_name')])
+            .select_from(
+                comments
+                    .join(moderator, comments.c.userid == moderator.c.userid)
+                    .join(user, comments.c.target_user == user.c.userid))
+            .where(comments.c.settings.op('~')('s'))
+            .order_by(comments.c.commentid.desc())
+    )
 
     if username:
-        userid = get_userid_from_loginname(username)
-        query = query.where(comment.c.target_user == userid)
+        query = query.where(user.c.login_name == username)
 
     if staff:
-        userid = get_userid_from_loginname(staff)
-        query = query.where(comment.c.userid == userid)
+        query = query.where(moderator.c.login_name == staff)
 
     if end_date:
         end_date = arrow.get(end_date)
         if timezone:
             end_date = end_date.replace(tzinfo=timezone)
 
-        query = query.where(comment.c.unixtime < end_date)
+        query = query.where(comments.c.unixtime < end_date)
 
     if start_date:
         start_date = arrow.get(start_date)
         if timezone:
             start_date = start_date.replace(tzinfo=timezone)
 
-        query = query.where(comment.c.unixtime > start_date)
+        query = query.where(comments.c.unixtime > start_date)
 
     if not end_date or not start_date:
         query = query.limit(100)

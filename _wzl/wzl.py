@@ -78,17 +78,17 @@ def setup():
 
 
 @wzl.command()
-@click.option('-d', '--detach', is_flag=True, help=(
-    "Don't run the server in the foreground."
+@click.option('-n', '--no-daemon', is_flag=True, help=(
+    "Don't run the server in the background."
 ))
-def run(detach):
+def run(no_daemon):
     """
     Start the app server.
 
     This requires all of the base images to have been built.
     """
     if is_wzl_dev():
-        detach_flag = '-d' if detach else '--abort-on-container-exit'
+        detach_flag = '--abort-on-container-exit' if no_daemon else '-d'
         forward([
             'docker-compose', 'up', detach_flag, '--remove-orphans',
         ])

@@ -21,6 +21,7 @@ exec docker run --rm -it \
      --name wzl-run \
      -e WZL=dev \
      -v "${h}:/weasyl-src" \
+     -v "${h}/build:/weasyl-app/build" \
      -v "${h}/config:/weasyl-app/config" \
      -v "${h}/static:/weasyl-app/static" \
      -v "${h}/wheelhouse:/wheelhouse" \

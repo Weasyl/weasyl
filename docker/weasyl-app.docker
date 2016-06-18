@@ -11,6 +11,7 @@ USER weasyl
 ADD wheelhouse /wheelhouse
 RUN pip install --no-index -f /wheelhouse weasyl libweasyl wzl
 
+VOLUME /weasyl-app/build
 VOLUME /weasyl-app/config
 VOLUME /weasyl-app/log
 VOLUME /weasyl-app/static/character

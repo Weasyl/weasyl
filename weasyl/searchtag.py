@@ -62,11 +62,10 @@ def select_list(map_table, targetids):
         return {}
 
     mt = map_table
-    st = d.meta.tables['searchtag']
     q = (
         d.sa
-        .select([mt.c.targetid, d.sa.func.array_agg(st.c.title)])
-        .select_from(mt.join(st, mt.c.tagid == st.c.tagid))
+        .select([mt.c.targetid, d.sa.func.array_agg(mt.c.tagid)])
+        .select_from(mt)
         .where(mt.c.targetid.in_(targetids))
         .group_by(mt.c.targetid))
 

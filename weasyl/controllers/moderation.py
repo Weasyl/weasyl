@@ -256,6 +256,8 @@ class modcontrol_auditlog_(controller_base):
             username=None, staff=None, start_date=None, end_date=None)
 
         return define.webpage(self.user_id, "modcontrol/auditlog.html", [
-            moderation.audit_log(**form),
+            moderation.audit_log(
+                username=form.username, staff=form.staff,
+                start_date=form.start_date, end_date=form.end_date),
             form
         ])

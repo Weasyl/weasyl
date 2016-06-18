@@ -280,9 +280,15 @@ DEPS = {
 @click.option('-D', '--no-deps', is_flag=True, help=(
     "Don't build the targets that the provided targets depend on."
 ))
+@click.option('-n', '--dry-run', is_flag=True, help=(
+    "Show what would be done.."
+))
+@click.option('--all', 'all_targets', is_flag=True, help=(
+    "Build all targets."
+))
 @click.argument('target', nargs=-1, type=PARTS_CHOICE)
 @ensure_wzl_dev
-def build(no_deps, target):
+def build(no_deps, dry_run, all_targets, target):
     """
     Build docker images.
 
@@ -309,7 +315,9 @@ def build(no_deps, target):
     [2]: Not an image, but builds the static assets for the site in place.
     """
 
-    if target:
+    if all_targets:
+        target = set(PARTS)
+    elif target:
         target = set(target)
     else:
         target = {'weasyl-app-dev'}
@@ -326,10 +334,15 @@ def build(no_deps, target):
         k: {d for d in DEPS[k] if d in all_targets} for k in all_targets})
     for target in order:
         p = PARTS[target]
-        cmd(['docker-compose', '-f', p['compose-file']] +
+        command = (
+            ['docker-compose', '-f', p['compose-file']] +
             p['command'] +
             [p.get('service', target)] +
             p.get('args', []))
+        if dry_run:
+            click.echo('--> {}'.format(command))
+        else:
+            cmd(command)
 
 
 @wzl.command()

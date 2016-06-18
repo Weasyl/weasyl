@@ -19,7 +19,7 @@ before_install:
   - python libweasyl/setup.py --version
   - python _wzl/setup.py --version
 
-  - ./wzl build
+  - ./wzl build --all
 
 install:
   - pip install codecov

@@ -361,7 +361,7 @@ The *content* is the journal's content.
 Characters
 ----------
 
-A basic submission object resembles::
+A basic character object resembles::
 
    {
       "age": "young",

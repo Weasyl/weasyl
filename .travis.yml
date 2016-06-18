@@ -18,13 +18,13 @@ before_install:
   - docker-compose version
   - python setup.py --version
   - python libweasyl/setup.py --version
+  - python _wzl/setup.py --version
+  - pip install codecov
 
-  - docker-compose -f docker-compose-build.yml build weasyl-base
-  - docker-compose -f docker-compose-build.yml build weasyl-build
-  - docker-compose -f docker-compose-build.yml run --rm weasyl-build-dev
-  - docker-compose -f docker-compose-build.yml build weasyl-app
-  - docker-compose build
+  - ./wzl build
 
 script:
-  - docker-compose run --rm --entrypoint py.test weasyl-app-dev /weasyl-src/libweasyl/libweasyl
-  - docker-compose run --rm --entrypoint py.test weasyl-app-dev /weasyl-src/weasyl
+  - ./wzl test
+
+after_success:
+  - codecov

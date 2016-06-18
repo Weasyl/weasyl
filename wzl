@@ -5,19 +5,24 @@ if [ ! ".stamp-wzl" -nt "Dockerfile" ]; then
     touch .stamp-wzl
 fi
 
+sock="/var/run/docker.sock"
 extra_args=""
 if [ -n "${DOCKER_CERT_PATH}" ]; then
-    extra_args="-v ${DOCKER_CERT_PATH}:/root/.docker"
+    extra_args="-v ${DOCKER_CERT_PATH}:/root/.docker -e DOCKER_TLS_VERIFY=1 ${extra_args}"
+fi
+if [ -n "${DOCKER_HOST}" ]; then
+    extra_args="-e DOCKER_HOST=${DOCKER_HOST} ${extra_args}"
+elif [ -S "${sock}" ]; then
+    extra_args="-v ${sock}:${sock} ${extra_args}"
 fi
 
+h=$(pwd)
 exec docker run --rm -it \
      --name wzl-run \
-     -e DOCKER_HOST="${DOCKER_HOST}" \
-     -e DOCKER_TLS_VERIFY="${DOCKER_TLS_VERIFY}" \
      -e WZL=dev \
-     -v "$(pwd):/weasyl-src" \
-     -v "$(pwd)/config:/weasyl-app/config" \
-     -v "$(pwd)/static:/weasyl-app/static" \
-     -v "$(pwd)/wheelhouse:/wheelhouse" \
+     -v "${h}:/weasyl-src" \
+     -v "${h}/config:/weasyl-app/config" \
+     -v "${h}/static:/weasyl-app/static" \
+     -v "${h}/wheelhouse:/wheelhouse" \
      ${extra_args} \
      wzl "$@"

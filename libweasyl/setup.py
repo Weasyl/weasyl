@@ -39,6 +39,7 @@ setup(
             'coverage',
             'flake8',
             'pytest',
+            'pytest-cov',
             'sphinx',
             'sphinxcontrib-napoleon',
             'tox',

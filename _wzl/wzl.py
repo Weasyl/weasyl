@@ -1,5 +1,6 @@
 import functools
 import os
+import shutil
 import subprocess
 
 import click
@@ -18,6 +19,17 @@ def ensure_wzl_dev(func):
             raise click.ClickException(
                 "this command can only be run in a development container")
         return func(*a, **kw)
+    return wrapper
+
+
+def forward_from_wzl_dev(func):
+    @functools.wraps(func)
+    def wrapper(args):
+        if is_wzl_dev():
+            forward([
+                'docker-compose', 'run', 'weasyl-app-dev',
+                func.__name__, '--'] + list(args))
+        return func(args)
     return wrapper
 
 
@@ -62,6 +74,27 @@ def run():
     ignore_unknown_options=True,
 ))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
+@forward_from_wzl_dev
+def test(args):
+    """
+    Run the tests.
+    """
+    args = list(args)
+    cmd([
+        'py.test', '--cov=/weasyl-src/libweasyl/libweasyl',
+        '/weasyl-src/libweasyl/libweasyl',
+    ] + args)
+    cmd([
+        'py.test', '--cov=/weasyl-src/weasyl', '--cov-append',
+        '/weasyl-src/weasyl',
+    ] + args)
+    shutil.copy('.coverage', '/weasyl-src')
+
+
+@wzl.command(add_help_option=False, context_settings=dict(
+    ignore_unknown_options=True,
+))
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @ensure_wzl_dev
 def compose(args):
     """Run a docker-compose command."""
@@ -72,12 +105,10 @@ def compose(args):
     ignore_unknown_options=True,
 ))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
+@forward_from_wzl_dev
 def alembic(args):
     """Run an alembic command."""
-    if is_wzl_dev():
-        forward(['docker-compose', 'run', 'weasyl-app-dev', 'alembic', '--'] + list(args))
-    else:
-        forward(['alembic', '-c', '/weasyl-app/config/alembic.ini'] + list(args))
+    forward(['alembic', '-c', '/weasyl-app/config/alembic.ini'] + list(args))
 
 
 @wzl.command('upgrade-db')

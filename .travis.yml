@@ -4,6 +4,10 @@ sudo: required
 services:
   - docker
 
+cache:
+  directories:
+    - $TRAVIS_BUILD_DIR/wheelhouse
+
 env:
   DOCKER_VERSION: 1.10.2-0~trusty
 

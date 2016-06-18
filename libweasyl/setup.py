@@ -49,7 +49,7 @@ setup(
     setup_requires=['vcversioner'],
     vcversioner={
         'version_file': os.path.join(here, 'version.txt'),
-        'version_module_paths': ['libweasyl/_version.py'],
+        'version_module_paths': [os.path.join(here, 'libweasyl', '_version.py')],
         # The git repo root is one directory above this setup.py.
         'root': os.path.dirname(here),
     },

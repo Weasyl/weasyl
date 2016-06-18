@@ -179,7 +179,7 @@ def test(args):
         'py.test', '--cov=/weasyl-src/weasyl', '--cov-append',
         '/weasyl-src/weasyl',
     ] + args)
-    shutil.copyfile('.coverage', '/weasyl-src')
+    shutil.copyfile('.coverage', '/weasyl-src/.coverage')
 
 
 @wzl.command(add_help_option=False, context_settings=dict(

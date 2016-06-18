@@ -719,52 +719,88 @@ def note_about(userid, target_user, title, message=None):
         ))
 
 
-def audit_log(username=None, staff=None, start_date=None, end_date=None):
-    sql = """
-        SELECT
-            c.commentid,
-            c.content,
-            c.unixtime,
-            u.login_name user_name,
-            m.login_name mod_name
-        FROM comments c
-            INNER JOIN login m ON c.userid = m.userid
-            INNER JOIN login u ON c.target_user = u.userid
-        WHERE c.settings ~ 's'
+def get_userid_from_loginname(login_name):
+    """Selects a userid by their login_name.
+
+    Args:
+        login_name (str): Login name to get ID for.
+
+    Returns:
+        An int.
     """
 
-    params = {}
+    db = d.connect()
+
+    user = d.meta.tables['login']
+
+    query = d.sa.select([
+        user.c.userid,
+    ]).where(user.c.login_name.op('~')(login_name))
+
+    return db.execute(query).scalar()
+
+
+def audit_log(username=None, staff=None, start_date=None, end_date=None):
+    """Selects all the data needed to display the staff action audit log.
+    All arguments are optional and used to refine data.
+    Without a start and end date it is limited to 100 items.
+
+    Args:
+        username (str): Login name to filter by actions done to. Defaults to None.
+        staff (str): Login name to filter by actions done by. Defaults to None.
+        start_date (str): Show events after this date.
+            Accepts any string that arrow.get can parse. Defaults to None.
+        end_date (str): Show events before this date.
+            Accepts any string that arrow.get can parse. Defaults to None.
+
+    Returns:
+        A list of dicts with event data. Content is Markdown formatted.
+    """
+
+    db = d.connect()
+
+    comment = d.meta.tables['comments']
+    user = d.meta.tables['login']
+
+    query = d.sa.select([
+        comment.c.commentid,
+        comment.c.content,
+        comment.c.unixtime,
+        (d.sa.select([user.c.login_name]) \
+             .select_from(user) \
+             .where(comment.c.target_user == user.c.userid)).label('user_name'),
+        (d.sa.select([user.c.login_name]) \
+             .select_from(user) \
+             .where(comment.c.userid == user.c.userid)).label('mod_name'),
+    ]).where(comment.c.settings.op('~')('s')) \
+      .order_by(comment.c.commentid.desc())
 
     if username:
-        sql += ' AND u.login_name ~ %(user)s'
-        params['user'] = username
+        userid = get_userid_from_loginname(username)
+        query = query.where(comment.c.target_user == userid)
 
     if staff:
-        sql += ' AND m.login_name ~ %(mod)s'
-        params['mod'] = staff
+        userid = get_userid_from_loginname(staff)
+        query = query.where(comment.c.userid == userid)
 
     if end_date:
-        sql += ' AND c.unixtime < %(end)s'
-        params['end'] = arrow.get(end_date).timestamp
+        query = query.where(comment.c.unixtime < arrow.get(end_date))
 
     if start_date:
-        sql += ' AND c.unixtime > %(start)s'
-        params['start'] = arrow.get(start_date).timestamp
+        query = query.where(comment.c.unixtime > arrow.get(start_date))
 
     if not end_date or not start_date:
-        sql += ' LIMIT 100'
-
-    query = d.engine.execute(sql, **params).fetchall()
+        query = query.limit(100)
 
     events = []
 
-    for event in query:
+    for event in db.execute(query).fetchall():
         events.append({
-            'commentid': event[0],
-            'content': text.markdown(event[1]),
-            'unixtime': event[2],
-            'user_name': event[3],
-            'mod_name': event[4],
+            'commentid': event.commentid,
+            'content': text.markdown(event.content),
+            'unixtime': event.unixtime,
+            'user_name': event.user_name,
+            'mod_name': event.mod_name,
         })
 
     return events

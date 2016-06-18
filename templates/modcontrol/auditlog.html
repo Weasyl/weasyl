@@ -18,7 +18,7 @@ $:{RENDER("common/stage_title.html", ["Audit Log", "Moderator Control Panel", "/
             <a href="/~$event['user_name']">$event['user_name']</a> &middot; <a href="/modcontrol/auditlog?username=$event['user_name']">All</a>
           </td>
           <td>
-            <a href="/~$event['user_name']">$event['mod_name']</a> &middot; <a href="/modcontrol/auditlog?staff=$event['user_name']">All</a>
+            <a href="/~$event['mod_name']">$event['mod_name']</a> &middot; <a href="/modcontrol/auditlog?staff=$event['mod_name']">All</a>
           </td>
           <td>$:event['content']</td>
           <td>${DATE(event['unixtime'])} at ${TIME(event['unixtime'])}</td>

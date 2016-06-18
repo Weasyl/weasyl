@@ -2,6 +2,7 @@ import functools
 import os
 import shutil
 import subprocess
+import urlparse
 
 import click
 import pkg_resources
@@ -53,21 +54,46 @@ def wzl():
 
 
 @wzl.command()
-def run():
+@click.option('-d', '--detach', is_flag=True, help=(
+    "Don't run the server in the foreground."
+))
+def run(detach):
     """
     Start the app server.
 
     This requires all of the base images to have been built.
     """
     if is_wzl_dev():
+        detach_flag = '-d' if detach else '--abort-on-container-exit'
         forward([
-            'docker-compose', 'up', '--abort-on-container-exit', '--remove-orphans',
+            'docker-compose', 'up', detach_flag, '--remove-orphans',
         ])
     else:
         forward([
             'twistd', '--pidfile=', '-n',
             '-y', pkg_resources.resource_filename('weasyl', 'weasyl.tac'),
         ])
+
+
+@wzl.command()
+@ensure_wzl_dev
+def url():
+    """
+    Get the URL for the running weasyl instance.
+
+    This will be nginx's port, but that will reverse-proxy to all the right
+    places.
+    """
+    nginx = subprocess.check_output(['docker-compose', 'port', 'nginx', '80'])
+    ip, _, port = nginx.strip().partition(':')
+    if ip == '0.0.0.0':
+        host = os.environ.get('DOCKER_HOST')
+        if host is None:
+            ip = '127.0.0.1'
+        else:
+            parsed = urlparse.urlparse(host)
+            ip, _, _ = parsed.netloc.partition(':')
+    click.echo('http://{}:{}'.format(ip, port))
 
 
 @wzl.command(add_help_option=False, context_settings=dict(
@@ -99,6 +125,29 @@ def test(args):
 def compose(args):
     """Run a docker-compose command."""
     forward(['docker-compose'] + list(args))
+
+
+@wzl.command()
+@click.pass_context
+def logtail(ctx):
+    """
+    Tail service logs.
+
+    This is the same as `compose logs --tail 10 -f`.
+    """
+    ctx.invoke(compose, args=('logs', '--tail', '10', '-f'))
+
+
+@wzl.command()
+@click.argument('service')
+@click.pass_context
+def attach(ctx, service):
+    """
+    Attach to a running service.
+
+    This is the same as `compose exec {service} /bin/bash`.
+    """
+    ctx.invoke(compose, args=('exec', service, '/bin/bash'))
 
 
 @wzl.command(add_help_option=False, context_settings=dict(

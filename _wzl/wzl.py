@@ -57,6 +57,27 @@ def wzl():
 
 
 @wzl.command()
+@ensure_wzl_dev
+def setup():
+    """
+    Do initial required setup.
+
+    Currently, this means:
+
+    \b
+     - Copy example config files.
+    """
+    config_dir = 'config'
+    config_files = set(os.listdir(config_dir))
+    for f in config_files:
+        prefix, sep, suffix = f.rpartition('.example')
+        if sep and not suffix and prefix not in config_files:
+            click.echo('{} => {}'.format(f, prefix))
+            shutil.copy(
+                os.path.join(config_dir, f), os.path.join(config_dir, prefix))
+
+
+@wzl.command()
 @click.option('-d', '--detach', is_flag=True, help=(
     "Don't run the server in the foreground."
 ))

@@ -1,4 +1,4 @@
-$def with ( log, form={} )
+$def with (log, form={})
 $:{RENDER("common/stage_title.html", ["Audit Log", "Moderator Control Panel", "/modcontrol"])}
 
 <div class="content audit-log">
@@ -26,8 +26,8 @@ $:{RENDER("common/stage_title.html", ["Audit Log", "Moderator Control Panel", "/
     </tbody>
   </table>
 
-  <div class="form skinny clear">
-    <form method="GET" action="/modcontrol/auditlog" class="clear">
+  <div class="form skinny">
+    <form method="GET" action="/modcontrol/auditlog">
       <label for="username">Username</label>
       <input type="text" name="username" class="input" id="username" value="$form['username']">
 
@@ -40,7 +40,7 @@ $:{RENDER("common/stage_title.html", ["Audit Log", "Moderator Control Panel", "/
       <label for="end_date">End date</label>
       <input type="datetime" name="end_date" class="input" id="end_date" value="$form['end_date']">
 
-      <button type="submit" class="button positive">Filter</button>
+      <button class="button positive">Filter</button>
     </form>
   </div>
 </div>

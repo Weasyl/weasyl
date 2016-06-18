@@ -3947,6 +3947,34 @@ img + #detail-art-text {
     }
 }
 
+.modcontrol {
+    padding-top: 2em;
+
+    .links {
+        max-width: 30em;
+        margin: 0 auto;
+    }
+
+    ul {
+        list-style-type: none;
+
+        padding: 0;
+        margin: 0;
+    }
+
+    li {
+        font-size: 1.3em;
+    }
+
+    .space-bottom {
+        margin-bottom: 1em;
+    }
+
+    .space-top {
+        margin-top: 5px;
+    }
+}
+
 /* h4x */
 .content-by-user .thumb, .content-by-user .journal-thumb, .content-by-user .title, .content-by-user .rating, .content-by-user .time, .content-by-user .visibility {
     position: relative;

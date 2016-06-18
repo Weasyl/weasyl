@@ -1,33 +1,28 @@
 $:{RENDER("common/stage_title.html", ["Moderator Control Panel"])}
 
-<div id="modcontrol_content" class="content" style="padding-top:2em;">
+<div id="modcontrol_content" class="content modcontrol">
+  <ul class="links">
+    <li><a href="/modcontrol/auditlog">Audit Log</a></li>
+    <li><a href="/modcontrol/finduser">Search Users</a></li>
+    <li><a href="/modcontrol/suspenduser">User Suspensions</a></li>
+    <li><a href="/modcontrol/reports">Reported content</a></li>
+  </ul>
+
   <div class="form skinny">
-    <p style="font-size:1.3em"><a href="/modcontrol/auditlog">Audit Log</a></p>
-    <br />
-
-    <p style="font-size:1.3em;"><a href="/modcontrol/finduser">Search Users</a></p>
-    <br />
-
-    <p style="font-size:1.3em;"><a href="/modcontrol/suspenduser">User Suspensions</a></p>
-    <br />
-
-    <p style="font-size:1.3em;"><a href="/modcontrol/reports">Reported content</a></p>
-    <br />
-
     <form action="/modcontrol/contentbyuser">
-      <input type="text" name="name" class="input" style="margin-bottom: 1em" placeholder="Username" />
+      <input type="text" name="name" class="input space-bottom" placeholder="Username" />
       $for feature in ['submissions', 'characters', 'journals']:
         <label class="input-checkbox">
           <input type="checkbox" name="features" value="${feature[0]}" checked>
           Select ${feature}
         </label>
-      <button type="submit" class="button" style="margin-top:5px;">Get Items by User</button>
+      <button class="button space-top">Get Items by User</button>
     </form>
     <br />
 
     <form action="/modcontrol/manageuser">
       <input type="text" name="name" class="input" /><br />
-      <button type="submit" class="button" style="margin-top:5px;">Manage User</button>
+      <button class="button space-top">Manage User</button>
     </form>
     <br />
   </div>

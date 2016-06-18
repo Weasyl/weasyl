@@ -740,7 +740,7 @@ def get_userid_from_loginname(login_name):
     return db.execute(query).scalar()
 
 
-def audit_log(username=None, staff=None, start_date=None, end_date=None):
+def audit_log(username=None, staff=None, start_date=None, end_date=None, timezone=None):
     """Selects all the data needed to display the staff action audit log.
     All arguments are optional and used to refine data.
     Without a start and end date it is limited to 100 items.
@@ -752,6 +752,7 @@ def audit_log(username=None, staff=None, start_date=None, end_date=None):
             Accepts any string that arrow.get can parse. Defaults to None.
         end_date (str): Show events before this date.
             Accepts any string that arrow.get can parse. Defaults to None.
+        timezone (str): Timezone used to parse provided dates.
 
     Returns:
         A list of dicts with event data. Content is Markdown formatted.
@@ -784,10 +785,18 @@ def audit_log(username=None, staff=None, start_date=None, end_date=None):
         query = query.where(comment.c.userid == userid)
 
     if end_date:
-        query = query.where(comment.c.unixtime < arrow.get(end_date))
+        end_date = arrow.get(end_date)
+        if timezone:
+            end_date = end_date.replace(tzinfo=timezone)
+
+        query = query.where(comment.c.unixtime < end_date)
 
     if start_date:
-        query = query.where(comment.c.unixtime > arrow.get(start_date))
+        start_date = arrow.get(start_date)
+        if timezone:
+            start_date = start_date.replace(tzinfo=timezone)
+
+        query = query.where(comment.c.unixtime > start_date)
 
     if not end_date or not start_date:
         query = query.limit(100)

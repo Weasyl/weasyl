@@ -258,6 +258,7 @@ class modcontrol_auditlog_(controller_base):
         return define.webpage(self.user_id, "modcontrol/auditlog.html", [
             moderation.audit_log(
                 username=form.username, staff=form.staff,
-                start_date=form.start_date, end_date=form.end_date),
+                start_date=form.start_date, end_date=form.end_date,
+                timezone=web.ctx.weasyl_session.timezone.timezone),
             form
         ])

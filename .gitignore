@@ -23,6 +23,7 @@ wheelhouse
 htmlcov*
 .tox
 .cache
+.stamp-*
 twistd.pid
 version.txt
 _version.py

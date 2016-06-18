@@ -18,12 +18,11 @@ services:
 
     command: run
     volumes:
-      - .:/weasyl-src
-      - ./config:/weasyl-app/config
-      - ./static:/weasyl-app/static
       - ws_character:/weasyl-app/static/character
       - ws_journal:/weasyl-app/static/journal
       - ws_media:/weasyl-app/static/media
+    volumes_from:
+      - container:wzl-run:rw
     depends_on:
       - cache
       - db
@@ -35,10 +34,11 @@ services:
     image: nginx-weasyl-dev
 
     volumes:
-      - ./static:/weasyl-app/static
       - ws_character:/weasyl-app/static/character
       - ws_journal:/weasyl-app/static/journal
       - ws_media:/weasyl-app/static/media
+    volumes_from:
+      - container:wzl-run:rw
     depends_on:
       - weasyl-app-dev
     ports:

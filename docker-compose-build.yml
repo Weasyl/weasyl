@@ -12,14 +12,8 @@ services:
       context: ./docker
       dockerfile: weasyl-build.docker
     image: weasyl-build
-    volumes:
-      - ".:/weasyl-src"
-      - "./wheelhouse:/wheelhouse"
-
-  weasyl-build-dev:
-    extends:
-      service: weasyl-build
-    entrypoint: ["pip", "wheel", "/weasyl-src", "/weasyl-src/libweasyl[development]"]
+    volumes_from:
+      - container:wzl-run:rw
 
   weasyl-app:
     build:

@@ -9,7 +9,7 @@ RUN apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1
 USER weasyl
 
 ADD wheelhouse /wheelhouse
-RUN pip install --no-index -f /wheelhouse weasyl libweasyl
+RUN pip install --no-index -f /wheelhouse weasyl libweasyl wzl
 
 VOLUME /weasyl-app/config
 VOLUME /weasyl-app/log

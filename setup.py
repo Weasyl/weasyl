@@ -32,7 +32,4 @@ setup(
         'version_module_paths': ['weasyl/_version.py'],
         'root': here,
     },
-    entry_points={'console_scripts': [
-        'wzl = weasyl.wzl:wzl',
-    ]},
 )

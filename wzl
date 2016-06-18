@@ -1,0 +1,23 @@
+#!/bin/sh -eu
+
+if [ ! ".stamp-wzl" -nt "Dockerfile" ]; then
+    docker build -t wzl .
+    touch .stamp-wzl
+fi
+
+extra_args=""
+if [ -n "${DOCKER_CERT_PATH}" ]; then
+    extra_args="-v ${DOCKER_CERT_PATH}:/root/.docker"
+fi
+
+exec docker run --rm -it \
+     --name wzl-run \
+     -e DOCKER_HOST="${DOCKER_HOST}" \
+     -e DOCKER_TLS_VERIFY="${DOCKER_TLS_VERIFY}" \
+     -e WZL=dev \
+     -v "$(pwd):/weasyl-src" \
+     -v "$(pwd)/config:/weasyl-app/config" \
+     -v "$(pwd)/static:/weasyl-app/static" \
+     -v "$(pwd)/wheelhouse:/wheelhouse" \
+     ${extra_args} \
+     wzl "$@"

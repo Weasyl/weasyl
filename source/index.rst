@@ -69,6 +69,34 @@ Basic endpoints
 
    The result will be a JSON :ref:`submission object <submissions>`.
 
+.. http:get:: /api/journals/(journalid)/view
+
+   View a particular journal by its ``journalid``.
+
+   :query anyway: If omitted, the current user's tag filters may cause an error
+      to be returned instead of a journal object. If specified as any non-empty
+      string, tag filters will be ignored.
+
+   :query increment_views: If omitted, the view count will not be incremented
+      for the specific journal. If specified as any non-empty string while
+      :ref:`authenticated <authentication>`, the view count may be increased.
+
+   The result will be a JSON :ref:`journal object <journals>`.
+
+.. http:get:: /api/characters/(charid)/view
+
+   View a particular journal by its ``charid``.
+
+   :query anyway: If omitted, the current user's tag filters may cause an error
+      to be returned instead of a character object. If specified as any non-empty
+      string, tag filters will be ignored.
+
+   :query increment_views: If omitted, the view count will not be incremented
+      for the specific character. If specified as any non-empty string while
+      :ref:`authenticated <authentication>`, the view count may be increased.
+
+   The result will be a JSON :ref:`character object <characters>`.
+
 
 .. http:get:: /api/users/(login_name)/view
 
@@ -193,76 +221,202 @@ OAuth2 endpoints
 Submissions
 -----------
 
-   A basic submission object resembles::
+A basic submission object resembles::
 
-     {
-       "media": {},
-       "owner": "Caffeinated-Owl",
-       "owner_login": "caffeinatedowl",
-       "posted_at": "2014-02-12T07:33:17Z"
-       "rating": "general",
-       "submitid": 466821,
-       "subtype": "visual",
-       "tags": [
-         "hunter",
-         "snake",
-         "pi"
+  {
+      "media": {},
+      "owner": "Fiz",
+      "owner_login": "fiz",
+      "posted_at": "2012-04-20T00:38:04+00:00Z",
+      "rating": "general",
+      "submitid": 2031,
+      "subtype": "visual",
+      "tags": [
+           "hunter",
+           "snake",
+           "pi"
        ],
-       "title": "Tiny Little Pi",
-       "type": "submission",
-     }
+      "title": "A Wesley!",
+      "type": "submission"
+  }
 
-   The *type* key will be one of ``"submission"`` or ``"character"``.
+The *type* key will be ``"submission"``.
 
-   The *subtype* key for ``"submission"`` types will be one of ``"visual"``,
-   ``"literary"``, or ``"multimedia"``.
+The *subtype* key for ``"submission"`` types will be one of ``"visual"``,
+``"literary"``, or ``"multimedia"``.
 
-   The *rating* key will be one of ``"general"``, ``"moderate"``, ``"mature"``,
-   or ``"explicit"``.
+The *rating* key will be one of ``"general"``, ``"moderate"``, ``"mature"``,
+or ``"explicit"``.
 
-   The *media* key is the submission's :ref:`media <media>`.
+The *media* key is the submission's :ref:`media <media>`.
 
-   Slightly different keys are returned for the
-   :http:get:`/api/submissions/(submitid)/view` endpoint::
+Slightly different keys are returned for the
+:http:get:`/api/submissions/(submitid)/view` endpoint::
 
-     {
-         "comments": 0,
-         "description": "Itty bitty little snake hunter",
-         "embedlink": null,
-         "favorited": false,
-         "favorites": 3,
-         "folder_name": null,
-         "folderid": null,
-         "friends_only": false,
-         "owner": "Caffeinated-Owl",
-         "owner_login": "caffeinatedowl",
-         "owner_media": {},
-         "posted_at": "2014-02-12T07:33:17Z",
-         "rating": "general",
-         "media": {},
-         "submitid": 466821,
-         "subtype": "visual",
-         "tags": [
-             "hunter",
-             "pi",
-             "snake"
-         ],
-         "title": "Tiny Little Pi",
-         "type": "submission",
-         "views": 6
-     }
+  {
+      "comments": 0,
+      "description": "<p>(flex)</p>",
+      "embedlink": null,
+      "favorited": false,
+      "favorites": 0,
+      "folder_name": "Wesley Stuff",
+      "folderid": 2081,
+      "friends_only": false,
+      "link": "https://www.weasyl.com/submission/2031/a-wesley",
+      "media": {
+         "submission": [
+            {
+               "links": {
+                  "cover": [
+                     {
+                        "mediaid": 1009285,
+                        "url": "https://www.weasyl.com/static/media/41/eb/c1/41ebc1c2940be928532785dfbf35c37622664d2fbb8114c3b063df969562fc51.png"
+                     }
+                  ]
+               },
+               "mediaid": 1009285,
+               "url": "https://www.weasyl.com/~fiz/submissions/2031/41ebc1c2940be928532785dfbf35c37622664d2fbb8114c3b063df969562fc51/fiz-a-wesley.png"
+            }
+         ]
+      },
+      "owner": "Fiz",
+      "owner_login": "fiz",
+      "owner_media": {
+         "avatar": [
+            {
+               "mediaid": 2610777,
+               "url": "https://www.weasyl.com/static/media/8f/38/0f/8f380fc9acb762d7122cb396bb40789ec17bf898bbe832a761d6cc4b497d6e6c.png"
+            }
+         ]
+      },
+      "posted_at": "2012-04-20T00:38:04+00:00Z",
+      "rating": "general",
+      "submitid": 2031,
+      "subtype": "visual",
+      "tags": [
+         "anthro"
+      ],
+      "title": "A Wesley!",
+      "type": "submission",
+      "views": 294
+  }
 
-   The *media* key is the :ref:`media <media>` for the submission itself,
-   while the *owner_media* key is the :ref:`media <media>` for the owner of the
-   submission.
+The *media* key is the :ref:`media <media>` for the submission itself,
+while the *owner_media* key is the :ref:`media <media>` for the owner of the
+submission.
 
-   The *embedlink* key will be ``null`` for ``"visual"`` type submissions and
-   potentially a URL for other submission types.
+The *embedlink* key will be ``null`` for ``"visual"`` type submissions and
+potentially a URL for other submission types.
 
-   The *description* key is the HTML-rendered description of the submission.
+The *description* key is the HTML-rendered description of the submission.
 
-   The *favorited* key indicates whether or not the current user has favorited
-   the submission.
+The *favorited* key indicates whether or not the current user has favorited
+the submission.
+
+
+.. _journals:
+
+Journals
+--------
+
+A basic journal object resembles::
+
+   {
+       "comments": 3,
+       "content": "<p>Man, I can't believe this site's been in development for a whole year! I'm so excited that everyone finally gets to use it, including myself! What do you all think so far?</p>",
+       "favorited": false,
+       "favorites": 0,
+       "friends_only": false,
+       "journalid": 2028,
+       "link": "https://www.weasyl.com/journal/2028/wow-this-is-amazing",
+       "owner": "Wesley",
+       "owner_login": "wesley",
+       "owner_media": {
+           "avatar": [
+               {
+                   "mediaid": 934000,
+                   "url": "https://cdn.weasyl.com/static/media/b0/46/a3/b046a3f7a5b6aa936f393f68ccef68d85afe4aeed43af415b81c41739701edde.gif"
+               }
+           ]
+       },
+       "posted_at": "2012-09-30T08:23:12Z",
+       "rating": "general",
+       "tags": [
+           "happy",
+           "introduction",
+           "weasyl"
+       ],
+       "title": "Wow, this is amazing!",
+       "type": "journal",
+       "views": 174
+   }
+
+The *title* is the journal's title.
+
+The *content* is the journal's content.
+
+
+.. _characters:
+
+Characters
+----------
+
+A basic character object resembles::
+
+   {
+      "age": "young",
+      "charid": 63670,
+      "comments": 0,
+      "content": "<p>Hi! I'm just creating a little character profile for myself. We all want those, right?</p>",
+      "favorited": false,
+      "favorites": 0,
+      "friends_only": false,
+      "gender": "",
+      "height": "",
+      "link": "https://www.weasyl.com/character/63670/wesley",
+      "media": {
+         "submission": [
+            {
+               "links": {
+                     "cover": [
+                        {
+                           "mediaid": null,
+                           "url": "https://cdn.weasyl.com/static/character/94/4d/a7/e0/a0/7a/wesley-63670.cover.png"
+                        }
+                     ]
+               },
+               "mediaid": null,
+               "url": "https://cdn.weasyl.com/static/character/94/4d/a7/e0/a0/7a/wesley-63670.submit.2000.png"
+            }
+         ]
+      },
+      "owner": "Wesley",
+      "owner_login": "wesley",
+      "owner_media": {
+          "avatar": [
+              {
+                  "mediaid": 5223401,
+                  "url": "https://cdn.weasyl.com/static/media/b0/46/a3/b046a3f7a5b6aa936f393f68ccef68d85afe4aeed43af415b81c41739701edde.gif"
+              }
+          ]
+      },
+      "posted_at": "2016-06-02T18:07:54Z",
+      "rating": "general",
+      "species": "weasel",
+      "tags": [
+          "weasel"
+      ],
+      "title": "Wesley",
+      "type": "character",
+      "views": 1,
+      "weight": ""
+   }
+
+The *title* is the character's name.
+
+The *content* is the character's description.
+
+The *age*, *gender*, *height*, *species*, and *weight* keys are information about the character.
 
 
 .. _users:

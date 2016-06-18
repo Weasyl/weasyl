@@ -1,7 +1,10 @@
+import errno
 import functools
 import os
 import shutil
+import socket
 import subprocess
+import time
 import urlparse
 
 import click
@@ -96,6 +99,43 @@ def url():
     click.echo('http://{}:{}'.format(ip, port))
 
 
+def can_connect(host, port):
+    s = socket.socket()
+    s.settimeout(5)
+    while True:
+        try:
+            s.connect((host, port))
+        except socket.error as e:
+            if e.errno in (errno.ECONNREFUSED, errno.ETIMEDOUT):
+                return False
+            elif e.errno == errno.EINTR:
+                continue
+            else:
+                raise
+        else:
+            return True
+
+
+def wait_for_postgres():
+    started_at = time.time()
+    if can_connect('db', 5432):
+        return
+
+    bar = click.progressbar(
+        length=60,
+        show_percent=False, show_eta=False,
+        label='waiting for postgres to come up')
+    with bar:
+        while True:
+            waited = time.time() - started_at
+            if waited > 60:
+                raise click.Abort("waited too long for postgres to come up")
+            bar.update(waited)
+            time.sleep(1)
+            if can_connect('db', 5432):
+                return
+
+
 @wzl.command(add_help_option=False, context_settings=dict(
     ignore_unknown_options=True,
 ))
@@ -104,7 +144,11 @@ def url():
 def test(args):
     """
     Run the tests.
+
+    This will also wait until postgres comes up before beginning.
     """
+
+    wait_for_postgres()
     args = list(args)
     cmd([
         'py.test', '--cov=/weasyl-src/libweasyl/libweasyl',

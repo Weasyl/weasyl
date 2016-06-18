@@ -28,3 +28,4 @@ htmlcov*
 twistd.pid
 version.txt
 _version.py
+.sass-cache

@@ -1,0 +1,6 @@
+FROM node
+RUN apt-get update \
+ && apt-get -qyy install ruby-sass
+RUN npm install -g gulp-cli
+VOLUME /weasyl-src
+WORKDIR /weasyl-src

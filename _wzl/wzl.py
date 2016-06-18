@@ -157,7 +157,25 @@ PARTS = {
         'compose-file': 'docker-compose.yml',
         'command': ['build'],
     },
+    'assets': {
+        'compose-file': 'docker-compose-build.yml',
+        'command': ['build'],
+    },
+    'assets-sass': {
+        'requires': ['assets'],
+        'compose-file': 'docker-compose-build.yml',
+        'command': ['run', '--rm'],
+        'service': 'assets',
+        'args': ['sh', '-euxc', """
+
+        npm install
+        gulp sass
+
+        """],
+    },
 }
+
+PARTS_CHOICE = click.Choice(sorted(PARTS))
 
 DEPS = {
     k: set(v.get('requires', ()))
@@ -169,7 +187,7 @@ DEPS = {
 @click.option('-D', '--no-deps', is_flag=True, help=(
     "Don't build the targets that the provided targets depend on."
 ))
-@click.argument('target', nargs=-1, type=click.Choice(sorted(PARTS)))
+@click.argument('target', nargs=-1, type=PARTS_CHOICE)
 @ensure_wzl_dev
 def build(no_deps, target):
     """
@@ -189,9 +207,13 @@ def build(no_deps, target):
      - weasyl-app-dev
      - db
      - nginx
+     - assets
+     - assets-sass [2]
 
     [1]: Not an image, but uses the same tooling to produce python wheels used
     by other images.
+
+    [2]: Not an image, but builds the static assets for the site in place.
     """
 
     if target:
@@ -215,6 +237,27 @@ def build(no_deps, target):
             p['command'] +
             [p.get('service', target)] +
             p.get('args', []))
+
+
+@wzl.command()
+@click.argument('target', type=PARTS_CHOICE)
+@ensure_wzl_dev
+def shell(target):
+    """
+    Run a shell in an image target.
+
+    See `wzl build` for which targets are images. This is primarily for
+    debugging. It allows the user to easily inspect what's in the image built
+    by docker-compose.
+    """
+    p = PARTS[target]
+    service = p.get('service', target)
+    if service != target:
+        raise click.Abort("{!r} isn't an image".format(target))
+    forward([
+        'docker-compose', '-f', p['compose-file'],
+        'run', '--entrypoint', '/bin/bash', service, '-i',
+    ])
 
 
 if __name__ == '__main__':

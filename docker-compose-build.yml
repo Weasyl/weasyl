@@ -20,3 +20,15 @@ services:
       context: .
       dockerfile: docker/weasyl-app.docker
     image: weasyl-app
+
+  assets:
+    build:
+      context: ./docker
+      dockerfile: assets.docker
+    volumes:
+      - assets_node_modules:/weasyl-src/node_modules
+    volumes_from:
+      - container:wzl-run:rw
+
+volumes:
+  assets_node_modules: {}

@@ -5,6 +5,7 @@ __pycache__
 /temp
 /backup
 /log
+/node_modules
 /save
 /static/character
 /static/fonts

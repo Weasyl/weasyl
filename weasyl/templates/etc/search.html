@@ -1,4 +1,4 @@
-$def with (method, meta, results, next_count=0, back_count=0, subcats=None)
+$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None)
 $#:{TITLE("Weasyl Search")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
@@ -99,9 +99,9 @@ $code:
 
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
           $if back_count:
-            <a class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]], nextid=None))}" rel="prev">Back (${back_count} more)</a>
+            <a class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]], nextid=None))}" rel="prev">Back (${back_count}$:{'+' if back_count == count_limit else ''} more)</a>
           $if next_count:
-            <a class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]], backid=None))}" rel="next">Next (${next_count} more)</a>
+            <a class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]], backid=None))}" rel="next">Next (${next_count}$:{'+' if next_count == count_limit else ''} more)</a>
         </div>
       $else:
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>

@@ -1,3 +1,4 @@
+import mock
 import pytest
 
 from libweasyl.models.helpers import CharSettings
@@ -60,6 +61,84 @@ def test_submission_search(db, term, n_results):
         cat=None, subcat=None, within='', backid=None, nextid=None)
 
     assert len(results) == n_results
+
+
+@pytest.mark.parametrize('rating', ratings.ALL_RATINGS)
+@pytest.mark.parametrize('block_rating', ratings.ALL_RATINGS)
+def test_search_blocked_tags(db, rating, block_rating):
+    owner = db_utils.create_user()
+    viewer = db_utils.create_user()
+
+    allowed_tag = db_utils.create_tag('walrus')
+    blocked_tag = db_utils.create_tag('penguin')
+
+    db_utils.create_blocktag(viewer, blocked_tag, block_rating.code)
+
+    s1 = db_utils.create_submission(owner, rating=rating.code)
+    db_utils.create_submission_tag(allowed_tag, s1)
+    db_utils.create_submission_tag(blocked_tag, s1)
+
+    s2 = db_utils.create_submission(owner, rating=rating.code)
+    db_utils.create_submission_tag(allowed_tag, s2)
+
+    s3 = db_utils.create_submission(owner, rating=rating.code)
+    db_utils.create_submission_tag(blocked_tag, s3)
+
+    def check(term, n_results):
+        results, _, _ = search.select(
+            search=search.Query.parse(term, 'submit'),
+            userid=viewer, rating=ratings.EXPLICIT.code, limit=100,
+            cat=None, subcat=None, within='', backid=None, nextid=None)
+
+        assert len(results) == n_results
+
+    if rating < block_rating:
+        check(u'walrus', 2)
+        check(u'penguin', 2)
+    else:
+        check(u'walrus', 1)
+        check(u'penguin', 0)
+
+
+_page_limit = 6
+
+
+@mock.patch.object(search, 'COUNT_LIMIT', 10)
+def test_search_pagination(db):
+    owner = db_utils.create_user()
+    submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
+    tag = db_utils.create_tag('penguin')
+    search_query = search.Query.parse(u'penguin', 'submit')
+
+    for submission in submissions:
+        db_utils.create_submission_tag(tag, submission)
+
+    result, next_count, back_count = search.select(
+        search=search_query,
+        userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
+        cat=None, subcat=None, within='', backid=None, nextid=None)
+
+    assert back_count == 0
+    assert next_count == search.COUNT_LIMIT
+    assert [item['submitid'] for item in result] == submissions[:-_page_limit - 1:-1]
+
+    result, next_count, back_count = search.select(
+        search=search_query,
+        userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
+        cat=None, subcat=None, within='', backid=None, nextid=submissions[-_page_limit])
+
+    assert back_count == _page_limit
+    assert next_count == search.COUNT_LIMIT
+    assert [item['submitid'] for item in result] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
+
+    result, next_count, back_count = search.select(
+        search=search_query,
+        userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
+        cat=None, subcat=None, within='', backid=submissions[_page_limit - 1], nextid=None)
+
+    assert back_count == search.COUNT_LIMIT
+    assert next_count == _page_limit
+    assert [item['submitid'] for item in result] == submissions[2 * _page_limit - 1:_page_limit - 1:-1]
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [

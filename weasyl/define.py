@@ -1,5 +1,6 @@
 # define.py
 
+import os
 import re
 import time
 import random
@@ -39,6 +40,9 @@ from weasyl import config, _version
 
 
 _shush_pyflakes = [sqlalchemy.orm, config_read]
+
+with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
+    resource_paths = json.loads(f.read())
 
 
 # XXX: eventually figure out how to include this in libweasyl.
@@ -250,6 +254,7 @@ def render(template_name, argv=(), cached=False):
                 "sorted": sorted,
                 "staff": staff,
                 "request": the_fake_request,
+                "resource_path": get_resource_path,
             })
 
     if argv is None:
@@ -1071,6 +1076,10 @@ def cdnify_url(url):
         return url
 
     return urlparse.urljoin(cdn_root, url)
+
+
+def get_resource_path(resource):
+    return cdnify_url('/' + resource_paths[resource])
 
 
 def absolutify_url(url):

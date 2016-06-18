@@ -7,10 +7,10 @@ fi
 
 sock="/var/run/docker.sock"
 extra_args=""
-if [ -n "${DOCKER_CERT_PATH}" ]; then
+if [ -n "${DOCKER_CERT_PATH-}" ]; then
     extra_args="-v ${DOCKER_CERT_PATH}:/root/.docker -e DOCKER_TLS_VERIFY=1 ${extra_args}"
 fi
-if [ -n "${DOCKER_HOST}" ]; then
+if [ -n "${DOCKER_HOST-}" ]; then
     extra_args="-e DOCKER_HOST=${DOCKER_HOST} ${extra_args}"
 elif [ -S "${sock}" ]; then
     extra_args="-v ${sock}:${sock} ${extra_args}"

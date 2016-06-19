@@ -1,15 +1,13 @@
 FROM weasyl-base
 
-USER root
 RUN apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1
 ADD static /weasyl-app/static
 ADD config /weasyl-app/config
 RUN mkdir /weasyl-app/log
 RUN chown -R weasyl: /weasyl-app
-USER weasyl
 
 ADD wheelhouse /wheelhouse
-RUN pip install --no-index -f /wheelhouse weasyl libweasyl wzl
+RUN as-weasyl pip install --no-index -f /wheelhouse weasyl libweasyl wzl
 
 VOLUME /weasyl-app/build
 VOLUME /weasyl-app/config
@@ -25,4 +23,4 @@ ENV WEASYL_WEB_ENDPOINT=tcp:8080
 ENV WEASYL_WEB_STATS_ENDPOINT=""
 EXPOSE 8080
 
-ENTRYPOINT ["wzl"]
+ENTRYPOINT ["as-weasyl", "wzl"]

@@ -1,0 +1,16 @@
+#!/bin/sh -eu
+
+if [ -n "${LOCAL_USER_ID-}" ]; then
+    olduid="$(id -u weasyl)"
+    if [ "${LOCAL_USER_ID}" != "${olduid}" ]; then
+        echo "=== remapping weasyl (${olduid} => ${LOCAL_USER_ID})"
+        usermod -u "${LOCAL_USER_ID}" weasyl
+        find /weasyl-app /weasyl-src -uid "${olduid}" -print0 \
+            | xargs -0 chown weasyl
+    fi
+fi
+
+# This MUST be two lines, or sh gets confused.
+HOME=~weasyl
+export HOME
+exec chpst -u weasyl "$@"

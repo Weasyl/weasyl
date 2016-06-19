@@ -20,6 +20,7 @@ h=$(pwd)
 exec docker run --rm -it \
      --name wzl-run \
      -e WZL=dev \
+     -e LOCAL_USER_ID="${LOCAL_USER_ID-$(id -u)}" \
      -v "${h}:/weasyl-src" \
      -v "${h}/build:/weasyl-app/build" \
      -v "${h}/config:/weasyl-app/config" \

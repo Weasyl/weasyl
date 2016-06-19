@@ -14,6 +14,8 @@ services:
     image: weasyl-build
     volumes_from:
       - container:wzl-run:rw
+    environment:
+      LOCAL_USER_ID: "${LOCAL_USER_ID}"
 
   weasyl-app:
     build:

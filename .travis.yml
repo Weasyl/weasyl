@@ -14,13 +14,10 @@ env:
 before_install:
   - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
   - docker version
-
   - ./wzl setup
-  - ./wzl build --all
-  - touch .coverage
-  - chmod a=rw .coverage
 
 install:
+  - ./wzl build --all
   - pip install codecov
 
 script:

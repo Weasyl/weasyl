@@ -17,6 +17,8 @@ services:
     image: weasyl-app-dev
 
     command: run
+    environment:
+      LOCAL_USER_ID: "${LOCAL_USER_ID}"
     volumes:
       - ws_character:/weasyl-app/static/character
       - ws_journal:/weasyl-app/static/journal

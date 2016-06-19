@@ -16,7 +16,6 @@ __pycache__
 /static/media
 /static/SHARE
 
-build
 dist
 node_modules
 wheelhouse

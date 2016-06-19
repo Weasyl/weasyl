@@ -1,11 +1,11 @@
 FROM weasyl-base
 
 USER root
+RUN apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1
 ADD static /weasyl-app/static
 ADD config /weasyl-app/config
 RUN mkdir /weasyl-app/log
 RUN chown -R weasyl: /weasyl-app
-RUN apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1
 USER weasyl
 
 ADD wheelhouse /wheelhouse

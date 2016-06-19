@@ -15,10 +15,6 @@ before_install:
   - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
   - docker version
 
-  - python setup.py --version
-  - python libweasyl/setup.py --version
-  - python _wzl/setup.py --version
-
   - ./wzl setup
   - ./wzl build --all
   - touch .coverage

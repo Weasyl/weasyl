@@ -1,6 +1,6 @@
 FROM node
 RUN apt-get update \
- && apt-get -qyy install ruby-sass runit
+ && apt-get -qyy install runit
 RUN npm install -qg gulp-cli
 RUN adduser --system --home /var/cache/weasyl weasyl
 ADD as-weasyl /usr/local/sbin

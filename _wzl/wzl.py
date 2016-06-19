@@ -348,9 +348,16 @@ DEPS = {
     k: set(v.get('requires', ()))
     for k, v in PARTS.items()
 }
+RDEPS = {
+    k: {kk for kk, deps in DEPS.items() if k in deps}
+    for k in DEPS
+}
 
 
 @wzl.command()
+@click.option('-r', '--reverse-deps', is_flag=True, help=(
+    "Build the reverse-dependencies of the listed targets."
+))
 @click.option('-D', '--no-deps', is_flag=True, help=(
     "Don't build the targets that the provided targets depend on."
 ))
@@ -363,7 +370,7 @@ DEPS = {
 @click.argument('target', nargs=-1, type=PARTS_CHOICE)
 @click.pass_context
 @ensure_wzl_dev
-def build(ctx, no_deps, dry_run, all_targets, target):
+def build(ctx, reverse_deps, no_deps, dry_run, all_targets, target):
     """
     Build docker images.
 
@@ -372,6 +379,10 @@ def build(ctx, no_deps, dry_run, all_targets, target):
     This is required to run anything. Building a target image will first build
     its dependencies unless --no-deps is specified. The default if no targets
     are specified is to build the 'weasyl-app-dev' image.
+
+    If --reverse-deps is specified, instead of building the listed targets and
+    the dependencies of the listed targets, the listed targets and the targets
+    depending on the listed targets will be built.
 
     Possible targets are:
 
@@ -401,12 +412,13 @@ def build(ctx, no_deps, dry_run, all_targets, target):
         target = {'weasyl-app-dev'}
 
     all_targets = set()
+    deps = RDEPS if reverse_deps else DEPS
     while target:
         t = target.pop()
         p = PARTS[t]
         all_targets.add(t)
-        if not no_deps and 'requires' in p:
-            target.update(p['requires'])
+        if not no_deps:
+            target.update(deps[t])
 
     order = toposort.toposort_flatten({
         k: {d for d in DEPS[k] if d in all_targets} for k in all_targets})

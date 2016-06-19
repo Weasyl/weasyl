@@ -333,9 +333,9 @@ PARTS = {
         'compose-file': 'docker-compose-build.yml',
         'command': ['run', '--rm'],
         'service': 'assets',
-        'args': ['sh', '-euxc', """
+        'args': ['as-weasyl', 'sh', '-euxc', """
 
-        npm install
+        npm install -q
         gulp sass
 
         """],

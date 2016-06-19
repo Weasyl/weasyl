@@ -31,6 +31,8 @@ services:
       - assets_node_modules:/weasyl-src/node_modules
     volumes_from:
       - container:wzl-run:rw
+    environment:
+      LOCAL_USER_ID: "${LOCAL_USER_ID}"
 
 volumes:
   assets_node_modules: {}

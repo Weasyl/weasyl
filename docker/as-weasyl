@@ -6,7 +6,7 @@ if [ -n "${LOCAL_USER_ID-}" ]; then
         echo "=== remapping weasyl (${olduid} => ${LOCAL_USER_ID})"
         usermod -u "${LOCAL_USER_ID}" weasyl
         find /weasyl-app /weasyl-src -uid "${olduid}" -print0 \
-            | xargs -0 chown weasyl
+            | xargs -r0 chown weasyl
     fi
 fi
 

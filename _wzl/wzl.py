@@ -169,7 +169,6 @@ def test(args):
 
     This will also wait until postgres comes up before beginning.
     """
-
     wait_for_postgres()
     args = list(args)
     cmd([

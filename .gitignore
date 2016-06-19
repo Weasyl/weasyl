@@ -26,6 +26,5 @@ htmlcov*
 .cache
 .stamp-*
 twistd.pid
-version.txt
 _version.py
 .sass-cache

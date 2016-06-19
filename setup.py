@@ -4,6 +4,8 @@ from setuptools import setup
 from pip.download import PipSession
 from pip.req import parse_requirements
 
+from weasyl._version import __version__
+
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,6 +21,7 @@ reqs = [str(r.req)
 
 setup(
     name='weasyl',
+    version=__version__,
     description='https://www.weasyl.com/',
     author='Weasyl LLC',
     packages=[
@@ -27,9 +30,4 @@ setup(
     ],
     include_package_data=True,
     install_requires=reqs,
-    setup_requires=['vcversioner'],
-    vcversioner={
-        'version_module_paths': ['weasyl/_version.py'],
-        'root': here,
-    },
 )

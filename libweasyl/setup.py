@@ -5,6 +5,8 @@ from setuptools import setup
 from pip.download import PipSession
 from pip.req import parse_requirements
 
+from libweasyl._version import __version__
+
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,6 +28,7 @@ if sys.version_info < (3, 4):
 
 setup(
     name='libweasyl',
+    version=__version__,
     description='common code across weasyl projects',
     author='Weasyl LLC',
     packages=[
@@ -43,14 +46,6 @@ setup(
             'sphinx',
             'sphinxcontrib-napoleon',
             'tox',
-            'vcversioner',
         ],
-    },
-    setup_requires=['vcversioner'],
-    vcversioner={
-        'version_file': os.path.join(here, 'version.txt'),
-        'version_module_paths': [os.path.join(here, 'libweasyl', '_version.py')],
-        # The git repo root is one directory above this setup.py.
-        'root': os.path.dirname(here),
     },
 )

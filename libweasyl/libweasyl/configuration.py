@@ -37,9 +37,5 @@ def configure_libweasyl(
     _configure_dbsession(dbsession)
     BaseQuery._not_found_exception = staticmethod(not_found_exception)
     DiskMediaItem._base_file_path = staticmethod(base_file_path)
-    _init_staff(directors=staff_config_dict['directors'],
-                technical_staff=staff_config_dict['technical_staff'],
-                admins=staff_config_dict['admins'],
-                mods=staff_config_dict['mods'],
-                developers=staff_config_dict['developers'])
+    _init_staff(**staff_config_dict)
     MediaItem._media_link_formatter_callback = staticmethod(media_link_formatter_callback)

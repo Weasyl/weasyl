@@ -1,5 +1,5 @@
 """
-Dictionary of Weasyl staff.
+Retrieve a dictionary of Weasyl staff.
 
 This module is invoked by calling `read_staff_yaml.load_staff_dict()`, and it
 returns a dictionary object containing user levels and IDs loaded from
@@ -41,11 +41,10 @@ def load_staff_dict():
     """
     Loads staff from a yaml config file.
 
-    Parameters: None. Path is obtained from ``macro.MACRO_SYS_STAFF_CONFIG_PATH``
+    Parameters: None. Path is obtained from `macro.MACRO_SYS_STAFF_CONFIG_PATH`
     
     Returns:
         staff_dict: A dictionary with the staff member user IDs.
     """
-    
     with open(macro.MACRO_SYS_STAFF_CONFIG_PATH) as config_file:
         return yaml.safe_load(config_file)

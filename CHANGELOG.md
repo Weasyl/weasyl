@@ -1,6 +1,26 @@
 Weasyl Changelog
 ================
 
+v1.1.2: 2016-06-14
+----------
+
+Publicly visible changes:
+
+ *  Makes collection thumbnails respect generated/custom user preference. (#36, @strain-113)
+ *  Hides image and description for Twitter cards on age 18+ submissions. (#35, @Syfaro)
+ *  Updates Google reCAPTCHA version used for account creation to version 2. (#37, @kfkitsune)
+ *  Introduces array based tag searches to increase search performance. (#50, @charmander)
+
+Internal changes:
+
+ * Updates developer documentation to explain installing Weasyl in a Windows vagrant
+   environment. (#32, @kfkitsune)
+ * Fixes consistency of capitalization of 'Weasyl' and quotation of code in project
+   README. (#41, @kfkitsune)
+ * Includes the Weasyl 'libweasyl' library in the main site code, rather than being used as
+   an external library dependency. (#40, #45, @weykent)
+ * Fixes the upgrade-db make function with new introduced libweasyl changes. (#53, @strain-113)
+
 v1.1.1: 2016-06-05
 ----------
 

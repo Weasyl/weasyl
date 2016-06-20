@@ -96,7 +96,7 @@ class FollowUserTestCase(unittest.TestCase):
         self.assertFalse(profile.select_relation(user2, user1)["follower"])
         self.assertEqual(0, d.sessionmaker().query(orm.Follow).count())
         followuser_remove.assert_called_once_with(user1, user2)
-    
+
     def test_mutual_follow(self):
         user1 = db_utils.create_user()
         user2 = db_utils.create_user()

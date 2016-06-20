@@ -44,6 +44,11 @@ $def with (profile, userinfo, relationship)
       <ul id="user-actions" class="toolset clear">
 
         $if not relationship['is_self']:
+          <li>
+            $if relationship['follower']:
+              <!-- The <a> tag triggers the CSS to match the font. -->
+              <a><span class="icon icon-20 icon-follower"></span>Following You</a>
+          </li>
           <li><form name="followuser" action="/followuser" method="post">
             $:{CSRF()}
             <input type="hidden" name="userid" value="${profile['userid']}" />

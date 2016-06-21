@@ -51,4 +51,8 @@ def db(request):
         db.flush()
 
     request.addfinalizer(tear_down)
+
+    if request.cls is not None:
+        request.cls.db = db
+
     return db

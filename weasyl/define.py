@@ -212,10 +212,8 @@ _template_cache = {}
 
 
 def render(template_name, argv=(), cached=False):
-    if isinstance(template_name, basestring):
-        template = _template_cache.get(template_name)
-    else:
-        template = template_name
+    template = _template_cache.get(template_name)
+
     if template is None:
         _template_cache[template_name] = template = web.template.frender(
             "%stemplates/%s" % (macro.MACRO_SYS_BASE_PATH, template_name),

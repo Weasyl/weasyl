@@ -72,7 +72,7 @@ def authenticate_bcrypt(username, password, session=True):
 
     d.metric('increment', 'attemptedlogins')
 
-    unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
+    unicode_success = bcrypt.hashpw(password.encode("utf-8"), HASHSUM.encode("utf-8"))
     if not unicode_success and not bcrypt.checkpw(d.plaintext(password), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account

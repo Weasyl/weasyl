@@ -103,7 +103,7 @@ def weasyl_exception_processor():
         request_id = None
         if 'raven.captureException' in web.ctx.env:
             request_id = base64.b64encode(os.urandom(6), '+-')
-            event_id, = web.ctx.env['raven.captureException'](request_id=request_id)
+            event_id = web.ctx.env['raven.captureException'](request_id=request_id)
             request_id = '%s-%s' % (event_id, request_id)
         print 'unhandled error (request id %s) in %r' % (request_id, web.ctx.env)
         traceback.print_exc()

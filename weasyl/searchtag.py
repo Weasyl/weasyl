@@ -12,7 +12,6 @@ from weasyl import macro as m
 from weasyl import orm
 from weasyl import welcome
 from weasyl.cache import region
-from weasyl.error import PostgresError
 from weasyl.error import WeasylError
 
 
@@ -216,16 +215,10 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
                 [table, targetid, d.sql_number_list(list(added))])
 
     if submitid:
-        try:
-            d.engine.execute(
-                'INSERT INTO submission_tags (submitid, tags) VALUES (%(submission)s, %(tags)s)',
-                submission=submitid, tags=list(entered_tagids))
-        except PostgresError:
-            result = d.engine.execute(
-                'UPDATE submission_tags SET tags = %(tags)s WHERE submitid = %(submission)s',
-                submission=submitid, tags=list(entered_tagids))
-
-            assert result.rowcount == 1
+        d.engine.execute(
+            'INSERT INTO submission_tags (submitid, tags) VALUES (%(submission)s, %(tags)s) '
+            'ON CONFLICT (submitid) DO UPDATE SET tags = %(tags)s',
+            submission=submitid, tags=list(entered_tagids))
 
         db = d.connect()
         db.execute(

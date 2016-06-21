@@ -147,16 +147,8 @@ class RemoveSessionCookieProcessor(raven.processors.Processor):
         if 'headers' in data and 'Cookie' in data['headers']:
             data['headers']['Cookie'] = self._filter_header(data['headers']['Cookie'])
 
-    def filter_extra(self, data):
-        if 'env' not in data or 'HTTP_COOKIE' not in data['env']:
-            return data
-
-        env = data['env']
-        filtered_cookies = self._filter_header(env['HTTP_COOKIE'])
-
-        return dict(
-            data,
-            env=dict(env, HTTP_COOKIE=filtered_cookies))
+        if 'env' in data and 'HTTP_COOKIE' in data['env']:
+            data['env']['HTTP_COOKIE'] = self._filter_header(data['env']['HTTP_COOKIE'])
 
 
 class URLSchemeFixingMiddleware(object):

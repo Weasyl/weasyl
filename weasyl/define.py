@@ -204,19 +204,21 @@ CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).s
 the_fake_request = FakePyramidRequest()
 
 
-# Renders a template file and returns the result.
-
 # Caching all templates. Parsing templates is slow; we don't need to do it all
 # the time and there's plenty of memory for storing the compiled templates.
 _template_cache = {}
 
 
-def render(template_name, argv=(), cached=False):
+def compile(template_name):
+    """
+    Compiles a template file and returns the result.
+    """
     template = _template_cache.get(template_name)
 
     if template is None:
+        template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
         _template_cache[template_name] = template = web.template.frender(
-            "%stemplates/%s" % (macro.MACRO_SYS_BASE_PATH, template_name),
+            template_path,
             globals={
                 "INT": int,
                 "STR": str,
@@ -254,17 +256,15 @@ def render(template_name, argv=(), cached=False):
                 "resource_path": get_resource_path,
             })
 
-    if argv is None:
-        return template
-    else:
-        return unicode(template(*argv))
+    return template
 
 
-def compile(target):
+def render(template_name, argv=()):
     """
-    Compiles a template file and returns the result.
+    Renders a template and returns the resulting HTML.
     """
-    return render(target, None)
+    template = compile(template_name)
+    return unicode(template(*argv))
 
 
 def titlebar(title, backtext=None, backlink=None):

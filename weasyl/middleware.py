@@ -1,8 +1,11 @@
 import os
+import re
 import sys
 import time
 import base64
 import logging
+import raven
+import raven.processors
 import traceback
 
 import anyjson as json
@@ -10,6 +13,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
 import web
+import web.webapi
 
 from libweasyl import security
 from libweasyl.cache import ThreadCacheProxy
@@ -17,6 +21,12 @@ from weasyl import define as d
 from weasyl import errorcode
 from weasyl import orm
 from weasyl.error import WeasylError
+
+
+def _get_headers(env):
+    return {
+        key[5:].replace('_', '-').title(): value
+        for key, value in env.iteritems() if key.startswith('HTTP_')}
 
 
 class ClientGoneAway(Exception):
@@ -120,6 +130,35 @@ def endpoint_recording_delegate(f, fvars, args=()):
     return _delegate(f, fvars, args)
 
 
+class RemoveSessionCookieProcessor(raven.processors.Processor):
+    """
+    Removes Weasyl session cookies.
+    """
+    def _filter_header(self, value):
+        return re.sub(
+            r'WZL=(\w+)',
+            lambda match: 'WZL=' + '*' * len(match.group(1)),
+            value)
+
+    def filter_http(self, data):
+        if 'cookies' in data:
+            data['cookies'] = self._filter_header(data['cookies'])
+
+        if 'headers' in data and 'Cookie' in data['headers']:
+            data['headers']['Cookie'] = self._filter_header(data['headers']['Cookie'])
+
+    def filter_extra(self, data):
+        if 'env' not in data or 'HTTP_COOKIE' not in data['env']:
+            return data
+
+        env = data['env']
+        filtered_cookies = self._filter_header(env['HTTP_COOKIE'])
+
+        return dict(
+            data,
+            env=dict(env, HTTP_COOKIE=filtered_cookies))
+
+
 class URLSchemeFixingMiddleware(object):
     def __init__(self, app):
         self.app = app
@@ -132,30 +171,52 @@ class URLSchemeFixingMiddleware(object):
 
 class SentryEnvironmentMiddleware(object):
     def __init__(self, app, dsn, reactor=None):
-        import raven
         self.app = app
-        self.client = raven.Client(dsn)
+        self.client = raven.Client(
+            dsn=dsn,
+            release=raven.fetch_git_sha(os.path.abspath(os.path.join(__file__, '../..'))),
+            processors=[
+                'raven.processors.SanitizePasswordsProcessor',
+                'weasyl.middleware.RemoveSessionCookieProcessor',
+            ],
+        )
         if reactor is None:
             from twisted.internet import reactor
         self.reactor = reactor
 
-    def ravenCaptureArguments(self, extra):
-        data = {}
-        if 'level' in extra:
-            data['level'] = extra.pop('level')
-        extra['env'] = dict(web.ctx.env)
-        extra['session'] = web.ctx.get('weasyl_session')
-        extra['deployed-revision'] = d.CURRENT_SHA
-        return dict(data=data, extra=extra)
+    def ravenCaptureArguments(self, level=None, **extra):
+        data = {
+            'level': level,
+            'user': {
+                'id': d.get_userid(),
+                'ip_address': d.get_address(),
+            },
+            'request': {
+                'url': web.ctx.env['PATH_INFO'],
+                'method': web.ctx.env['REQUEST_METHOD'],
+                'data': web.webapi.rawinput(method='POST'),
+                'query_string': web.ctx.env['QUERY_STRING'],
+                'headers': _get_headers(web.ctx.env),
+                'env': web.ctx.env,
+            },
+        }
+
+        return {
+            'data': data,
+            'extra': dict(
+                extra,
+                session=web.ctx.get('weasyl_session'),
+            ),
+        }
 
     def captureException(self, **extra):
-        kwargs = self.ravenCaptureArguments(extra)
+        kwargs = self.ravenCaptureArguments(**extra)
         exc_info = sys.exc_info()
         return blockingCallFromThread(
             self.reactor, self.client.captureException, exc_info, **kwargs)
 
     def captureMessage(self, message, **extra):
-        kwargs = self.ravenCaptureArguments(extra)
+        kwargs = self.ravenCaptureArguments(**extra)
         return blockingCallFromThread(
             self.reactor, self.client.captureMessage, message, **kwargs)
 

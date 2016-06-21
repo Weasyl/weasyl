@@ -16,7 +16,6 @@
 /beaker
 /config/site.config.txt
 /config/weasyl-staff.yaml
-/vagrant
 /.vagrant
 /weasyl-env
 /twistd.pid

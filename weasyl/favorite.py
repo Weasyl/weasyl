@@ -1,6 +1,6 @@
 # favorite.py
 
-from error import PostgresError, WeasylError
+from error import WeasylError
 import macro as m
 import define as d
 
@@ -206,13 +206,17 @@ def insert(userid, submitid=None, charid=None, journalid=None):
     elif ignoreuser.check(query[0], userid):
         raise WeasylError("contentOwnerIgnoredYou")
 
-    try:
-        d.execute("INSERT INTO favorite VALUES (%i, %i, '%s', %i)", [
-            userid, d.get_targetid(submitid, charid, journalid),
-            "s" if submitid else "f" if charid else "j", d.get_time()
-        ])
-    except PostgresError:
-        raise WeasylError("favoriteRecordExists")
+    insert_result = d.engine.execute(
+        'INSERT INTO favorite (userid, targetid, type, unixtime) '
+        'VALUES (%(user)s, %(target)s, %(type)s, %(now)s) '
+        'ON CONFLICT DO NOTHING',
+        user=userid,
+        target=d.get_targetid(submitid, charid, journalid),
+        type='s' if submitid else 'f' if charid else 'j',
+        now=d.get_time())
+
+    if insert_result.rowcount == 0:
+        return
 
     # create a list of users to notify
     notified = set(collection.find_owners(submitid))

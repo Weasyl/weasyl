@@ -75,7 +75,7 @@ def authenticate_bcrypt(username, password, session=True):
     unicode_success = HASHSUM == bcrypt.hashpw(password.encode('utf-8'),
                                                HASHSUM.encode('utf-8'))
     if not unicode_success and (HASHSUM != bcrypt.hashpw(d.plaintext(password).encode('utf-8'),
-                                                             HASHSUM.encode('utf-8'))):
+                                                         HASHSUM.encode('utf-8'))):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:

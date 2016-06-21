@@ -41,8 +41,17 @@ from weasyl import config
 
 _shush_pyflakes = [sqlalchemy.orm, config_read]
 
-with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
-    resource_paths = json.loads(f.read())
+reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
+
+
+def _load_resources():
+    global resource_paths
+
+    with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
+        resource_paths = json.loads(f.read())
+
+
+_load_resources()
 
 
 # XXX: eventually figure out how to include this in libweasyl.
@@ -215,7 +224,7 @@ def compile(template_name):
     """
     template = _template_cache.get(template_name)
 
-    if template is None:
+    if template is None or reload_templates:
         template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
         _template_cache[template_name] = template = web.template.frender(
             template_path,
@@ -1079,6 +1088,9 @@ def cdnify_url(url):
 
 
 def get_resource_path(resource):
+    if reload_templates:
+        _load_resources()
+
     return cdnify_url('/' + resource_paths[resource])
 
 

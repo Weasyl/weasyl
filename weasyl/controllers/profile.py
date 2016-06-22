@@ -5,7 +5,7 @@ import web
 from weasyl import (
     character, collection, commishinfo, define, errorcode, favorite, folder,
     followuser, frienduser, journal, media, profile, shout, submission,
-    template, pagination)
+    pagination)
 from weasyl.controllers.base import controller_base
 from weasyl.error import WeasylError
 from weasyl import macro
@@ -70,7 +70,7 @@ class profile_(controller_base):
         else:
             favorites = None
 
-        page.append(define.render(template.user_profile, [
+        page.append(define.render('user/profile.html', [
             # Profile information
             userprofile,
             # User information
@@ -145,7 +145,7 @@ class submissions_(controller_base):
             60, otherid=otherid, folderid=folderid, backid=define.get_int(form.backid),
             nextid=define.get_int(form.nextid), config=config, profile_page_filter=not folderid)
 
-        page.append(define.render(template.user_submissions, [
+        page.append(define.render('user/submissions.html', [
             # Profile information
             userprofile,
             # User information
@@ -189,7 +189,7 @@ class collections_(controller_base):
             collection.select_list, collection.select_count, 'submitid', url_format, self.user_id, rating, 66,
             otherid=otherid, backid=define.get_int(form.backid), nextid=define.get_int(form.nextid), config=config)
 
-        page.append(define.render(template.user_collections, [
+        page.append(define.render('user/collections.html', [
             # Profile information
             userprofile,
             # User information
@@ -223,7 +223,7 @@ class journals_(controller_base):
         page_title = u"%s's journals" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
         page = define.common_page_start(self.user_id, title=page_title)
 
-        page.append(define.render(template.user_journals, [
+        page.append(define.render('user/journals.html', [
             # Profile information
             userprofile,
             # User information
@@ -268,7 +268,7 @@ class characters_(controller_base):
             otherid=otherid, backid=define.get_int(form.backid),
             nextid=define.get_int(form.nextid), config=config)
 
-        page.append(define.render(template.user_characters, [
+        page.append(define.render('user/characters.html', [
             # Profile information
             userprofile,
             # User information
@@ -302,7 +302,7 @@ class shouts_(controller_base):
         page_title = u"%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
         page = define.common_page_start(self.user_id, title=page_title)
 
-        page.append(define.render(template.user_shouts, [
+        page.append(define.render('user/shouts.html', [
             # Profile information
             userprofile,
             # User information
@@ -340,7 +340,7 @@ class staffnotes_(controller_base):
         userinfo['reportstats'] = reportstats
         userinfo['reporttotal'] = sum(reportstats.values())
 
-        page.append(define.render(template.user_shouts, [
+        page.append(define.render('user/shouts.html', [
             # Profile information
             userprofile,
             # User information
@@ -419,7 +419,7 @@ class favorites_(controller_base):
                 "journal": favorite.select_journal(self.user_id, rating, 22, otherid=otherid, config=config),
             }
 
-        page.append(define.render(template.user_favorites, [
+        page.append(define.render('user/favorites.html', [
             # Profile information
             userprofile,
             # User information

@@ -166,7 +166,7 @@ class SentryEnvironmentMiddleware(object):
         self.app = app
         self.client = raven.Client(
             dsn=dsn,
-            release=raven.fetch_git_sha(os.path.abspath(os.path.join(__file__, '../..'))),
+            release=d.CURRENT_SHA,
             processors=[
                 'raven.processors.SanitizePasswordsProcessor',
                 'weasyl.middleware.RemoveSessionCookieProcessor',

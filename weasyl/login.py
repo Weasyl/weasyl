@@ -69,13 +69,14 @@ def authenticate_bcrypt(username, password, session=True):
         return 0, "invalid"
 
     USERID, HASHSUM, SETTINGS = query
+    HASHSUM = HASHSUM.encode('utf-8')
 
     d.metric('increment', 'attemptedlogins')
 
     unicode_success = HASHSUM == bcrypt.hashpw(password.encode('utf-8'),
-                                               HASHSUM.encode('utf-8'))
+                                               HASHSUM)
     if not unicode_success and HASHSUM != bcrypt.hashpw(d.plaintext(password).encode('utf-8'),
-                                                        HASHSUM.encode('utf-8')):
+                                                        HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:

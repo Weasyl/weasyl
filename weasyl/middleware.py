@@ -19,14 +19,9 @@ from libweasyl import security
 from libweasyl.cache import ThreadCacheProxy
 from weasyl import define as d
 from weasyl import errorcode
+from weasyl import http
 from weasyl import orm
 from weasyl.error import WeasylError
-
-
-def _get_headers(env):
-    return {
-        key[5:].replace('_', '-').title(): value
-        for key, value in env.iteritems() if key.startswith('HTTP_')}
 
 
 class ClientGoneAway(Exception):
@@ -188,7 +183,7 @@ class SentryEnvironmentMiddleware(object):
                 'method': web.ctx.env['REQUEST_METHOD'],
                 'data': web.webapi.rawinput(method='POST'),
                 'query_string': web.ctx.env['QUERY_STRING'],
-                'headers': _get_headers(web.ctx.env),
+                'headers': http.get_headers(web.ctx.env),
                 'env': web.ctx.env,
             },
         }

@@ -42,6 +42,7 @@ from weasyl import config
 _shush_pyflakes = [sqlalchemy.orm, config_read]
 
 reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
+reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
 
 
 def _load_resources():
@@ -1088,7 +1089,7 @@ def cdnify_url(url):
 
 
 def get_resource_path(resource):
-    if reload_templates:
+    if reload_assets:
         _load_resources()
 
     return cdnify_url('/' + resource_paths[resource])

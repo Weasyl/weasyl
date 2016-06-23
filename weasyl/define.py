@@ -41,8 +41,18 @@ from weasyl import config, _version
 
 _shush_pyflakes = [sqlalchemy.orm, config_read]
 
-with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
-    resource_paths = json.loads(f.read())
+reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
+reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
+
+
+def _load_resources():
+    global resource_paths
+
+    with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
+        resource_paths = json.loads(f.read())
+
+
+_load_resources()
 
 
 # XXX: eventually figure out how to include this in libweasyl.
@@ -204,19 +214,18 @@ CURRENT_SHA = _version.__sha__.lstrip('g')
 the_fake_request = FakePyramidRequest()
 
 
-# Renders a template file and returns the result.
-
 # Caching all templates. Parsing templates is slow; we don't need to do it all
 # the time and there's plenty of memory for storing the compiled templates.
 _template_cache = {}
 
 
-def render(template_name, argv=(), cached=False):
-    if isinstance(template_name, basestring):
-        template = _template_cache.get(template_name)
-    else:
-        template = template_name
-    if template is None:
+def compile(template_name):
+    """
+    Compiles a template file and returns the result.
+    """
+    template = _template_cache.get(template_name)
+
+    if template is None or reload_templates:
         _template_cache[template_name] = template = web.template.Template(
             pkg_resources.resource_string(__name__, 'templates/' + template_name),
             filename=template_name,
@@ -257,17 +266,15 @@ def render(template_name, argv=(), cached=False):
                 "resource_path": get_resource_path,
             })
 
-    if argv is None:
-        return template
-    else:
-        return unicode(template(*argv))
+    return template
 
 
-def compile(target):
+def render(template_name, argv=()):
     """
-    Compiles a template file and returns the result.
+    Renders a template and returns the resulting HTML.
     """
-    return render(target, None)
+    template = compile(template_name)
+    return unicode(template(*argv))
 
 
 def titlebar(title, backtext=None, backlink=None):
@@ -1079,6 +1086,9 @@ def cdnify_url(url):
 
 
 def get_resource_path(resource):
+    if reload_assets:
+        _load_resources()
+
     return cdnify_url('/' + resource_paths[resource])
 
 

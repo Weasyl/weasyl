@@ -9,11 +9,10 @@ import raven.processors
 import traceback
 
 import anyjson as json
+from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
-import web
-import web.webapi
 
 from libweasyl import security
 from libweasyl.cache import ThreadCacheProxy
@@ -28,68 +27,117 @@ class ClientGoneAway(Exception):
     pass
 
 
-def db_connection_closer_tween_factory(handler, registry):
+def cache_clear_tween_factory(handler, registry):
     """
-    A tween that closes a database connection opened for a request.
+    A tween to clear the thread local cache.
     """
-    def db_connection_closer_tween(request):
+    def cache_clear_tween(request):
+        print "cache clear"
         try:
             return handler(request)
         finally:
-            if 'pg_connection' in request:
-                request.pg_connection.close()
-
-    return db_connection_closer_tween
+            ThreadCacheProxy.zap_cache()
+    return cache_clear_tween
 
 
-def session_processor(handle):
-    cookies = web.cookies()
-    cookies_to_clear = set()
-    if 'beaker.session.id' in cookies:
-        cookies_to_clear.add('beaker.session.id')
+def db_property_tween_factory(handler, registry):
+    """
+    A tween to set up the db connection property on a request.
 
-    session = d.connect()
-    sess_obj = None
-    if 'WZL' in cookies:
-        sess_obj = session.query(orm.Session).get(cookies['WZL'])
+    We do this in a tween so other tweens can use it before it hits the weasyl WSGI.
+    """
+    # TODO(strain-113): Should we set this up as part of the WSGI environment?
+    def db_property_tween(request):
+        print "DB Property"
+        request.set_property(d.pg_connection_callable, 'pg_connection', reify=True)
+        return handler(request)
+    return db_property_tween
+
+
+def db_timer_tween_factory(handler, registry):
+    """
+    A tween that records timing information in the headers of a response.
+    """
+    def db_timer_tween(request):
+        print "Timer"
+        started_at = time.time()
+        queued_at = request.environ.get('HTTP_X_REQUEST_STARTED_AT')
+        if queued_at is None:
+            return handler(request)
+
+        request.sql_times = []
+        request.memcached_times = []
+        time_queued = started_at - float(queued_at)
+        resp = handler(request)
+        ended_at = time.time()
+        time_in_sql = sum(request.sql_times)
+        time_in_memcached = sum(request.memcached_times)
+        time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
+        resp.headers['X-Queued-Time-Spent'] = '%0.1fms' % (time_queued * 1000,)
+        resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
+        resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
+        resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
+        resp.headers['X-SQL-Queries'] = str(len(request.sql_times))
+        resp.headers['X-Memcached-Queries'] = str(len(request.memcached_times))
+        sess = request.weasyl_session
+        d.statsFactory.logRequest(
+            time_queued, time_in_sql, time_in_memcached, time_in_python,
+            len(request.sql_times), len(request.memcached_times),
+            sess.userid, sess.sessionid, request.method, request.path,
+            request.query_string.split(','))
+        return resp
+    return db_timer_tween
+
+
+def session_tween_factory(handler, registry):
+    """
+    A tween that sets a weasyl_session on a request.
+
+    TODO(strain-113): This should be replaced with a real pyramid session_factory implementation.
+    """
+    def session_tween(request):
+        print "Session"
+        cookies = request.cookies
+        cookies_to_clear = set()
+        if 'beaker.session.id' in cookies:
+            cookies_to_clear.add('beaker.session.id')
+
+        session = d.connect()
+        sess_obj = None
+        if 'WZL' in cookies:
+            sess_obj = session.query(orm.Session).get(cookies['WZL'])
+            if sess_obj is None:
+                # clear an invalid session cookie if nothing ends up trying to create a
+                # new one
+                cookies_to_clear.add('WZL')
+
         if sess_obj is None:
-            # clear an invalid session cookie if nothing ends up trying to create a
-            # new one
-            cookies_to_clear.add('WZL')
+            sess_obj = orm.Session()
+            sess_obj.create = True
+            sess_obj.sessionid = security.generate_key(64)
+        request.weasyl_session = sess_obj
 
-    if sess_obj is None:
-        sess_obj = orm.Session()
-        sess_obj.create = True
-        sess_obj.sessionid = security.generate_key(64)
-    web.ctx.weasyl_session = sess_obj
+        try:
+            return handler(request)
+        finally:
+            if sess_obj.save:
+                session.begin()
+                if sess_obj.create:
+                    session.add(sess_obj)
+                    # TODO(strain-113): Does this need https considerations?
+                    request.response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365)
+                    # don't try to clear the cookie if we're saving it
+                    cookies_to_clear.discard('WZL')
+                session.commit()
 
-    try:
-        return handle()
-    finally:
-        if sess_obj.save:
-            session.begin()
-            if sess_obj.create:
-                session.add(sess_obj)
-                web.setcookie('WZL', sess_obj.sessionid, expires=60 * 60 * 24 * 365,
-                              secure=web.ctx.protocol == 'https', httponly=True)
-                # don't try to clear the cookie if we're saving it
-                cookies_to_clear.discard('WZL')
-            session.commit()
-
-        for name in cookies_to_clear:
-            # this sets the cookie to expire one second before the HTTP request was
-            # issued, which is the closest you can get to 'clearing' a cookie.
-            web.setcookie(name, '', expires=-1)
-
-
-# this gets set by weasyl.py to the web.py application handler. it's global
-# mutable state, but this is application code so I can't bring myself to care
-# at the moment. maybe refactor later if necessary.
-_handle = None
+            for name in cookies_to_clear:
+                request.response.delete_cookie(name)
+    return session_tween
 
 
 def weasyl_exception_processor():
-    web.ctx.log_exc = web.ctx.env.get(
+    request = get_current_request()
+    web.ctx.log_exc = request.environ.get(
         'raven.captureException', lambda **kw: traceback.print_exc())
     try:
         return _handle()
@@ -121,14 +169,6 @@ def weasyl_exception_processor():
         if getattr(e, '__render_as_json', False):
             return json.dumps({'error': {}})
         return d.errorpage(userid, request_id=request_id, **errorpage_kwargs)
-
-
-_delegate = None
-
-
-def endpoint_recording_delegate(f, fvars, args=()):
-    web.ctx.endpoint = f, args
-    return _delegate(f, fvars, args)
 
 
 class RemoveSessionCookieProcessor(raven.processors.Processor):
@@ -178,6 +218,7 @@ class SentryEnvironmentMiddleware(object):
         self.reactor = reactor
 
     def ravenCaptureArguments(self, level=None, **extra):
+        request = get_current_request()
         data = {
             'level': level,
             'user': {
@@ -185,12 +226,12 @@ class SentryEnvironmentMiddleware(object):
                 'ip_address': d.get_address(),
             },
             'request': {
-                'url': web.ctx.env['PATH_INFO'],
-                'method': web.ctx.env['REQUEST_METHOD'],
-                'data': web.webapi.rawinput(method='POST'),
-                'query_string': web.ctx.env['QUERY_STRING'],
-                'headers': http.get_headers(web.ctx.env),
-                'env': web.ctx.env,
+                'url': request.environ['PATH_INFO'],
+                'method': request.environ['REQUEST_METHOD'],
+                'data': request.POST,  # TODO(strain-113): This is probably not correct. Check what the type of this should be.
+                'query_string': request.environ['QUERY_STRING'],
+                'headers': http.get_headers(request.environ),
+                'env': request.environ,
             },
         }
 
@@ -198,7 +239,7 @@ class SentryEnvironmentMiddleware(object):
             'data': data,
             'extra': dict(
                 extra,
-                session=web.ctx.get('weasyl_session'),
+                session=request.get('weasyl_session'),
             ),
         }
 
@@ -265,43 +306,6 @@ def before_cursor_execute(conn, cursor, statement, parameters, context, executem
 @event.listens_for(Engine, 'after_cursor_execute')
 def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
     total = time.time() - context._query_start_time
-    if hasattr(web.ctx, 'sql_times'):
-        web.ctx.sql_times.append(total)
-
-
-def db_timer_processor(app):
-    def processor(handle):
-        started_at = time.time()
-        queued_at = web.ctx.env.get('HTTP_X_REQUEST_STARTED_AT')
-        if queued_at is None:
-            return handle()
-
-        web.ctx.sql_times = []
-        web.ctx.memcached_times = []
-        time_queued = started_at - float(queued_at)
-        ret = handle()
-        ended_at = time.time()
-        time_in_sql = sum(web.ctx.sql_times)
-        time_in_memcached = sum(web.ctx.memcached_times)
-        time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
-        web.header('X-Queued-Time-Spent', '%0.1fms' % (time_queued * 1000,))
-        web.header('X-SQL-Time-Spent', '%0.1fms' % (time_in_sql * 1000,))
-        web.header('X-Memcached-Time-Spent', '%0.1fms' % (time_in_memcached * 1000,))
-        web.header('X-Python-Time-Spent', '%0.1fms' % (time_in_python * 1000,))
-        web.header('X-SQL-Queries', str(len(web.ctx.sql_times)))
-        web.header('X-Memcached-Queries', str(len(web.ctx.memcached_times)))
-        sess = web.ctx.weasyl_session
-        app.statsFactory.logRequest(
-            time_queued, time_in_sql, time_in_memcached, time_in_python,
-            len(web.ctx.sql_times), len(web.ctx.memcached_times),
-            sess.userid, sess.sessionid, web.ctx.method, *web.ctx.endpoint)
-        return ret
-
-    return processor
-
-
-def cache_clear_processor(handle):
-    try:
-        return handle()
-    finally:
-        ThreadCacheProxy.zap_cache()
+    request = get_current_request()  # TODO: There should be a better way to save this.
+    if hasattr(request, 'sql_times'):
+        request.sql_times.append(total)

@@ -19,6 +19,8 @@ import unicodedata
 import anyjson as json
 import arrow
 from psycopg2.extensions import QuotedString
+from pyramid.events import NewRequest
+from pyramid.events import subscriber
 from pyramid.threadlocal import get_current_request  # TODO: Remove this.
 import pytz
 import requests
@@ -79,17 +81,30 @@ engine = meta.bind = sa.create_engine(_sqlalchemy_url, max_overflow=25, pool_siz
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 
 
+def pg_connection_callable(request):
+    """
+    A callable used to set up the reified pg_connection property on weasyl requests.
+    """
+    db = sessionmaker()
+    try:
+        # Make sure postgres is still there before issuing any further queries.
+        db.execute('SELECT 1')
+    except sa.exc.OperationalError:
+        log_exc = request.environ.get('raven.captureException', traceback.print_exc)
+        log_exc()
+        raise web.webapi.HTTPError('503 Service Unavailable', data='database error')
+    # postgresql is still there. Register clean-up of this property.
+    def cleanup(request):
+        db.close()
+    request.add_finished_callback(cleanup)
+    return db
+
+
 def connect():
-    if 'pg_connection' not in web.ctx:
-        web.ctx.pg_connection = db = sessionmaker()
-        try:
-            # Make sure postgres is still there before issuing any further queries.
-            db.execute('SELECT 1')
-        except sa.exc.OperationalError:
-            log_exc = web.ctx.env.get('raven.captureException', traceback.print_exc)
-            log_exc()
-            raise web.webapi.HTTPError('503 Service Unavailable', data='database error')
-    return web.ctx.pg_connection
+    """
+    Returns the current request's db connection.
+    """
+    return get_current_request().pg_connection
 
 
 def execute(statement, argv=None, options=None):
@@ -1177,10 +1192,12 @@ def _requests_wrapper(func_name):
 http_get = _requests_wrapper('get')
 http_post = _requests_wrapper('post')
 
+# This will be set by twisted.
+statsFactory = None
+
 
 def metric(*a, **kw):
-    from weasyl.wsgi import app
-    app.statsFactory.metric(*a, **kw)
+    statsFactory.metric(*a, **kw)
 
 
 def iso8601(unixtime):

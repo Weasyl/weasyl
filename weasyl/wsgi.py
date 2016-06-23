@@ -10,16 +10,26 @@ import weasyl.controllers.routes
 
 
 config = Configurator()
+
+config.add_tween("weasyl.middleware.session_tween_factory")
+config.add_tween("weasyl.middleware.db_timer_tween_factory")
+config.add_tween("weasyl.middleware.db_property_tween_factory")
+config.add_tween("weasyl.middleware.cache_clear_tween_factory")
+
 config.add_route("index", "/")
 # Helping me see how slow this is:
 import time
 start = time.time()
+config.scan("weasyl.define")
 config.scan("weasyl.controllers")
 print "Scanned in %d seconds" % (time.time() - start)
 # Empty app object for now. This is just to make stat setup code happy.
 app = lambda: None
 
+
 wsgi_app = config.make_wsgi_app()
+
+
 wsgi_app = mw.InputWrapMiddleware(wsgi_app)
 wsgi_app = mw.URLSchemeFixingMiddleware(wsgi_app)
 if d.config_read_bool('profile_responses', section='backend'):

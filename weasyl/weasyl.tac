@@ -44,7 +44,7 @@ if requestLogHost:
     requestLogHost = requestLogHost, requestLogPort
 site = weasyl.polecat.WeasylSite(weasylResource)
 siteStats = weasyl.polecat.WeasylSiteStatsFactory(site, threadPool, reactor, requestLogHost=requestLogHost)
-weasyl.wsgi.app.statsFactory = siteStats
+weasyl.define.statsFactory = siteStats
 
 application = service.Application('weasyl')
 def attachServerEndpoint(factory, endpointEnvironKey, defaultString=None):

@@ -1,6 +1,7 @@
 FROM weasyl-base
 
-RUN apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1
+RUN apt-get update \
+ && apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1
 ADD static /weasyl-app/static
 ADD config /weasyl-app/config
 RUN mkdir /weasyl-app/log

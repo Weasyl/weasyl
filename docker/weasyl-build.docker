@@ -1,6 +1,7 @@
 FROM weasyl-base
 
-RUN apt-get install -qyy \
+RUN apt-get update \
+ && apt-get install -qyy \
   libffi-dev libmagickcore-dev libpq-dev libxml2-dev libxslt-dev pkg-config liblzma-dev python-dev
 
 ENV WHEELHOUSE=/wheelhouse

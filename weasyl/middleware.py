@@ -9,6 +9,7 @@ import raven.processors
 import traceback
 
 import anyjson as json
+from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
@@ -39,17 +40,21 @@ def cache_clear_tween_factory(handler, registry):
     return cache_clear_tween
 
 
-def db_property_tween_factory(handler, registry):
+def property_tween_factory(handler, registry):
     """
-    A tween to set up the db connection property on a request.
+    A tween to set up the some properties on a request.
 
     We do this in a tween so other tweens can use it before it hits the weasyl WSGI.
     """
-    # TODO(strain-113): Should we set this up as part of the WSGI environment?
-    def db_property_tween(request):
+    def property_tween(request):
+        # Set up the db connection property.
+        # TODO(strain-113): Should we set this up as part of the WSGI environment?
         request.set_property(d.pg_connection_callable, 'pg_connection', reify=True)
+        # Set up the exception logger. Since this is inexpensive we just make it an attribute.
+        request.log_exc = request.environ.get(
+            'raven.captureException', lambda **kw: traceback.print_exc())
         return handler(request)
-    return db_property_tween
+    return property_tween
 
 
 def db_timer_tween_factory(handler, registry):
@@ -131,40 +136,43 @@ def session_tween_factory(handler, registry):
     return session_tween
 
 
-def weasyl_exception_processor():
-    request = get_current_request()
-    web.ctx.log_exc = request.environ.get(
-        'raven.captureException', lambda **kw: traceback.print_exc())
-    try:
-        return _handle()
-    except ClientGoneAway:
-        if 'raven.captureMessage' in web.ctx.env:
-            web.ctx.env['raven.captureMessage']('HTTP client went away', level=logging.INFO)
-        return ''
-    except web.HTTPError:
-        raise
-    except Exception as e:
+def weasyl_exception_view(exc, request):
+    """
+    A view that will be registered for general exceptions thrown by weasyl code.
+    """
+
+    # TODO: This flow control is a bit of an anti-pattern.
+    if isinstance(exc, ClientGoneAway):
+        if 'raven.captureMessage' in request.environ:
+            request.environ['raven.captureMessage']('HTTP client went away', level=logging.INFO)
+        return Response()
+    else:
         userid = d.get_userid()
         errorpage_kwargs = {}
-        if isinstance(e, WeasylError):
-            if e.render_as_json:
-                return json.dumps({'error': {'name': e.value}})
-            errorpage_kwargs = e.errorpage_kwargs
-            if e.value in errorcode.error_messages:
-                web.ctx.status = errorcode.error_status_code.get(e.value, '200 OK')
-                message = '%s %s' % (errorcode.error_messages[e.value], e.error_suffix)
-                return d.errorpage(userid, message, **errorpage_kwargs)
-        web.ctx.status = '500 Internal Server Error'
+        if isinstance(exc, WeasylError):
+            if exc.render_as_json:
+                # Should this use an error code?
+                return Response(json.dumps({'error': {'name': exc.value}}))
+            errorpage_kwargs = exc.errorpage_kwargs
+            if exc.value in errorcode.error_messages:
+                # This is wrong:
+                status_info = errorcode.error_status_code.get(exc.value, (200, "200 OK",))
+                message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
+                return Response(d.errorpage(userid, message, **errorpage_kwargs),
+                                status_int=status_info[0],
+                                status=status_info[1])
         request_id = None
-        if 'raven.captureException' in web.ctx.env:
+        if 'raven.captureException' in request.environ:
             request_id = base64.b64encode(os.urandom(6), '+-')
-            event_id = web.ctx.env['raven.captureException'](request_id=request_id)
+            event_id = request.environ['raven.captureException'](request_id=request_id)
             request_id = '%s-%s' % (event_id, request_id)
-        print 'unhandled error (request id %s) in %r' % (request_id, web.ctx.env)
+        print "unhandled error (request id %s) in %r" % (request_id, request.environ)
         traceback.print_exc()
-        if getattr(e, '__render_as_json', False):
-            return json.dumps({'error': {}})
-        return d.errorpage(userid, request_id=request_id, **errorpage_kwargs)
+        if getattr(exc, "__render_as_json", False):
+            body = json.dumps({'error': {}})
+        else:
+            body = d.errorpage(userid, request_id=request_id, **errorpage_kwargs)
+        return Response(body, status_int=500, status="500 Internal Server Error")
 
 
 class RemoveSessionCookieProcessor(raven.processors.Processor):

@@ -14,7 +14,7 @@ config = Configurator()
 
 config.add_tween("weasyl.middleware.session_tween_factory")
 config.add_tween("weasyl.middleware.db_timer_tween_factory")
-config.add_tween("weasyl.middleware.db_property_tween_factory")
+config.add_tween("weasyl.middleware.property_tween_factory")
 config.add_tween("weasyl.middleware.cache_clear_tween_factory")
 
 config.add_route("index", "/")
@@ -33,7 +33,7 @@ def weasyl_404(request):
                     status="404 Not Found")
 
 config.add_notfound_view(view=weasyl_404, append_slash=True)
-
+config.add_view(view=mw.weasyl_exception_view, context=Exception)
 
 wsgi_app = config.make_wsgi_app()
 

@@ -32,7 +32,6 @@ def cache_clear_tween_factory(handler, registry):
     A tween to clear the thread local cache.
     """
     def cache_clear_tween(request):
-        print "cache clear"
         try:
             return handler(request)
         finally:
@@ -48,7 +47,6 @@ def db_property_tween_factory(handler, registry):
     """
     # TODO(strain-113): Should we set this up as part of the WSGI environment?
     def db_property_tween(request):
-        print "DB Property"
         request.set_property(d.pg_connection_callable, 'pg_connection', reify=True)
         return handler(request)
     return db_property_tween
@@ -59,7 +57,6 @@ def db_timer_tween_factory(handler, registry):
     A tween that records timing information in the headers of a response.
     """
     def db_timer_tween(request):
-        print "Timer"
         started_at = time.time()
         queued_at = request.environ.get('HTTP_X_REQUEST_STARTED_AT')
         if queued_at is None:
@@ -96,7 +93,6 @@ def session_tween_factory(handler, registry):
     TODO(strain-113): This should be replaced with a real pyramid session_factory implementation.
     """
     def session_tween(request):
-        print "Session"
         cookies = request.cookies
         cookies_to_clear = set()
         if 'beaker.session.id' in cookies:

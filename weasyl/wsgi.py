@@ -1,5 +1,6 @@
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPNotFound
+from pyramid.response import Response
 
 from libweasyl.configuration import configure_libweasyl
 from weasyl.media import format_media_link
@@ -23,8 +24,15 @@ start = time.time()
 config.scan("weasyl.define")
 config.scan("weasyl.controllers")
 print "Scanned in %d seconds" % (time.time() - start)
-# Empty app object for now. This is just to make stat setup code happy.
-app = lambda: None
+
+
+# Set up some exception handling.
+def weasyl_404(request):
+    userid = d.get_userid()
+    return Response(d.errorpage(userid, "**404!** The page you requested could not be found."),
+                    status="404 Not Found")
+
+config.add_notfound_view(view=weasyl_404, append_slash=True)
 
 
 wsgi_app = config.make_wsgi_app()

@@ -19,14 +19,14 @@ import unicodedata
 import anyjson as json
 import arrow
 from psycopg2.extensions import QuotedString
-from pyramid.events import NewRequest
-from pyramid.events import subscriber
-from pyramid.threadlocal import get_current_request  # TODO: Remove this.
+from pyramid.httpexceptions import HTTPServiceUnavailable
+from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.threadlocal import get_current_request
 import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
-import web
+from web.template import frender
 
 import macro
 import errorcode
@@ -42,11 +42,11 @@ from weasyl.cache import region
 from weasyl import config
 
 
+
 _shush_pyflakes = [sqlalchemy.orm, config_read]
 
 reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
 reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
-
 
 def _load_resources():
     global resource_paths
@@ -92,7 +92,7 @@ def pg_connection_callable(request):
     except sa.exc.OperationalError:
         log_exc = request.environ.get('raven.captureException', traceback.print_exc)
         log_exc()
-        raise web.webapi.HTTPError('503 Service Unavailable', data='database error')
+        raise HTTPServiceUnavailable("database error")
     # postgresql is still there. Register clean-up of this property.
     def cleanup(request):
         db.close()
@@ -120,6 +120,7 @@ def execute(statement, argv=None, options=None):
 
     if options is None:
         options = list()
+
 
     if argv and not isinstance(argv, list):
         argv = [argv]
@@ -175,7 +176,8 @@ def sql_escape(target):
         # Escape Unicode string
         return quote_string(target.encode("utf-8"))
     else:
-        # Escape integer
+        # Escape integerfrom pyramid.httpexceptions import HTTPUnauthorized
+
         try:
             return int(target)
         except:
@@ -243,7 +245,7 @@ def compile(template_name):
 
     if template is None or reload_templates:
         template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
-        _template_cache[template_name] = template = web.template.frender(
+        _template_cache[template_name] = template = frender(
             template_path,
             globals={
                 "INT": int,
@@ -340,7 +342,8 @@ def plaintext(target):
 
 
 def _captcha_section():
-    host = web.ctx.env.get('HTTP_HOST', '').partition(':')[0]
+    request = get_current_request()
+    host = request.environ.get('HTTP_HOST', '').partition(':')[0]
     return 'recaptcha-' + host
 
 
@@ -375,27 +378,27 @@ def get_userid(sessionid=None):
     Returns the userid corresponding to the user's sessionid; if no such session
     exists, zero is returned.
     """
-    request = get_current_request()  # TODO: This should be passed in instead.
+    request = get_current_request()
     api_token = request.headers.get('X_WEASYL_API_KEY')
     authorization = request.headers.get('AUTHORIZATION')
     if api_token is not None:
         userid = engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
         if not userid:
-            web.header('WWW-Authenticate', 'Weasyl-API-Key realm="Weasyl"')
-            raise web.webapi.Unauthorized()
+            request.response.headers['WWW-Authenticate'] = 'Weasyl-API-Key realm="Weasyl"'
+            raise HTTPUnauthorized()
         return userid
 
     elif authorization:
         from weasyl.oauth2 import get_userid_from_authorization
         userid = get_userid_from_authorization()
         if not userid:
-            web.header('WWW-Authenticate', 'Bearer realm="Weasyl" error="invalid_token"')
-            raise web.webapi.Unauthorized()
+            request.response.headers['WWW-Authenticate'] = 'Bearer realm="Weasyl" error="invalid_token"'
+            raise HTTPUnauthorized()
         return userid
 
     else:
         # TODO: re-enable this sort of logic once middleware is working with pyramid
-        userid = None  # web.ctx.weasyl_session.userid
+        userid = request.weasyl_session.userid
         return 0 if userid is None else userid
 
 
@@ -405,13 +408,11 @@ def get_token():
     if api.is_api_user():
         return ''
 
-    return security.generate_key(64)
-    # TODO: Re-enable this once middle-ware is working.
-    # sess = web.ctx.weasyl_session
-    # if sess.csrf_token is None:
-    #     sess.csrf_token = security.generate_key(64)
-    #     sess.save = True
-    # return sess.csrf_token
+    sess = get_current_request().weasyl_session
+    if sess.csrf_token is None:
+        sess.csrf_token = security.generate_key(64)
+        sess.save = True
+    return sess.csrf_token
 
 
 def get_csrf_token():
@@ -525,7 +526,7 @@ def is_sfw_mode():
     determine whether the current session is in SFW mode
     :return: TRUE if sfw or FALSE if nsfw
     """
-    return web.cookies(sfwmode="nsfw").sfwmode == "sfw"
+    return get_current_request.cookies.get('sfwmode', "nsfw") == "sfw"
 
 
 def get_premium(userid):
@@ -643,11 +644,12 @@ def get_random_set(target, count=None):
 
 
 def get_address():
-    return web.ctx.env.get("HTTP_X_FORWARDED_FOR", web.ctx.ip)
+    request = get_current_request()
+    return request.client_addr
 
 
 def get_path():
-    return web.ctx.homepath + web.ctx.fullpath
+    return get_current_request().path_url
 
 
 def text_price_amount(target):
@@ -696,14 +698,12 @@ def text_bool(target, default=False):
 
 
 def convert_to_localtime(target):
-    return datetime.datetime.now()
-    # TODO: Re-enable. Or clean this up.
-    # tz = web.ctx.weasyl_session.timezone
-    # if isinstance(target, arrow.Arrow):
-    #     return tz.localtime(target.datetime)
-    # else:
-    #     target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
-    #     return tz.localtime_from_timestamp(target)
+    tz = get_current_request().weasyl_session.timezone
+    if isinstance(target, arrow.Arrow):
+        return tz.localtime(target.datetime)
+    else:
+        target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
+        return tz.localtime_from_timestamp(target)
 
 
 def convert_date(target=None):
@@ -851,7 +851,7 @@ def _page_header_info(userid):
 
 def page_header_info(userid):
     from weasyl import media
-    sfw = web.cookies(sfwmode="nsfw").sfwmode
+    sfw = get_current_request().cookies.get('sfwmode', 'nsfw')
     return {
         "welcome": _page_header_info(userid),
         "userid": userid,
@@ -1122,11 +1122,11 @@ def absolutify_url(url):
     if cdn_root and url.startswith(cdn_root):
         return url
 
-    return urlparse.urljoin(web.ctx.realhome, url)
+    return urlparse.urljoin(get_current_request().application_url, url)
 
 
 def user_is_twitterbot():
-    return web.ctx.env.get('HTTP_USER_AGENT', '').startswith('Twitterbot')
+    return get_current_request().environ.get('HTTP_USER_AGENT', '').startswith('Twitterbot')
 
 
 def summarize(s, max_length=200):
@@ -1179,10 +1179,11 @@ def _requests_wrapper(func_name):
     func = getattr(requests, func_name)
 
     def wrapper(*a, **kw):
+        request = get_current_request()
         try:
             return func(*a, **kw)
         except Exception as e:
-            web.ctx.log_exc(level=logging.DEBUG)
+            request.log_exc(level=logging.DEBUG)
             w = WeasylError('httpError')
             w.error_suffix = 'The original error was: %s' % (e,)
             raise w
@@ -1241,9 +1242,9 @@ def token_checked(handler):
     from weasyl import api
 
     def wrapper(self, *args, **kwargs):
-        form = web.input(token="")
+        request = get_current_request()
 
-        if not api.is_api_user() and form.token != get_token():
+        if not api.is_api_user() and request.params.get('token', "") != get_token():
             return errorpage(self.user_id, errorcode.token)
 
         return handler(self, *args, **kwargs)
@@ -1253,10 +1254,10 @@ def token_checked(handler):
 
 def supports_json(handler):
     def wrapper(*args, **kwargs):
-        form = web.input(format="")
+        request = get_current_request()
 
-        if form.format == "json":
-            web.header("Content-Type", "application/json")
+        if request.params.get('format', "") == "json":
+            request.response.headers["Content-Type"] = "application/json"
 
             try:
                 result = handler(*args, **kwargs)

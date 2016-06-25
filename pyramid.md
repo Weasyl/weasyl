@@ -34,6 +34,12 @@ I bet these can all be set up trivially as a tween, except maybe for the session
 
 * I'm not sure the exception handler will do the expected thing if we get an exception in tween code. As such consider making it a tween itself instead (closer to the original design)
 
+* define.py's use of config._in_test is almost certainly wrong.
+
+* Come up with the proper idiom for default form values.
+  - .setdefault() isn't great because it's order sensitive.
+  - .get(k, default) is a bit verbose to use.
+
 
 Tests to do
 -----------
@@ -42,6 +48,7 @@ Check all endpoints, mod tools, etc.
 Check error messages for 404, permission exceeded, etc.
 Throw an exception and confirm it looks right to sentry.
 Double check that 404 and 403 are being respected specially.
+Check the output of absolutifying URLs. This was changed somewhat.
 
 Stretch goals
 -------------

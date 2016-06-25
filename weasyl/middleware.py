@@ -119,20 +119,23 @@ def session_tween_factory(handler, registry):
         request.weasyl_session = sess_obj
 
         try:
-            return handler(request)
+            resp = handler(request)
+            return resp
         finally:
+            if resp is None:
+                resp = request.response
             if sess_obj.save:
                 session.begin()
                 if sess_obj.create:
                     session.add(sess_obj)
                     # TODO(strain-113): Does this need https considerations?
-                    request.response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365)
+                    resp.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365)
                     # don't try to clear the cookie if we're saving it
                     cookies_to_clear.discard('WZL')
                 session.commit()
 
             for name in cookies_to_clear:
-                request.response.delete_cookie(name)
+                resp.delete_cookie(name)
     return session_tween
 
 
@@ -232,7 +235,7 @@ class SentryEnvironmentMiddleware(object):
             'request': {
                 'url': request.environ['PATH_INFO'],
                 'method': request.environ['REQUEST_METHOD'],
-                'data': request.POST,  # TODO(strain-113): This is probably not correct. Check what the type of this should be.
+                'data': request.body,  # TODO(strain-113): This is probably not correct. Check what the type of this should be.
                 'query_string': request.environ['QUERY_STRING'],
                 'headers': http.get_headers(request.environ),
                 'env': request.environ,

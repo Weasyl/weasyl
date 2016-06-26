@@ -44,7 +44,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Weasyl API'
-copyright = u'2014, weykent'
+copyright = u'2016, weykent'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -246,4 +246,4 @@ texinfo_documents = [
 
 
 highlight_language = 'json'
-edit_on_github_project = 'Weasyl/weasyl-apidocs'
+edit_on_github_project = 'Weasyl/weasyl'

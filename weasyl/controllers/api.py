@@ -157,6 +157,8 @@ def tidy_submission(submission):
     if contype:
         submission['type'] = m.CONTYPE_PARSABLE_MAP[contype]
     submission['rating'] = ratings.CODE_TO_NAME[submission['rating']]
+    if 'tags' in submission:
+        submission['tags'] = submission['tags']
     submission['owner'] = submission.pop('username')
     submission['owner_login'] = d.get_sysname(submission['owner'])
     submission['media'] = submission.pop('sub_media')
@@ -451,6 +453,8 @@ class api_messages_submissions_(api_base):
 
         ret = []
         for sub in submissions:
+            temp_sub = submission.select_view_api(self.user_id, sub['submitid'], anyway=True, increment_views=False)
+            sub['tags'] = temp_sub['tags']
             tidy_submission(sub)
             ret.append(sub)
 

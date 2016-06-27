@@ -235,7 +235,7 @@ class SentryEnvironmentMiddleware(object):
             'request': {
                 'url': request.environ['PATH_INFO'],
                 'method': request.environ['REQUEST_METHOD'],
-                'data': request.body,  # TODO(strain-113): This is probably not correct. Check what the type of this should be.
+                'data': request.POST,
                 'query_string': request.environ['QUERY_STRING'],
                 'headers': http.get_headers(request.environ),
                 'env': request.environ,

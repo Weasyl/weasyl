@@ -1,4 +1,5 @@
-import web
+from pyramid.httpexceptions import HTTPForbidden
+from pyramid.response import Response
 
 from libweasyl import staff
 
@@ -14,16 +15,16 @@ class controller_base(object):
     disallow_api = False
 
     def status_check_fail(self, *args, **kwargs):
-        return define.common_status_page(self.user_id, self.status)
+        return Response(define.common_status_page(self.user_id, self.status))
 
     def permission_check_fail(self, *args, **kwargs):
-        return define.errorpage(self.user_id, errorcode.permission)
+        return Response(define.errorpage(self.user_id, errorcode.permission))
 
     def login_check_fail(self, *args, **kwargs):
-        return define.webpage(self.user_id)
+        return Response(define.webpage(self.user_id))
 
     def login_guest_fail(self, *args, **kwargs):
-        return define.webpage(self.user_id)
+        return Response(define.webpage(self.user_id))
 
     def replace_methods(self, method):
         if hasattr(self, 'GET'):
@@ -31,16 +32,10 @@ class controller_base(object):
         if hasattr(self, 'POST'):
             self.POST = method
 
-    def GET(self, *args):
-        raise web.notfound()
-
-    def POST(self, *args):
-        raise web.notfound()
-
     def __init__(self, request=None):
         self.request = request
         if (self.disallow_api or self.moderator_only or self.admin_only) and weasyl.api.is_api_user():
-            raise web.forbidden()
+            raise HTTPForbidden
 
         self.user_id = define.get_userid()
         self.status = define.common_status_check(self.user_id)

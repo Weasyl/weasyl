@@ -76,7 +76,7 @@ def authenticate_bcrypt(username, password, session=True):
     unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
     if not unicode_success and not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
-        # attempted to log into is a privileged account
+        # attempted to log into is a privileged account.
         if USERID in staff.MODS:
             d.append_to_log('login.fail', userid=USERID, ip=d.get_address())
             d.metric('increment', 'failedlogins')

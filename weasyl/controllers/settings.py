@@ -235,11 +235,11 @@ class control_editpreferences_(controller_base):
     @define.token_checked
     def POST(self):
         form = web.input(
-            rating="", sfwrating="", custom_thumbs="", tagging="", edittagging="",
+            rating="", sfwrating="", custom_thumbs="", tagging="", twelvehour="",
             hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
             shouts="", notes="", filter="",
             follow_s="", follow_c="", follow_f="", follow_t="",
-            follow_j="", timezone="", twelvehour="")
+            follow_j="", timezone="")
 
         rating = ratings.CODE_MAP[define.get_int(form.rating)]
         jsonb_settings = define.get_profile_settings(self.user_id)
@@ -250,7 +250,6 @@ class control_editpreferences_(controller_base):
         preferences.twelvehour = bool(form.twelvehour)
         preferences.rating = rating
         preferences.tagging = bool(form.tagging)
-        preferences.edittagging = bool(form.edittagging)
         preferences.hideprofile = bool(form.hideprofile)
         preferences.hidestats = bool(form.hidestats)
         preferences.hidefavorites = bool(form.hidefavorites)

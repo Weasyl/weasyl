@@ -63,7 +63,6 @@ Config = create_configuration([
     BoolOption("twelvehour", "2"),
     ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "m", "a", "p"]))),
     BoolOption("tagging", "k"),
-    BoolOption("edittagging", "r"),
     BoolOption("hideprofile", "h"),
     BoolOption("hidestats", "i"),
     BoolOption("hidefavorites", "v"),

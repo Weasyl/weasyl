@@ -472,7 +472,6 @@ profile = Table(
         'h': 'hide-profile-from-guests',
         'i': 'hide-profile-stats',
         'k': 'disallow-others-tag-removal',
-        'r': 'disallow-others-tag-editing',
 
         's': 'watch-user-submissions',
         'c': 'watch-user-collections',

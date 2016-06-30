@@ -149,40 +149,6 @@ commishprice = Table(
 Index('ind_classid_userid_title', commishprice.c.classid, commishprice.c.userid, commishprice.c.title, unique=True)
 
 
-commission = Table(
-    'commission', metadata,
-    Column('commishid', String(), primary_key=True, nullable=False),
-    Column('userid', Integer(), nullable=False),
-    Column('title', String(), nullable=False),
-    Column('content', String(), nullable=False),
-    Column('min_amount', Integer(), nullable=False),
-    Column('max_amount', Integer()),
-    Column('settings', String(), nullable=False, server_default=''),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='commission_userid_fkey'),
-)
-
-
-composition = Table(
-    'composition', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('workid', Integer(), primary_key=True, nullable=False),
-    Column('title', String(length=100), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='composition_userid_fkey'),
-)
-
-
-contentview = Table(
-    'contentview', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('targetid', Integer(), primary_key=True, nullable=False),
-    Column('type', Integer(), primary_key=True, nullable=False),
-)
-
-Index('ind_contentview_targetid', contentview.c.targetid)
-
-
 cron_runs = Table(
     'cron_runs', metadata,
     Column('last_run', TIMESTAMP(), nullable=False),
@@ -301,17 +267,6 @@ google_doc_embeds = Table(
 )
 
 
-ignorecontent = Table(
-    'ignorecontent', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('otherid', Integer(), primary_key=True, nullable=False),
-    default_fkey(['otherid'], ['login.userid'], name='ignorecontent_otherid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='ignorecontent_userid_fkey'),
-)
-
-Index('ind_ignorecontent_userid', ignorecontent.c.userid)
-
-
 ignoreuser = Table(
     'ignoreuser', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
@@ -386,14 +341,6 @@ login = Table(
 Index('ind_login_login_name', login.c.login_name)
 
 
-loginaddress = Table(
-    'loginaddress', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('address', String(length=40), primary_key=True, nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='loginaddress_userid_fkey'),
-)
-
-
 logincreate = Table(
     'logincreate', metadata,
     Column('token', String(length=100), primary_key=True, nullable=False),
@@ -403,15 +350,6 @@ logincreate = Table(
     Column('email', String(length=100), nullable=False, unique=True),
     Column('birthday', WeasylTimestampColumn(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-)
-
-
-logininvite = Table(
-    'logininvite', metadata,
-    Column('email', String(length=200), primary_key=True, nullable=False),
-    Column('userid', Integer(), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('settings', String(length=20), nullable=False, server_default=''),
 )
 
 
@@ -534,7 +472,6 @@ profile = Table(
         'h': 'hide-profile-from-guests',
         'i': 'hide-profile-stats',
         'k': 'disallow-others-tag-removal',
-        'r': 'disallow-others-tag-editing',
 
         's': 'watch-user-submissions',
         'c': 'watch-user-collections',

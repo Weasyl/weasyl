@@ -69,13 +69,14 @@ def authenticate_bcrypt(username, password, session=True):
         return 0, "invalid"
 
     USERID, HASHSUM, SETTINGS = query
+    HASHSUM = HASHSUM.encode('utf-8')
 
     d.metric('increment', 'attemptedlogins')
 
     unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
-    if not unicode_success and not bcrypt.checkpw(d.plaintext(password), HASHSUM):
+    if not unicode_success and not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
-        # attempted to log into is a privileged account
+        # attempted to log into is a privileged account.
         if USERID in staff.MODS:
             d.append_to_log('login.fail', userid=USERID, ip=d.get_address())
             d.metric('increment', 'failedlogins')
@@ -276,12 +277,12 @@ def update_unicode_password(userid, password, password_confirm):
 
     hashpw = d.engine.scalar("""
         SELECT hashsum FROM authbcrypt WHERE userid = %(userid)s
-    """, userid=userid)
+    """, userid=userid).encode('utf-8')
 
     if bcrypt.checkpw(password.encode('utf-8'), hashpw):
         return
 
-    if not bcrypt.checkpw(d.plaintext(password), hashpw):
+    if not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), hashpw):
         raise WeasylError('passwordIncorrect')
 
     d.engine.execute("""

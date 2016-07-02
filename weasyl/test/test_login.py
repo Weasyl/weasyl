@@ -39,12 +39,12 @@ class AuthenticateBcryptTestCase(unittest.TestCase):
         result = login.authenticate_bcrypt(username='', password='password')
         self.assertTrue(result[0] == 0)
         self.assertTrue(result[1] == 'invalid')
-    
+
     def testNoPasswordProvided(self):
         result = login.authenticate_bcrypt(username='testloginsuite', password='')
         self.assertTrue(result[0] == 0)
         self.assertTrue(result[1] == 'invalid')
-    
+
     def testInvalidUsernameProvided(self):
         result = login.authenticate_bcrypt(username='InvalidUsername', password=raw_password)
         self.assertTrue(result[0] == 0)
@@ -91,7 +91,7 @@ class AuthenticateBcryptTestCase(unittest.TestCase):
         self.assertTrue(result[1] == 'suspended')
         d.execute("DELETE FROM login WHERE userid = %i", [user_id_bansusp])
         d.execute("DELETE FROM suspension WHERE userid = %i", [user_id_bansusp])
-         
+
     def testLoginSucceedsForSuspendedUsersWithExpiredDuration(self):
         user_id_bansusp = db_utils.create_user(username='testbansusp')
         d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id_bansusp, login.passhash(raw_password)])
@@ -103,7 +103,7 @@ class AuthenticateBcryptTestCase(unittest.TestCase):
         self.assertTrue(result[1] is None)
         d.execute("DELETE FROM login WHERE userid = %i", [user_id_bansusp])
         d.execute("DELETE FROM suspension WHERE userid = %i", [user_id_bansusp])
-    
+
 # For some reason getting the password to work with the accented E just isn't happening...
 #     def testLoginSucceedsForValidUserAndPasswordWithUnicodeFailure(self):
 #         # $2a$12$qReI924/8pAsoHu6aRTX2ejyujAZ/9FiOOtrjczBIwf8wqXAJ22N. == "passwprd"
@@ -115,7 +115,7 @@ class AuthenticateBcryptTestCase(unittest.TestCase):
 #         self.assertTrue(result[0] == user_id)
 #         self.assertTrue(result[1] == 'unicode-failure')
 #         d.execute("DELETE FROM login WHERE userid = %i", [user_id])
-    
+
     def testLoginSucceedsForValidUserAndPassword(self):
         user_id = db_utils.create_user(username='testloginsuite')
         d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
@@ -132,12 +132,12 @@ class PasswordChecksTestCase(unittest.TestCase):
         for i in range(0, login._PASSWORD):
             self.assertFalse(login.password_secure(test_string))
             test_string = test_string + 'a'
-        
+
         # Acceptable length (len >= 10)
         for i in range(login._PASSWORD, login._PASSWORD + 3):
             test_string = test_string + 'a'
             self.assertTrue(login.password_secure(test_string))
-        
+
     def testPasshash(self):
         self.assertTrue(bcrypt_hash)
         self.assertTrue(bcrypt.checkpw(raw_password.encode('utf-8'), bcrypt_hash.encode('utf-8')))
@@ -146,17 +146,17 @@ class UpdateUnicodePasswordTestCase(unittest.TestCase):
     def testPasswordMismatchWeasylErrorIfPasswordsDoNotMatch(self):
         self.assertRaisesRegexp(WeasylError, "passwordMismatch", login.update_unicode_password, 
                                 userid=123, password=321, password_confirm=123)
-        
+
     def testPasswordInsecureWeasylErrorIfPasswordUnderMinimumLength(self):
         self.assertRaisesRegexp(WeasylError, "passwordInsecure", login.update_unicode_password, 
                                 userid=123, password="012345678", password_confirm="012345678")
-        
+
     def testVerifyingCorrectPasswordAgainstStoredBcryptHash(self):
         user_id = db_utils.create_user(username='testloginsuite')
         d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
         self.assertTrue(None is login.update_unicode_password(user_id, "0123456789", "0123456789"))
         d.execute("DELETE FROM login WHERE userid = %i", [user_id])
-        
+
     def testPasswordIncorrectWeasylErrorIfPasswordIsIncorrect(self):
         user_id = db_utils.create_user(username='testloginsuite')
         d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
@@ -164,6 +164,193 @@ class UpdateUnicodePasswordTestCase(unittest.TestCase):
                                 userid=user_id, password="01234567811", password_confirm="01234567811")
         d.execute("DELETE FROM login WHERE userid = %i", [user_id])
 
+class CreateTestCase(unittest.TestCase):
+    def testCheckIfBirthdayIsInvalid_DayMonthOrYearIsNotAnInteger(self):
+        # Check for failure state if 'day' is not an integer, e.g., string
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='test', month='31', year='1942')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
 
+        # Check for failure state if 'month' is not an integer, e.g., string
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month='test', year='1942')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+
+        # Check for failure state if 'year' is not an integer, e.g., string
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month='31', year='test')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+
+    def testCheckIfBirthdayIsInvalid_DayMonthOrYearAreOutOfValidRanges(self):
+        # Check for failure state if 'day' is not an valid day e.g., 42
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='42', month='12', year='2000')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
     
-    
+        # Check for failure state if 'month' is not an valid month e.g., 42
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month='42', year='2000')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+
+        # Check for failure state if 'year' is not an valid year e.g., -1
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month='12', year='-1')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+
+    def testCheckIfBirthdayIsInvalid_DayMonthOrYearIsMissing(self):
+        # Check for failure state if 'year' is not an valid year e.g., -1
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day=None, month='12', year='2000')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+        # Check for failure state if 'year' is not an valid year e.g., -1
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month=None, year='2000')
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+        # Check for failure state if 'year' is not an valid year e.g., -1
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month='12', year=None)
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+
+    def testCheckIfBirthdayIsInvalid_ComputedBirthdayUnder13YearsOfAge(self):
+        # Check for failure state if computed birthday is <13 years old
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 11)
+        self.assertRaisesRegexp(WeasylError, "birthdayInvalid", login.create, form)
+
+    def testPasswordChecks_PasswordMismatch(self):
+        # Check for failure if password != passcheck
+        form = Bag(username='testloginsuite', password='123', passcheck='qwe',
+                   email='example@weasyl.com', emailcheck='example@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        self.assertRaisesRegexp(WeasylError, "passwordMismatch", login.create, form)
+
+    def testPasswordChecks_PasswordConsideredInsecureByLength(self):
+        password = ''
+        form = Bag(username='testloginsuite', password='', passcheck='',
+                   email='foo', emailcheck='foo',
+                   day='12', month='12', year=arrow.now().year - 19)
+        # Insecure length
+        for i in range (1, login._PASSWORD):
+            self.assertRaisesRegexp(WeasylError, "passwordInsecure", login.create, form)
+            password = password + 'a'
+            form.passcheck = form.password = password
+        # Secure length
+        password = password + 'a'
+        form.passcheck = form.password = password
+        # emailInvalid is the next failure state after passwordInsecure, so it is a 'success' for this testcase
+        self.assertRaisesRegexp(WeasylError, "emailInvalid", login.create, form)
+
+    def testEmailChecks_EmailMismatch(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='testt@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        self.assertRaisesRegexp(WeasylError, "emailMismatch", login.create, form)
+
+    def testEmailChecks_EmailInvalid(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email=';--', emailcheck=';--',
+                   day='12', month='12', year=arrow.now().year - 19)
+        self.assertRaisesRegexp(WeasylError, "emailInvalid", login.create, form)
+
+    def testEmailChecks_EmailExistsInLogin(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        user_id = db_utils.create_user(username='emailexists')
+        d.execute("UPDATE login SET email = '%s' WHERE userid = %i", ["test@weasyl.com", user_id])
+        self.assertRaisesRegexp(WeasylError, "emailExists", login.create, form)
+        d.execute("DELETE FROM login WHERE userid = %i", [user_id])
+
+    def testEmailChecks_EmailExistsInLogincreate(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+                         "token": "zaqwsxcderzaqwsxcderzaqwsxcderzaqwsxcder",
+                         "username": "testloginsuite1",
+                         "login_name": "testloginsuite1",
+                         "hashpass": login.passhash(raw_password),
+                         "email": "test@weasyl.com",
+                         "birthday": arrow.Arrow(2000, 1, 1),
+                         "unixtime": arrow.now(),
+                         })
+        self.assertRaisesRegexp(WeasylError, "emailExists", login.create, form)
+        d.execute("DELETE FROM logincreate WHERE token = '%s'", ["zaqwsxcderzaqwsxcderzaqwsxcderzaqwsxcder"])
+
+    def testUsernameChecks_UsernameNonexistentOrContainsSemicolon(self):
+        form = Bag(username='...', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        self.assertRaisesRegexp(WeasylError, "usernameInvalid", login.create, form)
+        form.username = 'testloginsuite;'
+        self.assertRaisesRegexp(WeasylError, "usernameInvalid", login.create, form)
+
+    def testUsernameChecks_UsernameContainsProhibitedWords(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        prohibited_names = ["admin", "administrator", "mod", "moderator", "weasyl",
+                            "weasyladmin", "weasylmod", "staff", "security"]
+        for i in range (0, len(prohibited_names)):
+            form.username = prohibited_names[i]
+            self.assertRaisesRegexp(WeasylError, "usernameInvalid", login.create, form)
+
+    def testUsernameChecks_UsernameExistsInLogin(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        user_id = db_utils.create_user(username='testloginsuite')
+        d.execute("UPDATE login SET email = '%s' WHERE userid = %i", ["test1@weasyl.com", user_id])
+        self.assertRaisesRegexp(WeasylError, "usernameExists", login.create, form)
+        d.execute("DELETE FROM login WHERE userid = %i", [user_id])
+
+    def testUsernameChecks_UsernameExistsInLogincreate(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+                         "token": "zaqwsxcderzaqwsxcderzaqwsxcderzaqwsxcder",
+                         "username": "testloginsuite",
+                         "login_name": "testloginsuite",
+                         "hashpass": login.passhash(raw_password),
+                         "email": "test1@weasyl.com",
+                         "birthday": arrow.Arrow(2000, 1, 1),
+                         "unixtime": arrow.now(),
+                         })
+        self.assertRaisesRegexp(WeasylError, "usernameExists", login.create, form)
+        d.execute("DELETE FROM logincreate WHERE token = '%s'", ["zaqwsxcderzaqwsxcderzaqwsxcderzaqwsxcder"])
+
+    def testUsernameChecks_UsernameExistsInUseralias(self):
+        form = Bag(username='aliastestalias', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        user_id = db_utils.create_user(username='aliastest')
+        d.execute("INSERT INTO useralias VALUES (%i, '%s', 'p')", [user_id, "aliastestalias"])
+        self.assertRaisesRegexp(WeasylError, "usernameExists", login.create, form)
+        d.execute("DELETE FROM login WHERE userid = %i", [user_id])
+
+    def testVerifyInsertionOfValidUserToCreateInLogincreate(self):
+        form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        # Emailing doesn't work in the test environment, but by this point the
+        # logincreate entry has been made
+        try:
+            login.create(form)
+        except OSError:
+            print "Caught OSError (Expected): Email fails in test environment"
+        query = d.engine.execute("""
+                    SELECT
+                        EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
+                """, name=form.username).scalar()
+        self.assertTrue(query)

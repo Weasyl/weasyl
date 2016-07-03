@@ -354,3 +354,78 @@ class CreateTestCase(unittest.TestCase):
                         EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
                 """, name=form.username).scalar()
         self.assertTrue(query)
+        d.execute("DELETE FROM logincreate WHERE login_name = '%s'", [form.username])
+
+class VerifyTestCase(unittest.TestCase):
+    def testVerifyFailureIfInvalidTokenProvided(self):
+        self.assertRaisesRegexp(WeasylError, "logincreateRecordMissing", login.verify, "qwe")
+
+    def testVerifySuccessfulExecutionIfValidTokenProvided(self):
+        d.execute("TRUNCATE TABLE logincreate")
+        token = "zaqwsxcderzaqwsxcderzaqwsxcderzaqwsxcder"
+        form = Bag(username='testloginsuitetoken', password='0123456789', passcheck='0123456789',
+                   email='test@weasyl.com', emailcheck='test@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+                         "token": token,
+                         "username": form.username,
+                         "login_name": form.username,
+                         "hashpass": login.passhash(raw_password),
+                         "email": "test1@weasyl.com",
+                         "birthday": arrow.Arrow(2000, 1, 1),
+                         "unixtime": arrow.now(),
+                         })
+        login.verify(token)
+
+        userid = d.execute("SELECT userid FROM login WHERE login_name = '%s'", [form.username])
+        userid = userid[0][0]
+        # Verify that each table gets the correct information added to it (checks for record's existence for brevity)
+        query = d.engine.execute("""
+                    SELECT
+                        EXISTS (SELECT 0 FROM authbcrypt WHERE userid = %(userid)s)
+                """, userid=userid).scalar()
+        self.assertTrue(query)
+        query = d.engine.execute("""
+                    SELECT
+                        EXISTS (SELECT 0 FROM profile WHERE userid = %(userid)s)
+                """, userid=userid).scalar()
+        self.assertTrue(query)
+        query = d.engine.execute("""
+                    SELECT
+                        EXISTS (SELECT 0 FROM userinfo WHERE userid = %(userid)s)
+                """, userid=userid).scalar()
+        self.assertTrue(query)
+        query = d.engine.execute("""
+                    SELECT
+                        EXISTS (SELECT 0 FROM userstats WHERE userid = %(userid)s)
+                """, userid=userid).scalar()
+        self.assertTrue(query)
+        query = d.engine.execute("""
+                    SELECT
+                        EXISTS (SELECT 0 FROM welcomecount WHERE userid = %(userid)s)
+                """, userid=userid).scalar()
+        self.assertTrue(query)
+
+        # The 'logincreate' record gets deleted on successful execution; verify this
+        query = d.engine.execute("""
+                    SELECT
+                        EXISTS (SELECT 0 FROM logincreate WHERE token = %(token)s)
+                """, token=token).scalar()
+        self.assertFalse(query)
+
+class SettingsTestCase(unittest.TestCase):
+    def testWhenNoSettingIsPassedAsAParameter(self):
+        user_id = db_utils.create_user(username='testsettingscase')
+        settings = 'dp'
+        d.execute("UPDATE login SET settings = '%s' WHERE userid = %i", [settings, user_id])
+        query = login.settings(user_id)
+        self.assertTrue(settings == query)
+        d.execute("DELETE FROM login WHERE userid = %i", [user_id])
+
+    def testWhenASettingIsPassedAsAParameter(self):
+        user_id = db_utils.create_user(username='testsettingscase2')
+        settings = 'dp'
+        d.execute("UPDATE login SET settings = '%s' WHERE userid = %i", [settings, user_id])
+        query = login.settings(user_id, 'd')
+        self.assertTrue(query)
+        d.execute("DELETE FROM login WHERE userid = %i", [user_id])

@@ -429,3 +429,49 @@ class SettingsTestCase(unittest.TestCase):
         query = login.settings(user_id, 'd')
         self.assertTrue(query)
         d.execute("DELETE FROM login WHERE userid = %i", [user_id])
+
+class SessionidTestCase(unittest.TestCase):
+    def testSessionidRetrieval(self):
+        sessionid = "qazxswedqazxswedqazxswedqazxswedqazxswedqazxswedqazxswedqazxswed"
+        user_id = db_utils.create_user(username='testsessionid')
+        d.engine.execute(d.meta.tables["sessions"].insert(), {
+                         "sessionid": sessionid,
+                         "userid": user_id,
+                         "csrf_token": sessionid,
+                         })
+        self.assertTrue(sessionid == login.sessionid(user_id))
+
+class GetAccountVerificationTokenTestCase(unittest.TestCase):
+    def testEmailProvidedToFunction(self):
+        token = "zaqwsxcderzaqwsxcderzaqwsxcderzaqwsxcd00"
+        form = Bag(username='acctverif1', password='0123456789', passcheck='0123456789',
+                   email='acctverif1@weasyl.com', emailcheck='acctverif1@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+                         "token": token,
+                         "username": form.username,
+                         "login_name": form.username,
+                         "hashpass": login.passhash(raw_password),
+                         "email": form.email,
+                         "birthday": arrow.Arrow(2000, 1, 1),
+                         "unixtime": arrow.now(),
+                         })
+        query = login.get_account_verification_token(email=form.email, username=None)
+        self.assertEqual(token, query)
+
+    def testUsernameProvidedToFunction(self):
+        token = "zaqwsxcderzaqwsxcderzaqwsxcderzaqwsxcd01"
+        form = Bag(username='acctverif2', password='0123456789', passcheck='0123456789',
+                   email='acctverif2@weasyl.com', emailcheck='acctverif2@weasyl.com',
+                   day='12', month='12', year=arrow.now().year - 19)
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+                         "token": token,
+                         "username": form.username,
+                         "login_name": form.username,
+                         "hashpass": login.passhash(raw_password),
+                         "email": form.email,
+                         "birthday": arrow.Arrow(2000, 1, 1),
+                         "unixtime": arrow.now(),
+                         })
+        query = login.get_account_verification_token(email=None, username=form.username)
+        self.assertEqual(token, query)

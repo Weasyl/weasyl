@@ -1,7 +1,7 @@
 from libweasyl import staff
 
 from weasyl import define, profile, report
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 
 
 # Policy functions

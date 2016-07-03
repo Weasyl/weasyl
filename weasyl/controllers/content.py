@@ -9,7 +9,7 @@ from libweasyl.text import slug_for
 from weasyl import (
     character, comment, define, errorcode, folder, journal, macro, profile,
     report, searchtag, shout, submission, orm)
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 from weasyl.error import WeasylError
 
 

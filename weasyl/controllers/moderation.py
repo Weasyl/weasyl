@@ -2,7 +2,7 @@ import web
 
 import anyjson as json
 
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 from weasyl.error import WeasylError
 from weasyl import define, macro, moderation, report
 

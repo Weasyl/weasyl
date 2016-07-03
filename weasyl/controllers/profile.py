@@ -6,7 +6,7 @@ from weasyl import (
     character, collection, commishinfo, define, errorcode, favorite, folder,
     followuser, frienduser, journal, media, profile, shout, submission,
     pagination)
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 from weasyl.error import WeasylError
 from weasyl import macro
 

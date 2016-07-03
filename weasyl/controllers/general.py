@@ -8,7 +8,7 @@ import web
 from libweasyl import ratings
 
 from weasyl import define, index, macro, search, profile, siteupdate, submission
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 
 
 # General browsing functions

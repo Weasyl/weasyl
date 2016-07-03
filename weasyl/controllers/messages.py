@@ -3,7 +3,7 @@ import itertools
 import web
 
 from weasyl import define, message
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 
 
 # Message notification functions

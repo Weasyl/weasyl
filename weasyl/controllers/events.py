@@ -1,5 +1,5 @@
 from weasyl import define
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 
 
 class halloweasyl2014_(controller_base):

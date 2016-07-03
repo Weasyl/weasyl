@@ -4,7 +4,7 @@ from libweasyl import staff
 
 from weasyl import dry, errorcode, login, profile, siteupdate
 from weasyl.error import WeasylError
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 import weasyl.define as d
 
 

@@ -3,7 +3,7 @@ from oauthlib.oauth2 import FatalClientError, OAuth2Error
 import web
 
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 from weasyl import define as d
 from weasyl import errorcode, http, login, media, orm
 

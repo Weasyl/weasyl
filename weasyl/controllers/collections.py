@@ -2,7 +2,7 @@ import web
 
 from weasyl import define, collection, profile
 from weasyl.error import WeasylError
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 
 
 class collection_options_(controller_base):

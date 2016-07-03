@@ -5,7 +5,7 @@ import web
 import libweasyl.ratings as ratings
 from libweasyl import staff
 
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,

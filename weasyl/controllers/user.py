@@ -2,7 +2,7 @@ import web
 
 from weasyl import api, define, errorcode, login, moderation, \
     premiumpurchase, profile, resetpassword
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 
 
 # Session management functions

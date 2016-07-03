@@ -1,6 +1,6 @@
 import web
 
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import controller_base
 from weasyl.error import WeasylError
 from weasyl import (
     define, favorite, followuser, frienduser, ignoreuser, note, profile)

@@ -7,58 +7,65 @@ from weasyl import define, errorcode
 import weasyl.api
 
 
-class controller_base(object):
-    login_required = False
-    guest_required = False
-    moderator_only = False
-    admin_only = False
-    disallow_api = False
+"""
+Contains decorators for weasyl view callables to enforce permissions and the like.
+"""
 
-    def status_check_fail(self, *args, **kwargs):
-        return Response(define.common_status_page(self.user_id, self.status))
 
-    def permission_check_fail(self, *args, **kwargs):
-        return Response(define.errorpage(self.user_id, errorcode.permission))
+def status_check(view_callable):
+    # Should be used universally as the first decorator.
+    def inner(request):
+        userid = define.get_userid()
+        status = define.common_status_check(userid)
+        if status:
+            return Response(define.common_status_page(userid, status))
+        return view_callable(request)
+    return inner
 
-    def login_check_fail(self, *args, **kwargs):
-        return Response(define.webpage(self.user_id))
 
-    def login_guest_fail(self, *args, **kwargs):
-        return Response(define.webpage(self.user_id))
+def login_required(view_callable):
+    def inner(request):
+        userid = define.get_userid()
+        if userid == 0:
+            return Response(define.webpage(userid))
+        return view_callable(request)
+    return inner
 
-    def replace_methods(self, method):
-        if hasattr(self, 'GET'):
-            self.GET = method
-        if hasattr(self, 'POST'):
-            self.POST = method
 
-    def __init__(self, request=None):
-        self.request = request
-        if (self.disallow_api or self.moderator_only or self.admin_only) and weasyl.api.is_api_user():
+def guest_required(view_callable):
+    def inner(request):
+        userid = define.get_userid()
+        if userid != 0:
+            return Response(define.webpage(userid))
+        return view_callable(request)
+    return inner
+
+
+def moderator_only(view_callable):
+    def inner(request):
+        if weasyl.api.is_api_user():
             raise HTTPForbidden
+        userid = define.get_userid()
+        if userid not in staff.MODS:
+            return Response(define.errorpage(userid, errorcode.permission))
+        return view_callable(request)
+    return inner
 
-        self.user_id = define.get_userid()
-        self.status = define.common_status_check(self.user_id)
 
-        # Status check
-        if self.status:
-            self.replace_methods(self.status_check_fail)
-            return
+def admin_only(view_callable):
+    def inner(request):
+        if weasyl.api.is_api_user():
+            raise HTTPForbidden
+        userid = define.get_userid()
+        if userid not in staff.ADMINS:
+            return Response(define.errorpage(userid, errorcode.permission))
+        return view_callable(request)
+    return inner
 
-        # Guest check
-        if self.guest_required and self.user_id != 0:
-            self.replace_methods(self.login_guest_fail)
-            return
 
-        # Login check
-        if self.login_required and self.user_id == 0:
-            self.replace_methods(self.login_check_fail)
-            return
-
-        # Permission check
-        if self.moderator_only and self.user_id not in staff.MODS:
-            self.replace_methods(self.permission_check_fail)
-            return
-        if self.admin_only and self.user_id not in staff.ADMINS:
-            self.replace_methods(self.permission_check_fail)
-            return
+def disallow_api(view_callable):
+    def inner(request):
+        if weasyl.api.is_api_user():
+            raise HTTPForbidden
+        return view_callable(request)
+    return inner

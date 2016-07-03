@@ -378,6 +378,7 @@ def get_userid(sessionid=None):
     Returns the userid corresponding to the user's sessionid; if no such session
     exists, zero is returned.
     """
+    # TODO: Convert this into a reified property on the request.
     request = get_current_request()
     api_token = request.headers.get('X_WEASYL_API_KEY')
     authorization = request.headers.get('AUTHORIZATION')
@@ -397,7 +398,6 @@ def get_userid(sessionid=None):
         return userid
 
     else:
-        # TODO: re-enable this sort of logic once middleware is working with pyramid
         userid = request.weasyl_session.userid
         return 0 if userid is None else userid
 

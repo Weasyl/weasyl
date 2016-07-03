@@ -40,6 +40,7 @@ I bet these can all be set up trivially as a tween, except maybe for the session
   - .setdefault() isn't great because it's order sensitive.
   - .get(k, default) is a bit verbose to use.
 
+* test that cookies are cleared correctly, especially WZL session numbers, etc.
 
 Tests to do
 -----------

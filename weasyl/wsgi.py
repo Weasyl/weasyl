@@ -1,6 +1,7 @@
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
+from web.utils import storify
 
 from libweasyl.configuration import configure_libweasyl
 from weasyl.media import format_media_link
@@ -34,6 +35,23 @@ def weasyl_404(request):
 
 config.add_notfound_view(view=weasyl_404, append_slash=True)
 config.add_view(view=mw.weasyl_exception_view, context=Exception)
+
+
+def web_input(request, **kwargs):
+    """
+    Callable that processes the pyramid request.params multidict into a web.py storage object
+    in the style of web.input().
+    TODO: Replace usages of this method with accessing request directly.
+
+    @param request: The pyramid request object.
+    @param kwargs: Default values. If a default value is a list, it indicates that multiple
+        values of that key should be collapsed into a list.
+    @return: A dictionary-like object in the fashion of web.py's web.input()
+    """
+    return storify(request.params.mixed(), defaults=kwargs)
+
+config.add_request_method(web_input)
+
 
 wsgi_app = config.make_wsgi_app()
 

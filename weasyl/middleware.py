@@ -141,7 +141,7 @@ def session_tween_factory(handler, registry):
 
 def weasyl_exception_view(exc, request):
     """
-    A view that will be registered for general exceptions thrown by weasyl code.
+    A view for general exceptions thrown by weasyl code.
     """
 
     # TODO: This flow control is a bit of an anti-pattern.

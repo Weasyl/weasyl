@@ -1238,20 +1238,6 @@ def paginate(results, backid, nextid, limit, key):
         None if at_end or not results else results[-1][key])
 
 
-def token_checked(handler):
-    from weasyl import api
-
-    def wrapper(self, *args, **kwargs):
-        request = get_current_request()
-
-        if not api.is_api_user() and request.params.get('token', "") != get_token():
-            return errorpage(self.user_id, errorcode.token)
-
-        return handler(self, *args, **kwargs)
-
-    return wrapper
-
-
 def supports_json(handler):
     def wrapper(*args, **kwargs):
         request = get_current_request()

@@ -42,6 +42,8 @@ I bet these can all be set up trivially as a tween, except maybe for the session
 
 * test that cookies are cleared correctly, especially WZL session numbers, etc.
 
+* Try to replace define.get_userid() with a reified request.userid property.
+
 Tests to do
 -----------
 

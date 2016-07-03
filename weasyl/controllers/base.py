@@ -69,3 +69,16 @@ def disallow_api(view_callable):
             raise HTTPForbidden
         return view_callable(request)
     return inner
+
+
+def token_checked(view_callable):
+    def inner(request):
+        if not weasyl.api.is_api_user() and request.params.get('token', "") != define.get_token():
+            return define.errorpage(define.get_userid(), errorcode.token)
+        return view_callable(request)
+    return inner
+
+
+class controller_base(object):
+    """Temporary class to make incremental re-implementation easier."""
+    pass

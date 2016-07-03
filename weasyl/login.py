@@ -265,7 +265,7 @@ def settings(userid, setting=None):
 
 
 def sessionid(userid):
-    return d.execute("SELECT sessionid FROM usersession WHERE userid = %i",
+    return d.execute("SELECT sessionid FROM sessions WHERE userid = %i",
                      [userid], options="element")
 
 

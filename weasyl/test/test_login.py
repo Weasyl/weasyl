@@ -75,10 +75,14 @@ class AuthenticateBcryptTestCase(unittest.TestCase):
         # Hackish workaround to ensure that the log is being written to until the
         #  pytest way of making a temporary directory to patch the log directory to can be figured out
         prerun_loglines = 0
-        with open(log_path, 'r') as log:
-            for line in log:
-                prerun_loglines += 1
-            log.close()
+        # The file might not exist; this is fine; ignore
+        try:
+            with open(log_path, 'r') as log:
+                for line in log:
+                    prerun_loglines += 1
+                log.close()
+        except IOError:
+            pass
         postrun_loglines = 0
         # Item under test
         result = login.authenticate_bcrypt(username='ikani', password='FakePassword')
@@ -181,7 +185,7 @@ class UpdateUnicodePasswordTestCase(unittest.TestCase):
         self.assertRaisesRegexp(WeasylError, "passwordIncorrect", login.update_unicode_password, 
                                 userid=user_id, password="01234567811", password_confirm="01234567811")
 
-class CreateTestCase(unittest.TestCase):    
+class CreateTestCase(unittest.TestCase):
     def testCheckIfBirthdayIsInvalid_DayMonthOrYearIsNotAnInteger(self):
         user_name = TestFunctions().generateTestAccountName()
         # Check for failure state if 'day' is not an integer, e.g., string

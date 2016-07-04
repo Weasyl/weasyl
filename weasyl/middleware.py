@@ -129,8 +129,7 @@ def session_tween_factory(handler, registry):
                 if sess_obj.create:
                     session.add(sess_obj)
                     resp.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
-                                    secure=request.environ['wsgi.url_scheme'] == 'https',
-                                    httponly=True)
+                                    secure=request.scheme == 'https', httponly=True)
                     # don't try to clear the cookie if we're saving it
                     cookies_to_clear.discard('WZL')
                 session.commit()

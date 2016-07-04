@@ -149,4 +149,4 @@ def force(userid, form):
 
     d.execute("UPDATE login SET settings = REPLACE(settings, 'p', '') WHERE userid = %i", [userid])
     d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(form.password), userid])
-    d.get_login_settings.invalidate(form.userid)
+    d.get_login_settings.invalidate(userid)

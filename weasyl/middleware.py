@@ -87,7 +87,7 @@ def session_tween_factory(handler, registry):
         session = d.connect()
         sess_obj = None
         if 'WZL' in request.cookies:
-            sess_obj = session.query(orm.Session).get(cookies['WZL'])
+            sess_obj = session.query(orm.Session).get(request.cookies['WZL'])
             if sess_obj is None:
                 # clear an invalid session cookie if nothing ends up trying to create a
                 # new one
@@ -97,6 +97,8 @@ def session_tween_factory(handler, registry):
             sess_obj = orm.Session()
             sess_obj.create = True
             sess_obj.sessionid = security.generate_key(64)
+        # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
+        # thrown before this part will not be handled correctly.
         request.weasyl_session = sess_obj
 
         try:
@@ -138,7 +140,6 @@ def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.
     """
-
     # TODO: This flow control is a bit of an anti-pattern.
     if isinstance(exc, ClientGoneAway):
         if 'raven.captureMessage' in request.environ:
@@ -153,7 +154,7 @@ def weasyl_exception_view(exc, request):
                 return Response(json.dumps({'error': {'name': exc.value}}))
             errorpage_kwargs = exc.errorpage_kwargs
             if exc.value in errorcode.error_messages:
-                # This is wrong:
+                # 200 is the wrong default value here, I think.
                 status_info = errorcode.error_status_code.get(exc.value, (200, "200 OK",))
                 message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
                 return Response(d.errorpage(userid, message, **errorpage_kwargs),

@@ -10,6 +10,7 @@ from weasyl import define as d
 from weasyl import dry
 from weasyl import media
 from weasyl import welcome
+from weasyl.controllers.decorators import token_checked
 from weasyl.error import WeasylError
 
 
@@ -80,7 +81,7 @@ class admincontrol_siteupdate_:
     def GET(self):
         return dry.admin_render_page("admincontrol/siteupdate.html")
 
-    @d.token_checked
+    @token_checked
     def POST(self):
         userid = d.get_userid()
         status = d.common_status_check(userid)

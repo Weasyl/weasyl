@@ -8,20 +8,16 @@ import web
 from libweasyl import ratings
 
 from weasyl import define, index, macro, search, profile, siteupdate, submission
-from weasyl.controllers.decorators import controller_base
+from weasyl.controllers.decorators import controller_base, login_required
 
 
 # General browsing functions
-@view_defaults(route_name='index')
-class index_(controller_base):
-    cache_name = "etc/index.html"
-
-    @view_config(request_method='GET')
-    def GET(self):
-        now = time.time()
-        page = define.common_page_start(self.user_id, options=["homepage"], title="Home")
-        page.append(define.render("etc/index.html", index.template_fields(self.user_id)))
-        return Response(define.common_page_end(self.user_id, page, now=now))
+@view_config(route_name='index', request_method='GET')
+def index_(request):
+    now = time.time()
+    page = define.common_page_start(request.userid, options=["homepage"], title="Home")
+    page.append(define.render("etc/index.html", index.template_fields(request.userid)))
+    return Response(define.common_page_end(request.userid, page, now=now))
 
 
 class search_(controller_base):

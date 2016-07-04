@@ -5,6 +5,7 @@ from libweasyl import staff
 from weasyl import dry, errorcode, login, profile, siteupdate
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import controller_base
+from weasyl.controllers.decorators import token_checked
 import weasyl.define as d
 
 
@@ -40,7 +41,7 @@ class admincontrol_manageuser_(controller_base):
             self.user_id in staff.TECHNICAL,
         ])
 
-    @d.token_checked
+    @token_checked
     def POST(self):
         form = web.input(ch_username="", ch_full_name="", ch_catchphrase="", ch_email="",
                          ch_birthday="", ch_gender="", ch_country="")
@@ -74,7 +75,7 @@ class admincontrol_acctverifylink_(controller_base):
     login_required = True
     admin_only = True
 
-    @d.token_checked
+    @token_checked
     def POST(self):
         form = web.input(username="", email="")
 

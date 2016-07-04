@@ -40,23 +40,6 @@ def cache_clear_tween_factory(handler, registry):
     return cache_clear_tween
 
 
-def property_tween_factory(handler, registry):
-    """
-    A tween to set up the some properties on a request.
-
-    We do this in a tween so other tweens can use it before it hits the weasyl WSGI.
-    """
-    def property_tween(request):
-        # Set up the db connection property.
-        # TODO(strain-113): Should we set this up as part of the WSGI environment?
-        request.set_property(d.pg_connection_callable, 'pg_connection', reify=True)
-        # Set up the exception logger. Since this is inexpensive we just make it an attribute.
-        request.log_exc = request.environ.get(
-            'raven.captureException', lambda **kw: traceback.print_exc())
-        return handler(request)
-    return property_tween
-
-
 def db_timer_tween_factory(handler, registry):
     """
     A tween that records timing information in the headers of a response.
@@ -94,9 +77,8 @@ def db_timer_tween_factory(handler, registry):
 def session_tween_factory(handler, registry):
     """
     A tween that sets a weasyl_session on a request.
-
-    TODO(strain-113): This should be replaced with a real pyramid session_factory implementation.
     """
+    # TODO(strain-113): This should be replaced with a real pyramid session_factory implementation.
     def session_tween(request):
         cookies = request.cookies
         cookies_to_clear = set()

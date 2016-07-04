@@ -27,6 +27,7 @@ import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
 from web.template import frender
+from web.utils import storify
 
 import macro
 import errorcode
@@ -81,17 +82,17 @@ engine = meta.bind = sa.create_engine(_sqlalchemy_url, max_overflow=25, pool_siz
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 
 
-def pg_connection_callable(request):
+# Properties and methods to enhance the pyramid `request`.
+def pg_connection_request_property(request):
     """
-    A callable used to set up the reified pg_connection property on weasyl requests.
+    Used for the reified pg_connection property on weasyl requests.
     """
     db = sessionmaker()
     try:
         # Make sure postgres is still there before issuing any further queries.
         db.execute('SELECT 1')
     except sa.exc.OperationalError:
-        log_exc = request.environ.get('raven.captureException', traceback.print_exc)
-        log_exc()
+        request.log_exc()
         raise HTTPServiceUnavailable("database error")
     # postgresql is still there. Register clean-up of this property.
     def cleanup(request):
@@ -100,11 +101,67 @@ def pg_connection_callable(request):
     return db
 
 
+def userid_request_property(request):
+    """
+    Used for the reified userid property on weasyl requests.
+    """
+    api_token = request.headers.get('X_WEASYL_API_KEY')
+    authorization = request.headers.get('AUTHORIZATION')
+    if api_token is not None:
+        userid = engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
+        if not userid:
+            request.response.headers['WWW-Authenticate'] = 'Weasyl-API-Key realm="Weasyl"'
+            raise HTTPUnauthorized()
+        return userid
+
+    elif authorization:
+        from weasyl.oauth2 import get_userid_from_authorization
+        userid = get_userid_from_authorization()
+        if not userid:
+            request.response.headers['WWW-Authenticate'] = 'Bearer realm="Weasyl" error="invalid_token"'
+            raise HTTPUnauthorized()
+        return userid
+
+    else:
+        userid = request.weasyl_session.userid
+        return 0 if userid is None else userid
+
+
+def log_exc_request_method(request, **kwargs):
+    """
+    Method on requests to log exceptions.
+    """
+    # It's unclear to me why this should be a request method and not just define.log_exc().
+    return request.environ.get('raven.captureException', lambda **kw: traceback.print_exc())(**kwargs)
+
+
+def web_input_request_method(request, **kwargs):
+    """
+    Callable that processes the pyramid request.params multidict into a web.py storage object
+    in the style of web.input().
+    TODO: Replace usages of this method with accessing request directly.
+
+    @param request: The pyramid request object.
+    @param kwargs: Default values. If a default value is a list, it indicates that multiple
+        values of that key should be collapsed into a list.
+    @return: A dictionary-like object in the fashion of web.py's web.input()
+    """
+    return storify(request.params.mixed(), defaults=kwargs)
+
+
 def connect():
     """
     Returns the current request's db connection.
     """
     return get_current_request().pg_connection
+
+
+def log_exc(**kwargs):
+    """
+    Logs an exception. This is essentially a wrapper around the current request's log_exc.
+    It's provided for compatibility for methods that depended on web.ctx.log_exc().
+    """
+    return get_current_request().log_exc(**kwargs)
 
 
 def execute(statement, argv=None, options=None):
@@ -373,33 +430,11 @@ def captcha_verify(form):
     return captcha_validation_result['success']
 
 
-def get_userid(sessionid=None):
+def get_userid():
     """
-    Returns the userid corresponding to the user's sessionid; if no such session
-    exists, zero is returned.
+    Returns the userid corresponding to the current request, if any.
     """
-    # TODO: Convert this into a reified property on the request.
-    request = get_current_request()
-    api_token = request.headers.get('X_WEASYL_API_KEY')
-    authorization = request.headers.get('AUTHORIZATION')
-    if api_token is not None:
-        userid = engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
-        if not userid:
-            request.response.headers['WWW-Authenticate'] = 'Weasyl-API-Key realm="Weasyl"'
-            raise HTTPUnauthorized()
-        return userid
-
-    elif authorization:
-        from weasyl.oauth2 import get_userid_from_authorization
-        userid = get_userid_from_authorization()
-        if not userid:
-            request.response.headers['WWW-Authenticate'] = 'Bearer realm="Weasyl" error="invalid_token"'
-            raise HTTPUnauthorized()
-        return userid
-
-    else:
-        userid = request.weasyl_session.userid
-        return 0 if userid is None else userid
+    return get_current_request().userid
 
 
 def get_token():
@@ -1278,3 +1313,7 @@ def thumb_for_sub(submission):
         thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
 
     return submission['sub_media'][thumb_key][0]
+
+
+# Temporary workaround. Delete me.
+token_checked = lambda x: x

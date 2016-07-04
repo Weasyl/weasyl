@@ -1,7 +1,6 @@
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
-from web.utils import storify
 
 from libweasyl.configuration import configure_libweasyl
 from weasyl.media import format_media_link
@@ -15,7 +14,7 @@ config = Configurator()
 
 config.add_tween("weasyl.middleware.session_tween_factory")
 config.add_tween("weasyl.middleware.db_timer_tween_factory")
-config.add_tween("weasyl.middleware.property_tween_factory")
+# config.add_tween("weasyl.middleware.property_tween_factory")
 config.add_tween("weasyl.middleware.cache_clear_tween_factory")
 
 config.add_route("index", "/")
@@ -37,20 +36,11 @@ config.add_notfound_view(view=weasyl_404, append_slash=True)
 config.add_view(view=mw.weasyl_exception_view, context=Exception)
 
 
-def web_input(request, **kwargs):
-    """
-    Callable that processes the pyramid request.params multidict into a web.py storage object
-    in the style of web.input().
-    TODO: Replace usages of this method with accessing request directly.
-
-    @param request: The pyramid request object.
-    @param kwargs: Default values. If a default value is a list, it indicates that multiple
-        values of that key should be collapsed into a list.
-    @return: A dictionary-like object in the fashion of web.py's web.input()
-    """
-    return storify(request.params.mixed(), defaults=kwargs)
-
-config.add_request_method(web_input)
+# Setup properties and methods for request objects.
+config.add_request_method(d.pg_connection_request_property, name='pg_connection', reify=True)
+config.add_request_method(d.userid_request_property, name='userid', reify=True)
+config.add_request_method(d.log_exc_request_method, name='log_exc')
+config.add_request_method(d.web_input_request_method, name='web_input')
 
 
 wsgi_app = config.make_wsgi_app()

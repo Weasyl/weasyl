@@ -12,17 +12,6 @@ Contains decorators for weasyl view callables to enforce permissions and the lik
 """
 
 
-def status_check(view_callable):
-    # Should be used universally as the first decorator.
-    # TODO: Replace me with a tween.
-    def inner(request):
-        status = define.common_status_check(request.userid)
-        if status:
-            return Response(define.common_status_page(request.userid, status))
-        return view_callable(request)
-    return inner
-
-
 def login_required(view_callable):
     def inner(request):
         if request.userid == 0:

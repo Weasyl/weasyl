@@ -80,14 +80,13 @@ def session_tween_factory(handler, registry):
     """
     # TODO(strain-113): This should be replaced with a real pyramid session_factory implementation.
     def session_tween(request):
-        cookies = request.cookies
         cookies_to_clear = set()
-        if 'beaker.session.id' in cookies:
+        if 'beaker.session.id' in request.cookies:
             cookies_to_clear.add('beaker.session.id')
 
         session = d.connect()
         sess_obj = None
-        if 'WZL' in cookies:
+        if 'WZL' in request.cookies:
             sess_obj = session.query(orm.Session).get(cookies['WZL'])
             if sess_obj is None:
                 # clear an invalid session cookie if nothing ends up trying to create a
@@ -119,6 +118,20 @@ def session_tween_factory(handler, registry):
             for name in cookies_to_clear:
                 resp.delete_cookie(name)
     return session_tween
+
+
+def status_check_tween_factory(handler, registry):
+    """
+    A tween that checks if the weasyl user is banned, suspended, etc. and redirects appropriately.
+
+    Rather than performing these checks on every view.
+    """
+    def status_check_tween(request):
+        status = d.common_status_check(request.userid)
+        if status:
+            return Response(d.common_status_page(request.userid, status))
+        return handler(request)
+    return status_check_tween
 
 
 def weasyl_exception_view(exc, request):

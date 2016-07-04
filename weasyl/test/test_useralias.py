@@ -116,10 +116,3 @@ class UseraliasSetTestCase(unittest.TestCase):
         useralias.set(user_id, user_alias)
         query = useralias.select(userid=user_id)
         self.assertTrue(user_alias == query)
-
-
-
-
-
-
-

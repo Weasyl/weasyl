@@ -19,9 +19,12 @@ raw_password = "0123456789"
 bcrypt_hash = login.passhash(raw_password)
 old_2a_bcrypt_hash = "$2a$12$qReI924/8pAsoHu6aRTX2ejyujAZ/9FiOOtrjczBIwf8wqXAJ22N."
 
+
+"""
+Section containing functions used within this suite of tests.
+"""
 TestAccountName_nameprefix = "testlogin"
 TestAccountName_counter = 0
-
 class TestFunctions():
     def generateTestAccountName(self):
         global TestAccountName_counter
@@ -39,6 +42,9 @@ class Bag(object):
         for kv in kw.items():
             setattr(self, *kv)
 
+"""
+Test section for: login.py::def signin(userid):
+"""
 class SigninTestCase(unittest.TestCase):
     def testVerifyLoginRecordIsUpdated(self):
         user_name = TestFunctions().generateTestAccountName()
@@ -49,6 +55,45 @@ class SigninTestCase(unittest.TestCase):
         self.assertRaises(AttributeError, login.signin, user_id)
         query = d.execute("SELECT last_login FROM login WHERE userid = %i", [user_id])
         self.assertGreater(query[0][0], -1)
+
+"""
+Test section for: login.py::def authenticate_bcrypt(username, password, session=True):
+"""
+def testAuthenticateBcrypt_LoginFailsForModsWithInvalidAuthentication(tmpdir):
+    original_macrosyslogpath = macro.MACRO_SYS_LOG_PATH
+    macro.MACRO_SYS_LOG_PATH = tmpdir + "/"
+    log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
+    mod_userid = 2061
+    user_id = db_utils.create_user(username='ikani')
+    d.execute("UPDATE login SET userid = %i WHERE userid = %i", [mod_userid, user_id])
+    user_id = mod_userid
+    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
+    # Ensure we are actually writing to the file by counting the file's lines
+    prerun_loglines = 0
+    # The file might not exist; this is fine; ignore
+    try:
+        with open(log_path, 'r') as log:
+            for line in log:
+                prerun_loglines += 1
+            log.close()
+    except IOError:
+        pass
+    postrun_loglines = 0
+    # Item under test
+    result = login.authenticate_bcrypt(username='ikani', password='FakePassword')
+    # Verify we are writing to the log file as expected
+    last_line = ''
+    with open(log_path, 'r') as log:
+        for line in log:
+            postrun_loglines += 1
+        last_line = line
+        log.close()
+    last_line_dict = json.loads(last_line)
+    assert postrun_loglines > prerun_loglines
+    assert last_line_dict['userid'] == mod_userid
+    assert result == (0, 'invalid')
+    # Reset the path back to default
+    macro.MACRO_SYS_LOG_PATH = original_macrosyslogpath
 
 class AuthenticateBcryptTestCase(unittest.TestCase):
     def testNoUsernameProvided(self):
@@ -63,39 +108,6 @@ class AuthenticateBcryptTestCase(unittest.TestCase):
     def testInvalidUsernameProvided(self):
         user_name = TestFunctions().generateTestAccountName()
         result = login.authenticate_bcrypt(username=user_name, password=raw_password)
-        self.assertEqual(result, (0, 'invalid'))
-
-    def testLoginFailsForModsWithInvalidAuthentication(self):
-        log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
-        mod_userid = 2061
-        user_id = db_utils.create_user(username='ikani')
-        d.execute("UPDATE login SET userid = %i WHERE userid = %i", [mod_userid, user_id])
-        user_id = mod_userid
-        d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
-        # Hackish workaround to ensure that the log is being written to until the
-        #  pytest way of making a temporary directory to patch the log directory to can be figured out
-        prerun_loglines = 0
-        # The file might not exist; this is fine; ignore
-        try:
-            with open(log_path, 'r') as log:
-                for line in log:
-                    prerun_loglines += 1
-                log.close()
-        except IOError:
-            pass
-        postrun_loglines = 0
-        # Item under test
-        result = login.authenticate_bcrypt(username='ikani', password='FakePassword')
-        # Verify we are writing to the log file as expected
-        last_line = ''
-        with open(log_path, 'r') as log:
-            for line in log:
-                postrun_loglines += 1
-            last_line = line
-            log.close()
-        last_line_dict = json.loads(last_line)
-        self.assertGreater(postrun_loglines, prerun_loglines)
-        self.assertTrue(last_line_dict['userid'] == mod_userid)
         self.assertEqual(result, (0, 'invalid'))
 
     def testLoginFailsForBannedUsers(self):
@@ -146,6 +158,11 @@ class AuthenticateBcryptTestCase(unittest.TestCase):
         result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
         self.assertEqual(result, (user_id, None))
 
+"""
+Test section for functions:
+a) login.py::def password_secure(password):
+b) login.py::def passhash(password):
+"""
 class PasswordChecksTestCase(unittest.TestCase):
     def testPasswordSecure(self):
         # Length too short (len < login._PASSWORD)
@@ -163,6 +180,9 @@ class PasswordChecksTestCase(unittest.TestCase):
         self.assertTrue(bcrypt_hash)
         self.assertTrue(bcrypt.checkpw(raw_password.encode('utf-8'), bcrypt_hash.encode('utf-8')))
 
+"""
+Test section for: login.py::def update_unicode_password(userid, password, password_confirm):
+"""
 class UpdateUnicodePasswordTestCase(unittest.TestCase):
     def testPasswordMismatchWeasylErrorIfPasswordsDoNotMatch(self):
         self.assertRaisesRegexp(WeasylError, "passwordMismatch", login.update_unicode_password, 
@@ -185,6 +205,9 @@ class UpdateUnicodePasswordTestCase(unittest.TestCase):
         self.assertRaisesRegexp(WeasylError, "passwordIncorrect", login.update_unicode_password, 
                                 userid=user_id, password="01234567811", password_confirm="01234567811")
 
+"""
+Test section for: login.py::def create(form):
+"""
 class CreateTestCase(unittest.TestCase):
     def testCheckIfBirthdayIsInvalid_DayMonthOrYearIsNotAnInteger(self):
         user_name = TestFunctions().generateTestAccountName()
@@ -397,6 +420,9 @@ class CreateTestCase(unittest.TestCase):
                 """, name=form.username).scalar()
         self.assertTrue(query)
 
+"""
+Test section for: login.py::def verify(token):
+"""
 class VerifyTestCase(unittest.TestCase):
     def testVerifyFailureIfInvalidTokenProvided(self):
         self.assertRaisesRegexp(WeasylError, "logincreateRecordMissing", login.verify, "qwe")
@@ -455,6 +481,9 @@ class VerifyTestCase(unittest.TestCase):
                 """, token=token).scalar()
         self.assertFalse(query)
 
+"""
+Test section for: login.py::def settings(userid, setting=None):
+"""
 class SettingsTestCase(unittest.TestCase):
     def testWhenNoSettingIsPassedAsAParameter(self):
         user_name = TestFunctions().generateTestAccountName()
@@ -472,6 +501,9 @@ class SettingsTestCase(unittest.TestCase):
         query = login.settings(user_id, 'd')
         self.assertTrue(query)
 
+"""
+Test section for: login.py::def sessionid(userid):
+"""
 class SessionidTestCase(unittest.TestCase):
     def testSessionidRetrieval(self):
         user_name = TestFunctions().generateTestAccountName()
@@ -484,6 +516,9 @@ class SessionidTestCase(unittest.TestCase):
                          })
         self.assertTrue(sessionid == login.sessionid(user_id))
 
+"""
+Test section for: login.py::def get_account_verification_token(email=None, username=None):
+"""
 class GetAccountVerificationTokenTestCase(unittest.TestCase):
     def testEmailProvidedToFunction(self):
         user_name = TestFunctions().generateTestAccountName()

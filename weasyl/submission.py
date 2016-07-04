@@ -1042,7 +1042,7 @@ def select_recently_popular():
 
     To calculate scores, this method performs the following evaluation:
 
-    item_score = log(item_fave_count) + log(item_view_counts) / 2 + submission_time / 180000
+    item_score = log(item_fave_count + 1) + log(item_view_counts) / 2 + submission_time / 180000
 
     180000 is roughly two days. So intuitively an item two days old needs an order of
     magnitude more favorites/views compared to a fresh one. Also the favorites are
@@ -1055,7 +1055,9 @@ def select_recently_popular():
 
     query = d.engine.execute("""
         SELECT
-            log(count(favorite.*) + 1) + log(submission.page_views + 1) / 2 + submission.unixtime / 180000 AS score,
+            log(count(favorite.*) + 1) +
+                log(submission.page_views + 1) / 2 +
+                submission.unixtime / 180000 AS score,
             submission.submitid,
             submission.title,
             submission.rating,

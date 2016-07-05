@@ -26,11 +26,11 @@ def signin_get_(request):
     ]))
 
 
-@token_checked
 @guest_required
+@token_checked
 def signin_post_(request):
     form = request.web_input(username="", password="", referer="", sfwmode="nsfw")
-    form.referer = form.referer or '/index'
+    form.referer = form.referer or '/'
 
     logid, logerror = login.authenticate_bcrypt(form.username, form.password)
 
@@ -104,8 +104,8 @@ def signup_get_(request):
     ]))
 
 
-@token_checked
 @guest_required
+@token_checked
 def signup_post_(request):
     form = request.web_input(
         username="", password="", passcheck="", email="", emailcheck="",
@@ -124,7 +124,7 @@ def signup_post_(request):
         "message has been sent to the email address you specified with "
         "information on how to complete the registration process. You "
         "should receive this email within the next hour.",
-        [["Return to the Home Page", "/index"]]))
+        [["Return to the Home Page", "/"]]))
 
 
 @guest_required
@@ -134,7 +134,7 @@ def verify_account_(request):
         request.userid,
         "**Success!** Your email address has been verified "
         "and you may now sign in to your account.",
-        [["Sign In", "/signin"], ["Return to the Home Page", "/index"]]))
+        [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
 
 
 @login_required
@@ -144,77 +144,73 @@ def verify_premium_(request):
         request.userid,
         "**Success!** Your purchased premium terms have "
         "been applied to your account.",
-        [["Go to Premium " "Settings", "/control"], ["Return to the Home Page", "/index"]]))
+        [["Go to Premium " "Settings", "/control"], ["Return to the Home Page", "/"]]))
 
 
-class forgotpassword_(controller_base):
-    guest_required = True
-
-    def GET(self):
-        return define.webpage(self.user_id, "etc/forgotpassword.html")
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(username="", email="", day="", month="", year="")
-
-        resetpassword.request(form)
-        return define.errorpage(
-            self.user_id,
-            "**Success!** A message containing information on "
-            "how to reset your password has been sent to your email address.",
-            [["Return to the Home Page", "/index"]])
+@guest_required
+def forgotpassword_get_(request):
+    return Response(define.webpage(request.userid, "etc/forgotpassword.html"))
 
 
-class resetpassword_(controller_base):
-    guest_required = True
+@guest_required
+@token_checked
+def forgetpassword_post_(request):
+    form = request.web_input(username="", email="", day="", month="", year="")
 
-    def GET(self):
-        form = web.input(token="")
+    resetpassword.request(form)
+    return Response(define.errorpage(
+        request.userid,
+        "**Success!** A message containing information on "
+        "how to reset your password has been sent to your email address.",
+        [["Return to the Home Page", "/"]]))
 
-        if not resetpassword.checktoken(form.token):
-            return define.errorpage(
-                self.user_id,
-                "This link does not appear to be valid. If you followed this link from your email, it may have expired.")
 
-        resetpassword.prepare(form.token)
+@guest_required
+def resetpassword_get_(request):
+    form = request.web_input(token="")
 
-        return define.webpage(self.user_id, "etc/resetpassword.html", [form.token])
+    if not resetpassword.checktoken(form.token):
+        return Response(define.errorpage(
+            request.userid,
+            "This link does not appear to be valid. If you followed this link from your email, it may have expired."))
 
-    def POST(self):
-        form = web.input(token="", username="", email="", day="", month="", year="", password="", passcheck="")
+    resetpassword.prepare(form.token)
 
-        resetpassword.reset(form)
-        return define.errorpage(
-            self.user_id,
-            "**Success!** Your password has been reset and you may now sign in to your account.",
-            [["Sign In", "/signin"], ["Return to the Home Page", "/index"]])
+    return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token]))
+
+
+@guest_required
+def resetpassword_post_(request):
+    form = request.web_input(token="", username="", email="", day="", month="", year="", password="", passcheck="")
+
+    resetpassword.reset(form)
+    return Response(define.errorpage(
+        request.userid,
+        "**Success!** Your password has been reset and you may now sign in to your account.",
+        [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
 
 
 # Forced action functions
-class force_resetpassword_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def force_resetpassword_(request):
+    if define.common_status_check(request.userid) != "resetpassword":
+        return Response(define.errorpage(request.userid, errorcode.permission))
 
-    @define.token_checked
-    def POST(self):
-        if define.common_status_check(self.user_id) != "resetpassword":
-            return define.errorpage(self.user_id, errorcode.permission)
+    form = request.web_input(password="", passcheck="")
 
-        form = web.input(password="", passcheck="")
-
-        resetpassword.force(self.user_id, form)
-        raise web.seeother("/index")
+    resetpassword.force(request.userid, form)
+    raise HTTPSeeOther(location="/", headers=request.response.headers)
 
 
-class force_resetbirthday_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def force_resetbirthday_(request):
+    if define.common_status_check(request.userid) != "resetbirthday":
+        return define.errorpage(request.userid, errorcode.permission)
 
-    @define.token_checked
-    def POST(self):
-        if define.common_status_check(self.user_id) != "resetbirthday":
-            return define.errorpage(self.user_id, errorcode.permission)
+    form = request.web_input(birthday="")
 
-        form = web.input(birthday="")
-
-        birthday = define.convert_inputdate(form.birthday)
-        profile.force_resetbirthday(self.user_id, birthday)
-        raise web.seeother("/index")
+    birthday = define.convert_inputdate(form.birthday)
+    profile.force_resetbirthday(request.userid, birthday)
+    raise HTTPSeeOther(location="/", headers=request.response.headers)

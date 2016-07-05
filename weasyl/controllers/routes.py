@@ -42,16 +42,16 @@ routes = (
 
     Route("/verify/account", "verify_account", user.verify_account_),
     Route("/verify/premium", "verify_premium", user.verify_premium_),
+
+    Route("/forgotpassword", "forgot_password", {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
+    Route("/resetpassword", "reset_password", {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
+
+    Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
+    Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
 )
 
 
 controllers = (
-    "/forgotpassword", "weasyl.controllers.user.forgotpassword_",
-    "/resetpassword", "weasyl.controllers.user.resetpassword_",
-
-    "/force/resetpassword", "weasyl.controllers.user.force_resetpassword_",
-    "/force/resetbirthday", "weasyl.controllers.user.force_resetbirthday_",
-
     "/~([^/]*)", "weasyl.controllers.profile.profile_",
     "/~([^/]+)/([^/]+)", "weasyl.controllers.profile.profile_media_",
     "/~([^/]+)/submissions?/([0-9]+)(?:/[^/.]*)?", "weasyl.controllers.detail.submission_",

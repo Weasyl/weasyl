@@ -5,6 +5,7 @@ RUN npm install -qg gulp-cli
 RUN adduser --system --home /var/cache/weasyl weasyl
 ADD as-weasyl /usr/local/sbin
 RUN mkdir -p /weasyl-src/node_modules
+RUN chown -R weasyl: /weasyl-src
 VOLUME /weasyl-src
 VOLUME /weasyl-src/node_modules
 WORKDIR /weasyl-src

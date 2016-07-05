@@ -66,3 +66,4 @@ Future Work
 
 * Clean up use of log_exc(). This should really just be a define.log_exc() universally probably.
 * Handle exceptions thrown prior to the setting of request.weasyl_session
+* Rename weasyl.controllers to `weasyl.views`. Wait till after the merge just in case it confuses github.

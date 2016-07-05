@@ -3,11 +3,11 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 
 from libweasyl.configuration import configure_libweasyl
-from weasyl.media import format_media_link
+from  weasyl.controllers.routes import setup_routes_and_views
 import weasyl.define as d
 import weasyl.macro as m
+from weasyl.media import format_media_link
 import weasyl.middleware as mw
-import weasyl.controllers.routes
 
 
 config = Configurator()
@@ -18,16 +18,8 @@ config.add_tween("weasyl.middleware.db_timer_tween_factory")
 config.add_tween("weasyl.middleware.cache_clear_tween_factory")
 config.add_tween("pyramid.tweens.excview_tween_factory")  # Required to catch exceptions thrown in tweens.
 
-config.add_route("index", "/")
-# Helping me see how slow this is:
-import time
-start = time.time()
-config.scan("weasyl.define")
-config.scan("weasyl.controllers")
-print "Scanned in %d seconds" % (time.time() - start)
 
-
-# Set up some exception handling.
+# Set up some exception handling and all our views.
 def weasyl_404(request):
     userid = d.get_userid()
     return Response(d.errorpage(userid, "**404!** The page you requested could not be found."),
@@ -35,6 +27,8 @@ def weasyl_404(request):
 
 config.add_notfound_view(view=weasyl_404, append_slash=True)
 config.add_view(view=mw.weasyl_exception_view, context=Exception)
+
+setup_routes_and_views(config)
 
 
 # Setup properties and methods for request objects.

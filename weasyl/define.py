@@ -146,7 +146,7 @@ def web_input_request_method(request, **kwargs):
         values of that key should be collapsed into a list.
     @return: A dictionary-like object in the fashion of web.py's web.input()
     """
-    return storify(request.params.mixed(), defaults=kwargs)
+    return storify(request.params.mixed(), **kwargs)
 
 
 def connect():

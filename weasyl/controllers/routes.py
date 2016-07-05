@@ -1,3 +1,49 @@
+from collections import namedtuple
+
+from weasyl.controllers import (
+    admin,
+    api,
+    content,
+    detail,
+    events,
+    general,
+    info,
+    interaction,
+    messages,
+    moderation,
+    profile,
+    settings,
+    user,
+    weasyl_collections,
+)
+
+
+Route = namedtuple('Route', ['pattern', 'name', 'view'])
+"Represents a Weasyl route, to be set up by pyramid."
+# TODO: Currently get/post are handled with if-blocks. One day we may want to split get/post into separate views.
+# At that point, we'll have to expose a method parameter.
+
+
+routes = (
+    Route("/{index:(index)?}", "index", general.index_),  # 'index' is optional in the URL
+    Route("/search", "search", general.search_),
+    Route("/popular", "popular", general.popular_),
+    Route("/streaming", "streaming", general.streaming_),
+)
+
+
+def setup_routes_and_views(config):
+    """
+    Reponsible for setting up all routes for the Weasyl application.
+
+    Args:
+        config: A pyramid Configuration for the wsgi application.
+    """
+    for route in routes:
+        config.add_route(name=route.name, pattern=route.pattern)
+        config.add_view(view=route.view, route_name=route.name)
+
+
 controllers = (
     "", "weasyl.controllers.general.index_",
     "/", "weasyl.controllers.general.index_",

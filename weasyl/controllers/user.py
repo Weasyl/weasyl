@@ -127,28 +127,24 @@ def signup_post_(request):
         [["Return to the Home Page", "/index"]]))
 
 
-class verify_account_(controller_base):
-    guest_required = True
-
-    def GET(self):
-        login.verify(web.input(token="").token)
-        return define.errorpage(
-            self.user_id,
-            "**Success!** Your email address has been verified "
-            "and you may now sign in to your account.",
-            [["Sign In", "/signin"], ["Return to the Home Page", "/index"]])
+@guest_required
+def verify_account_(request):
+    login.verify(request.web_input(token="").token)
+    return Response(define.errorpage(
+        request.userid,
+        "**Success!** Your email address has been verified "
+        "and you may now sign in to your account.",
+        [["Sign In", "/signin"], ["Return to the Home Page", "/index"]]))
 
 
-class verify_premium_(controller_base):
-    login_required = True
-
-    def GET(self):
-        premiumpurchase.verify(self.user_id, web.input(token="").token)
-        return define.errorpage(
-            self.user_id,
-            "**Success!** Your purchased premium terms have "
-            "been applied to your account.",
-            [["Go to Premium " "Settings", "/control"], ["Return to the Home Page", "/index"]])
+@login_required
+def verify_premium_(request):
+    premiumpurchase.verify(request.userid, request.web_input(token="").token)
+    return Response(define.errorpage(
+        request.userid,
+        "**Success!** Your purchased premium terms have "
+        "been applied to your account.",
+        [["Go to Premium " "Settings", "/control"], ["Return to the Home Page", "/index"]]))
 
 
 class forgotpassword_(controller_base):

@@ -39,29 +39,13 @@ routes = (
     }),
     Route("/signout", "signout", user.signout_),
     Route("/signup", "signup", {'GET': user.signup_get_, 'POST': user.signup_post_}),
+
+    Route("/verify/account", "verify_account", user.verify_account_),
+    Route("/verify/premium", "verify_premium", user.verify_premium_),
 )
 
 
-def setup_routes_and_views(config):
-    """
-    Reponsible for setting up all routes for the Weasyl application.
-
-    Args:
-        config: A pyramid Configuration for the wsgi application.
-    """
-    for route in routes:
-        config.add_route(name=route.name, pattern=route.pattern)
-        if isinstance(route.view, dict):
-            for method in route.view:
-                config.add_view(view=route.view[method], route_name=route.name, request_method=method)
-        else:
-            config.add_view(view=route.view, route_name=route.name, request_method="GET")
-
-
 controllers = (
-    "/verify/account", "weasyl.controllers.user.verify_account_",
-    "/verify/premium", "weasyl.controllers.user.verify_premium_",
-
     "/forgotpassword", "weasyl.controllers.user.forgotpassword_",
     "/resetpassword", "weasyl.controllers.user.resetpassword_",
 
@@ -257,3 +241,19 @@ controllers = (
 
     "/events/halloweasyl2014", "weasyl.controllers.events.halloweasyl2014_",
 )
+
+
+def setup_routes_and_views(config):
+    """
+    Reponsible for setting up all routes for the Weasyl application.
+
+    Args:
+        config: A pyramid Configuration for the wsgi application.
+    """
+    for route in routes:
+        config.add_route(name=route.name, pattern=route.pattern)
+        if isinstance(route.view, dict):
+            for method in route.view:
+                config.add_view(view=route.view[method], route_name=route.name, request_method=method)
+        else:
+            config.add_view(view=route.view, route_name=route.name, request_method="GET")

@@ -335,37 +335,33 @@ def testReset_VerifySuccessIfEverythingIsCorrect():
 """
 Test section for: resetpassword.py::def force(userid, form):
 """
-class ForceTestCase(unittest.TestCase):
-    def testPasswordMismatchRaisesWeasylError(self):
-        user_name = TestFunctions().generateTestAccountName()
-        user_id = db_utils.create_user(username=user_name)
-        password = '01234567890123'
-        form = Bag(password=password, passcheck='1234567890987')
+def testForce_PasswordMismatchRaisesWeasylError():
+    user_name = TestFunctions().generateTestAccountName()
+    user_id = db_utils.create_user(username=user_name)
+    password = '01234567890123'
+    form = Bag(password=password, passcheck='1234567890987')
+    with pytest.raises(WeasylError) as err:
+        resetpassword.force(user_id, form)
+    assert 'passwordMismatch' in str(err)
+
+def testForce_PasswordConsideredInsecureByLengthRaisesWeasylError():
+    user_name = TestFunctions().generateTestAccountName()
+    user_id = db_utils.create_user(username=user_name)
+    password = ''
+    for i in range(0, login._PASSWORD):
+        form = Bag(password=password, passcheck=password)
         with pytest.raises(WeasylError) as err:
             resetpassword.force(user_id, form)
-        assert 'passwordMismatch' in str(err)
+        assert 'passwordInsecure' in str(err)
+        password += 'a'
 
-    def testPasswordConsideredInsecureByLengthRaisesWeasylError(self):
-        user_name = TestFunctions().generateTestAccountName()
-        user_id = db_utils.create_user(username=user_name)
-        password = ''
-        for i in range(0, login._PASSWORD):
-            form = Bag(password=password, passcheck=password)
-            with pytest.raises(WeasylError) as err:
-                resetpassword.force(user_id, form)
-            assert 'passwordInsecure' in str(err)
-            password += 'a'
-    
-    def testVerifySuccessfulExecutionOfFunction(self):
-        user_name = TestFunctions().generateTestAccountName()
-        user_id = db_utils.create_user(username=user_name)
-        password = '01234567890123'
-        form = Bag(password=password, passcheck=password)
-        # Authbcrypt record doesn't exist; so update fails; make one
-        d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash('passwordpassword')])
-        resetpassword.force(user_id, form)
-        result = login.authenticate_bcrypt(username=user_name, password=password, session=False)
-        assert result == (user_id, None)
-
-
-
+def testForce_VerifySuccessfulExecutionOfFunction():
+    user_name = TestFunctions().generateTestAccountName()
+    user_id = db_utils.create_user(username=user_name)
+    password = '01234567890123'
+    form = Bag(password=password, passcheck=password)
+    # Authbcrypt record doesn't exist; so update fails; make one
+    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash('passwordpassword')])
+    resetpassword.force(user_id, form)
+    result = login.authenticate_bcrypt(username=user_name, password=password, session=False)
+    assert result == (user_id, None)

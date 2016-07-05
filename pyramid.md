@@ -67,6 +67,7 @@ Stretch goals
 Future Work
 -----------
 
+* Constructing Response()s everywhere is probably silly: We could just return webpage text with a renderer of string. This would likely be cleaner and avoid most of the issues around losing changes to request.response.
 * Clean up use of log_exc(). This should really just be a define.log_exc() universally probably.
 * Refactor to get rid of the new define.get_weasyl_session() call. It was created to handle a few places (such as signin) where non-view code manipulates the session directly.
 * Handle exceptions thrown prior to the setting of request.weasyl_session

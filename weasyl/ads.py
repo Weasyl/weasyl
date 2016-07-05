@@ -21,7 +21,7 @@ class Ad(object):
 
 
 IMAGE_DIMENSIONS = Size(300, 100)
-PERMITTED_TYPES = {"jpg", "png"}
+PERMITTED_TYPES = {"jpg", "png", "gif"}
 SIZE_LIMIT = 200 * 1024  # 200 KB
 
 

@@ -84,7 +84,7 @@ def signout_(request):
 
     login.signout(request)
 
-    raise HTTPSeeOther(location="/index", headers=request.response.headers)
+    raise HTTPSeeOther(location="/", headers=request.response.headers)
 
 
 @guest_required

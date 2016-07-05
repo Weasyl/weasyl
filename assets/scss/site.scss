@@ -4841,6 +4841,14 @@ a.user-icon:hover > span, a.user-icon:focus > span {
     display: inline-block;
 }
 
+.ad-multiple img {
+    display: block;
+}
+
+#submission-ads {
+    clear: left;
+}
+
 @media (max-width: 42em) {
     .ads-multiple * + .ad-multiple {
         display: none;

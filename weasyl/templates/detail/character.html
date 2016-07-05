@@ -145,10 +145,10 @@ $def with (myself, query, violations)
   <div id="detail-comments">
     $if query['comments']:
       <h3>Comments</h3>
-      $:{RENDER("common/comment_thread.html", ["detail_comments", query['comments'], "char", myself, query['charid'], query['userid']], cached = True)}
+      $:{RENDER("common/comment_thread.html", ["detail_comments", query['comments'], "char", myself, query['charid'], query['userid']])}
     $if myself:
       <h3>Leave a Comment</h3>
-      $:{RENDER("common/comment_form.html", [myself, query['charid'], "char"], cached = True)}
+      $:{RENDER("common/comment_form.html", [myself, query['charid'], "char"])}
   </div><!-- /detail-comments -->
 
 </div><!-- /detail-content -->

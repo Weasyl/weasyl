@@ -23,11 +23,15 @@ services:
       - ws_character:/weasyl-app/static/character
       - ws_journal:/weasyl-app/static/journal
       - ws_media:/weasyl-app/static/media
+      - ws_local:/var/cache/weasyl/.local
     volumes_from:
       - container:wzl-run:rw
     depends_on:
       - cache
       - db
+
+    ports:
+      - '8080'
 
   nginx:
     build:
@@ -50,3 +54,4 @@ volumes:
   ws_character: {}
   ws_journal: {}
   ws_media: {}
+  ws_local: {}

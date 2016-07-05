@@ -10,5 +10,6 @@ ENV PIP_FIND_LINKS=/wheelhouse
 
 VOLUME /wheelhouse
 VOLUME /weasyl-src
+VOLUME /var/cache/weasyl/.cache
 
 ENTRYPOINT ["as-weasyl", "pip", "wheel", "/weasyl-src", "/weasyl-src/libweasyl", "/weasyl-src/_wzl"]

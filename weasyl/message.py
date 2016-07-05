@@ -68,14 +68,18 @@ def remove_all_submissions(userid, only_before=None):
 
 
 def select_journals(userid):
-    journals = d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, we.otherid, we.targetid, pr.username, jo.title
-        FROM welcome we
-            INNER JOIN profile pr ON we.otherid = pr.userid
-            INNER JOIN journal jo ON we.targetid = jo.journalid
-        WHERE (we.userid, we.type) = (%(user)s, 1010)
-        ORDER BY we.unixtime DESC
-    """, user=userid)
+    statement = "SELECT we.welcomeid, we.unixtime, we.otherid, we.targetid, pr.username, jo.title" \
+                 " FROM welcome we" \
+                    " INNER JOIN profile pr ON we.otherid = pr.userid" \
+                    " INNER JOIN journal jo ON we.targetid = jo.journalid" \
+                 " WHERE (we.userid, we.type) = (%(user)s, 1010)"
+
+    # Filter non-SFW journals if SFW mode is active (rating = 10)
+    if d.is_sfw_mode():
+        statement += " AND (jo.rating = 10)"
+    statement += "ORDER BY we.unixtime DESC"
+
+    journals = d.engine.execute(statement, user=userid)
 
     return [{
         "type": 1010,

@@ -44,10 +44,13 @@ I bet these can all be set up trivially as a tween, except maybe for the session
 
 * (DONE) Try to replace define.get_userid() with a reified request.userid property.
 
+* flake8 everything before merge request.
+* check test coverage before merge request.
 
 Tests to do
 -----------
 
+I haven't tested signup yet. That should be done.
 Check all endpoints, mod tools, etc.
 Check error messages for 404, permission exceeded, etc.
 Throw an exception and confirm it looks right to sentry.
@@ -65,5 +68,6 @@ Future Work
 -----------
 
 * Clean up use of log_exc(). This should really just be a define.log_exc() universally probably.
+* Refactor to get rid of the new define.get_weasyl_session() call. It was created to handle a few places (such as signin) where non-view code manipulates the session directly.
 * Handle exceptions thrown prior to the setting of request.weasyl_session
 * Rename weasyl.controllers to `weasyl.views`. Wait till after the merge just in case it confuses github.

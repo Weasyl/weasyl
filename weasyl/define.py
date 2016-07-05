@@ -135,7 +135,7 @@ def log_exc_request_method(request, **kwargs):
     return request.environ.get('raven.captureException', lambda **kw: traceback.print_exc())(**kwargs)
 
 
-def web_input_request_method(request, **kwargs):
+def web_input_request_method(request, *required, **kwargs):
     """
     Callable that processes the pyramid request.params multidict into a web.py storage object
     in the style of web.input().
@@ -146,7 +146,7 @@ def web_input_request_method(request, **kwargs):
         values of that key should be collapsed into a list.
     @return: A dictionary-like object in the fashion of web.py's web.input()
     """
-    return storify(request.params.mixed(), **kwargs)
+    return storify(request.params.mixed(), *required, **kwargs)
 
 
 def connect():
@@ -430,6 +430,14 @@ def captcha_verify(form):
     return captcha_validation_result['success']
 
 
+def get_weasyl_session():
+    """
+    Gets the weasyl_session for the current request. Most code shouldn't have to use this.
+    """
+    # TODO: Remove this logic after updating login.signin()
+    return get_current_request().weasyl_session
+
+
 def get_userid():
     """
     Returns the userid corresponding to the current request, if any.
@@ -561,7 +569,7 @@ def is_sfw_mode():
     determine whether the current session is in SFW mode
     :return: TRUE if sfw or FALSE if nsfw
     """
-    return get_current_request.cookies.get('sfwmode', "nsfw") == "sfw"
+    return get_current_request().cookies.get('sfwmode', "nsfw") == "sfw"
 
 
 def get_premium(userid):
@@ -991,7 +999,7 @@ def common_status_page(userid, status):
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 
-        login.signout(userid)
+        login.signout(get_current_request())
         if status == 'banned':
             reason = moderation.get_ban_reason(userid)
             return errorpage(
@@ -1315,5 +1323,5 @@ def thumb_for_sub(submission):
     return submission['sub_media'][thumb_key][0]
 
 
-# Temporary workaround. Delete me.
+# Temporary workaround. Delete me. Use weasyl.controllers.decoraters version as views are ported.
 token_checked = lambda x: x

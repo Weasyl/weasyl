@@ -19,9 +19,12 @@ from weasyl.controllers import (
 
 
 Route = namedtuple('Route', ['pattern', 'name', 'view'])
-"Represents a Weasyl route, to be set up by pyramid."
-# TODO: Currently get/post are handled with if-blocks. One day we may want to split get/post into separate views.
-# At that point, we'll have to expose a method parameter.
+"""
+A route to be added to the Weasyl application.
+
+`view` may be either a view callable (in which case only GET/HEAD requests are routed to it) or a
+dict mapping http methods to view callables.
+"""
 
 
 routes = (
@@ -29,6 +32,13 @@ routes = (
     Route("/search", "search", general.search_),
     Route("/popular", "popular", general.popular_),
     Route("/streaming", "streaming", general.streaming_),
+
+    Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_,}),
+    Route("/signin/unicode-failure", "signin-unicode-failure", {
+        'GET': user.signin_unicode_failure_get_, 'POST': user.signin_unicode_failure_post_,
+    }),
+    Route("/signout", "signout", user.signout_),
+    Route("/signup", "signup", {'GET': user.signup_get_, 'POST': user.signup_post_}),
 )
 
 
@@ -41,22 +51,14 @@ def setup_routes_and_views(config):
     """
     for route in routes:
         config.add_route(name=route.name, pattern=route.pattern)
-        config.add_view(view=route.view, route_name=route.name)
+        if isinstance(route.view, dict):
+            for method in route.view:
+                config.add_view(view=route.view[method], route_name=route.name, request_method=method)
+        else:
+            config.add_view(view=route.view, route_name=route.name, request_method="GET")
 
 
 controllers = (
-    "", "weasyl.controllers.general.index_",
-    "/", "weasyl.controllers.general.index_",
-    "/index", "weasyl.controllers.general.index_",
-    "/search", "weasyl.controllers.general.search_",
-    "/popular", "weasyl.controllers.general.popular_",
-    "/streaming", "weasyl.controllers.general.streaming_",
-
-    "/signin", "weasyl.controllers.user.signin_",
-    "/signin/unicode-failure", "weasyl.controllers.user.signin_unicode_failure_",
-    "/signout", "weasyl.controllers.user.signout_",
-    "/signup", "weasyl.controllers.user.signup_",
-
     "/verify/account", "weasyl.controllers.user.verify_account_",
     "/verify/premium", "weasyl.controllers.user.verify_premium_",
 

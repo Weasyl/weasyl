@@ -102,9 +102,12 @@ def session_tween_factory(handler, registry):
         request.weasyl_session = sess_obj
 
         try:
-            return handler(request)
+            resp = None
+            resp = handler(request)
+            return resp
         finally:
-            resp = request.response
+            if resp is None:
+                resp = request.response
             if sess_obj.save:
                 session.begin()
                 if sess_obj.create:

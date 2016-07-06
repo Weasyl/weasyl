@@ -13,18 +13,12 @@ from weasyl import cache, define, media
 cache.region.configure('dogpile.cache.memory')
 define.metric = lambda *a, **kw: None
 
-staff_dict = {
-        'directors': [],
-        'technical_staff': [],
-        'admins': [],
-        'mods': [],
-        'developers': [],
-    }
+
 configure_libweasyl(
     dbsession=define.sessionmaker,
     not_found_exception=web.notfound,
     base_file_path='testing',
-    staff_config_dict=staff_dict,
+    staff_config_dict={},
     media_link_formatter_callback=media.format_media_link,
 )
 

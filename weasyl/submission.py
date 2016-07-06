@@ -1054,6 +1054,11 @@ def select_recently_popular():
     max_days = int(d.config_read_setting("popular_max_age_days", "21"))
 
     query = d.engine.execute("""
+        WITH t AS (
+            SELECT submitid AS cutoff FROM submission
+            WHERE unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER
+            ORDER BY unixtime LIMIT 1
+        )
         SELECT
             log(count(favorite.*) + 1) +
                 log(submission.page_views + 1) / 2 +
@@ -1072,7 +1077,7 @@ def select_recently_popular():
             LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
         WHERE
             submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
-            (favorite.unixtime IS NULL OR favorite.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER) AND
+            (favorite.targetid IS NULL OR favorite.targetid >= (SELECT cutoff FROM t)) AND
             submission.settings !~ '[hf]'
         GROUP BY submission.submitid, submission_tags.submitid, profile.userid
         ORDER BY score DESC

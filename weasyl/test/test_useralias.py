@@ -32,7 +32,7 @@ def testSelect_SelectingAliasSucceedsIfPremiumParameterIsSetToTrue():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     test_alias = TestFunctions().generateTestAccountName()
-    d.execute("INSERT INTO useralias VALUES (%i, '%s', 'p')", [user_id, test_alias])
+    d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id, alias=test_alias)
     query = useralias.select(userid=user_id, premium=True)
     # The manually set alias should equal what the function returns.
     assert test_alias == query
@@ -41,7 +41,7 @@ def testSelect_SelectingAliasSucceedsIfPremiumParameterIsSetToFalse():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     test_alias = TestFunctions().generateTestAccountName()
-    d.execute("INSERT INTO useralias VALUES (%i, '%s', '')", [user_id, test_alias])
+    d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id, alias=test_alias)
     query = useralias.select(userid=user_id, premium=False)
     # The manually set alias should equal what the function returns.
     assert test_alias == query
@@ -72,7 +72,7 @@ def testSet_SettingAliasFailsIfTargetAliasExists():
     test_alias = test_alias_existing
     user_id = db_utils.create_user(username=user_name)
     user_id_existing = db_utils.create_user(username=user_name_existing)
-    d.execute("INSERT INTO useralias VALUES (%i, '%s', 'p')", [user_id_existing, test_alias_existing])
+    d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id_existing, alias=test_alias_existing)
     with pytest.raises(WeasylError) as err:
         useralias.set(user_id, test_alias)
     assert 'usernameExists' in str(err)
@@ -105,7 +105,7 @@ def testSet_SettingAliasSucceedsWhenPreviousAliasDoesNotExist():
     assert isinstance(query, list)
     assert len(query) == 0
     # Make test user a premium user
-    d.execute("UPDATE profile SET config = config || 'd' WHERE userid = %i AND config !~ 'd'", [user_id])
+    d.engine.execute("UPDATE profile SET config = config || 'd' WHERE userid = %(id)s AND config !~ 'd'", id=user_id)
     # Set alias and verify it is set correctly
     useralias.set(user_id, user_alias)
     query = useralias.select(userid=user_id)
@@ -119,7 +119,7 @@ def testSet_SettingAliasSucceedsWhenPreviousAliasExists():
     user_alias = TestFunctions().generateTestAccountName()
     user_previous_alias = TestFunctions().generateTestAccountName()
     # Make test user a premium user
-    d.execute("UPDATE profile SET config = config || 'd' WHERE userid = %i AND config !~ 'd'", [user_id])
+    d.engine.execute("UPDATE profile SET config = config || 'd' WHERE userid = %(id)s AND config !~ 'd'", id=user_id)
     # Set 'previous' alias and verify it is set correctly
     useralias.set(user_id, user_previous_alias)
     query = useralias.select(userid=user_id)

@@ -47,14 +47,14 @@ Test section for: login.py::def signin(userid):
 def testSignin_VerifyLoginRecordIsUpdated():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    d.execute("UPDATE login SET last_login = '-1' WHERE userid = %i", [user_id])
+    d.engine.execute("UPDATE login SET last_login = '-1' WHERE userid = %(id)s", id=user_id)
     # login.signin(user_id) -will- raise an AttributeError when d.web.ctx.weasyl_session
     #   tries to execute itself; so catch/handle; it's a test environment issue
     with pytest.raises(AttributeError) as err:
         login.signin(user_id)
     print str(err)
-    query = d.execute("SELECT last_login FROM login WHERE userid = %i", [user_id])
-    assert query[0][0] > -1
+    query = d.engine.execute("SELECT last_login FROM login WHERE userid = %(id)s", id=user_id)
+    assert query.first()[0] > -1
 
 """
 Test section for: login.py::def authenticate_bcrypt(username, password, session=True):
@@ -78,7 +78,8 @@ def testAuthenticateBcrypt_VerifyLoginFailsForAllUsersIfIncorrectPasswordProvide
     user_id = db_utils.create_user(username=user_name)
     random_password = TestFunctions().generateTokenString(20)
     another_random_password = TestFunctions().generateTokenString(22)
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(random_password)])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(random_password))
     result = login.authenticate_bcrypt(username=user_name, password=another_random_password)
     assert result == (0, 'invalid')
 
@@ -88,9 +89,10 @@ def testAuthenticateBcrypt_LoginFailsForModsWithInvalidAuthentication(tmpdir):
     log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
     mod_userid = 2061
     user_id = db_utils.create_user(username='ikani')
-    d.execute("UPDATE login SET userid = %i WHERE userid = %i", [mod_userid, user_id])
+    d.engine.execute("UPDATE login SET userid = %(newid)s WHERE userid = %(oldid)s", newid=mod_userid, oldid=user_id)
     user_id = mod_userid
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(raw_password))
     # Ensure we are actually writing to the file by counting the file's lines
     prerun_loglines = 0
     # The file might not exist; this is fine; ignore
@@ -121,28 +123,33 @@ def testAuthenticateBcrypt_LoginFailsForModsWithInvalidAuthentication(tmpdir):
 def testAuthenticateBcrypt_LoginFailsForBannedUsers():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
-    d.execute("UPDATE login SET settings = 'b' WHERE userid = %i", [user_id])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(raw_password))
+    d.engine.execute("UPDATE login SET settings = 'b' WHERE userid = %(id)s", id=user_id)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password)
     assert result == (user_id, 'banned')
 
 def testAuthenticateBcrypt_LoginFailsForSuspendedUsersWithActiveDuration():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
-    d.execute("UPDATE login SET settings = 's' WHERE userid = %i", [user_id])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(raw_password))
+    d.engine.execute("UPDATE login SET settings = 's' WHERE userid = %(id)s", id=user_id)
     release_date = d.convert_unixdate(31, 12, 2030)
-    d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [user_id, 'test', release_date])
+    d.engine.execute("INSERT INTO suspension VALUES (%(id)s, %(reason)s, %(rel)s)",
+                        id=user_id, reason='test', rel=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
     assert result == (user_id, 'suspended')
 
 def testAuthenticateBcrypt_LoginSucceedsForSuspendedUsersWithExpiredDuration():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
-    d.execute("UPDATE login SET settings = 's' WHERE userid = %i", [user_id])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(raw_password))
+    d.engine.execute("UPDATE login SET settings = 's' WHERE userid = %(id)s", id=user_id)
     release_date = d.convert_unixdate(31, 12, 2015)
-    d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [user_id, 'test', release_date])
+    d.engine.execute("INSERT INTO suspension VALUES (%(id)s, %(reason)s, %(rel)s)",
+                        id=user_id, reason='test', rel=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
     assert result == (user_id, None)
 
@@ -161,7 +168,8 @@ def testAuthenticateBcrypt_LoginSucceedsForSuspendedUsersWithExpiredDuration():
 def testAuthenticateBcrypt_LoginSucceedsForValidUserAndPassword():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(raw_password))
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
     assert result == (user_id, None)
 
@@ -203,13 +211,15 @@ def testUpdateUnicodePassword_PasswordInsecureWeasylErrorIfPasswordUnderMinimumL
 def testUpdateUnicodePassword_VerifyingCorrectPasswordAgainstStoredBcryptHash():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(raw_password))
     assert login.update_unicode_password(user_id, "0123456789", "0123456789") is None
 
 def testUpdateUnicodePassword_PasswordIncorrectWeasylErrorIfPasswordIsIncorrect():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash(raw_password)])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                        id=user_id, bcrypthash=login.passhash(raw_password))
     with pytest.raises(WeasylError) as err:
         login.update_unicode_password(userid=user_id, password='01234567811', password_confirm='01234567811')
     assert 'passwordIncorrect' in str(err)
@@ -360,7 +370,7 @@ def testCreate_EmailChecks_EmailExistsInLogin():
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
     user_id = db_utils.create_user(username=TestFunctions().generateTestAccountName())
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'emailExists' in str(err)
@@ -419,7 +429,8 @@ def testCreate_UsernameChecks_UsernameExistsInLogin():
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
     user_id = db_utils.create_user(username=user_name)
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", ["UsernameExistsInLogin@weasyl.com", user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(userid)s",
+                        email="UsernameExistsInLogin@weasyl.com", userid=user_id)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' in str(err)
@@ -451,7 +462,7 @@ def testCreate_UsernameChecks_UsernameExistsInUseralias():
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
     user_id = db_utils.create_user(username='aliastest')
-    d.execute("INSERT INTO useralias VALUES (%i, '%s', 'p')", [user_id, user_name])
+    d.engine.execute("INSERT INTO useralias VALUES (%(userid)s, %(username)s, 'p')", userid=user_id, username=user_name)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' in str(err)
@@ -498,8 +509,8 @@ def testVerify_VerifySuccessfulExecutionIfValidTokenProvided():
                      })
     login.verify(token)
 
-    userid = d.execute("SELECT userid FROM login WHERE login_name = '%s'", [form.username])
-    userid = userid[0][0]
+    query = d.engine.execute("SELECT userid FROM login WHERE login_name = %(name)s", name=form.username)
+    userid = query.first()[0]
     # Verify that each table gets the correct information added to it (checks for record's existence for brevity)
     query = d.engine.execute("""
                 SELECT
@@ -541,7 +552,7 @@ def testSettings_WhenNoSettingIsPassedAsAParameter():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     settings = 'dp'
-    d.execute("UPDATE login SET settings = '%s' WHERE userid = %i", [settings, user_id])
+    d.engine.execute("UPDATE login SET settings = %(settings)s WHERE userid = %(id)s", settings=settings, id=user_id)
     query = login.settings(user_id)
     assert settings == query
 
@@ -549,7 +560,7 @@ def testSettings_WhenASettingIsPassedAsAParameter():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     settings = 'dp'
-    d.execute("UPDATE login SET settings = '%s' WHERE userid = %i", [settings, user_id])
+    d.engine.execute("UPDATE login SET settings = %(settings)s WHERE userid = %(id)s", settings=settings, id=user_id)
     query = login.settings(user_id, 'd')
     assert query
 

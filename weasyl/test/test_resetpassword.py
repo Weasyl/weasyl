@@ -76,7 +76,9 @@ def testRequest_VerifyWeasylErrorEmailinvalidIfProvidedEmailMismatchWithDBQuerie
     email_addr = user_name + "@weasyl.com"
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", ["testRequest_VerifyWeasylErrorEmailinvalidIfProvidedEmailMismatchWithDBQueriedEmail@weasyl.com", user_id])
+    emailzz = "testRequest_VerifyWeasylErrorEmailinvalidIfProvidedEmailMismatchWithDBQueriedEmail@weasyl.com"
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s",
+                email=emailzz, id=user_id)
     with pytest.raises(WeasylError) as err:
         resetpassword.request(form)
     assert 'emailInvalid' in str(err)
@@ -87,14 +89,14 @@ def testRequest_VerifyInsertionOfForgotpasswordRowIfOtherwiseValidInfoProvided()
     email_addr = user_name + "@weasyl.com"
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     # Emails fail in test environments
     with pytest.raises(OSError) as err:
         resetpassword.request(form)
     assert 'OSError' in str(err)
     # But we have what we need; verify token was set, both manually, and via .checktoken
-    query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-    token = str(query[0][0])
+    query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    token = query.first()[0]
     assert 100 == len(token)
     assert resetpassword.checktoken(token)
 
@@ -107,31 +109,35 @@ def testPrepare_VerifyDeletionOfStaleRecordsOlderThanOneHour():
         user_name = TestFunctions().generateTestAccountName()
         user_id = db_utils.create_user(username=user_name)
         email_addr = user_name + "@weasyl.com"
-        d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+        d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
         form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                    month=arrow.now().month, year=arrow.now().year)
         # Emails fail in test environments
         with pytest.raises(OSError) as err:
             resetpassword.request(form_for_request)
         assert 'OSError' in str(err)
-        query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-        token = str(query[0][0])
-        token_store.append(token)
+        query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+        token = query.first()[0]
+        token_store.append(str(token))
     # All tokens should exist at this point
     for i in range(20):
         assert resetpassword.checktoken(token_store[i])
-    # Set 5 tokens to be two hours old (0,5)
+    # Set 5 tokens to be two hours old (0,5) (7200)
     for i in range(0,5):
-        d.execute("UPDATE forgotpassword SET set_time = %i WHERE token = '%s'", [d.get_time() - 7200, token_store[i]])
-    # Set 5 tokens to be 30 minutes old (5,10)
+        d.engine.execute("UPDATE forgotpassword SET set_time = %(time)s WHERE token = %(token)s",
+                            time=d.get_time() - 7200, token=token_store[i])
+    # Set 5 tokens to be 30 minutes old (5,10) (1800)
     for i in range(5,10):
-        d.execute("UPDATE forgotpassword SET set_time = %i WHERE token = '%s'", [d.get_time() - 1800, token_store[i]])
-    # Set 5 tokens to be 10 minutes old for the last visit time (10,15)
+        d.engine.execute("UPDATE forgotpassword SET set_time = %(time)s WHERE token = %(token)s",
+                            time=d.get_time() - 1800, token=token_store[i])
+    # Set 5 tokens to be 10 minutes old for the last visit time (10,15) (600)
     for i in range(10,15):
-        d.execute("UPDATE forgotpassword SET link_time = %i WHERE token = '%s'", [d.get_time() - 600, token_store[i]])
-    # Set 5 tokens to be 2 minutes old for the last visit time (10,15)
+        d.engine.execute("UPDATE forgotpassword SET link_time = %(time)s WHERE token = %(token)s",
+                            time=d.get_time() - 600, token=token_store[i])
+    # Set 5 tokens to be 2 minutes old for the last visit time (10,15) (120)
     for i in range(15,20):
-        d.execute("UPDATE forgotpassword SET link_time = %i WHERE token = '%s'", [d.get_time() - 120, token_store[i]])
+        d.engine.execute("UPDATE forgotpassword SET link_time = %(time)s WHERE token = %(token)s",
+                            time=d.get_time() - 120, token=token_store[i])
     # This should clear all tokens >1hr old, and all tokens >5 minutes from last visit (10 total)
     resetpassword.prepare('foo')
     # This range should be cleared (set_time > 3600)
@@ -151,18 +157,18 @@ def testPrepare_VerifyUpdateOfLinktimeFieldWhenValidTokenIsPassedIn():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
     # Emails fail in test environments
     with pytest.raises(OSError) as err:
         resetpassword.request(form_for_request)
     assert 'OSError' in str(err)
-    query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-    token = str(query[0][0])
+    query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    token = query.first()[0]
     resetpassword.prepare(token)
-    query = d.execute("SELECT link_time FROM forgotpassword WHERE token = '%s'", [token])
-    assert query[0][0] >= d.get_time()
+    query = d.engine.execute("SELECT link_time FROM forgotpassword WHERE token = %(token)s", token=token)
+    assert query.first()[0] >= d.get_time()
 
 """
 Test section for: resetpassword.py::def reset(form):
@@ -171,7 +177,7 @@ def testReset_VerifyWeasylErrorPasswordmismatchIfPasswordsDoNotMatch():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     token = TestFunctions().generateTokenString(100)
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year, token=token,
@@ -185,7 +191,7 @@ def testReset_VerifyWeasylErrorPasswordinsecureIfPasswordConsideredInsecure():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     token = TestFunctions().generateTokenString(100)
     password = ''
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -212,7 +218,7 @@ def testReset_VerifyWeasylErrorForgotpasswordrecordmissingIfQueryResultEmpty():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     token = TestFunctions().generateTokenString(100)
     password = '01234567890123'
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -229,7 +235,7 @@ def testReset_VerifyWeasylErrorEmailincorrectIfProvidedEmailMismatchWithDBQuerie
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
@@ -237,8 +243,8 @@ def testReset_VerifyWeasylErrorEmailincorrectIfProvidedEmailMismatchWithDBQuerie
     with pytest.raises(OSError) as err:
         resetpassword.request(form_for_request)
     assert 'OSError' in str(err)
-    query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-    token = str(query[0][0])
+    query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    token = query.first()[0]
     # Force update link_time (required)
     resetpassword.prepare(token)
     email_addr_mismatch = TestFunctions().generateTestAccountName() + "@weasyl.com"
@@ -255,7 +261,7 @@ def testReset_VerifyWeasylErrorUsernameincorrectIfProvidedUsernameMismatchWithDB
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
@@ -263,8 +269,8 @@ def testReset_VerifyWeasylErrorUsernameincorrectIfProvidedUsernameMismatchWithDB
     with pytest.raises(OSError) as err:
         resetpassword.request(form_for_request)
     assert 'OSError' in str(err)
-    query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-    token = str(query[0][0])
+    query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    token = query.first()[0]
     # Force update link_time (required)
     resetpassword.prepare(token)
     user_name_mismatch = TestFunctions().generateTestAccountName()
@@ -281,7 +287,7 @@ def testReset_VerifyWeasylErrorAddressinvalidIfStoredIPAddressMismatchwithDBQuer
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
@@ -289,10 +295,10 @@ def testReset_VerifyWeasylErrorAddressinvalidIfStoredIPAddressMismatchwithDBQuer
     with pytest.raises(OSError) as err:
         resetpassword.request(form_for_request)
     assert 'OSError' in str(err)
-    query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-    token = str(query[0][0])
+    query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    token = query.first()[0]
     # Change IP detected when request was made (required for test)
-    d.execute("UPDATE forgotpassword SET address = '%s' WHERE token = '%s'", ["127.42.42.42", token])
+    d.engine.execute("UPDATE forgotpassword SET address = %(addr)s WHERE token = %(token)s", addr="127.42.42.42", token=token)
     # Force update link_time (required)
     resetpassword.prepare(token)
     form_for_reset = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -310,7 +316,7 @@ def testReset_VerifySuccessIfEverythingIsCorrect():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
     email_addr = user_name + "@weasyl.com"
-    d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [email_addr, user_id])
+    d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s", email=email_addr, id=user_id)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
@@ -318,19 +324,18 @@ def testReset_VerifySuccessIfEverythingIsCorrect():
     with pytest.raises(OSError) as err:
         resetpassword.request(form_for_request)
     assert 'OSError' in str(err)
-    query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-    token = str(query[0][0])
+    query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    token = query.first()[0]
     # Force update link_time (required)
     resetpassword.prepare(token)
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year, token=token,
                password=password, passcheck=password)
     resetpassword.reset(form)
-    query = d.execute("SELECT token FROM forgotpassword WHERE userid = %i", [user_id])
-    assert len(query) == 0
-    query = d.execute("SELECT hashsum FROM authbcrypt WHERE userid = %i", [user_id])
-    print query[0][0]
-    assert bcrypt.checkpw(password.encode('utf-8'), str(query[0][0]).encode('utf-8'))
+    query = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    assert query.first() == None
+    query = d.engine.execute("SELECT hashsum FROM authbcrypt WHERE userid = %(id)s", id=user_id)
+    assert bcrypt.checkpw(password.encode('utf-8'), (query.first()[0]).encode('utf-8'))
 
 """
 Test section for: resetpassword.py::def force(userid, form):
@@ -361,7 +366,8 @@ def testForce_VerifySuccessfulExecutionOfFunction():
     password = '01234567890123'
     form = Bag(password=password, passcheck=password)
     # Authbcrypt record doesn't exist; so update fails; make one
-    d.execute("INSERT INTO authbcrypt VALUES (%i, '%s')", [user_id, login.passhash('passwordpassword')])
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(hash)s)",
+                        id=user_id, hash=login.passhash('passwordpassword'))
     resetpassword.force(user_id, form)
     result = login.authenticate_bcrypt(username=user_name, password=password, session=False)
     assert result == (user_id, None)

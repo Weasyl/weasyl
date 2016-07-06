@@ -1072,7 +1072,6 @@ def select_recently_popular():
             LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
         WHERE
             submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
-            (favorite.unixtime IS NULL OR favorite.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER) AND
             submission.settings !~ '[hf]'
         GROUP BY submission.submitid, submission_tags.submitid, profile.userid
         ORDER BY score DESC

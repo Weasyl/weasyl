@@ -362,7 +362,7 @@ RDEPS = {
     "Don't build the targets that the provided targets depend on."
 ))
 @click.option('-n', '--dry-run', is_flag=True, help=(
-    "Show what would be done.."
+    "Show what would be done."
 ))
 @click.option('--all', 'all_targets', is_flag=True, help=(
     "Build all targets."

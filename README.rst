@@ -65,8 +65,8 @@ Next Steps and Common Tasks
     $ ./wzl build -r assets-sass
     $ ./wzl compose restart weasyl-app-dev
 
-- If there's an error displayed, it's probably been logged. Logs can be
-  streamed live to your console as they happen::
+- If the web application indicates that there was an error, it's probably been
+  logged. Logs can be streamed live to your console as they happen::
 
     $ ./wzl logtail
 
@@ -75,19 +75,13 @@ Next Steps and Common Tasks
 
     $ ./wzl test
 
-- Underneath, orchestration is managed by ``docker-compose``\
-  [#docker_compose]_, and since not all of its functionality has been
-  re-exposed through ``wzl``, ``docker-compose`` itself is exposed as ``./wzl
-  compose``. A few other useful commands which are only accessible this way::
+- If you need direct access to ``docker-compose`` functionality, it's exposed
+  as ``./wzl compose``. A few other useful commands which are currently only
+  accessible this way::
 
     $ ./wzl compose stop  # Shut down all services without destroying their state.
     $ ./wzl compose down  # Shut down all services and destroy persistent state.
     $ ./wzl compose ps  # Show what services are running.
-
-  .. [#docker_compose] `docker-compose
-     <https://www.docker.com/products/docker-compose>`_ won't need to be
-     installed separately; ``wzl`` runs in its own container and installs its
-     own dependencies.
 
 - Changes to the various ``Dockerfile``\ s or dependencies of the python code
   will require the containers to be rebuilt. The slowest, but most reliable way
@@ -104,6 +98,18 @@ Next Steps and Common Tasks
 
     $ ./wzl build -r {target name}
 
+- After images have been rebuilt, services will have to be restarted::
+
+    $ ./wzl run
+
+  While ``./wzl run`` is usually smart about figuring out which services need
+  to be restarted, it's sometimes necessary to restart services individually by
+  name::
+
+    $ ./wzl compose restart {service name}
+
+
+
 
 Targets
 ~~~~~~~
@@ -113,7 +119,9 @@ under the repository root. Details beyond the ``Dockerfile`` are specified in
 ``docker-compose.yml``, ``docker-compose-build.yml``, or ``_wzl/wzl.py``.
 
 ``weasyl-base``
-  The base image on which all other ``weasyl-*`` images are built.
+  The base image on which all other ``weasyl-*`` images are built. This is
+  basically just `Ubuntu Xenial <http://releases.ubuntu.com/16.04/>`_ with a
+  few packages installed via ``apt``.
 
 ``weasyl-build``
   The base image for doing build-related tasks against the source tree, such as
@@ -125,21 +133,22 @@ under the repository root. Details beyond the ``Dockerfile`` are specified in
   running tests or building docs.
 
 ``weasyl-app``
-  The image for running the python application server without having the entire
-  source tree mounted as a volume. Tests can be run from this image, but the
-  test dependencies must be installed separately, as this image is built using
-  the minimal set of dependencies required to run the app server.
+  The image for running the python application server without having any of the
+  source tree mounted as a volume.
 
-``weasyl-app-dev``
+``weasyl-app-dev`` [#service]_
   The image for running the python application server using the local source
-  tree instead of just code installed from the wheelhouse. This will include
-  development dependencies, so no separate install is required for running
-  tests or building docs.
+  tree in addition to code installed from the wheelhouse.
 
-``db``
-  The image for the postgres database server.
+``cache`` [#service]_
+  The image for memcached.
 
-``nginx``
+``db`` [#service]_
+  The image for the postgres database server. The sample database referenced
+  below will be fetched when a container starts from this image for the first
+  time, not when the container is built.
+
+``nginx`` [#service]_
   The image for the nginx front-end HTTP proxy.
 
 ``assets``
@@ -148,6 +157,13 @@ under the repository root. Details beyond the ``Dockerfile`` are specified in
 
 ``assets-sass``
   A non-image target that will compile Sass stylesheets into ``.css`` files.
+
+The difference between ``weasyl-app`` and ``weasyl-app-dev`` is intended to be
+no more than convenience: without having the local source tree mounted in the
+container, the latency between "make a code change" and "view the code change
+locally" would increase.
+
+.. [#service] These targets are also services.
 
 
 The Sample Database
@@ -175,11 +191,11 @@ the project's `gitter room <https://gitter.im/Weasyl/weasyl>`_.
 The above instructions have been tested on Linux and OS X. Windows support is
 currently in flux and incomplete.
 
-Hopefully this isn't necessary, but there are also commands available to
-inspect images and containers interactively for debugging::
+There are also commands available to inspect images and running services
+interactively for debugging::
 
-  $ ./wzl attach weasyl-app-dev
-  $ ./wzl shell weasyl-app-dev
+  $ ./wzl attach {service name}
+  $ ./wzl shell {image name}
 
 
 Code of Conduct

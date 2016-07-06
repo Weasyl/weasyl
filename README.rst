@@ -99,14 +99,55 @@ Next Steps and Common Tasks
 
     $ ./wzl build {target name}
 
-- Targets are listed in the help::
-
-    $ ./wzl build --help
-
 - To build a specific target and then any target that depends on that specific
   target (i.e. the reverse dependencies of a target)::
 
     $ ./wzl build -r {target name}
+
+
+Targets
+~~~~~~~
+
+All of the ``Dockerfile``\ s for these targets are in the ``docker`` directory
+under the repository root. Details beyond the ``Dockerfile`` are specified in
+``docker-compose.yml``, ``docker-compose-build.yml``, or ``_wzl/wzl.py``.
+
+``weasyl-base``
+  The base image on which all other ``weasyl-*`` images are built.
+
+``weasyl-build``
+  The base image for doing build-related tasks against the source tree, such as
+  creating wheels which will be installed into the app images.
+
+``weasyl-build-dev-wheels``
+  A non-image target which builds all of the wheels for ``weasyl`` and
+  ``libweasyl``, as well as wheels for development-time dependencies like for
+  running tests or building docs.
+
+``weasyl-app``
+  The image for running the python application server without having the entire
+  source tree mounted as a volume. Tests can be run from this image, but the
+  test dependencies must be installed separately, as this image is built using
+  the minimal set of dependencies required to run the app server.
+
+``weasyl-app-dev``
+  The image for running the python application server using the local source
+  tree instead of just code installed from the wheelhouse. This will include
+  development dependencies, so no separate install is required for running
+  tests or building docs.
+
+``db``
+  The image for the postgres database server.
+
+``nginx``
+  The image for the nginx front-end HTTP proxy.
+
+``assets``
+  The image for building the static assets. Currently, this is only
+  stylesheets, but might include javascript in the future.
+
+``assets-sass``
+  A non-image target that will compile Sass stylesheets into ``.css`` files.
 
 
 The Sample Database

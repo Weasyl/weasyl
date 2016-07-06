@@ -5,8 +5,7 @@ import web
 from libweasyl.models.content import Submission
 from libweasyl.text import slug_for
 from weasyl import (
-    character, define, journal, macro, media, profile, searchtag, submission,
-    template)
+    character, define, journal, macro, media, profile, searchtag, submission)
 from weasyl.controllers.base import controller_base
 from weasyl.error import WeasylError
 
@@ -55,7 +54,7 @@ class submission_(controller_base):
         extras["title"] = item["title"]
 
         page = define.common_page_start(self.user_id, options=["mediaplayer"], **extras)
-        page.append(define.render(template.detail_submission, [
+        page.append(define.render('detail/submission.html', [
             # Myself
             profile.select_myself(self.user_id),
             # Submission detail
@@ -124,7 +123,7 @@ class character_(controller_base):
         canonical_url = "/character/%d/%s" % (charid, slug_for(item["title"]))
 
         page = define.common_page_start(self.user_id, canonical_url=canonical_url, title=item["title"])
-        page.append(define.render(template.detail_character, [
+        page.append(define.render('detail/character.html', [
             # Profile
             profile.select_myself(self.user_id),
             # Character detail
@@ -159,7 +158,7 @@ class journal_(controller_base):
         canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
 
         page = define.common_page_start(self.user_id, options=["pager"], canonical_url=canonical_url, title=item["title"])
-        page.append(define.render(template.detail_journal, [
+        page.append(define.render('detail/journal.html', [
             # Myself
             profile.select_myself(self.user_id),
             # Journal detail

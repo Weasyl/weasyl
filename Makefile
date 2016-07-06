@@ -43,6 +43,7 @@ $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
                $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
+	$@/bin/pip install $(USE_WHEEL) pytest flake8
 	touch $@
 
 .PHONY: install-libweasyl
@@ -75,9 +76,15 @@ $(STATIC_DIRS):
 $(TEMP_DIRS):
 	mkdir -p $@
 
+node_modules: package.json
+	npm install
+
+build/rev-manifest.json: node_modules
+	gulp sass
+
 # Phony setup target
 .PHONY: setup
-setup: $(VE) config/site.config.txt config/weasyl-staff.yaml $(STATIC_DIRS) $(TEMP_DIRS)
+setup: $(VE) config/site.config.txt config/weasyl-staff.yaml build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker
@@ -89,6 +96,8 @@ deploy-web-worker: setup
 run: setup
 	WEASYL_ROOT=$(shell pwd) \
 		WEASYL_SERVE_STATIC_FILES=y \
+		WEASYL_RELOAD_TEMPLATES=y \
+		WEASYL_RELOAD_ASSETS=y \
 		WEASYL_REVERSE_PROXY_STATIC=y \
 		WEASYL_WEB_ENDPOINT=$(WEB_ENDPOINT) \
 		WEASYL_WEB_STATS_ENDPOINT="" \
@@ -113,6 +122,7 @@ shell: setup
 .PHONY: clean
 clean:
 	find . -type f -name '*.py[co]' -delete
+	rm -rf build
 	rm -rf $(STATIC_DIRS)
 	rm -rf $(TEMP_DIRS)
 

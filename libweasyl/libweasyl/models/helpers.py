@@ -162,9 +162,11 @@ class CharSettingsColumn(types.TypeDecorator):
         def clause_for(a, b=None):
             if b is None:
                 enum, value = None, a
+
                 @hybrid_property
                 def clause(inst):
                     return value in getattr(inst, column)
+
                 @clause.setter
                 def clause(inst, new_value):
                     settings = getattr(inst, column)
@@ -174,19 +176,24 @@ class CharSettingsColumn(types.TypeDecorator):
                         settings.mutable_settings.discard(value)
             else:
                 enum, value = a, b
+
                 @hybrid_property
                 def clause(inst):
                     return getattr(inst, column)[enum] == value
+
                 @clause.setter
                 def clause(inst, new_value):
                     if new_value:
                         getattr(inst, column)[enum] = value
                     else:
                         raise ValueError("can't set this attribute to a false-y value")
+
             @clause.expression
             def clause(cls):
                 return getattr(cls, column).op('~')(self.reverse_settings_map[enum, value])
+
             return clause
+
         yield clause_for
 
 CharSettings.associate_with(CharSettingsColumn)

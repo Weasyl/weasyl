@@ -1,6 +1,5 @@
 # submission.py
 
-import datetime
 import urlparse
 
 import arrow
@@ -27,7 +26,6 @@ import ignoreuser
 import collection
 
 from libweasyl.cache import region
-from libweasyl.models import content, meta, users
 from libweasyl import html, images, text, ratings, staff
 
 from weasyl import api, media, orm, twits
@@ -1044,7 +1042,7 @@ def select_recently_popular():
 
     To calculate scores, this method performs the following evaluation:
 
-    item_score = log(item_fave_count) + log(item_view_counts) / 2 + submission_time / 180000
+    item_score = log(item_fave_count + 1) + log(item_view_counts) / 2 + submission_time / 180000
 
     180000 is roughly two days. So intuitively an item two days old needs an order of
     magnitude more favorites/views compared to a fresh one. Also the favorites are
@@ -1053,41 +1051,34 @@ def select_recently_popular():
 
     :return: A list of submission dictionaries, in score-rank order.
     """
-    db = meta.Base.dbsession
-    subq = (
-        db.query(content.Favorite.targetid, sa.func.count().label('faves'))
-        .filter_by(type='s')
-        .group_by(content.Favorite.targetid)
-        .subquery())
-    score = (
-        sa.func.log(sa.func.greatest(sa.func.coalesce(subq.c.faves, 0), 1)) +
-        sa.func.log(sa.func.greatest(content.Submission.page_views, 1)) / 2 +
-        sa.cast(content.Submission.unixtime, sa.types.INTEGER) / 180000).label('score')
-    q = (
-        db.query(content.Submission, users.Profile, score)
-        .options(sa.orm.joinedload('tag_objects'))
-        .filter(~content.Submission.is_hidden, ~content.Submission.is_friends_only)
-        .outerjoin(subq, content.Submission.submitid == subq.c.targetid)
-        .join(users.Profile, content.Submission.userid == users.Profile.userid)
-        .order_by(score.desc()))
-
     max_days = int(d.config_read_setting("popular_max_age_days", "21"))
-    if max_days > 0:
-        q = q.filter(content.Submission.unixtime >
-                     sa.func.extract('EPOCH', sa.func.now() - datetime.timedelta(days=max_days)))
-    q = q.limit(128)
 
-    submissions = [{
-        'contype': 10,
-        'score': sc,
-        'submitid': s.submitid,
-        'title': s.title,
-        'rating': s.rating.code,
-        'subtype': s.subtype,
-        'unixtime': s.unixtime.timestamp,
-        'tags': list(s.tags),
-        'userid': s.userid,
-        'username': p.username,
-    } for s, p, sc in q.all()]
+    query = d.engine.execute("""
+        SELECT
+            log(count(favorite.*) + 1) +
+                log(submission.page_views + 1) / 2 +
+                submission.unixtime / 180000 AS score,
+            submission.submitid,
+            submission.title,
+            submission.rating,
+            submission.subtype,
+            submission.unixtime,
+            submission_tags.tags,
+            submission.userid,
+            profile.username
+        FROM submission
+            INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
+            INNER JOIN profile ON submission.userid = profile.userid
+            LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
+        WHERE
+            submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
+            (favorite.unixtime IS NULL OR favorite.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER) AND
+            submission.settings !~ '[hf]'
+        GROUP BY submission.submitid, submission_tags.submitid, profile.userid
+        ORDER BY score DESC
+        LIMIT 128
+    """, max_days=max_days)
+
+    submissions = [dict(row, contype=10) for row in query]
     media.populate_with_submission_media(submissions)
     return submissions

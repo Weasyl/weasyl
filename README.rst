@@ -17,13 +17,14 @@ greater.
 
 .. XXX: check version
 
-The first steps are to set configuration to defaults and build all of the
-images::
+The first steps are to set configuration to defaults, build all of the images,
+and ensure the database schema is up to date::
 
   $ ./wzl setup
   $ ./wzl build --all
+  $ ./wzl upgrade-db
 
-Once the images are built, the development server can be started::
+Once this is done, the development server can be started::
 
   $ ./wzl run
 
@@ -35,75 +36,77 @@ To access the development server, ``wzl`` can tell you where it's running::
 Next Steps and Common Tasks
 ---------------------------
 
-If it's the first time you've started Weasyl, you've recently pulled after a
-few weeks, or you know there's been a schema change, you'll need to ensure the
-database is using the most recent schema::
+- If you've recently pulled after a few weeks, or you know there's been a
+  schema change, you'll need to ensure the database is using the most recent
+  schema::
 
-  $ ./wzl upgrade-db
+    $ ./wzl upgrade-db
 
-Changes to python source files (any ``.py`` file) require a restart to be
-reflected::
+- Changes to python source files (any ``.py`` file) require a restart to be
+  reflected::
 
-  $ ./wzl compose restart weasyl-app-dev
+    $ ./wzl compose restart weasyl-app-dev
 
-``weasyl-app-dev`` is the python application service. The URL should remain the
-same across restarts.
+  ``weasyl-app-dev`` is the python application service. The URL should remain
+  the same across restarts.
 
-Changes to nginx config require a restart as well, but for a different service::
+- Changes to nginx config require a restart as well, but for a different
+  service::
 
-  $ ./wzl compose restart nginx
-  $ ./wzl url
+    $ ./wzl compose restart nginx
+    $ ./wzl url
 
-Since the URL is pointed at nginx, and its port can change on boot, this will
-likely mean there's a new URL.
+  Since the URL is pointed at nginx, and its port can change on boot, this will
+  likely mean there's a new URL.
 
-Changes to stylesheets (any ``.sass`` file) require a rebuild of the generated
-``.css`` files *and* a restart of the app server::
+- Changes to stylesheets (any ``.sass`` file) require a rebuild of the generated
+  ``.css`` files *and* a restart of the app server::
 
-  $ ./wzl build -r assets-sass
-  $ ./wzl compose restart weasyl-app-dev
+    $ ./wzl build -r assets-sass
+    $ ./wzl compose restart weasyl-app-dev
 
-If there's an error displayed, it's probably been logged. Logs can be streamed
-live to your console as they happen::
+- If there's an error displayed, it's probably been logged. Logs can be
+  streamed live to your console as they happen::
 
-  $ ./wzl logtail
+    $ ./wzl logtail
 
-Before you submit a pull request, make sure your new tests and all the old
-tests are passing::
+- Before you submit a pull request, make sure your new tests and all the old
+  tests are passing::
 
-  $ ./wzl test
+    $ ./wzl test
 
-Underneath, orchestration is managed by ``docker-compose``\ [#docker_compose]_,
-and since not all of its functionality has been re-exposed through ``wzl``,
-``docker-compose`` itself is exposed as ``./wzl compose``. A few other useful
-commands which are only accessible this way::
+- Underneath, orchestration is managed by ``docker-compose``\
+  [#docker_compose]_, and since not all of its functionality has been
+  re-exposed through ``wzl``, ``docker-compose`` itself is exposed as ``./wzl
+  compose``. A few other useful commands which are only accessible this way::
 
-  $ ./wzl compose stop  # Shut down all services without destroying their state.
-  $ ./wzl compose down  # Shut down all services and destroy persistent state.
-  $ ./wzl compose ps  # Show what services are running.
+    $ ./wzl compose stop  # Shut down all services without destroying their state.
+    $ ./wzl compose down  # Shut down all services and destroy persistent state.
+    $ ./wzl compose ps  # Show what services are running.
 
-.. [#docker_compose] `docker-compose <https://www.docker.com/products/docker-compose>`_
-   won't need to be installed separately; ``wzl`` runs in its own container and
-   installs its own dependencies.
+  .. [#docker_compose] `docker-compose
+     <https://www.docker.com/products/docker-compose>`_ won't need to be
+     installed separately; ``wzl`` runs in its own container and installs its
+     own dependencies.
 
-Changes to the various ``Dockerfile``\ s or dependencies of the python code
-will require the containers to be rebuilt. The slowest, but most reliable way
-is to rebuild everything::
+- Changes to the various ``Dockerfile``\ s or dependencies of the python code
+  will require the containers to be rebuilt. The slowest, but most reliable way
+  is to rebuild everything::
 
-  $ ./wzl build --all
+    $ ./wzl build --all
 
-To instead rebuild a specific target's dependencies, and then that target::
+- To instead rebuild a specific target's dependencies, and then that target::
 
-  $ ./wzl build {target name}
+    $ ./wzl build {target name}
 
-Targets are listed in the help::
+- Targets are listed in the help::
 
-  $ ./wzl build --help
+    $ ./wzl build --help
 
-To build a specific target and then any target that depends on that specific
-target (i.e. the reverse dependencies of a target)::
+- To build a specific target and then any target that depends on that specific
+  target (i.e. the reverse dependencies of a target)::
 
-  $ ./wzl build -r {target name}
+    $ ./wzl build -r {target name}
 
 
 The Sample Database

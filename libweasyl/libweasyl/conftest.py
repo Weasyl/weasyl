@@ -32,16 +32,11 @@ def setup(request):
 def staticdir(tmpdir):
     tmpdir = tmpdir.join('libweasyl-staticdir')
     staff_dict = {
-        # [Fiz, Ikani]
-        'directors': [1014, 2061],
-        # [Weykent]
-        'technical_staff': [5756],
-        # [Hendikins, Kihari]
-        'admins': [23613, 3],
-        # [pinardilla]
-        'mods': [40212],
-        # [8BitFur, Charmander, Foximile, Kailys, Kauko]
-        'developers': [38623, 34165, 15224, 2475, 8627],
+        'directors': [],
+        'technical_staff': [],
+        'admins': [],
+        'mods': [],
+        'developers': [],
     }
     configure_libweasyl(
         dbsession=sessionmaker,

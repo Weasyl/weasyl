@@ -9,16 +9,22 @@ config._in_test = True  # noqa
 
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
-from weasyl import cache, define, media, read_staff_yaml
+from weasyl import cache, define, media
 cache.region.configure('dogpile.cache.memory')
 define.metric = lambda *a, **kw: None
 
-
+staff_dict = {
+        'directors': [],
+        'technical_staff': [],
+        'admins': [],
+        'mods': [],
+        'developers': [],
+    }
 configure_libweasyl(
     dbsession=define.sessionmaker,
     not_found_exception=web.notfound,
     base_file_path='testing',
-    staff_config_dict=read_staff_yaml.load_staff_dict(),
+    staff_config_dict=staff_dict,
     media_link_formatter_callback=media.format_media_link,
 )
 

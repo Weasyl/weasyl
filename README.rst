@@ -11,11 +11,8 @@ creative world together in one easy to use, friendly, community website.
 Quickstart
 ----------
 
-Weasyl runs within a `Docker`_ container. The ``wzl`` program drives management
-of the system of Docker images. The only requirement is `Docker`_ 1.10 or
-greater.
-
-.. XXX: check version
+Weasyl runs within a `Docker`_ container. The ``wzl`` program manages the
+system of Docker images. The only requirement is `Docker`_ 1.10 or greater.
 
 The first steps are to set configuration to defaults, build all of the images,
 and ensure the database schema is up to date::
@@ -70,6 +67,15 @@ Next Steps and Common Tasks
 
     $ ./wzl logtail
 
+- Or, to run all of the services in the foreground, streaming logs to the
+  console automatically::
+
+    $ ./wzl run -n
+
+  Note that this will run in the foreground until control-C is pressed, and
+  then shut down all the services. ``./wzl logtail`` will not shut down
+  services when control-C is pressed.
+
 - Before you submit a pull request, make sure your new tests and all the old
   tests are passing::
 
@@ -108,7 +114,9 @@ Next Steps and Common Tasks
 
     $ ./wzl compose restart {service name}
 
+  Or, to restart everything unconditionally::
 
+    $ ./wzl compose restart
 
 
 Targets

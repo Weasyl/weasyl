@@ -975,11 +975,11 @@ def common_view_content(userid, targetid, feature):
     else:
         viewer = get_address()
 
-    try:
-        engine.execute(
-            meta.tables['views'].insert()
-            .values(viewer=viewer, targetid=targetid, type=typeid))
-    except sa.exc.IntegrityError:
+    result = engine.execute(
+        'INSERT INTO views (viewer, targetid, type) VALUES (%(viewer)s, %(targetid)s, %(type)s) ON CONFLICT DO NOTHING',
+        viewer=viewer, targetid=targetid, type=typeid)
+
+    if result.rowcount == 0:
         return False
 
     if feature == "submit":

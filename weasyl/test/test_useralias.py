@@ -42,25 +42,25 @@ def testSelect_SelectingAliasSucceedsIfPremiumParameterIsSetToFalse():
     user_id = db_utils.create_user(username=user_name)
     test_alias = TestFunctions().generateTestAccountName()
     d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id, alias=test_alias)
-    query = useralias.select(userid=user_id, premium=False)
+    queried_user_alias = useralias.select(userid=user_id, premium=False)
     # The manually set alias should equal what the function returns.
-    assert test_alias == query
+    assert test_alias == queried_user_alias
 
 def testSelect_SelectingAliasWhenUserHasNoAliasReturnsZeroLengthArrayIfPremiumParameterIsSetToTrue():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    query = useralias.select(userid=user_id, premium=True)
+    queried_user_alias = useralias.select(userid=user_id, premium=True)
     # Result when user has no alias set: should be a list, and be zero-length
-    assert isinstance(query, list)
-    assert len(query) == 0
+    assert isinstance(queried_user_alias, list)
+    assert len(queried_user_alias) == 0
 
 def testSelect_SelectingAliasWhenUserHasNoAliasReturnsZeroLengthArrayIfPremiumParameterIsSetToFalse():
     user_name = TestFunctions().generateTestAccountName()
     user_id = db_utils.create_user(username=user_name)
-    query = useralias.select(userid=user_id, premium=False)
+    queried_user_alias = useralias.select(userid=user_id, premium=False)
     # Result when user has no alias set: should be a list, and be zero-length
-    assert isinstance(query, list)
-    assert len(query) == 0
+    assert isinstance(queried_user_alias, list)
+    assert len(queried_user_alias) == 0
 
 """
 Test section for: useralias.py::def set(userid, username):
@@ -101,16 +101,16 @@ def testSet_SettingAliasSucceedsWhenPreviousAliasDoesNotExist():
     user_id = db_utils.create_user(username=user_name)
     user_alias = TestFunctions().generateTestAccountName()
     # Verify no alias is currently set
-    query = useralias.select(userid=user_id, premium=False)
-    assert isinstance(query, list)
-    assert len(query) == 0
+    queried_user_alias = useralias.select(userid=user_id, premium=False)
+    assert isinstance(queried_user_alias, list)
+    assert len(queried_user_alias) == 0
     # Make test user a premium user
     d.engine.execute("UPDATE profile SET config = config || 'd' WHERE userid = %(id)s AND config !~ 'd'", id=user_id)
     # Set alias and verify it is set correctly
     useralias.set(user_id, user_alias)
-    query = useralias.select(userid=user_id)
+    queried_user_alias = useralias.select(userid=user_id)
     # The set alias should equal what the function returns.
-    assert user_alias == query
+    assert user_alias == queried_user_alias
 
 def testSet_SettingAliasSucceedsWhenPreviousAliasExists():
     # Subchecks: 'previous' alias is set correctly, and new alias overwrites the old one
@@ -122,10 +122,10 @@ def testSet_SettingAliasSucceedsWhenPreviousAliasExists():
     d.engine.execute("UPDATE profile SET config = config || 'd' WHERE userid = %(id)s AND config !~ 'd'", id=user_id)
     # Set 'previous' alias and verify it is set correctly
     useralias.set(user_id, user_previous_alias)
-    query = useralias.select(userid=user_id)
+    queried_user_alias = useralias.select(userid=user_id)
     # Verify the 'previous' alias was set...
-    assert user_previous_alias == query
+    assert user_previous_alias == queried_user_alias
     # Set and verify the new alias
     useralias.set(user_id, user_alias)
-    query = useralias.select(userid=user_id)
-    assert user_alias == query
+    queried_user_alias = useralias.select(userid=user_id)
+    assert user_alias == queried_user_alias

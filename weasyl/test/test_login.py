@@ -155,9 +155,7 @@ def testAuthenticateBcrypt_LoginSucceedsForSuspendedUsersWithExpiredDuration():
 
 def testAuthenticateBcrypt_LoginSucceedsForValidUserAndPassword():
     user_name = TestFunctions().generateTestAccountName()
-    user_id = db_utils.create_user(username=user_name)
-    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
-                     id=user_id, bcrypthash=login.passhash(raw_password))
+    user_id = db_utils.create_user(username=user_name, password=raw_password)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
     assert result == (user_id, None)
 

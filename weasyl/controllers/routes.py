@@ -28,11 +28,13 @@ dict mapping http methods to view callables.
 
 
 routes = (
+    # Front page views.
     Route("/{index:(index)?}", "index", general.index_),  # 'index' is optional in the URL
     Route("/search", "search", general.search_),
     Route("/popular", "popular", general.popular_),
     Route("/streaming", "streaming", general.streaming_),
 
+    # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_,}),
     Route("/signin/unicode-failure", "signin-unicode-failure", {
         'GET': user.signin_unicode_failure_get_, 'POST': user.signin_unicode_failure_post_,
@@ -40,46 +42,52 @@ routes = (
     Route("/signout", "signout", user.signout_),
     Route("/signup", "signup", {'GET': user.signup_get_, 'POST': user.signup_post_}),
 
+    # Verification and password management views.
     Route("/verify/account", "verify_account", user.verify_account_),
     Route("/verify/premium", "verify_premium", user.verify_premium_),
-
-    Route("/forgotpassword", "forgot_password", {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
-    Route("/resetpassword", "reset_password", {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
-
+    Route("/forgotpassword", "forgot_password",
+          {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
+    Route("/resetpassword", "reset_password",
+          {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
     Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
+
+    # Profile views.
+    Route("/~{name:[^/]+}", "profile_tilde", profile.profile_),
+    Route("/user", "profile_user_unnamed", profile.profile_),
+    Route("/user/{name:[^/]+}", "profile_user", profile.profile_),
+    Route("/profile", "profile_unnamed", profile.profile_),
+    Route("/profile/{name:[^/]+}", "profile", profile.profile_),
+    Route("/~{name:[^/]+}/{link_type:[^/]+}", "profile_media", profile.profile_media_),
+    # TODO: Set up these as well.
+    # "/~([^/]+)/submissions?/([0-9]+)(?:/[^/.]*)?", "weasyl.controllers.detail.submission_",
+    # "/~([^/]+)/([^/]+)/([0-9]+)/.*", "weasyl.controllers.detail.submission_media_",
+    Route("/submissions", "profile_submissions_unnamed", profile.submissions_),
+    Route("/submissions/{name:[^/]*}", "profile_submissions", profile.submissions_),
+    Route("/journals", "profile_journals_unnamed", profile.journals_),
+    Route("/journals/{name:[^/]*}", "profile_journals",  profile.journals_),
+    Route("/collections", "profile_collections_unnamed",  profile.collections_),
+    Route("/collections/{name:[^/]*}", "profile_collections",  profile.collections_),
+    Route("/characters", "profile_characters_unnamed",  profile.characters_),
+    Route("/characters/{name:[^/]*}", "profile_characters",  profile.characters_),
+    Route("/shouts", "profile_shouts_unnamed",  profile.shouts_),
+    Route("/shouts/{name:[^/]*}", "profile_shouts",  profile.shouts_),
+    Route("/favorites", "profile_favorites_unnamed",  profile.favorites_),
+    Route("/favorites/{name:[^/]*}", "profile_favorites",  profile.favorites_),
+    Route("/friends", "profile_friends_unnamed",  profile.friends_),
+    Route("/friends/{name:[^/]*}", "profile_friends",  profile.friends_),
+    Route("/following", "profile_following_unnamed",  profile.following_),
+    Route("/following/{name:[^/]*}", "profile_following",  profile.following_),
+    Route("/followed", "profile_followed_unnamed",  profile.followed_),
+    Route("/followed/{name:[^/]*}", "profile_followed",  profile.followed_),
+    Route("/staffnotes", "profile_staffnotes_unnamed",  profile.staffnotes_),
+    Route("/staffnotes/{name:[^/]*}", "profile_staffnotes",  profile.staffnotes_),
 )
 
 
 controllers = (
-    "/~([^/]*)", "weasyl.controllers.profile.profile_",
-    "/~([^/]+)/([^/]+)", "weasyl.controllers.profile.profile_media_",
     "/~([^/]+)/submissions?/([0-9]+)(?:/[^/.]*)?", "weasyl.controllers.detail.submission_",
     "/~([^/]+)/([^/]+)/([0-9]+)/.*", "weasyl.controllers.detail.submission_media_",
-    "/user", "weasyl.controllers.profile.profile_",
-    "/user/(.*)", "weasyl.controllers.profile.profile_",
-    "/profile", "weasyl.controllers.profile.profile_",
-    "/profile/(.*)", "weasyl.controllers.profile.profile_",
-    "/submissions", "weasyl.controllers.profile.submissions_",
-    "/submissions/(.*)", "weasyl.controllers.profile.submissions_",
-    "/journals", "weasyl.controllers.profile.journals_",
-    "/journals/(.*)", "weasyl.controllers.profile.journals_",
-    "/collections", "weasyl.controllers.profile.collections_",
-    "/collections/(.*)", "weasyl.controllers.profile.collections_",
-    "/characters", "weasyl.controllers.profile.characters_",
-    "/characters/(.*)", "weasyl.controllers.profile.characters_",
-    "/shouts", "weasyl.controllers.profile.shouts_",
-    "/shouts/(.*)", "weasyl.controllers.profile.shouts_",
-    "/favorites", "weasyl.controllers.profile.favorites_",
-    "/favorites/(.*)", "weasyl.controllers.profile.favorites_",
-    "/friends", "weasyl.controllers.profile.friends_",
-    "/friends/(.*)", "weasyl.controllers.profile.friends_",
-    "/following", "weasyl.controllers.profile.following_",
-    "/following/(.*)", "weasyl.controllers.profile.following_",
-    "/followed", "weasyl.controllers.profile.followed_",
-    "/followed/(.*)", "weasyl.controllers.profile.followed_",
-    "/staffnotes", "weasyl.controllers.profile.staffnotes_",
-    "/staffnotes/(.*)", "weasyl.controllers.profile.staffnotes_",
 
     "/view", "weasyl.controllers.detail.submission_",
     "/view/([0-9]*)(?:/.*)?", "weasyl.controllers.detail.submission_",

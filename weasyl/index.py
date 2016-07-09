@@ -65,7 +65,7 @@ def filter_submissions(userid, submissions, incidence_limit=3):
     rating = ratings.GENERAL.code
     if userid:
         rating = d.get_rating(userid)
-        blocked_tags = blocktag.cached_select(userid)
+        blocked_tags = blocktag.select_ids(userid)
         ignored_users = set(ignoreuser.cached_list_ignoring(userid))
 
     submitter_incidence = collections.defaultdict(int)

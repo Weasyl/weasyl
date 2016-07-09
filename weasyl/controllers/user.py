@@ -1,7 +1,7 @@
 import web
 
 from weasyl import api, define, errorcode, login, moderation, \
-    premiumpurchase, profile, resetpassword, template
+    premiumpurchase, profile, resetpassword
 from weasyl.controllers.base import controller_base
 
 
@@ -10,7 +10,7 @@ class signin_(controller_base):
     guest_required = True
 
     def GET(self):
-        return define.webpage(self.user_id, template.etc_signin, [
+        return define.webpage(self.user_id, "etc/signin.html", [
             False,
             web.ctx.environ.get('HTTP_REFERER', ''),
         ])
@@ -29,7 +29,7 @@ class signin_(controller_base):
                 web.setcookie("sfwmode", "sfw", 31536000)
             raise web.seeother(form.referer)
         elif logerror == "invalid":
-            return define.webpage(self.user_id, template.etc_signin, [True, form.referer])
+            return define.webpage(self.user_id, "etc/signin.html", [True, form.referer])
         elif logerror == "banned":
             reason = moderation.get_ban_reason(logid)
             return define.errorpage(
@@ -83,7 +83,7 @@ class signup_(controller_base):
     def GET(self):
         form = web.input(email="")
 
-        return define.webpage(self.user_id, template.etc_signup, [
+        return define.webpage(self.user_id, "etc/signup.html", [
             # Signup data
             {
                 "email": form.email,
@@ -145,7 +145,7 @@ class forgotpassword_(controller_base):
     guest_required = True
 
     def GET(self):
-        return define.webpage(self.user_id, template.etc_forgotpassword)
+        return define.webpage(self.user_id, "etc/forgotpassword.html")
 
     @define.token_checked
     def POST(self):
@@ -172,7 +172,7 @@ class resetpassword_(controller_base):
 
         resetpassword.prepare(form.token)
 
-        return define.webpage(self.user_id, template.etc_resetpassword, [form.token])
+        return define.webpage(self.user_id, "etc/resetpassword.html", [form.token])
 
     def POST(self):
         form = web.input(token="", username="", email="", day="", month="", year="", password="", passcheck="")

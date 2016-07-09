@@ -73,9 +73,11 @@ def select_journals(userid):
         FROM welcome we
             INNER JOIN profile pr ON we.otherid = pr.userid
             INNER JOIN journal jo ON we.targetid = jo.journalid
-        WHERE (we.userid, we.type) = (%(user)s, 1010)
+        WHERE
+            (we.userid, we.type) = (%(user)s, 1010) AND
+            rating <= %(rating)s
         ORDER BY we.unixtime DESC
-    """, user=userid)
+    """, user=userid, rating=d.get_rating(userid))
 
     return [{
         "type": 1010,

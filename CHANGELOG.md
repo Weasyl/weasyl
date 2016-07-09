@@ -1,6 +1,39 @@
 Weasyl Changelog
 ================
 
+v1.1.5: 2016-07-05
+----------
+
+Publicly visible changes:
+
+ * Filters journal notifications by current rating preference. (#95, @charmander)
+ * Improves performance of Recently Popular calculation. (#74, @charmander)
+ * Fixes the layout of the donation thanks page. (#91, @kfkitsune)
+
+Internal changes:
+
+ * Replaces py-bcrypt with bcrypt, fixing the `$2a$` overflow bug and reducing the number of C extensions. (#80, #88, @kfkitsune)
+ * Moves the API documentation to the weasyl/weasyl repository. (#77, @kfkitsune)
+ * Adds details to Sentry errors. (#79, @charmander)
+ * Allows templates and assets to be reloaded without restarting the server. (#82, @charmander)
+ * Checks whether the viewer of a profile is followed by its owner. (#48, @dzamie)
+
+v1.1.4: 2016-06-17
+----------
+
+Publicly visible changes:
+
+ *  Adds a confirmation dialog box when a user attempts to remove a friend. (#64, @Syfaro)
+ *  Optimizes Weasyl search routines to boost search performance. (#55, #71, @charmander)
+
+Internal changes:
+
+ * Applies Weasyl's flake8 rules to libweasyl. (#63, @charmander)
+ * Adds a code of conduct for Weasyl developers, adapted from http://contributor-covenant.org/ .
+   (#57, @weykent, @strain-113)
+ * Installs pytest and flake8 in development environments, to faciliate tests. (#65, @skylerbunny)
+ * Updates version of raven library to 5.21.0 to fix an exception parsing bug. (#69, @skylerbunny)
+
 v1.1.3: 2016-06-16
 ----------
 

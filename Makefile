@@ -43,6 +43,7 @@ $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
                $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
+	$@/bin/pip install $(USE_WHEEL) pytest flake8
 	touch $@
 
 .PHONY: install-libweasyl
@@ -95,6 +96,8 @@ deploy-web-worker: setup
 run: setup
 	WEASYL_ROOT=$(shell pwd) \
 		WEASYL_SERVE_STATIC_FILES=y \
+		WEASYL_RELOAD_TEMPLATES=y \
+		WEASYL_RELOAD_ASSETS=y \
 		WEASYL_REVERSE_PROXY_STATIC=y \
 		WEASYL_WEB_ENDPOINT=$(WEB_ENDPOINT) \
 		WEASYL_WEB_STATS_ENDPOINT="" \

@@ -53,15 +53,16 @@ routes = (
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
 
     # Profile views.
-    Route("/~{name:[^/]+}", "profile_tilde", profile.profile_),
+    Route("/~{name}", "profile_tilde", profile.profile_),
     Route("/user", "profile_user_unnamed", profile.profile_),
-    Route("/user/{name:[^/]+}", "profile_user", profile.profile_),
+    Route("/user/{name}", "profile_user", profile.profile_),
     Route("/profile", "profile_unnamed", profile.profile_),
-    Route("/profile/{name:[^/]+}", "profile", profile.profile_),
-    Route("/~{name:[^/]+}/{link_type:[^/]+}", "profile_media", profile.profile_media_),
-    # TODO: Set up these as well.
-    # "/~([^/]+)/submissions?/([0-9]+)(?:/[^/.]*)?", "weasyl.controllers.detail.submission_",
-    # "/~([^/]+)/([^/]+)/([0-9]+)/.*", "weasyl.controllers.detail.submission_media_",
+    Route("/profile/{name}", "profile", profile.profile_),
+    Route("/~{name}/{link_type}", "profile_media", profile.profile_media_),
+    Route("/~{name}/{ignore_s:submissions?}/{submitid:[0-9]+}{ignore_name:(/[^/.]*)?}",
+          "submission_detail_profile", detail.submission_),
+    Route("/~{name}/{linktype}/{submitid:[0-9]+}/{ignore_name:.*}",
+          "submission_detail_media", detail.submission_media_),
     Route("/submissions", "profile_submissions_unnamed", profile.submissions_),
     Route("/submissions/{name:[^/]*}", "profile_submissions", profile.submissions_),
     Route("/journals", "profile_journals_unnamed", profile.journals_),
@@ -82,17 +83,15 @@ routes = (
     Route("/followed/{name:[^/]*}", "profile_followed",  profile.followed_),
     Route("/staffnotes", "profile_staffnotes_unnamed",  profile.staffnotes_),
     Route("/staffnotes/{name:[^/]*}", "profile_staffnotes",  profile.staffnotes_),
+
+    Route("/view", "submission_detail_view_unnamed", detail.submission_),
+    Route("/view/{submitid:[0-9]+}{ignore_name:(/.*)?}", "submission_detail_view", detail.submission_),
+    Route("/submission", "submission_detail_unnamed", detail.submission_),
+    Route("/submission/{submitid:[0-9]+}{ignore_name:(/.*)?}", "submission_detail", detail.submission_),
 )
 
 
 controllers = (
-    "/~([^/]+)/submissions?/([0-9]+)(?:/[^/.]*)?", "weasyl.controllers.detail.submission_",
-    "/~([^/]+)/([^/]+)/([0-9]+)/.*", "weasyl.controllers.detail.submission_media_",
-
-    "/view", "weasyl.controllers.detail.submission_",
-    "/view/([0-9]*)(?:/.*)?", "weasyl.controllers.detail.submission_",
-    "/submission", "weasyl.controllers.detail.submission_",
-    "/submission/([0-9]*)(?:/.*)?", "weasyl.controllers.detail.submission_",
     "/submission/tag-history/([0-9]+)", "weasyl.controllers.detail.submission_tag_history_",
     "/character", "weasyl.controllers.detail.character_",
     "/character/([0-9]*)(?:/.*)?", "weasyl.controllers.detail.character_",

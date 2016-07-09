@@ -35,7 +35,7 @@ def signin_post_(request):
     logid, logerror = login.authenticate_bcrypt(form.username, form.password)
 
     if logid and logerror == 'unicode-failure':
-        return HTTPSeeOther(location='/signin/unicode-failure')
+        raise HTTPSeeOther(location='/signin/unicode-failure', headers=request.response.headers)
     elif logid and logerror is None:
         resp = HTTPSeeOther(location=form.referer)
         if form.sfwmode == "sfw":
@@ -73,7 +73,7 @@ def signin_unicode_failure_get_(request):
 def signin_unicode_failure_post_(request):
     form = request.web_input(password='', password_confirm='')
     login.update_unicode_password(request.userid, form.password, form.password_confirm)
-    return HTTPFound(location="/", headers=request.response.headers)
+    raise HTTPFound(location="/", headers=request.response.headers)
 
 
 @login_required

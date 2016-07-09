@@ -1,8 +1,11 @@
 import os
+import re
 import sys
 import time
 import base64
 import logging
+import raven
+import raven.processors
 import traceback
 
 import anyjson as json
@@ -10,11 +13,13 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
 import web
+import web.webapi
 
 from libweasyl import security
 from libweasyl.cache import ThreadCacheProxy
 from weasyl import define as d
 from weasyl import errorcode
+from weasyl import http
 from weasyl import orm
 from weasyl.error import WeasylError
 
@@ -103,7 +108,7 @@ def weasyl_exception_processor():
         request_id = None
         if 'raven.captureException' in web.ctx.env:
             request_id = base64.b64encode(os.urandom(6), '+-')
-            event_id, = web.ctx.env['raven.captureException'](request_id=request_id)
+            event_id = web.ctx.env['raven.captureException'](request_id=request_id)
             request_id = '%s-%s' % (event_id, request_id)
         print 'unhandled error (request id %s) in %r' % (request_id, web.ctx.env)
         traceback.print_exc()
@@ -120,6 +125,27 @@ def endpoint_recording_delegate(f, fvars, args=()):
     return _delegate(f, fvars, args)
 
 
+class RemoveSessionCookieProcessor(raven.processors.Processor):
+    """
+    Removes Weasyl session cookies.
+    """
+    def _filter_header(self, value):
+        return re.sub(
+            r'WZL=(\w+)',
+            lambda match: 'WZL=' + '*' * len(match.group(1)),
+            value)
+
+    def filter_http(self, data):
+        if 'cookies' in data:
+            data['cookies'] = self._filter_header(data['cookies'])
+
+        if 'headers' in data and 'Cookie' in data['headers']:
+            data['headers']['Cookie'] = self._filter_header(data['headers']['Cookie'])
+
+        if 'env' in data and 'HTTP_COOKIE' in data['env']:
+            data['env']['HTTP_COOKIE'] = self._filter_header(data['env']['HTTP_COOKIE'])
+
+
 class URLSchemeFixingMiddleware(object):
     def __init__(self, app):
         self.app = app
@@ -132,30 +158,52 @@ class URLSchemeFixingMiddleware(object):
 
 class SentryEnvironmentMiddleware(object):
     def __init__(self, app, dsn, reactor=None):
-        import raven
         self.app = app
-        self.client = raven.Client(dsn)
+        self.client = raven.Client(
+            dsn=dsn,
+            release=d.CURRENT_SHA,
+            processors=[
+                'raven.processors.SanitizePasswordsProcessor',
+                'weasyl.middleware.RemoveSessionCookieProcessor',
+            ],
+        )
         if reactor is None:
             from twisted.internet import reactor
         self.reactor = reactor
 
-    def ravenCaptureArguments(self, extra):
-        data = {}
-        if 'level' in extra:
-            data['level'] = extra.pop('level')
-        extra['env'] = dict(web.ctx.env)
-        extra['session'] = web.ctx.get('weasyl_session')
-        extra['deployed-revision'] = d.CURRENT_SHA
-        return dict(data=data, extra=extra)
+    def ravenCaptureArguments(self, level=None, **extra):
+        data = {
+            'level': level,
+            'user': {
+                'id': d.get_userid(),
+                'ip_address': d.get_address(),
+            },
+            'request': {
+                'url': web.ctx.env['PATH_INFO'],
+                'method': web.ctx.env['REQUEST_METHOD'],
+                'data': web.webapi.rawinput(method='POST'),
+                'query_string': web.ctx.env['QUERY_STRING'],
+                'headers': http.get_headers(web.ctx.env),
+                'env': web.ctx.env,
+            },
+        }
+
+        return {
+            'data': data,
+            'extra': dict(
+                extra,
+                session=web.ctx.get('weasyl_session'),
+            ),
+        }
 
     def captureException(self, **extra):
-        kwargs = self.ravenCaptureArguments(extra)
+        kwargs = self.ravenCaptureArguments(**extra)
         exc_info = sys.exc_info()
         return blockingCallFromThread(
             self.reactor, self.client.captureException, exc_info, **kwargs)
 
     def captureMessage(self, message, **extra):
-        kwargs = self.ravenCaptureArguments(extra)
+        kwargs = self.ravenCaptureArguments(**extra)
         return blockingCallFromThread(
             self.reactor, self.client.captureMessage, message, **kwargs)
 

@@ -3,7 +3,9 @@ import time
 
 import web
 
-from weasyl import define, index, macro, search, template, profile, siteupdate, submission
+from libweasyl import ratings
+
+from weasyl import define, index, macro, search, profile, siteupdate, submission
 from weasyl.controllers.base import controller_base
 
 
@@ -14,7 +16,7 @@ class index_(controller_base):
     def GET(self):
         now = time.time()
         page = define.common_page_start(self.user_id, options=["homepage"], title="Home")
-        page.append(define.render(template.etc_index, index.template_fields(self.user_id)))
+        page.append(define.render("etc/index.html", index.template_fields(self.user_id)))
         return define.common_page_end(self.user_id, page, now=now)
 
 
@@ -43,7 +45,24 @@ class search_(controller_base):
                 "nextid": int(form.nextid) if form.nextid else None,
             }
 
-            query, next_count, back_count = search.select(self.user_id, rating, limit=63, **meta)
+            search_query = search.Query.parse(meta["q"], find)
+
+            if search_query.find == "user":
+                query = search.select_users(meta["q"])
+                next_count = back_count = 0
+            else:
+                search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
+
+                query, next_count, back_count = search.select(
+                    userid=self.user_id,
+                    rating=rating,
+                    limit=63,
+                    search=search_query,
+                    within=meta["within"],
+                    cat=meta["cat"],
+                    subcat=meta["subcat"],
+                    backid=meta["backid"],
+                    nextid=meta["nextid"])
 
             page.append(define.render("etc/search.html", [
                 # Search method
@@ -56,6 +75,7 @@ class search_(controller_base):
                 back_count,
                 # Submission subcategories
                 macro.MACRO_SUBCAT_LIST,
+                search.COUNT_LIMIT,
             ]))
         elif form.find:
             query = search.browse(self.user_id, rating, 66, form)
@@ -101,7 +121,7 @@ class streaming_(controller_base):
             "title": "Streaming",
         }
         rating = define.get_rating(self.user_id)
-        return define.webpage(self.user_id, template.etc_streaming,
+        return define.webpage(self.user_id, 'etc/streaming.html',
                               [profile.select_streaming(self.user_id, rating, 300, order_by="start_time desc")], **extras)
 
 

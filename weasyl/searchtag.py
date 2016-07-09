@@ -11,6 +11,7 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import orm
 from weasyl import welcome
+from weasyl.error import PostgresError
 from weasyl.error import WeasylError
 
 
@@ -61,16 +62,23 @@ def select_list(map_table, targetids):
         return {}
 
     mt = map_table
-    st = d.meta.tables['searchtag']
     q = (
         d.sa
-        .select([mt.c.targetid, d.sa.func.array_agg(st.c.title)])
-        .select_from(mt.join(st, mt.c.tagid == st.c.tagid))
+        .select([mt.c.targetid, d.sa.func.array_agg(mt.c.tagid)])
+        .select_from(mt)
         .where(mt.c.targetid.in_(targetids))
         .group_by(mt.c.targetid))
 
     db = d.connect()
     return dict(list(db.execute(q)))
+
+
+def get_ids(names):
+    result = d.engine.execute(
+        "SELECT tagid, title FROM searchtag WHERE title = ANY (%(names)s)",
+        names=list(names))
+
+    return {row.title: row.tagid for row in result}
 
 
 def suggest(userid, target):
@@ -180,7 +188,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
 
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
-        removed.difference_update(t.tagid for t in existing if 'a' in t.settings)
+        existing_artist_tags = {t.tagid for t in existing if 'a' in t.settings}
+        removed.difference_update(existing_artist_tags)
+        entered_tagids.update(existing_artist_tags)
 
     # Remove tags
     if removed:
@@ -197,6 +207,17 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
                 [table, targetid, d.sql_number_list(list(added))])
 
     if submitid:
+        try:
+            d.engine.execute(
+                'INSERT INTO submission_tags (submitid, tags) VALUES (%(submission)s, %(tags)s)',
+                submission=submitid, tags=list(entered_tagids))
+        except PostgresError:
+            result = d.engine.execute(
+                'UPDATE submission_tags SET tags = %(tags)s WHERE submitid = %(submission)s',
+                submission=submitid, tags=list(entered_tagids))
+
+            assert result.rowcount == 1
+
         db = d.connect()
         db.execute(
             d.meta.tables['tag_updates'].insert()

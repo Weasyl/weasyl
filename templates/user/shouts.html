@@ -26,5 +26,5 @@ $def with (profile, userinfo, relationship, myself, shouts, feature)
   $else:
     There are no ${'staff notes' if feature == "staffnotes" else 'comments'} to display.
   $if(myself):
-    $:{RENDER("common/comment_form.html", [myself, profile['userid'], feature], cached = True)}
+    $:{RENDER("common/comment_form.html", [myself, profile['userid'], feature])}
 </div><!-- /shouts-content -->

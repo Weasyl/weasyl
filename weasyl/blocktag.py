@@ -54,7 +54,7 @@ def check(userid, submitid=None, charid=None, journalid=None):
 
 
 def check_list(rating, tags, blocked_tags):
-    return any(rating >= b['rating'] and b['title'] in tags for b in blocked_tags)
+    return any(rating >= b['rating'] and b['tagid'] in tags for b in blocked_tags)
 
 
 def suggest(userid, target):
@@ -78,8 +78,13 @@ def select(userid):
 
 @region.cache_on_arguments()
 @d.record_timing
-def cached_select(userid):
-    return select(userid)
+def select_ids(userid):
+    return [
+        dict(row)
+        for row in d.engine.execute(
+            'SELECT tagid, rating FROM blocktag WHERE userid = %(user)s',
+            user=userid)
+    ]
 
 
 def insert(userid, tagid=None, title=None, rating=None):
@@ -116,7 +121,7 @@ def insert(userid, tagid=None, title=None, rating=None):
 
             d.engine.execute("INSERT INTO blocktag VALUES (%s, %s, %s)", userid, tag, rating)
 
-    cached_select.invalidate(userid)
+    select_ids.invalidate(userid)
 
 
 def remove(userid, tagid=None, title=None):
@@ -126,4 +131,4 @@ def remove(userid, tagid=None, title=None):
         d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, (SELECT tagid FROM searchtag WHERE title = '%s'))",
                   [userid, d.get_search_tag(title)])
 
-    cached_select.invalidate(userid)
+    select_ids.invalidate(userid)

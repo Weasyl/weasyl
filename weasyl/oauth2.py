@@ -5,11 +5,11 @@ import web
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
 from weasyl.controllers.base import controller_base
 from weasyl import define as d
-from weasyl import errorcode, login, media, orm
+from weasyl import errorcode, http, login, media, orm
 
 
 def extract_params():
-    headers = {k[5:].replace('_', '-').title(): v for k, v in web.ctx.env.iteritems() if k.startswith('HTTP_')}
+    headers = http.get_headers(web.ctx.env)
     return web.ctx.path, web.ctx.method, web.input(), headers
 
 

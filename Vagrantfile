@@ -16,6 +16,11 @@ echo >/etc/apt/sources.list.d/postgresql.list \
 curl https://deploy.weasyldev.com/weykent-key.asc | apt-key add -
 curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
+echo >/etc/apt/sources.list.d/nodesource.list \
+    'deb https://deb.nodesource.com/node_6.x jessie main'
+
+curl https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
+
 apt-get update
 apt-mark hold grub-pc
 apt-get -y dist-upgrade
@@ -32,7 +37,10 @@ apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libpq-dev \
     libxml2-dev libxslt-dev memcached nginx pkg-config \
     postgresql-9.5 postgresql-contrib-9.5 \
-    liblzma-dev python-dev python-virtualenv
+    liblzma-dev python-dev python-virtualenv \
+    ruby-sass nodejs
+
+npm install -g gulp-cli
 
 sudo -u postgres dropdb weasyl
 sudo -u postgres dropuser vagrant
@@ -65,6 +73,10 @@ server {
     location /static {
         root /home/vagrant/weasyl;
         try_files \\$uri @proxy;
+    }
+
+    location /css {
+        root /home/vagrant/weasyl/build;
     }
 
     location / {

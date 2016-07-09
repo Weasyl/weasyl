@@ -68,15 +68,22 @@ the project's `gitter room <https://gitter.im/Weasyl/weasyl>`_.
 
 The above instructions have been tested on Linux and OS X. It should be possible
 to run Weasyl in a virtual environment under Windows, but it hasn't been thoroughly
-tested. 
+tested.
 
-When developing under Windows hosts with a Linux guest, ensure that either Intel VT-x/EPT 
-or AMD-V/RVI are exposed to the virtual machine (e.g., the "Virtualize Intel VT-x/EPT or 
-AMD-V/RVI" setting under the Processors device settings for the guest VM in VMware). If 
-this setting is not selected, the configuration of the Weasyl VM via ``make setup-vagrant`` 
-may hang when Vagrant attempts to SSH to the VM to perform configuration of the guest. 
+When developing under Windows hosts with a Linux guest, ensure that either Intel VT-x/EPT
+or AMD-V/RVI are exposed to the virtual machine (e.g., the "Virtualize Intel VT-x/EPT or
+AMD-V/RVI" setting under the Processors device settings for the guest VM in VMware). If
+this setting is not selected, the configuration of the Weasyl VM via ``make setup-vagrant``
+may hang when Vagrant attempts to SSH to the VM to perform configuration of the guest.
 
+
+Code of Conduct
+---------------
+
+Please note that this project is released with a `Contributor Code of Conduct`_. By
+participating in this project you agree to abide by its terms.
 
 .. _Weasyl: https://www.weasyl.com
 .. _Vagrant: https://www.vagrantup.com
 .. _VirtualBox: https://www.virtualbox.org
+.. _Contributor Code of Conduct: CODE_OF_CONDUCT.md

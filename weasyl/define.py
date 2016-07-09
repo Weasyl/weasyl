@@ -1,5 +1,6 @@
 # define.py
 
+import os
 import re
 import time
 import random
@@ -39,6 +40,19 @@ from weasyl import config
 
 
 _shush_pyflakes = [sqlalchemy.orm, config_read]
+
+reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
+reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
+
+
+def _load_resources():
+    global resource_paths
+
+    with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
+        resource_paths = json.loads(f.read())
+
+
+_load_resources()
 
 
 # XXX: eventually figure out how to include this in libweasyl.
@@ -200,21 +214,21 @@ CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).s
 the_fake_request = FakePyramidRequest()
 
 
-# Renders a template file and returns the result.
-
 # Caching all templates. Parsing templates is slow; we don't need to do it all
 # the time and there's plenty of memory for storing the compiled templates.
 _template_cache = {}
 
 
-def render(template_name, argv=(), cached=False):
-    if isinstance(template_name, basestring):
-        template = _template_cache.get(template_name)
-    else:
-        template = template_name
-    if template is None:
+def compile(template_name):
+    """
+    Compiles a template file and returns the result.
+    """
+    template = _template_cache.get(template_name)
+
+    if template is None or reload_templates:
+        template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
         _template_cache[template_name] = template = web.template.frender(
-            "%stemplates/%s" % (macro.MACRO_SYS_BASE_PATH, template_name),
+            template_path,
             globals={
                 "INT": int,
                 "STR": str,
@@ -249,19 +263,18 @@ def render(template_name, argv=(), cached=False):
                 "sorted": sorted,
                 "staff": staff,
                 "request": the_fake_request,
+                "resource_path": get_resource_path,
             })
 
-    if argv is None:
-        return template
-    else:
-        return unicode(template(*argv))
+    return template
 
 
-def compile(target):
+def render(template_name, argv=()):
     """
-    Compiles a template file and returns the result.
+    Renders a template and returns the resulting HTML.
     """
-    return render(target, None)
+    template = compile(template_name)
+    return unicode(template(*argv))
 
 
 def titlebar(title, backtext=None, backlink=None):
@@ -1073,6 +1086,13 @@ def cdnify_url(url):
         return url
 
     return urlparse.urljoin(cdn_root, url)
+
+
+def get_resource_path(resource):
+    if reload_assets:
+        _load_resources()
+
+    return cdnify_url('/' + resource_paths[resource])
 
 
 def absolutify_url(url):

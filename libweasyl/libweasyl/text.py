@@ -39,27 +39,31 @@ USER_LINK = re.compile(r"""
 
 NON_USERNAME_CHARACTERS = re.compile("[^a-z0-9]+", re.I)
 
+
 def _furaffinity(target):
     return "".join(i for i in target if i not in "!#_" and not i.isspace()).lower()
+
 
 def _inkbunny(target):
     return target.lower()
 
+
 def _deviantart(target):
     return "".join(i for i in target if i != "." and not i.isspace()).lower()
+
 
 def _sofurry(target):
     return NON_USERNAME_CHARACTERS.sub("-", target).lstrip("-").lower()
 
 
 MISAKA_EXT = (
-    misaka.EXT_TABLES
-    | misaka.EXT_FENCED_CODE
-    | misaka.EXT_AUTOLINK
-    | misaka.EXT_STRIKETHROUGH
-    | misaka.EXT_NO_INTRA_EMPHASIS
-    | misaka.EXT_LAX_SPACING
-    | misaka.EXT_NO_INDENTED_CODE_BLOCKS)
+    misaka.EXT_TABLES |
+    misaka.EXT_FENCED_CODE |
+    misaka.EXT_AUTOLINK |
+    misaka.EXT_STRIKETHROUGH |
+    misaka.EXT_NO_INTRA_EMPHASIS |
+    misaka.EXT_LAX_SPACING |
+    misaka.EXT_NO_INDENTED_CODE_BLOCKS)
 
 MISAKA_FORMAT = (
     misaka.HTML_HARD_WRAP)

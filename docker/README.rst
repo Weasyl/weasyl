@@ -5,6 +5,9 @@ All of the ``Dockerfile``\ s for these targets are in this directory. Details
 beyond the ``Dockerfile`` are specified in the parent directory in
 ``docker-compose.yml``, ``docker-compose-build.yml``, or ``_wzl/wzl.py``.
 
+Services are denoted with a *(service)* suffix, which are the images that
+``docker-compose`` manages by bringing containers up and down as necessary.
+
 ``weasyl-base``
   The base image on which all other ``weasyl-*`` images are built. This is
   basically just `Ubuntu Xenial <http://releases.ubuntu.com/16.04/>`_ with a

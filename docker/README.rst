@@ -23,19 +23,19 @@ beyond the ``Dockerfile`` are specified in the parent directory in
   The image for running the python application server without having any of the
   source tree mounted as a volume.
 
-``weasyl-app-dev`` *(service)*
+``weasyl-app-dev`` (service)
   The image for running the python application server using the local source
   tree in addition to code installed from the wheelhouse.
 
-``cache`` *(service)*
+``cache`` (service)
   The image for memcached.
 
-``db`` *(service)*
+``db`` (service)
   The image for the postgres database server. The sample database referenced
   below will be fetched when a container starts from this image for the first
   time, not when the container is built.
 
-``nginx`` *(service)*
+``nginx`` (service)
   The image for the nginx front-end HTTP proxy.
 
 ``assets``

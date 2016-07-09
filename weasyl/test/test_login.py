@@ -142,7 +142,7 @@ Test section for functions:
 a) login.py::def password_secure(password):
 b) login.py::def passhash(password):
 """
-def testPasswordSecure_VerfyFunctionality():
+def test_password_secure__verify_it_functions_as_expected():
     # Length too short (len < login._PASSWORD)
     test_string = ""
     for i in range(0, login._PASSWORD):

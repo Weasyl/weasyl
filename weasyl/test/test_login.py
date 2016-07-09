@@ -68,9 +68,9 @@ def testAuthenticateBcrypt_VerifyLoginFailsForAllUsersIfIncorrectPasswordProvide
     result = login.authenticate_bcrypt(username=user['name'], password=another_random_password)
     assert result == (0, 'invalid')
 
-def testAuthenticateBcrypt_LoginFailsForModsWithInvalidAuthentication(tmpdir):
-    original_macrosyslogpath = macro.MACRO_SYS_LOG_PATH
-    macro.MACRO_SYS_LOG_PATH = tmpdir + "/"
+def testAuthenticateBcrypt_LoginFailsForModsWithInvalidAuthentication(tmpdir, monkeypatch):
+    # Set the temporary directory for the log file
+    monkeypatch.setenv(macro.MACRO_SYS_LOG_PATH, tmpdir + "/")
     log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
     mod_userid = 2061
     user_id = db_utils.create_user(username='ikani', password=raw_password, user_id=mod_userid)
@@ -98,8 +98,6 @@ def testAuthenticateBcrypt_LoginFailsForModsWithInvalidAuthentication(tmpdir):
     assert postrun_loglines > prerun_loglines
     assert last_line_dict['userid'] == mod_userid
     assert result == (0, 'invalid')
-    # Reset the path back to default
-    macro.MACRO_SYS_LOG_PATH = original_macrosyslogpath
 
 def testAuthenticateBcrypt_LoginFailsForBannedUsers():
     user = db_utils.create_user(password=raw_password, return_user_definition=True)

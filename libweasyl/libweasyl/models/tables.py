@@ -424,6 +424,8 @@ media = Table(
     Column('sha256', String(length=64)),
 )
 
+Index('ind_media_sha256', media.c.sha256)
+
 
 media_media_links = Table(
     'media_media_links', metadata,

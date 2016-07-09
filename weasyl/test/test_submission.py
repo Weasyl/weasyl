@@ -1,6 +1,8 @@
+import datetime
 import unittest
 import pytest
 
+import arrow
 import web
 
 from libweasyl.models.helpers import CharSettings
@@ -202,6 +204,29 @@ class SelectListTestCase(unittest.TestCase):
         self.assertEqual(
             1, len(submission.select_list(user1, ratings.GENERAL.code, 10,
                                           featured_filter=True)))
+
+    def test_recently_popular(self):
+        owner = db_utils.create_user()
+        now = arrow.now()
+
+        sub1 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=6))
+        sub2 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=4))
+        sub3 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=2))
+        sub4 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now)
+        tag = db_utils.create_tag(u'tag')
+
+        for s in [sub1, sub2, sub3, sub4]:
+            db_utils.create_submission_tag(tag, s)
+
+        for i in range(100):
+            favoriter = db_utils.create_user()
+            db_utils.create_favorite(favoriter, sub2, 's', unixtime=now)
+
+        recently_popular = submission.select_recently_popular()
+
+        self.assertEqual(
+            [item['submitid'] for item in recently_popular],
+            [sub2, sub4, sub3, sub1])
 
 
 @pytest.mark.usefixtures('db')

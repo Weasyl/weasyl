@@ -11,7 +11,7 @@ apt-get install -y ca-certificates apt-transport-https
 echo >/etc/apt/sources.list.d/weasyl.list \
     'deb http://apt.weasyldev.com/repos/apt/debian jessie main'
 echo >/etc/apt/sources.list.d/postgresql.list \
-    'deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main 9.5'
+    'deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main 9.5'
 
 curl https://deploy.weasyldev.com/weykent-key.asc | apt-key add -
 curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -

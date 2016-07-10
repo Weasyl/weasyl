@@ -26,11 +26,10 @@ def create_api_key(userid, token, description=""):
 
 
 def create_user(full_name="", birthday=arrow.get(586162800), config=None,
-                username=None, password=None, email_addr=None, user_id=None,
-                return_user_definition=False):
+                username=None, password=None, email_addr=None, user_id=None):
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
-        username = "user" + str(next(_user_index))
+        username = "User-" + str(next(_user_index))
     user = add_entity(users.Login(login_name=legacy.login_name(username),
                                   last_login=arrow.get(0)))
     add_entity(users.Profile(userid=user.userid, username=username,
@@ -44,16 +43,9 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
     if email_addr is not None:
         d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s",
                          email=email_addr, id=user.userid)
-    # Force the userID to a user-defined value
+    # Force the userID to a user-defined value and return it
     if user_id is not None:
         d.engine.execute("UPDATE login SET userid = %(newid)s WHERE userid = %(oldid)s", newid=user_id, oldid=user.userid)
-    if return_user_definition and user_id is not None:
-        return {"name" : username,
-                "id" : user_id,}
-    elif return_user_definition:
-        return {"name" : username,
-                "id" : user.userid,}
-    if user_id is not None:
         return user_id
     return user.userid
 

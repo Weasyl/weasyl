@@ -1,6 +1,3 @@
-"""
-Test suite for: login.py::def update_unicode_password(userid, password, password_confirm):
-"""
 import pytest
 
 from weasyl.test import db_utils
@@ -15,13 +12,13 @@ raw_password = "0123456789"
 def test_password_and_confirmation_must_match():
     with pytest.raises(WeasylError) as err:
         login.update_unicode_password(123, '321', '123')
-    assert 'passwordMismatch' in str(err)
+    assert 'passwordMismatch' == err.value.value
 
 
 def test_passwords_must_be_above_minimum_length():
     with pytest.raises(WeasylError) as err:
         login.update_unicode_password(123, '012345678', '012345678')
-    assert 'passwordInsecure' in str(err)
+    assert 'passwordInsecure' == err.value.value
 
 
 def test_verify_correct_password_against_stored_bcrypt_hash():
@@ -35,4 +32,4 @@ def test_incorrect_passwords_raise_passwordIncorrect_WeasylError():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
     with pytest.raises(WeasylError) as err:
         login.update_unicode_password(userid=user_id, password='01234567811', password_confirm='01234567811')
-    assert 'passwordIncorrect' in str(err)
+    assert 'passwordIncorrect' == err.value.value

@@ -1,6 +1,3 @@
-"""
-Test suite for: resetpassword.py::def checktoken(token):
-"""
 from weasyl.test import db_utils
 from weasyl import resetpassword
 from weasyl import define as d

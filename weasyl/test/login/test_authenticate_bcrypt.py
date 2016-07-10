@@ -1,7 +1,4 @@
 # encoding: utf-8
-"""
-Test suite for: login.py::def authenticate_bcrypt(username, password, session=True):
-"""
 import json
 
 from weasyl.test import db_utils
@@ -19,12 +16,12 @@ class Bag(object):
             setattr(self, *kv)
 
 
-def test_logins_fail_if_no_username_provided():
+def test_login_fails_if_no_username_provided():
     result = login.authenticate_bcrypt(username='', password='password')
     assert result == (0, 'invalid')
 
 
-def test_logins_fail_if_no_password_provided():
+def test_login_fails_if_no_password_provided():
     user_name = "test"
     result = login.authenticate_bcrypt(username=user_name, password='')
     assert result == (0, 'invalid')

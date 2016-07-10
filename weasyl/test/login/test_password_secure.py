@@ -1,6 +1,3 @@
-"""
-Test suite for function: login.py::def password_secure(password):
-"""
 from weasyl import login
 
 

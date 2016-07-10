@@ -1,6 +1,3 @@
-"""
-Test suite for: resetpassword.py::def reset(form):
-"""
 import pytest
 import bcrypt
 import arrow
@@ -27,7 +24,7 @@ def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
                password='qwe', passcheck='asd')
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form)
-    assert 'passwordMismatch' in str(err)
+    assert 'passwordMismatch' == err.value.value
 
 
 def test_passwordInsecure_WeasylError_if_password_length_insufficient():
@@ -43,7 +40,7 @@ def test_passwordInsecure_WeasylError_if_password_length_insufficient():
     for i in range(0, login._PASSWORD):
         with pytest.raises(WeasylError) as err:
             resetpassword.reset(form)
-        assert 'passwordInsecure' in str(err)
+        assert 'passwordInsecure' == err.value.value
         password += 'a'
         form.password = password
         form.passcheck = password
@@ -54,7 +51,7 @@ def test_passwordInsecure_WeasylError_if_password_length_insufficient():
     # Success at WeasylError/forgotpasswordRecordMissing; we didn't make one yet
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form)
-    assert 'forgotpasswordRecordMissing' in str(err)
+    assert 'forgotpasswordRecordMissing' == err.value.value
 
 
 def test_forgotpasswordRecordMissing_WeasylError_if_reset_record_not_found():
@@ -69,7 +66,7 @@ def test_forgotpasswordRecordMissing_WeasylError_if_reset_record_not_found():
     # Technically we did this in the above test, but for completeness, target it alone
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form)
-    assert 'forgotpasswordRecordMissing' in str(err)
+    assert 'forgotpasswordRecordMissing' == err.value.value
 
 
 def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email():
@@ -93,7 +90,7 @@ def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email()
                          password=password, passcheck=password)
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form_for_reset)
-    assert 'emailIncorrect' in str(err)
+    assert 'emailIncorrect' == err.value.value
 
 
 def test_emailIncorrect_WeasylError_if_username_doesnt_match_stored_username():
@@ -117,7 +114,7 @@ def test_emailIncorrect_WeasylError_if_username_doesnt_match_stored_username():
                          password=password, passcheck=password)
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form_for_reset)
-    assert 'usernameIncorrect' in str(err)
+    assert 'usernameIncorrect' == err.value.value
 
 
 def test_password_reset_fails_if_attempted_from_different_ip_address():
@@ -143,7 +140,7 @@ def test_password_reset_fails_if_attempted_from_different_ip_address():
                          password=password, passcheck=password)
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form_for_reset)
-    assert 'addressInvalid' in str(err)
+    assert 'addressInvalid' == err.value.value
 
 
 def test_verify_success_if_correct_information_supplied():

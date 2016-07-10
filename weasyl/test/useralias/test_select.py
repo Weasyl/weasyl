@@ -1,6 +1,3 @@
-"""
-Test suite for: useralias.py::def select(userid, premium=True):
-"""
 from weasyl.test import db_utils
 from weasyl import useralias
 from weasyl import define as d

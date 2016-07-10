@@ -1,6 +1,3 @@
-"""
-Test suite for: resetpassword.py::def request(form):
-"""
 import pytest
 import arrow
 
@@ -23,7 +20,7 @@ def test_user_must_exist_for_a_forgotten_password_request_to_be_made():
                month=arrow.now().month, year=arrow.now().year)
     with pytest.raises(WeasylError) as err:
         resetpassword.request(form)
-    assert 'loginRecordMissing' in str(err)
+    assert 'loginRecordMissing' == err.value.value
 
 
 def test_email_must_match_email_stored_in_DB():
@@ -35,7 +32,7 @@ def test_email_must_match_email_stored_in_DB():
                month=arrow.now().month, year=arrow.now().year)
     with pytest.raises(WeasylError) as err:
         resetpassword.request(form)
-    assert 'emailInvalid' in str(err)
+    assert 'emailInvalid' == err.value.value
 
 
 def test_verify_success_if_valid_information_provided():

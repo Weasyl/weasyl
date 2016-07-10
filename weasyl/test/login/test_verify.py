@@ -1,6 +1,3 @@
-"""
-Test suite for: login.py::def verify(token):
-"""
 import pytest
 import arrow
 
@@ -22,7 +19,7 @@ class Bag(object):
 def test_error_raised_if_invalid_token_provided_to_function():
     with pytest.raises(WeasylError) as err:
         login.verify("qwe")
-    assert 'logincreateRecordMissing' in str(err)
+    assert 'logincreateRecordMissing' == err.value.value
 
 
 def test_verify_success_if_valid_token_provided():

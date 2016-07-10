@@ -1,6 +1,3 @@
-"""
-Test suite for: login.py::def get_account_verification_token(email=None, username=None):
-"""
 import arrow
 
 from weasyl import login

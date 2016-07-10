@@ -1,6 +1,3 @@
-"""
-Test suite for: login.py::def create(form):
-"""
 import pytest
 import arrow
 
@@ -28,7 +25,7 @@ def test_DMY_not_integer_raises_birthdayInvalid_WeasylError():
                day='test', month='31', year='1942')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
     # Check for failure state if 'month' is not an integer, e.g., string
     form = Bag(username=user_name, password='', passcheck='',
@@ -36,7 +33,7 @@ def test_DMY_not_integer_raises_birthdayInvalid_WeasylError():
                day='12', month='test', year='1942')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
     # Check for failure state if 'year' is not an integer, e.g., string
     form = Bag(username=user_name, password='', passcheck='',
@@ -44,7 +41,7 @@ def test_DMY_not_integer_raises_birthdayInvalid_WeasylError():
                day='12', month='31', year='test')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
 
 def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
@@ -55,7 +52,7 @@ def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
                day='42', month='12', year='2000')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
     # Check for failure state if 'month' is not an valid month e.g., 42
     form = Bag(username=user_name, password='', passcheck='',
@@ -63,7 +60,7 @@ def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
                day='12', month='42', year='2000')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
     # Check for failure state if 'year' is not an valid year e.g., -1
     form = Bag(username=user_name, password='', passcheck='',
@@ -71,7 +68,7 @@ def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
                day='12', month='12', year='-1')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
 
 def test_DMY_missing_raises_birthdayInvalid_WeasylError():
@@ -82,7 +79,7 @@ def test_DMY_missing_raises_birthdayInvalid_WeasylError():
                day=None, month='12', year='2000')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
     # Check for failure state if 'year' is not an valid year e.g., -1
     form = Bag(username=user_name, password='', passcheck='',
@@ -90,7 +87,7 @@ def test_DMY_missing_raises_birthdayInvalid_WeasylError():
                day='12', month=None, year='2000')
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
     # Check for failure state if 'year' is not an valid year e.g., -1
     form = Bag(username=user_name, password='', passcheck='',
@@ -98,7 +95,7 @@ def test_DMY_missing_raises_birthdayInvalid_WeasylError():
                day='12', month='12', year=None)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
 
 def test_under_13_age_raises_birthdayInvalid_WeasylError():
@@ -109,7 +106,7 @@ def test_under_13_age_raises_birthdayInvalid_WeasylError():
                day='12', month='12', year=arrow.now().year - 11)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'birthdayInvalid' in str(err)
+    assert 'birthdayInvalid' == err.value.value
 
 
 def test_passwords_must_match():
@@ -120,7 +117,7 @@ def test_passwords_must_match():
                day='12', month='12', year=arrow.now().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'passwordMismatch' in str(err)
+    assert 'passwordMismatch' == err.value.value
 
 
 def test_passwords_must_be_of_sufficient_length():
@@ -132,14 +129,14 @@ def test_passwords_must_be_of_sufficient_length():
     # Insecure length
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'passwordInsecure' in str(err)
+    assert 'passwordInsecure' == err.value.value
     # Secure length
     password = "thisIsAcceptable"
     form.passcheck = form.password = password
     # emailInvalid is the next failure state after passwordInsecure, so it is a 'success' for this testcase
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'emailInvalid' in str(err)
+    assert 'emailInvalid' == err.value.value
 
 
 def test_create_fails_if_email_and_emailcheck_dont_match():
@@ -149,7 +146,7 @@ def test_create_fails_if_email_and_emailcheck_dont_match():
                day='12', month='12', year=arrow.now().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'emailMismatch' in str(err)
+    assert 'emailMismatch' == err.value.value
 
 
 def test_create_fails_if_email_is_invalid():
@@ -159,7 +156,7 @@ def test_create_fails_if_email_is_invalid():
                day='12', month='12', year=arrow.now().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'emailInvalid' in str(err)
+    assert 'emailInvalid' == err.value.value
 
 
 def test_create_fails_if_another_account_has_email_linked_to_their_account():
@@ -176,7 +173,7 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
     db_utils.create_user(username=user_name, email_addr=email_addr)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'emailExists' in str(err)
+    assert 'emailExists' == err.value.value
 
 
 def test_create_fails_if_pending_account_has_same_email():
@@ -203,7 +200,7 @@ def test_create_fails_if_pending_account_has_same_email():
     })
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'emailExists' in str(err)
+    assert 'emailExists' == err.value.value
 
 
 def test_username_cant_be_blank_or_have_semicolon():
@@ -213,11 +210,11 @@ def test_username_cant_be_blank_or_have_semicolon():
                day='12', month='12', year=arrow.now().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'usernameInvalid' in str(err)
+    assert 'usernameInvalid' == err.value.value
     form.username = 'testloginsuite;'
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'usernameInvalid' in str(err)
+    assert 'usernameInvalid' == err.value.value
 
 
 def test_create_fails_if_username_is_a_prohibited_name():
@@ -230,7 +227,7 @@ def test_create_fails_if_username_is_a_prohibited_name():
         form.username = name
         with pytest.raises(WeasylError) as err:
             login.create(form)
-        assert 'usernameInvalid' in str(err)
+        assert 'usernameInvalid' == err.value.value
 
 
 def test_usernames_must_be_unique():
@@ -242,7 +239,7 @@ def test_usernames_must_be_unique():
     db_utils.create_user(username=user_name, email_addr="test_2@weasyl.com")
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'usernameExists' in str(err)
+    assert 'usernameExists' == err.value.value
 
 
 def test_usernames_cannot_match_pending_account_usernames():
@@ -263,7 +260,7 @@ def test_usernames_cannot_match_pending_account_usernames():
     })
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'usernameExists' in str(err)
+    assert 'usernameExists' == err.value.value
 
 
 def test_username_cannot_match_an_active_alias():
@@ -276,7 +273,7 @@ def test_username_cannot_match_an_active_alias():
     d.engine.execute("INSERT INTO useralias VALUES (%(userid)s, %(username)s, 'p')", userid=user_id, username=user_name)
     with pytest.raises(WeasylError) as err:
         login.create(form)
-    assert 'usernameExists' in str(err)
+    assert 'usernameExists' == err.value.value
 
 
 def test_verify_correct_information_creates_account():

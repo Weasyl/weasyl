@@ -1,6 +1,3 @@
-"""
-Test suite for: resetpassword.py::def prepare(token):
-"""
 import pytest
 import arrow
 
@@ -18,8 +15,8 @@ class Bag(object):
 def test_stale_records_get_deleted_when_function_is_called():
     token_store = []
     for i in range(20):
-        user_name = "testPrepare00" + str(i)
-        email_addr = "test000-" + str(i) + "@weasyl.com"
+        user_name = "testPrepare%d" % (i,)
+        email_addr = "test%d@weasyl.com" % (i,)
         user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
         form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                                month=arrow.now().month, year=arrow.now().year)

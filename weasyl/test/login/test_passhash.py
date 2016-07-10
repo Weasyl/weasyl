@@ -1,6 +1,3 @@
-"""
-Test suite for function: login.py::def passhash(password):
-"""
 import bcrypt
 
 from weasyl import login

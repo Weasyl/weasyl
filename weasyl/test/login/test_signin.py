@@ -1,6 +1,3 @@
-"""
-Test suite for: login.py::def signin(userid):
-"""
 import pytest
 
 from weasyl.test import db_utils

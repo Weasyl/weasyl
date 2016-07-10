@@ -1,6 +1,3 @@
-"""
-Test suite for: resetpassword.py::def force(userid, form):
-"""
 import pytest
 
 from weasyl.test import db_utils
@@ -20,7 +17,7 @@ def test_forcing_password_reset_with_mismatched_pw_fails():
     form = Bag(password=password, passcheck='1234567890987')
     with pytest.raises(WeasylError) as err:
         resetpassword.force(user_id, form)
-    assert 'passwordMismatch' in str(err)
+    assert 'passwordMismatch' == err.value.value
 
 
 def test_forcing_password_reset_with_too_short_length_fails():
@@ -30,7 +27,7 @@ def test_forcing_password_reset_with_too_short_length_fails():
     form = Bag(password=password, passcheck=password)
     with pytest.raises(WeasylError) as err:
         resetpassword.force(user_id, form)
-    assert 'passwordInsecure' in str(err)
+    assert 'passwordInsecure' == err.value.value
 
 
 def test_verify_success_if_correct_information_provided():

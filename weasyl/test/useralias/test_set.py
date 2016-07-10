@@ -1,6 +1,3 @@
-"""
-Test suite for: useralias.py::def set(userid, username):
-"""
 import pytest
 
 from weasyl.test import db_utils
@@ -17,7 +14,7 @@ def test_setting_alias_fails_if_target_alias_exists():
     d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id_existing, alias=test_alias_existing)
     with pytest.raises(WeasylError) as err:
         useralias.set(user_id, test_alias)
-    assert 'usernameExists' in str(err)
+    assert 'usernameExists' == err.value.value
 
 
 def test_setting_alias_fails_if_target_username_exists():
@@ -28,7 +25,7 @@ def test_setting_alias_fails_if_target_username_exists():
     db_utils.create_user(username=user_name_existing)
     with pytest.raises(WeasylError) as err:
         useralias.set(user_id, test_alias)
-    assert 'usernameExists' in str(err)
+    assert 'usernameExists' == err.value.value
 
 
 def test_setting_alias_fails_if_user_does_not_have_premium_status():
@@ -37,7 +34,7 @@ def test_setting_alias_fails_if_user_does_not_have_premium_status():
     user_alias = "testalias009"
     with pytest.raises(WeasylError) as err:
         useralias.set(user_id, user_alias)
-    assert 'InsufficientPermissions' in str(err)
+    assert 'InsufficientPermissions' == err.value.value
 
 
 def test_setting_alias_succeeds_when_previous_alias_does_not_exist():

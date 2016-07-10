@@ -3,10 +3,9 @@
 Test suite for: login.py::def authenticate_bcrypt(username, password, session=True):
 """
 import json
-import web
 
 from weasyl.test import db_utils
-from weasyl import login, macro, media
+from weasyl import login, macro
 from weasyl import define as d
 
 
@@ -18,19 +17,6 @@ class Bag(object):
     def __init__(self, **kw):
         for kv in kw.items():
             setattr(self, *kv)
-
-
-def configure_moderators(mod_user_id):
-    """ Used to set staff.py's global MODS variable """
-    from libweasyl.configuration import configure_libweasyl
-
-    configure_libweasyl(
-        dbsession=d.sessionmaker,
-        not_found_exception=web.notfound,
-        base_file_path='testing',
-        staff_config_dict={"mods": [mod_user_id]},
-        media_link_formatter_callback=media.format_media_link,
-    )
 
 
 def test_logins_fail_if_no_username_provided():
@@ -60,12 +46,13 @@ def test_login_fails_for_incorrect_credentials():
 
 
 def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, monkeypatch):
-    # Set the temporary directory for the log file
+    from libweasyl import staff
+    # Required: Monkeypatch the log directory, and the staff.MODS frozenset
     monkeypatch.setenv(macro.MACRO_SYS_LOG_PATH, tmpdir + "/")
     log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
     user_id = db_utils.create_user(username='ikani', password=raw_password)
-    # Set the moderators in libweasyl
-    configure_moderators(mod_user_id=user_id)
+    # Set the moderators in libweasyl/staff.py via monkeypatch
+    monkeypatch.setattr(staff, 'MODS', frozenset([user_id]))
     # Ensure we are actually writing to the file by counting the file's lines
     prerun_loglines = 0
     # The file might not exist; this is fine; ignore

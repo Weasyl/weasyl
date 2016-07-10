@@ -222,6 +222,7 @@ def attach(ctx, service):
 @forward_from_wzl_dev
 def alembic(args):
     """Run an alembic command."""
+    wait_for_postgres()
     forward(['alembic', '-c', '/weasyl-app/config/alembic.ini'] + list(args))
 
 

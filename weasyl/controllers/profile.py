@@ -186,7 +186,7 @@ def collections_(request):
     page_title = u"%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
-    url_format = "/c if name else ollections?userid={userid}&%s".format(userid=userprofile['userid'])
+    url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
         collection.select_list, collection.select_count, 'submitid', url_format, request.userid, rating, 66,
         otherid=otherid, backid=define.get_int(form.backid), nextid=define.get_int(form.nextid), config=config)

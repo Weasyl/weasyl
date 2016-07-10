@@ -423,15 +423,6 @@ def stream_insert(userid, status):
 
 
 # notifications
-#   3070 stream status later
-#   3075 stream status online
-
-def stream_remove(userid):
-    d.execute("DELETE FROM welcome WHERE otherid = %i AND type IN (3070, 3075) RETURNING userid",
-              [userid], options="within")
-
-
-# notifications
 #   3010 user followed
 
 def followuser_insert(userid, otherid):

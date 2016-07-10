@@ -7,7 +7,6 @@ from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
 from libweasyl.models.tables import metadata
 from libweasyl.test.common import NotFound
-from libweasyl.test.common import datadir
 from libweasyl.test.common import media_link_formatter
 from libweasyl import cache
 

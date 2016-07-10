@@ -22,7 +22,7 @@ import requests
 import web
 import sqlalchemy as sa
 import sqlalchemy.orm
-from psycopg2.extensions import QuotedString
+from psycopg2cffi.extensions import QuotedString
 import pytz
 
 import macro

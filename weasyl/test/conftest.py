@@ -9,7 +9,7 @@ config._in_test = True  # noqa
 
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
-from weasyl import cache, define, media
+from weasyl import cache, define, macro, media
 cache.region.configure('dogpile.cache.memory')
 define.metric = lambda *a, **kw: None
 
@@ -36,6 +36,11 @@ def setupdb(request):
 def setup_request_environment():
     web.ctx.env = {'HTTP_X_FORWARDED_FOR': '127.0.0.1'}
     web.ctx.ip = '127.0.0.1'
+
+
+@pytest.fixture(autouse=True)
+def lower_bcrypt_rounds(monkeypatch):
+    monkeypatch.setattr(macro, 'MACRO_BCRYPT_ROUNDS', 4)
 
 
 @pytest.fixture

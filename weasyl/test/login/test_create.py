@@ -282,10 +282,7 @@ def test_verify_correct_information_creates_account():
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
-    # Emailing doesn't work in the test environment, but by this point the
-    # logincreate entry has been made
-    with pytest.raises(OSError):
-        login.create(form)
+    login.create(form)
     # This record should exist when this function completes successfully
     assert d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)",

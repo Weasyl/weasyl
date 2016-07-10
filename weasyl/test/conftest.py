@@ -9,7 +9,7 @@ config._in_test = True  # noqa
 
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
-from weasyl import cache, define, macro, media
+from weasyl import cache, define, emailer, macro, media
 cache.region.configure('dogpile.cache.memory')
 define.metric = lambda *a, **kw: None
 
@@ -41,6 +41,14 @@ def setup_request_environment():
 @pytest.fixture(autouse=True)
 def lower_bcrypt_rounds(monkeypatch):
     monkeypatch.setattr(macro, 'MACRO_BCRYPT_ROUNDS', 4)
+
+
+@pytest.fixture(autouse=True)
+def drop_email(monkeypatch):
+    def drop_append(mailto, mailfrom, subject, content, displayto=None):
+        pass
+
+    monkeypatch.setattr(emailer, 'append', drop_append)
 
 
 @pytest.fixture

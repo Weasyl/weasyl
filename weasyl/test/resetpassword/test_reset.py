@@ -78,9 +78,7 @@ def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email()
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                            month=arrow.now().month, year=arrow.now().year)
-    # Emails fail in test environments
-    with pytest.raises(OSError):
-        resetpassword.request(form_for_request)
+    resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)
@@ -102,9 +100,7 @@ def test_emailIncorrect_WeasylError_if_username_doesnt_match_stored_username():
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                            month=arrow.now().month, year=arrow.now().year)
-    # Emails fail in test environments
-    with pytest.raises(OSError):
-        resetpassword.request(form_for_request)
+    resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)
@@ -126,9 +122,7 @@ def test_password_reset_fails_if_attempted_from_different_ip_address():
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                            month=arrow.now().month, year=arrow.now().year)
-    # Emails fail in test environments
-    with pytest.raises(OSError):
-        resetpassword.request(form_for_request)
+    resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Change IP detected when request was made (required for test)
     d.engine.execute("UPDATE forgotpassword SET address = %(addr)s WHERE token = %(token)s",
@@ -154,9 +148,7 @@ def test_verify_success_if_correct_information_supplied():
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                            month=arrow.now().month, year=arrow.now().year)
-    # Emails fail in test environments
-    with pytest.raises(OSError):
-        resetpassword.request(form_for_request)
+    resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)

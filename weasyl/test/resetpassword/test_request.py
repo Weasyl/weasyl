@@ -41,10 +41,7 @@ def test_verify_success_if_valid_information_provided():
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)
-    # Emails fail in test environments
-    with pytest.raises(OSError):
-        resetpassword.request(form)
-    # But we have what we need; verify token was set, both manually, and via .checktoken
+    resetpassword.request(form)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     assert 100 == len(pw_reset_token)
     assert resetpassword.checktoken(pw_reset_token)

@@ -20,9 +20,7 @@ def test_stale_records_get_deleted_when_function_is_called():
         user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
         form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                                month=arrow.now().month, year=arrow.now().year)
-        # Emails fail in test environments
-        with pytest.raises(OSError):
-            resetpassword.request(form_for_request)
+        resetpassword.request(form_for_request)
         pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
         token_store.append(pw_reset_token)
     # All tokens should exist at this point
@@ -66,9 +64,7 @@ def test_link_time_field_is_updated_when_valid_token_supplied_to_function():
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                            month=arrow.now().month, year=arrow.now().year)
-    # Emails fail in test environments
-    with pytest.raises(OSError):
-        resetpassword.request(form_for_request)
+    resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     resetpassword.prepare(pw_reset_token)
     link_time = d.engine.scalar("SELECT link_time FROM forgotpassword WHERE token = %(token)s", token=pw_reset_token)

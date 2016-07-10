@@ -199,7 +199,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
             target=targetid, removed=list(removed))
 
     if added:
-        d.execute("INSERT INTO %s VALUES %s" % (table, d.sql_number_series([[i, targetid] for i in added])))
+        d.engine.execute(
+            "INSERT INTO {} SELECT tag, %(target)s FROM UNNEST (%(added)s) AS tag".format(table),
+            target=targetid, added=list(added))
 
         if userid == ownerid:
             d.execute(

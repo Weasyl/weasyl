@@ -21,7 +21,7 @@ class Bag(object):
 
 
 def test_DMY_not_integer_raises_birthdayInvalid_WeasylError():
-    user_name = "BDayInvalid0001"
+    user_name = "test"
     # Check for failure state if 'day' is not an integer, e.g., string
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -48,7 +48,7 @@ def test_DMY_not_integer_raises_birthdayInvalid_WeasylError():
 
 
 def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
-    user_name = "BDayInvalid0002"
+    user_name = "test"
     # Check for failure state if 'day' is not an valid day e.g., 42
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -75,7 +75,7 @@ def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
 
 
 def test_DMY_missing_raises_birthdayInvalid_WeasylError():
-    user_name = "BDayInvalid0003"
+    user_name = "test"
     # Check for failure state if 'year' is not an valid year e.g., -1
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -102,7 +102,7 @@ def test_DMY_missing_raises_birthdayInvalid_WeasylError():
 
 
 def test_under_13_age_raises_birthdayInvalid_WeasylError():
-    user_name = "TooYoung0001"
+    user_name = "test"
     # Check for failure state if computed birthday is <13 years old
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -113,7 +113,7 @@ def test_under_13_age_raises_birthdayInvalid_WeasylError():
 
 
 def test_passwords_must_match():
-    user_name = "PWMismatch0001"
+    user_name = "test"
     # Check for failure if password != passcheck
     form = Bag(username=user_name, password='123', passcheck='qwe',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -124,20 +124,17 @@ def test_passwords_must_match():
 
 
 def test_passwords_must_be_of_sufficient_length():
-    user_name = "PWInsecure0001"
-    password = ''
-    form = Bag(username=user_name, password='', passcheck='',
+    user_name = "test"
+    password = "tooShort"
+    form = Bag(username=user_name, password=password, passcheck=password,
                email='foo', emailcheck='foo',
                day='12', month='12', year=arrow.now().year - 19)
     # Insecure length
-    for i in range(1, login._PASSWORD):
-        with pytest.raises(WeasylError) as err:
-            login.create(form)
-        assert 'passwordInsecure' in str(err)
-        password = password + 'a'
-        form.passcheck = form.password = password
+    with pytest.raises(WeasylError) as err:
+        login.create(form)
+    assert 'passwordInsecure' in str(err)
     # Secure length
-    password = password + 'a'
+    password = "thisIsAcceptable"
     form.passcheck = form.password = password
     # emailInvalid is the next failure state after passwordInsecure, so it is a 'success' for this testcase
     with pytest.raises(WeasylError) as err:
@@ -146,7 +143,7 @@ def test_passwords_must_be_of_sufficient_length():
 
 
 def test_create_fails_if_email_and_emailcheck_dont_match():
-    user_name = "EmailMismatch0001"
+    user_name = "test"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email='test@weasyl.com', emailcheck='testt@weasyl.com',
                day='12', month='12', year=arrow.now().year - 19)
@@ -156,7 +153,7 @@ def test_create_fails_if_email_and_emailcheck_dont_match():
 
 
 def test_create_fails_if_email_is_invalid():
-    user_name = "EmailInvalid0001"
+    user_name = "test"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=';--', emailcheck=';--',
                day='12', month='12', year=arrow.now().year - 19)
@@ -242,7 +239,7 @@ def test_usernames_must_be_unique():
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
-    db_utils.create_user(username=user_name, email_addr="UsernameExistsInLogin@weasyl.com")
+    db_utils.create_user(username=user_name, email_addr="test_2@weasyl.com")
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' in str(err)

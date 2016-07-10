@@ -17,7 +17,7 @@ class Bag(object):
 
 
 def test_user_must_exist_for_a_forgotten_password_request_to_be_made():
-    user_name = "testrequest0001"
+    user_name = "test"
     email_addr = "test@weasyl.com"
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year)

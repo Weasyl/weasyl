@@ -24,14 +24,13 @@ def test_forcing_password_reset_with_mismatched_pw_fails():
 
 
 def test_forcing_password_reset_with_too_short_length_fails():
+    # Anything under len(login._PASSWORD) characters triggers this case
     user_id = db_utils.create_user()
-    password = ''
-    for i in range(0, login._PASSWORD):
-        form = Bag(password=password, passcheck=password)
-        with pytest.raises(WeasylError) as err:
-            resetpassword.force(user_id, form)
-        assert 'passwordInsecure' in str(err)
-        password += 'a'
+    password = 'shortpw'
+    form = Bag(password=password, passcheck=password)
+    with pytest.raises(WeasylError) as err:
+        resetpassword.force(user_id, form)
+    assert 'passwordInsecure' in str(err)
 
 
 def test_verify_success_if_correct_information_provided():

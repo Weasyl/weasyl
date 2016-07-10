@@ -19,7 +19,7 @@ class Bag(object):
 
 def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
     user_name = "testReset0001"
-    email_addr = "test0004@weasyl.com"
+    email_addr = "test_reset@weasyl.com"
     db_utils.create_user(email_addr=email_addr, username=user_name)
     token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000002"
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -32,7 +32,7 @@ def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
 
 def test_passwordInsecure_WeasylError_if_password_length_insufficient():
     user_name = "testReset0002"
-    email_addr = "test0005@weasyl.com"
+    email_addr = "test_reset@weasyl.com"
     db_utils.create_user(email_addr=email_addr, username=user_name)
     token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000003"
     password = ''
@@ -59,7 +59,7 @@ def test_passwordInsecure_WeasylError_if_password_length_insufficient():
 
 def test_forgotpasswordRecordMissing_WeasylError_if_reset_record_not_found():
     user_name = "testReset0003"
-    email_addr = "test0006@weasyl.com"
+    email_addr = "test_reset@weasyl.com"
     db_utils.create_user(email_addr=email_addr, username=user_name)
     token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000004"
     password = '01234567890123'
@@ -76,7 +76,7 @@ def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email()
     # Two parts: Set forgot password record; attempt reset with incorrect email
     #  Requirement: Get token set from request()
     user_name = "testReset0004"
-    email_addr = "test0007@weasyl.com"
+    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -87,7 +87,7 @@ def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email()
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)
-    email_addr_mismatch = "inavlid-email@weasyl.com"
+    email_addr_mismatch = "invalid-email@weasyl.com"
     form_for_reset = Bag(email=email_addr_mismatch, username=user_name, day=arrow.now().day,
                          month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
                          password=password, passcheck=password)
@@ -100,7 +100,7 @@ def test_emailIncorrect_WeasylError_if_username_doesnt_match_stored_username():
     # Two parts: Set forgot password record; attempt reset with incorrect username
     #  Requirement: Get token set from request()
     user_name = "testReset0005"
-    email_addr = "test0008@weasyl.com"
+    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -124,7 +124,7 @@ def test_password_reset_fails_if_attempted_from_different_ip_address():
     # Two parts: Set forgot password record; attempt reset with incorrect IP Address in forgotpassword table vs. requesting IP
     #  Requirement: Get token set from request()
     user_name = "testReset0006"
-    email_addr = "test0009@weasyl.com"
+    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -152,7 +152,7 @@ def test_verify_success_if_correct_information_supplied():
     #  b) Verify 'forgotpassword' row is removed.
     #  > Requirement: Get token set from request()
     user_name = "testReset0007"
-    email_addr = "test0010@weasyl.com"
+    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,

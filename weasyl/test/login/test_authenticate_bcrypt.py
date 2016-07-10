@@ -1,4 +1,4 @@
-# This Python file uses the following encoding: utf-8
+# encoding: utf-8
 """
 Test suite for: login.py::def authenticate_bcrypt(username, password, session=True):
 """
@@ -39,13 +39,13 @@ def test_logins_fail_if_no_username_provided():
 
 
 def test_logins_fail_if_no_password_provided():
-    user_name = "NoPasswordProvided"
+    user_name = "test"
     result = login.authenticate_bcrypt(username=user_name, password='')
     assert result == (0, 'invalid')
 
 
 def test_login_fails_if_incorrect_username_is_provided():
-    user_name = "InvalidUsernameProvided"
+    user_name = "test"
     result = login.authenticate_bcrypt(username=user_name, password=raw_password)
     assert result == (0, 'invalid')
 
@@ -80,7 +80,6 @@ def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, mo
     # Item under test
     result = login.authenticate_bcrypt(username='ikani', password='FakePassword')
     # Verify we are writing to the log file as expected
-    last_line = ''
     with open(log_path, 'r') as log:
         for line in log:
             postrun_loglines += 1
@@ -104,7 +103,7 @@ def test_login_fails_if_user_is_suspended():
     user_name = "testAuthBcry0003"
     user_id = db_utils.create_user(password=raw_password, username=user_name)
     d.engine.execute("UPDATE login SET settings = 's' WHERE userid = %(id)s", id=user_id)
-    release_date = d.convert_unixdate(31, 12, 2030)
+    release_date = d.get_time() + 60
     d.engine.execute("INSERT INTO suspension VALUES (%(id)s, %(reason)s, %(rel)s)",
                      id=user_id, reason='test', rel=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)

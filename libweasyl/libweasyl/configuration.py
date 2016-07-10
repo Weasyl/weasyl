@@ -14,7 +14,7 @@ from libweasyl.staff import _init_staff
 
 def configure_libweasyl(
         dbsession, not_found_exception, base_file_path,
-        staff_config_path, media_link_formatter_callback):
+        staff_config_dict, media_link_formatter_callback):
     """
     Configure libweasyl for the current application. This sets up some
     global state around libweasyl.
@@ -28,7 +28,7 @@ def configure_libweasyl(
         not_found_exception: An exception to be raised on the ``*_or_404``
             methods of queries.
         base_file_path: The path to where static content lives on disk.
-        staff_config_path: The path to the config file containing the ids of staff.
+        staff_config_dict: A dictionary of staff levels and user IDs.
         media_link_formatter_callback: A callback to format the URL for a media
             link. The callback will be called as ``callback(media_item, link)``
             and is expected to return a URL or ``None`` to use the default.
@@ -36,5 +36,5 @@ def configure_libweasyl(
     _configure_dbsession(dbsession)
     BaseQuery._not_found_exception = staticmethod(not_found_exception)
     DiskMediaItem._base_file_path = staticmethod(base_file_path)
-    _init_staff(staff_config_path)
+    _init_staff(**staff_config_dict)
     MediaItem._media_link_formatter_callback = staticmethod(media_link_formatter_callback)

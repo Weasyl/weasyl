@@ -42,7 +42,7 @@ def load_staff_dict():
     Loads staff from a yaml config file.
 
     Parameters: None. Path is obtained from `macro.MACRO_SYS_STAFF_CONFIG_PATH`
-    
+
     Returns:
         staff_dict: A dictionary with the staff member user IDs.
     """

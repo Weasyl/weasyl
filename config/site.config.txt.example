@@ -17,7 +17,7 @@ time_endpoints = false
 rough_shutdowns = true
 
 [sqlalchemy]
-url = postgres://postgres:postgres@db/weasyl
+url = postgresql+psycopg2cffi://postgres:postgres@db/weasyl
 
 [memcached]
 servers = tcp:cache:11211

@@ -15,7 +15,7 @@ script_location = libweasyl:alembic
 # the 'revision' command, regardless of autogenerate
 # revision_environment = false
 
-sqlalchemy.url = postgres://postgres:postgres@db/weasyl
+sqlalchemy.url = postgresql+psycopg2cffi://postgres:postgres@db/weasyl
 
 
 # Logging configuration

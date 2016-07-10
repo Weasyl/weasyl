@@ -7,12 +7,11 @@ from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
 from libweasyl.models.tables import metadata
 from libweasyl.test.common import NotFound
-from libweasyl.test.common import datadir
 from libweasyl.test.common import media_link_formatter
 from libweasyl import cache
 
 
-engine = sa.create_engine(os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgres:///weasyl_test'))
+engine = sa.create_engine(os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgresql+psycopg2cffi:///weasyl_test'))
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
 
 

@@ -32,7 +32,7 @@ def signin(userid):
 def signout(request):
     sess = request.weasyl_session
     # unset SFW-mode cookie on logout
-    request.response.set_cookie("sfwmode", "nsfw", -1)
+    request.delete_cookie_on_response("sfwmode")
     if sess.additional_data.get('user-stack'):
         sess.userid = sess.additional_data['user-stack'].pop()
         sess.additional_data.changed()

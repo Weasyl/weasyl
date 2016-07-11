@@ -37,9 +37,7 @@ from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
-from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read, config_read_setting, config_read_bool
-from weasyl.cache import region
 from weasyl import config
 
 
@@ -59,7 +57,6 @@ def _load_resources():
 _load_resources()
 
 
-# XXX: eventually figure out how to include this in libweasyl.
 def record_timing(func):
     key = 'timing.{0.__module__}.{0.__name__}'.format(func)
 
@@ -149,9 +146,35 @@ def web_input_request_method(request, *required, **kwargs):
 
 def connect():
     """
-    Returns the current request's db connection.
+    Returns the current request's reified db connection.
     """
     return get_current_request().pg_connection
+
+
+# Methods to add response callbacks to a request. The callbacks run in the order they
+# were registered. Note that these will not run if an exception is thrown that isn't handled by
+# our exception view.
+def set_cookie_on_response(request, name=None, value='', max_age=None, path='/', domain=None,
+                           secure=False, httponly=False, comment=None, expires=None,
+                           overwrite=False, key=None):
+    """
+    Registers a callback on the request to set a cookie in the response.
+    Parameters have the same meaning as ``pyramid.response.Response.set_cookie``.
+    """
+    def callback(request, response):
+        response.set_cookie(name, value, max_age, path, domain, secure, httponly, comment,
+                            expires, overwrite, key)
+    request.add_response_callback(callback)
+
+
+def delete_cookie_on_response(request, name, path='/', domain=None):
+    """
+    Register a callback on the request to delete a cookie from the client.
+    Parameters have the same meaning as ``pyramid.response.Response.delete_cookie``.
+    """
+    def callback(request, response):
+        response.delete_cookie(name, path, domain)
+    request.add_response_callback(callback)
 
 
 def log_exc(**kwargs):
@@ -231,8 +254,7 @@ def sql_escape(target):
         # Escape Unicode string
         return quote_string(target.encode("utf-8"))
     else:
-        # Escape integerfrom pyramid.httpexceptions import HTTPUnauthorized
-
+        # Escape integer
         try:
             return int(target)
         except:
@@ -401,7 +423,7 @@ def get_weasyl_session():
     """
     Gets the weasyl_session for the current request. Most code shouldn't have to use this.
     """
-    # TODO: Remove this logic after updating login.signin()
+    # TODO: This method is inelegant. Remove this logic after updating login.signin().
     return get_current_request().weasyl_session
 
 

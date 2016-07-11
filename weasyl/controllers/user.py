@@ -35,12 +35,11 @@ def signin_post_(request):
     logid, logerror = login.authenticate_bcrypt(form.username, form.password)
 
     if logid and logerror == 'unicode-failure':
-        raise HTTPSeeOther(location='/signin/unicode-failure', headers=request.response.headers)
+        raise HTTPSeeOther(location='/signin/unicode-failure')
     elif logid and logerror is None:
-        resp = HTTPSeeOther(location=form.referer)
         if form.sfwmode == "sfw":
-            resp.set_cookie("sfwmode", "sfw", 31536000)
-        return resp
+            request.set_cookie_on_response("sfwmode", "sfw", 31536000)
+        raise HTTPSeeOther(location=form.referer)
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
     elif logerror == "banned":

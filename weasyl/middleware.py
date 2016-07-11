@@ -78,7 +78,7 @@ def session_tween_factory(handler, registry):
     """
     A tween that sets a weasyl_session on a request.
     """
-    # TODO(hyena): This should be replaced with a real pyramid session_factory implementation.
+    # TODO(hyena): Investigate a pyramid session_factory implementation instead.
     def session_tween(request):
         cookies_to_clear = set()
         if 'beaker.session.id' in request.cookies:
@@ -101,25 +101,24 @@ def session_tween_factory(handler, registry):
         # thrown before this part will not be handled correctly.
         request.weasyl_session = sess_obj
 
-        try:
-            resp = None
-            resp = handler(request)
-            return resp
-        finally:
-            if resp is None:
-                resp = request.response
+        # Register a response callback to clear and set the session cookies before returning.
+        # Note that this requires that exceptions are handled properly by our exception view.
+        def callback(request, response):
             if sess_obj.save:
                 session.begin()
                 if sess_obj.create:
                     session.add(sess_obj)
-                    resp.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
+                    response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
                                     secure=request.scheme == 'https', httponly=True)
                     # don't try to clear the cookie if we're saving it
                     cookies_to_clear.discard('WZL')
                 session.commit()
-
             for name in cookies_to_clear:
-                resp.delete_cookie(name)
+                response.delete_cookie(name)
+
+        request.add_response_callback(callback)
+        return handler(request)
+
     return session_tween
 
 

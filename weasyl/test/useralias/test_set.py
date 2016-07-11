@@ -1,5 +1,6 @@
 import pytest
 
+from libweasyl.models.helpers import CharSettings
 from weasyl.test import db_utils
 from weasyl import useralias
 from weasyl import define as d
@@ -38,15 +39,14 @@ def test_setting_alias_fails_if_user_does_not_have_premium_status():
 
 
 def test_setting_alias_succeeds_when_previous_alias_does_not_exist():
+    config = CharSettings({'premium'}, {}, {})
     # Required subchecks: Previous alias does not exist, and user alias is set correctly.
     user_name = "testalias010"
-    user_id = db_utils.create_user(username=user_name)
+    user_id = db_utils.create_user(username=user_name, config=config)
     user_alias = "testalias011"
     # Verify no alias is currently set
     queried_user_alias = useralias.select(userid=user_id, premium=False)
     assert queried_user_alias == []
-    # Make test user a premium user
-    d.engine.execute("UPDATE profile SET config = config || 'd' WHERE userid = %(id)s AND config !~ 'd'", id=user_id)
     # Set alias and verify it is set correctly
     useralias.set(user_id, user_alias)
     queried_user_alias = useralias.select(userid=user_id)
@@ -55,13 +55,12 @@ def test_setting_alias_succeeds_when_previous_alias_does_not_exist():
 
 
 def test_setting_alias_succeeds_when_previous_alias_exists():
+    config = CharSettings({'premium'}, {}, {})
     # Subchecks: 'previous' alias is set correctly, and new alias overwrites the old one
     user_name = "testalias012"
-    user_id = db_utils.create_user(username=user_name)
+    user_id = db_utils.create_user(username=user_name, config=config)
     user_alias = "testalias013"
     user_previous_alias = "testalias014"
-    # Make test user a premium user
-    d.engine.execute("UPDATE profile SET config = config || 'd' WHERE userid = %(id)s AND config !~ 'd'", id=user_id)
     # Set 'previous' alias and verify it is set correctly
     useralias.set(user_id, user_previous_alias)
     queried_user_alias = useralias.select(userid=user_id)

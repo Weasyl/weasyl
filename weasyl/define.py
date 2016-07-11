@@ -37,7 +37,9 @@ from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
+from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read, config_read_setting, config_read_bool
+from weasyl.cache import region
 from weasyl import config
 
 

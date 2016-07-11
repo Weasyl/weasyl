@@ -141,13 +141,18 @@ def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.
     """
-    # TODO: This flow control is a bit of an anti-pattern.
     if isinstance(exc, ClientGoneAway):
         if 'raven.captureMessage' in request.environ:
             request.environ['raven.captureMessage']('HTTP client went away', level=logging.INFO)
-        return Response()
+        return request.response
     else:
-        userid = d.get_userid()
+        # Avoid using the reified request.userid property here. It might not be set and it might
+        # have changed due to signin/out.
+        if hasattr(request, 'weasyl_session'):
+            userid = request.weasyl_session.userid
+        else:
+            userid = 0
+            request.userid = 0  # To keep templates happy.
         errorpage_kwargs = {}
         if isinstance(exc, WeasylError):
             if exc.render_as_json:
@@ -155,7 +160,6 @@ def weasyl_exception_view(exc, request):
                 return Response(json.dumps({'error': {'name': exc.value}}))
             errorpage_kwargs = exc.errorpage_kwargs
             if exc.value in errorcode.error_messages:
-                # 200 is the wrong default value here, I think.
                 status_info = errorcode.error_status_code.get(exc.value, (200, "200 OK",))
                 message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
                 return Response(d.errorpage(userid, message, **errorpage_kwargs),

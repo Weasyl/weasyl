@@ -103,7 +103,7 @@ def pg_connection_request_property(request):
 
 def userid_request_property(request):
     """
-    Used for the reified userid property on weasyl requests.
+    Used for the userid property on weasyl requests.
     """
     api_token = request.headers.get('X_WEASYL_API_KEY')
     authorization = request.headers.get('AUTHORIZATION')

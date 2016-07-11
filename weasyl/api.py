@@ -10,7 +10,6 @@ from weasyl import define as d
 
 
 def is_api_user():
-    # TODO: Pass in the request instead.
     request = get_current_request()
     return 'X_WEASYL_API_KEY' in request.headers or 'AUTHORIZATION' in request.headers
 

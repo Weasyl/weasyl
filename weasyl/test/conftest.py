@@ -10,7 +10,7 @@ config._in_test = True  # noqa
 
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
-from weasyl import cache, define, macro, media
+from weasyl import cache, define, media
 cache.region.configure('dogpile.cache.memory')
 define.metric = lambda *a, **kw: None
 
@@ -19,7 +19,7 @@ configure_libweasyl(
     dbsession=define.sessionmaker,
     not_found_exception=web.notfound,
     base_file_path='testing',
-    staff_config_path=macro.MACRO_SYS_STAFF_CONFIG_PATH,
+    staff_config_dict={},
     media_link_formatter_callback=media.format_media_link,
 )
 

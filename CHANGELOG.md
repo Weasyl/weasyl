@@ -1,6 +1,22 @@
 Weasyl Changelog
 ================
 
+v1.1.6: 2016-07-010
+----------
+
+Publicly visible changes:
+
+ * Indexes site media by sha256, making new uploads faster. (#98, @charmander)
+
+Internal changes:
+
+ * Improves performance of creation of the recently popular site sections. (#97, @charmander)
+ * Uses Postgresql 9.5 for development vagrant environments, syncing what's used in production. (#54, @hyena)
+ * Removes unused functions from Weasyl. (#67, #101, @charmander)
+ * Reconfigures configure_libweasyl() to accept a dict instead of reading a file. (#62, @kfkitsune)
+ * Removes flake8 testing from apidocs, adds a .editorconfig file to the project. (#100, @charmander)
+ * Uses psycopg2cffi library for functions instead of psycopg2. (#84, @charmander)
+
 v1.1.5: 2016-07-05
 ----------
 
@@ -30,7 +46,7 @@ Internal changes:
 
  * Applies Weasyl's flake8 rules to libweasyl. (#63, @charmander)
  * Adds a code of conduct for Weasyl developers, adapted from http://contributor-covenant.org/ .
-   (#57, @weykent, @strain-113)
+   (#57, @weykent, @hyena)
  * Installs pytest and flake8 in development environments, to faciliate tests. (#65, @skylerbunny)
  * Updates version of raven library to 5.21.0 to fix an exception parsing bug. (#69, @skylerbunny)
 
@@ -51,7 +67,7 @@ v1.1.2: 2016-06-14
 
 Publicly visible changes:
 
- *  Makes collection thumbnails respect generated/custom user preference. (#36, @strain-113)
+ *  Makes collection thumbnails respect generated/custom user preference. (#36, @hyena)
  *  Hides image and description for Twitter cards on age 18+ submissions. (#35, @Syfaro)
  *  Updates Google reCAPTCHA version used for account creation to version 2. (#37, @kfkitsune)
  *  Introduces array based tag searches to increase search performance. (#50, @charmander)
@@ -64,7 +80,7 @@ Internal changes:
    README. (#41, @kfkitsune)
  * Includes the Weasyl 'libweasyl' library in the main site code, rather than being used as
    an external library dependency. (#40, #45, @weykent)
- * Fixes the upgrade-db make function with new introduced libweasyl changes. (#53, @strain-113)
+ * Fixes the upgrade-db make function with new introduced libweasyl changes. (#53, @hyena)
 
 v1.1.1: 2016-06-05
 ----------
@@ -80,12 +96,12 @@ Publicly visible changes:
 
  *  Adds API methods for journals and characters. (#22, #28, @Syfaro)
  *  Changes the year in the page footer's copyright line to the current year. (#29, #31, @kfkitsune)
- *  Recenters the positions of thumbnails. (#30, @strain-113)
+ *  Recenters the positions of thumbnails. (#30, @hyena)
 
 Internal changes:
 
  * Updates versions of python library dependencies. (#23, @skylerbunny)
- * Creates a weasyl_test database when creating a test VM environment. (#24, @strain-113)
+ * Creates a weasyl_test database when creating a test VM environment. (#24, @hyena)
  * Fixes collection related Python tests. (#25, @charmander) 
 
 2016-05-31

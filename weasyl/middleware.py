@@ -78,7 +78,7 @@ def session_tween_factory(handler, registry):
     """
     A tween that sets a weasyl_session on a request.
     """
-    # TODO(strain-113): This should be replaced with a real pyramid session_factory implementation.
+    # TODO(hyena): This should be replaced with a real pyramid session_factory implementation.
     def session_tween(request):
         cookies_to_clear = set()
         if 'beaker.session.id' in request.cookies:

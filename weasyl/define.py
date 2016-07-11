@@ -110,16 +110,14 @@ def userid_request_property(request):
     if api_token is not None:
         userid = engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
         if not userid:
-            request.response.headers['WWW-Authenticate'] = 'Weasyl-API-Key realm="Weasyl"'
-            raise HTTPUnauthorized()
+            raise HTTPUnauthorized(headers={'WWW-Authenticate': 'Weasyl-API-Key realm="Weasyl"'})
         return userid
 
     elif authorization:
         from weasyl.oauth2 import get_userid_from_authorization
         userid = get_userid_from_authorization()
         if not userid:
-            request.response.headers['WWW-Authenticate'] = 'Bearer realm="Weasyl" error="invalid_token"'
-            raise HTTPUnauthorized()
+            raise HTTPUnauthorized({'WWW-Authenticate': 'Bearer realm="Weasyl" error="invalid_token"'})
         return userid
 
     else:

@@ -16,6 +16,8 @@ TODO
 ```
 I bet these can all be set up trivially as a tween, except maybe for the session_processor which might be a session factory instead.
   - (DONE. Although I registered a view with a context of `Exception` rather than setting up exceptionresponse_view) Set up mw.weasyl_exception_processor so that it gets exceptions. This can be passed as exceptionresponse_view when generating the configuration.
+    * Update: We may find we want to do this with another tween for better control over when and where it runs. Hold off for now:
+      if a general purpose exception view can be made to work it'll make the rest of pyramid happy.
   - (DONE: I don't think this is necessary with pyramid's request object) Set up mw.endpoint_recording_delegate such that it gets endpoint names
   - (DONE) Make sure weasyl_404 works. Set it up with add_notfound_view.
   - (WONTFIX: Consider this later.) Setup a session_factory?
@@ -45,7 +47,21 @@ I bet these can all be set up trivially as a tween, except maybe for the session
 * (DONE) Try to replace define.get_userid() with a reified request.userid property.
 
 * flake8 everything before merge request.
-* check test coverage before merge request.
+* (DONE: Or rather 'ongoing'. At the time of this writing all tests pass) check test coverage before merge request.
+
+Make some rules/best practices
+------------------------------
+
+If we don't want to get subtle bugs, we're going to have to make some rules about how we make/return Responses.
+In particular, we don't want headers or cookies to be erased simply because, say, an exception is thrown somewhere.
+
+ * Views should either make a new response or raise an exception.
+ * The session tween sets and clears some cookies
+ * Other cookies are set around SFW mode. Handle these with a response callback.
+   - If we want to do this, however, we have to play nice with exceptions and exception views or they won't
+     be called.
+   - If we add a finalize response callback, it's called regardless of whether an exception was raised or not.
+     Probably easiest.
 
 Tests to do
 -----------

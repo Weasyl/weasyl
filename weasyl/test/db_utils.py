@@ -7,7 +7,8 @@ from sqlalchemy import exc
 from libweasyl.models import content, users
 from libweasyl import legacy, ratings
 import weasyl.define as d
-import weasyl.orm as orm
+from weasyl import login
+from weasyl import orm
 
 _user_index = itertools.count()
 TEST_DATABASE = "weasyl_test"
@@ -24,7 +25,8 @@ def create_api_key(userid, token, description=""):
     add_entity(orm.APIToken(userid=userid, token=token, description=description))
 
 
-def create_user(full_name="", birthday=arrow.get(586162800), config=None, username=None):
+def create_user(full_name="", birthday=arrow.get(586162800), config=None,
+                username=None, password=None, email_addr=None, user_id=None):
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
         username = "User-" + str(next(_user_index))
@@ -33,6 +35,18 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None, userna
     add_entity(users.Profile(userid=user.userid, username=username,
                              full_name=full_name, unixtime=arrow.get(0), config=config))
     add_entity(users.UserInfo(userid=user.userid, birthday=birthday))
+    # Set a password for this user
+    if password is not None:
+        d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                         id=user.userid, bcrypthash=login.passhash(password))
+    # Set an email address for this user
+    if email_addr is not None:
+        d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s",
+                         email=email_addr, id=user.userid)
+    # Force the userID to a user-defined value and return it
+    if user_id is not None:
+        d.engine.execute("UPDATE login SET userid = %(newid)s WHERE userid = %(oldid)s", newid=user_id, oldid=user.userid)
+        return user_id
     return user.userid
 
 

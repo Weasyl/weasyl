@@ -255,20 +255,6 @@ def username_exists(login_name):
     """, name=login_name).scalar()
 
 
-def settings(userid, setting=None):
-    if setting:
-        return d.execute("SELECT settings ~ '%s' FROM login WHERE userid = %i",
-                         [setting, userid], options="bool")
-    else:
-        return d.execute("SELECT settings FROM login WHERE userid = %i",
-                         [userid], options="element")
-
-
-def sessionid(userid):
-    return d.execute("SELECT sessionid FROM usersession WHERE userid = %i",
-                     [userid], options="element")
-
-
 def update_unicode_password(userid, password, password_confirm):
     if password != password_confirm:
         raise WeasylError('passwordMismatch')

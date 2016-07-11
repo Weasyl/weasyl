@@ -1,8 +1,13 @@
+import pytest
 import arrow
 
 from weasyl import login
 from weasyl import define as d
 
+
+user_name = "test"
+email_addr = "test@weasyl.com"
+token = "a" * 40
 
 # Main test password
 raw_password = "0123456789"
@@ -14,10 +19,8 @@ class Bag(object):
             setattr(self, *kv)
 
 
+@pytest.mark.usefixtures('db')
 def test_acct_verif_token_returned_if_email_provided_to_function():
-    user_name = "validuser0002"
-    email_addr = "test0007@weasyl.com"
-    token = "testtokentesttokentesttokentesttoken0003"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
@@ -34,10 +37,8 @@ def test_acct_verif_token_returned_if_email_provided_to_function():
     assert token == acct_verification_token
 
 
+@pytest.mark.usefixtures('db')
 def test_acct_verif_token_returned_if_username_provided_to_function():
-    user_name = "validuser0003"
-    email_addr = "test0008@weasyl.com"
-    token = "testtokentesttokentesttokentesttoken0004"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)

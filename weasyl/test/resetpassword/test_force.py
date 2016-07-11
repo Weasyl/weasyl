@@ -11,6 +11,7 @@ class Bag(object):
             setattr(self, *kv)
 
 
+@pytest.mark.usefixtures('db')
 def test_forcing_password_reset_with_mismatched_pw_fails():
     user_id = db_utils.create_user()
     password = '01234567890123'
@@ -20,6 +21,7 @@ def test_forcing_password_reset_with_mismatched_pw_fails():
     assert 'passwordMismatch' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_forcing_password_reset_with_too_short_length_fails():
     # Anything under len(login._PASSWORD) characters triggers this case
     user_id = db_utils.create_user()
@@ -30,8 +32,9 @@ def test_forcing_password_reset_with_too_short_length_fails():
     assert 'passwordInsecure' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_verify_success_if_correct_information_provided():
-    user_name = "testForce0003"
+    user_name = 'test'
     user_id = db_utils.create_user(password='passwordpassword', username=user_name)
     password = '01234567890123'
     form = Bag(password=password, passcheck=password)

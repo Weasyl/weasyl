@@ -2,10 +2,14 @@ import pytest
 import arrow
 
 from weasyl.test import db_utils
-from weasyl import login
+
 from weasyl import define as d
+from weasyl import login
 from weasyl.error import WeasylError
 
+
+user_name = "test"
+email_addr = "test@weasyl.com"
 
 # Main test password
 raw_password = "0123456789"
@@ -17,8 +21,8 @@ class Bag(object):
             setattr(self, *kv)
 
 
+@pytest.mark.usefixtures('db')
 def test_DMY_not_integer_raises_birthdayInvalid_WeasylError():
-    user_name = "test"
     # Check for failure state if 'day' is not an integer, e.g., string
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -44,8 +48,8 @@ def test_DMY_not_integer_raises_birthdayInvalid_WeasylError():
     assert 'birthdayInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
-    user_name = "test"
     # Check for failure state if 'day' is not an valid day e.g., 42
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -71,8 +75,8 @@ def test_DMY_out_of_valid_ranges_raises_birthdayInvalid_WeasylError():
     assert 'birthdayInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_DMY_missing_raises_birthdayInvalid_WeasylError():
-    user_name = "test"
     # Check for failure state if 'year' is not an valid year e.g., -1
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -98,8 +102,8 @@ def test_DMY_missing_raises_birthdayInvalid_WeasylError():
     assert 'birthdayInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_under_13_age_raises_birthdayInvalid_WeasylError():
-    user_name = "test"
     # Check for failure state if computed birthday is <13 years old
     form = Bag(username=user_name, password='', passcheck='',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -109,8 +113,8 @@ def test_under_13_age_raises_birthdayInvalid_WeasylError():
     assert 'birthdayInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_passwords_must_match():
-    user_name = "test"
     # Check for failure if password != passcheck
     form = Bag(username=user_name, password='123', passcheck='qwe',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -120,8 +124,8 @@ def test_passwords_must_match():
     assert 'passwordMismatch' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_passwords_must_be_of_sufficient_length():
-    user_name = "test"
     password = "tooShort"
     form = Bag(username=user_name, password=password, passcheck=password,
                email='foo', emailcheck='foo',
@@ -139,8 +143,8 @@ def test_passwords_must_be_of_sufficient_length():
     assert 'emailInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_create_fails_if_email_and_emailcheck_dont_match():
-    user_name = "test"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email='test@weasyl.com', emailcheck='testt@weasyl.com',
                day='12', month='12', year=arrow.now().year - 19)
@@ -149,8 +153,8 @@ def test_create_fails_if_email_and_emailcheck_dont_match():
     assert 'emailMismatch' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_create_fails_if_email_is_invalid():
-    user_name = "test"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=';--', emailcheck=';--',
                day='12', month='12', year=arrow.now().year - 19)
@@ -159,52 +163,48 @@ def test_create_fails_if_email_is_invalid():
     assert 'emailInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_create_fails_if_another_account_has_email_linked_to_their_account():
     """
     Test checks to see if an email is tied to an active user account. If so,
     login.create() will not permit another account to be made for the same
     address.
     """
-    user_name = "emailexistsinlogin"
-    email_addr = "test0001@weasyl.com"
+    db_utils.create_user(username=user_name, email_addr=email_addr)
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
-    db_utils.create_user(username=user_name, email_addr=email_addr)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'emailExists' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_create_fails_if_pending_account_has_same_email():
     """
     Test checks to see if an email is tied to a pending account creation entry
     in logincreate. If so, login.create() will not permit another account to be
     made for the same address.
     """
-    user_name = "EmailExLoginCreate001"
-    user_name_2 = "EmailExLoginCreate002"
-    email_addr = "test0002@weasyl.com"
-    token = "testtokentesttokentesttokentesttoken0000"
-    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
-               email=email_addr, emailcheck=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
-        "token": token,
-        "username": user_name_2,
-        "login_name": user_name_2,
+        "token": 40 * "a",
+        "username": "existing",
+        "login_name": "existing",
         "hashpass": login.passhash(raw_password),
         "email": email_addr,
         "birthday": arrow.Arrow(2000, 1, 1),
         "unixtime": arrow.now(),
     })
+    form = Bag(username="test", password='0123456789', passcheck='0123456789',
+               email=email_addr, emailcheck=email_addr,
+               day='12', month='12', year=arrow.now().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'emailExists' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_username_cant_be_blank_or_have_semicolon():
-    email_addr = "test@weasyl.com"
     form = Bag(username='...', password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
@@ -217,6 +217,7 @@ def test_username_cant_be_blank_or_have_semicolon():
     assert 'usernameInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_create_fails_if_username_is_a_prohibited_name():
     form = Bag(username='testloginsuite', password='0123456789', passcheck='0123456789',
                email='test@weasyl.com', emailcheck='test@weasyl.com',
@@ -230,27 +231,21 @@ def test_create_fails_if_username_is_a_prohibited_name():
         assert 'usernameInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_usernames_must_be_unique():
-    user_name = "usernameexists0001"
-    email_addr = "test@weasyl.com"
+    db_utils.create_user(username=user_name, email_addr="test_2@weasyl.com")
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
-    db_utils.create_user(username=user_name, email_addr="test_2@weasyl.com")
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_usernames_cannot_match_pending_account_usernames():
-    user_name = "usernameexists0002"
-    email_addr = "test@weasyl.com"
-    token = "testtokentesttokentesttokentesttoken0001"
-    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
-               email=email_addr, emailcheck=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
-        "token": token,
+        "token": 40 * "a",
         "username": user_name,
         "login_name": user_name,
         "hashpass": login.passhash(raw_password),
@@ -258,27 +253,28 @@ def test_usernames_cannot_match_pending_account_usernames():
         "birthday": arrow.Arrow(2000, 1, 1),
         "unixtime": arrow.now(),
     })
-    with pytest.raises(WeasylError) as err:
-        login.create(form)
-    assert 'usernameExists' == err.value.value
-
-
-def test_username_cannot_match_an_active_alias():
-    user_name = "usernameexists0003"
-    email_addr = "test0004@weasyl.com"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
-    user_id = db_utils.create_user(username='aliastest')
-    d.engine.execute("INSERT INTO useralias VALUES (%(userid)s, %(username)s, 'p')", userid=user_id, username=user_name)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
+def test_username_cannot_match_an_active_alias():
+    user_id = db_utils.create_user(username='aliastest')
+    d.engine.execute("INSERT INTO useralias VALUES (%(userid)s, %(username)s, 'p')", userid=user_id, username=user_name)
+    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
+               email=email_addr, emailcheck=email_addr,
+               day='12', month='12', year=arrow.now().year - 19)
+    with pytest.raises(WeasylError) as err:
+        login.create(form)
+    assert 'usernameExists' == err.value.value
+
+
+@pytest.mark.usefixtures('db')
 def test_verify_correct_information_creates_account():
-    user_name = "validuser0001"
-    email_addr = "test0005@weasyl.com"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)

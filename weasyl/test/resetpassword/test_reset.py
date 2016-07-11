@@ -14,11 +14,14 @@ class Bag(object):
             setattr(self, *kv)
 
 
+user_name = "test"
+email_addr = "test@weasyl.com"
+token = "a" * 100
+
+
+@pytest.mark.usefixtures('db')
 def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
-    user_name = "testReset0001"
-    email_addr = "test_reset@weasyl.com"
     db_utils.create_user(email_addr=email_addr, username=user_name)
-    token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000002"
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year, token=token,
                password='qwe', passcheck='asd')
@@ -27,11 +30,9 @@ def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
     assert 'passwordMismatch' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_passwordInsecure_WeasylError_if_password_length_insufficient():
-    user_name = "testReset0002"
-    email_addr = "test_reset@weasyl.com"
     db_utils.create_user(email_addr=email_addr, username=user_name)
-    token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000003"
     password = ''
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year, token=token,
@@ -54,11 +55,9 @@ def test_passwordInsecure_WeasylError_if_password_length_insufficient():
     assert 'forgotpasswordRecordMissing' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_forgotpasswordRecordMissing_WeasylError_if_reset_record_not_found():
-    user_name = "testReset0003"
-    email_addr = "test_reset@weasyl.com"
     db_utils.create_user(email_addr=email_addr, username=user_name)
-    token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000004"
     password = '01234567890123'
     form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                month=arrow.now().month, year=arrow.now().year, token=token,
@@ -69,11 +68,10 @@ def test_forgotpasswordRecordMissing_WeasylError_if_reset_record_not_found():
     assert 'forgotpasswordRecordMissing' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email():
     # Two parts: Set forgot password record; attempt reset with incorrect email
     #  Requirement: Get token set from request()
-    user_name = "testReset0004"
-    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -91,11 +89,10 @@ def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email()
     assert 'emailIncorrect' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_emailIncorrect_WeasylError_if_username_doesnt_match_stored_username():
     # Two parts: Set forgot password record; attempt reset with incorrect username
     #  Requirement: Get token set from request()
-    user_name = "testReset0005"
-    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -113,11 +110,10 @@ def test_emailIncorrect_WeasylError_if_username_doesnt_match_stored_username():
     assert 'usernameIncorrect' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_password_reset_fails_if_attempted_from_different_ip_address():
     # Two parts: Set forgot password record; attempt reset with incorrect IP Address in forgotpassword table vs. requesting IP
     #  Requirement: Get token set from request()
-    user_name = "testReset0006"
-    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
@@ -137,13 +133,12 @@ def test_password_reset_fails_if_attempted_from_different_ip_address():
     assert 'addressInvalid' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_verify_success_if_correct_information_supplied():
     # Subtests:
     #  a) Verify 'authbcrypt' table has new hash
     #  b) Verify 'forgotpassword' row is removed.
     #  > Requirement: Get token set from request()
-    user_name = "testReset0007"
-    email_addr = "test_reset@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,

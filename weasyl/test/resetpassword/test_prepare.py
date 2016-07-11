@@ -12,6 +12,7 @@ class Bag(object):
             setattr(self, *kv)
 
 
+@pytest.mark.usefixtures('db')
 def test_stale_records_get_deleted_when_function_is_called():
     token_store = []
     for i in range(20):
@@ -58,9 +59,10 @@ def test_stale_records_get_deleted_when_function_is_called():
         assert resetpassword.checktoken(token_store[i])
 
 
+@pytest.mark.usefixtures('db')
 def test_link_time_field_is_updated_when_valid_token_supplied_to_function():
-    user_name = "testPrepareFunc002"
-    email_addr = "test0003@weasyl.com"
+    user_name = "test"
+    email_addr = "test@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
                            month=arrow.now().month, year=arrow.now().year)

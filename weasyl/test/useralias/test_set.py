@@ -7,66 +7,45 @@ from weasyl import define as d
 from weasyl.error import WeasylError
 
 
+@pytest.mark.usefixtures('db')
 def test_setting_alias_fails_if_target_alias_exists():
-    user_id = db_utils.create_user(username="testalias003")
-    user_id_existing = db_utils.create_user(username="testalias004")
-    test_alias_existing = "testalias005"
-    test_alias = test_alias_existing
-    d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id_existing, alias=test_alias_existing)
+    user_id = db_utils.create_user()
+    user_id_existing = db_utils.create_user()
+    d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id_existing, alias="existingalias")
     with pytest.raises(WeasylError) as err:
-        useralias.set(user_id, test_alias)
+        useralias.set(user_id, "existingalias")
     assert 'usernameExists' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_setting_alias_fails_if_target_username_exists():
-    user_name = "testalias006"
-    user_name_existing = "testalias007"
-    test_alias = user_name_existing
-    user_id = db_utils.create_user(username=user_name)
-    db_utils.create_user(username=user_name_existing)
+    user_id = db_utils.create_user()
+    db_utils.create_user(username="existinguser")
     with pytest.raises(WeasylError) as err:
-        useralias.set(user_id, test_alias)
+        useralias.set(user_id, "existinguser")
     assert 'usernameExists' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_setting_alias_fails_if_user_does_not_have_premium_status():
-    user_name = "testalias008"
-    user_id = db_utils.create_user(username=user_name)
-    user_alias = "testalias009"
+    user_id = db_utils.create_user()
     with pytest.raises(WeasylError) as err:
-        useralias.set(user_id, user_alias)
+        useralias.set(user_id, "alias")
     assert 'InsufficientPermissions' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_setting_alias_succeeds_when_previous_alias_does_not_exist():
     config = CharSettings({'premium'}, {}, {})
-    # Required subchecks: Previous alias does not exist, and user alias is set correctly.
-    user_name = "testalias010"
-    user_id = db_utils.create_user(username=user_name, config=config)
-    user_alias = "testalias011"
-    # Verify no alias is currently set
-    queried_user_alias = useralias.select(userid=user_id, premium=False)
-    assert queried_user_alias == []
-    # Set alias and verify it is set correctly
-    useralias.set(user_id, user_alias)
-    queried_user_alias = useralias.select(userid=user_id)
-    # The set alias should equal what the function returns.
-    assert user_alias == queried_user_alias
+    user_id = db_utils.create_user(config=config)
+    useralias.set(user_id, "alias")
+    assert useralias.select(userid=user_id) == "alias"
 
 
+@pytest.mark.usefixtures('db')
 def test_setting_alias_succeeds_when_previous_alias_exists():
     config = CharSettings({'premium'}, {}, {})
-    # Subchecks: 'previous' alias is set correctly, and new alias overwrites the old one
-    user_name = "testalias012"
-    user_id = db_utils.create_user(username=user_name, config=config)
-    user_alias = "testalias013"
-    user_previous_alias = "testalias014"
-    # Set 'previous' alias and verify it is set correctly
-    useralias.set(user_id, user_previous_alias)
-    queried_user_alias = useralias.select(userid=user_id)
-    # Verify the 'previous' alias was set...
-    assert user_previous_alias == queried_user_alias
-    # Set and verify the new alias
-    useralias.set(user_id, user_alias)
-    queried_user_alias = useralias.select(userid=user_id)
-    assert user_alias == queried_user_alias
+    user_id = db_utils.create_user(config=config)
+    useralias.set(user_id, "previousalias")
+    useralias.set(user_id, "alias")
+    assert useralias.select(userid=user_id) == "alias"

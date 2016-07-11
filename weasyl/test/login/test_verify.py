@@ -6,8 +6,7 @@ from weasyl import define as d
 from weasyl.error import WeasylError
 
 
-# Main test password
-raw_password = "0123456789"
+token = "a" * 40
 
 
 class Bag(object):
@@ -16,24 +15,23 @@ class Bag(object):
             setattr(self, *kv)
 
 
+@pytest.mark.usefixtures('db')
 def test_error_raised_if_invalid_token_provided_to_function():
     with pytest.raises(WeasylError) as err:
         login.verify("qwe")
     assert 'logincreateRecordMissing' == err.value.value
 
 
+@pytest.mark.usefixtures('db')
 def test_verify_success_if_valid_token_provided():
-    user_name = "validuser0004"
-    email_addr = "test0006@weasyl.com"
-    token = "testtokentesttokentesttokentesttoken0002"
-    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
-               email=email_addr, emailcheck=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+    form = Bag(username=u'test', password=u'0123456789', passcheck=u'0123456789',
+               email=u'test@weasyl.com', emailcheck=u'test@weasyl.com',
+               day=u'12', month=u'12', year=u'%d' % (arrow.now().year - 19,))
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
         "token": token,
         "username": form.username,
         "login_name": form.username,
-        "hashpass": login.passhash(raw_password),
+        "hashpass": login.passhash(u'0123456789'),
         "email": form.email,
         "birthday": arrow.Arrow(2000, 1, 1),
         "unixtime": arrow.now(),

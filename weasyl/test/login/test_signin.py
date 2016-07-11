@@ -11,6 +11,7 @@ class Bag(object):
             setattr(self, *kv)
 
 
+@pytest.mark.usefixtures('db')
 def test_verify_login_record_is_updated(monkeypatch):
     monkeypatch.setitem(d.web.ctx, 'weasyl_session', Bag())
     user_id = db_utils.create_user()

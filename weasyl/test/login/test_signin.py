@@ -11,13 +11,10 @@ class Bag(object):
             setattr(self, *kv)
 
 
-def test_verify_login_record_is_updated():
+def test_verify_login_record_is_updated(monkeypatch):
+    monkeypatch.setitem(d.web.ctx, 'weasyl_session', Bag())
     user_id = db_utils.create_user()
     d.engine.execute("UPDATE login SET last_login = -1 WHERE userid = %(id)s", id=user_id)
-    # login.signin(user_id) -will- raise an AttributeError when d.web.ctx.weasyl_session
-    #   tries to execute itself; so catch/handle; it's a test environment issue
-    with pytest.raises(AttributeError) as err:
-        login.signin(user_id)
-    print str(err)
+    login.signin(user_id)
     last_login = d.engine.scalar("SELECT last_login FROM login WHERE userid = %(id)s", id=user_id)
     assert last_login > -1

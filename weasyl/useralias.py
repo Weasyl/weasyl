@@ -16,7 +16,7 @@ def select(userid, premium=True):
 def set(userid, username):
     if login.username_exists(username):
         raise WeasylError("usernameExists")
-    elif not d.get_premium(None, userid):
+    elif not d.get_premium(userid):
         raise WeasylError("InsufficientPermissions")
 
     d.execute("DELETE FROM useralias WHERE userid = %i AND settings ~ 'p'", [userid])

@@ -8,6 +8,6 @@ RUN as-weasyl pip install --no-index -f /wheelhouse \
     -e '/weasyl-src/libweasyl[development]' \
     -e /weasyl-src/_wzl
 
-ENV WEASYL_TEST_SQLALCHEMY_URL=postgres://postgres:postgres@db/weasyl_test
+ENV WEASYL_TEST_SQLALCHEMY_URL=postgresql+psycopg2cffi://postgres:postgres@db/weasyl_test
 ENV WEASYL_RELOAD_TEMPLATES=y
 ENV WEASYL_RELOAD_ASSETS=y

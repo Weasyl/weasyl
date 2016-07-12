@@ -9,11 +9,15 @@ import raven.processors
 import traceback
 
 import anyjson as json
+from pyramid.httpexceptions import HTTPServiceUnavailable
+from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import OperationalError
 from twisted.internet.threads import blockingCallFromThread
+from web.utils import storify
 
 from libweasyl import security
 from libweasyl.cache import ThreadCacheProxy
@@ -134,6 +138,98 @@ def status_check_tween_factory(handler, registry):
             return Response(d.common_status_page(request.userid, status))
         return handler(request)
     return status_check_tween
+
+
+# Properties and methods to enhance the pyramid `request`.
+def pg_connection_request_property(request):
+    """
+    Used for the reified pg_connection property on weasyl requests.
+    """
+    db = d.sessionmaker()
+    try:
+        # Make sure postgres is still there before issuing any further queries.
+        db.execute('SELECT 1')
+    except OperationalError:
+        request.log_exc()
+        raise HTTPServiceUnavailable("database error")
+    # postgresql is still there. Register clean-up of this property.
+    def cleanup(request):
+        db.close()
+    request.add_finished_callback(cleanup)
+    return db
+
+
+def userid_request_property(request):
+    """
+    Used for the userid property on weasyl requests.
+    """
+    api_token = request.headers.get('X_WEASYL_API_KEY')
+    authorization = request.headers.get('AUTHORIZATION')
+    if api_token is not None:
+        # TODO: Don't reify the entire property, but just cache the result of this query.
+        userid = d.engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
+        if not userid:
+            raise HTTPUnauthorized(headers={'WWW-Authenticate': 'Weasyl-API-Key realm="Weasyl"'})
+        return userid
+
+    elif authorization:
+        from weasyl.oauth2 import get_userid_from_authorization
+        userid = get_userid_from_authorization()
+        if not userid:
+            raise HTTPUnauthorized({'WWW-Authenticate': 'Bearer realm="Weasyl" error="invalid_token"'})
+        return userid
+
+    else:
+        userid = request.weasyl_session.userid
+        return 0 if userid is None else userid
+
+
+def log_exc_request_method(request, **kwargs):
+    """
+    Method on requests to log exceptions.
+    """
+    # It's unclear to me why this should be a request method and not just define.log_exc().
+    return request.environ.get('raven.captureException', lambda **kw: traceback.print_exc())(**kwargs)
+
+
+def web_input_request_method(request, *required, **kwargs):
+    """
+    Callable that processes the pyramid request.params multidict into a web.py storage object
+    in the style of web.input().
+    TODO: Replace usages of this method with accessing request directly.
+
+    @param request: The pyramid request object.
+    @param kwargs: Default values. If a default value is a list, it indicates that multiple
+        values of that key should be collapsed into a list.
+    @return: A dictionary-like object in the fashion of web.py's web.input()
+    """
+    return storify(request.params.mixed(), *required, **kwargs)
+
+
+# Methods to add response callbacks to a request. The callbacks run in the order they
+# were registered. Note that these will not run if an exception is thrown that isn't handled by
+# our exception view.
+def set_cookie_on_response(request, name=None, value='', max_age=None, path='/', domain=None,
+                           secure=False, httponly=False, comment=None, expires=None,
+                           overwrite=False, key=None):
+    """
+    Registers a callback on the request to set a cookie in the response.
+    Parameters have the same meaning as ``pyramid.response.Response.set_cookie``.
+    """
+    def callback(request, response):
+        response.set_cookie(name, value, max_age, path, domain, secure, httponly, comment,
+                            expires, overwrite, key)
+    request.add_response_callback(callback)
+
+
+def delete_cookie_on_response(request, name, path='/', domain=None):
+    """
+    Register a callback on the request to delete a cookie from the client.
+    Parameters have the same meaning as ``pyramid.response.Response.delete_cookie``.
+    """
+    def callback(request, response):
+        response.delete_cookie(name, path, domain)
+    request.add_response_callback(callback)
 
 
 def weasyl_exception_view(exc, request):

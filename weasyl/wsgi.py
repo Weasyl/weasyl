@@ -34,7 +34,7 @@ setup_routes_and_views(config)
 
 # Setup properties and methods for request objects.
 config.add_request_method(d.pg_connection_request_property, name='pg_connection', reify=True)
-config.add_request_method(d.userid_request_property, name='userid', property=True)
+config.add_request_method(d.userid_request_property, name='userid', reify=True)
 config.add_request_method(d.log_exc_request_method, name='log_exc')
 config.add_request_method(d.web_input_request_method, name='web_input')
 config.add_request_method(d.set_cookie_on_response)

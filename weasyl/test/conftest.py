@@ -36,7 +36,7 @@ def setupdb(request):
 def setup_request_environment(request):
     pyramid_request = pyramid.testing.DummyRequest()
     pyramid_request.set_property(define.pg_connection_request_property, name='pg_connection', reify=True)
-    pyramid_request.set_property(define.userid_request_property, name='userid')
+    pyramid_request.set_property(define.userid_request_property, name='userid', reify=True)
     pyramid_request.log_exc = define.log_exc_request_method
     pyramid_request.web_input = define.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'

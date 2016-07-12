@@ -101,9 +101,9 @@ def search_(request):
             None,
             # Search results
             {
-                "submit": search.browse(self.user_id, rating, 22, form, find="submit"),
-                "char": search.browse(self.user_id, rating, 22, form, find="char"),
-                "journal": search.browse(self.user_id, rating, 22, form, find="journal"),
+                "submit": search.browse(request.userid, rating, 22, form, find="submit"),
+                "char": search.browse(request.userid, rating, 22, form, find="char"),
+                "journal": search.browse(request.userid, rating, 22, form, find="journal"),
             },
         ]))
 

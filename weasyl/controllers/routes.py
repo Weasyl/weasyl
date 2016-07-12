@@ -88,16 +88,16 @@ routes = (
     Route("/view/{submitid:[0-9]+}{ignore_name:(/.*)?}", "submission_detail_view", detail.submission_),
     Route("/submission", "submission_detail_unnamed", detail.submission_),
     Route("/submission/{submitid:[0-9]+}{ignore_name:(/.*)?}", "submission_detail", detail.submission_),
+    Route("/submission/tag-history/{submitid:[0-9]+}", "submission_tag_history", detail.submission_tag_history_),
+    Route("/character", "character_detail_unnamed", detail.character_),
+    Route("/character/{charid:[0-9]+}*remainder", "character_detail", detail.character_),
+    Route("/journal", "journal_detail_unnamed", detail.journal_),
+    Route("/journal/{journalid:[0-9]+}*remainder", "journal_detail", detail.journal_),
+
 )
 
 
 controllers = (
-    "/submission/tag-history/([0-9]+)", "weasyl.controllers.detail.submission_tag_history_",
-    "/character", "weasyl.controllers.detail.character_",
-    "/character/([0-9]*)(?:/.*)?", "weasyl.controllers.detail.character_",
-    "/journal", "weasyl.controllers.detail.journal_",
-    "/journal/([0-9]*)(?:/.*)?", "weasyl.controllers.detail.journal_",
-
     "/submit", "weasyl.controllers.content.submit_",
     "/submit/visual", "weasyl.controllers.content.submit_visual_",
     "/submit/literary", "weasyl.controllers.content.submit_literary_",

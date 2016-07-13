@@ -19,7 +19,22 @@ class CollectionsTestCase(unittest.TestCase):
         collection.offer(self.creator, self.s, self.collector)
 
     def count_collections(self, pending, rating=ratings.GENERAL.code):
-        return len(collection.select_manage(self.collector, rating, 10, pending))
+        return self.db.scalar(
+            """
+            SELECT count(*)
+            FROM collection
+                INNER JOIN submission ON collection.submitid = submission.submitid
+                INNER JOIN profile ON submission.userid = profile.userid
+            WHERE
+                (submission.rating <= :rating OR submission.userid = :user) AND
+                (position('p' in collection.settings) != 0) = :pending AND
+                submission.settings !~ '[fh]'
+            """,
+            {
+                'user': self.collector,
+                'rating': rating,
+                'pending': pending,
+            })
 
     def test_offer_and_accept(self):
         self.offer()

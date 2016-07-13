@@ -1,6 +1,5 @@
 # blocktag.py
 
-from error import PostgresError
 import define as d
 
 import profile
@@ -87,39 +86,15 @@ def select_ids(userid):
     ]
 
 
-def insert(userid, tagid=None, title=None, rating=None):
-
+def insert(userid, title, rating):
     if rating not in ratings.CODE_MAP:
         rating = ratings.GENERAL.code
 
     profile.check_user_rating_allowed(userid, rating)
 
-    if tagid:
-        tag = int(tagid)
-
-        try:
-            d.engine.execute("INSERT INTO blocktag VALUES (%s, %s, %s)", userid, tag, rating)
-        except PostgresError:
-            return
-    elif title:
-        tag_name = d.get_search_tag(title)
-
-        try:
-            d.engine.execute("""
-                INSERT INTO blocktag (userid, tagid, rating)
-                VALUES (
-                    %(user)s,
-                    (SELECT tagid FROM searchtag WHERE title = %(tag_name)s),
-                    %(rating)s
-                )
-            """, user=userid, tag_name=tag_name, rating=rating)
-        except PostgresError:
-            try:
-                tag = searchtag.create(title)
-            except PostgresError:
-                return
-
-            d.engine.execute("INSERT INTO blocktag VALUES (%s, %s, %s)", userid, tag, rating)
+    d.engine.execute(
+        'INSERT INTO blocktag (userid, tagid, rating) VALUES (%(user)s, %(tag)s, %(rating)s) ON CONFLICT DO NOTHING',
+        user=userid, tag=searchtag.get_or_create(title), rating=rating)
 
     select_ids.invalidate(userid)
 

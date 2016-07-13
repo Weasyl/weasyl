@@ -1,3 +1,4 @@
+import anyjson as json
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.response import Response
 
@@ -5,7 +6,7 @@ from libweasyl import staff
 
 from weasyl import define, errorcode
 import weasyl.api
-
+from weasyl.error import WeasylError
 
 """
 Contains decorators for weasyl view callables to enforce permissions and the like.
@@ -60,6 +61,20 @@ def token_checked(view_callable):
     def inner(request):
         if not weasyl.api.is_api_user() and request.params.get('token', "") != define.get_token():
             return Response(define.errorpage(request.userid, errorcode.token))
+        return view_callable(request)
+    return inner
+
+
+def supports_json(view_callable):
+    def inner(request):
+        if request.params.get('format', "") == "json":
+
+            try:
+                result = view_callable(request)
+            except WeasylError as e:
+                result = {"error": e.value, "message": errorcode.error_messages.get(e.value)}
+
+            return Response(json.dumps(result), headerlist=[("Content-Type", "application/json")])
         return view_callable(request)
     return inner
 

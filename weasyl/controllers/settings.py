@@ -1,11 +1,13 @@
 import os
 
+from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.response import Response
 import web
 
 import libweasyl.ratings as ratings
 from libweasyl import staff
 
-from weasyl.controllers.decorators import controller_base
+from weasyl.controllers.decorators import controller_base, login_required, token_checked
 from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
@@ -560,68 +562,71 @@ class manage_collections_(controller_base):
 class manage_thumbnail_(controller_base):
     login_required = True
 
-    def GET(self):
-        form = web.input(submitid="", charid="", auto="")
-        submitid = define.get_int(form.submitid)
-        charid = define.get_int(form.charid)
+@login_required
+def manage_thumbnail_get_(request):
+    form = request.web_input(submitid="", charid="", auto="")
+    submitid = define.get_int(form.submitid)
+    charid = define.get_int(form.charid)
 
-        if submitid and self.user_id not in staff.ADMINS and self.user_id != define.get_ownerid(submitid=submitid):
-            return define.errorpage(self.user_id, errorcode.permissions)
-        elif charid and self.user_id not in staff.ADMINS and self.user_id != define.get_ownerid(charid=charid):
-            return define.errorpage(self.user_id, errorcode.permissions)
-        elif not submitid and not charid:
-            return define.errorpage(self.user_id)
+    if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
+        return Response(define.errorpage(request.userid, errorcode.permissions))
+    elif charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
+        return Response(define.errorpage(request.userid, errorcode.permissions))
+    elif not submitid and not charid:
+        return Response(define.errorpage(request.userid))
 
-        if charid:
-            source_path = define.url_make(charid, "char/.thumb", root=True)
-            if os.path.exists(source_path):
-                source = define.url_make(charid, "char/.thumb")
-            else:
-                source = define.url_make(charid, "char/cover")
+    if charid:
+        source_path = define.url_make(charid, "char/.thumb", root=True)
+        if os.path.exists(source_path):
+            source = define.url_make(charid, "char/.thumb")
         else:
-            try:
-                source = thumbnail.thumbnail_source(submitid)['display_url']
-            except WeasylError:
-                source = None
+            source = define.url_make(charid, "char/cover")
+    else:
+        try:
+            source = thumbnail.thumbnail_source(submitid)['display_url']
+        except WeasylError:
+            source = None
 
-        options = ['imageselect']
+    options = ['imageselect']
 
-        return define.webpage(self.user_id, "manage/thumbnail.html", [
-            # Feature
-            "submit" if submitid else "char",
-            # Targetid
-            define.get_targetid(submitid, charid),
-            # Thumbnail
-            source,
-            # Exists
-            bool(source),
-        ], options=options)
+    return Response(define.webpage(request.userid, "manage/thumbnail.html", [
+        # Feature
+        "submit" if submitid else "char",
+        # Targetid
+        define.get_targetid(submitid, charid),
+        # Thumbnail
+        source,
+        # Exists
+        bool(source),
+    ], options=options))
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(submitid="", charid="", x1="", y1="", x2="", y2="", thumbfile="")
-        submitid = define.get_int(form.submitid)
-        charid = define.get_int(form.charid)
 
-        if submitid and self.user_id not in staff.ADMINS and self.user_id != define.get_ownerid(submitid=submitid):
-            return define.errorpage(self.user_id)
-        if charid and self.user_id not in staff.ADMINS and self.user_id != define.get_ownerid(charid=charid):
-            return define.errorpage(self.user_id)
-        if not submitid and not charid:
-            return define.errorpage(self.user_id)
+@login_required
+@token_checked
+def manage_thumbnail_post_(request):
+    form = request.web_input(submitid="", charid="", x1="", y1="", x2="", y2="", thumbfile="")
+    submitid = define.get_int(form.submitid)
+    charid = define.get_int(form.charid)
 
-        if form.thumbfile:
-            thumbnail.upload(self.user_id, form.thumbfile, submitid=submitid, charid=charid)
-            if submitid:
-                raise web.seeother("/manage/thumbnail?submitid=%i" % (submitid,))
-            else:
-                raise web.seeother("/manage/thumbnail?charid=%i" % (charid,))
+    if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
+        return Response(define.errorpage(request.userid))
+    if charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
+        return Response(define.errorpage(request.userid))
+    if not submitid and not charid:
+        return Response(define.errorpage(request.userid))
+
+    if form.thumbfile:
+        thumbnail.upload(request.userid, form.thumbfile, submitid=submitid, charid=charid)
+        if submitid:
+            raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
         else:
-            thumbnail.create(self.user_id, form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
-            if submitid:
-                raise web.seeother("/submission/%i" % (submitid,))
-            else:
-                raise web.seeother("/character/%i" % (charid,))
+            raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
+    else:
+        thumbnail.create(request.userid, form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
+        if submitid:
+            raise HTTPSeeOther(location="/submission/%i" % (submitid,))
+        else:
+            raise HTTPSeeOther(location="/character/%i" % (charid,))
 
 
 class manage_tagfilters_(controller_base):

@@ -22,7 +22,7 @@ Route = namedtuple('Route', ['pattern', 'name', 'view'])
 """
 A route to be added to the Weasyl application.
 
-`view` may be either a view callable (in which case only GET/HEAD requests are routed to it) or a
+`view` may be either a view callalocation=ble (in which case only GET/HEAD requests are routed to it) or a
 dict mapping http methods to view callables.
 """
 
@@ -84,6 +84,7 @@ routes = (
     Route("/staffnotes", "profile_staffnotes_unnamed",  profile.staffnotes_),
     Route("/staffnotes/{name:[^/]*}", "profile_staffnotes",  profile.staffnotes_),
 
+    # Details of specific content
     Route("/view", "submission_detail_view_unnamed", detail.submission_),
     Route("/view/{submitid:[0-9]+}{ignore_name:(/.*)?}", "submission_detail_view", detail.submission_),
     Route("/submission", "submission_detail_unnamed", detail.submission_),
@@ -91,37 +92,59 @@ routes = (
     Route("/submission/tag-history/{submitid:[0-9]+}", "submission_tag_history", detail.submission_tag_history_),
     Route("/character", "character_detail_unnamed", detail.character_),
     Route("/character/{charid:[0-9]+}*remainder", "character_detail", detail.character_),
-    Route("/journal", "journal_detail_unnamed", detail.journal_),
+    Route("/journal", "journal_detail_unnamedited", detail.journal_),
     Route("/journal/{journalid:[0-9]+}*remainder", "journal_detail", detail.journal_),
+
+    # Submitting, reuploading, and removing content
+    Route("/submit", "submit", content.submit_),
+    Route("/submit/visual", "submit_visual",
+          {'GET': content.submit_visual_get_, 'POST': content.submit_visual_post_}),
+    Route("/submit/literary", "submit_literary",
+          {'GET': content.submit_literary_get_, 'POST': content.submit_literary_post_}),
+    Route("/submit/multimedia", "submit_multimedia",
+          {'GET': content.submit_multimedia_get_, 'POST': content.submit_multimedia_post_}),
+    Route("/submit/character", "submit_character",
+          {'GET': content.submit_character_get_, 'POST': content.submit_character_post_}),
+    Route("/submit/journal", "submit_journal",
+          {'GET': content.submit_journal_get_, 'POST': content.submit_journal_post_}),
+    Route("/submit/shout", "submit_shout", {'POST': content.submit_shout_}),
+    Route("/submit/comment", "submit_comment", {'POST': content.submit_comment_}),
+    Route("/submit/report", "submit_report", {'POST': content.submit_report_}),
+    Route("/submit/tags", "submit_tags", {'POST': content.submit_tags_}),
+    Route("/reupload/submission", "reupload_submission",
+          {'GET': content.reupload_submission_get_, 'POST': content.reupload_submission_post_}),
+    Route("/reupload/character", "reupload_character",
+          {'GET': content.reupload_character_get_, 'POST': content.reupload_character_post_}),
+    Route("/reupload/cover", "reupload_cover",
+          {'GET': content.reupload_cover_get_, 'POST': content.reupload_cover_post_}),
+    Route("/edit/submission", "edit_submission",
+          {'GET': content.edit_submission_get_, 'POST': content.edit_submission_post_}),
+    Route("/edit/character", "edit_character",
+          {'GET': content.edit_character_get_, 'POST': content.edit_character_post_}),
+    Route("/edit/journal", "edit_journal",
+          {'GET': content.edit_journal_get_, 'POST': content.edit_journal_post_}),
+    Route("/remove/submission", "remove_submission", {'POST': content.remove_submission_}),
+    Route("/remove/character", "remove_character", {'POST': content.remove_character_}),
+    Route("/remove/journal", "remove_journal", {'POST': content.remove_journal_}),
+    Route("/remove/comment", "remove_comment", {'POST': content.remove_comment_}),
+
+    # Leaving this here for now to help me edit it away later.
+    # "/manage/folders", "weasyl.controllers.settings.manage_folders_",
+    # "/manage/following", "weasyl.controllers.settings.manage_following_",
+    # "/manage/friends", "weasyl.controllers.settings.manage_friends_",
+    # "/manage/ignore", "weasyl.controllers.settings.manage_ignore_",
+    # "/manage/collections", "weasyl.controllers.settings.manage_collections_",
+    Route("/manage/thumbnail", "manage_thumbnail_",
+          {'GET': settings.manage_thumbnail_get_, 'POST': settings.manage_thumbnail_post_}),
+    # "/manage/tagfilters", "weasyl.controllers.settings.manage_tagfilters_",
+    # "/manage/avatar", "weasyl.controllers.settings.manage_avatar_",
+    # "/manage/banner", "weasyl.controllers.settings.manage_banner_",
+    # "/manage/alias", "weasyl.controllers.settings.manage_alias_",
 
 )
 
 
 controllers = (
-    "/submit", "weasyl.controllers.content.submit_",
-    "/submit/visual", "weasyl.controllers.content.submit_visual_",
-    "/submit/literary", "weasyl.controllers.content.submit_literary_",
-    "/submit/multimedia", "weasyl.controllers.content.submit_multimedia_",
-    "/submit/character", "weasyl.controllers.content.submit_character_",
-    "/submit/journal", "weasyl.controllers.content.submit_journal_",
-    "/submit/shout", "weasyl.controllers.content.submit_shout_",
-    "/submit/comment", "weasyl.controllers.content.submit_comment_",
-    "/submit/report", "weasyl.controllers.content.submit_report_",
-    "/submit/tags", "weasyl.controllers.content.submit_tags_",
-
-    "/reupload/submission", "weasyl.controllers.content.reupload_submission_",
-    "/reupload/character", "weasyl.controllers.content.reupload_character_",
-    "/reupload/cover", "weasyl.controllers.content.reupload_cover_",
-
-    "/edit/submission", "weasyl.controllers.content.edit_submission_",
-    "/edit/character", "weasyl.controllers.content.edit_character_",
-    "/edit/journal", "weasyl.controllers.content.edit_journal_",
-
-    "/remove/submission", "weasyl.controllers.content.remove_submission_",
-    "/remove/character", "weasyl.controllers.content.remove_character_",
-    "/remove/journal", "weasyl.controllers.content.remove_journal_",
-    "/remove/comment", "weasyl.controllers.content.remove_comment_",
-
     "/frienduser", "weasyl.controllers.interaction.frienduser_",
     "/unfrienduser", "weasyl.controllers.interaction.unfrienduser_",
     "/followuser", "weasyl.controllers.interaction.followuser_",
@@ -171,16 +194,16 @@ controllers = (
     "/control/sfwtoggle", "weasyl.controllers.settings.sfwtoggle_",
     "/control/collections", "weasyl.controllers.collections.collection_options_",
 
-    "/manage/folders", "weasyl.controllers.settings.manage_folders_",
-    "/manage/following", "weasyl.controllers.settings.manage_following_",
-    "/manage/friends", "weasyl.controllers.settings.manage_friends_",
-    "/manage/ignore", "weasyl.controllers.settings.manage_ignore_",
-    "/manage/collections", "weasyl.controllers.settings.manage_collections_",
-    "/manage/thumbnail", "weasyl.controllers.settings.manage_thumbnail_",
-    "/manage/tagfilters", "weasyl.controllers.settings.manage_tagfilters_",
-    "/manage/avatar", "weasyl.controllers.settings.manage_avatar_",
-    "/manage/banner", "weasyl.controllers.settings.manage_banner_",
-    "/manage/alias", "weasyl.controllers.settings.manage_alias_",
+    # "/manage/folders", "weasyl.controllers.settings.manage_folders_",
+    # "/manage/following", "weasyl.controllers.settings.manage_following_",
+    # "/manage/friends", "weasyl.controllers.settings.manage_friends_",
+    # "/manage/ignore", "weasyl.controllers.settings.manage_ignore_",
+    # "/manage/collections", "weasyl.controllers.settings.manage_collections_",
+    # "/manage/thumbnail", "weasyl.controllers.settings.manage_thumbnail_",
+    # "/manage/tagfilters", "weasyl.controllers.settings.manage_tagfilters_",
+    # "/manage/avatar", "weasyl.controllers.settings.manage_avatar_",
+    # "/manage/banner", "weasyl.controllers.settings.manage_banner_",
+    # "/manage/alias", "weasyl.controllers.settings.manage_alias_",
 
     "/modcontrol", "weasyl.controllers.moderation.modcontrol_",
     "/modcontrol/finduser", "weasyl.controllers.moderation.modcontrol_finduser_",

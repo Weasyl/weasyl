@@ -1177,25 +1177,6 @@ def paginate(results, backid, nextid, limit, key):
         None if at_end or not results else results[-1][key])
 
 
-def supports_json(handler):
-    def wrapper(*args, **kwargs):
-        request = get_current_request()
-
-        if request.params.get('format', "") == "json":
-            request.response.headers["Content-Type"] = "application/json"
-
-            try:
-                result = handler(*args, **kwargs)
-            except WeasylError as e:
-                result = {"error": e.value, "message": errorcode.error_messages.get(e.value)}
-
-            return json.dumps(result)
-
-        return handler(*args, **kwargs)
-
-    return wrapper
-
-
 def thumb_for_sub(submission):
     """
     Given a submission dict containing sub_media, sub_type and userid,

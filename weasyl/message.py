@@ -3,6 +3,7 @@ from itertools import chain
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
+from weasyl import searchtag as st
 
 
 notification_clusters = {
@@ -168,18 +169,25 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
         limit=limit,
     )
 
-    results = [{
-        "contype": i.contype,
-        "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,
-        "welcomeid": i.welcomeid,
-        "title": i.title,
-        "rating": i.rating,
-        "unixtime": i.unixtime,
-        "userid": i.userid,
-        "username": i.username,
-        "subtype": i.subtype,
-        "sub_media": _fake_media_items(i),
-    } for i in query]
+    results = []
+    for i in query:
+        if i.contype != _CONTYPE_CHAR:
+            tags = st.select(submitid=i.id)
+        else:
+            tags = st.select(charid=i.id)
+        results.append({
+            "contype": i.contype,
+            "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,
+            "welcomeid": i.welcomeid,
+            "title": i.title,
+            "rating": i.rating,
+            "unixtime": i.unixtime,
+            "userid": i.userid,
+            "username": i.username,
+            "subtype": i.subtype,
+            "tags": tags,
+            "sub_media": _fake_media_items(i),
+        })
 
     media.populate_with_submission_media(
         [i for i in results if i["contype"] != _CONTYPE_CHAR])

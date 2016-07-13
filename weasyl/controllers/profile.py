@@ -263,7 +263,7 @@ def characters_(request):
     url_format = "/characters?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
         character.select_list, character.select_count,
-        'charid]', url_format, request.userid, rating, 60,
+        'charid', url_format, request.userid, rating, 60,
         otherid=otherid, backid=define.get_int(form.backid),
         nextid=define.get_int(form.nextid), config=config)
 

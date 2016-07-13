@@ -116,15 +116,14 @@ def submit_literary_post_(request):
 
 
 @login_required
-@token_checked
 def submit_multimedia_get_(request):
-        return Response(define.webpage(request.userid, "submit/multimedia.html", [
-            # Folders
-            folder.select_list(request.userid, "drop/all"),
-            # Subtypes
-            [i for i in macro.MACRO_SUBCAT_LIST if 3000 <= i[0] < 4000],
-            profile.get_user_ratings(request.userid),
-        ]))
+    return Response(define.webpage(request.userid, "submit/multimedia.html", [
+        # Folders
+        folder.select_list(request.userid, "drop/all"),
+        # Subtypes
+        [i for i in macro.MACRO_SUBCAT_LIST if 3000 <= i[0] < 4000],
+        profile.get_user_ratings(request.userid),
+    ]))
 
 
 @login_required
@@ -165,9 +164,9 @@ def submit_multimedia_post_(request):
 
 @login_required
 def submit_character_get_(request):
-        return Response(define.webpage(request.userid, "submit/character.html", [
-            profile.get_user_ratings(request.userid),
-        ]))
+    return Response(define.webpage(request.userid, "submit/character.html", [
+        profile.get_user_ratings(request.userid),
+    ]))
 
 
 @login_required

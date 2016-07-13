@@ -104,48 +104,6 @@ def select_list(userid, rating, limit, otherid=None, pending=False, backid=None,
     return query[::-1] if backid else query
 
 
-def select_manage(userid, rating, limit, pending, backid=None, nextid=None, config=None):
-    query = []
-    statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, su.userid, pr.username"
-                 " FROM collection co"
-                 " INNER JOIN submission su ON co.submitid = su.submitid"
-                 " INNER JOIN profile pr ON su.userid = pr.userid"
-                 " WHERE (su.rating <= %i OR su.userid = %i) AND co.settings %s~ 'p' AND su.settings !~ '[fh]'"
-                 % (rating, userid, "" if pending else "!")]
-
-    # Content owner and browse selection
-    statement.append(" AND co.userid = %i" % userid)
-
-    if backid:
-        statement.append(" AND co.unixtime > (SELECT unixtime FROM collection WHERE (userid, submitid) = (%i, %i))"
-                         % (userid, backid))
-    elif nextid:
-        statement.append(" AND co.unixtime < (SELECT unixtime FROM collection WHERE (userid, submitid) = (%i, %i))"
-                         % (userid, nextid))
-
-    # Ignored users and blocked tags
-    statement.append(" ORDER BY co.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
-
-    try:
-        for i in d.execute("".join(statement)):
-            query.append({
-                "contype": 10,
-                "collection": True,
-                "submitid": i[0],
-                "title": i[1],
-                "subtype": i[2],
-                "rating": i[3],
-                "unixtime": i[4],
-                "userid": i[5],
-                "username": i[6],
-                "sub_media": media.get_submission_media(i[0]),
-            })
-    except PostgresError:
-        return []
-
-    return query[::-1] if backid else query
-
-
 def find_owners(submitid, pending=False):
     """
     Retrieve a list of users who have collected the given submission.

@@ -166,8 +166,8 @@ class SelectListTestCase(unittest.TestCase):
 
     def test_duplicate_blocked_tag(self):
         user = db_utils.create_user()
-        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code, tagid=None)
-        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code, tagid=None)
+        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code)
+        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code)
 
     def test_profile_page_filter(self):
         user1 = db_utils.create_user()

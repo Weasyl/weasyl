@@ -1,8 +1,6 @@
 # resetpassword.py
 # -*- coding: utf-8 -*-
 
-from sqlalchemy.exc import IntegrityError
-
 from libweasyl import security
 from weasyl import define as d
 from weasyl import emailer
@@ -42,25 +40,14 @@ def request(form):
     now = d.get_time()
     address = d.get_address()
 
-    try:
-        d.engine.execute(
-            "INSERT INTO forgotpassword (userid, token, set_time, address)"
-            " VALUES (%(id)s, %(token)s, %(time)s, %(address)s)",
-            id=user.userid, token=token, time=now, address=address)
-    except IntegrityError:
-        # An IntegrityError will probably indicate that a password reset request
-        # already exists and that the existing row should be updated. If the update
-        # doesn't find anything, though, the original error should be re-raised.
-        result = d.engine.execute("""
-            UPDATE forgotpassword SET
-                token = %(token)s,
-                set_time = %(time)s,
-                address = %(address)s
-            WHERE userid = %(id)s
-        """, id=user.userid, token=token, time=now, address=address)
-
-        if result.rowcount != 1:
-            raise
+    d.engine.execute("""
+        INSERT INTO forgotpassword (userid, token, set_time, address)
+        VALUES (%(id)s, %(token)s, %(time)s, %(address)s)
+        ON CONFLICT (userid) DO UPDATE SET
+            token = %(token)s,
+            set_time = %(time)s,
+            address = %(address)s
+    """, id=user.userid, token=token, time=now, address=address)
 
     # Generate and send an email to the user containing a password reset link
     emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
@@ -124,13 +111,10 @@ def reset(form):
         raise WeasylError("addressInvalid")
 
     # Update the authbcrypt table with a new password hash
-    """ TODO TEMPORARY """
-    try:
-        d.execute("INSERT INTO authbcrypt VALUES (%i, '')", [USERID])
-    except:
-        pass
-
-    d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(form.password), USERID])
+    d.engine.execute(
+        'INSERT INTO authbcrypt (userid, hashsum) VALUES (%(user)s, %(hash)s) '
+        'ON CONFLICT (userid) DO UPDATE SET hashsum = %(hash)s',
+        user=USERID, hash=login.passhash(form.password))
 
     d.execute("DELETE FROM forgotpassword WHERE token = '%s'", [form.token])
 

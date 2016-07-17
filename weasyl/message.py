@@ -3,7 +3,7 @@ from itertools import chain
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
-from weasyl import searchtag as st
+from weasyl import searchtag
 
 
 notification_clusters = {
@@ -172,9 +172,9 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
     results = []
     for i in query:
         if i.contype != _CONTYPE_CHAR:
-            tags = st.select(submitid=i.id)
+            tags = searchtag.select(submitid=i.id)
         else:
-            tags = st.select(charid=i.id)
+            tags = searchtag.select(charid=i.id)
         results.append({
             "contype": i.contype,
             "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,

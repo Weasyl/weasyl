@@ -85,3 +85,39 @@ class admincontrol_acctverifylink_(controller_base):
             return d.webpage(self.user_id, "admincontrol/acctverifylink.html", [token])
 
         return d.errorpage(self.user_id, "No pending account found.")
+
+
+class admincontrol_emailblacklist_(controller_base):
+    login_required = True
+    admin_only = True
+
+    def GET(self):
+        query = d.engine.execute("SELECT * FROM emailblacklist")
+        blacklist_information = [{
+            "domain_name_id": i.domain_name_id,
+            "domain_name": i.domain_name,
+            "reason": i.reason,
+        } for i in query]
+        return d.webpage(self.user_id, "admincontrol/emailblacklist.html", [blacklist_information, d.get_token()])
+
+    @d.token_checked
+    def POST(self):
+        form = web.input(remove="", remove_selection=[], blacklist="", domain_name="", reason="")
+        # Remove entr(y|ies) from blacklist
+        if form.remove == "True":
+            d.engine.execute("DELETE FROM emailblacklist WHERE domain_name_id = ANY (%(dni)s)",
+                             dni=map(int, form.remove_selection))
+
+        # Add entry to blacklist
+        elif form.blacklist == "True":
+            d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
+                "domain_name": form.domain_name.lower(),
+                "reason": form.reason,
+            })
+
+        # Empty form received
+        else:
+            return d.errorpage(self.user_id, "You did not specify anything to do. You should try again.")
+
+        # Return to the blacklist Page
+        raise web.seeother("/admincontrol/emailblacklist")

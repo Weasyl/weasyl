@@ -25,6 +25,29 @@ def normalize_address(address):
     return "%s@%s" % (local, domain.lower())
 
 
+def check_email_blacklist(address):
+    """
+    Determines if a supplied email address is present in the 'emailblacklist' table.
+
+    Parameters:
+        address: The email address to split out the domain from.
+
+    Returns:
+        Boolean True if present on the blacklist, or False otherwise.
+    """
+    address = address.strip()
+
+    if not EMAIL_ADDRESS.match(address):
+        return None
+
+    local, domain = address.split("@", 1)
+
+    return define.engine.scalar(
+        "SELECT EXISTS (SELECT 0 FROM emailblacklist WHERE domain_name = %(domain_name)s)",
+        domain_name=domain
+    )
+
+
 def append(mailto, mailfrom, subject, content, displayto=None):
     """Send an e-mail.
 

@@ -164,6 +164,7 @@ controllers = (
     "/admincontrol/siteupdate", "weasyl.controllers.admin.admincontrol_siteupdate_",
     "/admincontrol/manageuser", "weasyl.controllers.admin.admincontrol_manageuser_",
     "/admincontrol/acctverifylink", "weasyl.controllers.admin.admincontrol_acctverifylink_",
+    "/admincontrol/emailblacklist", "weasyl.controllers.admin.admincontrol_emailblacklist_",
 
     "/site-updates/([0-9]+)", "weasyl.controllers.general.site_update_",
 

@@ -1,0 +1,40 @@
+$def with (entries, token)
+$:{RENDER("common/stage_title.html", ["Blacklist Email Address", "Administrator Control Panel", "/admincontrol"])}
+
+<div class="content blacklisted-emails">
+  <form method="POST" action="/admincontrol/emailblacklist">
+    <input type="hidden" name="token" value=$token>
+    <table>
+      <thead>
+        <tr>
+          <th width="10%">Remove</th>
+          <th width="45%">Domain Name</th>
+          <th width="45%">Reason Blacklisted</th>
+        </tr>
+      </thead>
+      <tbody>
+        $for item in entries:
+          <tr>
+            <td><input class="checkbox" type="checkbox" name="remove_selection" value="$item['domain_name_id']"></td>
+            <td>$item['domain_name']</td>
+            <td>$item['reason']</td>
+          </tr>
+      </tbody>
+    </table>
+    <button class="button positive" type="submit" name="remove" value="True">Unblacklist Selected Domains</button>
+  </form>
+</div>
+
+
+<div class="content form skinny">
+  <form method="POST" action="/admincontrol/emailblacklist">
+    <label for="domain_name">Domain Name to Blacklist</label>
+    <input type="text" class="input" maxlength="256" name="domain_name" id="domain_name">
+    
+    <label for="domain_name">Reason Why Blacklisted</label>
+    <textarea rows="4" cols="60" class="input" name="reason" id="reason"></textarea>
+    
+    <input type="hidden" name="token" value=$token>
+    <button class="button negative" type="submit" name="blacklist" value="True">Blacklist Domain</button>
+  </form>
+</div>

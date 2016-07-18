@@ -163,6 +163,8 @@ def create(form):
         raise WeasylError("passwordInsecure")
     if not email:
         raise WeasylError("emailInvalid")
+    if emailer.check_email_blacklist(email):
+        raise WeasylError("emailBlacklisted")
     if not sysname or ";" in username:
         raise WeasylError("usernameInvalid")
     if sysname in ["admin", "administrator", "mod", "moderator", "weasyl",

@@ -3,7 +3,6 @@ from pyramid.httpexceptions import (
     HTTPSeeOther,
 )
 from pyramid.response import Response
-import web  # TODO: Remove me when this file is finished being ported to pyramid.
 
 from weasyl import define, errorcode, login, moderation, \
     premiumpurchase, profile, resetpassword
@@ -13,7 +12,6 @@ from weasyl.controllers.decorators import (
     login_required,
     token_checked,
 )
-from weasyl.controllers.decorators import controller_base  # TODO: Remove me when this file is finished being ported to pyramid.
 
 
 # Session management functions

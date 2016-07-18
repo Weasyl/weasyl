@@ -1,14 +1,11 @@
 import itertools
 import time
 
-from pyramid.view import view_config, view_defaults
 from pyramid.response import Response
-import web
 
 from libweasyl import ratings
 
 from weasyl import define, index, macro, search, profile, siteupdate, submission
-from weasyl.controllers.decorators import controller_base, login_required
 
 
 # General browsing functions

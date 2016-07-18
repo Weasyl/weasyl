@@ -39,11 +39,12 @@ from weasyl.cache import region
 from weasyl import config
 
 
-
 _shush_pyflakes = [sqlalchemy.orm, config_read]
+
 
 reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
 reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
+
 
 def _load_resources():
     global resource_paths
@@ -105,7 +106,6 @@ def execute(statement, argv=None, options=None):
 
     if options is None:
         options = list()
-
 
     if argv and not isinstance(argv, list):
         argv = [argv]
@@ -1201,4 +1201,5 @@ def thumb_for_sub(submission):
 
 
 # Temporary workaround. Delete me. Use weasyl.controllers.decoraters version as views are ported.
-token_checked = lambda x: x
+def token_checked(x):
+    return x

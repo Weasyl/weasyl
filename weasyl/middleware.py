@@ -113,7 +113,7 @@ def session_tween_factory(handler, registry):
                 if sess_obj.create:
                     session.add(sess_obj)
                     response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
-                                    secure=request.scheme == 'https', httponly=True)
+                                        secure=request.scheme == 'https', httponly=True)
                     # don't try to clear the cookie if we're saving it
                     cookies_to_clear.discard('WZL')
                 session.commit()
@@ -152,9 +152,11 @@ def pg_connection_request_property(request):
     except OperationalError:
         request.log_exc()
         raise HTTPServiceUnavailable("database error")
+
     # postgresql is still there. Register clean-up of this property.
     def cleanup(request):
         db.close()
+
     request.add_finished_callback(cleanup)
     return db
 

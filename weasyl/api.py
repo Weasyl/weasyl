@@ -1,7 +1,6 @@
 # api.py
 
 from pyramid.threadlocal import get_current_request
-import web
 
 from libweasyl.models.meta import Base
 from libweasyl.models.api import APIToken

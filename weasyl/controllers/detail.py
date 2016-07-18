@@ -7,7 +7,6 @@ from libweasyl.models.content import Submission
 from libweasyl.text import slug_for
 from weasyl import (
     character, define, journal, macro, media, profile, searchtag, submission)
-from weasyl.controllers.decorators import controller_base
 from weasyl.error import WeasylError
 
 

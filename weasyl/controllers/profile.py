@@ -168,7 +168,7 @@ def submissions_(request):
 
 def collections_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None,
-                     folderid=None)
+                             folderid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
 

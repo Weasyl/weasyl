@@ -559,9 +559,6 @@ class manage_collections_(controller_base):
         raise web.seeother("/manage/collections?feature=pending")
 
 
-class manage_thumbnail_(controller_base):
-    login_required = True
-
 @login_required
 def manage_thumbnail_get_(request):
     form = request.web_input(submitid="", charid="", auto="")

@@ -3,7 +3,7 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 
 from libweasyl.configuration import configure_libweasyl
-from  weasyl.controllers.routes import setup_routes_and_views
+from weasyl.controllers.routes import setup_routes_and_views
 import weasyl.define as d
 import weasyl.macro as m
 from weasyl.media import format_media_link

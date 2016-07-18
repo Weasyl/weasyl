@@ -40,8 +40,8 @@ def submit_visual_get_(request):
 @token_checked
 def submit_visual_post_(request):
     form = request.web_input(submitfile="", thumbfile="", title="", folderid="",
-                     subtype="", rating="", friends="", critique="", content="",
-                     tags="", imageURL="")
+                             subtype="", rating="", friends="", critique="", content="",
+                             tags="", imageURL="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -70,7 +70,6 @@ def submit_visual_post_(request):
         raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(form.title)))
 
 
-
 @login_required
 def submit_literary_get_(request):
     return Response(define.webpage(request.userid, "submit/literary.html", [
@@ -86,8 +85,8 @@ def submit_literary_get_(request):
 @token_checked
 def submit_literary_post_(request):
     form = request.web_input(submitfile="", coverfile="boop", thumbfile="", title="",
-                     folderid="", subtype="", rating="", friends="", critique="",
-                     content="", tags="", embedlink="")
+                             folderid="", subtype="", rating="", friends="", critique="",
+                             content="", tags="", embedlink="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -130,8 +129,8 @@ def submit_multimedia_get_(request):
 @token_checked
 def submit_multimedia_post_(request):
     form = request.web_input(submitfile="", coverfile="", thumbfile="", embedlink="",
-                     title="", folderid="", subtype="", rating="", friends="",
-                     critique="", content="", tags="")
+                             title="", folderid="", subtype="", rating="", friends="",
+                             critique="", content="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -173,8 +172,8 @@ def submit_character_get_(request):
 @token_checked
 def submit_character_post_(request):
     form = request.web_input(submitfile="", thumbfile="", title="", age="", gender="",
-                     height="", weight="", species="", rating="", friends="",
-                     content="", tags="")
+                             height="", weight="", species="", rating="", friends="",
+                             content="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -419,7 +418,7 @@ def edit_submission_get_(request):
 @token_checked
 def edit_submission_post_(request):
     form = request.web_input(submitid="", title="", folderid="", subtype="", rating="",
-                     content="", friends="", critique="", embedlink="")
+                             content="", friends="", critique="", embedlink="")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -435,9 +434,10 @@ def edit_submission_post_(request):
 
     submission.edit(request.userid, s, embedlink=form.embedlink,
                     friends_only=form.friends, critique=form.critique)
-    raise HTTPSeeOther(location="/submission/%i/%s%s" % (define.get_int(form.submitid),
-                                                slug_for(form.title),
-                                                "?anyway=true" if request.userid in staff.MODS else ''))
+    raise HTTPSeeOther(location="/submission/%i/%s%s" %
+                       (define.get_int(form.submitid),
+                        slug_for(form.title),
+                        "?anyway=true" if request.userid in staff.MODS else ''))
 
 
 @login_required
@@ -461,7 +461,7 @@ def edit_character_get_(request):
 @token_checked
 def edit_character_post_(request):
     form = request.web_input(charid="", title="", age="", gender="", height="",
-                     weight="", species="", rating="", content="", friends="")
+                             weight="", species="", rating="", content="", friends="")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -479,9 +479,10 @@ def edit_character_post_(request):
     c.rating = rating
 
     character.edit(request.userid, c, friends_only=form.friends)
-    raise HTTPSeeOther(location="/character/%i/%s%s" % (define.get_int(form.charid),
-                                               slug_for(form.title),
-                                               ("?anyway=true" if request.userid in staff.MODS else '')))
+    raise HTTPSeeOther(location="/character/%i/%s%s" %
+                       (define.get_int(form.charid),
+                        slug_for(form.title),
+                        ("?anyway=true" if request.userid in staff.MODS else '')))
 
 
 @login_required
@@ -514,9 +515,10 @@ def edit_journal_post_(request):
     j.rating = rating
     j.content = form.content
     journal.edit(request.userid, j, friends_only=form.friends)
-    raise HTTPSeeOther(location="/journal/%i/%s%s" % (define.get_int(form.journalid),
-                                             slug_for(form.title),
-                                             ("?anyway=true" if request.userid in staff.MODS else '')))
+    raise HTTPSeeOther(location="/journal/%i/%s%s" %
+                       (define.get_int(form.journalid),
+                        slug_for(form.title),
+                        ("?anyway=true" if request.userid in staff.MODS else '')))
 
 
 # Content removal functions

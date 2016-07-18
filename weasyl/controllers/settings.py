@@ -2,12 +2,11 @@ import os
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
-import web
 
 import libweasyl.ratings as ratings
 from libweasyl import staff
 
-from weasyl.controllers.decorators import controller_base, login_required, token_checked
+from weasyl.controllers.decorators import disallow_api, login_required, token_checked
 from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
@@ -16,212 +15,191 @@ from weasyl import (
 
 
 # Control panel functions
-class control_(controller_base):
-    login_required = True
-
-    def GET(self):
-        return define.webpage(self.user_id, "control/control.html", [
-            # Premium
-            define.get_premium(self.user_id),
-        ])
+@login_required
+def control_(request):
+    return Response(define.webpage(request.userid, "control/control.html", [
+        # Premium
+        define.get_premium(request.userid),
+    ]))
 
 
-class control_uploadavatar_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_uploadavatar_(request):
+    form = request.web_input(image="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(image="")
-
-        manage = avatar.upload(self.user_id, form.image)
-        if manage:
-            raise web.seeother("/manage/avatar")
-        else:
-            raise web.seeother("/control")
+    manage = avatar.upload(request.userid, form.image)
+    if manage:
+        raise HTTPSeeOther(location="/manage/avatar")
+    else:
+        raise HTTPSeeOther(location="/control")
 
 
-class control_editprofile_(controller_base):
-    login_required = True
-
-    def GET(self):
-        userinfo = profile.select_userinfo(self.user_id)
-        userinfo['sorted_user_links'] = sorted(userinfo['user_links'].items(), key=lambda kv: kv[0].lower())
-        return define.webpage(self.user_id, "control/edit_profile.html", [
-            # Profile
-            profile.select_profile(self.user_id, commish=False),
-            # User information
-            userinfo,
-        ])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(
-            full_name="", catchphrase="",
-            profile_text="", set_commish="", set_trade="", set_request="",
-            set_stream="", stream_url="", stream_text="", show_age="",
-            gender="", country="", profile_display="", site_names=[], site_values=[])
-
-        if len(form.site_names) != len(form.site_values):
-            raise WeasylError('Unexpected')
-
-        if 'more' in form:
-            form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
-            form.settings = form.set_commish + form.set_trade + form.set_request
-            form.config = form.profile_display
-            return define.webpage(self.user_id, "control/edit_profile.html", [form, form])
-
-        p = orm.Profile()
-        p.full_name = form.full_name
-        p.catchphrase = form.catchphrase
-        p.profile_text = form.profile_text
-        set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
-        set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
-        set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
-        profile.edit_profile(self.user_id, p, set_trade=set_trade,
-                             set_request=set_request, set_commission=set_commission,
-                             profile_display=form.profile_display)
-
-        profile.edit_userinfo(self.user_id, form)
-
-        raise web.seeother("/control")
+@login_required
+def control_editprofile_get_(request):
+    userinfo = profile.select_userinfo(request.userid)
+    userinfo['sorted_user_links'] = sorted(userinfo['user_links'].items(), key=lambda kv: kv[0].lower())
+    return Response(define.webpage(request.userid, "control/edit_profile.html", [
+        # Profile
+        profile.select_profile(request.userid, commish=False),
+        # User information
+        userinfo,
+    ]))
 
 
-class control_editcommissionprices_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_editprofile_put_(request):
+    form = request.web_input(
+        full_name="", catchphrase="",
+        profile_text="", set_commish="", set_trade="", set_request="",
+        set_stream="", stream_url="", stream_text="", show_age="",
+        gender="", country="", profile_display="", site_names=[], site_values=[])
 
-    def GET(self):
-        return define.webpage(self.user_id, "control/edit_commissionprices.html", [
-            # Commission prices
-            commishinfo.select_list(self.user_id),
-        ])
+    if len(form.site_names) != len(form.site_values):
+        raise WeasylError('Unexpected')
 
+    if 'more' in form:
+        form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
+        form.settings = form.set_commish + form.set_trade + form.set_request
+        form.config = form.profile_display
+        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form]))
 
-class control_editcommishtext_(controller_base):
-    login_required = True
+    p = orm.Profile()
+    p.full_name = form.full_name
+    p.catchphrase = form.catchphrase
+    p.profile_text = form.profile_text
+    set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
+    set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
+    set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
+    profile.edit_profile(request.userid, p, set_trade=set_trade,
+                         set_request=set_request, set_commission=set_commission,
+                         profile_display=form.profile_display)
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(content="")
+    profile.edit_userinfo(request.userid, form)
 
-        commishinfo.edit_content(self.user_id, form.content)
-        raise web.seeother("/control/editcommissionprices")
-
-
-class control_createcommishclass_(controller_base):
-    login_required = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(title="")
-
-        commishinfo.create_commission_class(self.user_id, form.title.strip())
-        raise web.seeother("/control/editcommissionprices")
-
-
-class control_editcommishclass_(controller_base):
-    login_required = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(classid="")
-
-        commishclass = orm.CommishClass()
-        commishclass.title = form.title.strip()
-        commishclass.classid = define.get_int(form.classid)
-        commishinfo.edit_class(self.user_id, commishclass)
-        raise web.seeother("/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control")
 
 
-class control_removecommishclass_(controller_base):
-    login_required = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(classid="")
-
-        commishinfo.remove_class(self.user_id, form.classid)
-        raise web.seeother("/control/editcommissionprices")
+@login_required
+def control_editcommissionprices_(request):
+    return Response(define.webpage(request.userid, "control/edit_commissionprices.html", [
+        # Commission prices
+        commishinfo.select_list(request.userid),
+    ]))
 
 
-class control_createcommishprice_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_editcommishtext_(request):
+    form = request.web_input(content="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(title="", classid="", min_amount="", max_amount="", currency="", settings="")
-
-        price = orm.CommishPrice()
-        price.title = form.title.strip()
-        price.classid = define.get_int(form.classid)
-        price.amount_min = commishinfo.convert_currency(form.min_amount)
-        price.amount_max = commishinfo.convert_currency(form.max_amount)
-        commishinfo.create_price(self.user_id, price, currency=form.currency,
-                                 settings=form.settings)
-        raise web.seeother("/control/editcommissionprices")
+    commishinfo.edit_content(request.userid, form.content)
+    raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
-class control_editcommishprice_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_createcommishclass_(request):
+    form = request.web_input(title="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(priceid="", title="", min_amount="", max_amount="", edit_settings="", currency="", settings="")
-
-        price = orm.CommishPrice()
-        price.title = form.title.strip()
-        price.priceid = define.get_int(form.priceid)
-        price.amount_min = commishinfo.convert_currency(form.min_amount)
-        price.amount_max = commishinfo.convert_currency(form.max_amount)
-        edit_prices = bool(price.amount_min or price.amount_max)
-        commishinfo.edit_price(self.user_id, price, currency=form.currency,
-                               settings=form.settings, edit_prices=edit_prices, edit_settings=form.edit_settings)
-        raise web.seeother("/control/editcommissionprices")
+    commishinfo.create_commission_class(request.userid, form.title.strip())
+    raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
-class control_removecommishprice_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_editcommishclass_(request):
+    form = request.web_input(classid="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(classid="")
-
-        commishinfo.remove_price(self.user_id, form.priceid)
-        raise web.seeother("/control/editcommissionprices")
-
-
-class control_editemailpassword_(controller_base):
-    login_required = True
-    disallow_api = True
-
-    def GET(self):
-        return define.webpage(self.user_id, "control/edit_emailpassword.html",
-                              [profile.select_manage(self.user_id)["email"]])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(newemail="", newemailcheck="", newpassword="", newpasscheck="", password="")
-
-        newemail = emailer.normalize_address(form.newemail)
-        newemailcheck = emailer.normalize_address(form.newemailcheck)
-
-        profile.edit_email_password(self.user_id, form.username, form.password,
-                                    newemail, newemailcheck, form.newpassword, form.newpasscheck)
-
-        return define.errorpage(
-            self.user_id, "**Success!** Your settings have been updated.",
-            [["Go Back", "/control"], ["Return Home", "/"]])
+    commishclass = orm.CommishClass()
+    commishclass.title = form.title.strip()
+    commishclass.classid = define.get_int(form.classid)
+    commishinfo.edit_class(request.userid, commishclass)
+    raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
-class control_editpreferences_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_removecommishclass_(request):
+    form = request.web_input(classid="")
 
-    def GET(self):
-        config = define.get_config(self.user_id)
-        current_rating, current_sfw_rating = define.get_config_rating(self.user_id)
-        age = profile.get_user_age(self.user_id)
+    commishinfo.remove_class(request.userid, form.classid)
+    raise HTTPSeeOther(location="/control/editcommissionprices")
+
+
+@login_required
+@token_checked
+def control_createcommishprice_(request):
+    form = request.web_input(title="", classid="", min_amount="", max_amount="", currency="", settings="")
+
+    price = orm.CommishPrice()
+    price.title = form.title.strip()
+    price.classid = define.get_int(form.classid)
+    price.amount_min = commishinfo.convert_currency(form.min_amount)
+    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    commishinfo.create_price(request.userid, price, currency=form.currency,
+                             settings=form.settings)
+    raise HTTPSeeOther(location="/control/editcommissionprices")
+
+
+@login_required
+@token_checked
+def control_editcommishprice_(request):
+    form = request.web_input(priceid="", title="", min_amount="", max_amount="", edit_settings="", currency="", settings="")
+
+    price = orm.CommishPrice()
+    price.title = form.title.strip()
+    price.priceid = define.get_int(form.priceid)
+    price.amount_min = commishinfo.convert_currency(form.min_amount)
+    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    edit_prices = bool(price.amount_min or price.amount_max)
+    commishinfo.edit_price(request.userid, price, currency=form.currency,
+                           settings=form.settings, edit_prices=edit_prices, edit_settings=form.edit_settings)
+    raise HTTPSeeOther(location="/control/editcommissionprices")
+
+
+@login_required
+@token_checked
+def control_removecommishprice_(request):
+    form = request.web_input(classid="")
+
+    commishinfo.remove_price(request.userid, form.priceid)
+    raise HTTPSeeOther(location="/control/editcommissionprices")
+
+
+@login_required
+@disallow_api
+def control_editemailpassword_get_(request):
+    return Response(define.webpage(request.userid, "control/edit_emailpassword.html",
+                                   [profile.select_manage(request.userid)["email"]]))
+
+
+@login_required
+@disallow_api
+@token_checked
+def control_editemailpassword_post_(request):
+    form = request.web_input(newemail="", newemailcheck="", newpassword="", newpasscheck="", password="")
+
+    newemail = emailer.normalize_address(form.newemail)
+    newemailcheck = emailer.normalize_address(form.newemailcheck)
+
+    profile.edit_email_password(request.userid, form.username, form.password,
+                                newemail, newemailcheck, form.newpassword, form.newpasscheck)
+
+    return Response(define.errorpage(
+        request.userid, "**Success!** Your settings have been updated.",
+        [["Go Back", "/control"], ["Return Home", "/"]]))
+
+
+@login_required
+def control_editpreferences_get_(request):
+        config = define.get_config(request.userid)
+        current_rating, current_sfw_rating = define.get_config_rating(request.userid)
+        age = profile.get_user_age(request.userid)
         allowed_ratings = ratings.get_ratings_for_age(age)
-        jsonb_settings = define.get_profile_settings(self.user_id)
-        return define.webpage(self.user_id, "control/edit_preferences.html", [
+        jsonb_settings = define.get_profile_settings(request.userid)
+        return Response(define.webpage(request.userid, "control/edit_preferences.html", [
             # Config
             config,
             jsonb_settings,
@@ -230,13 +208,15 @@ class control_editpreferences_(controller_base):
             current_sfw_rating,
             age,
             allowed_ratings,
-            web.ctx.weasyl_session.timezone.timezone,
+            request.weasyl_session.timezone.timezone,
             define.timezones(),
-        ])
+        ]))
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(
+
+@login_required
+@token_checked
+def control_editpreferences_post_(request):
+        form = request.web_input(
             rating="", sfwrating="", custom_thumbs="", tagging="", edittagging="",
             hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
             shouts="", notes="", filter="",
@@ -244,7 +224,7 @@ class control_editpreferences_(controller_base):
             follow_j="", timezone="", twelvehour="")
 
         rating = ratings.CODE_MAP[define.get_int(form.rating)]
-        jsonb_settings = define.get_profile_settings(self.user_id)
+        jsonb_settings = define.get_profile_settings(request.userid)
         jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
         jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
 
@@ -268,295 +248,278 @@ class control_editpreferences_(controller_base):
         preferences.follow_t = bool(form.follow_t)
         preferences.follow_j = bool(form.follow_j)
 
-        profile.edit_preferences(self.user_id, timezone=form.timezone,
+        profile.edit_preferences(request.userid, timezone=form.timezone,
                                  preferences=preferences, jsonb_settings=jsonb_settings)
         # release the cache on the index page in case the Maximum Viewable Content Rating changed.
-        index.template_fields.invalidate(self.user_id)
-        raise web.seeother("/control")
+        index.template_fields.invalidate(request.userid)
+        raise HTTPSeeOther(location="/control")
 
 
-class control_createfolder_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_createfolder_(request):
+        form = request.web_input(title="", parentid="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(title="", parentid="")
-
-        folder.create(self.user_id, form)
-        raise web.seeother("/manage/folders")
+        folder.create(request.userid, form)
+        raise HTTPSeeOther(location="/manage/folders")
 
 
-class control_renamefolder_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_renamefolder_(request):
+    form = request.web_input(folderid="", title="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(folderid="", title="")
-
-        if define.get_int(form.folderid):
-            folder.rename(self.user_id, form)
-        raise web.seeother("/manage/folders")
+    if define.get_int(form.folderid):
+        folder.rename(request.userid, form)
+    raise HTTPSeeOther(location="/manage/folders")
 
 
-class control_removefolder_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_removefolder_(request):
+    form = request.web_input(folderid="")
+    form.folderid = define.get_int(form.folderid)
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(folderid="")
-        form.folderid = define.get_int(form.folderid)
-
-        if form.folderid:
-            folder.remove(self.user_id, form.folderid)
-        raise web.seeother("/manage/folders")
+    if form.folderid:
+        folder.remove(request.userid, form.folderid)
+    raise HTTPSeeOther(location="/manage/folders")
 
 
-class control_editfolder_(controller_base):
-    login_required = True
+@login_required
+def control_editfolder_get_(request):
+    folderid = int(request.matchdict['folderid'])
+    if not folder.check(request.userid, folderid):
+        return Response(define.errorpage(request.userid, errorcode.permission))
 
-    def GET(self, folderid):
-        folderid = int(folderid)
-        if not folder.check(self.user_id, folderid):
-            return define.errorpage(self.user_id, errorcode.permission)
+    return Response(define.webpage(request.userid, "manage/folder_options.html", [
+        folder.select_info(folderid),
+    ]))
 
-        return define.webpage(self.user_id, "manage/folder_options.html", [
-            folder.select_info(folderid),
-        ])
 
-    @define.token_checked
-    def POST(self, folderid):
-        folderid = int(folderid)
-        if not folder.check(self.user_id, folderid):
-            return define.errorpage(self.user_id, errorcode.permission)
+@login_required
+@token_checked
+def control_editfolder_post_(request):
+        folderid = int(request.matchdict['folderid'])
+        if not folder.check(request.userid, folderid):
+            return Response(define.errorpage(request.userid, errorcode.permission))
 
-        form = web.input(settings=[])
+        form = request.web_input(settings=[])
         folder.update_settings(folderid, form.settings)
-        raise web.seeother('/manage/folders')
+        raise HTTPSeeOther(location='/manage/folders')
 
 
-class control_movefolder_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_movefolder_(request):
+    form = request.web_input(folderid="", parentid="")
+    form.folderid = define.get_int(form.folderid)
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(folderid="", parentid="")
-        form.folderid = define.get_int(form.folderid)
-
-        if form.folderid and define.get_int(form.parentid) >= 0:
-            folder.move(self.user_id, form)
-        raise web.seeother("/manage/folders")
+    if form.folderid and define.get_int(form.parentid) >= 0:
+        folder.move(request.userid, form)
+    raise HTTPSeeOther(location="/manage/folders")
 
 
-class control_ignoreuser_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_ignoreuser_(request):
+    form = request.web_input(username="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(username="")
-
-        ignoreuser.insert(self.user_id, define.get_userid_list(form.username))
-        raise web.seeother("/manage/ignore")
+    ignoreuser.insert(request.userid, define.get_userid_list(form.username))
+    raise HTTPSeeOther(location="/manage/ignore")
 
 
-class control_unignoreuser_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def control_unignoreuser_(request):
+    form = request.web_input(username="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(username="")
-
-        ignoreuser.remove(self.user_id, define.get_userid_list(form.username))
-        raise web.seeother("/manage/ignore")
+    ignoreuser.remove(request.userid, define.get_userid_list(form.username))
+    raise HTTPSeeOther(location="/manage/ignore")
 
 
-class control_streaming_(controller_base):
-    login_required = True
+@login_required
+def control_streaming_get_(request):
+    form = request.web_input(target='')
+    if form.target and request.userid not in staff.MODS:
+        return Response(define.errorpage(request.userid, errorcode.permission))
+    elif form.target:
+        target = define.get_int(form.target)
+    else:
+        target = request.userid
 
-    def GET(self):
-        form = web.input(target='')
-        if form.target and self.user_id not in staff.MODS:
-            return define.errorpage(self.user_id, errorcode.permission)
-        elif form.target:
-            target = define.get_int(form.target)
-        else:
-            target = self.user_id
-
-        return define.webpage(self.user_id, "control/edit_streaming.html", [
-            # Profile
-            profile.select_profile(target, commish=False),
-            form.target,
-        ])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(target="", set_stream="", stream_length="", stream_url="", stream_text="")
-
-        if form.target and self.user_id not in staff.MODS:
-            return define.errorpage(self.user_id, errorcode.permission)
-
-        if form.target:
-            target = int(form.target)
-        else:
-            target = self.user_id
-
-        stream_length = define.clamp(define.get_int(form.stream_length), 0, 360)
-        p = orm.Profile()
-        p.stream_text = form.stream_text
-        p.stream_url = define.text_fix_url(form.stream_url.strip())
-        set_stream = form.set_stream
-
-        profile.edit_streaming_settings(self.user_id, target, p,
-                                        set_stream=set_stream,
-                                        stream_length=stream_length)
-
-        raise web.seeother("/control")
+    return Response(define.webpage(request.userid, "control/edit_streaming.html", [
+        # Profile
+        profile.select_profile(target, commish=False),
+        form.target,
+    ]))
 
 
-class control_apikeys_(controller_base):
-    login_required = True
-    disallow_api = True
+@login_required
+@token_checked
+def control_streaming_post_(request):
+    form = request.web_input(target="", set_stream="", stream_length="", stream_url="", stream_text="")
 
-    def GET(self):
-        return define.webpage(self.user_id, "control/edit_apikeys.html", [
-            api.get_api_keys(self.user_id),
-            oauth2.get_consumers_for_user(self.user_id),
-        ])
+    if form.target and request.userid not in staff.MODS:
+        return Response(define.errorpage(request.userid, errorcode.permission))
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(**{'delete-api-keys': [], 'revoke-oauth2-consumers': []})
+    if form.target:
+        target = int(form.target)
+    else:
+        target = request.userid
 
-        if form.get('add-api-key'):
-            api.add_api_key(self.user_id, form.get('add-key-description'))
-        if form.get('delete-api-keys'):
-            api.delete_api_keys(self.user_id, form['delete-api-keys'])
-        if form.get('revoke-oauth2-consumers'):
-            oauth2.revoke_consumers_for_user(self.user_id, form['revoke-oauth2-consumers'])
+    stream_length = define.clamp(define.get_int(form.stream_length), 0, 360)
+    p = orm.Profile()
+    p.stream_text = form.stream_text
+    p.stream_url = define.text_fix_url(form.stream_url.strip())
+    set_stream = form.set_stream
 
-        raise web.seeother("/control/apikeys")
+    profile.edit_streaming_settings(request.userid, target, p,
+                                    set_stream=set_stream,
+                                    stream_length=stream_length)
+
+    raise HTTPSeeOther(location="/control")
 
 
-class manage_folders_(controller_base):
-    login_required = True
+@login_required
+@disallow_api
+def control_apikeys_get_(request):
+    return Response(define.webpage(request.userid, "control/edit_apikeys.html", [
+        api.get_api_keys(request.userid),
+        oauth2.get_consumers_for_user(request.userid),
+    ]))
 
-    def GET(self):
-        return define.webpage(self.user_id, "manage/folders.html", [
+
+@login_required
+@disallow_api
+@token_checked
+def control_apikeys_post_(request):
+    form = request.web_input(**{'delete-api-keys': [], 'revoke-oauth2-consumers': []})
+
+    if form.get('add-api-key'):
+        api.add_api_key(request.userid, form.get('add-key-description'))
+    if form.get('delete-api-keys'):
+        api.delete_api_keys(request.userid, form['delete-api-keys'])
+    if form.get('revoke-oauth2-consumers'):
+        oauth2.revoke_consumers_for_user(request.userid, form['revoke-oauth2-consumers'])
+
+    raise HTTPSeeOther(location="/control/apikeys")
+
+
+@login_required
+def manage_folders_(request):
+        return Response(define.webpage(request.userid, "manage/folders.html", [
             # Folders dropdown
-            folder.select_list(self.user_id, "drop/all"),
-        ])
+            folder.select_list(request.userid, "drop/all"),
+        ]))
 
 
-class manage_following_(controller_base):
-    login_required = True
+@login_required
+def manage_following_get_(request):
+    form = request.web_input(userid="", backid="", nextid="")
+    form.userid = define.get_int(form.userid)
+    form.backid = define.get_int(form.backid)
+    form.nextid = define.get_int(form.nextid)
 
-    def GET(self):
-        form = web.input(userid="", backid="", nextid="")
-        form.userid = define.get_int(form.userid)
-        form.backid = define.get_int(form.backid)
-        form.nextid = define.get_int(form.nextid)
-
-        if form.userid:
-            return define.webpage(self.user_id, "manage/following_user.html", [
-                # Profile
-                profile.select_profile(form.userid, avatar=True),
-                # Follow settings
-                followuser.select_settings(self.user_id, form.userid),
-            ])
-        else:
-            return define.webpage(self.user_id, "manage/following_list.html", [
-                # Following
-                followuser.manage_following(self.user_id, 44, backid=form.backid, nextid=form.nextid),
-            ])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="", submit="", collect="", char="", stream="", journal="")
-
-        watch_settings = followuser.WatchSettings()
-        watch_settings.submit = bool(form.submit)
-        watch_settings.collect = bool(form.collect)
-        watch_settings.char = bool(form.char)
-        watch_settings.stream = bool(form.stream)
-        watch_settings.journal = bool(form.journal)
-        followuser.update(self.user_id, define.get_int(form.userid), watch_settings)
-
-        raise web.seeother("/manage/following")
+    if form.userid:
+        return Response(define.webpage(request.userid, "manage/following_user.html", [
+            # Profile
+            profile.select_profile(form.userid, avatar=True),
+            # Follow settings
+            followuser.select_settings(request.userid, form.userid),
+        ]))
+    else:
+        return Response(define.webpage(request.userid, "manage/following_list.html", [
+            # Following
+            followuser.manage_following(request.userid, 44, backid=form.backid, nextid=form.nextid),
+        ]))
 
 
-class manage_friends_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def manage_following_post_(request):
+    form = request.web_input(userid="", submit="", collect="", char="", stream="", journal="")
 
-    def GET(self):
-        form = web.input(feature="", backid="", nextid="")
-        form.backid = define.get_int(form.backid)
-        form.nextid = define.get_int(form.nextid)
+    watch_settings = followuser.WatchSettings()
+    watch_settings.submit = bool(form.submit)
+    watch_settings.collect = bool(form.collect)
+    watch_settings.char = bool(form.char)
+    watch_settings.stream = bool(form.stream)
+    watch_settings.journal = bool(form.journal)
+    followuser.update(request.userid, define.get_int(form.userid), watch_settings)
 
-        if form.feature == "pending":
-            return define.webpage(self.user_id, "manage/friends_pending.html", [
-                frienduser.select_requests(self.user_id, 20, backid=form.backid, nextid=form.nextid),
-            ])
-        else:
-            return define.webpage(self.user_id, "manage/friends_accepted.html", [
-                # Friends
-                frienduser.select_accepted(self.user_id, 20, backid=form.backid, nextid=form.nextid),
-            ])
+    raise HTTPSeeOther(location="/manage/following")
 
 
-class manage_ignore_(controller_base):
-    login_required = True
+@login_required
+def manage_friends_get_(request):
+    form = request.web_input(feature="", backid="", nextid="")
+    form.backid = define.get_int(form.backid)
+    form.nextid = define.get_int(form.nextid)
 
-    def GET(self):
-        form = web.input(feature="", backid="", nextid="")
-        form.backid = define.get_int(form.backid)
-        form.nextid = define.get_int(form.nextid)
+    if form.feature == "pending":
+        return Response(define.webpage(request.userid, "manage/friends_pending.html", [
+            frienduser.select_requests(request.userid, 20, backid=form.backid, nextid=form.nextid),
+        ]))
+    else:
+        return Response(define.webpage(request.userid, "manage/friends_accepted.html", [
+            # Friends
+            frienduser.select_accepted(request.userid, 20, backid=form.backid, nextid=form.nextid),
+        ]))
 
-        return define.webpage(self.user_id, "manage/ignore.html", [
-            ignoreuser.select(self.user_id, 20, backid=form.backid, nextid=form.nextid),
-        ])
+
+@login_required
+def manage_ignore_(request):
+    form = request.web_input(feature="", backid="", nextid="")
+    form.backid = define.get_int(form.backid)
+    form.nextid = define.get_int(form.nextid)
+
+    return Response(define.webpage(request.userid, "manage/ignore.html", [
+        ignoreuser.select(request.userid, 20, backid=form.backid, nextid=form.nextid),
+    ]))
 
 
-class manage_collections_(controller_base):
-    login_required = True
+@login_required
+def manage_collections_get_(request):
+    form = request.web_input(feature="", backid="", nextid="")
+    backid = int(form.backid) if form.backid else None
+    nextid = int(form.nextid) if form.nextid else None
 
-    def GET(self):
-        form = web.input(feature="", backid="", nextid="")
-        backid = int(form.backid) if form.backid else None
-        nextid = int(form.nextid) if form.nextid else None
+    config = define.get_config(request.userid)
+    rating = define.get_rating(request.userid)
 
-        config = define.get_config(self.user_id)
-        rating = define.get_rating(self.user_id)
+    if form.feature == "pending":
+        return Response(define.webpage(request.userid, "manage/collections_pending.html", [
+            # Pending Collections
+            collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
+                                   pending=True, config=config),
+            request.userid
+        ]))
 
-        if form.feature == "pending":
-            return define.webpage(self.user_id, "manage/collections_pending.html", [
-                # Pending Collections
-                collection.select_list(self.user_id, rating, 30, otherid=self.user_id, backid=backid, nextid=nextid,
-                                       pending=True, config=config),
-                self.user_id
-            ])
+    return Response(define.webpage(request.userid, "manage/collections_accepted.html", [
+        # Accepted Collections
+        collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
+                               config=config),
+    ]))
 
-        return define.webpage(self.user_id, "manage/collections_accepted.html", [
-            # Accepted Collections
-            collection.select_list(self.user_id, rating, 30, otherid=self.user_id, backid=backid, nextid=nextid,
-                                   config=config),
-        ])
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(submissions=[], action="")
-        # submissions input format: "submissionID;collectorID"
-        # we have to split it apart because each offer on a submission is a single checkbox
-        # but needs collector's ID for unambiguity
-        intermediate = [x.split(";") for x in form.submissions]
-        submissions = [(int(x[0]), int(x[1])) for x in intermediate]
+@login_required
+@token_checked
+def manage_collections_post_(request):
+    form = request.web_input(submissions=[], action="")
+    # submissions input format: "submissionID;collectorID"
+    # we have to split it apart because each offer on a submission is a single checkbox
+    # but needs collector's ID for unambiguity
+    intermediate = [x.split(";") for x in form.submissions]
+    submissions = [(int(x[0]), int(x[1])) for x in intermediate]
 
-        if form.action == "accept":
-            collection.pending_accept(self.user_id, submissions)
-        elif form.action == "reject":
-            collection.pending_reject(self.user_id, submissions)
-        else:
-            raise WeasylError("Unexpected")
+    if form.action == "accept":
+        collection.pending_accept(request.userid, submissions)
+    elif form.action == "reject":
+        collection.pending_reject(request.userid, submissions)
+    else:
+        raise WeasylError("Unexpected")
 
-        raise web.seeother("/manage/collections?feature=pending")
+    raise HTTPSeeOther(location="/manage/collections?feature=pending")
 
 
 @login_required
@@ -626,111 +589,107 @@ def manage_thumbnail_post_(request):
             raise HTTPSeeOther(location="/character/%i" % (charid,))
 
 
-class manage_tagfilters_(controller_base):
-    login_required = True
-
-    def GET(self):
-        return define.webpage(self.user_id, "manage/tagfilters.html", [
-            # Blocked tags
-            blocktag.select(self.user_id),
-            # filterable ratings
-            profile.get_user_ratings(self.user_id),
-        ])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(do="", title="", rating="")
-
-        if form.do == "create":
-            blocktag.insert(self.user_id, title=form.title, rating=define.get_int(form.rating))
-        elif form.do == "remove":
-            blocktag.remove(self.user_id, title=form.title)
-
-        raise web.seeother("/manage/tagfilters")
+@login_required
+def manage_tagfilters_get_(request):
+    return Response(define.webpage(request.userid, "manage/tagfilters.html", [
+        # Blocked tags
+        blocktag.select(request.userid),
+        # filterable ratings
+        profile.get_user_ratings(request.userid),
+    ]))
 
 
-class manage_avatar_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def manage_tagfilters_post_(request):
+    form = request.web_input(do="", title="", rating="")
 
-    def GET(self):
-        form = web.input(style="")
-        try:
-            avatar_source = avatar.avatar_source(self.user_id)
-        except WeasylError:
-            avatar_source_url = None
-        else:
-            avatar_source_url = avatar_source['display_url']
+    if form.do == "create":
+        blocktag.insert(request.userid, title=form.title, rating=define.get_int(form.rating))
+    elif form.do == "remove":
+        blocktag.remove(request.userid, title=form.title)
 
-        return define.webpage(
-            self.user_id,
-            "manage/avatar_nostyle.html" if form.style == "false" else "manage/avatar.html",
-            [
-                # Avatar selection
-                avatar_source_url,
-                # Avatar selection exists
-                avatar_source_url is not None,
-            ],
-            options=["imageselect", "square_select"])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(image="", x1=0, y1=0, x2=0, y2=0)
-
-        avatar.create(self.user_id, form.x1, form.y1, form.x2, form.y2)
-        raise web.seeother("/control")
+    raise HTTPSeeOther(location="/manage/tagfilters")
 
 
-class manage_banner_(controller_base):
-    login_required = True
+@login_required
+def manage_avatar_get_(request):
+    form = request.web_input(style="")
+    try:
+        avatar_source = avatar.avatar_source(request.userid)
+    except WeasylError:
+        avatar_source_url = None
+    else:
+        avatar_source_url = avatar_source['display_url']
 
-    def GET(self):
-        return define.webpage(self.user_id, "manage/banner.html")
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(image="")
-
-        banner.upload(self.user_id, form.image)
-        raise web.seeother("/control")
-
-
-class manage_alias_(controller_base):
-    login_required = True
-
-    def GET(self):
-        status = define.common_status_check(self.user_id)
-
-        if status:
-            return define.common_status_page(self.user_id, status)
-        elif not self.user_id:
-            return define.webpage(self.user_id)
-
-        return define.webpage(self.user_id, "manage/alias.html", [
-            # Alias
-            useralias.select(self.user_id),
-        ])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(username="")
-
-        useralias.set(self.user_id, define.get_sysname(form.username))
-        raise web.seeother("/control")
+    return Response(define.webpage(
+        request.userid,
+        "manage/avatar_nostyle.html" if form.style == "false" else "manage/avatar.html",
+        [
+            # Avatar selection
+            avatar_source_url,
+            # Avatar selection exists
+            avatar_source_url is not None,
+        ],
+        options=["imageselect", "square_select"]))
 
 
-class sfwtoggle_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def manage_avatar_post_(request):
+    form = request.web_input(image="", x1=0, y1=0, x2=0, y2=0)
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(redirect="/index")
-        if api.is_api_user():
-            raise web.webapi.Forbidden()
+    avatar.create(request.userid, form.x1, form.y1, form.x2, form.y2)
+    raise HTTPSeeOther(location="/control")
 
-        currentstate = web.cookies(sfwmode="nsfw").sfwmode
-        newstate = "sfw" if currentstate == "nsfw" else "nsfw"
-        # cookie expires in 1 year
-        web.setcookie("sfwmode", newstate, 31536000)
-        # release the index page's cache so it shows the new ratings if they visit it
-        index.template_fields.invalidate(self.user_id)
-        raise web.seeother(form.redirect)
+
+@login_required
+def manage_banner_get_(request):
+    return Response(define.webpage(request.userid, "manage/banner.html"))
+
+
+@login_required
+@token_checked
+def manage_banner_post_(request):
+    form = request.web_input(image="")
+
+    banner.upload(request.userid, form.image)
+    raise HTTPSeeOther(location="/control")
+
+
+@login_required
+def manage_alias_get_(request):
+    status = define.common_status_check(request.userid)
+
+    if status:
+        return Response(define.common_status_page(request.userid, status))
+    elif not request.userid:
+        return Response(define.webpage(request.userid))
+
+    return Response(define.webpage(request.userid, "manage/alias.html", [
+        # Alias
+        useralias.select(request.userid),
+    ]))
+
+
+@login_required
+@token_checked
+def manage_alias_post_(request):
+    form = request.web_input(username="")
+
+    useralias.set(request.userid, define.get_sysname(form.username))
+    raise HTTPSeeOther(location="/control")
+
+
+@login_required
+@token_checked
+@disallow_api
+def sfw_toggle(request):
+    form = request.web_input(redirect="/index")
+
+    currentstate = request.cookies.get('sfwmode', "nsfw")
+    newstate = "sfw" if currentstate == "nsfw" else "nsfw"
+    request.set_cookie_on_response("sfwmode", newstate, 60 * 60 * 24 * 365)
+    # release the index page's cache so it shows the new ratings if they visit it
+    index.template_fields.invalidate(request.userid)
+    raise HTTPSeeOther(location=form.redirect)

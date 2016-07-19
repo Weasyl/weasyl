@@ -117,7 +117,7 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 INNER JOIN character ch ON we.targetid = ch.charid
                 INNER JOIN profile pr ON ch.userid = pr.userid
                 LEFT JOIN LATERAL (
-                    SELECT c.charid AS id, string_agg(tags.title, ',') AS tags
+                    SELECT c.charid AS id, array_agg(tags.title) AS tags
                     FROM character as c
                     LEFT JOIN searchmapchar AS cmap ON c.charid = cmap.targetid
                     JOIN searchtag AS tags ON cmap.tagid = tags.tagid
@@ -143,7 +143,7 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON we.otherid = pr.userid
                 LEFT JOIN LATERAL (
-                    SELECT s.submitid AS id, string_agg(tags.title, ',') AS tags
+                    SELECT s.submitid AS id, array_agg(tags.title) AS tags
                     FROM submission AS s
                     LEFT JOIN searchmapsubmit AS smap ON s.submitid = smap.targetid
                     JOIN searchtag AS tags ON smap.tagid = tags.tagid
@@ -169,7 +169,7 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON su.userid = pr.userid
                 LEFT JOIN LATERAL (
-                    SELECT s.submitid AS id, string_agg(tags.title, ',') AS tags
+                    SELECT s.submitid AS id, array_agg(tags.title) AS tags
                     FROM submission AS s
                     LEFT JOIN searchmapsubmit AS smap ON s.submitid = smap.targetid
                     JOIN searchtag AS tags ON smap.tagid = tags.tagid
@@ -206,7 +206,7 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
         "userid": i.userid,
         "username": i.username,
         "subtype": i.subtype,
-        "tags": (i.tags).split(','),
+        "tags": i.tags,
         "sub_media": _fake_media_items(i),
     } for i in query]
 

@@ -182,12 +182,11 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
 @pytest.mark.usefixtures('db')
 def test_create_fails_if_email_domain_is_blacklisted():
     """
-    Test checks to see if an email is tied to an active user account. If so,
-    login.create() will not permit another account to be made for the same
-    address.
+    Test verifies that login.create() will properly fail to register new accounts
+    when the domain portion of the email address is contained in the emailblacklist
+    table.
     """
     d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
-        "domain_name_id": 42,
         "domain_name": "blacklisted.com",
         "reason": "test case for login.create()",
     })

@@ -112,12 +112,12 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 ch.settings,
                 we.welcomeid,
                 0 AS subtype,
-                array_agg(tags.title) as tags
+                array_agg(tags.title) AS tags
             FROM welcome we
                 INNER JOIN character ch ON we.targetid = ch.charid
                 INNER JOIN profile pr ON ch.userid = pr.userid
                 LEFT JOIN searchmapchar AS smc ON ch.charid = smc.targetid
-                JOIN searchtag AS tags USING (tagid)
+                LEFT JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2050 AND
                 we.userid = %(userid)s
@@ -136,12 +136,12 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 su.settings,
                 we.welcomeid,
                 su.subtype,
-                array_agg(tags.title) as tags
+                array_agg(tags.title) AS tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON we.otherid = pr.userid
                 LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
-                JOIN searchtag AS tags USING (tagid)
+                LEFT JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2030 AND
                 we.userid = %(userid)s
@@ -160,12 +160,12 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 su.settings,
                 we.welcomeid,
                 su.subtype,
-                array_agg(tags.title) as tags
+                array_agg(tags.title) AS tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON su.userid = pr.userid
                 LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
-                JOIN searchtag AS tags USING (tagid)
+                LEFT JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2010 AND
                 we.userid = %(userid)s

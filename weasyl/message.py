@@ -112,21 +112,19 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 ch.settings,
                 we.welcomeid,
                 0 AS subtype,
-                agg.tags
+                array_agg(tags.title) as tags
             FROM welcome we
                 INNER JOIN character ch ON we.targetid = ch.charid
                 INNER JOIN profile pr ON ch.userid = pr.userid
-                LEFT JOIN LATERAL (
-                    SELECT c.charid AS id, array_agg(tags.title) AS tags
-                    FROM character as c
-                    LEFT JOIN searchmapchar AS cmap ON c.charid = cmap.targetid
-                    JOIN searchtag AS tags ON cmap.tagid = tags.tagid
-                    WHERE cmap.targetid = ch.charid
-                    GROUP BY c.charid
-                ) agg ON agg.id = we.targetid
+                LEFT JOIN searchmapchar AS smc ON ch.charid = smc.targetid
+                JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2050 AND
                 we.userid = %(userid)s
+            GROUP BY
+                ch.charid,
+                pr.username,
+                we.welcomeid
             UNION SELECT
                 40 AS contype,
                 su.submitid AS id,
@@ -138,21 +136,19 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 su.settings,
                 we.welcomeid,
                 su.subtype,
-                agg.tags
+                array_agg(tags.title) as tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON we.otherid = pr.userid
-                LEFT JOIN LATERAL (
-                    SELECT s.submitid AS id, array_agg(tags.title) AS tags
-                    FROM submission AS s
-                    LEFT JOIN searchmapsubmit AS smap ON s.submitid = smap.targetid
-                    JOIN searchtag AS tags ON smap.tagid = tags.tagid
-                    WHERE smap.targetid = su.submitid
-                    GROUP BY s.submitid
-                ) agg ON agg.id = we.targetid
+                LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
+                JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2030 AND
                 we.userid = %(userid)s
+            GROUP BY
+                su.submitid,
+                pr.username,
+                we.welcomeid
             UNION SELECT
                 10 AS contype,
                 su.submitid AS id,
@@ -164,21 +160,19 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 su.settings,
                 we.welcomeid,
                 su.subtype,
-                agg.tags
+                array_agg(tags.title) as tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON su.userid = pr.userid
-                LEFT JOIN LATERAL (
-                    SELECT s.submitid AS id, array_agg(tags.title) AS tags
-                    FROM submission AS s
-                    LEFT JOIN searchmapsubmit AS smap ON s.submitid = smap.targetid
-                    JOIN searchtag AS tags ON smap.tagid = tags.tagid
-                    WHERE smap.targetid = su.submitid
-                    GROUP BY s.submitid
-                ) agg ON agg.id = we.targetid
+                LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
+                JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2010 AND
                 we.userid = %(userid)s
+            GROUP BY
+                su.submitid,
+                pr.username,
+                we.welcomeid
         ) results
         WHERE
             rating <= %(rating)s

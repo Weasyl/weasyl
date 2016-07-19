@@ -111,10 +111,19 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 pr.username,
                 ch.settings,
                 we.welcomeid,
-                0 AS subtype
+                0 AS subtype,
+                agg.tags
             FROM welcome we
                 INNER JOIN character ch ON we.targetid = ch.charid
                 INNER JOIN profile pr ON ch.userid = pr.userid
+                LEFT JOIN LATERAL (
+                    SELECT c.charid AS id, string_agg(tags.title, ',') AS tags
+                    FROM character as c
+                    LEFT JOIN searchmapchar AS cmap ON c.charid = cmap.targetid
+                    JOIN searchtag AS tags ON cmap.tagid = tags.tagid
+                    WHERE cmap.targetid = ch.charid
+                    GROUP BY c.charid
+                ) agg ON agg.id = we.targetid
             WHERE
                 we.type = 2050 AND
                 we.userid = %(userid)s
@@ -128,10 +137,19 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 pr.username,
                 su.settings,
                 we.welcomeid,
-                su.subtype
+                su.subtype,
+                agg.tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON we.otherid = pr.userid
+                LEFT JOIN LATERAL (
+                    SELECT s.submitid AS id, string_agg(tags.title, ',') AS tags
+                    FROM submission AS s
+                    LEFT JOIN searchmapsubmit AS smap ON s.submitid = smap.targetid
+                    JOIN searchtag AS tags ON smap.tagid = tags.tagid
+                    WHERE smap.targetid = su.submitid
+                    GROUP BY s.submitid
+                ) agg ON agg.id = we.targetid
             WHERE
                 we.type = 2030 AND
                 we.userid = %(userid)s
@@ -145,10 +163,19 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 pr.username,
                 su.settings,
                 we.welcomeid,
-                su.subtype
+                su.subtype,
+                agg.tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON su.userid = pr.userid
+                LEFT JOIN LATERAL (
+                    SELECT s.submitid AS id, string_agg(tags.title, ',') AS tags
+                    FROM submission AS s
+                    LEFT JOIN searchmapsubmit AS smap ON s.submitid = smap.targetid
+                    JOIN searchtag AS tags ON smap.tagid = tags.tagid
+                    WHERE smap.targetid = su.submitid
+                    GROUP BY s.submitid
+                ) agg ON agg.id = we.targetid
             WHERE
                 we.type = 2010 AND
                 we.userid = %(userid)s
@@ -169,25 +196,19 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
         limit=limit,
     )
 
-    results = []
-    for i in query:
-        if i.contype != _CONTYPE_CHAR:
-            tags = searchtag.select(submitid=i.id)
-        else:
-            tags = searchtag.select(charid=i.id)
-        results.append({
-            "contype": i.contype,
-            "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,
-            "welcomeid": i.welcomeid,
-            "title": i.title,
-            "rating": i.rating,
-            "unixtime": i.unixtime,
-            "userid": i.userid,
-            "username": i.username,
-            "subtype": i.subtype,
-            "tags": tags,
-            "sub_media": _fake_media_items(i),
-        })
+    results = [{
+        "contype": i.contype,
+        "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,
+        "welcomeid": i.welcomeid,
+        "title": i.title,
+        "rating": i.rating,
+        "unixtime": i.unixtime,
+        "userid": i.userid,
+        "username": i.username,
+        "subtype": i.subtype,
+        "tags": (i.tags).split(','),
+        "sub_media": _fake_media_items(i),
+    } for i in query]
 
     media.populate_with_submission_media(
         [i for i in results if i["contype"] != _CONTYPE_CHAR])

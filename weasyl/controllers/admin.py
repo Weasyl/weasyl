@@ -92,10 +92,16 @@ class admincontrol_emailblacklist_(controller_base):
     admin_only = True
 
     def GET(self):
-        query = d.engine.execute("SELECT * FROM emailblacklist")
+        query = d.engine.execute("""
+                                SELECT domain_name_id, domain_name, userid, reason, lo.login_name AS name
+                                FROM emailblacklist
+                                INNER JOIN login AS lo USING (userid)
+                                ORDER BY domain_name
+                                """)
         blacklist_information = [{
             "domain_name_id": i.domain_name_id,
             "domain_name": i.domain_name,
+            "name": i.name,
             "reason": i.reason,
         } for i in query]
         return d.webpage(self.user_id, "admincontrol/emailblacklist.html", [blacklist_information, d.get_token()])
@@ -113,6 +119,7 @@ class admincontrol_emailblacklist_(controller_base):
             d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
                 "domain_name": form.domain_name.lower(),
                 "reason": form.reason,
+                "userid": self.user_id,
             })
 
         # Empty form received

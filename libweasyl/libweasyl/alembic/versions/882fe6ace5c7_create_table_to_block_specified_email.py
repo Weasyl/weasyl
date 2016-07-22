@@ -16,14 +16,14 @@ import sqlalchemy as sa
 
 def upgrade():
     op.create_table('emailblacklist',
-                    sa.Column('domain_name_id', sa.Integer(), nullable=False),
-                    sa.Column('domain_name', sa.String(length=256), nullable=False),
-                    sa.Column('userid', sa.Integer(), nullable=False),
-                    sa.Column('reason', sa.Text(), nullable=False),
-                    sa.ForeignKeyConstraint(['userid'], ['login.userid'], name='emailblacklist_userid_fkey', onupdate='CASCADE', ondelete='CASCADE'),
-                    sa.PrimaryKeyConstraint('domain_name_id'),
-                    sa.UniqueConstraint('domain_name')
-                    )
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('domain_name', sa.String(length=252), nullable=False),
+        sa.Column('added_by', sa.Integer(), nullable=False),
+        sa.Column('reason', sa.Text(), nullable=False),
+        sa.ForeignKeyConstraint(['added_by'], ['login.userid'], name='emailblacklist_userid_fkey', onupdate='CASCADE', ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('domain_name')
+    )
     op.create_index('ind_emailblacklist_domain_name', 'emailblacklist', ['domain_name'], unique=False)
 
 

@@ -189,7 +189,7 @@ def test_create_fails_if_email_domain_is_blacklisted():
     d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
         "domain_name": "blacklisted.com",
         "reason": "test case for login.create()",
-        "userid": db_utils.create_user(),
+        "added_by": db_utils.create_user(),
     })
     blacklisted_email = "test@blacklisted.com"
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',

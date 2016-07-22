@@ -163,7 +163,7 @@ def create(form):
         raise WeasylError("passwordInsecure")
     if not email:
         raise WeasylError("emailInvalid")
-    if emailer.check_email_blacklist(email):
+    if check_email_blacklist(email):
         raise WeasylError("emailBlacklisted")
     if not sysname or ";" in username:
         raise WeasylError("usernameInvalid")
@@ -291,3 +291,21 @@ def get_account_verification_token(email=None, username=None):
         statement = statement.where(logincreate.c.login_name == username)
 
     return d.engine.execute(statement).scalar()
+
+
+def check_email_blacklist(address):
+    """
+    Determines if a supplied email address is present in the 'emailblacklist' table.
+
+    Parameters:
+        address: The email address to split out the domain from.
+
+    Returns:
+        Boolean True if present on the blacklist, or False otherwise.
+    """
+    local, domain = address.rsplit("@", 1)
+
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT 0 FROM emailblacklist WHERE domain_name = %(domain_name)s)",
+        domain_name=domain
+    )

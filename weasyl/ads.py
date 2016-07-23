@@ -94,13 +94,14 @@ def create_ad(form):
     ad_media = fetch_or_create_media_item(form.image, file_type=file_type, im=im)
     ad_media.dbsession.flush()
 
-    ad_id = (
-        engine.execute("""
-            INSERT INTO ads (owner, link_target, file, start, "end")
-            VALUES (%(owner)s, %(target)s, %(file)s, NOW(), %(end)s)
-            RETURNING id
-        """, owner=form.owner, target=form.target, file=ad_media.mediaid, end=form.end)
-        .scalar())
+    ad_id = engine.scalar(
+        """
+        INSERT INTO ads (owner, link_target, file, start, "end")
+        VALUES (%(owner)s, %(target)s, %(file)s, NOW(), %(end)s)
+        RETURNING id
+        """,
+        owner=form.owner, target=form.target, file=ad_media.mediaid, end=form.end
+    )
 
     _get_all_ads.invalidate()
     return ad_id

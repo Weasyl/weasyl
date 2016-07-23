@@ -200,11 +200,7 @@ class favorite_(controller_base):
         form.journalid = define.get_int(form.journalid)
 
         if form.action == "favorite":
-            try:
-                favorite.insert(self.user_id, form.submitid, form.charid, form.journalid)
-            except WeasylError as we:
-                if we.value != "favoriteRecordExists":
-                    raise
+            favorite.insert(self.user_id, form.submitid, form.charid, form.journalid)
         elif form.action == "unfavorite":
             favorite.remove(self.user_id, form.submitid, form.charid, form.journalid)
 

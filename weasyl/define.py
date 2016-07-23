@@ -22,7 +22,7 @@ import requests
 import web
 import sqlalchemy as sa
 import sqlalchemy.orm
-from psycopg2.extensions import QuotedString
+from psycopg2cffi.extensions import QuotedString
 import pytz
 
 import macro
@@ -176,38 +176,7 @@ def sql_number_list(target):
     elif not isinstance(target, list):
         target = [target]
 
-    return "(%s)" % (", ".join([str(i) for i in target]))
-
-
-def sql_number_series(target):
-    """
-    Returns a list of numbers suitable for placement after the SQL VALUES
-    operator in a query statement, as in "(1, 2), (3, 4), (5, 6)".
-    """
-    if not target:
-        raise ValueError
-
-    return ", ".join(sql_number_list(i) for i in target)
-
-
-def sql_string_list(target, exception=True):
-    """
-    Returns a list of strings suitable for placement after the SQL IN operator in
-    a query statement, as in "('foo', 'bar', 'baz')".
-    """
-    if not target:
-        raise ValueError
-    elif not isinstance(target, list):
-        target = [target]
-
-    return "(%s)" % (", ".join(["'%s'" % (sql_escape(i)) for i in target]))
-
-
-def sql_string_series(target):
-    if not target:
-        raise ValueError
-
-    return ", ".join(sql_string_list(i) for i in target)
+    return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
 
 
 CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
@@ -979,11 +948,11 @@ def common_view_content(userid, targetid, feature):
     else:
         viewer = get_address()
 
-    try:
-        engine.execute(
-            meta.tables['views'].insert()
-            .values(viewer=viewer, targetid=targetid, type=typeid))
-    except sa.exc.IntegrityError:
+    result = engine.execute(
+        'INSERT INTO views (viewer, targetid, type) VALUES (%(viewer)s, %(targetid)s, %(type)s) ON CONFLICT DO NOTHING',
+        viewer=viewer, targetid=targetid, type=typeid)
+
+    if result.rowcount == 0:
         return False
 
     if feature == "submit":

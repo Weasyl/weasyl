@@ -87,7 +87,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
         SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
-    """, id=journalid).fetchone()
+    """, id=journalid).first()
 
     if journalid and userid in staff.MODS and anyway:
         pass
@@ -166,13 +166,15 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     }
 
 
-def select_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):
+def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
     if config is None:
         config = d.get_config(userid)
 
-    statement = [" FROM journal jo"
-                 " JOIN profile pr ON jo.userid = pr.userid"
-                 " WHERE jo.settings !~ 'h'"]
+    statement = [
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
+        " FROM journal jo"
+        " JOIN profile pr ON jo.userid = pr.userid"
+        " WHERE jo.settings !~ 'h'"]
 
     if otherid:
         statement.append(" AND jo.userid = %i")
@@ -196,18 +198,7 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None, config=
         statement.append(" AND jo.journalid > %i" % backid)
     elif nextid:
         statement.append(" AND jo.journalid < %i" % nextid)
-    return statement
 
-
-def select_user_count(userid, rating, otherid=None, backid=None, nextid=None, config=None):
-    statement = ["SELECT count(jo.journalid)"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid, config))
-    return d.execute("".join(statement))[0][0]
-
-
-def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    statement = ["SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid, config))
     statement.append(" ORDER BY jo.journalid%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = [{

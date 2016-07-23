@@ -82,7 +82,6 @@ error_messages = {
     "emailInvalid": "The email you entered does not appear to be valid.",
     "emailMismatch": "The email you entered did not match the email confirmation.",
     "embedlinkInvalid": "The embed link you entered does not point to a valid resource or supported service.",
-    "favoriteRecordExists": "You have already favorited this content.",
     "FeatureDisabled": "This feature has been temporarily disabled.",
     "FileType": "The file you uploaded is not of a valid type.",
     "folderRecordExists": "A folder by this name already exists.",

@@ -11,7 +11,7 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import orm
 from weasyl import welcome
-from weasyl.error import PostgresError
+from weasyl.cache import region
 from weasyl.error import WeasylError
 
 
@@ -73,6 +73,21 @@ def select_list(map_table, targetids):
     return dict(list(db.execute(q)))
 
 
+@region.cache_on_arguments()
+def get_or_create(name):
+    name = d.get_search_tag(name)
+    tag = d.engine.execute(
+        'INSERT INTO searchtag (title) VALUES (%(name)s) ON CONFLICT (title) DO NOTHING RETURNING tagid',
+        name=name).scalar()
+
+    if tag is not None:
+        return tag
+
+    return d.engine.execute(
+        'SELECT tagid FROM searchtag WHERE title = %(name)s',
+        name=name).scalar()
+
+
 def get_ids(names):
     result = d.engine.execute(
         "SELECT tagid, title FROM searchtag WHERE title = ANY (%(names)s)",
@@ -107,13 +122,6 @@ def suggest(userid, target):
         query.append(i)
 
     return query
-
-
-def create(title):
-    return d.engine.execute(
-        "INSERT INTO searchtag (title) VALUES (%(tag_name)s) RETURNING tagid",
-        tag_name=d.get_search_tag(title)
-    ).scalar()
 
 
 def tag_array(tagids):
@@ -199,7 +207,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
             target=targetid, removed=list(removed))
 
     if added:
-        d.execute("INSERT INTO %s VALUES %s" % (table, d.sql_number_series([[i, targetid] for i in added])))
+        d.engine.execute(
+            "INSERT INTO {} SELECT tag, %(target)s FROM UNNEST (%(added)s) AS tag".format(table),
+            target=targetid, added=list(added))
 
         if userid == ownerid:
             d.execute(
@@ -207,16 +217,10 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
                 [table, targetid, d.sql_number_list(list(added))])
 
     if submitid:
-        try:
-            d.engine.execute(
-                'INSERT INTO submission_tags (submitid, tags) VALUES (%(submission)s, %(tags)s)',
-                submission=submitid, tags=list(entered_tagids))
-        except PostgresError:
-            result = d.engine.execute(
-                'UPDATE submission_tags SET tags = %(tags)s WHERE submitid = %(submission)s',
-                submission=submitid, tags=list(entered_tagids))
-
-            assert result.rowcount == 1
+        d.engine.execute(
+            'INSERT INTO submission_tags (submitid, tags) VALUES (%(submission)s, %(tags)s) '
+            'ON CONFLICT (submitid) DO UPDATE SET tags = %(tags)s',
+            submission=submitid, tags=list(entered_tagids))
 
         db = d.connect()
         db.execute(

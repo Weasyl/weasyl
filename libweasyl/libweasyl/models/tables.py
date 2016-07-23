@@ -218,7 +218,6 @@ favorite = Table(
 
 Index('ind_favorite_userid', favorite.c.userid)
 Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid, unique=False)
-Index('ind_favorite_unixtime', favorite.c.unixtime)
 
 
 folder = Table(
@@ -424,6 +423,8 @@ media = Table(
     Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     Column('sha256', String(length=64)),
 )
+
+Index('ind_media_sha256', media.c.sha256)
 
 
 media_media_links = Table(

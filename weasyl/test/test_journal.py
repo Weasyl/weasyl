@@ -8,6 +8,10 @@ from weasyl.test import db_utils
 from weasyl import journal
 
 
+def select_user_count(userid, rating, **kwargs):
+    return len(journal.select_user_list(userid, rating, limit=1000, **kwargs))
+
+
 @pytest.mark.usefixtures('db')
 class SelectUserCountTestCase(unittest.TestCase):
     def setUp(self):
@@ -23,12 +27,12 @@ class SelectUserCountTestCase(unittest.TestCase):
     def test_count_backid(self):
         self.assertEqual(
             self.count - self.pivot - 1,
-            journal.select_user_count(self.user1, ratings.GENERAL.code, backid=self.pivotid))
+            select_user_count(self.user1, ratings.GENERAL.code, backid=self.pivotid))
 
     def test_count_nextid(self):
         self.assertEqual(
             self.pivot,
-            journal.select_user_count(self.user1, ratings.GENERAL.code, nextid=self.pivotid))
+            select_user_count(self.user1, ratings.GENERAL.code, nextid=self.pivotid))
 
     def test_see_friends_journal(self):
         """
@@ -37,7 +41,7 @@ class SelectUserCountTestCase(unittest.TestCase):
         j = db_utils.create_journal(self.friend1, 'Friends only journal', settings=CharSettings({"friends-only"}, {}, {}))
         self.assertEqual(
             self.count + 1,
-            journal.select_user_count(self.user1, ratings.GENERAL.code))
+            select_user_count(self.user1, ratings.GENERAL.code))
         self.assertEqual(
             j,
             journal.select_user_list(self.user1, ratings.GENERAL.code, 100)[0]['journalid'])
@@ -49,7 +53,7 @@ class SelectUserCountTestCase(unittest.TestCase):
         db_utils.create_journal(self.user2, 'Friends only journal', settings=CharSettings({"friends-only"}, {}, {}))
         self.assertEqual(
             self.count,
-            journal.select_user_count(self.user1, ratings.GENERAL.code))
+            select_user_count(self.user1, ratings.GENERAL.code))
 
     def test_can_see_own_blocktag_journal(self):
         """
@@ -75,3 +79,14 @@ class SelectUserCountTestCase(unittest.TestCase):
         self.assertEqual(
             my_journalid,
             journal.select_user_list(self.user1, ratings.GENERAL.code, 100)[0]['journalid'])
+
+    def test_remove(self):
+        j1 = db_utils.create_journal(self.user1, rating=ratings.GENERAL.code)
+        j2 = db_utils.create_journal(self.user1, rating=ratings.GENERAL.code)
+
+        journal.remove(self.user1, j1)
+
+        user_list = journal.select_user_list(self.user1, ratings.GENERAL.code, 100)
+
+        self.assertEqual(self.count + 1, len(user_list))
+        self.assertEqual(j2, user_list[0]['journalid'])

@@ -57,22 +57,6 @@ def image_file_type(im):
     return ret
 
 
-def get_frames(filename):
-    """
-    Return the number of frames in the image file.
-    """
-    im = read(filename)
-    return len(im)
-
-
-def unanimate(im):
-    if len(im) == 1:
-        return im
-    ret = Image()
-    ret.append(im[0])
-    return ret
-
-
 def check_crop(dim, x1, y1, x2, y2):
     """
     Return True if the specified crop coordinates are valid, else False.
@@ -133,15 +117,6 @@ def resize_image(im, width, height):
     return correct_image_and_call(_resize, im, width, height) or im
 
 
-def make_popup(filename, destination=None):
-    """
-    Create a popup image file; if `destination` is passed, a new file will be
-    created and the original left unaltered, else the original file will be
-    altered.
-    """
-    resize(filename, 300, 300, destination=destination)
-
-
 def make_cover(filename, destination=None):
     """
     Create a cover image file; if `destination` is passed, a new file will be
@@ -149,10 +124,6 @@ def make_cover(filename, destination=None):
     altered.
     """
     resize(filename, *COVER_SIZE, destination=destination)
-
-
-def make_cover_image(im):
-    return resize_image(im, *COVER_SIZE)
 
 
 def correct_image_and_call(f, im, *a, **kw):

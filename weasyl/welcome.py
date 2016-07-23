@@ -234,12 +234,11 @@ def journal_insert(userid, journalid, rating=ratings.GENERAL.code, settings=''):
 #   4035 user replied to journal comment
 
 def journal_remove(journalid):
-    target = d.sql_number_list(journalid)
-    d.execute(
-        "DELETE FROM welcome WHERE targetid IN %s AND type IN (1010, 1020)"
-        " OR referid IN %s AND type IN (3110, 3115)"
-        " OR targetid IN (SELECT commentid FROM journalcomment WHERE targetid IN %s) AND type IN (4030, 4035)",
-        [target, target, target])
+    d.engine.execute(
+        "DELETE FROM welcome WHERE targetid = %(journal)s AND type IN (1010, 1020)"
+        " OR referid = %(journal)s AND type IN (3110, 3115)"
+        " OR targetid IN (SELECT commentid FROM journalcomment WHERE targetid = %(journal)s) AND type IN (4030, 4035)",
+        journal=journalid)
 
 
 # notifications
@@ -421,15 +420,6 @@ def stream_insert(userid, status):
         _insert([None, userid, 0, 0, 3075], followuser.list_followed(userid, "t"))
     elif status == "l":
         _insert([None, userid, 0, 0, 3070], followuser.list_followed(userid, "t"))
-
-
-# notifications
-#   3070 stream status later
-#   3075 stream status online
-
-def stream_remove(userid):
-    d.execute("DELETE FROM welcome WHERE otherid = %i AND type IN (3070, 3075) RETURNING userid",
-              [userid], options="within")
 
 
 # notifications

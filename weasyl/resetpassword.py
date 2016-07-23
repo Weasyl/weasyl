@@ -1,5 +1,4 @@
-# resetpassword.py
-# -*- coding: utf-8 -*-
+# encoding: utf-8
 
 from libweasyl import security
 from weasyl import define as d

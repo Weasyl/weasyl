@@ -1,4 +1,4 @@
-# coding=utf-8
+# encoding: utf-8
 
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."

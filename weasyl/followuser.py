@@ -12,8 +12,6 @@ from libweasyl import ratings
 from weasyl.configuration_builder import create_configuration, BoolOption
 from weasyl import media
 
-from sqlalchemy.exc import IntegrityError
-
 WatchSettings = create_configuration([
     BoolOption("submit", "s"),
     BoolOption("collect", "c"),
@@ -149,11 +147,10 @@ def insert(userid, otherid):
     elif ignoreuser.check(userid, otherid):
         raise WeasylError("YouIgnored")
 
-    try:
-        d.execute("INSERT INTO watchuser VALUES (%i, %i, '%s')",
-                  [userid, otherid, WatchSettings.from_code(d.get_config(userid)).to_code()])
-    except IntegrityError:
-        pass
+    d.engine.execute(
+        'INSERT INTO watchuser (userid, otherid, settings) VALUES (%(user)s, %(other)s, %(settings)s) '
+        'ON CONFLICT DO NOTHING',
+        user=userid, other=otherid, settings=WatchSettings.from_code(d.get_config(userid)).to_code())
 
     welcome.followuser_remove(userid, otherid)
     welcome.followuser_insert(userid, otherid)

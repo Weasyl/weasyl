@@ -183,11 +183,7 @@ def favorite_(request):
     form.journalid = define.get_int(form.journalid)
 
     if form.action == "favorite":
-        try:
-            favorite.insert(request.userid, form.submitid, form.charid, form.journalid)
-        except WeasylError as we:
-            if we.value != "favoriteRecordExists":
-                raise
+        favorite.insert(request.userid, form.submitid, form.charid, form.journalid)
     elif form.action == "unfavorite":
         favorite.remove(request.userid, form.submitid, form.charid, form.journalid)
 

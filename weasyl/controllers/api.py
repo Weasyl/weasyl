@@ -480,11 +480,7 @@ class api_favorite_(api_base):
 
     @api_method
     def POST(self, content_type, content_id):
-        try:
-            favorite.insert(self.user_id, **{_CONTENT_IDS[content_type]: int(content_id)})
-        except WeasylError as we:
-            if we.value != 'favoriteRecordExists':
-                raise
+        favorite.insert(self.user_id, **{_CONTENT_IDS[content_type]: int(content_id)})
 
         return json.dumps({
             'success': True

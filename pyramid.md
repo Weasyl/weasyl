@@ -49,7 +49,7 @@ I bet these can all be set up trivially as a tween, except maybe for the session
 * (ONGOING: Doing this as I go now) flake8 everything before merge request.
 * (DONE: Or rather 'ongoing'. At the time of this writing all tests pass) check test coverage before merge request.
 
-* Headers need to be (str, str) to keep twisted happy. We're returning unicode in a few places.
+* (DONE: At least for provile_media_) Headers need to be (str, str) to keep twisted happy. We're returning unicode in a few places.
 
 Make some rules/best practices
 ------------------------------

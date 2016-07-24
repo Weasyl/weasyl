@@ -115,9 +115,10 @@ def profile_media_(request):
     media_items = media.get_user_media(userid)
     if not media_items.get(link_type):
         raise httpexceptions.HTTPNotFound()
-    request.response.headers['X-Accel-Redirect'] = media_items[link_type][0]['file_url']
-    request.response.headers['Cache-Control'] = 'max-age=0'
-    return request.response
+    return Response(headerlist=[
+        ('X-Accel-Redirect', str(media_items[link_type][0]['file_url']),),
+        ('Cache-Control', 'max-age=0',),
+    ])
 
 
 def submissions_(request):

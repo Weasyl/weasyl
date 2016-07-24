@@ -135,8 +135,7 @@ routes = (
     Route("/manage/folders", "manage_folders", settings.manage_folders_),
     Route("/manage/following", "control_following",
           {'GET': settings.manage_following_get_, 'POST': settings.manage_following_post_}),
-    Route("/manage/friends", "control_friends",
-          {'GET': settings.manage_friends_get_, 'POST': settings.manage_friends_post_}),
+    Route("/manage/friends", "control_friends", settings.manage_friends_),
     Route("/manage/ignore", "manage_ignore", settings.manage_ignore_),
     Route("/manage/collections", "control_collections",
           {'GET': settings.manage_collections_get_, 'POST': settings.manage_collections_post_}),
@@ -150,7 +149,7 @@ routes = (
           {'GET': settings.manage_banner_get_, 'POST': settings.manage_banner_post_}),
     Route("/manage/alias", "control_alias",
           {'GET': settings.manage_alias_get_, 'POST': settings.manage_alias_post_}),
-    Route("/{alias:(control|settings)", "control", settings.control_),
+    Route("/{alias:control|settings}", "control", settings.control_),
     Route("/control/uploadavatar", "control_uploadavatar",
           {'POST': settings.control_uploadavatar_}),
     Route("/control/editprofile", "control_editprofile",
@@ -191,10 +190,23 @@ routes = (
           {'GET': settings.control_streaming_get_, 'POST': settings.control_streaming_post_}),
     Route("/control/apikeys", "control_apikeys",
           {'GET': settings.control_apikeys_get_, 'POST': settings.control_apikeys_post_}),
-    Route("/control/sfwtoggle", "control_sfwtoggle", {'POST': settings.sfwtoggle_}),
+    Route("/control/sfwtoggle", "control_sfw_toggle", {'POST': settings.sfw_toggle_}),
     # TODO: Port this one along with the rest of the collections.
     # "/control/collections", "weasyl.controllers.collections.collection_options_",
 
+    Route("/frienduser", "frienduser", {'POST': interaction.frienduser_}),
+    Route("/unfrienduser", "unfrienduser", {'POST': interaction.unfrienduser_}),
+    Route("/followuser", "followuser", {'POST': interaction.followuser_}),
+    Route("/unfollowuser", "unfollowuser", {'POST': interaction.unfollowuser_}),
+    Route("/ignoreuser", "ignoreuser", {'POST': interaction.ignoreuser_}),
+
+    Route("/note", "note", interaction.note_),
+    Route("/notes", "/notes", interaction.notes_),
+    Route("/notes/compose", "notes_compose",
+          {'GET': interaction.notes_compose_get_, 'POST': interaction.notes_compose_post_}),
+    Route("/notes/remove", "notes_remove", {'POST': interaction.notes_remove_}),
+
+    Route("/favorite", "favorite", {'POST': interaction.favorite_}),
 )
 
 

@@ -451,7 +451,7 @@ def manage_following_post_(request):
 
 
 @login_required
-def manage_friends_get_(request):
+def manage_friends_(request):
     form = request.web_input(feature="", backid="", nextid="")
     form.backid = define.get_int(form.backid)
     form.nextid = define.get_int(form.nextid)
@@ -684,7 +684,7 @@ def manage_alias_post_(request):
 @login_required
 @token_checked
 @disallow_api
-def sfw_toggle(request):
+def sfw_toggle_(request):
     form = request.web_input(redirect="/index")
 
     currentstate = request.cookies.get('sfwmode', "nsfw")

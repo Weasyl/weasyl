@@ -3,7 +3,6 @@ from itertools import chain
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
-from weasyl import searchtag
 
 
 notification_clusters = {

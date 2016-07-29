@@ -9,7 +9,7 @@ from weasyl.error import WeasylError
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
-    index, journal, media, message, profile, searchtag, submission)
+    index, journal, media, message, profile, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -105,21 +105,6 @@ class api_useravatar_(api_base):
             })
 
         raise WeasylError('userRecordMissing')
-
-
-class api_searchtagsuggest_(api_base):
-    def GET(self):
-        return self.POST()
-
-    @api_method
-    def POST(self):
-        # Retrieve form data
-        form = web.input(sid="", target="")
-
-        # Retrieve suggested search tags
-        return json.dumps({
-            "result": searchtag.suggest(self.user_id, form.target),
-        })
 
 
 class api_whoami_(api_base):

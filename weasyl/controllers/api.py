@@ -45,11 +45,6 @@ _CONTENT_IDS = {
 
 def api_method(f):
     def wrapper(self, *a, **kw):
-        form = web.input(token="")
-
-        if not api.is_api_user() and form.token != d.get_token():
-            self.user_id = 0
-
         web.header('Content-Type', 'application/json')
         try:
             return f(self, *a, **kw)
@@ -464,6 +459,7 @@ class api_favorite_(api_base):
     login_required = True
 
     @api_method
+    @d.token_checked
     def POST(self, content_type, content_id):
         favorite.insert(self.user_id, **{_CONTENT_IDS[content_type]: int(content_id)})
 
@@ -476,6 +472,7 @@ class api_unfavorite_(api_base):
     login_required = True
 
     @api_method
+    @d.token_checked
     def POST(self, content_type, content_id):
         favorite.remove(self.user_id, **{_CONTENT_IDS[content_type]: int(content_id)})
 

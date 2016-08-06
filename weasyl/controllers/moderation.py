@@ -2,246 +2,205 @@ import web
 
 import anyjson as json
 
-from weasyl.controllers.decorators import controller_base
+from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.response import Response
+
+from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
 from weasyl import define, macro, moderation, report
 
 
 # Moderator control panel functions
-class modcontrol_(controller_base):
-    login_required = True
-    moderator_only = True
+@moderator_only
+def modcontrol_(request):
+    return Response(define.webpage(request.userid, "modcontrol/modcontrol.html"))
+
+
+@moderator_only
+def modcontrol_finduser_(request):
+    return Response(define.webpage(request.userid, "modcontrol/finduser.html"))
+
+
+@moderator_only
+@token_checked
+def modcontrol_finduser_post_(request):
+    form = request.web_input(userid="", username="", email="")
+
+    return Response(define.webpage(request.userid, "modcontrol/finduser.html", [
+        # Search results
+        moderation.finduser(request.userid, form)
+    ]))
+
+
+@moderator_only
+def modcontrol_suspenduser_get_(request):
+    return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
+                                   [moderation.BAN_TEMPLATES, json.dumps(moderation.BAN_TEMPLATES)]))
+
+
+@moderator_only
+@token_checked
+def modcontrol_suspenduser_(request):
+    form = request.web_input(userid="", username="", mode="", reason="", day="", month="", year="", datetype="",
+                             duration="", durationunit="")
+
+    moderation.setusermode(request.userid, form)
+    raise HTTPSeeOther(location="/modcontrol")
+
+
+@moderator_only
+def modcontrol_report_(request):
+    form = request.web_input(reportid='')
+    r = report.select_view(request.userid, form)
+    blacklisted_tags = moderation.gallery_blacklisted_tags(request.userid, r.target.userid)
+
+    return Response(define.webpage(request.userid, "modcontrol/report.html", [
+        request.userid,
+        r,
+        blacklisted_tags,
+    ]))
+
+
+@moderator_only
+def modcontrol_reports_(request):
+    form = request.web_input(status="open", violation="", submitter="")
+    return Response(define.webpage(request.userid, "modcontrol/reports.html", [
+        # Method
+        {"status": form.status, "violation": int(form.violation or -1), "submitter": form.submitter},
+        # Reports
+        report.select_list(request.userid, form),
+        macro.MACRO_REPORT_VIOLATION,
+    ]))
 
-    def GET(self):
-        return define.webpage(self.user_id, "modcontrol/modcontrol.html")
+
+@moderator_only
+@token_checked
+def modcontrol_closereport_(request):
+    form = request.web_input(reportid='', action='')
+    report.close(request.userid, form)
+    raise HTTPSeeOther(location="/modcontrol/report?reportid=%d" % (int(form.reportid),))
 
 
-class modcontrol_finduser_(controller_base):
-    login_required = True
-    moderator_only = True
+@moderator_only
+def modcontrol_contentbyuser_(request):
+    form = request.web_input(name='', features=[])
 
-    def GET(self):
-        return define.webpage(self.user_id, "modcontrol/finduser.html")
+    submissions = moderation.submissionsbyuser(request.userid, form) if 's' in form.features else []
+    characters = moderation.charactersbyuser(request.userid, form) if 'c' in form.features else []
+    journals = moderation.journalsbyuser(request.userid, form) if 'j' in form.features else []
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="", username="", email="")
+    return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
+        form.name,
+        sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
+    ]))
 
-        return define.webpage(self.user_id, "modcontrol/finduser.html", [
-            # Search results
-            moderation.finduser(self.user_id, form)
-        ])
-
-
-class modcontrol_suspenduser_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    def GET(self):
-        return define.webpage(self.user_id, "modcontrol/suspenduser.html",
-                              [moderation.BAN_TEMPLATES, json.dumps(moderation.BAN_TEMPLATES)])
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="", username="", mode="", reason="", day="", month="", year="", datetype="",
-                         duration="", durationunit="")
-
-        moderation.setusermode(self.user_id, form)
-        raise web.seeother("/modcontrol")
-
-
-class modcontrol_report_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    def GET(self):
-        form = web.input(reportid='')
-        r = report.select_view(self.user_id, form)
-        blacklisted_tags = moderation.gallery_blacklisted_tags(self.user_id, r.target.userid)
-
-        return define.webpage(self.user_id, "modcontrol/report.html", [
-            self.user_id,
-            r,
-            blacklisted_tags,
-        ])
 
-
-class modcontrol_reports_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    def GET(self):
-        form = web.input(status="open", violation="", submitter="")
-        return define.webpage(self.user_id, "modcontrol/reports.html", [
-            # Method
-            {"status": form.status, "violation": int(form.violation or -1), "submitter": form.submitter},
-            # Reports
-            report.select_list(self.user_id, form),
-            macro.MACRO_REPORT_VIOLATION,
-        ])
+@moderator_only
+@token_checked
+def modcontrol_massaction_(request):
+    form = request.web_input(action='', name='', submissions=[], characters=[], journals=[])
+    if form.action.startswith("zap-"):
+        # "Zapping" cover art or thumbnails is not a bulk edit.
+        if not form.submissions:
+            raise WeasylError("Unexpected")
+        submitid = int(form.submissions[0])
+        type = form.action.split("zap-")[1]
+        if type == "cover":
+            moderation.removecoverart(request.userid, submitid)
+        elif type == "thumb":
+            moderation.removethumbnail(request.userid, submitid)
+        elif type == "both":
+            moderation.removecoverart(request.userid, submitid)
+            moderation.removethumbnail(request.userid, submitid)
+        else:
+            raise WeasylError("Unexpected")
+        raise web.seeother("/submission/%i" % (submitid,))
 
-    POST = GET
+    # TODO: Return a text response
+    return moderation.bulk_edit(
+        request.userid,
+        form.action,
+        map(int, form.submissions),
+        map(int, form.characters),
+        map(int, form.journals),
+    )
 
 
-class modcontrol_closereport_(controller_base):
-    login_required = True
-    moderator_only = True
+@moderator_only
+@token_checked
+def modcontrol_hide_(request):
+    form = request.web_input(name="", submission="", character="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(reportid='', action='')
-        report.close(self.user_id, form)
-        raise web.seeother("/modcontrol/report?reportid=%s" % (form.reportid,))
+    if form.submission:
+        moderation.hidesubmission(int(form.submission))
+    elif form.character:
+        moderation.hidecharacter(int(form.character))
 
+    raise HTTPSeeOther(location="/modcontrol")
 
-class modcontrol_contentbyuser_(controller_base):
-    login_required = True
-    moderator_only = True
 
-    def GET(self):
-        form = web.input(name='', features=[])
+@moderator_only
+@token_checked
+def modcontrol_unhide_(request):
+    form = request.web_input(name="", submission="", character="")
 
-        submissions = moderation.submissionsbyuser(self.user_id, form) if 's' in form.features else []
-        characters = moderation.charactersbyuser(self.user_id, form) if 'c' in form.features else []
-        journals = moderation.journalsbyuser(self.user_id, form) if 'j' in form.features else []
+    if form.submission:
+        moderation.unhidesubmission(int(form.submission))
+    elif form.character:
+        moderation.unhidecharacter(int(form.character))
 
-        return define.webpage(self.user_id, "modcontrol/contentbyuser.html", [
-            form.name,
-            sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
-        ])
+    raise HTTPSeeOther(location="/modcontrol")
 
 
-class modcontrol_massaction_(controller_base):
-    login_required = True
-    moderator_only = True
+@moderator_only
+def modcontrol_manageuser_(request):
+    form = request.web_input(name="")
 
-    def POST(self):
-        form = web.input(action='', name='', submissions=[], characters=[], journals=[])
-        if form.action.startswith("zap-"):
-            # "Zapping" cover art or thumbnails is not a bulk edit.
-            if not form.submissions:
-                raise WeasylError("Unexpected")
-            submitid = int(form.submissions[0])
-            type = form.action.split("zap-")[1]
-            if type == "cover":
-                moderation.removecoverart(self.user_id, submitid)
-            elif type == "thumb":
-                moderation.removethumbnail(self.user_id, submitid)
-            elif type == "both":
-                moderation.removecoverart(self.user_id, submitid)
-                moderation.removethumbnail(self.user_id, submitid)
-            else:
-                raise WeasylError("Unexpected")
-            raise web.seeother("/submission/%i" % (submitid,))
+    return Response(define.webpage(request.userid, "modcontrol/manageuser.html", [
+        moderation.manageuser(request.userid, form),
+    ]))
 
-        return moderation.bulk_edit(
-            self.user_id,
-            form.action,
-            map(int, form.submissions),
-            map(int, form.characters),
-            map(int, form.journals),
-        )
 
+@moderator_only
+@token_checked
+def modcontrol_removeavatar_(request):
+    form = request.web_input(userid="")
 
-class modcontrol_hide_(controller_base):
-    login_required = True
-    moderator_only = True
+    moderation.removeavatar(request.userid, define.get_int(form.userid))
+    raise HTTPSeeOther(location="/modcontrol")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(name="", submission="", character="")
 
-        if form.submission:
-            moderation.hidesubmission(int(form.submission))
-        elif form.character:
-            moderation.hidecharacter(int(form.character))
+@moderator_only
+@token_checked
+def modcontrol_removebanner_(request):
+    form = request.web_input(userid="")
 
-        raise web.seeother("/modcontrol")
+    moderation.removebanner(request.userid, define.get_int(form.userid))
+    raise HTTPSeeOther(location="/modcontrol")
 
 
-class modcontrol_unhide_(controller_base):
-    login_required = True
-    moderator_only = True
+@moderator_only
+@token_checked
+def modcontrol_editprofiletext_(request):
+    form = request.web_input(userid="", content="")
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(name="", submission="", character="")
+    moderation.editprofiletext(request.userid, define.get_int(form.userid), form.content)
+    raise HTTPSeeOther(location="/modcontrol")
 
-        if form.submission:
-            moderation.unhidesubmission(int(form.submission))
-        elif form.character:
-            moderation.unhidecharacter(int(form.character))
 
-        raise web.seeother("/modcontrol")
+@moderator_only
+@token_checked
+def modcontrol_editcatchphrase_(request):
+    form = request.web_input(userid="", content="")
 
+    moderation.editcatchphrase(request.userid, define.get_int(form.userid), form.content)
+    raise HTTPSeeOther(location="/modcontrol")
 
-class modcontrol_manageuser_(controller_base):
-    login_required = True
-    moderator_only = True
 
-    def GET(self):
-        form = web.input(name="")
+@moderator_only
+@token_checked
+def modcontrol_edituserconfig_(request):
+    form = request.web_input(userid="")
 
-        return define.webpage(self.user_id, "modcontrol/manageuser.html", [
-            moderation.manageuser(self.user_id, form),
-        ])
-
-
-class modcontrol_removeavatar_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="")
-
-        moderation.removeavatar(self.user_id, define.get_int(form.userid))
-        raise web.seeother("/modcontrol")
-
-
-class modcontrol_removebanner_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="")
-
-        moderation.removebanner(self.user_id, define.get_int(form.userid))
-        raise web.seeother("/modcontrol")
-
-
-class modcontrol_editprofiletext_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="", content="")
-
-        moderation.editprofiletext(self.user_id, define.get_int(form.userid), form.content)
-        raise web.seeother("/modcontrol")
-
-
-class modcontrol_editcatchphrase_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="", content="")
-
-        moderation.editcatchphrase(self.user_id, define.get_int(form.userid), form.content)
-        raise web.seeother("/modcontrol")
-
-
-class modcontrol_edituserconfig_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="")
-
-        moderation.edituserconfig(form)
-        raise web.seeother("/modcontrol")
+    moderation.edituserconfig(form)
+    raise HTTPSeeOther("/modcontrol")

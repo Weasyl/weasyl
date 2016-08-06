@@ -115,6 +115,7 @@ class modcontrol_massaction_(controller_base):
     login_required = True
     moderator_only = True
 
+    @define.token_checked
     def POST(self):
         form = web.input(action='', name='', submissions=[], characters=[], journals=[])
         if form.action.startswith("zap-"):

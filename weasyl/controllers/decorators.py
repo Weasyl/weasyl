@@ -36,7 +36,7 @@ def moderator_only(view_callable):
         if request.userid not in staff.MODS:
             return Response(define.errorpage(request.userid, errorcode.permission))
         return view_callable(request)
-    return inner
+    return login_required(inner)
 
 
 def admin_only(view_callable):
@@ -46,7 +46,7 @@ def admin_only(view_callable):
         if request.userid not in staff.ADMINS:
             return Response(define.errorpage(request.userid, errorcode.permission))
         return view_callable(request)
-    return inner
+    return login_required(inner)
 
 
 def disallow_api(view_callable):

@@ -7,10 +7,7 @@ from weasyl import (
     character, collection, commishinfo, define, errorcode, favorite, folder,
     followuser, frienduser, journal, macro, media, profile, shout, submission,
     pagination)
-from weasyl.controllers.decorators import (
-    login_required,
-    moderator_only,
-)
+from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
 
 
@@ -319,7 +316,6 @@ def shouts_(request):
     return Response(define.common_page_end(request.userid, page, now=now))
 
 
-@login_required
 @moderator_only
 def staffnotes_(request):
     form = request.web_input(userid="")

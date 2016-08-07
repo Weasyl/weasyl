@@ -209,7 +209,7 @@ routes = (
     Route("/favorite", "favorite", {'POST': interaction.favorite_}),
 
     # Moderation routes.
-    Route("/modcontrol", "modcontrol", {'GET': moderation.modcontrol_}),
+    Route("/modcontrol", "modcontrol", moderation.modcontrol_),
     Route("/modcontrol/finduser", "modcontrol_finduser", {
         'GET': moderation.modcontrol_finduser_get_,
         'POST': moderation.modcontrol_finduser_post_,
@@ -218,14 +218,14 @@ routes = (
         'GET': moderation.modcontrol_suspenduser_get_,
         'POST': moderation.modcontrol_suspenduser_post_,
     }),
-    Route("/modcontrol/report", "modcontrol_report", {'GET': moderation.modcontrol_report_}),
-    Route("/modcontrol/reports", "modcontrol_reports", {'GET': moderation.modcontrol_reports_}),
+    Route("/modcontrol/report", "modcontrol_report", moderation.modcontrol_report_),
+    Route("/modcontrol/reports", "modcontrol_reports", moderation.modcontrol_reports_),
     Route("/modcontrol/closereport", "modcontrol_closereport", {'POST': moderation.modcontrol_closereport_}),
-    Route("/modcontrol/contentbyuser", "modcontrol_contentbyuser", {'GET': moderation.modcontrol_contentbyuser_}),
+    Route("/modcontrol/contentbyuser", "modcontrol_contentbyuser", moderation.modcontrol_contentbyuser_),
     Route("/modcontrol/massaction", "modcontrol_massaction", {'POST': moderation.modcontrol_massaction_}),
     Route("/modcontrol/hide", "modcontrol_hide", {'POST': moderation.modcontrol_hide_}),
     Route("/modcontrol/unhide", "modcontrol_unhide", {'POST': moderation.modcontrol_unhide_}),
-    Route("/modcontrol/manageuser", "modcontrol_manageuser", {'GET': moderation.modcontrol_manageuser_}),
+    Route("/modcontrol/manageuser", "modcontrol_manageuser", moderation.modcontrol_manageuser_),
     Route("/modcontrol/removeavatar", "modcontrol_removeavatar", {'POST': moderation.modcontrol_removeavatar_}),
     Route("/modcontrol/removebanner", "modcontrol_removebanner", {'POST': moderation.modcontrol_removebanner_}),
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),

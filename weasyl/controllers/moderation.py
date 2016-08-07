@@ -116,13 +116,15 @@ def modcontrol_massaction_(request):
             raise WeasylError("Unexpected")
         raise web.seeother("/submission/%i" % (submitid,))
 
-    # TODO: Return a text response
-    return moderation.bulk_edit(
-        request.userid,
-        form.action,
-        map(int, form.submissions),
-        map(int, form.characters),
-        map(int, form.journals),
+    return Response(
+        content_type='text/plain',
+        body=moderation.bulk_edit(
+            request.userid,
+            form.action,
+            map(int, form.submissions),
+            map(int, form.characters),
+            map(int, form.journals),
+        ),
     )
 
 

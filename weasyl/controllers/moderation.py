@@ -15,7 +15,7 @@ def modcontrol_(request):
 
 
 @moderator_only
-def modcontrol_finduser_(request):
+def modcontrol_finduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/finduser.html"))
 
 
@@ -38,7 +38,7 @@ def modcontrol_suspenduser_get_(request):
 
 @moderator_only
 @token_checked
-def modcontrol_suspenduser_(request):
+def modcontrol_suspenduser_post_(request):
     form = request.web_input(userid="", username="", mode="", reason="", day="", month="", year="", datetype="",
                              duration="", durationunit="")
 

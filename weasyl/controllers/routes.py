@@ -211,12 +211,12 @@ routes = (
     # Moderation routes.
     Route("/modcontrol", "modcontrol", {'GET': moderation.modcontrol_}),
     Route("/modcontrol/finduser", "modcontrol_finduser", {
-        'GET': moderation.modcontrol_finduser_,
+        'GET': moderation.modcontrol_finduser_get_,
         'POST': moderation.modcontrol_finduser_post_,
     }),
     Route("/modcontrol/suspenduser", "modcontrol_suspenduser", {
         'GET': moderation.modcontrol_suspenduser_get_,
-        'POST': moderation.modcontrol_suspenduser_,
+        'POST': moderation.modcontrol_suspenduser_post_,
     }),
     Route("/modcontrol/report", "modcontrol_report", {'GET': moderation.modcontrol_report_}),
     Route("/modcontrol/reports", "modcontrol_reports", {'GET': moderation.modcontrol_reports_}),

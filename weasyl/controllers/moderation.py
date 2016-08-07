@@ -1,5 +1,3 @@
-import web
-
 import anyjson as json
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -114,7 +112,7 @@ def modcontrol_massaction_(request):
             moderation.removethumbnail(request.userid, submitid)
         else:
             raise WeasylError("Unexpected")
-        raise web.seeother("/submission/%i" % (submitid,))
+        raise HTTPSeeOther(location="/submission/%i" % (submitid,))
 
     return Response(
         content_type='text/plain',

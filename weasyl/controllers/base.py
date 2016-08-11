@@ -11,6 +11,7 @@ class controller_base:
     guest_required = False
     moderator_only = False
     admin_only = False
+    director_only = False
     disallow_api = False
 
     def status_check_fail(self, *args, **kwargs):
@@ -64,5 +65,8 @@ class controller_base:
             self.replace_methods(self.permission_check_fail)
             return
         if self.admin_only and self.user_id not in staff.ADMINS:
+            self.replace_methods(self.permission_check_fail)
+            return
+        if self.director_only and self.user_id not in staff.DIRECTORS:
             self.replace_methods(self.permission_check_fail)
             return

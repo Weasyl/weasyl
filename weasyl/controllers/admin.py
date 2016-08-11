@@ -35,9 +35,7 @@ class admincontrol_manageuser_(controller_base):
 
         return d.webpage(self.user_id, "admincontrol/manageuser.html", [
             # Manage user information
-            profile.select_manage(otherid),
-            # only technical staff can impersonate users
-            self.user_id in staff.TECHNICAL,
+            profile.select_manage(otherid)
         ])
 
     @d.token_checked
@@ -48,26 +46,14 @@ class admincontrol_manageuser_(controller_base):
 
         if self.user_id != userid and userid in staff.ADMINS and self.user_id not in staff.TECHNICAL:
             return d.errorpage(self.user_id, errorcode.permission)
-        if form.get('impersonate'):
-            if self.user_id not in staff.TECHNICAL:
-                return d.errorpage(self.user_id, errorcode.permission)
-            sess = web.ctx.weasyl_session
-            sess.additional_data.setdefault('user-stack', []).append(sess.userid)
-            sess.additional_data.changed()
-            sess.userid = userid
-            sess.save = True
-            d.append_to_log(
-                'staff.actions', userid=self.user_id, action='impersonate', target=userid)
-            raise web.seeother('/')
-        else:
-            profile.do_manage(self.user_id, userid,
-                              username=form.username.strip() if form.ch_username else None,
-                              full_name=form.full_name.strip() if form.ch_full_name else None,
-                              catchphrase=form.catchphrase.strip() if form.ch_catchphrase else None,
-                              birthday=form.birthday if form.ch_birthday else None,
-                              gender=form.gender if form.ch_gender else None,
-                              country=form.country if form.ch_country else None)
-            raise web.seeother("/admincontrol")
+        profile.do_manage(self.user_id, userid,
+                          username=form.username.strip() if form.ch_username else None,
+                          full_name=form.full_name.strip() if form.ch_full_name else None,
+                          catchphrase=form.catchphrase.strip() if form.ch_catchphrase else None,
+                          birthday=form.birthday if form.ch_birthday else None,
+                          gender=form.gender if form.ch_gender else None,
+                          country=form.country if form.ch_country else None)
+        raise web.seeother("/admincontrol")
 
 
 class admincontrol_acctverifylink_(controller_base):

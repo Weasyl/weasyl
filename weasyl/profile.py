@@ -628,7 +628,7 @@ def select_manage(userid):
 
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None):
+              birthday=None, gender=None, country=None, permission_tag=None):
     updates = []
 
     # Username
@@ -703,6 +703,21 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         d.execute("UPDATE userinfo SET country = '%s' WHERE userid = %i",
                   [country, userid])
         updates.append('- Country: %s' % (country,))
+
+    # Permissions
+    if permission_tag is not None:
+        if permission_tag:
+            query = (
+                "UPDATE profile SET config = replace(config, 'g', '') "
+                "WHERE userid = %(user)s AND position('g' in config) != 0")
+        else:
+            query = (
+                "UPDATE profile SET config = config || 'g' "
+                "WHERE userid = %(user)s AND position('g' in config) = 0")
+
+        if d.engine.execute(query, user=userid).rowcount != 0:
+            updates.append('- Permission to tag: ' + ('yes' if permission_tag else 'no'))
+            d._get_config.invalidate(userid)
 
     if updates:
         from weasyl import moderation

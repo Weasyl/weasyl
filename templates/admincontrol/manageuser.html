@@ -18,6 +18,17 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     <span class="label">Staff Notes</span>
     <p><a href="/staffnotes/${LOGIN(profile['username'])}">${profile['staff_notes']} of ’em</a></p>
 
+    <fieldset>
+        <legend class="label">Permissions</legend>
+
+        <label class="input-checkbox option-with-label">
+            <input type="checkbox" name="permission-tag"$:{' checked' if 'g' not in profile['config'] else ''} /><span class="option-label">
+                Community tagging
+                <div class="option-label-description">Allow this user to add tags to others’ submissions.</div>
+            </span>
+        </label>
+    </fieldset>
+
     <span class="label">Username</span>
     <p><input type="checkbox" name="ch_username" />Update value</p>
     <input type="text" class="input" name="username" value="${profile['username']}" />

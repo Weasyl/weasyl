@@ -66,7 +66,8 @@ class admincontrol_manageuser_(controller_base):
                               catchphrase=form.catchphrase.strip() if form.ch_catchphrase else None,
                               birthday=form.birthday if form.ch_birthday else None,
                               gender=form.gender if form.ch_gender else None,
-                              country=form.country if form.ch_country else None)
+                              country=form.country if form.ch_country else None,
+                              permission_tag='permission-tag' in form)
             raise web.seeother("/admincontrol")
 
 

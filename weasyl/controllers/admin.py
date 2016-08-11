@@ -42,7 +42,7 @@ class admincontrol_manageuser_(controller_base):
 
     @d.token_checked
     def POST(self):
-        form = web.input(ch_username="", ch_full_name="", ch_catchphrase="", ch_email="",
+        form = web.input(ch_username="", ch_full_name="", ch_catchphrase="",
                          ch_birthday="", ch_gender="", ch_country="")
         userid = d.get_int(form.userid)
 

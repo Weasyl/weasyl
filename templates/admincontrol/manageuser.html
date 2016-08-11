@@ -7,26 +7,26 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     $:{CSRF()}
     <input type="hidden" name="userid" value="${profile['userid']}" />
 
-    <label>UserID</label>
+    <span class="label">UserID</span>
     <p>${profile['userid']}</p>
-    <label>Email</label>
+    <span class="label">Email</span>
     <p>${profile['email']}</p>
-    <label>Registration Date</label>
+    <span class="label">Registration Date</span>
     <p>${DATE(profile['unixtime'])} ${TIME(profile['unixtime'])} (${profile['unixtime']})</p>
-    <label>Last Login</label>
+    <span class="label">Last Login</span>
     <p>${DATE(profile['last_login'])} ${TIME(profile['last_login'])} (${profile['last_login']})</p>
-    <label>Staff Notes</label>
+    <span class="label">Staff Notes</span>
     <p><a href="/staffnotes/${LOGIN(profile['username'])}">${profile['staff_notes']} of ’em</a></p>
 
-    <label>Username</label>
+    <span class="label">Username</span>
     <p><input type="checkbox" name="ch_username" />Update value</p>
     <input type="text" class="input" name="username" value="${profile['username']}" />
 
-    <label>Full Name</label>
+    <span class="label">Full Name</span>
     <p><input type="checkbox" name="ch_full_name" />Update value</p>
     <input type="text" class="input" name="full_name" value="${profile['full_name']}" />
 
-    <label>Catchphrase</label>
+    <span class="label">Catchphrase</span>
     <p><input type="checkbox" name="ch_catchphrase" />Update value</p>
     <input type="text" class="input" name="catchphrase" value="${profile['catchphrase']}" />
 
@@ -34,15 +34,15 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     <p><input type="checkbox" name="ch_email" />Update value</p>
     <input type="text" class="input" name="email" value="${profile['email']}" /-->
 
-    <label>Date of Birth</label>
+    <span class="label">Date of Birth</span>
     <p><input type="checkbox" name="ch_birthday" />Update value</p>
     <input type="text" class="input" name="birthday" value="${DATE(profile['birthday'])}" />
 
-    <label>Gender</label>
+    <span class="label">Gender</span>
     <p><input type="checkbox" name="ch_gender" />Update value</p>
     <input type="text" class="input" name="gender" value="${profile['gender']}" />
 
-    <label>Location</label>
+    <span class="label">Location</span>
     <p><input type="checkbox" name="ch_country" />Update value</p>
     <input type="text" class="input last-input" name="country" value="${profile['country']}" />
 

@@ -376,7 +376,11 @@ def control_streaming_post_(request):
                                     set_stream=set_stream,
                                     stream_length=stream_length)
 
-    raise HTTPSeeOther(location="/control")
+    if form.target:
+        target_username = define.get_sysname(define.get_display_name(target))
+        raise HTTPSeeOther(location="/modcontrol/manageuser?name=" + target_username)
+    else:
+        raise HTTPSeeOther(location="/control")
 
 
 @login_required

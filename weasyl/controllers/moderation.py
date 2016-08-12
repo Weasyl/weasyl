@@ -16,23 +16,6 @@ class modcontrol_(controller_base):
         return define.webpage(self.user_id, "modcontrol/modcontrol.html")
 
 
-class modcontrol_finduser_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    def GET(self):
-        return define.webpage(self.user_id, "modcontrol/finduser.html")
-
-    @define.token_checked
-    def POST(self):
-        form = web.input(userid="", username="", email="")
-
-        return define.webpage(self.user_id, "modcontrol/finduser.html", [
-            # Search results
-            moderation.finduser(self.user_id, form)
-        ])
-
-
 class modcontrol_suspenduser_(controller_base):
     login_required = True
     moderator_only = True

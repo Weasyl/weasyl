@@ -144,7 +144,6 @@ controllers = (
     "/manage/alias", "weasyl.controllers.settings.manage_alias_",
 
     "/modcontrol", "weasyl.controllers.moderation.modcontrol_",
-    "/modcontrol/finduser", "weasyl.controllers.moderation.modcontrol_finduser_",
     "/modcontrol/suspenduser", "weasyl.controllers.moderation.modcontrol_suspenduser_",
     "/modcontrol/report", "weasyl.controllers.moderation.modcontrol_report_",
     "/modcontrol/reports", "weasyl.controllers.moderation.modcontrol_reports_",
@@ -161,6 +160,7 @@ controllers = (
     "/modcontrol/massaction", "weasyl.controllers.moderation.modcontrol_massaction_",
 
     "/admincontrol", "weasyl.controllers.admin.admincontrol_",
+    "/admincontrol/finduser", "weasyl.controllers.admin.admincontrol_finduser_",
     "/admincontrol/siteupdate", "weasyl.controllers.admin.admincontrol_siteupdate_",
     "/admincontrol/manageuser", "weasyl.controllers.admin.admincontrol_manageuser_",
     "/admincontrol/acctverifylink", "weasyl.controllers.admin.admincontrol_acctverifylink_",

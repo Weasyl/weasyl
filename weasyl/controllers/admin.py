@@ -2,7 +2,7 @@ import web
 
 from libweasyl import staff
 
-from weasyl import dry, errorcode, login, profile, siteupdate
+from weasyl import dry, errorcode, login, profile, siteupdate, moderation
 from weasyl.error import WeasylError
 from weasyl.controllers.base import controller_base
 import weasyl.define as d
@@ -85,3 +85,20 @@ class admincontrol_acctverifylink_(controller_base):
             return d.webpage(self.user_id, "admincontrol/acctverifylink.html", [token])
 
         return d.errorpage(self.user_id, "No pending account found.")
+
+
+class admincontrol_finduser_(controller_base):
+    login_required = True
+    admin_only = True
+
+    def GET(self):
+        return d.webpage(self.user_id, "admincontrol/finduser.html")
+
+    @d.token_checked
+    def POST(self):
+        form = web.input(userid="", username="", email="")
+
+        return d.webpage(self.user_id, "admincontrol/finduser.html", [
+            # Search results
+            moderation.finduser(self.user_id, form)
+        ])

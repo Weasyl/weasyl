@@ -234,6 +234,29 @@ def delete_cookie_on_response(request, name, path='/', domain=None):
     request.add_response_callback(callback)
 
 
+def set_header_on_response(request, header, value):
+    """
+    Register a callback on the request to set a header on the response sent back to the client.
+
+    Can be called multiple times with the same header, in which case they will be all be appended.
+    """
+    def callback(request, response):
+        response.headerlist.append((header, value,))
+    request.add_response_callback(callback)
+
+
+def set_status_on_response(request, status):
+    """
+    Register a callback on the request to set the status before returning the response to the client.
+    """
+    def callback(request, response):
+        response.status = status
+    request.add_response_callback(callback)
+    # A bit of a hack: Record that we intend to set the status code on the request.
+    # Used by api logic to decide whether to set a generic 403 error.
+    request.response_status = status
+
+
 def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.

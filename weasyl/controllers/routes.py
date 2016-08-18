@@ -231,20 +231,28 @@ routes = (
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
     Route("/modcontrol/edituserconfig", "modcontrol_edituserconfig", {'POST': moderation.modcontrol_edituserconfig_}),
+
+    # API routes.
+    Route("/api/useravatar", "useravatar", {'GET': api.api_useravatar_, 'POST': api.api_useravatar_}),
+    Route("/api/whoami", "whoami", api.api_whoami_),
+    Route("/api/version{format:(\.[^.]+)?}", "version", api.api_version_),
+    Route("/api/submissions/frontpage", "api_frontpage", api.api_frontpage_),
+    Route("/api/submissions/{submitid:[0-9]+}/view", "api_submission_view", api.api_submission_view_),
+    Route("/api/journals/{journalid:[0-9]+}/view", "api_journal_view", api.api_journal_view_),
+    Route("/api/characters/{charid:[0-9]+}/view", "api_char_view", api.api_character_view_),
+    Route("/api/users/{login:[^/]+}/view", "api_user_view", api.api_user_view_),
+    Route("/api/users/{login:[^/]+}/gallery", "api_user_gallery", api.api_user_gallery_),
+    Route("/api/messages/submissions", "api_messages_submissions", api.api_messages_submissions_),
+    Route("/api/messages/summary", "api_messages_summary", api.api_messages_summary_),
+
+    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite", "api_favorite",
+          {'POST': api.api_favorite_}),
+    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite", "api_unfavorite",
+          {'POST': api.api_unfavorite_}),
 )
 
 
 controllers = (
-    "/frienduser", "weasyl.controllers.interaction.frienduser_",
-    "/unfrienduser", "weasyl.controllers.interaction.unfrienduser_",
-    "/followuser", "weasyl.controllers.interaction.followuser_",
-    "/unfollowuser", "weasyl.controllers.interaction.unfollowuser_",
-    "/ignoreuser", "weasyl.controllers.interaction.ignoreuser_",
-
-    "/note", "weasyl.controllers.interaction.note_",
-    "/notes", "weasyl.controllers.interaction.notes_",
-    "/notes/compose", "weasyl.controllers.interaction.notes_compose_",
-    "/notes/remove", "weasyl.controllers.interaction.notes_remove_",
 
     "/collection/offer", "weasyl.controllers.collections.collection_offer_",
     "/collection/request", "weasyl.controllers.collections.collection_request_",
@@ -286,21 +294,6 @@ controllers = (
     "/help/folders", "weasyl.controllers.info.help_folders_",
     "/help/google-drive-embed", "weasyl.controllers.info.help_gdocs_",
     "/help/reports", "weasyl.controllers.info.help_reports_",
-
-    "/api/useravatar", "weasyl.controllers.api.api_useravatar_",
-    "/api/whoami", "weasyl.controllers.api.api_whoami_",
-    "/api/version(\.[^.]+)?", "weasyl.controllers.api.api_version_",
-    "/api/submissions/frontpage", "weasyl.controllers.api.api_frontpage_",
-    "/api/submissions/([0-9]+)/view", "weasyl.controllers.api.api_submission_view_",
-    "/api/journals/([0-9]+)/view", "weasyl.controllers.api.api_journal_view_",
-    "/api/characters/([0-9]+)/view", "weasyl.controllers.api.api_character_view_",
-    "/api/users/([^/]+)/view", "weasyl.controllers.api.api_user_view_",
-    "/api/users/([^/]+)/gallery", "weasyl.controllers.api.api_user_gallery_",
-    "/api/messages/submissions", "weasyl.controllers.api.api_messages_submissions_",
-    "/api/messages/summary", "weasyl.controllers.api.api_messages_summary_",
-
-    "/api/(submissions|characters|journals)/([0-9]+)/favorite", "weasyl.controllers.api.api_favorite_",
-    "/api/(submissions|characters|journals)/([0-9]+)/unfavorite", "weasyl.controllers.api.api_unfavorite_",
 
     "/api/oauth2/authorize", "weasyl.oauth2.authorize_",
     "/api/oauth2/token", "weasyl.oauth2.token_",

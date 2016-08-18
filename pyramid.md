@@ -90,3 +90,4 @@ Future Work
 * Refactor to get rid of the new define.get_weasyl_session() call. It was created to handle a few places (such as signin) where non-view code manipulates the session directly.
 * Handle exceptions thrown prior to the setting of request.weasyl_session
 * Rename weasyl.controllers to `weasyl.views`. Wait till after the merge just in case it confuses github.
+* Use json renderer for api calls. Refactor everything to using @view_config to make this easier.

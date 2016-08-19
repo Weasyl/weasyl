@@ -30,6 +30,7 @@ def guest_required(view_callable):
 
 
 def moderator_only(view_callable):
+    """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user():
             raise HTTPForbidden
@@ -40,6 +41,7 @@ def moderator_only(view_callable):
 
 
 def admin_only(view_callable):
+    """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user():
             raise HTTPForbidden

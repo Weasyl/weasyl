@@ -262,15 +262,18 @@ routes = (
     Route("/messages/remove", "messages_remove", {'POST': messages.messages_remove_}),
     Route("/messages/notifications", "messages_notifications", messages.messages_notifications_),
     Route("/messages/submissions", "messages_submissions", messages.messages_submissions_),
+
+    # Admin control routes.
+    Route("/admincontrol", "admincontrol", admin.admincontrol_),
+    Route("/admincontrol/siteupdate", "admin_siteupdate",
+          {'GET': admin.admincontrol_siteupdate_get_, 'POST': admin.admincontrol_siteupdate_post_}),
+    Route("/admincontrol/manageuser", "admin_manageuser",
+          {'GET': admin.admincontrol_manageuser_get_, 'POST': admin.admincontrol_manageuser_post_}),
+    Route("/admincontrol/acctverifylink", "admin_acctverifylink", {'POST': admin.admincontrol_acctverifylink_}),
 )
 
 
 controllers = (
-    "/admincontrol", "weasyl.controllers.admin.admincontrol_",
-    "/admincontrol/siteupdate", "weasyl.controllers.admin.admincontrol_siteupdate_",
-    "/admincontrol/manageuser", "weasyl.controllers.admin.admincontrol_manageuser_",
-    "/admincontrol/acctverifylink", "weasyl.controllers.admin.admincontrol_acctverifylink_",
-
     "/site-updates/([0-9]+)", "weasyl.controllers.general.site_update_",
 
     "/policy/tos", "weasyl.controllers.info.policy_tos_",

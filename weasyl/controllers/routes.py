@@ -191,8 +191,8 @@ routes = (
     Route("/control/apikeys", "control_apikeys",
           {'GET': settings.control_apikeys_get_, 'POST': settings.control_apikeys_post_}),
     Route("/control/sfwtoggle", "control_sfw_toggle", {'POST': settings.sfw_toggle_}),
-    # TODO: Port this one along with the rest of the collections.
-    # "/control/collections", "weasyl.controllers.collections.collection_options_",
+    Route("/control/collections", "collection_options",
+          {'GET': weasyl_collections.collection_options_get_, 'POST': weasyl_collections.collection_options_post_}),
 
     Route("/frienduser", "frienduser", {'POST': interaction.frienduser_}),
     Route("/unfrienduser", "unfrienduser", {'POST': interaction.unfrienduser_}),
@@ -249,18 +249,19 @@ routes = (
           {'POST': api.api_favorite_}),
     Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite", "api_unfavorite",
           {'POST': api.api_unfavorite_}),
+
+    # Collection routes.
+    Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),
+    Route("/collection/request", "collection_request", {'POST': weasyl_collections.collection_request_}),
+    Route("/collection/remove", "collection_remove", {'POST': weasyl_collections.collection_remove_}),
+    # TODO: Find these. Might be new on master or left over.
+    #"/collection/acceptoffer", "weasyl.controllers.collections.collection_acceptoffer_",
+    #"/collection/rejectoffer", "weasyl.controllers.collections.collection_rejectoffer_",
 )
 
 
 controllers = (
 
-    "/collection/offer", "weasyl.controllers.collections.collection_offer_",
-    "/collection/request", "weasyl.controllers.collections.collection_request_",
-    "/collection/remove", "weasyl.controllers.collections.collection_remove_",
-    "/collection/acceptoffer", "weasyl.controllers.collections.collection_acceptoffer_",
-    "/collection/rejectoffer", "weasyl.controllers.collections.collection_rejectoffer_",
-
-    "/favorite", "weasyl.controllers.interaction.favorite_",
 
     "/messages/remove", "weasyl.controllers.messages.messages_remove_",
     "/messages/notifications", "weasyl.controllers.messages.messages_notifications_",

@@ -250,9 +250,6 @@ routes = (
     Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),
     Route("/collection/request", "collection_request", {'POST': weasyl_collections.collection_request_}),
     Route("/collection/remove", "collection_remove", {'POST': weasyl_collections.collection_remove_}),
-    # TODO: Find these. Might be new on master or left over.
-    # "/collection/acceptoffer", "weasyl.controllers.collections.collection_acceptoffer_",
-    # "/collection/rejectoffer", "weasyl.controllers.collections.collection_rejectoffer_",
 
     # Message routes.
     Route("/messages/remove", "messages_remove", {'POST': messages.messages_remove_}),
@@ -270,12 +267,12 @@ routes = (
         'GET': admin.admincontrol_finduser_get_,
         'POST': admin.admincontrol_finduser_post_,
     }),
+
+    Route("/site-updates/{update_id:[0-9]+}", "site_update", general.site_update_),
 )
 
 
 controllers = (
-    "/site-updates/([0-9]+)", "weasyl.controllers.general.site_update_",
-
     "/policy/tos", "weasyl.controllers.info.policy_tos_",
     "/policy/privacy", "weasyl.controllers.info.policy_privacy_",
     "/policy/copyright", "weasyl.controllers.info.policy_copyright_",

@@ -22,7 +22,7 @@ I bet these can all be set up trivially as a tween, except maybe for the session
   - (DONE) Make sure weasyl_404 works. Set it up with add_notfound_view.
   - (WONTFIX: Consider this later.) Setup a session_factory?
 
-* Setup controllers
+* (DONE: largely done or on its way) Setup controllers
   - Because of how pyramid does routing with annotations rather than looking for `GET` and `POST` methods, the logic around controller_base.replace_methods() is likely to break
   - urls.py has changes to routes.py. It should be changed to set up a bunch of routes in the pyramid config
   - Add annotations to all of the controllers so that scan() finds them. Or set up all the routes in one call.
@@ -30,7 +30,7 @@ I bet these can all be set up trivially as a tween, except maybe for the session
   - `app` in general can go away. Just save the statFactory somewhere.
 * (DONE: I think.) I've removed the endpoint recording delegate. So uh handle that?
 
-* several places in api.py need to be updated with pyramid style response codes.
+* (DONE: Ported) several places in api.py need to be updated with pyramid style response codes.
 
 * oauth2.py is also basically a controller despite not being in the controller path and will need an update.
 
@@ -59,11 +59,11 @@ In particular, we don't want headers or cookies to be erased simply because, say
 
  * Views should either make a new response or raise an exception.
  * The session tween sets and clears some cookies
- * Other cookies are set around SFW mode. Handle these with a response callback.
+ * (DONE: there are new methods to do this now) Other cookies are set around SFW mode. Handle these with a response callback.
    - If we want to do this, however, we have to play nice with exceptions and exception views or they won't
      be called.
-   - If we add a finalize response callback, it's called regardless of whether an exception was raised or not.
-     Probably easiest.
+   - (WONTFIX: Finalize callbacks seem to have poor access to response objects) If we add a finalize response callback,
+     it's called regardless of whether an exception was raised or not. Probably easiest.
 
 Tests to do
 -----------

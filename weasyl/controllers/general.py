@@ -118,7 +118,6 @@ def streaming_(request):
 
 
 def site_update_(request):
-    # TODO: Handle a non-integer with something better than a generic error?
     updateid = int(request.matchdict['updateid'])
 
     return Response(define.webpage(request.userid, 'etc/site_update.html', [

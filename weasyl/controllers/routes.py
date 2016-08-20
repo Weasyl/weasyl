@@ -16,13 +16,14 @@ from weasyl.controllers import (
     user,
     weasyl_collections,
 )
+from weasyl import oauth2
 
 
 Route = namedtuple('Route', ['pattern', 'name', 'view'])
 """
 A route to be added to the Weasyl application.
 
-`view` may be either a view callalocation=ble (in which case only GET/HEAD requests are routed to it) or a
+`view` may be either a view callable (in which case only GET/HEAD requests are routed to it) or a
 dict mapping http methods to view callables.
 """
 
@@ -292,14 +293,13 @@ routes = (
     Route("/help/google-drive-embed", "help_gdocs", info.help_gdocs_),
     Route("/help/reports", "help_reports", info.help_reports_),
 
+    # OAuth2 routes.
+    Route("/api/oauth2/authorize", "oauth2_authorize",
+          {'GET': oauth2.authorize_get_, 'POST': oauth2.authorize_post_}),
+    Route("/api/oauth2/token", "oauth2_token", {'POST': oauth2.token_}),
 
+    # Routes for static event pages, such as holidays.
     Route("/events/halloweasyl2014", "events_halloweasyl2014", events.halloweasyl2014_),
-)
-
-
-controllers = (
-    "/api/oauth2/authorize", "weasyl.oauth2.authorize_",
-    "/api/oauth2/token", "weasyl.oauth2.token_",
 )
 
 

@@ -178,7 +178,7 @@ def userid_request_property(request):
 
     elif authorization:
         from weasyl.oauth2 import get_userid_from_authorization
-        userid = get_userid_from_authorization()
+        userid = get_userid_from_authorization(request)
         if not userid:
             raise HTTPUnauthorized({'WWW-Authenticate': 'Bearer realm="Weasyl" error="invalid_token"'})
         return userid

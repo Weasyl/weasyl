@@ -269,36 +269,37 @@ routes = (
     }),
 
     Route("/site-updates/{update_id:[0-9]+}", "site_update", general.site_update_),
+
+    Route("/policy/tos", "policy_tos", info.policy_tos_),
+    Route("/policy/privacy", "policy_privacy", info.policy_privacy_),
+    Route("/policy/copyright", "policy_copyright", info.policy_copyright_),
+    Route("/policy/scoc", "policy_scoc", info.policy_scoc_),
+    Route("/policy/community", "policy_community", info.policy_community_),
+    Route("/policy/community/changes", "policy_community_changes", info.policy_community_changes_),
+
+    Route("/staff", "staff", info.staff_),
+    Route("/thanks", "thanks", info.thanks_),
+    Route("/help", "help", info.help_),
+    Route("/help/about", "help_about", info.help_about_),
+    Route("/help/faq", "help_faq", info.help_faq_),
+    Route("/help/collections", "help_collections", info.help_collections_),
+    Route("/help/tagging", "help_tagging", info.help_tagging_),
+    Route("/help/markdown", "help_markdown", info.help_markdown_),
+    Route("/help/searching", "help_searching", info.help_searching_),
+    Route("/help/ratings", "help_ratings", info.help_ratings_),
+    Route("/help/ratings/changes", "help_ratings_changes", info.help_ratings_changes_),
+    Route("/help/folders", "help_folders", info.help_folders_),
+    Route("/help/google-drive-embed", "help_gdocs", info.help_gdocs_),
+    Route("/help/reports", "help_reports", info.help_reports_),
+
+
+    Route("/events/halloweasyl2014", "events_halloweasyl2014", events.halloweasyl2014_),
 )
 
 
 controllers = (
-    "/policy/tos", "weasyl.controllers.info.policy_tos_",
-    "/policy/privacy", "weasyl.controllers.info.policy_privacy_",
-    "/policy/copyright", "weasyl.controllers.info.policy_copyright_",
-    "/policy/scoc", "weasyl.controllers.info.policy_scoc_",
-    "/policy/community", "weasyl.controllers.info.policy_community_",
-    "/policy/community/changes", "weasyl.controllers.info.policy_community_changes_",
-
-    "/staff", "weasyl.controllers.info.staff_",
-    "/thanks", "weasyl.controllers.info.thanks_",
-    "/help", "weasyl.controllers.info.help_",
-    "/help/about", "weasyl.controllers.info.help_about_",
-    "/help/faq", "weasyl.controllers.info.help_faq_",
-    "/help/collections", "weasyl.controllers.info.help_collections_",
-    "/help/tagging", "weasyl.controllers.info.help_tagging_",
-    "/help/markdown", "weasyl.controllers.info.help_markdown_",
-    "/help/searching", "weasyl.controllers.info.help_searching_",
-    "/help/ratings", "weasyl.controllers.info.help_ratings_",
-    "/help/ratings/changes", "weasyl.controllers.info.help_ratings_changes_",
-    "/help/folders", "weasyl.controllers.info.help_folders_",
-    "/help/google-drive-embed", "weasyl.controllers.info.help_gdocs_",
-    "/help/reports", "weasyl.controllers.info.help_reports_",
-
     "/api/oauth2/authorize", "weasyl.oauth2.authorize_",
     "/api/oauth2/token", "weasyl.oauth2.token_",
-
-    "/events/halloweasyl2014", "weasyl.controllers.events.halloweasyl2014_",
 )
 
 

@@ -168,7 +168,9 @@ def userid_request_property(request):
     api_token = request.headers.get('X_WEASYL_API_KEY')
     authorization = request.headers.get('AUTHORIZATION')
     if api_token is not None:
-        # TODO: Don't reify the entire property, but just cache the result of this query.
+        # TODO: If reification of userid becomes an issue (e.g. because of userid changing after sign-in) revisit this.
+        # It's possible that we don't need to reify the entire property, but just cache the result of this query in a
+        # cache on arguments inner function.
         userid = d.engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
         if not userid:
             raise HTTPUnauthorized(headers={'WWW-Authenticate': 'Weasyl-API-Key realm="Weasyl"'})

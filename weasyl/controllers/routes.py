@@ -210,10 +210,6 @@ routes = (
 
     # Moderation routes.
     Route("/modcontrol", "modcontrol", moderation.modcontrol_),
-    Route("/modcontrol/finduser", "modcontrol_finduser", {
-        'GET': moderation.modcontrol_finduser_get_,
-        'POST': moderation.modcontrol_finduser_post_,
-    }),
     Route("/modcontrol/suspenduser", "modcontrol_suspenduser", {
         'GET': moderation.modcontrol_suspenduser_get_,
         'POST': moderation.modcontrol_suspenduser_post_,
@@ -270,6 +266,10 @@ routes = (
     Route("/admincontrol/manageuser", "admin_manageuser",
           {'GET': admin.admincontrol_manageuser_get_, 'POST': admin.admincontrol_manageuser_post_}),
     Route("/admincontrol/acctverifylink", "admin_acctverifylink", {'POST': admin.admincontrol_acctverifylink_}),
+    Route("/admincontrol/finduser", "admincontrol_finduser", {
+        'GET': admin.admincontrol_finduser_get_,
+        'POST': admin.admincontrol_finduser_post_,
+    }),
 )
 
 

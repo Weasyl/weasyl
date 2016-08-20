@@ -15,22 +15,6 @@ def modcontrol_(request):
 
 
 @moderator_only
-def modcontrol_finduser_get_(request):
-    return Response(define.webpage(request.userid, "modcontrol/finduser.html"))
-
-
-@moderator_only
-@token_checked
-def modcontrol_finduser_post_(request):
-    form = request.web_input(userid="", username="", email="")
-
-    return Response(define.webpage(request.userid, "modcontrol/finduser.html", [
-        # Search results
-        moderation.finduser(request.userid, form)
-    ]))
-
-
-@moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
                                    [moderation.BAN_TEMPLATES, json.dumps(moderation.BAN_TEMPLATES)]))

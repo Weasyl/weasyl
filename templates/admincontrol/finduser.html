@@ -1,22 +1,22 @@
 $def with (query = None)
-$:{RENDER("common/stage_title.html", ["Search Users", "Moderator Control Panel", "/modcontrol"])}
+$:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Panel", "/admincontrol"])}
 
 <div class="content">
   $if(query == None):
     <div class="form skinny clear">
       <h3>Search Criteria</h3>
 
-      <form name="modcontrolfinduser" action="/modcontrol/finduser" method="post" class="clear">
+      <form name="admincontrolfinduser" action="/admincontrol/finduser" method="post" class="clear">
         $:{CSRF()}
 
-        <label for="modsearchid">UserID:</label>
-        <input type="text" class="input" name="userid" id="modsearchid" />
+        <label for="adminsearchid">UserID:</label>
+        <input type="text" class="input" name="userid" id="adminsearchid" />
 
-        <label for="modsearchuser">Username:</label>
-        <input type="text" class="input" name="username" id="modsearchuser" />
+        <label for="adminsearchuser">Username:</label>
+        <input type="text" class="input" name="username" id="adminsearchuser" />
 
-        <label for="modsearchemail">Email Address:</label>
-        <input type="text" class="input last-input" name="email" id="modsearchemail" />
+        <label for="adminsearchemail">Email Address:</label>
+        <input type="text" class="input last-input" name="email" id="adminsearchemail" />
 
         <button type="submit" class="button positive" style="float: right;">Search</button>
       </form>

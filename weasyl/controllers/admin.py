@@ -3,7 +3,7 @@ from pyramid.response import Response
 
 from libweasyl import staff
 
-from weasyl import dry, errorcode, login, profile, siteupdate
+from weasyl import dry, errorcode, login, profile, siteupdate, moderation
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
 from weasyl.controllers.decorators import moderator_only
@@ -95,3 +95,19 @@ def admincontrol_acctverifylink_(request):
         return Response(d.webpage(request.userid, "admincontrol/acctverifylink.html", [token]))
 
     return Response(d.errorpage(request.userid, "No pending account found."))
+
+
+@admin_only
+def admincontrol_finduser_get_(request):
+    return Response(d.webpage(request.userid, "admincontrol/finduser.html"))
+
+
+@admin_only
+@token_checked
+def admincontrol_finduser_post_(request):
+    form = request.web_input(userid="", username="", email="")
+
+    return Response(d.webpage(request.userid, "admincontrol/finduser.html", [
+        # Search results
+        moderation.finduser(request.userid, form)
+    ]))

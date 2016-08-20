@@ -1,6 +1,13 @@
 Weasyl Changelog
 ================
 
+v1.1.7: 2016-08-06
+----------
+
+Internal changes:
+
+ * Prevents CSRF on `/modcontrol/massaction`. (@charmander)
+
 v1.1.6: 2016-07-010
 ----------
 

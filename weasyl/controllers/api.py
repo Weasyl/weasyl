@@ -4,6 +4,7 @@ from pyramid.response import Response
 from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
 
+from weasyl.controllers.decorators import token_checked
 from weasyl.error import WeasylError
 from weasyl import define as d, macro as m
 from weasyl import (
@@ -437,8 +438,12 @@ def api_messages_summary_(request):
     }))
 
 
+# TODO(hyena): It's probable that token_checked won't return json from these. Consider writing an api_token_checked.
+
+
 @api_login_required
 @api_method
+@token_checked
 def api_favorite_(request):
     favorite.insert(request.userid,
                     **{_CONTENT_IDS[request.matchdict['content_type']]: int(request.matchdict['content_id'])})
@@ -450,6 +455,7 @@ def api_favorite_(request):
 
 @api_login_required
 @api_method
+@token_checked
 def api_unfavorite_(request):
     favorite.remove(request.userid,
                     **{_CONTENT_IDS[request.matchdict['content_type']]: int(request.matchdict['content_id'])})

@@ -118,7 +118,7 @@ def streaming_(request):
 
 
 def site_update_(request):
-    updateid = int(request.matchdict['updateid'])
+    updateid = int(request.matchdict['update_id'])
 
     return Response(define.webpage(request.userid, 'etc/site_update.html', [
         siteupdate.select_by_id(updateid),

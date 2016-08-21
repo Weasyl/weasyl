@@ -369,7 +369,7 @@ class SentryEnvironmentMiddleware(object):
             'data': data,
             'extra': dict(
                 extra,
-                session=request.get('weasyl_session'),
+                session=request.weasyl_session if hasattr(request, 'weasyl_session') else None
             ),
         }
 

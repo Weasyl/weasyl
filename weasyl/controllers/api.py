@@ -65,6 +65,8 @@ _STANDARD_WWW_AUTHENTICATE = 'Bearer realm="Weasyl", Weasyl-API-Key realm="Weasy
 
 
 class api_base(controller_base):
+    oauth_scopes = []
+
     @api_method
     def status_check_fail(self, *args, **kwargs):
         web.ctx.status = '403 Forbidden'
@@ -104,6 +106,7 @@ class api_useravatar_(api_base):
 
 class api_whoami_(api_base):
     login_required = True
+    oauth_scopes = ['identity']
 
     @api_method
     def GET(self):
@@ -411,6 +414,7 @@ class api_user_gallery_(api_base):
 
 class api_messages_submissions_(api_base):
     login_required = True
+    oauth_scopes = ['notifications']
 
     @api_method
     def GET(self):
@@ -442,6 +446,7 @@ class api_messages_submissions_(api_base):
 
 class api_messages_summary_(api_base):
     login_required = True
+    oauth_scopes = ['notifications']
 
     @api_method
     def GET(self):
@@ -457,6 +462,7 @@ class api_messages_summary_(api_base):
 
 class api_favorite_(api_base):
     login_required = True
+    oauth_scopes = ['favorite']
 
     @api_method
     @d.token_checked
@@ -470,6 +476,7 @@ class api_favorite_(api_base):
 
 class api_unfavorite_(api_base):
     login_required = True
+    oauth_scopes = ['favorite']
 
     @api_method
     @d.token_checked

@@ -2,8 +2,9 @@ import anyjson as json
 from oauthlib.oauth2 import FatalClientError, OAuth2Error
 import web
 
-from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
+from libweasyl.oauth import server, SCOPES
 from weasyl.controllers.base import controller_base
+from weasyl.error import WeasylError
 from weasyl import define as d
 from weasyl import errorcode, http, login, media, orm
 
@@ -25,9 +26,13 @@ class authorize_(controller_base):
             user_media = media.get_user_media(self.user_id)
         else:
             user = user_media = None
-        credentials['scopes'] = scopes
+        credentials['scopes'] = set(scopes)
+        if credentials['scopes'] - set(SCOPES.keys()):
+            # credentials contains scopes that are not in the list of established scopes
+            raise WeasylError("Unexpected")
+        detail_scopes = {scope: desc for scope, desc in SCOPES.iteritems() if scope in scopes}
         return d.render('oauth2/authorize.html', [
-            scopes, credentials, client, user, user_media, mobile, error,
+            detail_scopes, credentials, client, user, user_media, mobile, error,
             username, password, remember_me, not_me,
         ])
 
@@ -82,13 +87,20 @@ class token_(controller_base):
         return body
 
 
-def get_userid_from_authorization(scopes=['wholesite']):
+def get_userid_from_authorization(scopes):
+    """
+    Attempt to validate an HTTP_Authorization request using OAuth2 workflow.
+    This method automagically extracts information it requires from HTTP
+    headers on the current request.
+
+    :param scopes: The set of scopes that are required for an authorization
+                   grant to be considered successful. scopes may be an empty
+                   list, meaning OAuth2 applications with any configuration
+                   of permissions should be allowed to access the requested resource.
+    :return: a valid userid if the request could be verified, else NONE
+    """
     valid, request = server.verify_request(*(extract_params() + (scopes,)))
     if not valid:
         return None
     return request.userid
 
-
-__all__ = [
-    'get_consumers_for_user', 'revoke_consumers_for_user',
-]

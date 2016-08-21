@@ -1,8 +1,8 @@
 import os
-
 import web
 
 import libweasyl.ratings as ratings
+from libweasyl import oauth
 from libweasyl import staff
 
 from weasyl.controllers.base import controller_base
@@ -10,7 +10,7 @@ from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
-    index, oauth2, profile, thumbnail, useralias, orm)
+    index, profile, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -417,19 +417,40 @@ class control_apikeys_(controller_base):
     def GET(self):
         return define.webpage(self.user_id, "control/edit_apikeys.html", [
             api.get_api_keys(self.user_id),
-            oauth2.get_consumers_for_user(self.user_id),
+            oauth.get_consumers_for_user(self.user_id),
+            oauth.get_allowed_scopes(self.user_id),
+            oauth.get_registered_applications(self.user_id),
         ])
 
     @define.token_checked
     def POST(self):
-        form = web.input(**{'delete-api-keys': [], 'revoke-oauth2-consumers': []})
+        form = web.input(**{'delete-api-keys': [],
+                            'revoke-oauth2-consumers': [],
+                            'client-scopes': [],
+                            'clientid': []})
 
         if form.get('add-api-key'):
             api.add_api_key(self.user_id, form.get('add-key-description'))
-        if form.get('delete-api-keys'):
+        elif form.get('delete-api-keys'):
             api.delete_api_keys(self.user_id, form['delete-api-keys'])
-        if form.get('revoke-oauth2-consumers'):
-            oauth2.revoke_consumers_for_user(self.user_id, form['revoke-oauth2-consumers'])
+        elif form.get('revoke-oauth2-consumers'):
+            oauth.revoke_consumers_for_user(self.user_id, form['revoke-oauth2-consumers'])
+        elif form.get('create-oauth2-client'):
+            name = form['client-name']
+            scopes = form['client-scopes']
+            if not name.strip():
+                raise WeasylError("ApplicationNameMissing")
+            if not scopes:
+                raise WeasylError("ApplicationHasNoScope")
+            oauth.register_client(self.user_id,
+                                  name,
+                                  scopes,
+                                  form['redirect-uris'].split(),
+                                  form['client-homepage'])
+        elif form.get('remove-oauth2-client'):
+            oauth.remove_clients(self.user_id, form['clientid'])
+        elif form.get('reissue-client-secret'):
+            oauth.renew_client_secrets(self.user_id, form['clientid'])
 
         raise web.seeother("/control/apikeys")
 

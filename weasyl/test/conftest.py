@@ -1,9 +1,9 @@
 # pytest configuration for weasyl db test fixture.
 # The filename conftest.py is magical, do not change.
 
+from pyramid.httpexceptions import HTTPNotFound
 import pyramid.testing
 import pytest
-import web
 
 from weasyl import config
 config._in_test = True  # noqa
@@ -11,13 +11,15 @@ config._in_test = True  # noqa
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from weasyl import cache, define, emailer, macro, media, middleware
+
+
 cache.region.configure('dogpile.cache.memory')
 define.metric = lambda *a, **kw: None
 
 
 configure_libweasyl(
     dbsession=define.sessionmaker,
-    not_found_exception=web.notfound,
+    not_found_exception=HTTPNotFound,
     base_file_path='testing',
     staff_config_dict={},
     media_link_formatter_callback=media.format_media_link,
@@ -47,9 +49,6 @@ def setup_request_environment(request):
         pyramid_request.pg_connection.close()
         pyramid.testing.tearDown()
 
-    # TODO: Delete this web.py logic when everything is updated.
-    web.ctx.env = {'HTTP_X_FORWARDED_FOR': '127.0.0.1'}
-    web.ctx.ip = '127.0.0.1'
     request.addfinalizer(tear_down)
 
 

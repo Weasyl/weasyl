@@ -1,5 +1,3 @@
-import web
-
 import arrow
 import sqlalchemy as sa
 
@@ -7,10 +5,8 @@ from libweasyl import staff
 from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import define as d
-from weasyl import dry
 from weasyl import media
 from weasyl import welcome
-from weasyl.controllers.decorators import token_checked
 from weasyl.error import WeasylError
 
 

@@ -1,5 +1,4 @@
-Some notes for myself surrounding this effort. Delete this file before
-opening a pull request.
+Some notes for myself surrounding this effort. Delete this file just before or sometime after merge.
 
 TODO
 ----

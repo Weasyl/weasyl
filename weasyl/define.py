@@ -80,9 +80,16 @@ sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit
 
 def connect():
     """
-    Returns the current request's db connection.
+    Returns the current request's db connection or one from the engine.
     """
-    return get_current_request().pg_connection
+    request = get_current_request()
+    if request is not None:
+        return request.pg_connection
+    # If there's no threadlocal request, we're probably operating in a cron task or the like.
+    # Return a connection from the pool. n.b. this means that multiple calls could get different
+    # connections.
+    # TODO(hyena): Does this clean up correctly? There's no registered 'close()' call.
+    return sessionmaker()
 
 
 def log_exc(**kwargs):

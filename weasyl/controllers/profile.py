@@ -179,7 +179,7 @@ def collections_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         return Response(define.errorpage(request.userid, errorcode.no_guest_access))
 
-    userprofile = profile.controller_baseselect_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)

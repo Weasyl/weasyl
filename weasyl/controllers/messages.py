@@ -8,6 +8,7 @@ from weasyl.controllers.decorators import login_required, token_checked
 
 """Contains view callables dealing with notification messages."""
 
+
 @login_required
 @token_checked
 def messages_remove_(request):

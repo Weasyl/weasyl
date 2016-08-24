@@ -56,7 +56,7 @@ def admincontrol_manageuser_get_(request):
 @admin_only
 def admincontrol_manageuser_post_(request):
     form = request.web_input(ch_username="", ch_full_name="", ch_catchphrase="", ch_email="",
-                     ch_birthday="", ch_gender="", ch_country="")
+                             ch_birthday="", ch_gender="", ch_country="")
     userid = d.get_int(form.userid)
 
     if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.TECHNICAL:

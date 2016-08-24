@@ -4,7 +4,7 @@ from pyramid.httpexceptions import (
 )
 from pyramid.response import Response
 
-from weasyl import define, errorcode, login, moderation, \
+from weasyl import define, errorcode, index, login, moderation, \
     premiumpurchase, profile, resetpassword
 from weasyl.controllers.decorators import (
     disallow_api,
@@ -37,6 +37,8 @@ def signin_post_(request):
     elif logid and logerror is None:
         if form.sfwmode == "sfw":
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
+        # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
+        index.template_fields.invalidate(logid)
         raise HTTPSeeOther(location=form.referer)
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))

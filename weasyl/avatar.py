@@ -2,6 +2,7 @@
 
 from sanpera import geometry
 
+from libweasyl import images
 from libweasyl import ratings
 
 from weasyl.error import WeasylError
@@ -37,11 +38,11 @@ def create(userid, x1, y1, x2, y2, auto=False, config=None):
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     db = d.connect()
     im = db.query(orm.MediaItem).get(avatar_source(userid)['mediaid']).as_image()
-    file_type = image.image_file_type(im)
+    file_type = images.image_file_type(im)
     bounds = geometry.Rectangle(x1, y1, x2, y2)
     if auto or not image.check_crop(im.size, bounds):
         bounds = None
-    thumb = image.shrinkcrop(im, geometry.Size(100, 100), bounds)
+    thumb = images.shrinkcrop(im, geometry.Size(100, 100), bounds)
     media_item = orm.fetch_or_create_media_item(
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
     orm.UserMediaLink.make_or_replace_link(

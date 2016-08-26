@@ -145,32 +145,3 @@ def correct_image_and_call(f, im, *a, **kw):
     if animated and im is not None:
         im = im.optimized_for_animated_gif()
     return im
-
-
-def _shrinkcrop(im, size, bounds=None):
-    if bounds is not None:
-        ret = im
-        if bounds.position != geometry.origin or bounds.size != ret.size:
-            ret = ret.cropped(bounds)
-        if ret.size != size:
-            ret = ret.resized(size)
-        return ret
-    elif im.size == size:
-        return im
-    shrunk_size = im.size.fit_around(size)
-    shrunk = im
-    if shrunk.size != shrunk_size:
-        shrunk = shrunk.resized(shrunk_size)
-    x1 = (shrunk.size.width - size.width) // 2
-    y1 = (shrunk.size.height - size.height) // 2
-    bounds = geometry.Rectangle(x1, y1, x1 + size.width, y1 + size.height)
-    return shrunk.cropped(bounds)
-
-
-def shrinkcrop(im, size, bounds=None):
-    ret = correct_image_and_call(_shrinkcrop, im, size, bounds)
-    if ret.size != size or (len(ret) == 1 and ret[0].size != size):
-        ignored_sizes = ret.size, ret[0].size  # to log these locals
-        raise WeasylError('thumbnailingMessedUp')
-        ignored_sizes  # to shut pyflakes up
-    return ret

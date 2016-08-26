@@ -155,7 +155,7 @@ def reupload(userid, charid, submitdata):
     if userid != query.userid:
         raise WeasylError("Unexpected")
 
-    im = image.from_string(submitdata)
+    im = images.from_buffer(submitdata)
     submitextension = images.image_extension(im)
 
     # Check invalid file data

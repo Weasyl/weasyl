@@ -1,23 +1,8 @@
-# favorite.py
-
-import logging
-
 from sanpera.exception import SanperaError
 from sanpera.image import Image
 from sanpera import geometry
-import web
 
 from libweasyl import images
-
-from weasyl.error import WeasylError
-
-
-def from_string(filedata):
-    try:
-        return Image.from_buffer(filedata)
-    except SanperaError:
-        web.ctx.log_exc(level=logging.DEBUG)
-        raise WeasylError('imageDecodeError')
 
 
 def image_setting(im):

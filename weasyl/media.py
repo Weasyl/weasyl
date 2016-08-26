@@ -1,12 +1,13 @@
+from libweasyl import images
 from libweasyl import media as libweasylmedia
 from libweasyl.text import slug_for
 
 from weasyl import macro as m
-from weasyl import define, image
+from weasyl import define
 
 
 def make_cover_media_item(coverfile, error_type='coverType'):
-    return libweasylmedia.make_resized_media_item(coverfile, image.COVER_SIZE, error_type)
+    return libweasylmedia.make_resized_media_item(coverfile, images.COVER_SIZE, error_type)
 
 
 def get_multi_submission_media(*submitids):

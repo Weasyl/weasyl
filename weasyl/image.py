@@ -14,9 +14,6 @@ from weasyl import files
 from weasyl.error import WeasylError
 
 
-COVER_SIZE = 1024, 3000
-
-
 def read(filename):
     try:
         return Image.read(filename)
@@ -103,7 +100,7 @@ def make_cover(filename, destination=None):
     created and the original left unaltered, else the original file will be
     altered.
     """
-    resize(filename, *COVER_SIZE, destination=destination)
+    resize(filename, *images.COVER_SIZE, destination=destination)
 
 
 def correct_image_and_call(f, im, *a, **kw):

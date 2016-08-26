@@ -21,6 +21,7 @@ import files
 import report
 import favorite
 
+from libweasyl import images
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
@@ -154,8 +155,8 @@ def reupload(userid, charid, submitdata):
     if userid != query.userid:
         raise WeasylError("Unexpected")
 
-    im = image.from_string(submitdata)
-    submitextension = image.image_extension(im)
+    im = images.from_buffer(submitdata)
+    submitextension = images.image_extension(im)
 
     # Check invalid file data
     if not submitextension:

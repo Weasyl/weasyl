@@ -1,5 +1,5 @@
-from libweasyl import ratings
 from libweasyl import media
+from libweasyl import ratings
 from libweasyl.models.media import UserMediaLink
 
 

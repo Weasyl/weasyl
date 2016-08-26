@@ -3,11 +3,12 @@
 from sanpera import geometry
 
 from libweasyl import images
+from libweasyl import media
 from libweasyl import ratings
 
 from weasyl.error import WeasylError
 from weasyl import define as d
-from weasyl import image, media, orm
+from weasyl import image, orm
 
 
 def avatar_source(userid):
@@ -24,7 +25,7 @@ def upload(userid, filedata):
     selection file.
     """
     if filedata:
-        media_item = media.make_resized_media_item(filedata, (600, 500), 'FileType')
+        media_item = media.make_resized_media_item(filedata, (600, 500))
         orm.UserMediaLink.make_or_replace_link(
             userid, 'avatar-source', media_item, rating=ratings.GENERAL.code)
     else:

@@ -42,13 +42,6 @@ def image_setting(im):
         return 'G'
 
 
-def image_file_type(im):
-    ret = images.image_extension(im)
-    if ret is not None:
-        ret = ret.lstrip('.')
-    return ret
-
-
 def check_crop(image_size, crop_bounds):
     """
     Return True if the specified crop rectangle is valid, else False.
@@ -102,10 +95,6 @@ def resize(filename, width, height, destination=None, animate=False):
     # the source to the destination.
     elif not in_place:
         files.copy(filename, destination)
-
-
-def resize_image(im, width, height):
-    return correct_image_and_call(_resize, im, width, height) or im
 
 
 def make_cover(filename, destination=None):

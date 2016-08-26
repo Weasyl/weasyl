@@ -97,7 +97,7 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
             return
         remove = False
 
-    im = image.read(filename)
+    im = images.read(filename)
 
     d.execute("""
         UPDATE character

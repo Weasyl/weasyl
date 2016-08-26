@@ -12,14 +12,6 @@ from libweasyl import images
 from weasyl.error import WeasylError
 
 
-def read(filename):
-    try:
-        return Image.read(filename)
-    except SanperaError:
-        web.ctx.log_exc(level=logging.DEBUG)
-        raise WeasylError('imageDecodeError')
-
-
 def from_string(filedata):
     try:
         return Image.from_buffer(filedata)

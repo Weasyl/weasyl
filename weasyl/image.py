@@ -8,9 +8,10 @@ from sanpera.image import Image
 from sanpera import geometry
 import web
 
-from error import WeasylError
+from libweasyl import images
 
-import files
+from weasyl import files
+from weasyl.error import WeasylError
 
 
 COVER_SIZE = 1024, 3000
@@ -32,15 +33,6 @@ def from_string(filedata):
         raise WeasylError('imageDecodeError')
 
 
-def image_extension(im):
-    if im.original_format in ('JPG', 'JPEG'):
-        return '.jpg'
-    if im.original_format == 'PNG':
-        return '.png'
-    if im.original_format == 'GIF':
-        return '.gif'
-
-
 def image_setting(im):
     if im.original_format in ('JPG', 'JPEG'):
         return 'J'
@@ -51,7 +43,7 @@ def image_setting(im):
 
 
 def image_file_type(im):
-    ret = image_extension(im)
+    ret = images.image_extension(im)
     if ret is not None:
         ret = ret.lstrip('.')
     return ret
@@ -96,7 +88,7 @@ def resize(filename, width, height, destination=None, animate=False):
         in_place = True
 
     im = read(filename)
-    if not image_extension(im):
+    if not images.image_extension(im):
         raise WeasylError("FileType")
 
     files.ensure_file_directory(filename)

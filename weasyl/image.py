@@ -57,13 +57,12 @@ def image_file_type(im):
     return ret
 
 
-def check_crop(dim, x1, y1, x2, y2):
+def check_crop(image_size, crop_bounds):
     """
-    Return True if the specified crop coordinates are valid, else False.
+    Return True if the specified crop rectangle is valid, else False.
     """
-    return (
-        x1 >= 0 and y1 >= 0 and x2 >= 0 and y2 >= 0 and x1 <= dim[0] and
-        y1 <= dim[1] and x2 <= dim[0] and y2 <= dim[1] and x2 > x1 and y2 > y1)
+    image_bounds = image_size.at(geometry.origin)
+    return bool(crop_bounds) and crop_bounds in image_bounds
 
 
 def check_type(filename):

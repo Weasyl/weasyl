@@ -38,10 +38,9 @@ def create(userid, x1, y1, x2, y2, auto=False, config=None):
     db = d.connect()
     im = db.query(orm.MediaItem).get(avatar_source(userid)['mediaid']).as_image()
     file_type = image.image_file_type(im)
-    bounds = None
-    size = im.size.width, im.size.height
-    if not auto and image.check_crop(size, x1, y1, x2, y2):
-        bounds = geometry.Rectangle(x1, y1, x2, y2)
+    bounds = geometry.Rectangle(x1, y1, x2, y2)
+    if auto or not image.check_crop(im.size, bounds):
+        bounds = None
     thumb = image.shrinkcrop(im, geometry.Size(100, 100), bounds)
     media_item = orm.fetch_or_create_media_item(
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)

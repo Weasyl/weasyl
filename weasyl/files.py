@@ -6,14 +6,13 @@ import errno
 import codecs
 import shutil
 
-import web
-
 from libweasyl.constants import Category
 from libweasyl.exceptions import InvalidFileFormat, UnknownFileFormat
 from libweasyl.files import file_type_for_category
 from libweasyl import security
 from weasyl.error import WeasylError
-from weasyl import define as d, macro as m
+import weasyl.define as d
+import weasyl.macro as m
 
 
 PATH_ROOT = os.environ['WEASYL_ROOT'] + '/'
@@ -32,7 +31,7 @@ def read(filename, encoding="utf-8", errors="replace", encode=None):
     try:
         data = codecs.open(filename, "r", encoding, errors).read()
     except IOError:
-        web.ctx.log_exc()
+        d.log_exc()
         return None
 
     if encode:

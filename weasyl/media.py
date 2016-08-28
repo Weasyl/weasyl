@@ -6,8 +6,8 @@ from weasyl import macro as m
 from weasyl import define
 
 
-def make_cover_media_item(coverfile, error_type='coverType'):
-    return libweasylmedia.make_resized_media_item(coverfile, images.COVER_SIZE, error_type)
+def make_cover_media_item(coverfile):
+    return libweasylmedia.make_resized_media_item(coverfile, images.COVER_SIZE)
 
 
 def get_multi_submission_media(*submitids):

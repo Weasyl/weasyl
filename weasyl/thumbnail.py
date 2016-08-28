@@ -97,7 +97,8 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
             return
         remove = False
 
-    im = images.read(filename)
+    im = image.read(filename)
+    size = im.size.width, im.size.height
 
     d.execute("""
         UPDATE character
@@ -106,9 +107,9 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
     """, [image.image_setting(im), charid])
     dest = '%s%i.thumb%s' % (d.get_hash_path(charid, "char"), charid, images.image_extension(im))
 
-    bounds = geometry.Rectangle(x1, y1, x2, y2)
-    if not image.check_crop(im.size, bounds):
-        bounds = None
+    bounds = None
+    if image.check_crop(size, x1, y1, x2, y2):
+        bounds = geometry.Rectangle(x1, y1, x2, y2)
     thumb = images.make_thumbnail(im, bounds)
     thumb.write(dest, format=images.image_file_type(thumb))
     if remove:
@@ -124,9 +125,10 @@ def create(userid, x1, y1, x2, y2, submitid=None, charid=None,
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     source = thumbnail_source(submitid)
     im = db.query(orm.MediaItem).get(source['mediaid']).as_image()
-    bounds = geometry.Rectangle(x1, y1, x2, y2)
-    if not image.check_crop(im.size, bounds):
-        bounds = None
+    size = im.size.width, im.size.height
+    bounds = None
+    if image.check_crop(size, x1, y1, x2, y2):
+        bounds = geometry.Rectangle(x1, y1, x2, y2)
     thumb = images.make_thumbnail(im, bounds)
     file_type = images.image_file_type(im)
     media_item = orm.fetch_or_create_media_item(

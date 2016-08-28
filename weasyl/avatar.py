@@ -2,13 +2,11 @@
 
 from sanpera import geometry
 
-from libweasyl import images
-from libweasyl import media
 from libweasyl import ratings
 
 from weasyl.error import WeasylError
 from weasyl import define as d
-from weasyl import image, orm
+from weasyl import image, media, orm
 
 
 def avatar_source(userid):
@@ -25,7 +23,7 @@ def upload(userid, filedata):
     selection file.
     """
     if filedata:
-        media_item = media.make_resized_media_item(filedata, (600, 500))
+        media_item = media.make_resized_media_item(filedata, (600, 500), 'FileType')
         orm.UserMediaLink.make_or_replace_link(
             userid, 'avatar-source', media_item, rating=ratings.GENERAL.code)
     else:
@@ -39,11 +37,12 @@ def create(userid, x1, y1, x2, y2, auto=False, config=None):
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     db = d.connect()
     im = db.query(orm.MediaItem).get(avatar_source(userid)['mediaid']).as_image()
-    file_type = images.image_file_type(im)
-    bounds = geometry.Rectangle(x1, y1, x2, y2)
-    if auto or not image.check_crop(im.size, bounds):
-        bounds = None
-    thumb = images.shrinkcrop(im, geometry.Size(100, 100), bounds)
+    file_type = image.image_file_type(im)
+    bounds = None
+    size = im.size.width, im.size.height
+    if not auto and image.check_crop(size, x1, y1, x2, y2):
+        bounds = geometry.Rectangle(x1, y1, x2, y2)
+    thumb = image.shrinkcrop(im, geometry.Size(100, 100), bounds)
     media_item = orm.fetch_or_create_media_item(
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
     orm.UserMediaLink.make_or_replace_link(

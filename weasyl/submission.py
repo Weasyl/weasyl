@@ -12,6 +12,7 @@ import define as d
 import files
 
 import embed
+import image
 import folder
 import report
 import comment
@@ -156,8 +157,8 @@ def create_visual(userid, submission,
         files.clear_temporary(userid)
         raise WeasylError("thumbSizeExceedsLimit")
 
-    im = images.from_buffer(submitfile)
-    submitextension = images.image_extension(im)
+    im = image.from_string(submitfile)
+    submitextension = image.image_extension(im)
     if _limit(submitsize, submitextension, premium):
         raise WeasylError("submitSizeExceedsLimit")
     elif submitextension not in [".jpg", ".png", ".gif"]:
@@ -180,7 +181,7 @@ def create_visual(userid, submission,
     # If requested, also create a 'custom' thumbnail.
     thumb_media_item = media.make_cover_media_item(thumbfile)
     if thumb_media_item:
-        thumb_custom = images.make_thumbnail(images.from_buffer(thumbfile))
+        thumb_custom = images.make_thumbnail(image.from_string(thumbfile))
         thumb_custom_media_item = orm.fetch_or_create_media_item(
             thumb_custom.to_buffer(format=submit_file_type), file_type=submit_file_type,
             im=thumb_custom)
@@ -390,9 +391,9 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             thumb_url = embed.thumbnail(embedlink)
             if thumb_url:
                 resp = d.http_get(thumb_url, timeout=5)
-                im = images.from_buffer(resp.content)
+                im = image.from_string(resp.content)
     if not im and (thumbsize or coversize):
-        im = images.from_buffer(thumbfile or coverfile)
+        im = image.from_string(thumbfile or coverfile)
     if im:
         tempthumb = images.make_thumbnail(im)
         tempthumb_type = images.image_file_type(tempthumb)
@@ -501,7 +502,7 @@ def reupload(userid, submitid, submitfile):
     submit_file_type = submitextension.lstrip('.')
     im = None
     if submit_file_type in {'jpg', 'png', 'gif'}:
-        im = images.from_buffer(submitfile)
+        im = image.from_string(submitfile)
     submit_media_item = orm.fetch_or_create_media_item(
         submitfile, file_type=submit_file_type, im=im)
     check_for_duplicate_media(userid, submit_media_item.mediaid)

@@ -1,6 +1,8 @@
-from libweasyl import media
+# banner.py
+
 from libweasyl import ratings
-from libweasyl.models.media import UserMediaLink
+
+from weasyl import media, orm
 
 
 def upload(userid, filedata):
@@ -9,9 +11,9 @@ def upload(userid, filedata):
     selection file.
     """
     if not filedata:
-        UserMediaLink.clear_link(userid, 'banner')
+        orm.UserMediaLink.clear_link(userid, 'banner')
         return
 
     media_item = media.make_resized_media_item(filedata, (1650, 250))
-    UserMediaLink.make_or_replace_link(
+    orm.UserMediaLink.make_or_replace_link(
         userid, 'banner', media_item, rating=ratings.GENERAL.code)

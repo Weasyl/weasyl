@@ -611,6 +611,14 @@ def select_manage(userid):
     if not query:
         raise WeasylError("Unexpected")
 
+    user_link_rows = d.engine.execute("""
+        SELECT link_type, ARRAY_AGG(link_value)
+        FROM user_links
+        WHERE userid = %(userid)s
+        GROUP BY link_type
+    """, userid=userid)
+    user_links = sorted({r[0]: r[1] for r in user_link_rows}.items(), key=lambda kv: kv[0].lower())
+
     return {
         "userid": query[0],
         "last_login": query[1],
@@ -624,11 +632,12 @@ def select_manage(userid):
         "country": query[9],
         "config": query[10],
         "staff_notes": shout.count(userid, staffnotes=True),
+        "user_links": user_links,
     }
 
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None):
+              birthday=None, gender=None, country=None, remove_social=None):
     updates = []
 
     # Username
@@ -703,6 +712,12 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         d.execute("UPDATE userinfo SET country = '%s' WHERE userid = %i",
                   [country, userid])
         updates.append('- Country: %s' % (country,))
+
+    # Social and contact links
+    if remove_social is not None:
+        for social_link in remove_social:
+            d.engine.execute("DELETE FROM user_links WHERE userid = %(userid)s AND link_type = %(link)s", userid=userid, link=social_link)
+            updates.append('- Removed social link for %s' % (social_link,))
 
     if updates:
         from weasyl import moderation

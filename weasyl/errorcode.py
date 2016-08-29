@@ -162,10 +162,10 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
-    "userRecordMissing": "404 Not Found",
-    "submissionRecordMissing": "404 Not Found",
-    "journalRecordMissing": "404 Not Found",
-    "characterRecordMissing": "404 Not Found",
+    "userRecordMissing": (404, "404 Not Found",),
+    "submissionRecordMissing": (404, "404 Not Found",),
+    "journalRecordMissing": (404, "404 Not Found",),
+    "characterRecordMissing": (404, "404 Not Found",),
 }
 
 

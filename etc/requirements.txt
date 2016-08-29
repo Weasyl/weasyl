@@ -15,3 +15,4 @@ txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
 Dozer==0.5                  # For WSGI memory profiling
 Pillow==3.2.0               # For WSGI memory profiling
+pyramid==1.7.0

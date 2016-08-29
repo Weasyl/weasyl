@@ -1,7 +1,6 @@
 # coding=utf-8
-
+from pyramid.threadlocal import get_current_request
 import pytest
-import web
 
 from libweasyl.models import content, users
 from weasyl.test import db_utils
@@ -140,7 +139,7 @@ def test_two_anonymous_content_views(db, create_func, model, feature):
     """
     thing = create_func()
     d.common_view_content(0, thing, feature)
-    web.ctx.env['HTTP_X_FORWARDED_FOR'] = '127.0.0.2'
+    get_current_request().client_addr = '127.0.0.2'
     assert d.common_view_content(0, thing, feature)
     assert db.query(model).get(thing).page_views == 2
 

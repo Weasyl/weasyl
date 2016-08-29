@@ -46,11 +46,11 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     <p><input type="checkbox" name="ch_country" />Update value</p>
     <input type="text" class="input last-input" name="country" value="${profile['country']}" />
 
-    $if len(profile['user_links']) > 0:
+    $if profile['sorted_user_links']:
       <h3>Social links</h3>
-      $for site, values in profile['user_links']:
+      $for site, values in profile['sorted_user_links']:
         $for value in values:
-          <label>${site} (${value})</label>
+          <span class="label">${site} (${value})</span>
           <p><input type="checkbox" name="remove_social" value="${site}">Remove</p>
 
     <button type="submit" class="button highlighted" style="float: right;">Save Changes</button>

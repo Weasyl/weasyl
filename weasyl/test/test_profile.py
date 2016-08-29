@@ -12,32 +12,73 @@ class ProfileManageTestCase(unittest.TestCase):
 
     def setUp(self):
         self.mod = db_utils.create_user()
-        self.user = db_utils.create_user()
+
+    def test_select_manage(self):
+        user = db_utils.create_user()
 
         links = [
             {
-                'userid': self.user,
+                'userid': user,
                 'link_type': 'Twitter',
                 'link_value': 'Weasyl',
             },
             {
-                'userid': self.user,
+                'userid': user,
                 'link_type': 'Email',
                 'link_value': 'mailto:support@weasyl.com',
             },
         ]
-
         d.engine.execute(d.meta.tables['user_links'].insert().values(links))
 
-    def test_select_manage(self):
-        test_user_profile = profile.select_manage(self.user)
-
-        self.assertEqual(len(test_user_profile['user_links']), 2)
+        test_user_profile = profile.select_manage(user)
+        self.assertEqual(len(test_user_profile['sorted_user_links']), 2)
 
     def test_remove_social_links(self):
-        profile.do_manage(self.mod, self.user, remove_social=['Email'])
+        user = db_utils.create_user()
 
-        test_user_profile = profile.select_manage(self.user)
+        links = [
+            {
+                'userid': user,
+                'link_type': 'Twitter',
+                'link_value': 'Weasyl',
+            },
+            {
+                'userid': user,
+                'link_type': 'Email',
+                'link_value': 'mailto:support@weasyl.com',
+            },
+        ]
+        d.engine.execute(d.meta.tables['user_links'].insert().values(links))
 
-        self.assertEqual(len(test_user_profile['user_links']), 1)
-        self.assertEqual(test_user_profile['user_links'][0][1][0], 'Weasyl')
+        profile.do_manage(self.mod, user, remove_social=['Email'])
+
+        test_user_profile = profile.select_manage(user)
+        self.assertEqual(test_user_profile['sorted_user_links'], [('Twitter', ['Weasyl'])])
+
+    def test_sort_user_links(self):
+        user = db_utils.create_user()
+
+        links = [
+            {
+                'userid': user,
+                'link_type': 'Twitter',
+                'link_value': 'Weasyl',
+            },
+            {
+                'userid': user,
+                'link_type': 'Email',
+                'link_value': 'mailto:sysop@weasyl.com',
+            },
+            {
+                'userid': user,
+                'link_type': 'Twitter',
+                'link_value': 'WeasylDev',
+            }
+        ]
+        d.engine.execute(d.meta.tables['user_links'].insert().values(links))
+
+        test_user_profile = profile.select_manage(user)
+        self.assertEqual(test_user_profile['sorted_user_links'], [
+            ('Email', ['mailto:sysop@weasyl.com']),
+            ('Twitter', ['Weasyl', 'WeasylDev']),
+        ])

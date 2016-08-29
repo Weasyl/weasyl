@@ -244,7 +244,7 @@ def select_userinfo(userid, config=None):
         WHERE userid = %(userid)s
         GROUP BY link_type
     """, userid=userid)
-    user_links = {r[0]: r[1] for r in user_link_rows}
+    user_links = [r for r in user_link_rows]
 
     show_age = "b" in query[0] or d.get_userid() in staff.MODS
     return {
@@ -253,7 +253,8 @@ def select_userinfo(userid, config=None):
         "show_age": "b" in query[0],
         "gender": query[2],
         "country": query[3],
-        "user_links": user_links,
+        "user_links": {r[0]: r[1] for r in user_links},
+        "sorted_user_links": sort_user_links(user_links),
     }
 
 
@@ -606,7 +607,6 @@ def select_manage(userid):
     Returns:
         Relevant user information as a dict.
     """
-
     query = d.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, pr.unixtime, pr.username, pr.full_name, pr.catchphrase, ui.birthday,
@@ -626,7 +626,6 @@ def select_manage(userid):
         WHERE userid = %(userid)s
         GROUP BY link_type
     """, userid=userid)
-    user_links = sorted({r[0]: r[1] for r in user_link_rows}.items(), key=lambda kv: kv[0].lower())
 
     return {
         "userid": query[0],
@@ -641,7 +640,7 @@ def select_manage(userid):
         "country": query[9],
         "config": query[10],
         "staff_notes": shout.count(userid, staffnotes=True),
-        "user_links": user_links,
+        "sorted_user_links": sort_user_links(user_link_rows),
     }
 
 
@@ -650,7 +649,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
 
-    If a argument is None it will not be updated.
+    If an argument is None it will not be updated.
 
     Args:
         my_userid (int): ID of user making changes to other user.
@@ -666,7 +665,6 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
     Returns:
         Does not return.
     """
-
     updates = []
 
     # Username
@@ -743,7 +741,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         updates.append('- Country: %s' % (country,))
 
     # Social and contact links
-    if remove_social is not None:
+    if remove_social:
         for social_link in remove_social:
             d.engine.execute("DELETE FROM user_links WHERE userid = %(userid)s AND link_type = %(link)s", userid=userid, link=social_link)
             updates.append('- Removed social link for %s' % (social_link,))
@@ -807,3 +805,15 @@ class ProfileSettings(object):
 
     def get_raw(self):
         return self._raw_settings
+
+
+def sort_user_links(links):
+    """Sorts the user's social/contact links.
+
+    Args:
+        links (list): User's links.
+
+    Returns:
+        Sorted list of links.
+    """
+    return sorted(map(tuple, links), key=lambda kv: kv[0].lower())

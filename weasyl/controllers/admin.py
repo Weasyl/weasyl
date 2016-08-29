@@ -80,7 +80,7 @@ def admincontrol_manageuser_post_(request):
                           birthday=form.birthday if form.ch_birthday else None,
                           gender=form.gender if form.ch_gender else None,
                           country=form.country if form.ch_country else None,
-                          remove_social=form.remove_social if form.remove_social else None)
+                          remove_social=form.remove_social)
         raise HTTPSeeOther(location="/admincontrol")
 
 

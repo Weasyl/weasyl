@@ -68,7 +68,7 @@ def authorize_post_(request):
     credentials['userid'] = userid
     headers, body, status = server.create_authorization_response(
         *(extract_params(request) + (scopes, credentials)))
-    for k, v in headers.iteritems(request):
+    for k, v in headers.iteritems():
         request.set_header_on_response(k, v)
     request.set_status_on_response("%s Status" % (status,))
     return Response(body)

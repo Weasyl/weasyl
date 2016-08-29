@@ -238,13 +238,12 @@ def select_userinfo(userid, config=None):
             WHERE userid = %(userid)s
         """, userid=userid, config=config)
 
-    user_link_rows = d.engine.execute("""
+    user_links = d.engine.execute("""
         SELECT link_type, ARRAY_AGG(link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
-    """, userid=userid)
-    user_links = [r for r in user_link_rows]
+    """, userid=userid).fetchall()
 
     show_age = "b" in query[0] or d.get_userid() in staff.MODS
     return {

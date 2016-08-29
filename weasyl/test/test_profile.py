@@ -9,7 +9,6 @@ from weasyl import profile
 
 @pytest.mark.usefixtures('db')
 class ProfileManageTestCase(unittest.TestCase):
-
     def setUp(self):
         self.mod = db_utils.create_user()
 

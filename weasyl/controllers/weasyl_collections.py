@@ -37,7 +37,7 @@ def collection_offer_(request):
     form.submitid = int(form.submitid)
 
     if not form.otherid:
-        raise WeasylError("UserRecordMissing")
+        raise WeasylError("userRecordMissing")
     if request.userid == form.otherid:
         raise WeasylError("cannotSelfCollect")
 
@@ -57,7 +57,7 @@ def collection_request_(request):
     form.otherid = define.get_ownerid(submitid=form.submitid)
 
     if not form.otherid:
-        raise WeasylError("UserRecordMissing")
+        raise WeasylError("userRecordMissing")
     if request.userid == form.otherid:
         raise WeasylError("cannotSelfCollect")
 

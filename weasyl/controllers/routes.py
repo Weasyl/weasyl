@@ -5,6 +5,7 @@ from weasyl.controllers import (
     api,
     content,
     detail,
+    director,
     events,
     general,
     info,
@@ -267,6 +268,12 @@ routes = (
     Route("/admincontrol/finduser", "admincontrol_finduser", {
         'GET': admin.admincontrol_finduser_get_,
         'POST': admin.admincontrol_finduser_post_,
+    }),
+
+    # Director control routes.
+    Route("/directorcontrol", "directorcontrol", {
+        'GET': director.directorcontrol_get_,
+        'POST': director.directorcontrol_post_,
     }),
 
     Route("/site-updates/{update_id:[0-9]+}", "site_update", general.site_update_),

@@ -46,9 +46,7 @@ def admincontrol_manageuser_get_(request):
 
     return Response(d.webpage(request.userid, "admincontrol/manageuser.html", [
         # Manage user information
-        profile.select_manage(otherid),
-        # only technical staff can impersonate users
-        request.userid in staff.TECHNICAL,
+        profile.select_manage(otherid)
     ]))
 
 
@@ -61,26 +59,14 @@ def admincontrol_manageuser_post_(request):
 
     if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.TECHNICAL:
         return d.errorpage(request.userid, errorcode.permission)
-    if form.get('impersonate'):
-        if request.userid not in staff.TECHNICAL:
-            return d.errorpage(request.userid, errorcode.permission)
-        sess = request.weasyl_session
-        sess.additional_data.setdefault('user-stack', []).append(sess.userid)
-        sess.additional_data.changed()
-        sess.userid = userid
-        sess.save = True
-        d.append_to_log(
-            'staff.actions', userid=request.userid, action='impersonate', target=userid)
-        raise HTTPSeeOther(location="/")
-    else:
-        profile.do_manage(request.userid, userid,
-                          username=form.username.strip() if form.ch_username else None,
-                          full_name=form.full_name.strip() if form.ch_full_name else None,
-                          catchphrase=form.catchphrase.strip() if form.ch_catchphrase else None,
-                          birthday=form.birthday if form.ch_birthday else None,
-                          gender=form.gender if form.ch_gender else None,
-                          country=form.country if form.ch_country else None)
-        raise HTTPSeeOther(location="/admincontrol")
+    profile.do_manage(request.userid, userid,
+                      username=form.username.strip() if form.ch_username else None,
+                      full_name=form.full_name.strip() if form.ch_full_name else None,
+                      catchphrase=form.catchphrase.strip() if form.ch_catchphrase else None,
+                      birthday=form.birthday if form.ch_birthday else None,
+                      gender=form.gender if form.ch_gender else None,
+                      country=form.country if form.ch_country else None)
+    raise HTTPSeeOther(location="/admincontrol")
 
 
 @token_checked

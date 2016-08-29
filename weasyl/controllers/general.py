@@ -29,9 +29,12 @@ def search_(request):
         if find not in ("submit", "char", "journal", "user"):
             find = "submit"
 
+        q = form.q.strip()
+        search_query = search.Query.parse(q, find)
+
         meta = {
-            "q": form.q.strip(),
-            "find": find,
+            "q": q,
+            "find": search_query.find,
             "within": form.within,
             "rated": set('gmap') & set(form.rated),
             "cat": int(form.cat) if form.cat else None,
@@ -40,10 +43,8 @@ def search_(request):
             "nextid": int(form.nextid) if form.nextid else None,
         }
 
-        search_query = search.Query.parse(meta["q"], find)
-
         if search_query.find == "user":
-            query = search.select_users(meta["q"])
+            query = search.select_users(q)
             next_count = back_count = 0
         else:
             search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])

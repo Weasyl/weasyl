@@ -19,7 +19,7 @@ def collection_options_get_(request):
 @login_required
 @token_checked
 def collection_options_post_(request):
-    form = request.request.web_input(allow_request="", allow_notification="")
+    form = request.web_input(allow_request="", allow_notification="")
 
     jsonb_settings = define.get_profile_settings(request.userid)
     jsonb_settings.allow_collection_requests = form.allow_request

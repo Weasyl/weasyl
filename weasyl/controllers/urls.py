@@ -165,8 +165,6 @@ controllers = (
     "/admincontrol/manageuser", "weasyl.controllers.admin.admincontrol_manageuser_",
     "/admincontrol/acctverifylink", "weasyl.controllers.admin.admincontrol_acctverifylink_",
 
-    "/directorcontrol", "weasyl.controllers.director.directorcontrol_",
-
     "/site-updates/([0-9]+)", "weasyl.controllers.general.site_update_",
 
     "/policy/tos", "weasyl.controllers.info.policy_tos_",

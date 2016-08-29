@@ -598,6 +598,15 @@ def edit_preferences(userid, timezone=None,
 
 
 def select_manage(userid):
+    """Selects a user's information for display in the admin user management page.
+
+    Args:
+        userid (int): ID of user to fetch information for.
+
+    Returns:
+        Relevant user information as a dict.
+    """
+
     query = d.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, pr.unixtime, pr.username, pr.full_name, pr.catchphrase, ui.birthday,
@@ -638,6 +647,26 @@ def select_manage(userid):
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
               birthday=None, gender=None, country=None, remove_social=None):
+    """Updates a user's information from the admin user management page.
+    After updating the user it records all the changes into the mod notes.
+
+    If a argument is None it will not be updated.
+
+    Args:
+        my_userid (int): ID of user making changes to other user.
+        userid (int): ID of user to modify.
+        username (str): New username for user. Defaults to None.
+        full_name (str): New full name for user. Defaults to None.
+        catchphrase (str): New catchphrase for user. Defaults to None.
+        birthday (str): New birthday for user, in format for convert_inputdate. Defaults to None.
+        gender (str): New gender for user. Defaults to None.
+        country (str): New country for user. Defaults to None.
+        remove_social (list): Items to remove from the user's social/contact links. Defaults to None.
+
+    Returns:
+        Does not return.
+    """
+
     updates = []
 
     # Username

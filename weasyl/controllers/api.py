@@ -204,10 +204,10 @@ def api_character_view_(request):
 @api_method
 def api_user_view_(request):
     # Helper functions for this view.
-    def convert_commission_price(self, value, options):
+    def convert_commission_price(value, options):
         return d.text_price_symbol(options) + d.text_price_amount(value)
 
-    def convert_commission_setting(self, target):
+    def convert_commission_setting(target):
         if target == "o":
             return "open"
         elif target == "s":

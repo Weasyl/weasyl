@@ -76,7 +76,7 @@ def authorize_post_(request):
 
 @disallow_api
 def token_(request):
-    headers, body, status = server.create_token_response(*extract_params())
+    headers, body, status = server.create_token_response(*extract_params(request))
     for k, v in headers.iteritems():
         request.set_header_on_response(k, v)
     request.set_status_on_response("%s Status" % (status,))

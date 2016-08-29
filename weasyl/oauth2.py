@@ -6,12 +6,20 @@ from oauthlib.oauth2 import FatalClientError, OAuth2Error
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
 from weasyl.controllers.decorators import disallow_api, token_checked
 from weasyl import define as d
-from weasyl import errorcode, http, login, media, orm
+from weasyl import errorcode, login, media, orm
+
+
+class OAuthResponse(Response):
+    def __init__(self, headers, body, status):
+        super(OAuthResponse, self).__init__(
+            body=body,
+            status_code=status,
+            headers={k.encode('utf-8'): v.encode('utf-8') for k, v in headers.iteritems()},
+        )
 
 
 def extract_params(request):
-    headers = http.get_headers(request.environ)
-    return request.path, request.method, request.params, headers
+    return request.path, request.method, request.params, request.headers
 
 
 def render_form(request, scopes, credentials, mobile, error=None,
@@ -66,21 +74,15 @@ def authorize_post_(request):
                                     form.username, form.password, bool(form.remember_me),
                                     bool(form.not_me)))
     credentials['userid'] = userid
-    headers, body, status = server.create_authorization_response(
+    response = server.create_authorization_response(
         *(extract_params(request) + (scopes, credentials)))
-    for k, v in headers.iteritems():
-        request.set_header_on_response(k, v)
-    request.set_status_on_response("%s Status" % (status,))
-    return Response(body)
+    return OAuthResponse(*response)
 
 
 @disallow_api
 def token_(request):
-    headers, body, status = server.create_token_response(*extract_params(request))
-    for k, v in headers.iteritems():
-        request.set_header_on_response(k, v)
-    request.set_status_on_response("%s Status" % (status,))
-    return Response(body)
+    response = server.create_token_response(*extract_params(request))
+    return OAuthResponse(*response)
 
 
 def get_userid_from_authorization(request, scopes=['wholesite']):

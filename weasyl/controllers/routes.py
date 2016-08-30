@@ -2,7 +2,6 @@ from collections import namedtuple
 
 from weasyl.controllers import (
     admin,
-    api,
     content,
     detail,
     events,
@@ -229,24 +228,6 @@ routes = (
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
     Route("/modcontrol/edituserconfig", "modcontrol_edituserconfig", {'POST': moderation.modcontrol_edituserconfig_}),
 
-    # API routes.
-    Route("/api/useravatar", "useravatar", {'GET': api.api_useravatar_, 'POST': api.api_useravatar_}),
-    Route("/api/whoami", "whoami", api.api_whoami_),
-    Route("/api/version{format:(\.[^.]+)?}", "version", api.api_version_),
-    Route("/api/submissions/frontpage", "api_frontpage", api.api_frontpage_),
-    Route("/api/submissions/{submitid:[0-9]+}/view", "api_submission_view", api.api_submission_view_),
-    Route("/api/journals/{journalid:[0-9]+}/view", "api_journal_view", api.api_journal_view_),
-    Route("/api/characters/{charid:[0-9]+}/view", "api_char_view", api.api_character_view_),
-    Route("/api/users/{login:[^/]+}/view", "api_user_view", api.api_user_view_),
-    Route("/api/users/{login:[^/]+}/gallery", "api_user_gallery", api.api_user_gallery_),
-    Route("/api/messages/submissions", "api_messages_submissions", api.api_messages_submissions_),
-    Route("/api/messages/summary", "api_messages_summary", api.api_messages_summary_),
-
-    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite", "api_favorite",
-          {'POST': api.api_favorite_}),
-    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite", "api_unfavorite",
-          {'POST': api.api_unfavorite_}),
-
     # Collection routes.
     Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),
     Route("/collection/request", "collection_request", {'POST': weasyl_collections.collection_request_}),
@@ -317,3 +298,20 @@ def setup_routes_and_views(config):
                 config.add_view(view=route.view[method], route_name=route.name, request_method=method)
         else:
             config.add_view(view=route.view, route_name=route.name, request_method="GET")
+
+    # API routes.
+    config.add_route("useravatar", "/api/useravatar")
+    config.add_route("whoami", "/api/whoami")
+    config.add_route("version", "/api/version{format:(\.[^.]+)?}")
+    config.add_route("api_frontpage", "/api/submissions/frontpage")
+    config.add_route("api_submission_view", "/api/submissions/{submitid:[0-9]+}/view")
+    config.add_route("api_journal_view", "/api/journals/{journalid:[0-9]+}/view")
+    config.add_route("api_character_view", "/api/characters/{charid:[0-9]+}/view")
+    config.add_route("api_user_view", "/api/users/{login:[^/]+}/view")
+    config.add_route("api_user_gallery", "/api/users/{login:[^/]+}/gallery")
+    config.add_route("api_messages_submissions", "/api/messages/submissions")
+    config.add_route("api_messages_summary", "/api/messages/summary")
+    config.add_route("api_favorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite")
+    config.add_route("api_unfavorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite")
+
+    config.scan("weasyl.controllers")

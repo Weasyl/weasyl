@@ -8,7 +8,6 @@ import raven
 import raven.processors
 import traceback
 
-import anyjson as json
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
@@ -236,29 +235,6 @@ def delete_cookie_on_response(request, name, path='/', domain=None):
     request.add_response_callback(callback)
 
 
-def set_header_on_response(request, header, value):
-    """
-    Register a callback on the request to set a header on the response sent back to the client.
-
-    Can be called multiple times with the same header, in which case they will be all be appended.
-    """
-    def callback(request, response):
-        response.headerlist.append((header, value,))
-    request.add_response_callback(callback)
-
-
-def set_status_on_response(request, status):
-    """
-    Register a callback on the request to set the status before returning the response to the client.
-    """
-    def callback(request, response):
-        response.status = status
-    request.add_response_callback(callback)
-    # A bit of a hack: Record that we intend to set the status code on the request.
-    # Used by api logic to decide whether to set a generic 403 error.
-    request.response_status = status
-
-
 def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.
@@ -277,16 +253,15 @@ def weasyl_exception_view(exc, request):
             request.userid = 0  # To keep templates happy.
         errorpage_kwargs = {}
         if isinstance(exc, WeasylError):
+            status_code = errorcode.error_status_code.get(exc.value, 422)
             if exc.render_as_json:
-                # Should this use an error code?
-                return Response(json.dumps({'error': {'name': exc.value}}))
+                return Response(json={'error': {'name': exc.value}},
+                                status_code=status_code)
             errorpage_kwargs = exc.errorpage_kwargs
             if exc.value in errorcode.error_messages:
-                status_info = errorcode.error_status_code.get(exc.value, (200, "200 OK",))
                 message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
                 return Response(d.errorpage(userid, message, **errorpage_kwargs),
-                                status_int=status_info[0],
-                                status=status_info[1])
+                                status_code=status_code)
         request_id = None
         if 'raven.captureException' in request.environ:
             request_id = base64.b64encode(os.urandom(6), '+-')
@@ -295,10 +270,9 @@ def weasyl_exception_view(exc, request):
         print "unhandled error (request id %s) in %r" % (request_id, request.environ)
         traceback.print_exc()
         if getattr(exc, "__render_as_json", False):
-            body = json.dumps({'error': {}})
+            return Response(json={'error': {}}, status_code=500)
         else:
-            body = d.errorpage(userid, request_id=request_id, **errorpage_kwargs)
-        return Response(body, status_int=500, status="500 Internal Server Error")
+            return Response(d.errorpage(userid, request_id=request_id, **errorpage_kwargs), status_code=500)
 
 
 class RemoveSessionCookieProcessor(raven.processors.Processor):

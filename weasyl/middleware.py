@@ -8,7 +8,6 @@ import raven
 import raven.processors
 import traceback
 
-import anyjson as json
 from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
@@ -279,14 +278,13 @@ def weasyl_exception_view(exc, request):
         if isinstance(exc, WeasylError):
             if exc.render_as_json:
                 # Should this use an error code?
-                return Response(json.dumps({'error': {'name': exc.value}}))
+                return Response(json={'error': {'name': exc.value}})
             errorpage_kwargs = exc.errorpage_kwargs
             if exc.value in errorcode.error_messages:
-                status_info = errorcode.error_status_code.get(exc.value, (200, "200 OK",))
+                status_code = errorcode.error_status_code.get(exc.value, 200)
                 message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
                 return Response(d.errorpage(userid, message, **errorpage_kwargs),
-                                status_int=status_info[0],
-                                status=status_info[1])
+                                status_code=status_code)
         request_id = None
         if 'raven.captureException' in request.environ:
             request_id = base64.b64encode(os.urandom(6), '+-')
@@ -295,10 +293,9 @@ def weasyl_exception_view(exc, request):
         print "unhandled error (request id %s) in %r" % (request_id, request.environ)
         traceback.print_exc()
         if getattr(exc, "__render_as_json", False):
-            body = json.dumps({'error': {}})
+            return Response(json={'error': {}}, status_code=500)
         else:
-            body = d.errorpage(userid, request_id=request_id, **errorpage_kwargs)
-        return Response(body, status_int=500, status="500 Internal Server Error")
+            return Response(d.errorpage(userid, request_id=request_id, **errorpage_kwargs), status_code=500)
 
 
 class RemoveSessionCookieProcessor(raven.processors.Processor):

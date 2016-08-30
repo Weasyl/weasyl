@@ -235,17 +235,6 @@ def delete_cookie_on_response(request, name, path='/', domain=None):
     request.add_response_callback(callback)
 
 
-def set_header_on_response(request, header, value):
-    """
-    Register a callback on the request to set a header on the response sent back to the client.
-
-    Can be called multiple times with the same header, in which case they will be all be appended.
-    """
-    def callback(request, response):
-        response.headerlist.append((header, value,))
-    request.add_response_callback(callback)
-
-
 def set_status_on_response(request, status):
     """
     Register a callback on the request to set the status before returning the response to the client.

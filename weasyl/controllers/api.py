@@ -1,6 +1,8 @@
-import anyjson as json
+from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.httpexceptions import HTTPUnprocessableEntity
 from pyramid.response import Response
+from pyramid.view import view_config
 
 from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
@@ -46,7 +48,6 @@ _CONTENT_IDS = {
 
 def api_method(view_callable):
     def wrapper(request):
-        request.set_header_on_response('Content-Type', 'application/json')
         try:
             return view_callable(request)
         except WeasylError as e:
@@ -84,40 +85,40 @@ def api_login_required(view_callable):
     return inner
 
 
+@view_config(route_name='useravatar', renderer='json')
 @api_method
 def api_useravatar_(request):
-    # Retrieve form data
     form = request.web_input(username="")
     userid = profile.resolve_by_login(form.username)
 
-    # Return JSON response
     if userid:
         media_items = media.get_user_media(userid)
-        return Response(json.dumps({
+        return {
             "avatar": d.absolutify_url(media_items['avatar'][0]['display_url']),
-        }))
+        }
 
     raise WeasylError('userRecordMissing')
 
 
+@view_config(route_name='whoami', renderer='json')
 @api_login_required
-@api_method
 def api_whoami_(request):
-    return Response(json.dumps({
+    return {
         "login": d.get_display_name(request.userid),
         "userid": request.userid,
-    }))
+    }
 
 
+@view_config(route_name='version', renderer='json')
 @api_method
 def api_version_(request):
     format = request.matchdict.get("format", ".json")
     if format == '.txt':
-        return Response(d.CURRENT_SHA)
+        return Response(d.CURRENT_SHA, content_type='text/plain')
     else:
-        return Response(json.dumps({
+        return {
             "short_sha": d.CURRENT_SHA,
-        }))
+        }
 
 
 def tidy_submission(submission):
@@ -151,6 +152,7 @@ def tidy_submission(submission):
     return submission
 
 
+@view_config(route_name='api_frontpage', renderer='json')
 @api_method
 def api_frontpage_(request):
     form = request.web_input(since=None, count=0)
@@ -160,7 +162,7 @@ def api_frontpage_(request):
             since = d.parse_iso8601(form.since)
         count = int(form.count)
     except ValueError:
-        return Response(json.dumps(_ERROR_UNEXPECTED), status="422 Unprocessable Entity")
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:
         count = min(count or 100, 100)
 
@@ -174,36 +176,37 @@ def api_frontpage_(request):
         tidy_submission(sub)
         ret.append(sub)
 
-    return Response(json.dumps(ret))
+    return ret
 
 
+@view_config(route_name='api_submission_view', renderer='json')
 @api_method
 def api_submission_view_(request):
     form = request.web_input(anyway='', increment_views='')
-    result = submission.select_view_api(
+    return submission.select_view_api(
         request.userid, int(request.matchdict['submitid']),
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
-    return Response(json.dumps(result))
 
 
+@view_config(route_name='api_journal_view', renderer='json')
 @api_method
 def api_journal_view_(request):
     form = request.web_input(anyway='', increment_views='')
-    result = journal.select_view_api(
+    return journal.select_view_api(
         request.userid, int(request.matchdict['journalid']),
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
-    return Response(json.dumps(result))
 
 
+@view_config(route_name='api_character_view', renderer='json')
 @api_method
 def api_character_view_(request):
     form = request.web_input(anyway='', increment_views='')
-    result = character.select_view_api(
+    return character.select_view_api(
         request.userid, int(request.matchdict['charid']),
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
-    return Response(json.dumps(result))
 
 
+@view_config(route_name='api_user_view', renderer='json')
 @api_method
 def api_user_view_(request):
     # Helper functions for this view.
@@ -232,11 +235,12 @@ def api_user_view_(request):
     o_settings = user.pop('settings')
 
     if not otherid and "h" in o_config:
-        return Response(json.dumps({
+        raise HTTPForbidden(json={
             "error": {
                 "code": 200,
-                "text": "Profile hidden from unlogged users."
-            }}))
+                "text": "Profile hidden from unlogged users.",
+            },
+        })
 
     user.pop('userid', None)
     user.pop('commish_slots', None)
@@ -356,9 +360,10 @@ def api_user_view_(request):
     user['user_info'] = user_info
     user['link'] = d.absolutify_url("/~" + user['login_name'])
 
-    return Response(json.dumps(user))
+    return user
 
 
+@view_config(route_name='api_user_gallery', renderer='json')
 @api_method
 def api_user_gallery_(request):
     userid = profile.resolve_by_login(request.matchdict['login'])
@@ -376,8 +381,7 @@ def api_user_gallery_(request):
         backid = int(form.backid)
         nextid = int(form.nextid)
     except ValueError:
-        request.set_status_on_response("422 Unprocessable Entity")
-        return Response(json.dumps(_ERROR_UNEXPECTED))
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:
         count = min(count or 100, 100)
 
@@ -393,12 +397,13 @@ def api_user_gallery_(request):
         tidy_submission(sub)
         ret.append(sub)
 
-    return Response(json.dumps({
+    return {
         'backid': backid, 'nextid': nextid,
         'submissions': ret,
-    }))
+    }
 
 
+@view_config(route_name='api_messages_submissions', renderer='json')
 @api_login_required
 @api_method
 def api_messages_submissions_(request):
@@ -408,8 +413,7 @@ def api_messages_submissions_(request):
         backtime = int(form.backtime)
         nexttime = int(form.nexttime)
     except ValueError:
-        request.set_status_on_response("422 Unprocessable Entity")
-        return Response(json.dumps(_ERROR_UNEXPECTED))
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:
         count = min(count or 100, 100)
 
@@ -422,28 +426,30 @@ def api_messages_submissions_(request):
         tidy_submission(sub)
         ret.append(sub)
 
-    return Response(json.dumps({
+    return {
         'backtime': backtime, 'nexttime': nexttime,
         'submissions': ret,
-    }))
+    }
 
 
+@view_config(route_name='api_messages_summary', renderer='json')
 @api_login_required
 @api_method
 def api_messages_summary_(request):
     counts = d._page_header_info(request.userid)
-    return Response(json.dumps({
+    return {
         'unread_notes': counts[0],
         'comments': counts[1],
         'notifications': counts[2],
         'submissions': counts[3],
         'journals': counts[4],
-    }))
+    }
 
 
 # TODO(hyena): It's probable that token_checked won't return json from these. Consider writing an api_token_checked.
 
 
+@view_config(route_name='api_favorite', request_method='POST', renderer='json')
 @api_login_required
 @api_method
 @token_checked
@@ -451,11 +457,12 @@ def api_favorite_(request):
     favorite.insert(request.userid,
                     **{_CONTENT_IDS[request.matchdict['content_type']]: int(request.matchdict['content_id'])})
 
-    return Response(json.dumps({
+    return {
         'success': True
-    }))
+    }
 
 
+@view_config(route_name='api_unfavorite', request_method='POST', renderer='json')
 @api_login_required
 @api_method
 @token_checked
@@ -463,6 +470,6 @@ def api_unfavorite_(request):
     favorite.remove(request.userid,
                     **{_CONTENT_IDS[request.matchdict['content_type']]: int(request.matchdict['content_id'])})
 
-    return Response(json.dumps({
+    return {
         'success': True
-    }))
+    }

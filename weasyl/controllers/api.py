@@ -1,4 +1,5 @@
 import anyjson as json
+from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 
 from libweasyl.text import markdown, slug_for
@@ -75,8 +76,10 @@ def api_login_required(view_callable):
     # TODO: If we replace the regular @login_required checks on POSTs with a tween, what do about this?
     def inner(request):
         if request.userid == 0:
-            return Response(json.dumps(_ERROR_UNSIGNED), status='401 Unauthorized',
-                            headerlist=[('WWW-Authenticate', _STANDARD_WWW_AUTHENTICATE,)])
+            raise HTTPUnauthorized(
+                json=_ERROR_UNSIGNED,
+                www_authenticate=_STANDARD_WWW_AUTHENTICATE,
+            )
         return view_callable(request)
     return inner
 

@@ -74,15 +74,15 @@ def authorize_post_(request):
                                     form.username, form.password, bool(form.remember_me),
                                     bool(form.not_me)))
     credentials['userid'] = userid
-    response = server.create_authorization_response(
+    response_attrs = server.create_authorization_response(
         *(extract_params(request) + (scopes, credentials)))
-    return OAuthResponse(*response)
+    return OAuthResponse(*response_attrs)
 
 
 @disallow_api
 def token_(request):
-    response = server.create_token_response(*extract_params(request))
-    return OAuthResponse(*response)
+    response_attrs = server.create_token_response(*extract_params(request))
+    return OAuthResponse(*response_attrs)
 
 
 def get_userid_from_authorization(request, scopes=['wholesite']):

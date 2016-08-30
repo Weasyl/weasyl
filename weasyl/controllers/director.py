@@ -7,7 +7,7 @@ from weasyl.controllers.decorators import token_checked
 import weasyl.define as d
 
 
-""" Administrator control panel view callables """
+""" Director control panel view callables """
 
 
 @director_only

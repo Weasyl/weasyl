@@ -56,7 +56,7 @@ def admincontrol_manageuser_get_(request):
 @admin_only
 def admincontrol_manageuser_post_(request):
     form = request.web_input(ch_username="", ch_full_name="", ch_catchphrase="", ch_email="",
-                             ch_birthday="", ch_gender="", ch_country="")
+                             ch_birthday="", ch_gender="", ch_country="", remove_social=[])
     userid = d.get_int(form.userid)
 
     if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.TECHNICAL:
@@ -79,7 +79,8 @@ def admincontrol_manageuser_post_(request):
                           catchphrase=form.catchphrase.strip() if form.ch_catchphrase else None,
                           birthday=form.birthday if form.ch_birthday else None,
                           gender=form.gender if form.ch_gender else None,
-                          country=form.country if form.ch_country else None)
+                          country=form.country if form.ch_country else None,
+                          remove_social=form.remove_social)
         raise HTTPSeeOther(location="/admincontrol")
 
 

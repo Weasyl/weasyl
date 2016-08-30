@@ -38,7 +38,6 @@ def control_uploadavatar_(request):
 @login_required
 def control_editprofile_get_(request):
     userinfo = profile.select_userinfo(request.userid)
-    userinfo['sorted_user_links'] = sorted(userinfo['user_links'].items(), key=lambda kv: kv[0].lower())
     return Response(define.webpage(request.userid, "control/edit_profile.html", [
         # Profile
         profile.select_profile(request.userid, commish=False),

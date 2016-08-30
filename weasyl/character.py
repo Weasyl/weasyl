@@ -93,7 +93,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     ch = define.meta.tables["character"]
 
     try:
-        charid = define.engine.execute(ch.insert().returning(ch.c.charid), {
+        charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
             "userid": userid,
             "unixtime": arrow.now(),
             "char_name": character.char_name,
@@ -105,7 +105,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
             "content": character.content,
             "rating": character.rating.code,
             "settings": settings,
-        }).scalar()
+        })
     except PostgresError:
         files.clear_temporary(userid)
         raise

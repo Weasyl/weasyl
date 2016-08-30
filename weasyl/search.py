@@ -338,17 +338,17 @@ def _find_without_media(userid, rating, limit,
         # current page to account for this, and add the maximum number of items
         # on a page to the count limit so it still comes out to the count limit
         # after subtracting if the limit is reached.
-        back_count = d.engine.execute(
+        back_count = d.engine.scalar(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
-            params).scalar() - len(ret)
+            params) - len(ret)
     elif nextid:
         # nextid is the item before the first item (display-order-wise) on the
         # current page; the query will select items from there backwards, so
         # the current page is not included and no subtraction or modification
         # of the limit is necessary.
-        back_count = d.engine.execute(
+        back_count = d.engine.scalar(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", " LIMIT %(count_limit)s) _"),
-            params).scalar()
+            params)
     else:
         # The first page is being displayed; there’s nothing to go back to.
         back_count = 0
@@ -358,9 +358,9 @@ def _find_without_media(userid, rating, limit,
         # current page; the query will select items from there forwards, so the
         # current page is not included and no subtraction or modification of
         # the limit is necessary.
-        next_count = d.engine.execute(
+        next_count = d.engine.scalar(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", " LIMIT %(count_limit)s) _"),
-            params).scalar()
+            params)
 
         # The ORDER BY is reversed when a backid is specified in order to LIMIT
         # to the nearest items with a larger backid rather than the smallest
@@ -373,9 +373,9 @@ def _find_without_media(userid, rating, limit,
         # count of items after this page, and add the maximum number of items
         # on a page to the count limit so it still comes out to the count limit
         # after subtracting if the limit is reached.
-        next_count = d.engine.execute(
+        next_count = d.engine.scalar(
             make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
-            params).scalar() - len(ret)
+            params) - len(ret)
 
         return ret, next_count, back_count
 

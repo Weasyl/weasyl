@@ -160,12 +160,12 @@ def _check_throttle(userid, otherid):
     :param otherid: the user the requests are to
     :return: TRUE if the user should be throttled, otherwise false
     """
-    return d.engine.execute(
+    return d.engine.scalar(
         "SELECT count(*) > 10 FROM collection c "
         "JOIN submission s ON s.submitid = c.submitid "
         "WHERE s.userid = %(other)s AND c.userid = %(user)s "
         "AND c.settings ~ 'r'",
-        other=otherid, user=userid).scalar()
+        other=otherid, user=userid)
 
 
 def request(userid, submitid, otherid):

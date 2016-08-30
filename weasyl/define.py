@@ -384,7 +384,7 @@ def get_sysname(target):
 @region.cache_on_arguments()
 @record_timing
 def _get_config(userid):
-    return engine.execute("SELECT config FROM profile WHERE userid = %(user)s", user=userid).scalar()
+    return engine.scalar("SELECT config FROM profile WHERE userid = %(user)s", user=userid)
 
 
 def get_config(userid):
@@ -396,7 +396,7 @@ def get_config(userid):
 @region.cache_on_arguments()
 @record_timing
 def get_login_settings(userid):
-    return engine.execute("SELECT settings FROM login WHERE userid = %(user)s", user=userid).scalar()
+    return engine.scalar("SELECT settings FROM login WHERE userid = %(user)s", user=userid)
 
 
 @region.cache_on_arguments()
@@ -411,8 +411,8 @@ def _get_profile_settings(userid):
     """
     if userid is None:
         return {}
-    jsonb = engine.execute("SELECT jsonb_settings FROM profile WHERE userid = %(user)s",
-                           user=userid).scalar()
+    jsonb = engine.scalar("SELECT jsonb_settings FROM profile WHERE userid = %(user)s",
+                          user=userid)
     if jsonb is None:
         jsonb = {}
     return jsonb
@@ -490,7 +490,7 @@ def _get_display_name(userid):
     Return the display name assiciated with `userid`; if no such user exists,
     return None.
     """
-    return engine.execute("SELECT username FROM profile WHERE userid = %(user)s", user=userid).scalar()
+    return engine.scalar("SELECT username FROM profile WHERE userid = %(user)s", user=userid)
 
 
 def get_display_name(userid):
@@ -568,13 +568,13 @@ def get_userid_list(target):
 
 def get_ownerid(submitid=None, charid=None, journalid=None, commishid=None):
     if submitid:
-        return engine.execute("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid).scalar()
+        return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
-        return engine.execute("SELECT userid FROM character WHERE charid = %(id)s", id=charid).scalar()
+        return engine.scalar("SELECT userid FROM character WHERE charid = %(id)s", id=charid)
     if journalid:
-        return engine.execute("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid).scalar()
+        return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
     if commishid:
-        return engine.execute("SELECT userid FROM commission WHERE commishid = %(id)s", id=commishid).scalar()
+        return engine.scalar("SELECT userid FROM commission WHERE commishid = %(id)s", id=commishid)
 
 
 def get_random_set(target, count=None):
@@ -769,8 +769,8 @@ def user_type(userid):
 @region.cache_on_arguments(expiration_time=180)
 @record_timing
 def _page_header_info(userid):
-    messages = engine.execute(
-        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid).scalar()
+    messages = engine.scalar(
+        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
     result = [messages, 0, 0, 0, 0]
 
     counts = engine.execute(

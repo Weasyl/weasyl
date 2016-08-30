@@ -279,6 +279,6 @@ def count(id, contenttype='submission'):
     else:
         raise ValueError("type should be one of 'submission', 'journal', or 'character'")
 
-    return d.engine.execute(
+    return d.engine.scalar(
         "SELECT COUNT(*) FROM favorite WHERE targetid = %s AND type = %s",
-        [id, querytype]).scalar()
+        (id, querytype))

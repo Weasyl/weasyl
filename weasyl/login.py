@@ -203,11 +203,11 @@ def verify(token):
     db = d.connect()
     with db.begin():
         # Create login record
-        userid = db.execute(lo.insert().returning(lo.c.userid), {
+        userid = db.scalar(lo.insert().returning(lo.c.userid), {
             "login_name": d.get_sysname(query.username),
             "last_login": arrow.now(),
             "email": query.email,
-        }).scalar()
+        })
 
         # Create profile records
         db.execute(d.meta.tables["authbcrypt"].insert(), {
@@ -239,20 +239,20 @@ def verify(token):
 
 
 def email_exists(email):
-    return d.engine.execute("""
+    return d.engine.scalar("""
         SELECT
             EXISTS (SELECT 0 FROM login WHERE email = %(email)s) OR
             EXISTS (SELECT 0 FROM logincreate WHERE email = %(email)s)
-    """, email=email).scalar()
+    """, email=email)
 
 
 def username_exists(login_name):
-    return d.engine.execute("""
+    return d.engine.scalar("""
         SELECT
             EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s) OR
             EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s) OR
             EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
-    """, name=login_name).scalar()
+    """, name=login_name)
 
 
 def update_unicode_password(userid, password, password_confirm):
@@ -288,4 +288,4 @@ def get_account_verification_token(email=None, username=None):
     else:
         statement = statement.where(logincreate.c.login_name == username)
 
-    return d.engine.execute(statement).scalar()
+    return d.engine.scalar(statement)

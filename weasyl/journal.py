@@ -42,13 +42,13 @@ def create(userid, journal, friends_only=False, tags=None):
     # Create journal
     jo = d.meta.tables["journal"]
 
-    journalid = d.engine.execute(jo.insert().returning(jo.c.journalid), {
+    journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
-    }).scalar()
+    })
 
     # Write journal file
     files.make_path(journalid, "journal")

@@ -268,8 +268,8 @@ BAN_TEMPLATES = {
 
 
 def get_ban_reason(userid):
-    return d.engine.execute("SELECT reason FROM permaban WHERE userid = %(user)s",
-                            user=userid).scalar()
+    return d.engine.scalar("SELECT reason FROM permaban WHERE userid = %(user)s",
+                           user=userid)
 
 
 def get_suspension(userid):

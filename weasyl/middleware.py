@@ -170,16 +170,16 @@ def userid_request_property(request):
         # TODO: If reification of userid becomes an issue (e.g. because of userid changing after sign-in) revisit this.
         # It's possible that we don't need to reify the entire property, but just cache the result of this query in a
         # cache on arguments inner function.
-        userid = d.engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
+        userid = d.engine.scalar("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token)
         if not userid:
-            raise HTTPUnauthorized(headers={'WWW-Authenticate': 'Weasyl-API-Key realm="Weasyl"'})
+            raise HTTPUnauthorized(www_authenticate=('Weasyl-API-Key', 'realm="Weasyl"'))
         return userid
 
     elif authorization:
         from weasyl.oauth2 import get_userid_from_authorization
         userid = get_userid_from_authorization(request)
         if not userid:
-            raise HTTPUnauthorized(headers={'WWW-Authenticate': 'Bearer realm="Weasyl" error="invalid_token"'})
+            raise HTTPUnauthorized(www_authenticate=('Bearer', 'realm="Weasyl" error="invalid_token"'))
         return userid
 
     else:

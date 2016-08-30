@@ -235,18 +235,6 @@ def delete_cookie_on_response(request, name, path='/', domain=None):
     request.add_response_callback(callback)
 
 
-def set_status_on_response(request, status):
-    """
-    Register a callback on the request to set the status before returning the response to the client.
-    """
-    def callback(request, response):
-        response.status = status
-    request.add_response_callback(callback)
-    # A bit of a hack: Record that we intend to set the status code on the request.
-    # Used by api logic to decide whether to set a generic 403 error.
-    request.response_status = status
-
-
 def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.
@@ -265,12 +253,12 @@ def weasyl_exception_view(exc, request):
             request.userid = 0  # To keep templates happy.
         errorpage_kwargs = {}
         if isinstance(exc, WeasylError):
+            status_code = errorcode.error_status_code.get(exc.value, 422)
             if exc.render_as_json:
-                # Should this use an error code?
-                return Response(json={'error': {'name': exc.value}})
+                return Response(json={'error': {'name': exc.value}},
+                                status_code=status_code)
             errorpage_kwargs = exc.errorpage_kwargs
             if exc.value in errorcode.error_messages:
-                status_code = errorcode.error_status_code.get(exc.value, 200)
                 message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
                 return Response(d.errorpage(userid, message, **errorpage_kwargs),
                                 status_code=status_code)

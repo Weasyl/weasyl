@@ -51,8 +51,6 @@ def api_method(view_callable):
         try:
             return view_callable(request)
         except WeasylError as e:
-            if not hasattr(request, 'response_status') or request.response_status == "200 OK":
-                request.set_status_on_response("403 Forbidden")
             e.render_as_json = True
             raise
         except Exception as e:
@@ -368,7 +366,6 @@ def api_user_view_(request):
 def api_user_gallery_(request):
     userid = profile.resolve_by_login(request.matchdict['login'])
     if not userid:
-        request.set_status_on_response("404 Not Found")
         raise WeasylError('userRecordMissing')
 
     form = request.web_input(since=None, count=0, folderid=0, backid=0, nextid=0)

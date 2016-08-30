@@ -39,7 +39,6 @@ config.add_request_method(mw.log_exc_request_method, name='log_exc')
 config.add_request_method(mw.web_input_request_method, name='web_input')
 config.add_request_method(mw.set_cookie_on_response)
 config.add_request_method(mw.delete_cookie_on_response)
-config.add_request_method(mw.set_status_on_response)
 
 
 wsgi_app = config.make_wsgi_app()

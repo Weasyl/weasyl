@@ -109,9 +109,9 @@ def signup_post_(request):
     form = request.web_input(
         username="", password="", passcheck="", email="", emailcheck="",
         day="", month="", year="", recaptcha_challenge_field="",
-        g_recaptcha_response=request.web_input("g-recaptcha-response"))
+        g_recaptcha_response="")
 
-    if not define.captcha_verify(form):
+    if not define.captcha_verify(form.g_captcha_response):
         return Response(define.errorpage(
             request.userid,
             "There was an error validating the CAPTCHA response; you should go back and try again."))

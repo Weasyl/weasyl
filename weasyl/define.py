@@ -318,15 +318,15 @@ def captcha_public():
     return config_obj.get(_captcha_section(), 'public_key')
 
 
-def captcha_verify(form):
+def captcha_verify(captcha_response):
     if config_read_bool("captcha_disable_verification", value=False):
         return True
-    if not form.g_recaptcha_response:
+    if not captcha_response:
         return False
 
     data = dict(
         secret=config_obj.get(_captcha_section(), 'private_key'),
-        response=form.g_recaptcha_response['g-recaptcha-response'],
+        response=captcha_response,
         remoteip=get_address())
     response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
     captcha_validation_result = response.json()

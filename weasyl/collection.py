@@ -1,14 +1,12 @@
-# collection.py
+from __future__ import absolute_import
 
-from error import PostgresError, WeasylError
-import macro as m
-import define as d
-
-import welcome
-import blocktag
-import ignoreuser
-
+from weasyl import blocktag
+from weasyl import define as d
+from weasyl import ignoreuser
+from weasyl import macro as m
 from weasyl import media
+from weasyl import welcome
+from weasyl.error import PostgresError, WeasylError
 
 
 def select_query(userid, rating, otherid=None, pending=False, backid=None, nextid=None, config=None, options=[]):

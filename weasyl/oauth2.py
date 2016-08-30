@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import anyjson as json
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
 from pyramid.response import Response

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from libweasyl import staff
 
 from weasyl import errorcode

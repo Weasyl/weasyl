@@ -1,4 +1,4 @@
-# favorite.py
+from __future__ import absolute_import
 
 import logging
 import os
@@ -8,9 +8,8 @@ from sanpera.image import Image
 from sanpera import geometry
 import web
 
-from error import WeasylError
-
-import files
+from weasyl import files
+from weasyl.error import WeasylError
 
 
 COVER_SIZE = 1024, 3000

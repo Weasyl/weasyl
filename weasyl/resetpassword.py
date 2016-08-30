@@ -1,6 +1,8 @@
 # resetpassword.py
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from libweasyl import security
 from weasyl import define as d
 from weasyl import emailer
@@ -74,7 +76,7 @@ def prepare(token):
 #   password    day
 
 def reset(form):
-    import login
+    from weasyl import login
 
     # Raise an exception if `password` does not enter `passcheck` (indicating
     # that the user mistyped one of the fields) or if `password` does not meet
@@ -124,7 +126,7 @@ def reset(form):
 #   passcheck
 
 def force(userid, form):
-    import login
+    from weasyl import login
 
     if form.password != form.passcheck:
         raise WeasylError("passwordMismatch")

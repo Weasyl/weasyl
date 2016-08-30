@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPUnprocessableEntity

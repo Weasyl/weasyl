@@ -1,4 +1,4 @@
-# moderation.py
+from __future__ import absolute_import
 
 import collections
 import datetime
@@ -6,17 +6,21 @@ import datetime
 import arrow
 import sqlalchemy as sa
 
-from error import WeasylError
-import define as d
-
-import shout
-import profile
-import welcome
-
 from libweasyl.models.content import Submission
 from libweasyl import ratings, staff, text
 
-from weasyl import avatar, banner, character, index, media, submission, thumbnail
+from weasyl import avatar
+from weasyl import banner
+from weasyl import character
+from weasyl import define as d
+from weasyl import index
+from weasyl import media
+from weasyl import profile
+from weasyl import shout
+from weasyl import submission
+from weasyl import thumbnail
+from weasyl import welcome
+from weasyl.error import WeasylError
 
 
 BAN_TEMPLATES = {

@@ -1,5 +1,7 @@
 # define.py
 
+from __future__ import absolute_import
+
 import os
 import re
 import time
@@ -25,18 +27,17 @@ import sqlalchemy as sa
 import sqlalchemy.orm
 from web.template import frender
 
-import macro
-import errorcode
-from error import WeasylError
-
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
+from weasyl import config
+from weasyl import errorcode
+from weasyl import macro
+from weasyl.cache import region
 from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read, config_read_setting, config_read_bool
-from weasyl.cache import region
-from weasyl import config
+from weasyl.error import WeasylError
 
 
 _shush_pyflakes = [sqlalchemy.orm, config_read]
@@ -349,7 +350,7 @@ def get_userid():
 
 
 def get_token():
-    import api
+    from weasyl import api
 
     if api.is_api_user():
         return ''

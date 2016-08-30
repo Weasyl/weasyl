@@ -1,5 +1,7 @@
 # login.py
 
+from __future__ import absolute_import
+
 import arrow
 import bcrypt
 from sqlalchemy.sql.expression import select

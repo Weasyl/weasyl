@@ -1,4 +1,6 @@
 """
+from __future__ import absolute_import
+
 Retrieve a dictionary of Weasyl staff.
 
 This module is invoked by calling `read_staff_yaml.load_staff_dict()`, and it

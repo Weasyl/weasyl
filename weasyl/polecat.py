@@ -1,5 +1,7 @@
 """Polecats are twisted weasyls.
 
+from __future__ import absolute_import
+
 Just bear with me here.
 """
 

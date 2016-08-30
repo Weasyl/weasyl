@@ -1,33 +1,30 @@
-# character.py
+from __future__ import absolute_import
 
 import arrow
 import re
-
-from error import PostgresError, WeasylError
-import macro
-import define
-
-import image
-import comment
-import profile
-import welcome
-import blocktag
-import searchtag
-import thumbnail
-import frienduser
-import ignoreuser
-
-import files
-import report
-import favorite
 
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
 
 from weasyl import api
+from weasyl import blocktag
+from weasyl import comment
+from weasyl import define
+from weasyl import favorite
+from weasyl import files
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import image
+from weasyl import macro
 from weasyl import macro as m
 from weasyl import media
+from weasyl import profile
+from weasyl import report
+from weasyl import searchtag
+from weasyl import thumbnail
+from weasyl import welcome
+from weasyl.error import PostgresError, WeasylError
 
 
 _MEGABYTE = 1048576

@@ -1,5 +1,7 @@
 # api.py
 
+from __future__ import absolute_import
+
 from pyramid.threadlocal import get_current_request
 
 from libweasyl.models.meta import Base

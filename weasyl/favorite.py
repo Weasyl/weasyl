@@ -1,15 +1,13 @@
-# favorite.py
+from __future__ import absolute_import
 
-from error import WeasylError
-import macro as m
-import define as d
-
-import welcome
-import frienduser
-import ignoreuser
-import collection
-
+from weasyl import collection
+from weasyl import define as d
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import macro as m
 from weasyl import media
+from weasyl import welcome
+from weasyl.error import WeasylError
 
 
 def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):

@@ -122,23 +122,62 @@ class CheckNotificationsTestCase(unittest.TestCase):
                                                        content="hello"))
         self.assertEqual(1, self.count_notifications(self.owner))
 
+        shouts = shout.select(0, self.owner)
+        self.assertEqual(len(shouts), 1)
+        self.assertTrue(shouts[0].viewitems() >= {"content": "hello"}.viewitems())
+
         # commenter2 posts a reply to c1
         c2 = shout.insert(self.commenter2, orm.Comment(userid=self.owner,
-                                                       content="hello", parentid=c1))
+                                                       content="reply", parentid=c1))
         self.assertEqual(1, self.count_notifications(self.commenter1))
+
+        shouts = shout.select(0, self.owner)
+        self.assertEqual(len(shouts), 2)
+        self.assertTrue(shouts[1].viewitems() >= {"content": "reply"}.viewitems())
 
         # owner posts a reply to c2
         c3 = shout.insert(self.owner, orm.Comment(userid=self.owner,
-                                                  content="hello", parentid=c2))
+                                                  content="reply 2", parentid=c2))
         self.assertEqual(1, self.count_notifications(self.commenter2))
+
+        shouts = shout.select(0, self.owner)
+        self.assertEqual(len(shouts), 3)
+        self.assertTrue(shouts[2].viewitems() >= {"content": "reply 2"}.viewitems())
 
         # commenter1 responds to owner
         shout.insert(self.commenter1, orm.Comment(userid=self.owner,
-                                                  content="hello", parentid=c3))
+                                                  content="reply 3", parentid=c3))
         self.assertEqual(2, self.count_notifications(self.owner))
+
+        shouts = shout.select(0, self.owner)
+        self.assertEqual(len(shouts), 4)
+        self.assertTrue(shouts[3].viewitems() >= {"content": "reply 3"}.viewitems())
+
+        # commenter1 posts a new root shout
+        shout.insert(self.commenter1, orm.Comment(userid=self.owner,
+                                                  content="root 2"))
+        self.assertEqual(3, self.count_notifications(self.owner))
+
+        shouts = shout.select(0, self.owner)
+        self.assertEqual(len(shouts), 5)
+        self.assertTrue(shouts[0].viewitems() >= {"content": "root 2"}.viewitems())
+        self.assertTrue(shouts[4].viewitems() >= {"content": "reply 3"}.viewitems())
+
+        # commenter2 posts another reply to c1
+        shout.insert(self.commenter2, orm.Comment(userid=self.owner,
+                                                  content="reply 4", parentid=c1))
+        self.assertEqual(2, self.count_notifications(self.commenter1))
+
+        shouts = shout.select(0, self.owner)
+        self.assertEqual(len(shouts), 6)
+        self.assertTrue(shouts[5].viewitems() >= {"content": "reply 4"}.viewitems())
 
         # owner deletes comment thread
         shout.remove(self.owner, commentid=c1)
-        self.assertEqual(0, self.count_notifications(self.owner))
+        self.assertEqual(1, self.count_notifications(self.owner))
         self.assertEqual(0, self.count_notifications(self.commenter1))
         self.assertEqual(0, self.count_notifications(self.commenter2))
+
+        shouts = shout.select(0, self.owner)
+        self.assertEqual(len(shouts), 1)
+        self.assertTrue(shouts[0].viewitems() >= {"content": "root 2"}.viewitems())

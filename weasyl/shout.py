@@ -16,7 +16,7 @@ from weasyl.comment import _thread
 from weasyl.error import WeasylError
 
 
-def select(userid, ownerid, limit=None, start=None, staffnotes=False):
+def select(userid, ownerid, limit=None, staffnotes=False):
     result = []
     statement = ["""
         SELECT sh.commentid, sh.parentid, sh.userid, pr.username, lo.settings, sh.content, sh.unixtime,
@@ -57,10 +57,7 @@ def select(userid, ownerid, limit=None, start=None, staffnotes=False):
             _thread(query, result, i)
 
     if limit:
-        if start:
-            ret = result[start:start + limit]
-        else:
-            ret = result[:limit]
+        ret = result[:limit]
     else:
         ret = result
 

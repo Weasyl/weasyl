@@ -83,7 +83,15 @@ Code of Conduct
 Please note that this project is released with a `Contributor Code of Conduct`_. By
 participating in this project you agree to abide by its terms.
 
+
+Style Guide
+-----------
+
+When committing code, be sure to follow the `Style and Best Practices Guide`_.
+
+
 .. _Weasyl: https://www.weasyl.com
 .. _Vagrant: https://www.vagrantup.com
 .. _VirtualBox: https://www.virtualbox.org
 .. _Contributor Code of Conduct: CODE_OF_CONDUCT.md
+.. _Style and Best Practices Guide: STYLE_GUIDE.md

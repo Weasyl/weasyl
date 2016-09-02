@@ -1,18 +1,15 @@
 import arrow
 from twisted.python import log
-import web
 
-from weasyl.define import active_users, get_time, connect
+from weasyl.define import active_users, engine, get_time
 from weasyl import index, submission
 
 
 def run_periodic_tasks():
-    web.ctx.clear()
-
     now = arrow.utcnow()
     time_now = get_time()
 
-    db = connect().connection()
+    db = engine.connect()
     with db.begin():
         locked = db.scalar("SELECT pg_try_advisory_xact_lock(0)")
         if not locked:

@@ -56,15 +56,6 @@ def check_list(rating, tags, blocked_tags):
     return any(rating >= b['rating'] and b['tagid'] in tags for b in blocked_tags)
 
 
-def suggest(userid, target):
-    if not target:
-        return []
-
-    return d.execute("SELECT title FROM searchtag"
-                     " WHERE title LIKE '%s%%' AND tagid NOT IN (SELECT tagid FROM blocktag WHERE userid = %i)"
-                     " ORDER BY title LIMIT 10", [target, userid], options="within")
-
-
 def select(userid):
     return [{
         "title": i[0],

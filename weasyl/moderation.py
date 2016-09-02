@@ -5,7 +5,6 @@ import datetime
 
 import arrow
 import sqlalchemy as sa
-import web
 
 from error import WeasylError
 import define as d
@@ -608,8 +607,6 @@ _tables = [
 
 
 def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
-    web.header('Content-Type', 'text/plain')
-
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
 

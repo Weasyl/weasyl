@@ -17,7 +17,6 @@ from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import image
 from weasyl import macro
-from weasyl import macro as m
 from weasyl import media
 from weasyl import profile
 from weasyl import report
@@ -50,7 +49,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     if thumbsize:
         files.easyupload(tempthumb, thumbfile, "image")
         thumbextension = files.get_extension_for_category(
-            thumbfile, m.ART_SUBMISSION_CATEGORY)
+            thumbfile, macro.ART_SUBMISSION_CATEGORY)
     else:
         thumbextension = None
 
@@ -58,7 +57,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     if submitsize:
         files.easyupload(tempsubmit, submitfile, "image")
         submitextension = files.get_extension_for_category(
-            submitfile, m.ART_SUBMISSION_CATEGORY)
+            submitfile, macro.ART_SUBMISSION_CATEGORY)
     else:
         submitextension = None
 

@@ -71,9 +71,6 @@ error_messages = {
     "coverType": (
         "The cover art file you uploaded is not a valid filetype for this submission category."),
     "duplicateSubmission": "You have already made a submission with this submission file.",
-    "emailBlacklisted": (
-        "The domain of the email you entered has been associated with a high volume of spam. "
-        "Consequently, registrations from this domain have been blacklisted."),
     "emailExists": "The email you entered is already taken by another user.",
     "emailIncorrect": "The email you entered is not associated with the account you specified.",
     "emailInvalid": "The email you entered does not appear to be valid.",

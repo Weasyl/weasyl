@@ -198,18 +198,6 @@ disk_media = Table(
 )
 
 
-emailblacklist = Table(
-    'emailblacklist', metadata,
-    Column('id', Integer(), primary_key=True, nullable=False),
-    Column('added_by', Integer(), nullable=False),
-    Column('domain_name', String(length=252), nullable=False, unique=True),
-    Column('reason', Text(), nullable=False),
-    default_fkey(['added_by'], ['login.userid'], name='emailblacklist_userid_fkey'),
-)
-
-Index('ind_emailblacklist_domain_name', emailblacklist.c.domain_name)
-
-
 emailverify = Table(
     'emailverify', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),

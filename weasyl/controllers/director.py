@@ -1,10 +1,9 @@
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
-from weasyl import dry
 from weasyl.controllers.decorators import director_only
 from weasyl.controllers.decorators import token_checked
-import weasyl.define as d
+from weasyl import define as d
 
 
 """ Director control panel view callables """
@@ -12,17 +11,17 @@ import weasyl.define as d
 
 @director_only
 def directorcontrol_(request):
-    return Response(dry.admin_render_page("directorcontrol/directorcontrol.html"))
+    return Response(d.webpage(request.userid, "directorcontrol/directorcontrol.html"))
 
 
 @director_only
 def directorcontrol_emailblacklist_get_(request):
     query = d.engine.execute("""
-                SELECT id, domain_name, added_by, reason, lo.login_name AS name
-                FROM emailblacklist
-                INNER JOIN login AS lo ON added_by = lo.userid
-                ORDER BY domain_name
-                """)
+        SELECT id, domain_name, added_by, reason, lo.login_name AS name
+        FROM emailblacklist
+        INNER JOIN login AS lo ON added_by = lo.userid
+        ORDER BY domain_name
+    """)
     blacklist_information = map(dict, query)
     return Response(d.webpage(request.userid, "directorcontrol/emailblacklist.html", [blacklist_information]))
 

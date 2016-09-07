@@ -1,5 +1,3 @@
-import web
-
 import arrow
 import sqlalchemy as sa
 
@@ -7,7 +5,6 @@ from libweasyl import staff
 from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import define as d
-from weasyl import dry
 from weasyl import media
 from weasyl import welcome
 from weasyl.error import WeasylError
@@ -74,26 +71,3 @@ def select_by_id(updateid):
     results['user_media'] = media.get_user_media(results['userid'])
     results['timestamp'] = results['unixtime'].timestamp + UNIXTIME_OFFSET
     return results
-
-
-class admincontrol_siteupdate_:
-    def GET(self):
-        return dry.admin_render_page("admincontrol/siteupdate.html")
-
-    @d.token_checked
-    def POST(self):
-        userid = d.get_userid()
-        status = d.common_status_check(userid)
-
-        if status:
-            return d.common_status_page(userid, status)
-        elif not userid:
-            return d.webpage(userid)
-        elif userid not in staff.MODS:
-            return d.webpage(userid, d.errorcode.permission)
-
-        form = web.input(title="", content="")
-
-        create(userid, form)
-
-        raise web.seeother("/admincontrol")

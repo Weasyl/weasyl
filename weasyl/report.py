@@ -231,6 +231,7 @@ def close(userid, form):
 
     Report.dbsession.flush()
     if form.action == 'action_taken':
+        # TODO(hyena): Remove this dependency on web.py's Storage objects.
         note_form = web.Storage()
         note_form.title = form.note_title
         note_form.content = form.user_note

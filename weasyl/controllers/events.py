@@ -1,7 +1,7 @@
+from pyramid.response import Response
+
 from weasyl import define
-from weasyl.controllers.base import controller_base
 
 
-class halloweasyl2014_(controller_base):
-    def GET(self):
-        return define.webpage(userid=self.user_id, template='events/halloweasyl.html')
+def halloweasyl2014_(request):
+    return Response(define.webpage(userid=request.userid, template='events/halloweasyl.html'))

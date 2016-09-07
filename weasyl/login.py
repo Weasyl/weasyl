@@ -24,20 +24,15 @@ def signin(userid):
     d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
 
     # set the userid on the session
-    sess = d.web.ctx.weasyl_session
+    sess = d.get_weasyl_session()
     sess.userid = userid
     sess.save = True
 
 
-def signout(userid):
-    sess = d.web.ctx.weasyl_session
+def signout(request):
+    sess = request.weasyl_session
     # unset SFW-mode cookie on logout
-    d.web.setcookie("sfwmode", "nsfw", -1)
-    if sess.additional_data.get('user-stack'):
-        sess.userid = sess.additional_data['user-stack'].pop()
-        sess.additional_data.changed()
-    else:
-        sess.userid = None
+    request.delete_cookie_on_response("sfwmode")
     sess.save = True
 
 

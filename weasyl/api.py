@@ -1,6 +1,6 @@
 # api.py
 
-import web
+from pyramid.threadlocal import get_current_request
 
 from libweasyl.models.meta import Base
 from libweasyl.models.api import APIToken
@@ -9,7 +9,8 @@ from weasyl import define as d
 
 
 def is_api_user():
-    return 'HTTP_X_WEASYL_API_KEY' in web.ctx.env or 'HTTP_AUTHORIZATION' in web.ctx.env
+    request = get_current_request()
+    return 'X_WEASYL_API_KEY' in request.headers or 'AUTHORIZATION' in request.headers
 
 
 def get_api_keys(userid):

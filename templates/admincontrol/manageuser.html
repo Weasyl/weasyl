@@ -1,4 +1,4 @@
-$def with (profile, can_impersonate)
+$def with (profile)
 $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
 
 <div class="content">
@@ -56,10 +56,5 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     <button type="submit" class="button highlighted" style="float: right;">Save Changes</button>
     <a class="button" href="/admincontrol">Go Back</a>
     <a class="button" href="/~${LOGIN(profile['username'])}">Profile</a>
-    $if can_impersonate:
-      <button type="submit" class="button" style="float: right; clear: both;"
-              name="impersonate" value="yes">
-        Impersonate user
-      </button>
   </form>
 </div>

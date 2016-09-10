@@ -1,6 +1,24 @@
 Weasyl Changelog
 ================
 
+v1.1.8: 2016-09-08
+----------
+
+Internal changes:
+
+ * Avoid checking tokens in api_method decorator. (#115, @charmander)
+ * Integrates the style and best practices guide into the codebase. (#116, @kfkitsune)
+ * Alters the 'find user' function to be usable by administrators only. (#144, @kfkitsune)
+ * Cleans up the image processing code. (#148, #155, @charmander)
+ * Converts the codebase to use Pyramid instead of web.py. (#96, @hyena)
+ * Remove leftover `self`s from controller helpers. (#150, @charmander)
+ * Miscellaneous bug fixes. (#151, #152, @charmander)
+ * Pass correct search type to template when #-specified. (#153, @charmander)
+ * UTF-8 encode OAuth headers. (#154, @charmander)
+ * Adds a UI for admins to remove users' social links. (#149, @syfaro)
+ * Use renderers for API views (#161, @charmander)
+ * Removes the administrator 'impersonate user' feature (#159, b2d8d25, @charmander)
+
 v1.1.7: 2016-08-06
 ----------
 

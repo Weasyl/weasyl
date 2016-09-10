@@ -1,5 +1,3 @@
-# folder.py
-
 from __future__ import absolute_import
 
 import sqlalchemy as sa

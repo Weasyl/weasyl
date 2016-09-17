@@ -1,6 +1,4 @@
 """
-from __future__ import absolute_import
-
 Retrieve a dictionary of Weasyl staff.
 
 This module is invoked by calling `read_staff_yaml.load_staff_dict()`, and it
@@ -35,7 +33,10 @@ We recommend storing staff members in lexicographic order by name
 within each group.
 """
 
+from __future__ import absolute_import
+
 import yaml
+
 from weasyl import macro
 
 

@@ -1,34 +1,34 @@
-# submission.py
+from __future__ import absolute_import
 
 import urlparse
 
 import arrow
 import sqlalchemy as sa
 
-from error import PostgresError, WeasylError
-import macro as m
-import define as d
-
-import files
-
-import embed
-import image
-import folder
-import report
-import comment
-import profile
-import welcome
-import blocktag
-import favorite
-import searchtag
-import frienduser
-import ignoreuser
-import collection
-
 from libweasyl.cache import region
 from libweasyl import html, images, text, ratings, staff
 
-from weasyl import api, media, orm, twits
+from weasyl import api
+from weasyl import blocktag
+from weasyl import collection
+from weasyl import comment
+from weasyl import define as d
+from weasyl import embed
+from weasyl import favorite
+from weasyl import files
+from weasyl import folder
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import image
+from weasyl import macro as m
+from weasyl import media
+from weasyl import orm
+from weasyl import profile
+from weasyl import report
+from weasyl import searchtag
+from weasyl import twits
+from weasyl import welcome
+from weasyl.error import PostgresError, WeasylError
 
 
 _MEGABYTE = 1048576

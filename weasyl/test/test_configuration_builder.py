@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import unittest
 from weasyl.configuration_builder import (
     BoolOption, ConfigOption, DuplicateCode, InvalidValue, create_configuration)

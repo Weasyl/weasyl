@@ -2,13 +2,15 @@
 #%# family=auto
 #%# capabilities=autoconf suggest
 
+from __future__ import absolute_import
+
 import os
 
 from twisted.internet.endpoints import clientFromString
 from twisted.internet import defer, task, protocol
 from twisted.protocols import amp
 
-import polecat
+from weasyl import polecat
 
 PERCENTILES = [0, 50, 85, 95, 98, 100]
 LENGTHS = [0.1, 0.5, 1, 2, 5]

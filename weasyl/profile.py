@@ -1,25 +1,22 @@
-# profile.py
-
-from translationstring import TranslationString as _
-
-from error import WeasylError
-import macro as m
-import define as d
+from __future__ import absolute_import
 
 import pytz
-
-import orm
-import shout
-import welcome
+from translationstring import TranslationString as _
 
 from libweasyl.html import strip_html
 from libweasyl.models import tables
 from libweasyl import ratings
 from libweasyl import staff
 
+from weasyl import define as d
+from weasyl import macro as m
+from weasyl import media
+from weasyl import orm
+from weasyl import shout
+from weasyl import welcome
 from weasyl.cache import region
 from weasyl.configuration_builder import create_configuration, BoolOption, ConfigOption
-from weasyl import media
+from weasyl.error import WeasylError
 
 
 class ExchangeType:
@@ -512,7 +509,7 @@ def edit_userinfo(userid, form):
 
 def edit_email_password(userid, username, password, newemail, newemailcheck,
                         newpassword, newpasscheck):
-    import login
+    from weasyl import login
 
     # Check that credentials are correct
     logid, logerror = login.authenticate_bcrypt(username, password, session=False)

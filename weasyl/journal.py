@@ -1,29 +1,26 @@
-# journal.py
+from __future__ import absolute_import
 
 import arrow
-
-from error import WeasylError
-import macro as m
-import define as d
-
-import files
-import comment
-import profile
-import welcome
-import blocktag
-import searchtag
-import frienduser
-import ignoreuser
-
-import report
-import favorite
 
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
 
 from weasyl import api
+from weasyl import blocktag
+from weasyl import comment
+from weasyl import define as d
+from weasyl import favorite
+from weasyl import files
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import macro as m
 from weasyl import media
+from weasyl import profile
+from weasyl import report
+from weasyl import searchtag
+from weasyl import welcome
+from weasyl.error import WeasylError
 
 
 def create(userid, journal, friends_only=False, tags=None):
@@ -42,13 +39,13 @@ def create(userid, journal, friends_only=False, tags=None):
     # Create journal
     jo = d.meta.tables["journal"]
 
-    journalid = d.engine.execute(jo.insert().returning(jo.c.journalid), {
+    journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
-    }).scalar()
+    })
 
     # Write journal file
     files.make_path(journalid, "journal")

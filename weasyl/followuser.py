@@ -1,16 +1,13 @@
-# followuser.py
-
-from error import WeasylError
-import macro as m
-import define as d
-
-import welcome
-import ignoreuser
+from __future__ import absolute_import
 
 from libweasyl import ratings
 
-from weasyl.configuration_builder import create_configuration, BoolOption
+from weasyl import define as d
+from weasyl import ignoreuser
+from weasyl import macro as m
 from weasyl import media
+from weasyl.configuration_builder import create_configuration, BoolOption
+from weasyl.error import WeasylError
 
 WatchSettings = create_configuration([
     BoolOption("submit", "s"),
@@ -152,6 +149,7 @@ def insert(userid, otherid):
         'ON CONFLICT DO NOTHING',
         user=userid, other=otherid, settings=WatchSettings.from_code(d.get_config(userid)).to_code())
 
+    from weasyl import welcome
     welcome.followuser_remove(userid, otherid)
     welcome.followuser_insert(userid, otherid)
 
@@ -164,4 +162,5 @@ def update(userid, otherid, watch_settings):
 def remove(userid, otherid):
     d.execute("DELETE FROM watchuser WHERE (userid, otherid) = (%i, %i)", [userid, otherid])
 
+    from weasyl import welcome
     welcome.followuser_remove(userid, otherid)

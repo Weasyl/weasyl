@@ -1,4 +1,4 @@
-# shout.py
+from __future__ import absolute_import
 
 import arrow
 
@@ -14,7 +14,7 @@ from weasyl.comment import _thread
 from weasyl.error import WeasylError
 
 
-def select(userid, ownerid, limit=None, start=None, staffnotes=False):
+def select(userid, ownerid, limit=None, staffnotes=False):
     result = []
     statement = ["""
         SELECT sh.commentid, sh.parentid, sh.userid, pr.username, lo.settings, sh.content, sh.unixtime,
@@ -43,7 +43,7 @@ def select(userid, ownerid, limit=None, start=None, staffnotes=False):
                 "parentid": query[i][1],
                 "userid": query[i][2],
                 "username": query[i][3],
-                "status": "".join(i for i in query[i][4] if i in "bs"),
+                "status": "".join(c for c in query[i][4] if i in "bs"),
                 "content": query[i][5],
                 "unixtime": query[i][6],
                 "settings": query[i][7],
@@ -55,10 +55,7 @@ def select(userid, ownerid, limit=None, start=None, staffnotes=False):
             _thread(query, result, i)
 
     if limit:
-        if start:
-            ret = result[start:start + limit]
-        else:
-            ret = result[:limit]
+        ret = result[:limit]
     else:
         ret = result
 

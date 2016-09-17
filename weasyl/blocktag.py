@@ -1,12 +1,10 @@
-# blocktag.py
-
-import define as d
-
-import profile
-import searchtag
+from __future__ import absolute_import
 
 from libweasyl import ratings
 
+from weasyl import define as d
+from weasyl import profile
+from weasyl import searchtag
 from weasyl.cache import region
 
 # For blocked tags, `rating` refers to the lowest rating for which that tag is

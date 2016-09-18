@@ -17,6 +17,19 @@ def modcontrol_(request):
 
 
 @moderator_only
+def modcontrol_auditlog_(request):
+    form = request.web_input(username=None, staff=None, start_date=None, end_date=None)
+    
+    return Response(define.webpage(request.userid, "modcontrol/auditlog.html", [
+        moderation.audit_log(
+            username=form.username, staff=form.staff,
+            start_date=form.start_date, end_date=form.end_date,
+            timezone=request.weasyl_session.timezone.timezone),
+        form
+    ]))
+
+
+@moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
                                    [moderation.BAN_TEMPLATES, json.dumps(moderation.BAN_TEMPLATES)]))

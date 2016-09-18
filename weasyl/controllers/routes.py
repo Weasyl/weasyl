@@ -212,6 +212,7 @@ routes = (
 
     # Moderation routes.
     Route("/modcontrol", "modcontrol", moderation.modcontrol_),
+    Route("/modcontrol/auditlog", "modcontrol_auditlog", moderation.modcontrol_auditlog_),
     Route("/modcontrol/suspenduser", "modcontrol_suspenduser", {
         'GET': moderation.modcontrol_suspenduser_get_,
         'POST': moderation.modcontrol_suspenduser_post_,

@@ -1,14 +1,17 @@
+from __future__ import absolute_import
+
+import datetime
 import unittest
 import pytest
 
-import web
+import arrow
 
 from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
 
 from libweasyl.models import site, users
 import weasyl.define as d
-from weasyl import blocktag, submission, welcome
+from weasyl import blocktag, searchtag, submission, welcome
 from weasyl.test import db_utils
 
 
@@ -34,10 +37,6 @@ class SelectListTestCase(unittest.TestCase):
             user1, ratings.GENERAL.code, 10, otherid=user1)))
 
     def test_ratings_twittercard(self):
-        # For tests, this isn't set. absolutify_url requires it,
-        # so this test would fail if it wasn't set.
-        web.ctx.realhome = 'https://lo.weasyl.com:8443'
-
         user = db_utils.create_user()
 
         sub1 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
@@ -54,9 +53,6 @@ class SelectListTestCase(unittest.TestCase):
         self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
         self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card3['description'])
         self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card4['description'])
-
-        # Delete this so it cannot interfere with other things.
-        del web.ctx.realhome
 
     def test_filters(self):
         # Test filters of the following:
@@ -164,8 +160,8 @@ class SelectListTestCase(unittest.TestCase):
 
     def test_duplicate_blocked_tag(self):
         user = db_utils.create_user()
-        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code, tagid=None)
-        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code, tagid=None)
+        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code)
+        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code)
 
     def test_profile_page_filter(self):
         user1 = db_utils.create_user()
@@ -202,6 +198,80 @@ class SelectListTestCase(unittest.TestCase):
         self.assertEqual(
             1, len(submission.select_list(user1, ratings.GENERAL.code, 10,
                                           featured_filter=True)))
+
+    def test_retag(self):
+        owner = db_utils.create_user()
+        tagger = db_utils.create_user()
+        s = db_utils.create_submission(owner, rating=ratings.GENERAL.code)
+
+        searchtag.associate(owner, {'orange'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['orange'])
+
+        searchtag.associate(tagger, {'apple', 'tomato'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['apple', 'tomato'])
+
+        searchtag.associate(tagger, {'tomato'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['tomato'])
+
+        searchtag.associate(owner, {'kale'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['kale'])
+
+    def test_retag_no_owner_remove(self):
+        config = CharSettings({'disallow-others-tag-removal'}, {}, {})
+        owner = db_utils.create_user(config=config)
+        tagger = db_utils.create_user()
+        s = db_utils.create_submission(owner, rating=ratings.GENERAL.code)
+
+        searchtag.associate(owner, {'orange'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['orange'])
+
+        searchtag.associate(tagger, {'apple', 'tomato'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['apple', 'orange', 'tomato'])
+
+        searchtag.associate(tagger, {'tomato'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['orange', 'tomato'])
+
+        searchtag.associate(owner, {'kale'}, submitid=s)
+        self.assertEqual(
+            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            ['kale'])
+
+    def test_recently_popular(self):
+        owner = db_utils.create_user()
+        now = arrow.now()
+
+        sub1 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=6))
+        sub2 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=4))
+        sub3 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=2))
+        sub4 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now)
+        tag = db_utils.create_tag(u'tag')
+
+        for s in [sub1, sub2, sub3, sub4]:
+            db_utils.create_submission_tag(tag, s)
+
+        for i in range(100):
+            favoriter = db_utils.create_user()
+            db_utils.create_favorite(favoriter, sub2, 's', unixtime=now)
+
+        recently_popular = submission.select_recently_popular()
+
+        self.assertEqual(
+            [item['submitid'] for item in recently_popular],
+            [sub2, sub4, sub3, sub1])
 
 
 @pytest.mark.usefixtures('db')

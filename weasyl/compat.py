@@ -1,6 +1,9 @@
+from __future__ import absolute_import
+
 import posixpath
 
 
+# TODO: Delete this. Use the real request. Need to replace 'path_for' in templates.
 class FakePyramidRequest(object):
     def resource_path(self, rsrc, *parts):
         if rsrc is not None:

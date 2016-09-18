@@ -1,31 +1,33 @@
+from __future__ import absolute_import
+
 import itertools
 
-import web
+from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.response import Response
 
 from weasyl import define, message
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import login_required, token_checked
+
+"""Contains view callables dealing with notification messages."""
 
 
-# Message notification functions
-class messages_remove_(controller_base):
-    login_required = True
+@login_required
+@token_checked
+def messages_remove_(request):
+    form = request.web_input(recall='', remove=[])
+    remove_all_before = form.get('remove-all-before')
 
-    @define.token_checked
-    def POST(self):
-        form = web.input(recall='', remove=[])
-        remove_all_before = form.get('remove-all-before')
+    if remove_all_before:
+        message.remove_all_before(request.userid, int(remove_all_before))
+    elif form.get('remove-all-submissions'):
+        message.remove_all_submissions(request.userid, define.get_int(form['remove-all-submissions']))
+    else:
+        message.remove(request.userid, map(int, form.remove))
 
-        if remove_all_before:
-            message.remove_all_before(self.user_id, int(remove_all_before))
-        elif form.get('remove-all-submissions'):
-            message.remove_all_submissions(self.user_id, define.get_int(form['remove-all-submissions']))
-        else:
-            message.remove(self.user_id, map(int, form.remove))
-
-        if form.recall:
-            raise web.seeother('/messages/submissions')
-        else:
-            raise web.seeother('/messages/notifications')
+    if form.recall:
+        raise HTTPSeeOther(location="/messages/submissions")
+    else:
+        raise HTTPSeeOther(location="/messages/notifications")
 
 
 def tag_section(results, section):
@@ -43,36 +45,32 @@ def sort_notifications(notifications):
     ]
 
 
-class messages_notifications_(controller_base):
-    login_required = True
+@login_required
+def messages_notifications_(request):
+    """ todo finish listing of message types in the template """
 
-    def GET(self):
-        """ todo finish listing of message types in the template """
+    notifications = (
+        tag_section(message.select_site_updates(request.userid), 'notifications') +
+        tag_section(message.select_comments(request.userid), 'comments') +
+        tag_section(message.select_notifications(request.userid), 'notifications') +
+        tag_section(message.select_journals(request.userid), 'journals')
+    )
 
-        notifications = (
-            tag_section(message.select_site_updates(self.user_id), 'notifications') +
-            tag_section(message.select_comments(self.user_id), 'comments') +
-            tag_section(message.select_notifications(self.user_id), 'notifications') +
-            tag_section(message.select_journals(self.user_id), 'journals')
-        )
-
-        define._page_header_info.refresh(self.user_id)
-        return define.webpage(self.user_id, "message/notifications.html", [
-            sort_notifications(notifications),
-        ])
+    define._page_header_info.refresh(request.userid)
+    return Response(define.webpage(request.userid, "message/notifications.html", [
+        sort_notifications(notifications),
+    ]))
 
 
-class messages_submissions_(controller_base):
-    login_required = True
+@login_required
+def messages_submissions_(request):
+    form = request.web_input(feature="", backtime=None, nexttime=None)
 
-    def GET(self):
-        form = web.input(feature="", backtime=None, nexttime=None)
-
-        define._page_header_info.refresh(self.user_id)
-        return define.webpage(self.user_id, "message/submissions_thumbnails.html", [
-            # Feature
-            form.feature,
-            # Submissions
-            message.select_submissions(self.user_id, 66,
-                                       backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
-        ])
+    define._page_header_info.refresh(request.userid)
+    return Response(define.webpage(request.userid, "message/submissions_thumbnails.html", [
+        # Feature
+        form.feature,
+        # Submissions
+        message.select_submissions(request.userid, 66,
+                                   backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
+    ]))

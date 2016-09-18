@@ -1,29 +1,26 @@
-# journal.py
+from __future__ import absolute_import
 
 import arrow
-
-from error import WeasylError
-import macro as m
-import define as d
-
-import files
-import comment
-import profile
-import welcome
-import blocktag
-import searchtag
-import frienduser
-import ignoreuser
-
-import report
-import favorite
 
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
 
 from weasyl import api
+from weasyl import blocktag
+from weasyl import comment
+from weasyl import define as d
+from weasyl import favorite
+from weasyl import files
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import macro as m
 from weasyl import media
+from weasyl import profile
+from weasyl import report
+from weasyl import searchtag
+from weasyl import welcome
+from weasyl.error import WeasylError
 
 
 def create(userid, journal, friends_only=False, tags=None):
@@ -42,13 +39,13 @@ def create(userid, journal, friends_only=False, tags=None):
     # Create journal
     jo = d.meta.tables["journal"]
 
-    journalid = d.engine.execute(jo.insert().returning(jo.c.journalid), {
+    journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
-    }).scalar()
+    })
 
     # Write journal file
     files.make_path(journalid, "journal")
@@ -87,7 +84,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
         SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
-    """, id=journalid).fetchone()
+    """, id=journalid).first()
 
     if journalid and userid in staff.MODS and anyway:
         pass
@@ -166,13 +163,15 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     }
 
 
-def select_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):
+def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
     if config is None:
         config = d.get_config(userid)
 
-    statement = [" FROM journal jo"
-                 " JOIN profile pr ON jo.userid = pr.userid"
-                 " WHERE jo.settings !~ 'h'"]
+    statement = [
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
+        " FROM journal jo"
+        " JOIN profile pr ON jo.userid = pr.userid"
+        " WHERE jo.settings !~ 'h'"]
 
     if otherid:
         statement.append(" AND jo.userid = %i")
@@ -196,18 +195,7 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None, config=
         statement.append(" AND jo.journalid > %i" % backid)
     elif nextid:
         statement.append(" AND jo.journalid < %i" % nextid)
-    return statement
 
-
-def select_user_count(userid, rating, otherid=None, backid=None, nextid=None, config=None):
-    statement = ["SELECT count(jo.journalid)"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid, config))
-    return d.execute("".join(statement))[0][0]
-
-
-def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    statement = ["SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid, config))
     statement.append(" ORDER BY jo.journalid%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = [{

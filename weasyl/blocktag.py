@@ -1,13 +1,10 @@
-# blocktag.py
-
-from error import PostgresError
-import define as d
-
-import profile
-import searchtag
+from __future__ import absolute_import
 
 from libweasyl import ratings
 
+from weasyl import define as d
+from weasyl import profile
+from weasyl import searchtag
 from weasyl.cache import region
 
 # For blocked tags, `rating` refers to the lowest rating for which that tag is
@@ -54,16 +51,7 @@ def check(userid, submitid=None, charid=None, journalid=None):
 
 
 def check_list(rating, tags, blocked_tags):
-    return any(rating >= b['rating'] and b['title'] in tags for b in blocked_tags)
-
-
-def suggest(userid, target):
-    if not target:
-        return []
-
-    return d.execute("SELECT title FROM searchtag"
-                     " WHERE title LIKE '%s%%' AND tagid NOT IN (SELECT tagid FROM blocktag WHERE userid = %i)"
-                     " ORDER BY title LIMIT 10", [target, userid], options="within")
+    return any(rating >= b['rating'] and b['tagid'] in tags for b in blocked_tags)
 
 
 def select(userid):
@@ -78,45 +66,26 @@ def select(userid):
 
 @region.cache_on_arguments()
 @d.record_timing
-def cached_select(userid):
-    return select(userid)
+def select_ids(userid):
+    return [
+        dict(row)
+        for row in d.engine.execute(
+            'SELECT tagid, rating FROM blocktag WHERE userid = %(user)s',
+            user=userid)
+    ]
 
 
-def insert(userid, tagid=None, title=None, rating=None):
-
+def insert(userid, title, rating):
     if rating not in ratings.CODE_MAP:
         rating = ratings.GENERAL.code
 
     profile.check_user_rating_allowed(userid, rating)
 
-    if tagid:
-        tag = int(tagid)
+    d.engine.execute(
+        'INSERT INTO blocktag (userid, tagid, rating) VALUES (%(user)s, %(tag)s, %(rating)s) ON CONFLICT DO NOTHING',
+        user=userid, tag=searchtag.get_or_create(title), rating=rating)
 
-        try:
-            d.engine.execute("INSERT INTO blocktag VALUES (%s, %s, %s)", userid, tag, rating)
-        except PostgresError:
-            return
-    elif title:
-        tag_name = d.get_search_tag(title)
-
-        try:
-            d.engine.execute("""
-                INSERT INTO blocktag (userid, tagid, rating)
-                VALUES (
-                    %(user)s,
-                    (SELECT tagid FROM searchtag WHERE title = %(tag_name)s),
-                    %(rating)s
-                )
-            """, user=userid, tag_name=tag_name, rating=rating)
-        except PostgresError:
-            try:
-                tag = searchtag.create(title)
-            except PostgresError:
-                return
-
-            d.engine.execute("INSERT INTO blocktag VALUES (%s, %s, %s)", userid, tag, rating)
-
-    cached_select.invalidate(userid)
+    select_ids.invalidate(userid)
 
 
 def remove(userid, tagid=None, title=None):
@@ -126,4 +95,4 @@ def remove(userid, tagid=None, title=None):
         d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, (SELECT tagid FROM searchtag WHERE title = '%s'))",
                   [userid, d.get_search_tag(title)])
 
-    cached_select.invalidate(userid)
+    select_ids.invalidate(userid)

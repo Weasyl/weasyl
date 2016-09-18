@@ -1,4 +1,4 @@
-# favorite.py
+from __future__ import absolute_import
 
 import logging
 import os
@@ -6,11 +6,10 @@ import os
 from sanpera.exception import SanperaError
 from sanpera.image import Image
 from sanpera import geometry
-import web
 
-from error import WeasylError
-
-import files
+from weasyl import files
+from weasyl.define import log_exc
+from weasyl.error import WeasylError
 
 
 COVER_SIZE = 1024, 3000
@@ -20,7 +19,7 @@ def read(filename):
     try:
         return Image.read(filename)
     except SanperaError:
-        web.ctx.log_exc(level=logging.DEBUG)
+        log_exc(level=logging.DEBUG)
         raise WeasylError('imageDecodeError')
 
 
@@ -28,38 +27,8 @@ def from_string(filedata):
     try:
         return Image.from_buffer(filedata)
     except SanperaError:
-        web.ctx.log_exc(level=logging.DEBUG)
+        log_exc(level=logging.DEBUG)
         raise WeasylError('imageDecodeError')
-
-
-# Return a dictionary containing the image format, dimensions, and file size.
-# If a particular element of the result dictionary cannot be determined, it
-# will be assigned to None; if the filename does not appear to refer to a valid
-# image file, a ValueError will be raised if `exception` is True else None will
-# be returned.
-
-def get_info(filename, exception=False, printable=False):
-    assert not printable  # deprecated parameter
-
-    if not filename:
-        if exception:
-            raise ValueError
-        else:
-            return
-
-    im = read(filename)
-    filesize = os.path.getsize(filename)
-
-    return {
-        # File extension
-        "format": image_extension(im),
-        # File type flag
-        "setting": image_setting(im),
-        # Dimensions list
-        "dimensions": (im.size.width, im.size.height),
-        # File size
-        "filesize": filesize,
-    }
 
 
 def image_extension(im):
@@ -85,35 +54,6 @@ def image_file_type(im):
     if ret is not None:
         ret = ret.lstrip('.')
     return ret
-
-
-def get_frames(filename):
-    """
-    Return the number of frames in the image file.
-    """
-    im = read(filename)
-    return len(im)
-
-
-def unanimate(im):
-    if len(im) == 1:
-        return im
-    ret = Image()
-    ret.append(im[0])
-    return ret
-
-
-def get_dimensions(filename, inline=False):
-    """
-    Return the dimension of the image file; if `inline` is True return the result
-    set as tuple, else return it as a list. The dimensions are returned as width
-    and height in either case.
-    """
-    im = read(filename)
-    size = im.size.width, im.size.height
-    if not inline:
-        size = list(size)
-    return size
 
 
 def check_crop(dim, x1, y1, x2, y2):
@@ -179,15 +119,6 @@ def resize_image(im, width, height):
     return correct_image_and_call(_resize, im, width, height) or im
 
 
-def make_popup(filename, destination=None):
-    """
-    Create a popup image file; if `destination` is passed, a new file will be
-    created and the original left unaltered, else the original file will be
-    altered.
-    """
-    resize(filename, 300, 300, destination=destination)
-
-
 def make_cover(filename, destination=None):
     """
     Create a cover image file; if `destination` is passed, a new file will be
@@ -195,10 +126,6 @@ def make_cover(filename, destination=None):
     altered.
     """
     resize(filename, *COVER_SIZE, destination=destination)
-
-
-def make_cover_image(im):
-    return resize_image(im, *COVER_SIZE)
 
 
 def correct_image_and_call(f, im, *a, **kw):

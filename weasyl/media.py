@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from libweasyl import media as libweasylmedia
 from libweasyl.text import slug_for
 

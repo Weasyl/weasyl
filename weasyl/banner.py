@@ -1,4 +1,4 @@
-# banner.py
+from __future__ import absolute_import
 
 from libweasyl import ratings
 

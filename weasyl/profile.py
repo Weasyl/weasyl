@@ -1,25 +1,22 @@
-# profile.py
-
-from translationstring import TranslationString as _
-
-from error import WeasylError
-import macro as m
-import define as d
+from __future__ import absolute_import
 
 import pytz
-
-import orm
-import shout
-import welcome
+from translationstring import TranslationString as _
 
 from libweasyl.html import strip_html
 from libweasyl.models import tables
 from libweasyl import ratings
 from libweasyl import staff
 
+from weasyl import define as d
+from weasyl import macro as m
+from weasyl import media
+from weasyl import orm
+from weasyl import shout
+from weasyl import welcome
 from weasyl.cache import region
 from weasyl.configuration_builder import create_configuration, BoolOption, ConfigOption
-from weasyl import media
+from weasyl.error import WeasylError
 
 
 class ExchangeType:
@@ -238,13 +235,12 @@ def select_userinfo(userid, config=None):
             WHERE userid = %(userid)s
         """, userid=userid, config=config)
 
-    user_link_rows = d.engine.execute("""
+    user_links = d.engine.execute("""
         SELECT link_type, ARRAY_AGG(link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
-    """, userid=userid)
-    user_links = {r[0]: r[1] for r in user_link_rows}
+    """, userid=userid).fetchall()
 
     show_age = "b" in query[0] or d.get_userid() in staff.MODS
     return {
@@ -253,7 +249,8 @@ def select_userinfo(userid, config=None):
         "show_age": "b" in query[0],
         "gender": query[2],
         "country": query[3],
-        "user_links": user_links,
+        "user_links": {r[0]: r[1] for r in user_links},
+        "sorted_user_links": sort_user_links(user_links),
     }
 
 
@@ -282,24 +279,22 @@ def select_relation(userid, otherid):
             "friend": False,
             "ignore": False,
             "friendreq": False,
+            "follower": False,
             "is_self": userid == otherid,
         }
 
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
-            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%i, %i))),
-            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND settings !~ 'p')),
-            (SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%i, %i))),
-            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%i, %i) AND settings ~ 'p'))
-    """, [userid, otherid, userid, otherid, userid, otherid, userid, otherid, userid, otherid], ["single"])
+            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(user)s, %(other)s)) AS follow),
+            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE userid IN (%(user)s, %(other)s) AND otherid IN (%(user)s, %(other)s) AND settings !~ 'p') AS friend),
+            (SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%(user)s, %(other)s)) AS ignore),
+            (SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%(user)s, %(other)s) AND settings ~ 'p') AS friendreq),
+            (SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%(other)s, %(user)s)) AS follower)
+    """, user=userid, other=otherid).first()
 
-    return {
-        "follow": query[0],
-        "friend": query[1],
-        "ignore": query[2],
-        "friendreq": query[3],
-        "is_self": False,
-    }
+    return dict(
+        query,
+        is_self=False)
 
 
 @region.cache_on_arguments(expiration_time=600)
@@ -377,14 +372,10 @@ def select_avatars(userids):
     if not userids:
         return {}
 
-    results = d.execute(
-        "SELECT userid, username, config FROM profile pr WHERE userid IN %s" % (d.sql_number_list(userids),))
-    results = [
-        {
-            "username": username,
-            "userid": userid,
-        }
-        for userid, username, config in results]
+    results = d.engine.execute(
+        'SELECT userid, username FROM profile WHERE userid = ANY (%(users)s)',
+        users=userids)
+    results = [dict(row) for row in results]
     media.populate_with_user_media(results)
     return {d['userid']: d for d in results}
 
@@ -518,7 +509,7 @@ def edit_userinfo(userid, form):
 
 def edit_email_password(userid, username, password, newemail, newemailcheck,
                         newpassword, newpasscheck):
-    import login
+    from weasyl import login
 
     # Check that credentials are correct
     logid, logerror = login.authenticate_bcrypt(username, password, session=False)
@@ -604,6 +595,14 @@ def edit_preferences(userid, timezone=None,
 
 
 def select_manage(userid):
+    """Selects a user's information for display in the admin user management page.
+
+    Args:
+        userid (int): ID of user to fetch information for.
+
+    Returns:
+        Relevant user information as a dict.
+    """
     query = d.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, pr.unixtime, pr.username, pr.full_name, pr.catchphrase, ui.birthday,
@@ -616,6 +615,13 @@ def select_manage(userid):
 
     if not query:
         raise WeasylError("Unexpected")
+
+    user_link_rows = d.engine.execute("""
+        SELECT link_type, ARRAY_AGG(link_value)
+        FROM user_links
+        WHERE userid = %(userid)s
+        GROUP BY link_type
+    """, userid=userid)
 
     return {
         "userid": query[0],
@@ -630,11 +636,31 @@ def select_manage(userid):
         "country": query[9],
         "config": query[10],
         "staff_notes": shout.count(userid, staffnotes=True),
+        "sorted_user_links": sort_user_links(user_link_rows),
     }
 
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None):
+              birthday=None, gender=None, country=None, remove_social=None):
+    """Updates a user's information from the admin user management page.
+    After updating the user it records all the changes into the mod notes.
+
+    If an argument is None it will not be updated.
+
+    Args:
+        my_userid (int): ID of user making changes to other user.
+        userid (int): ID of user to modify.
+        username (str): New username for user. Defaults to None.
+        full_name (str): New full name for user. Defaults to None.
+        catchphrase (str): New catchphrase for user. Defaults to None.
+        birthday (str): New birthday for user, in format for convert_inputdate. Defaults to None.
+        gender (str): New gender for user. Defaults to None.
+        country (str): New country for user. Defaults to None.
+        remove_social (list): Items to remove from the user's social/contact links. Defaults to None.
+
+    Returns:
+        Does not return.
+    """
     updates = []
 
     # Username
@@ -710,6 +736,12 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
                   [country, userid])
         updates.append('- Country: %s' % (country,))
 
+    # Social and contact links
+    if remove_social:
+        for social_link in remove_social:
+            d.engine.execute("DELETE FROM user_links WHERE userid = %(userid)s AND link_type = %(link)s", userid=userid, link=social_link)
+            updates.append('- Removed social link for %s' % (social_link,))
+
     if updates:
         from weasyl import moderation
         moderation.note_about(my_userid, userid, 'The following fields were changed:', '\n'.join(updates))
@@ -769,3 +801,15 @@ class ProfileSettings(object):
 
     def get_raw(self):
         return self._raw_settings
+
+
+def sort_user_links(links):
+    """Sorts the user's social/contact links.
+
+    Args:
+        links (list): User's links.
+
+    Returns:
+        Sorted list of links.
+    """
+    return sorted(map(tuple, links), key=lambda kv: kv[0].lower())

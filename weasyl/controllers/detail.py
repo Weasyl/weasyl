@@ -1,171 +1,168 @@
+from __future__ import absolute_import
+
 import time
 
-import web
+from pyramid import httpexceptions
+from pyramid.response import Response
 
 from libweasyl.models.content import Submission
 from libweasyl.text import slug_for
 from weasyl import (
-    character, define, journal, macro, media, profile, searchtag, submission,
-    template)
-from weasyl.controllers.base import controller_base
+    character, define, journal, macro, media, profile, searchtag, submission)
 from weasyl.error import WeasylError
 
 
 # Content detail functions
-class submission_(controller_base):
-    def GET(self, a="", b=None):
-        if b is None:
-            username, submitid = None, a
-        else:
-            username, submitid = a, b
-        now = time.time()
+def submission_(request):
+    username = request.matchdict.get('name')
+    submitid = request.matchdict.get('submitid')
+    now = time.time()
 
-        form = web.input(submitid="", ignore="", anyway="")
+    form = request.web_input(submitid="", ignore="", anyway="")
 
-        rating = define.get_rating(self.user_id)
-        submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
+    rating = define.get_rating(request.userid)
+    submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
 
-        extras = {
-            "pdf": True,
-        }
+    extras = {
+        "pdf": True,
+    }
 
-        if define.user_is_twitterbot():
-            extras['twitter_card'] = submission.twitter_card(submitid)
+    if define.user_is_twitterbot():
+        extras['twitter_card'] = submission.twitter_card(submitid)
 
-        try:
-            item = submission.select_view(
-                self.user_id, submitid, rating,
-                ignore=define.text_bool(form.ignore, True), anyway=form.anyway
-            )
-        except WeasylError as we:
-            we.errorpage_kwargs = extras
-            if 'twitter_card' in extras:
-                extras['options'] = ['nocache']
-            if we.value in ("UserIgnored", "TagBlocked"):
-                extras['links'] = [
-                    ("View Submission", "?ignore=false"),
-                    ("Return to the Home Page", "/index"),
-                ]
-            raise
+    try:
+        item = submission.select_view(
+            request.userid, submitid, rating,
+            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+        )
+    except WeasylError as we:
+        we.errorpage_kwargs = extras
+        if 'twitter_card' in extras:
+            extras['options'] = ['nocache']
+        if we.value in ("UserIgnored", "TagBlocked"):
+            extras['links'] = [
+                ("View Submission", "?ignore=false"),
+                ("Return to the Home Page", "/index"),
+            ]
+        raise
 
-        login = define.get_sysname(item['username'])
-        if username is not None and login != username:
-            raise web.seeother('/~%s/post/%s/%s' % (login, submitid, slug_for(item["title"])))
-        extras["canonical_url"] = "/submission/%d/%s" % (submitid, slug_for(item["title"]))
-        extras["title"] = item["title"]
+    login = define.get_sysname(item['username'])
+    if username is not None and login != username:
+        raise httpexceptions.HTTPSeeOther(location='/~%s/post/%s/%s' % (login, submitid, slug_for(item["title"])))
+    extras["canonical_url"] = "/submission/%d/%s" % (submitid, slug_for(item["title"]))
+    extras["title"] = item["title"]
 
-        page = define.common_page_start(self.user_id, options=["mediaplayer"], **extras)
-        page.append(define.render(template.detail_submission, [
-            # Myself
-            profile.select_myself(self.user_id),
-            # Submission detail
-            item,
-            # Subtypes
-            macro.MACRO_SUBCAT_LIST,
-            # Violations
-            [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
-        ]))
+    page = define.common_page_start(request.userid, options=["mediaplayer"], **extras)
+    page.append(define.render('detail/submission.html', [
+        # Myself
+        profile.select_myself(request.userid),
+        # Submission detail
+        item,
+        # Subtypes
+        macro.MACRO_SUBCAT_LIST,
+        # Violations
+        [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
+    ]))
 
-        return define.common_page_end(self.user_id, page, now=now)
+    return Response(define.common_page_end(request.userid, page, now=now))
 
 
-class submission_media_(controller_base):
-    def GET(self, username, link_type, submitid):
-        submitid = int(submitid)
-        if link_type == "submissions":
-            link_type = "submission"
+def submission_media_(request):
+    link_type = request.matchdict['linktype']
+    submitid = int(request.matchdict['submitid'])
+    if link_type == "submissions":
+        link_type = "submission"
 
-        submission = Submission.query.get(submitid)
-        if submission is None:
-            return web.notfound()
-        elif submission.is_hidden or submission.is_friends_only:
-            return web.forbidden()
-        media_items = media.get_submission_media(submitid)
-        if not media_items.get(link_type):
-            return web.notfound()
-        web.header('X-Accel-Redirect', media_items[link_type][0]['file_url'])
-        web.header('Cache-Control', 'max-age=0')
-        return ''
+    submission = Submission.query.get(submitid)
+    if submission is None:
+        raise httpexceptions.HTTPForbidden()
+    elif submission.is_hidden or submission.is_friends_only:
+        raise httpexceptions.HTTPForbidden()
+    media_items = media.get_submission_media(submitid)
+    if not media_items.get(link_type):
+        raise httpexceptions.HTTPNotFound()
 
-
-class submission_tag_history_(controller_base):
-    def GET(self, submitid):
-        submitid = int(submitid)
-
-        page_title = "Tag updates"
-        page = define.common_page_start(self.user_id, title=page_title)
-        page.append(define.render('detail/tag_history.html', [
-            submission.select_view_api(self.user_id, submitid),
-            searchtag.tag_history(submitid),
-        ]))
-        return define.common_page_end(self.user_id, page)
+    return Response(headerlist=[
+        ('X-Accel-Redirect', str(media_items[link_type][0]['file_url']),),
+        ('Cache-Control', 'max-age=0',),
+    ])
 
 
-class character_(controller_base):
-    def GET(self, charid=""):
-        form = web.input(charid="", ignore="", anyway="")
+def submission_tag_history_(request):
+    submitid = int(request.matchdict['submitid'])
 
-        rating = define.get_rating(self.user_id)
-        charid = define.get_int(charid) if charid else define.get_int(form.charid)
-
-        try:
-            item = character.select_view(
-                self.user_id, charid, rating,
-                ignore=define.text_bool(form.ignore, True), anyway=form.anyway
-            )
-        except WeasylError as we:
-            if we.value in ("UserIgnored", "TagBlocked"):
-                we.errorpage_kwargs['links'] = [
-                    ("View Character", "?ignore=false"),
-                    ("Return to the Home Page", "/index"),
-                ]
-            raise
-
-        canonical_url = "/character/%d/%s" % (charid, slug_for(item["title"]))
-
-        page = define.common_page_start(self.user_id, canonical_url=canonical_url, title=item["title"])
-        page.append(define.render(template.detail_character, [
-            # Profile
-            profile.select_myself(self.user_id),
-            # Character detail
-            item,
-            # Violations
-            [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
-        ]))
-
-        return define.common_page_end(self.user_id, page)
+    page_title = "Tag updates"
+    page = define.common_page_start(request.userid, title=page_title)
+    page.append(define.render('detail/tag_history.html', [
+        submission.select_view_api(request.userid, submitid),
+        searchtag.tag_history(submitid),
+    ]))
+    return Response(define.common_page_end(request.userid, page))
 
 
-class journal_(controller_base):
-    def GET(self, journalid=""):
-        form = web.input(journalid="", ignore="", anyway="")
+def character_(request):
+    form = request.web_input(charid="", ignore="", anyway="")
 
-        rating = define.get_rating(self.user_id)
-        journalid = define.get_int(journalid) if journalid else define.get_int(form.journalid)
+    rating = define.get_rating(request.userid)
+    charid = define.get_int(request.matchdict.get('charid', form.charid))
 
-        try:
-            item = journal.select_view(
-                self.user_id, rating, journalid,
-                ignore=define.text_bool(form.ignore, True), anyway=form.anyway
-            )
-        except WeasylError as we:
-            if we.value in ("UserIgnored", "TagBlocked"):
-                we.errorpage_kwargs['links'] = [
-                    ("View Journal", "?ignore=false"),
-                    ("Return to the Home Page", "/index"),
-                ]
-            raise
+    try:
+        item = character.select_view(
+            request.userid, charid, rating,
+            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+        )
+    except WeasylError as we:
+        if we.value in ("UserIgnored", "TagBlocked"):
+            we.errorpage_kwargs['links'] = [
+                ("View Character", "?ignore=false"),
+                ("Return to the Home Page", "/index"),
+            ]
+        raise
 
-        canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
+    canonical_url = "/character/%d/%s" % (charid, slug_for(item["title"]))
 
-        page = define.common_page_start(self.user_id, options=["pager"], canonical_url=canonical_url, title=item["title"])
-        page.append(define.render(template.detail_journal, [
-            # Myself
-            profile.select_myself(self.user_id),
-            # Journal detail
-            item,
-            # Violations
-            [i for i in macro.MACRO_REPORT_VIOLATION if 3000 <= i[0] < 4000],
-        ]))
+    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
+    page.append(define.render('detail/character.html', [
+        # Profile
+        profile.select_myself(request.userid),
+        # Character detail
+        item,
+        # Violations
+        [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
+    ]))
 
-        return define.common_page_end(self.user_id, page)
+    return Response(define.common_page_end(request.userid, page))
+
+
+def journal_(request):
+    form = request.web_input(journalid="", ignore="", anyway="")
+
+    rating = define.get_rating(request.userid)
+    journalid = define.get_int(request.matchdict.get('journalid', form.journalid))
+
+    try:
+        item = journal.select_view(
+            request.userid, rating, journalid,
+            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+        )
+    except WeasylError as we:
+        if we.value in ("UserIgnored", "TagBlocked"):
+            we.errorpage_kwargs['links'] = [
+                ("View Journal", "?ignore=false"),
+                ("Return to the Home Page", "/index"),
+            ]
+        raise
+
+    canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
+
+    page = define.common_page_start(request.userid, options=["pager"], canonical_url=canonical_url, title=item["title"])
+    page.append(define.render('detail/journal.html', [
+        # Myself
+        profile.select_myself(request.userid),
+        # Journal detail
+        item,
+        # Violations
+        [i for i in macro.MACRO_REPORT_VIOLATION if 3000 <= i[0] < 4000],
+    ]))
+
+    return Response(define.common_page_end(request.userid, page))

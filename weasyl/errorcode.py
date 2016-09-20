@@ -1,4 +1,4 @@
-# errorcode.py
+from __future__ import absolute_import
 
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
@@ -76,7 +76,6 @@ error_messages = {
     "emailInvalid": "The email you entered does not appear to be valid.",
     "emailMismatch": "The email you entered did not match the email confirmation.",
     "embedlinkInvalid": "The embed link you entered does not point to a valid resource or supported service.",
-    "favoriteRecordExists": "You have already favorited this content.",
     "FeatureDisabled": "This feature has been temporarily disabled.",
     "FileType": "The file you uploaded is not of a valid type.",
     "folderRecordExists": "A folder by this name already exists.",
@@ -163,10 +162,10 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
-    "userRecordMissing": "404 Not Found",
-    "submissionRecordMissing": "404 Not Found",
-    "journalRecordMissing": "404 Not Found",
-    "characterRecordMissing": "404 Not Found",
+    "userRecordMissing": 404,
+    "submissionRecordMissing": 404,
+    "journalRecordMissing": 404,
+    "characterRecordMissing": 404,
 }
 
 

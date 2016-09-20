@@ -1,15 +1,20 @@
-import anyjson as json
-import web
+from __future__ import absolute_import
+
+from pyramid.httpexceptions import HTTPForbidden
+from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.httpexceptions import HTTPUnprocessableEntity
+from pyramid.response import Response
+from pyramid.view import view_config
 
 from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
 
-from weasyl.controllers.base import controller_base
+from weasyl.controllers.decorators import token_checked
 from weasyl.error import WeasylError
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
-    index, journal, media, message, profile, searchtag, submission)
+    index, journal, media, message, profile, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -43,19 +48,11 @@ _CONTENT_IDS = {
 }
 
 
-def api_method(f):
-    def wrapper(self, *a, **kw):
-        form = web.input(token="")
-
-        if not api.is_api_user() and form.token != d.get_token():
-            self.user_id = 0
-
-        web.header('Content-Type', 'application/json')
+def api_method(view_callable):
+    def wrapper(request):
         try:
-            return f(self, *a, **kw)
+            return view_callable(request)
         except WeasylError as e:
-            if web.ctx.status == '200 OK':
-                web.ctx.status = '403 Forbidden'
             e.render_as_json = True
             raise
         except Exception as e:
@@ -69,79 +66,59 @@ def api_method(f):
 _STANDARD_WWW_AUTHENTICATE = 'Bearer realm="Weasyl", Weasyl-API-Key realm="Weasyl"'
 
 
-class api_base(controller_base):
-    @api_method
-    def status_check_fail(self, *args, **kwargs):
-        web.ctx.status = '403 Forbidden'
-        return json.dumps(_ERROR_SITE_STATUS)
-
-    @api_method
-    def permission_check_fail(self, *args, **kwargs):
-        web.ctx.status = '403 Forbidden'
-        return json.dumps(_ERROR_PERMISSION)
-
-    @api_method
-    def login_check_fail(self, *args, **kwargs):
-        web.ctx.status = '401 Unauthorized'
-        web.header('WWW-Authenticate', _STANDARD_WWW_AUTHENTICATE)
-        return json.dumps(_ERROR_UNSIGNED)
+# TODO: Additional decorators for things like permissions checks if we ever add moderator/admin endpoints
+# that return appropriate json. The common status check should also be refactored to return json.
 
 
-class api_useravatar_(api_base):
-    def GET(self):
-        return self.POST()
-
-    @api_method
-    def POST(self):
-        # Retrieve form data
-        form = web.input(username="")
-        userid = profile.resolve_by_login(form.username)
-
-        # Return JSON response
-        if userid:
-            media_items = media.get_user_media(userid)
-            return json.dumps({
-                "avatar": d.absolutify_url(media_items['avatar'][0]['display_url']),
-            })
-
-        raise WeasylError('userRecordMissing')
+def api_login_required(view_callable):
+    """
+    Like decorators.login_required, but returning json on an error.
+    """
+    # TODO: If we replace the regular @login_required checks on POSTs with a tween, what do about this?
+    def inner(request):
+        if request.userid == 0:
+            raise HTTPUnauthorized(
+                json=_ERROR_UNSIGNED,
+                www_authenticate=_STANDARD_WWW_AUTHENTICATE,
+            )
+        return view_callable(request)
+    return inner
 
 
-class api_searchtagsuggest_(api_base):
-    def GET(self):
-        return self.POST()
+@view_config(route_name='useravatar', renderer='json')
+@api_method
+def api_useravatar_(request):
+    form = request.web_input(username="")
+    userid = profile.resolve_by_login(form.username)
 
-    @api_method
-    def POST(self):
-        # Retrieve form data
-        form = web.input(sid="", target="")
+    if userid:
+        media_items = media.get_user_media(userid)
+        return {
+            "avatar": d.absolutify_url(media_items['avatar'][0]['display_url']),
+        }
 
-        # Retrieve suggested search tags
-        return json.dumps({
-            "result": searchtag.suggest(self.user_id, form.target),
-        })
-
-
-class api_whoami_(api_base):
-    login_required = True
-
-    @api_method
-    def GET(self):
-        return json.dumps({
-            "login": d.get_display_name(self.user_id),
-            "userid": self.user_id,
-        })
+    raise WeasylError('userRecordMissing')
 
 
-class api_version_(api_base):
-    @api_method
-    def GET(self, format='.json'):
-        if format == '.txt':
-            return d.CURRENT_SHA
-        else:
-            return json.dumps({
-                "short_sha": d.CURRENT_SHA,
-            })
+@view_config(route_name='whoami', renderer='json')
+@api_login_required
+def api_whoami_(request):
+    return {
+        "login": d.get_display_name(request.userid),
+        "userid": request.userid,
+    }
+
+
+@view_config(route_name='version', renderer='json')
+@api_method
+def api_version_(request):
+    format = request.matchdict.get("format", ".json")
+    if format == '.txt':
+        return Response(d.CURRENT_SHA, content_type='text/plain')
+    else:
+        return {
+            "short_sha": d.CURRENT_SHA,
+        }
 
 
 def tidy_submission(submission):
@@ -175,207 +152,68 @@ def tidy_submission(submission):
     return submission
 
 
-class api_frontpage_(api_base):
-    @api_method
-    def GET(self):
-        form = web.input(since=None, count=0)
-        since = None
-        try:
-            if form.since:
-                since = d.parse_iso8601(form.since)
-            count = int(form.count)
-        except ValueError:
-            web.ctx.status = '422 Unprocessable Entity'
-            return json.dumps(_ERROR_UNEXPECTED)
-        else:
-            count = min(count or 100, 100)
+@view_config(route_name='api_frontpage', renderer='json')
+@api_method
+def api_frontpage_(request):
+    form = request.web_input(since=None, count=0)
+    since = None
+    try:
+        if form.since:
+            since = d.parse_iso8601(form.since)
+        count = int(form.count)
+    except ValueError:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
+    else:
+        count = min(count or 100, 100)
 
-        submissions = index.filter_submissions(self.user_id, index.recent_submissions())
-        ret = []
+    submissions = index.filter_submissions(request.userid, index.recent_submissions())
+    ret = []
 
-        for e, sub in enumerate(submissions, start=1):
-            if (since is not None and since >= sub['unixtime']) or (count and e > count):
-                break
+    for e, sub in enumerate(submissions, start=1):
+        if (since is not None and since >= sub['unixtime']) or (count and e > count):
+            break
 
-            tidy_submission(sub)
-            ret.append(sub)
+        tidy_submission(sub)
+        ret.append(sub)
 
-        return json.dumps(ret)
-
-
-class api_submission_view_(api_base):
-    @api_method
-    def GET(self, submitid):
-        form = web.input(anyway='', increment_views='')
-        result = submission.select_view_api(
-            self.user_id, int(submitid),
-            anyway=bool(form.anyway), increment_views=bool(form.increment_views))
-        return json.dumps(result)
+    return ret
 
 
-class api_journal_view_(api_base):
-    @api_method
-    def GET(self, journalid):
-        form = web.input(anyway='', increment_views='')
-        result = journal.select_view_api(
-            self.user_id, int(journalid),
-            anyway=bool(form.anyway), increment_views=bool(form.increment_views))
-        return json.dumps(result)
+@view_config(route_name='api_submission_view', renderer='json')
+@api_method
+def api_submission_view_(request):
+    form = request.web_input(anyway='', increment_views='')
+    return submission.select_view_api(
+        request.userid, int(request.matchdict['submitid']),
+        anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-class api_character_view_(api_base):
-    @api_method
-    def GET(self, charid):
-        form = web.input(anyway='', increment_views='')
-        result = character.select_view_api(
-            self.user_id, int(charid),
-            anyway=bool(form.anyway), increment_views=bool(form.increment_views))
-        return json.dumps(result)
+@view_config(route_name='api_journal_view', renderer='json')
+@api_method
+def api_journal_view_(request):
+    form = request.web_input(anyway='', increment_views='')
+    return journal.select_view_api(
+        request.userid, int(request.matchdict['journalid']),
+        anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-class api_user_view_(api_base):
-    @api_method
-    def GET(self, login):
-        userid = self.user_id
-        otherid = profile.resolve_by_login(login)
-        user = profile.select_profile(otherid)
+@view_config(route_name='api_character_view', renderer='json')
+@api_method
+def api_character_view_(request):
+    form = request.web_input(anyway='', increment_views='')
+    return character.select_view_api(
+        request.userid, int(request.matchdict['charid']),
+        anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
-        rating = d.get_rating(userid)
-        u_config = d.get_config(userid)
-        o_config = user.pop('config')
-        o_settings = user.pop('settings')
 
-        if not otherid and "h" in o_config:
-            return json.dumps({
-                "error": {
-                    "code": 200,
-                    "text": "Profile hidden from unlogged users."
-                }})
-
-        user.pop('userid', None)
-        user.pop('commish_slots', None)
-
-        user['created_at'] = d.iso8601(user.pop('unixtime'))
-        user['media'] = api.tidy_all_media(user.pop('user_media'))
-        user['login_name'] = d.get_sysname(user['username'])
-        user['profile_text'] = markdown(user['profile_text'])
-
-        folders = folder.select_list(otherid, "api/all")
-        if folders:
-            old_folders = folders
-            folders = list()
-            for fldr in (i for i in old_folders if 'parentid' not in i):
-                newfolder = {
-                    "folder_id": fldr['folderid'],
-                    "title": fldr['title']
-                }
-
-                if fldr['haschildren']:
-                    subfolders = list()
-                    for sub in (i for i in old_folders if 'parentid' in i and i['parentid'] == fldr['folderid']):
-                        subfolders.append({
-                            "folder_id": sub['folderid'],
-                            "title": sub['title']
-                        })
-
-                    newfolder['subfolders'] = subfolders
-
-                folders.append(newfolder)
-
-        user['folders'] = folders
-
-        commissions = {
-            "details": None,
-            "price_classes": None,
-            "commissions": self.convert_commission_setting(o_settings[0]),
-            "trades": self.convert_commission_setting(o_settings[1]),
-            "requests": self.convert_commission_setting(o_settings[2])
-        }
-
-        commission_list = commishinfo.select_list(otherid)
-        if commission_list:
-            commissions['details'] = commission_list['content']
-
-            if len(commission_list['class']) > 0:
-                classes = list()
-                for cclass in commission_list['class']:
-                    commission_class = {
-                        "title": cclass['title']
-                    }
-
-                    if len(commission_list['price']) > 0:
-                        prices = list()
-                        for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
-                            if 'a' in cprice['settings']:
-                                ptype = 'additional'
-                            else:
-                                ptype = 'base'
-
-                            price = {
-                                "title": cprice['title'],
-                                "price_min": self.convert_commission_price(cprice['amount_min'], cprice['settings']),
-                                "price_max": self.convert_commission_price(cprice['amount_min'], cprice['settings']),
-                                'price_type': ptype
-                            }
-                            prices.append(price)
-                        commission_class['prices'] = prices
-
-                    classes.append(commission_class)
-                commissions['price_classes'] = classes
-
-        user['commission_info'] = commissions
-
-        user['relationship'] = profile.select_relation(userid, otherid) if userid else None
-
-        if 'O' in o_config:
-            submissions = collection.select_list(
-                userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
-            more_submissions = 'collections'
-            featured = None
-        elif 'A' in o_config:
-            submissions = character.select_list(
-                userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
-            more_submissions = 'characters'
-            featured = None
-        else:
-            submissions = submission.select_list(
-                userid, rating, 11, otherid=otherid, options=["cover"], config=u_config,
-                profile_page_filter=True)
-            more_submissions = 'submissions'
-            featured = submission.select_featured(userid, otherid, rating)
-
-        if submissions:
-            submissions = map(tidy_submission, submissions)
-
-        user['recent_submissions'] = submissions
-        user['recent_type'] = more_submissions
-
-        if featured:
-            featured = tidy_submission(featured)
-
-        user['featured_submission'] = featured
-
-        statistics = profile.select_statistics(otherid)
-        if statistics:
-            statistics.pop('staff_notes')
-        user['statistics'] = statistics
-
-        user_info = profile.select_userinfo(otherid)
-        if user_info:
-            if not user_info['show_age']:
-                user_info['age'] = None
-            user_info.pop('show_age', None)
-            user_info.pop('birthday', None)
-            user_info['location'] = user_info.pop('country', None)
-        user['user_info'] = user_info
-        user['link'] = d.absolutify_url("/~" + user['login_name'])
-
-        return json.dumps(user)
-
-    def convert_commission_price(self, value, options):
+@view_config(route_name='api_user_view', renderer='json')
+@api_method
+def api_user_view_(request):
+    # Helper functions for this view.
+    def convert_commission_price(value, options):
         return d.text_price_symbol(options) + d.text_price_amount(value)
 
-    def convert_commission_setting(self, target):
+    def convert_commission_setting(target):
         if target == "o":
             return "open"
         elif target == "s":
@@ -387,117 +225,250 @@ class api_user_view_(api_base):
         else:
             return None
 
+    userid = request.userid
+    otherid = profile.resolve_by_login(request.matchdict['login'])
+    user = profile.select_profile(otherid)
 
-class api_user_gallery_(api_base):
-    @api_method
-    def GET(self, login):
-        userid = profile.resolve_by_login(login)
-        if not userid:
-            web.ctx.status = '404 Not Found'
-            raise WeasylError('userRecordMissing')
+    rating = d.get_rating(userid)
+    u_config = d.get_config(userid)
+    o_config = user.pop('config')
+    o_settings = user.pop('settings')
 
-        form = web.input(since=None, count=0, folderid=0, backid=0, nextid=0)
-        since = None
-        try:
-            if form.since:
-                since = d.parse_iso8601(form.since)
-            count = int(form.count)
-            folderid = int(form.folderid)
-            backid = int(form.backid)
-            nextid = int(form.nextid)
-        except ValueError:
-            web.ctx.status = '422 Unprocessable Entity'
-            return json.dumps(_ERROR_UNEXPECTED)
-        else:
-            count = min(count or 100, 100)
+    if not otherid and "h" in o_config:
+        raise HTTPForbidden(json={
+            "error": {
+                "code": 200,
+                "text": "Profile hidden from unlogged users.",
+            },
+        })
 
+    user.pop('userid', None)
+    user.pop('commish_slots', None)
+
+    user['created_at'] = d.iso8601(user.pop('unixtime'))
+    user['media'] = api.tidy_all_media(user.pop('user_media'))
+    user['login_name'] = d.get_sysname(user['username'])
+    user['profile_text'] = markdown(user['profile_text'])
+
+    folders = folder.select_list(otherid, "api/all")
+    if folders:
+        old_folders = folders
+        folders = list()
+        for fldr in (i for i in old_folders if 'parentid' not in i):
+            newfolder = {
+                "folder_id": fldr['folderid'],
+                "title": fldr['title']
+            }
+
+            if fldr['haschildren']:
+                subfolders = list()
+                for sub in (i for i in old_folders if 'parentid' in i and i['parentid'] == fldr['folderid']):
+                    subfolders.append({
+                        "folder_id": sub['folderid'],
+                        "title": sub['title']
+                    })
+
+                newfolder['subfolders'] = subfolders
+
+            folders.append(newfolder)
+
+    user['folders'] = folders
+
+    commissions = {
+        "details": None,
+        "price_classes": None,
+        "commissions": convert_commission_setting(o_settings[0]),
+        "trades": convert_commission_setting(o_settings[1]),
+        "requests": convert_commission_setting(o_settings[2])
+    }
+
+    commission_list = commishinfo.select_list(otherid)
+    if commission_list:
+        commissions['details'] = commission_list['content']
+
+        if len(commission_list['class']) > 0:
+            classes = list()
+            for cclass in commission_list['class']:
+                commission_class = {
+                    "title": cclass['title']
+                }
+
+                if len(commission_list['price']) > 0:
+                    prices = list()
+                    for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
+                        if 'a' in cprice['settings']:
+                            ptype = 'additional'
+                        else:
+                            ptype = 'base'
+
+                        price = {
+                            "title": cprice['title'],
+                            "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
+                            "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
+                            'price_type': ptype
+                        }
+                        prices.append(price)
+                    commission_class['prices'] = prices
+
+                classes.append(commission_class)
+            commissions['price_classes'] = classes
+
+    user['commission_info'] = commissions
+
+    user['relationship'] = profile.select_relation(userid, otherid) if userid else None
+
+    if 'O' in o_config:
+        submissions = collection.select_list(
+            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
+        more_submissions = 'collections'
+        featured = None
+    elif 'A' in o_config:
+        submissions = character.select_list(
+            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
+        more_submissions = 'characters'
+        featured = None
+    else:
         submissions = submission.select_list(
-            self.user_id, d.get_rating(self.user_id), count + 1,
-            otherid=userid, folderid=folderid, backid=backid, nextid=nextid)
-        backid, nextid = d.paginate(submissions, backid, nextid, count, 'submitid')
+            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config,
+            profile_page_filter=True)
+        more_submissions = 'submissions'
+        featured = submission.select_featured(userid, otherid, rating)
 
-        ret = []
-        for sub in submissions:
-            if since is not None and since >= sub['unixtime']:
-                break
-            tidy_submission(sub)
-            ret.append(sub)
+    if submissions:
+        submissions = map(tidy_submission, submissions)
 
-        return json.dumps({
-            'backid': backid, 'nextid': nextid,
-            'submissions': ret,
-        })
+    user['recent_submissions'] = submissions
+    user['recent_type'] = more_submissions
 
+    if featured:
+        featured = tidy_submission(featured)
 
-class api_messages_submissions_(api_base):
-    login_required = True
+    user['featured_submission'] = featured
 
-    @api_method
-    def GET(self):
-        form = web.input(count=0, backtime=0, nexttime=0)
-        try:
-            count = int(form.count)
-            backtime = int(form.backtime)
-            nexttime = int(form.nexttime)
-        except ValueError:
-            web.ctx.status = '422 Unprocessable Entity'
-            return json.dumps(_ERROR_UNEXPECTED)
-        else:
-            count = min(count or 100, 100)
+    statistics = profile.select_statistics(otherid)
+    if statistics:
+        statistics.pop('staff_notes')
+    user['statistics'] = statistics
 
-        submissions = message.select_submissions(
-            self.user_id, count + 1, backtime=backtime, nexttime=nexttime)
-        backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
+    user_info = profile.select_userinfo(otherid)
+    if user_info:
+        if not user_info['show_age']:
+            user_info['age'] = None
+        user_info.pop('show_age', None)
+        user_info.pop('birthday', None)
+        user_info['location'] = user_info.pop('country', None)
+    user['user_info'] = user_info
+    user['link'] = d.absolutify_url("/~" + user['login_name'])
 
-        ret = []
-        for sub in submissions:
-            tidy_submission(sub)
-            ret.append(sub)
-
-        return json.dumps({
-            'backtime': backtime, 'nexttime': nexttime,
-            'submissions': ret,
-        })
+    return user
 
 
-class api_messages_summary_(api_base):
-    login_required = True
+@view_config(route_name='api_user_gallery', renderer='json')
+@api_method
+def api_user_gallery_(request):
+    userid = profile.resolve_by_login(request.matchdict['login'])
+    if not userid:
+        raise WeasylError('userRecordMissing')
 
-    @api_method
-    def GET(self):
-        counts = d._page_header_info(self.user_id)
-        return json.dumps({
-            'unread_notes': counts[0],
-            'comments': counts[1],
-            'notifications': counts[2],
-            'submissions': counts[3],
-            'journals': counts[4],
-        })
+    form = request.web_input(since=None, count=0, folderid=0, backid=0, nextid=0)
+    since = None
+    try:
+        if form.since:
+            since = d.parse_iso8601(form.since)
+        count = int(form.count)
+        folderid = int(form.folderid)
+        backid = int(form.backid)
+        nextid = int(form.nextid)
+    except ValueError:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
+    else:
+        count = min(count or 100, 100)
+
+    submissions = submission.select_list(
+        request.userid, d.get_rating(request.userid), count + 1,
+        otherid=userid, folderid=folderid, backid=backid, nextid=nextid)
+    backid, nextid = d.paginate(submissions, backid, nextid, count, 'submitid')
+
+    ret = []
+    for sub in submissions:
+        if since is not None and since >= sub['unixtime']:
+            break
+        tidy_submission(sub)
+        ret.append(sub)
+
+    return {
+        'backid': backid, 'nextid': nextid,
+        'submissions': ret,
+    }
 
 
-class api_favorite_(api_base):
-    login_required = True
+@view_config(route_name='api_messages_submissions', renderer='json')
+@api_login_required
+@api_method
+def api_messages_submissions_(request):
+    form = request.web_input(count=0, backtime=0, nexttime=0)
+    try:
+        count = int(form.count)
+        backtime = int(form.backtime)
+        nexttime = int(form.nexttime)
+    except ValueError:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
+    else:
+        count = min(count or 100, 100)
 
-    @api_method
-    def POST(self, content_type, content_id):
-        try:
-            favorite.insert(self.user_id, **{_CONTENT_IDS[content_type]: int(content_id)})
-        except WeasylError as we:
-            if we.value != 'favoriteRecordExists':
-                raise
+    submissions = message.select_submissions(
+        request.userid, count + 1, backtime=backtime, nexttime=nexttime)
+    backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
 
-        return json.dumps({
-            'success': True
-        })
+    ret = []
+    for sub in submissions:
+        tidy_submission(sub)
+        ret.append(sub)
+
+    return {
+        'backtime': backtime, 'nexttime': nexttime,
+        'submissions': ret,
+    }
 
 
-class api_unfavorite_(api_base):
-    login_required = True
+@view_config(route_name='api_messages_summary', renderer='json')
+@api_login_required
+@api_method
+def api_messages_summary_(request):
+    counts = d._page_header_info(request.userid)
+    return {
+        'unread_notes': counts[0],
+        'comments': counts[1],
+        'notifications': counts[2],
+        'submissions': counts[3],
+        'journals': counts[4],
+    }
 
-    @api_method
-    def POST(self, content_type, content_id):
-        favorite.remove(self.user_id, **{_CONTENT_IDS[content_type]: int(content_id)})
 
-        return json.dumps({
-            'success': True
-        })
+# TODO(hyena): It's probable that token_checked won't return json from these. Consider writing an api_token_checked.
+
+
+@view_config(route_name='api_favorite', request_method='POST', renderer='json')
+@api_login_required
+@api_method
+@token_checked
+def api_favorite_(request):
+    favorite.insert(request.userid,
+                    **{_CONTENT_IDS[request.matchdict['content_type']]: int(request.matchdict['content_id'])})
+
+    return {
+        'success': True
+    }
+
+
+@view_config(route_name='api_unfavorite', request_method='POST', renderer='json')
+@api_login_required
+@api_method
+@token_checked
+def api_unfavorite_(request):
+    favorite.remove(request.userid,
+                    **{_CONTENT_IDS[request.matchdict['content_type']]: int(request.matchdict['content_id'])})
+
+    return {
+        'success': True
+    }

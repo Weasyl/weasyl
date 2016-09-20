@@ -1,4 +1,4 @@
-# content.py
+from __future__ import absolute_import
 
 import arrow
 
@@ -283,9 +283,9 @@ def count(id, contenttype='submission'):
     """
 
     if contenttype == 'submission':
-        return d.engine.execute(
+        return d.engine.scalar(
             'SELECT COUNT(*) FROM comments cm WHERE cm.target_sub = %s',
-            [id]).scalar()
+            (id,))
     elif contenttype == 'journal':
         tablename = 'journalcomment'
     elif contenttype == 'character':
@@ -293,6 +293,6 @@ def count(id, contenttype='submission'):
     else:
         raise ValueError("type should be one of 'submission', 'journal', or 'character'")
 
-    return d.engine.execute(
+    return d.engine.scalar(
         'SELECT COUNT(*) FROM {table} cm WHERE cm.targetid = %s'.format(table=tablename),
-        [id]).scalar()
+        (id,))

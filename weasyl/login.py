@@ -1,4 +1,4 @@
-# login.py
+from __future__ import absolute_import
 
 import arrow
 import bcrypt
@@ -24,20 +24,16 @@ def signin(userid):
     d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
 
     # set the userid on the session
-    sess = d.web.ctx.weasyl_session
+    sess = d.get_weasyl_session()
     sess.userid = userid
     sess.save = True
 
 
-def signout(userid):
-    sess = d.web.ctx.weasyl_session
+def signout(request):
+    sess = request.weasyl_session
     # unset SFW-mode cookie on logout
-    d.web.setcookie("sfwmode", "nsfw", -1)
-    if sess.additional_data.get('user-stack'):
-        sess.userid = sess.additional_data['user-stack'].pop()
-        sess.additional_data.changed()
-    else:
-        sess.userid = None
+    request.delete_cookie_on_response("sfwmode")
+    sess.userid = None
     sess.save = True
 
 
@@ -69,11 +65,12 @@ def authenticate_bcrypt(username, password, session=True):
         return 0, "invalid"
 
     USERID, HASHSUM, SETTINGS = query
+    HASHSUM = HASHSUM.encode('utf-8')
 
     d.metric('increment', 'attemptedlogins')
 
     unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
-    if not unicode_success and not bcrypt.checkpw(d.plaintext(password), HASHSUM):
+    if not unicode_success and not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:
@@ -202,11 +199,11 @@ def verify(token):
     db = d.connect()
     with db.begin():
         # Create login record
-        userid = db.execute(lo.insert().returning(lo.c.userid), {
+        userid = db.scalar(lo.insert().returning(lo.c.userid), {
             "login_name": d.get_sysname(query.username),
             "last_login": arrow.now(),
             "email": query.email,
-        }).scalar()
+        })
 
         # Create profile records
         db.execute(d.meta.tables["authbcrypt"].insert(), {
@@ -238,34 +235,20 @@ def verify(token):
 
 
 def email_exists(email):
-    return d.engine.execute("""
+    return d.engine.scalar("""
         SELECT
             EXISTS (SELECT 0 FROM login WHERE email = %(email)s) OR
             EXISTS (SELECT 0 FROM logincreate WHERE email = %(email)s)
-    """, email=email).scalar()
+    """, email=email)
 
 
 def username_exists(login_name):
-    return d.engine.execute("""
+    return d.engine.scalar("""
         SELECT
             EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s) OR
             EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s) OR
             EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
-    """, name=login_name).scalar()
-
-
-def settings(userid, setting=None):
-    if setting:
-        return d.execute("SELECT settings ~ '%s' FROM login WHERE userid = %i",
-                         [setting, userid], options="bool")
-    else:
-        return d.execute("SELECT settings FROM login WHERE userid = %i",
-                         [userid], options="element")
-
-
-def sessionid(userid):
-    return d.execute("SELECT sessionid FROM usersession WHERE userid = %i",
-                     [userid], options="element")
+    """, name=login_name)
 
 
 def update_unicode_password(userid, password, password_confirm):
@@ -276,12 +259,12 @@ def update_unicode_password(userid, password, password_confirm):
 
     hashpw = d.engine.scalar("""
         SELECT hashsum FROM authbcrypt WHERE userid = %(userid)s
-    """, userid=userid)
+    """, userid=userid).encode('utf-8')
 
     if bcrypt.checkpw(password.encode('utf-8'), hashpw):
         return
 
-    if not bcrypt.checkpw(d.plaintext(password), hashpw):
+    if not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), hashpw):
         raise WeasylError('passwordIncorrect')
 
     d.engine.execute("""
@@ -301,4 +284,4 @@ def get_account_verification_token(email=None, username=None):
     else:
         statement = statement.where(logincreate.c.login_name == username)
 
-    return d.engine.execute(statement).scalar()
+    return d.engine.scalar(statement)

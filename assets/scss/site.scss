@@ -4131,13 +4131,6 @@ img + #detail-art-text {
     width: 47%;
     padding: 0 2% 0.5em 0;
     vertical-align: top;
-    word-wrap: break-word;
-}
-
-@media (min-width: 30em) {
-    .donator-list > li {
-        width: 30%;
-    }
 }
 
 @media (min-width: 45em) {

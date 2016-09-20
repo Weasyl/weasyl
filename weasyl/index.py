@@ -1,20 +1,20 @@
+from __future__ import absolute_import
+
 import collections
 import itertools
 import operator
 
-import define as d
-import macro as m
-
-import blocktag
-import character
-import ignoreuser
-import profile
-import searchtag
-import siteupdate
-import submission
-
 from libweasyl import ratings
 
+from weasyl import blocktag
+from weasyl import character
+from weasyl import define as d
+from weasyl import ignoreuser
+from weasyl import macro as m
+from weasyl import profile
+from weasyl import searchtag
+from weasyl import siteupdate
+from weasyl import submission
 from weasyl.cache import region
 
 
@@ -65,7 +65,7 @@ def filter_submissions(userid, submissions, incidence_limit=3):
     rating = ratings.GENERAL.code
     if userid:
         rating = d.get_rating(userid)
-        blocked_tags = blocktag.cached_select(userid)
+        blocked_tags = blocktag.select_ids(userid)
         ignored_users = set(ignoreuser.cached_list_ignoring(userid))
 
     submitter_incidence = collections.defaultdict(int)

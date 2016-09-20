@@ -3,7 +3,7 @@ import hashlib
 
 import sqlalchemy as sa
 
-from weasyl.define import connect, meta
+from weasyl.define import meta, sessionmaker
 from weasyl import orm
 
 
@@ -38,7 +38,7 @@ def port_media_items(db):
 
 
 def main():
-    db = connect()
+    db = sessionmaker()
     print 'starting media_items'
     port_media_items(db)
 

@@ -43,7 +43,7 @@ def select(userid, ownerid, limit=None, staffnotes=False):
                 "parentid": query[i][1],
                 "userid": query[i][2],
                 "username": query[i][3],
-                "status": "".join(c for c in query[i][4] if i in "bs"),
+                "status": "".join(c for c in query[i][4] if c in "bs"),
                 "content": query[i][5],
                 "unixtime": query[i][6],
                 "settings": query[i][7],

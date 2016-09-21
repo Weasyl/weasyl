@@ -109,7 +109,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
 
 def select_view(userid, rating, journalid, ignore=True, anyway=None):
     journal = _select_journal_and_check(
-        userid, journalid, rating=rating, ignore=ignore, anyway=anyway == 'anyway')
+        userid, journalid, rating=rating, ignore=ignore, anyway=anyway == "true")
 
     return {
         'journalid': journalid,

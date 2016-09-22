@@ -232,7 +232,7 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
 def select_view(userid, charid, rating, ignore=True, anyway=None):
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=ignore, anyway=anyway == 'anyway')
+        userid, charid, rating=rating, ignore=ignore, anyway=anyway == "true")
 
     login = define.get_sysname(query['username'])
 

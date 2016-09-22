@@ -1,9 +1,10 @@
+from __future__ import absolute_import
+
 import datetime
 import unittest
 import pytest
 
 import arrow
-import web
 
 from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
@@ -36,10 +37,6 @@ class SelectListTestCase(unittest.TestCase):
             user1, ratings.GENERAL.code, 10, otherid=user1)))
 
     def test_ratings_twittercard(self):
-        # For tests, this isn't set. absolutify_url requires it,
-        # so this test would fail if it wasn't set.
-        web.ctx.realhome = 'https://lo.weasyl.com:8443'
-
         user = db_utils.create_user()
 
         sub1 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
@@ -56,9 +53,6 @@ class SelectListTestCase(unittest.TestCase):
         self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
         self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card3['description'])
         self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card4['description'])
-
-        # Delete this so it cannot interfere with other things.
-        del web.ctx.realhome
 
     def test_filters(self):
         # Test filters of the following:

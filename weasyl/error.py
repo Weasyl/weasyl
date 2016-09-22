@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from sqlalchemy.exc import DBAPIError as PostgresError
 
 from libweasyl.exceptions import WeasylError as _WeasylError

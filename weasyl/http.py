@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+
 def get_headers(wsgi_env):
     """
     Extracts HTTP_* variables from a WSGI environment as

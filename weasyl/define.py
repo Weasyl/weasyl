@@ -1,4 +1,4 @@
-# define.py
+from __future__ import absolute_import
 
 import os
 import re
@@ -11,35 +11,35 @@ import numbers
 import datetime
 import urlparse
 import functools
-import traceback
 import string
 import subprocess
 import unicodedata
 
 import anyjson as json
 import arrow
+from psycopg2cffi.extensions import QuotedString
+from pyramid.threadlocal import get_current_request
+import pytz
 import requests
-import web
 import sqlalchemy as sa
 import sqlalchemy.orm
-from psycopg2cffi.extensions import QuotedString
-import pytz
-
-import macro
-import errorcode
-from error import WeasylError
+from web.template import frender
 
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
+from weasyl import config
+from weasyl import errorcode
+from weasyl import macro
+from weasyl.cache import region
 from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read, config_read_setting, config_read_bool
-from weasyl.cache import region
-from weasyl import config
+from weasyl.error import WeasylError
 
 
 _shush_pyflakes = [sqlalchemy.orm, config_read]
+
 
 reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
 reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
@@ -55,7 +55,6 @@ def _load_resources():
 _load_resources()
 
 
-# XXX: eventually figure out how to include this in libweasyl.
 def record_timing(func):
     key = 'timing.{0.__module__}.{0.__name__}'.format(func)
 
@@ -79,16 +78,25 @@ sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit
 
 
 def connect():
-    if 'pg_connection' not in web.ctx:
-        web.ctx.pg_connection = db = sessionmaker()
-        try:
-            # Make sure postgres is still there before issuing any further queries.
-            db.execute('SELECT 1')
-        except sa.exc.OperationalError:
-            log_exc = web.ctx.env.get('raven.captureException', traceback.print_exc)
-            log_exc()
-            raise web.webapi.HTTPError('503 Service Unavailable', data='database error')
-    return web.ctx.pg_connection
+    """
+    Returns the current request's db connection or one from the engine.
+    """
+    request = get_current_request()
+    if request is not None:
+        return request.pg_connection
+    # If there's no threadlocal request, we're probably operating in a cron task or the like.
+    # Return a connection from the pool. n.b. this means that multiple calls could get different
+    # connections.
+    # TODO(hyena): Does this clean up correctly? There's no registered 'close()' call.
+    return sessionmaker()
+
+
+def log_exc(**kwargs):
+    """
+    Logs an exception. This is essentially a wrapper around the current request's log_exc.
+    It's provided for compatibility for methods that depended on web.ctx.log_exc().
+    """
+    return get_current_request().log_exc(**kwargs)
 
 
 def execute(statement, argv=None, options=None):
@@ -198,7 +206,7 @@ def compile(template_name):
         from weasyl import ads
 
         template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
-        _template_cache[template_name] = template = web.template.frender(
+        _template_cache[template_name] = template = frender(
             template_path,
             globals={
                 "INT": int,
@@ -297,7 +305,8 @@ def plaintext(target):
 
 
 def _captcha_section():
-    host = web.ctx.env.get('HTTP_HOST', '').partition(':')[0]
+    request = get_current_request()
+    host = request.environ.get('HTTP_HOST', '').partition(':')[0]
     return 'recaptcha-' + host
 
 
@@ -312,55 +321,43 @@ def captcha_public():
     return config_obj.get(_captcha_section(), 'public_key')
 
 
-def captcha_verify(form):
+def captcha_verify(captcha_response):
     if config_read_bool("captcha_disable_verification", value=False):
         return True
-    if not form.g_recaptcha_response:
+    if not captcha_response:
         return False
 
     data = dict(
         secret=config_obj.get(_captcha_section(), 'private_key'),
-        response=form.g_recaptcha_response['g-recaptcha-response'],
+        response=captcha_response,
         remoteip=get_address())
     response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
     captcha_validation_result = response.json()
     return captcha_validation_result['success']
 
 
-def get_userid(sessionid=None):
+def get_weasyl_session():
     """
-    Returns the userid corresponding to the user's sessionid; if no such session
-    exists, zero is returned.
+    Gets the weasyl_session for the current request. Most code shouldn't have to use this.
     """
-    api_token = web.ctx.env.get('HTTP_X_WEASYL_API_KEY')
-    authorization = web.ctx.env.get('HTTP_AUTHORIZATION')
-    if api_token is not None:
-        userid = engine.execute("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token).scalar()
-        if not userid:
-            web.header('WWW-Authenticate', 'Weasyl-API-Key realm="Weasyl"')
-            raise web.webapi.Unauthorized()
-        return userid
+    # TODO: This method is inelegant. Remove this logic after updating login.signin().
+    return get_current_request().weasyl_session
 
-    elif authorization:
-        from weasyl.oauth2 import get_userid_from_authorization
-        userid = get_userid_from_authorization()
-        if not userid:
-            web.header('WWW-Authenticate', 'Bearer realm="Weasyl" error="invalid_token"')
-            raise web.webapi.Unauthorized()
-        return userid
 
-    else:
-        userid = web.ctx.weasyl_session.userid
-        return 0 if userid is None else userid
+def get_userid():
+    """
+    Returns the userid corresponding to the current request, if any.
+    """
+    return get_current_request().userid
 
 
 def get_token():
-    import api
+    from weasyl import api
 
     if api.is_api_user():
         return ''
 
-    sess = web.ctx.weasyl_session
+    sess = get_current_request().weasyl_session
     if sess.csrf_token is None:
         sess.csrf_token = security.generate_key(64)
         sess.save = True
@@ -390,7 +387,7 @@ def get_sysname(target):
 @region.cache_on_arguments()
 @record_timing
 def _get_config(userid):
-    return engine.execute("SELECT config FROM profile WHERE userid = %(user)s", user=userid).scalar()
+    return engine.scalar("SELECT config FROM profile WHERE userid = %(user)s", user=userid)
 
 
 def get_config(userid):
@@ -402,7 +399,7 @@ def get_config(userid):
 @region.cache_on_arguments()
 @record_timing
 def get_login_settings(userid):
-    return engine.execute("SELECT settings FROM login WHERE userid = %(user)s", user=userid).scalar()
+    return engine.scalar("SELECT settings FROM login WHERE userid = %(user)s", user=userid)
 
 
 @region.cache_on_arguments()
@@ -417,8 +414,8 @@ def _get_profile_settings(userid):
     """
     if userid is None:
         return {}
-    jsonb = engine.execute("SELECT jsonb_settings FROM profile WHERE userid = %(user)s",
-                           user=userid).scalar()
+    jsonb = engine.scalar("SELECT jsonb_settings FROM profile WHERE userid = %(user)s",
+                          user=userid)
     if jsonb is None:
         jsonb = {}
     return jsonb
@@ -478,7 +475,7 @@ def is_sfw_mode():
     determine whether the current session is in SFW mode
     :return: TRUE if sfw or FALSE if nsfw
     """
-    return web.cookies(sfwmode="nsfw").sfwmode == "sfw"
+    return get_current_request().cookies.get('sfwmode', "nsfw") == "sfw"
 
 
 def get_premium(userid):
@@ -496,7 +493,7 @@ def _get_display_name(userid):
     Return the display name assiciated with `userid`; if no such user exists,
     return None.
     """
-    return engine.execute("SELECT username FROM profile WHERE userid = %(user)s", user=userid).scalar()
+    return engine.scalar("SELECT username FROM profile WHERE userid = %(user)s", user=userid)
 
 
 def get_display_name(userid):
@@ -574,13 +571,13 @@ def get_userid_list(target):
 
 def get_ownerid(submitid=None, charid=None, journalid=None, commishid=None):
     if submitid:
-        return engine.execute("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid).scalar()
+        return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
-        return engine.execute("SELECT userid FROM character WHERE charid = %(id)s", id=charid).scalar()
+        return engine.scalar("SELECT userid FROM character WHERE charid = %(id)s", id=charid)
     if journalid:
-        return engine.execute("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid).scalar()
+        return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
     if commishid:
-        return engine.execute("SELECT userid FROM commission WHERE commishid = %(id)s", id=commishid).scalar()
+        return engine.scalar("SELECT userid FROM commission WHERE commishid = %(id)s", id=commishid)
 
 
 def get_random_set(target, count=None):
@@ -596,11 +593,12 @@ def get_random_set(target, count=None):
 
 
 def get_address():
-    return web.ctx.env.get("HTTP_X_FORWARDED_FOR", web.ctx.ip)
+    request = get_current_request()
+    return request.client_addr
 
 
 def get_path():
-    return web.ctx.homepath + web.ctx.fullpath
+    return get_current_request().path_url
 
 
 def text_price_amount(target):
@@ -649,7 +647,7 @@ def text_bool(target, default=False):
 
 
 def convert_to_localtime(target):
-    tz = web.ctx.weasyl_session.timezone
+    tz = get_current_request().weasyl_session.timezone
     if isinstance(target, arrow.Arrow):
         return tz.localtime(target.datetime)
     else:
@@ -774,8 +772,8 @@ def user_type(userid):
 @region.cache_on_arguments(expiration_time=180)
 @record_timing
 def _page_header_info(userid):
-    messages = engine.execute(
-        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid).scalar()
+    messages = engine.scalar(
+        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
     result = [messages, 0, 0, 0, 0]
 
     counts = engine.execute(
@@ -802,7 +800,7 @@ def _page_header_info(userid):
 
 def page_header_info(userid):
     from weasyl import media
-    sfw = web.cookies(sfwmode="nsfw").sfwmode
+    sfw = get_current_request().cookies.get('sfwmode', 'nsfw')
     return {
         "welcome": _page_header_info(userid),
         "userid": userid,
@@ -907,7 +905,7 @@ def common_status_page(userid, status):
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 
-        login.signout(userid)
+        login.signout(get_current_request())
         if status == 'banned':
             reason = moderation.get_ban_reason(userid)
             return errorpage(
@@ -1073,11 +1071,11 @@ def absolutify_url(url):
     if cdn_root and url.startswith(cdn_root):
         return url
 
-    return urlparse.urljoin(web.ctx.realhome, url)
+    return urlparse.urljoin(get_current_request().application_url, url)
 
 
 def user_is_twitterbot():
-    return web.ctx.env.get('HTTP_USER_AGENT', '').startswith('Twitterbot')
+    return get_current_request().environ.get('HTTP_USER_AGENT', '').startswith('Twitterbot')
 
 
 def summarize(s, max_length=200):
@@ -1130,10 +1128,11 @@ def _requests_wrapper(func_name):
     func = getattr(requests, func_name)
 
     def wrapper(*a, **kw):
+        request = get_current_request()
         try:
             return func(*a, **kw)
         except Exception as e:
-            web.ctx.log_exc(level=logging.DEBUG)
+            request.log_exc(level=logging.DEBUG)
             w = WeasylError('httpError')
             w.error_suffix = 'The original error was: %s' % (e,)
             raise w
@@ -1143,10 +1142,12 @@ def _requests_wrapper(func_name):
 http_get = _requests_wrapper('get')
 http_post = _requests_wrapper('post')
 
+# This will be set by twisted.
+statsFactory = None
+
 
 def metric(*a, **kw):
-    from weasyl.wsgi import app
-    app.statsFactory.metric(*a, **kw)
+    statsFactory.metric(*a, **kw)
 
 
 def iso8601(unixtime):
@@ -1186,39 +1187,6 @@ def paginate(results, backid, nextid, limit, key):
         None if at_end or not results else results[-1][key])
 
 
-def token_checked(handler):
-    from weasyl import api
-
-    def wrapper(self, *args, **kwargs):
-        form = web.input(token="")
-
-        if not api.is_api_user() and form.token != get_token():
-            return errorpage(self.user_id, errorcode.token)
-
-        return handler(self, *args, **kwargs)
-
-    return wrapper
-
-
-def supports_json(handler):
-    def wrapper(*args, **kwargs):
-        form = web.input(format="")
-
-        if form.format == "json":
-            web.header("Content-Type", "application/json")
-
-            try:
-                result = handler(*args, **kwargs)
-            except WeasylError as e:
-                result = {"error": e.value, "message": errorcode.error_messages.get(e.value)}
-
-            return json.dumps(result)
-
-        return handler(*args, **kwargs)
-
-    return wrapper
-
-
 def thumb_for_sub(submission):
     """
     Given a submission dict containing sub_media, sub_type and userid,
@@ -1240,3 +1208,8 @@ def thumb_for_sub(submission):
         thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
 
     return submission['sub_media'][thumb_key][0]
+
+
+# Temporary workaround. Delete me. Use weasyl.controllers.decoraters version as views are ported.
+def token_checked(x):
+    return x

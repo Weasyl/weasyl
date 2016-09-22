@@ -1,4 +1,4 @@
-# favorite.py
+from __future__ import absolute_import
 
 import logging
 import os
@@ -6,11 +6,10 @@ import os
 from sanpera.exception import SanperaError
 from sanpera.image import Image
 from sanpera import geometry
-import web
 
-from error import WeasylError
-
-import files
+from weasyl import files
+from weasyl.define import log_exc
+from weasyl.error import WeasylError
 
 
 COVER_SIZE = 1024, 3000
@@ -20,7 +19,7 @@ def read(filename):
     try:
         return Image.read(filename)
     except SanperaError:
-        web.ctx.log_exc(level=logging.DEBUG)
+        log_exc(level=logging.DEBUG)
         raise WeasylError('imageDecodeError')
 
 
@@ -28,7 +27,7 @@ def from_string(filedata):
     try:
         return Image.from_buffer(filedata)
     except SanperaError:
-        web.ctx.log_exc(level=logging.DEBUG)
+        log_exc(level=logging.DEBUG)
         raise WeasylError('imageDecodeError')
 
 

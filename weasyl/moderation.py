@@ -1,23 +1,26 @@
-# moderation.py
+from __future__ import absolute_import
 
 import collections
 import datetime
 
 import arrow
 import sqlalchemy as sa
-import web
-
-from error import WeasylError
-import define as d
-
-import shout
-import profile
-import welcome
 
 from libweasyl.models.content import Submission
 from libweasyl import ratings, staff, text
 
-from weasyl import avatar, banner, character, index, media, submission, thumbnail
+from weasyl import avatar
+from weasyl import banner
+from weasyl import character
+from weasyl import define as d
+from weasyl import index
+from weasyl import media
+from weasyl import profile
+from weasyl import shout
+from weasyl import submission
+from weasyl import thumbnail
+from weasyl import welcome
+from weasyl.error import WeasylError
 
 
 BAN_TEMPLATES = {
@@ -269,8 +272,8 @@ BAN_TEMPLATES = {
 
 
 def get_ban_reason(userid):
-    return d.engine.execute("SELECT reason FROM permaban WHERE userid = %(user)s",
-                            user=userid).scalar()
+    return d.engine.scalar("SELECT reason FROM permaban WHERE userid = %(user)s",
+                           user=userid)
 
 
 def get_suspension(userid):
@@ -608,8 +611,6 @@ _tables = [
 
 
 def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
-    web.header('Content-Type', 'text/plain')
-
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
 

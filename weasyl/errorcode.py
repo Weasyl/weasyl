@@ -1,5 +1,7 @@
 # encoding: utf-8
 
+from __future__ import absolute_import
+
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
 charid = "This character doesn't seem to be in our database."
@@ -168,10 +170,10 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
-    "userRecordMissing": "404 Not Found",
-    "submissionRecordMissing": "404 Not Found",
-    "journalRecordMissing": "404 Not Found",
-    "characterRecordMissing": "404 Not Found",
+    "userRecordMissing": 404,
+    "submissionRecordMissing": 404,
+    "journalRecordMissing": 404,
+    "characterRecordMissing": 404,
 }
 
 

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from itertools import chain
 
 from weasyl import character
@@ -110,13 +112,20 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 pr.username,
                 ch.settings,
                 we.welcomeid,
-                0 AS subtype
+                0 AS subtype,
+                array_agg(tags.title) AS tags
             FROM welcome we
                 INNER JOIN character ch ON we.targetid = ch.charid
                 INNER JOIN profile pr ON ch.userid = pr.userid
+                LEFT JOIN searchmapchar AS smc ON ch.charid = smc.targetid
+                LEFT JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2050 AND
                 we.userid = %(userid)s
+            GROUP BY
+                ch.charid,
+                pr.username,
+                we.welcomeid
             UNION SELECT
                 40 AS contype,
                 su.submitid AS id,
@@ -127,13 +136,20 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 pr.username,
                 su.settings,
                 we.welcomeid,
-                su.subtype
+                su.subtype,
+                array_agg(tags.title) AS tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON we.otherid = pr.userid
+                LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
+                LEFT JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2030 AND
                 we.userid = %(userid)s
+            GROUP BY
+                su.submitid,
+                pr.username,
+                we.welcomeid
             UNION SELECT
                 10 AS contype,
                 su.submitid AS id,
@@ -144,13 +160,20 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 pr.username,
                 su.settings,
                 we.welcomeid,
-                su.subtype
+                su.subtype,
+                array_agg(tags.title) AS tags
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON su.userid = pr.userid
+                LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
+                LEFT JOIN searchtag AS tags USING (tagid)
             WHERE
                 we.type = 2010 AND
                 we.userid = %(userid)s
+            GROUP BY
+                su.submitid,
+                pr.username,
+                we.welcomeid
         ) results
         WHERE
             rating <= %(rating)s
@@ -178,6 +201,7 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
         "userid": i.userid,
         "username": i.username,
         "subtype": i.subtype,
+        "tags": i.tags,
         "sub_media": _fake_media_items(i),
     } for i in query]
 

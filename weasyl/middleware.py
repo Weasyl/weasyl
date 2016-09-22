@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import re
 import sys
@@ -8,12 +10,15 @@ import raven
 import raven.processors
 import traceback
 
-import anyjson as json
+from pyramid.httpexceptions import HTTPServiceUnavailable
+from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.response import Response
+from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import OperationalError
 from twisted.internet.threads import blockingCallFromThread
-import web
-import web.webapi
+from web.utils import storify
 
 from libweasyl import security
 from libweasyl.cache import ThreadCacheProxy
@@ -28,101 +33,248 @@ class ClientGoneAway(Exception):
     pass
 
 
-def db_connection_processor(handle):
-    try:
-        return handle()
-    finally:
-        if 'pg_connection' in web.ctx:
-            web.ctx.pg_connection.close()
+def cache_clear_tween_factory(handler, registry):
+    """
+    A tween to clear the thread local cache.
+    """
+    def cache_clear_tween(request):
+        try:
+            return handler(request)
+        finally:
+            ThreadCacheProxy.zap_cache()
+    return cache_clear_tween
 
 
-def session_processor(handle):
-    cookies = web.cookies()
-    cookies_to_clear = set()
-    if 'beaker.session.id' in cookies:
-        cookies_to_clear.add('beaker.session.id')
+def db_timer_tween_factory(handler, registry):
+    """
+    A tween that records timing information in the headers of a response.
+    """
+    def db_timer_tween(request):
+        started_at = time.time()
+        queued_at = request.environ.get('HTTP_X_REQUEST_STARTED_AT')
+        if queued_at is None:
+            return handler(request)
 
-    session = d.connect()
-    sess_obj = None
-    if 'WZL' in cookies:
-        sess_obj = session.query(orm.Session).get(cookies['WZL'])
+        request.sql_times = []
+        request.memcached_times = []
+        time_queued = started_at - float(queued_at)
+        resp = handler(request)
+        ended_at = time.time()
+        time_in_sql = sum(request.sql_times)
+        time_in_memcached = sum(request.memcached_times)
+        time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
+        resp.headers['X-Queued-Time-Spent'] = '%0.1fms' % (time_queued * 1000,)
+        resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
+        resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
+        resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
+        resp.headers['X-SQL-Queries'] = str(len(request.sql_times))
+        resp.headers['X-Memcached-Queries'] = str(len(request.memcached_times))
+        sess = request.weasyl_session
+        d.statsFactory.logRequest(
+            time_queued, time_in_sql, time_in_memcached, time_in_python,
+            len(request.sql_times), len(request.memcached_times),
+            sess.userid, sess.sessionid, request.method, request.path,
+            request.query_string.split(','))
+        return resp
+    return db_timer_tween
+
+
+def session_tween_factory(handler, registry):
+    """
+    A tween that sets a weasyl_session on a request.
+    """
+    # TODO(hyena): Investigate a pyramid session_factory implementation instead.
+    def session_tween(request):
+        cookies_to_clear = set()
+        if 'beaker.session.id' in request.cookies:
+            cookies_to_clear.add('beaker.session.id')
+
+        session = d.connect()
+        sess_obj = None
+        if 'WZL' in request.cookies:
+            sess_obj = session.query(orm.Session).get(request.cookies['WZL'])
+            if sess_obj is None:
+                # clear an invalid session cookie if nothing ends up trying to create a
+                # new one
+                cookies_to_clear.add('WZL')
+
         if sess_obj is None:
-            # clear an invalid session cookie if nothing ends up trying to create a
-            # new one
-            cookies_to_clear.add('WZL')
+            sess_obj = orm.Session()
+            sess_obj.create = True
+            sess_obj.sessionid = security.generate_key(64)
+        # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
+        # thrown before this part will not be handled correctly.
+        request.weasyl_session = sess_obj
 
-    if sess_obj is None:
-        sess_obj = orm.Session()
-        sess_obj.create = True
-        sess_obj.sessionid = security.generate_key(64)
-    web.ctx.weasyl_session = sess_obj
+        # Register a response callback to clear and set the session cookies before returning.
+        # Note that this requires that exceptions are handled properly by our exception view.
+        def callback(request, response):
+            if sess_obj.save:
+                session.begin()
+                if sess_obj.create:
+                    session.add(sess_obj)
+                    response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
+                                        secure=request.scheme == 'https', httponly=True)
+                    # don't try to clear the cookie if we're saving it
+                    cookies_to_clear.discard('WZL')
+                session.commit()
+            for name in cookies_to_clear:
+                response.delete_cookie(name)
 
+        request.add_response_callback(callback)
+        return handler(request)
+
+    return session_tween
+
+
+def status_check_tween_factory(handler, registry):
+    """
+    A tween that checks if the weasyl user is banned, suspended, etc. and redirects appropriately.
+
+    Rather than performing these checks on every view.
+    """
+    def status_check_tween(request):
+        status = d.common_status_check(request.userid)
+        if status:
+            return Response(d.common_status_page(request.userid, status))
+        return handler(request)
+    return status_check_tween
+
+
+# Properties and methods to enhance the pyramid `request`.
+def pg_connection_request_property(request):
+    """
+    Used for the reified pg_connection property on weasyl requests.
+    """
+    db = d.sessionmaker()
     try:
-        return handle()
-    finally:
-        if sess_obj.save:
-            session.begin()
-            if sess_obj.create:
-                session.add(sess_obj)
-                web.setcookie('WZL', sess_obj.sessionid, expires=60 * 60 * 24 * 365,
-                              secure=web.ctx.protocol == 'https', httponly=True)
-                # don't try to clear the cookie if we're saving it
-                cookies_to_clear.discard('WZL')
-            session.commit()
+        # Make sure postgres is still there before issuing any further queries.
+        db.execute('SELECT 1')
+    except OperationalError:
+        request.log_exc()
+        raise HTTPServiceUnavailable("database error")
 
-        for name in cookies_to_clear:
-            # this sets the cookie to expire one second before the HTTP request was
-            # issued, which is the closest you can get to 'clearing' a cookie.
-            web.setcookie(name, '', expires=-1)
+    # postgresql is still there. Register clean-up of this property.
+    def cleanup(request):
+        db.close()
+
+    request.add_finished_callback(cleanup)
+    return db
 
 
-# this gets set by weasyl.py to the web.py application handler. it's global
-# mutable state, but this is application code so I can't bring myself to care
-# at the moment. maybe refactor later if necessary.
-_handle = None
+def userid_request_property(request):
+    """
+    Used for the userid property on weasyl requests.
+    """
+    api_token = request.headers.get('X_WEASYL_API_KEY')
+    authorization = request.headers.get('AUTHORIZATION')
+    if api_token is not None:
+        # TODO: If reification of userid becomes an issue (e.g. because of userid changing after sign-in) revisit this.
+        # It's possible that we don't need to reify the entire property, but just cache the result of this query in a
+        # cache on arguments inner function.
+        userid = d.engine.scalar("SELECT userid FROM api_tokens WHERE token = %(token)s", token=api_token)
+        if not userid:
+            raise HTTPUnauthorized(www_authenticate=('Weasyl-API-Key', 'realm="Weasyl"'))
+        return userid
+
+    elif authorization:
+        from weasyl.oauth2 import get_userid_from_authorization
+        userid = get_userid_from_authorization(request)
+        if not userid:
+            raise HTTPUnauthorized(www_authenticate=('Bearer', 'realm="Weasyl" error="invalid_token"'))
+        return userid
+
+    else:
+        userid = request.weasyl_session.userid
+        return 0 if userid is None else userid
 
 
-def weasyl_exception_processor():
-    web.ctx.log_exc = web.ctx.env.get(
-        'raven.captureException', lambda **kw: traceback.print_exc())
-    try:
-        return _handle()
-    except ClientGoneAway:
-        if 'raven.captureMessage' in web.ctx.env:
-            web.ctx.env['raven.captureMessage']('HTTP client went away', level=logging.INFO)
-        return ''
-    except web.HTTPError:
-        raise
-    except Exception as e:
-        userid = d.get_userid()
+def log_exc_request_method(request, **kwargs):
+    """
+    Method on requests to log exceptions.
+    """
+    # It's unclear to me why this should be a request method and not just define.log_exc().
+    return request.environ.get('raven.captureException', lambda **kw: traceback.print_exc())(**kwargs)
+
+
+def web_input_request_method(request, *required, **kwargs):
+    """
+    Callable that processes the pyramid request.params multidict into a web.py storage object
+    in the style of web.input().
+    TODO: Replace usages of this method with accessing request directly.
+
+    @param request: The pyramid request object.
+    @param kwargs: Default values. If a default value is a list, it indicates that multiple
+        values of that key should be collapsed into a list.
+    @return: A dictionary-like object in the fashion of web.py's web.input()
+    """
+    return storify(request.params.mixed(), *required, **kwargs)
+
+
+# Methods to add response callbacks to a request. The callbacks run in the order they
+# were registered. Note that these will not run if an exception is thrown that isn't handled by
+# our exception view.
+def set_cookie_on_response(request, name=None, value='', max_age=None, path='/', domain=None,
+                           secure=False, httponly=False, comment=None, expires=None,
+                           overwrite=False, key=None):
+    """
+    Registers a callback on the request to set a cookie in the response.
+    Parameters have the same meaning as ``pyramid.response.Response.set_cookie``.
+    """
+    def callback(request, response):
+        response.set_cookie(name, value, max_age, path, domain, secure, httponly, comment,
+                            expires, overwrite, key)
+    request.add_response_callback(callback)
+
+
+def delete_cookie_on_response(request, name, path='/', domain=None):
+    """
+    Register a callback on the request to delete a cookie from the client.
+    Parameters have the same meaning as ``pyramid.response.Response.delete_cookie``.
+    """
+    def callback(request, response):
+        response.delete_cookie(name, path, domain)
+    request.add_response_callback(callback)
+
+
+def weasyl_exception_view(exc, request):
+    """
+    A view for general exceptions thrown by weasyl code.
+    """
+    if isinstance(exc, ClientGoneAway):
+        if 'raven.captureMessage' in request.environ:
+            request.environ['raven.captureMessage']('HTTP client went away', level=logging.INFO)
+        return request.response
+    else:
+        # Avoid using the reified request.userid property here. It might not be set and it might
+        # have changed due to signin/out.
+        if hasattr(request, 'weasyl_session'):
+            userid = request.weasyl_session.userid
+        else:
+            userid = 0
+            request.userid = 0  # To keep templates happy.
         errorpage_kwargs = {}
-        if isinstance(e, WeasylError):
-            if e.render_as_json:
-                return json.dumps({'error': {'name': e.value}})
-            errorpage_kwargs = e.errorpage_kwargs
-            if e.value in errorcode.error_messages:
-                web.ctx.status = errorcode.error_status_code.get(e.value, '200 OK')
-                message = '%s %s' % (errorcode.error_messages[e.value], e.error_suffix)
-                return d.errorpage(userid, message, **errorpage_kwargs)
-        web.ctx.status = '500 Internal Server Error'
+        if isinstance(exc, WeasylError):
+            status_code = errorcode.error_status_code.get(exc.value, 422)
+            if exc.render_as_json:
+                return Response(json={'error': {'name': exc.value}},
+                                status_code=status_code)
+            errorpage_kwargs = exc.errorpage_kwargs
+            if exc.value in errorcode.error_messages:
+                message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
+                return Response(d.errorpage(userid, message, **errorpage_kwargs),
+                                status_code=status_code)
         request_id = None
-        if 'raven.captureException' in web.ctx.env:
+        if 'raven.captureException' in request.environ:
             request_id = base64.b64encode(os.urandom(6), '+-')
-            event_id = web.ctx.env['raven.captureException'](request_id=request_id)
+            event_id = request.environ['raven.captureException'](request_id=request_id)
             request_id = '%s-%s' % (event_id, request_id)
-        print 'unhandled error (request id %s) in %r' % (request_id, web.ctx.env)
+        print "unhandled error (request id %s) in %r" % (request_id, request.environ)
         traceback.print_exc()
-        if getattr(e, '__render_as_json', False):
-            return json.dumps({'error': {}})
-        return d.errorpage(userid, request_id=request_id, **errorpage_kwargs)
-
-
-_delegate = None
-
-
-def endpoint_recording_delegate(f, fvars, args=()):
-    web.ctx.endpoint = f, args
-    return _delegate(f, fvars, args)
+        if getattr(exc, "__render_as_json", False):
+            return Response(json={'error': {}}, status_code=500)
+        else:
+            return Response(d.errorpage(userid, request_id=request_id, **errorpage_kwargs), status_code=500)
 
 
 class RemoveSessionCookieProcessor(raven.processors.Processor):
@@ -172,6 +324,7 @@ class SentryEnvironmentMiddleware(object):
         self.reactor = reactor
 
     def ravenCaptureArguments(self, level=None, **extra):
+        request = get_current_request()
         data = {
             'level': level,
             'user': {
@@ -179,12 +332,12 @@ class SentryEnvironmentMiddleware(object):
                 'ip_address': d.get_address(),
             },
             'request': {
-                'url': web.ctx.env['PATH_INFO'],
-                'method': web.ctx.env['REQUEST_METHOD'],
-                'data': web.webapi.rawinput(method='POST'),
-                'query_string': web.ctx.env['QUERY_STRING'],
-                'headers': http.get_headers(web.ctx.env),
-                'env': web.ctx.env,
+                'url': request.environ['PATH_INFO'],
+                'method': request.environ['REQUEST_METHOD'],
+                'data': request.POST,
+                'query_string': request.environ['QUERY_STRING'],
+                'headers': http.get_headers(request.environ),
+                'env': request.environ,
             },
         }
 
@@ -192,7 +345,7 @@ class SentryEnvironmentMiddleware(object):
             'data': data,
             'extra': dict(
                 extra,
-                session=web.ctx.get('weasyl_session'),
+                session=getattr(request, 'weasyl_session', None),
             ),
         }
 
@@ -259,43 +412,6 @@ def before_cursor_execute(conn, cursor, statement, parameters, context, executem
 @event.listens_for(Engine, 'after_cursor_execute')
 def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
     total = time.time() - context._query_start_time
-    if hasattr(web.ctx, 'sql_times'):
-        web.ctx.sql_times.append(total)
-
-
-def db_timer_processor(app):
-    def processor(handle):
-        started_at = time.time()
-        queued_at = web.ctx.env.get('HTTP_X_REQUEST_STARTED_AT')
-        if queued_at is None:
-            return handle()
-
-        web.ctx.sql_times = []
-        web.ctx.memcached_times = []
-        time_queued = started_at - float(queued_at)
-        ret = handle()
-        ended_at = time.time()
-        time_in_sql = sum(web.ctx.sql_times)
-        time_in_memcached = sum(web.ctx.memcached_times)
-        time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
-        web.header('X-Queued-Time-Spent', '%0.1fms' % (time_queued * 1000,))
-        web.header('X-SQL-Time-Spent', '%0.1fms' % (time_in_sql * 1000,))
-        web.header('X-Memcached-Time-Spent', '%0.1fms' % (time_in_memcached * 1000,))
-        web.header('X-Python-Time-Spent', '%0.1fms' % (time_in_python * 1000,))
-        web.header('X-SQL-Queries', str(len(web.ctx.sql_times)))
-        web.header('X-Memcached-Queries', str(len(web.ctx.memcached_times)))
-        sess = web.ctx.weasyl_session
-        app.statsFactory.logRequest(
-            time_queued, time_in_sql, time_in_memcached, time_in_python,
-            len(web.ctx.sql_times), len(web.ctx.memcached_times),
-            sess.userid, sess.sessionid, web.ctx.method, *web.ctx.endpoint)
-        return ret
-
-    return processor
-
-
-def cache_clear_processor(handle):
-    try:
-        return handle()
-    finally:
-        ThreadCacheProxy.zap_cache()
+    request = get_current_request()  # TODO: There should be a better way to save this.
+    if hasattr(request, 'sql_times'):
+        request.sql_times.append(total)

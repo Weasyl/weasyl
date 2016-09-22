@@ -1,48 +1,50 @@
-import web
+from __future__ import absolute_import, division, unicode_literals
 
 from datetime import datetime
-from libweasyl import staff
+from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.response import Response
+
 from weasyl import ads
 from weasyl import define
-from weasyl.controllers.base import controller_base
-from weasyl.define import token_checked
+from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
 
 
-class create_(controller_base):
-    login_required = True
-    moderator_only = True
-
-    def GET(self):
-        return define.render("ads/create.html", [None])
-
-    @token_checked
-    def POST(self):
-        form = web.input(image="", owner="", end="")
-
-        try:
-            form.end = datetime.strptime(form.end, "%Y-%m-%d")
-        except ValueError:
-            raise WeasylError("adEndDateInvalid")
-
-        ad_id = ads.create_ad(form)
-        return define.render("ads/create.html", (ad_id,))
+@moderator_only
+def create_form_(request):
+    return Response(define.render("ads/create.html", (None,)))
 
 
-class list_(controller_base):
-    def GET(self):
-        return define.webpage(self.user_id, "ads/list.html", [self.user_id, ads.get_current_ads()])
+@moderator_only
+@token_checked
+def create_(request):
+    form = request.web_input(image="", owner="", end="")
 
-    @token_checked
-    def POST(self):
-        form = web.input(takedown="")
+    try:
+        form.end = datetime.strptime(form.end, "%Y-%m-%d")
+    except ValueError:
+        raise WeasylError("adEndDateInvalid")
 
-        if form.takedown:
-            ad_id = int(form.takedown)
+    ad_id = ads.create_ad(form)
 
-            if self.user_id not in staff.MODS:
-                raise WeasylError("InsufficientPermissions")
+    return Response(define.render("ads/create.html", (
+        ad_id,
+    )))
 
-            ads.expire(ad_id)
 
-        raise web.seeother("/ads")
+def list_(request):
+    return Response(define.webpage(request.userid, "ads/list.html", (
+        request.userid,
+        ads.get_current_ads(),
+    )))
+
+
+@moderator_only
+@token_checked
+def takedown_(request):
+    form = request.web_input(takedown="")
+
+    ad_id = int(form.takedown)
+    ads.expire(ad_id)
+
+    raise HTTPSeeOther(location="/ads")

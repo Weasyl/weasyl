@@ -1,12 +1,10 @@
-# blocktag.py
-
-import define as d
-
-import profile
-import searchtag
+from __future__ import absolute_import
 
 from libweasyl import ratings
 
+from weasyl import define as d
+from weasyl import profile
+from weasyl import searchtag
 from weasyl.cache import region
 
 # For blocked tags, `rating` refers to the lowest rating for which that tag is
@@ -54,15 +52,6 @@ def check(userid, submitid=None, charid=None, journalid=None):
 
 def check_list(rating, tags, blocked_tags):
     return any(rating >= b['rating'] and b['tagid'] in tags for b in blocked_tags)
-
-
-def suggest(userid, target):
-    if not target:
-        return []
-
-    return d.execute("SELECT title FROM searchtag"
-                     " WHERE title LIKE '%s%%' AND tagid NOT IN (SELECT tagid FROM blocktag WHERE userid = %i)"
-                     " ORDER BY title LIMIT 10", [target, userid], options="within")
 
 
 def select(userid):

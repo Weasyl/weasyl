@@ -1,15 +1,15 @@
-alembic==0.8.6
+alembic==0.8.8
 anyjson==0.3.3
 arrow==0.7.0
 bcrypt==3.1.0
-dogpile.cache==0.5.7
+dogpile.cache==0.6.2
 dogpile.core==0.4.1
-lxml==3.6.0
+lxml==3.6.4
 misaka==1.0.3+weasyl.6    # https://github.com/Weasyl/misaka
-oauthlib==1.1.2
+oauthlib==2.0.0
 psycopg2cffi==2.7.4
-pytz==2016.4
-pyyaml==3.11
+pytz==2016.6.1
+pyyaml==3.12
 sanpera==0.1.1+weasyl.6   # https://github.com/Weasyl/sanpera
-sqlalchemy==1.0.13
+sqlalchemy==1.0.15
 translationstring==1.3

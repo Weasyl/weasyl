@@ -1,15 +1,13 @@
-# favorite.py
+from __future__ import absolute_import
 
-from error import PostgresError, WeasylError
-import macro as m
-import define as d
-
-import welcome
-import frienduser
-import ignoreuser
-import collection
-
+from weasyl import collection
+from weasyl import define as d
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import macro as m
 from weasyl import media
+from weasyl import welcome
+from weasyl.error import WeasylError
 
 
 def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):
@@ -206,13 +204,17 @@ def insert(userid, submitid=None, charid=None, journalid=None):
     elif ignoreuser.check(query[0], userid):
         raise WeasylError("contentOwnerIgnoredYou")
 
-    try:
-        d.execute("INSERT INTO favorite VALUES (%i, %i, '%s', %i)", [
-            userid, d.get_targetid(submitid, charid, journalid),
-            "s" if submitid else "f" if charid else "j", d.get_time()
-        ])
-    except PostgresError:
-        raise WeasylError("favoriteRecordExists")
+    insert_result = d.engine.execute(
+        'INSERT INTO favorite (userid, targetid, type, unixtime) '
+        'VALUES (%(user)s, %(target)s, %(type)s, %(now)s) '
+        'ON CONFLICT DO NOTHING',
+        user=userid,
+        target=d.get_targetid(submitid, charid, journalid),
+        type='s' if submitid else 'f' if charid else 'j',
+        now=d.get_time())
+
+    if insert_result.rowcount == 0:
+        return
 
     # create a list of users to notify
     notified = set(collection.find_owners(submitid))
@@ -254,7 +256,27 @@ def check(userid, submitid=None, charid=None, journalid=None):
         ], options="bool")
 
 
-def count(submitid):
-    return d.execute(
-        "SELECT COUNT(*) FROM favorite WHERE targetid = %i AND type = 's'",
-        [submitid], options=['element'])
+def count(id, contenttype='submission'):
+    """Fetches the count of favorites on some content.
+
+    Args:
+        id (int): ID of the content to get the count for.
+        contenttype (str): Type of content to fetch. It accepts one of the following:
+            submission, journal, or character
+
+    Returns:
+        An int with the number of favorites.
+    """
+
+    if contenttype == 'submission':
+        querytype = 's'
+    elif contenttype == 'journal':
+        querytype = 'j'
+    elif contenttype == 'character':
+        querytype = 'f'
+    else:
+        raise ValueError("type should be one of 'submission', 'journal', or 'character'")
+
+    return d.engine.scalar(
+        "SELECT COUNT(*) FROM favorite WHERE targetid = %s AND type = %s",
+        (id, querytype))

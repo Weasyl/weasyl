@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+
 import time
 
 from crochet import ReactorStopped, TimeoutError
 from dogpile.cache.api import CacheBackend, NO_VALUE
 from dogpile.cache import register_backend
+from pyramid.threadlocal import get_current_request
 from txyam.client import YamClient
 from txyam.sync import SynchronousYamClient
-import web
 
 from libweasyl.cache import region
 
@@ -27,8 +29,10 @@ class YamBackend(CacheBackend):
         except MEMCACHED_FAILURE_EXCEPTIONS:
             return NO_VALUE
         delta = time.time() - start
-        if hasattr(web.ctx, 'memcached_times'):
-            web.ctx.memcached_times.append(delta)
+        # TODO(hyena): Is there a way to avoid this threadlocal violence?
+        request = get_current_request()
+        if hasattr(request, 'memcached_times'):
+            request.memcached_times.append(delta)
         if value is None or value[1] is None:
             return NO_VALUE
         return value[1]
@@ -40,8 +44,10 @@ class YamBackend(CacheBackend):
         except MEMCACHED_FAILURE_EXCEPTIONS:
             return [NO_VALUE] * len(keys)
         delta = time.time() - start
-        if hasattr(web.ctx, 'memcached_times'):
-            web.ctx.memcached_times.append(delta)
+        # TODO(hyena): Is there a way to avoid this threadlocal violence?
+        request = get_current_request()
+        if hasattr(request, 'memcached_times'):
+            request.memcached_times.append(delta)
         ret = []
         for key in keys:
             value = values.get(key)

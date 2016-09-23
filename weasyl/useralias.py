@@ -1,9 +1,8 @@
-# useralias.py
+from __future__ import absolute_import
 
-from error import WeasylError
-import define as d
-
-import login
+from weasyl import define as d
+from weasyl import login
+from weasyl.error import WeasylError
 
 
 def select(userid, premium=True):
@@ -16,7 +15,7 @@ def select(userid, premium=True):
 def set(userid, username):
     if login.username_exists(username):
         raise WeasylError("usernameExists")
-    elif not d.get_premium(None, userid):
+    elif not d.get_premium(userid):
         raise WeasylError("InsufficientPermissions")
 
     d.execute("DELETE FROM useralias WHERE userid = %i AND settings ~ 'p'", [userid])

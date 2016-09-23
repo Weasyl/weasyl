@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import unittest
 import pytest
 
@@ -19,12 +21,27 @@ class CollectionsTestCase(unittest.TestCase):
         collection.offer(self.creator, self.s, self.collector)
 
     def count_collections(self, pending, rating=ratings.GENERAL.code):
-        return len(collection.select_manage(self.collector, rating, 10, pending))
+        return self.db.scalar(
+            """
+            SELECT count(*)
+            FROM collection
+                INNER JOIN submission ON collection.submitid = submission.submitid
+                INNER JOIN profile ON submission.userid = profile.userid
+            WHERE
+                (submission.rating <= :rating OR submission.userid = :user) AND
+                (position('p' in collection.settings) != 0) = :pending AND
+                submission.settings !~ '[fh]'
+            """,
+            {
+                'user': self.collector,
+                'rating': rating,
+                'pending': pending,
+            })
 
     def test_offer_and_accept(self):
         self.offer()
         self.assertEqual(1, self.count_collections(True))
-        collection.offer_accept(self.collector, [self.s])
+        collection.pending_accept(self.collector, [(self.s, self.collector)])
         self.assertEqual(1, self.count_collections(False))
 
     def test_offer_with_errors(self):
@@ -34,14 +51,14 @@ class CollectionsTestCase(unittest.TestCase):
     def test_offer_and_reject(self):
         self.offer()
         self.assertEqual(1, self.count_collections(True))
-        collection.offer_reject(self.collector, [self.s])
+        collection.pending_reject(self.collector, [(self.s, self.collector)])
         self.assertEqual(0, self.count_collections(False))
         self.assertEqual(0, self.count_collections(True))
 
     def test_offer_accept_and_remove(self):
         self.offer()
         self.assertEqual(1, self.count_collections(True))
-        collection.offer_accept(self.collector, [self.s])
+        collection.pending_accept(self.collector, [(self.s, self.collector)])
         collection.remove(self.collector, [self.s])
         self.assertEqual(0, self.count_collections(False))
         self.assertEqual(0, self.count_collections(True))

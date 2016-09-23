@@ -17,11 +17,11 @@ time_endpoints = false
 rough_shutdowns = true
 
 [sqlalchemy]
-url = postgres:///weasyl
+url = postgresql+psycopg2cffi:///weasyl
 
 [sentry]
 # dsn = twisted+http://...
 
 [recaptcha-lo.weasyl.com]
-public_key = 6Le9U_0SAAAAAGXX5z9xg3LQC4tgGzWm_kC9-V_G
-private_key = 6Le9U_0SAAAAAKO9vYtaQJL01srJ-soG6l9vmTft
+public_key = 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
+private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe

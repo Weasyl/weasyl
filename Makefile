@@ -4,6 +4,8 @@
 # Variables
 #
 
+# Virtual environment directory
+VE ?= weasyl-env
 
 # Whether to install from wheels
 USE_WHEEL := --no-binary :all:
@@ -37,19 +39,16 @@ config/weasyl-staff.yaml:
 	cp -n config/weasyl-staff.yaml.example $@
 
 # Creates python environment
-weasyl-env: etc/requirements.txt
-	test -e weasyl-env || { virtualenv $@; cp etc/pip.conf $@ ; \
+$(VE): etc/requirements.txt
+	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
                $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
+	$@/bin/pip install $(USE_WHEEL) pytest flake8
 	touch $@
 
-libweasyl:
-	git clone https://github.com/Weasyl/libweasyl.git
-	ln -s ../weasyl-env libweasyl/ve
-
 .PHONY: install-libweasyl
-install-libweasyl: weasyl-env libweasyl
-	weasyl-env/bin/pip install $(USE_WHEEL) -Ue libweasyl
+install-libweasyl: $(VE)
+	$(VE)/bin/pip install $(USE_WHEEL) -Ue libweasyl
 
 .PHONY: guest-install-libweasyl
 guest-install-libweasyl: .vagrant
@@ -59,11 +58,11 @@ guest-install-libweasyl: .vagrant
 	vagrant up
 
 .PHONY: setup-vagrant
-setup-vagrant: libweasyl .vagrant
+setup-vagrant: .vagrant
 
 .PHONY: upgrade-db
-upgrade-db: libweasyl
-	cd $< && make upgrade-db
+upgrade-db:
+	cd libweasyl && make upgrade-db
 
 .PHONY: guest-upgrade-db
 guest-upgrade-db: .vagrant
@@ -77,9 +76,15 @@ $(STATIC_DIRS):
 $(TEMP_DIRS):
 	mkdir -p $@
 
+node_modules: package.json
+	npm install
+
+build/rev-manifest.json: node_modules
+	gulp sass
+
 # Phony setup target
 .PHONY: setup
-setup: weasyl-env config/site.config.txt config/weasyl-staff.yaml $(STATIC_DIRS) $(TEMP_DIRS)
+setup: $(VE) config/site.config.txt config/weasyl-staff.yaml build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker
@@ -91,10 +96,12 @@ deploy-web-worker: setup
 run: setup
 	WEASYL_ROOT=$(shell pwd) \
 		WEASYL_SERVE_STATIC_FILES=y \
+		WEASYL_RELOAD_TEMPLATES=y \
+		WEASYL_RELOAD_ASSETS=y \
 		WEASYL_REVERSE_PROXY_STATIC=y \
 		WEASYL_WEB_ENDPOINT=$(WEB_ENDPOINT) \
 		WEASYL_WEB_STATS_ENDPOINT="" \
-		weasyl-env/bin/twistd -ny weasyl/weasyl.tac
+		$(VE)/bin/twistd -ny weasyl/weasyl.tac
 
 # Phony target to run a local server inside of vagrant
 .PHONY: guest-run
@@ -104,17 +111,18 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
-	WEASYL_ROOT=$(shell pwd) weasyl-env/bin/py.test weasyl/test
+	WEASYL_ROOT=$(shell pwd) $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell
 .PHONY: shell
 shell: setup
-	WEASYL_ROOT=$(shell pwd) weasyl-env/bin/python
+	WEASYL_ROOT=$(shell pwd) $(VE)/bin/python
 
 # Phony target to clean directory
 .PHONY: clean
 clean:
 	find . -type f -name '*.py[co]' -delete
+	rm -rf build
 	rm -rf $(STATIC_DIRS)
 	rm -rf $(TEMP_DIRS)
 
@@ -122,14 +130,14 @@ clean:
 .PHONY: distclean
 distclean: clean
 	rm -f etc/site.config.txt
-	rm -rf weasyl-env
+	rm -rf $(VE)
 
 # Phony target to run flake8 pre-commit
 .PHONY: check
 check:
-	git diff HEAD | weasyl-env/bin/flake8 --config setup.cfg --statistics --diff
+	git diff HEAD | $(VE)/bin/flake8 --config setup.cfg --statistics --diff
 
 # Phony target to run flake8 on the last commit
 .PHONY: check-commit
 check-commit:
-	git show | weasyl-env/bin/flake8 --config setup.cfg --statistics --diff
+	git show | $(VE)/bin/flake8 --config setup.cfg --statistics --diff

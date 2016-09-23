@@ -1,36 +1,34 @@
-# submission.py
+from __future__ import absolute_import
 
-import datetime
 import urlparse
 
 import arrow
 import sqlalchemy as sa
 
-from error import PostgresError, WeasylError
-import macro as m
-import define as d
-
-import files
-
-import embed
-import image
-import folder
-import report
-import comment
-import profile
-import welcome
-import blocktag
-import favorite
-import searchtag
-import frienduser
-import ignoreuser
-import collection
-
 from libweasyl.cache import region
-from libweasyl.models import content, meta, users
 from libweasyl import html, images, text, ratings, staff
 
-from weasyl import api, media, orm, twits
+from weasyl import api
+from weasyl import blocktag
+from weasyl import collection
+from weasyl import comment
+from weasyl import define as d
+from weasyl import embed
+from weasyl import favorite
+from weasyl import files
+from weasyl import folder
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import image
+from weasyl import macro as m
+from weasyl import media
+from weasyl import orm
+from weasyl import profile
+from weasyl import report
+from weasyl import searchtag
+from weasyl import twits
+from weasyl import welcome
+from weasyl.error import PostgresError, WeasylError
 
 
 _MEGABYTE = 1048576
@@ -686,7 +684,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
 def twitter_card(submitid):
     query = d.execute("""
         SELECT
-            su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value
+            su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value, su.rating
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
@@ -696,7 +694,7 @@ def twitter_card(submitid):
 
     if not query:
         raise WeasylError("submissionRecordMissing")
-    title, settings, content, subtype, userid, username, full_name, config, twitter = query
+    title, settings, content, subtype, userid, username, full_name, config, twitter, rating = query
     if 'h' in settings:
         raise WeasylError("submissionRecordMissing")
     elif 'f' in settings:
@@ -709,9 +707,22 @@ def twitter_card(submitid):
         content = "[This submission has no description.]"
 
     ret = {
-        'url': d.absolutify_url('/submission/%s/%s' % (submitid, text.slug_for(title))),
-        'description': content,
+        'url': d.absolutify_url(
+            '/submission/%s/%s' % (submitid, text.slug_for(title))),
     }
+
+    if twitter:
+        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
+        ret['title'] = title
+    else:
+        ret['title'] = '%s by %s' % (title, full_name)
+
+    if ratings.CODE_MAP[rating].minimum_age >= 18:
+        ret['card'] = 'summary'
+        ret['description'] = 'This image is rated 18+ and only viewable on weasyl.com'
+        return ret
+
+    ret['description'] = content
 
     subcat = subtype / 1000 * 1000
     media_items = media.get_submission_media(submitid)
@@ -723,12 +734,6 @@ def twitter_card(submitid):
         thumb = media_items.get('thumbnail-custom') or media_items.get('thumbnail-generated')
         if thumb:
             ret['image:src'] = d.absolutify_url(thumb[0]['display_url'])
-
-    if twitter:
-        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
-        ret['title'] = title
-    else:
-        ret['title'] = '%s by %s' % (title, full_name)
 
     return ret
 
@@ -1037,7 +1042,7 @@ def select_recently_popular():
 
     To calculate scores, this method performs the following evaluation:
 
-    item_score = log(item_fave_count) + log(item_view_counts) / 2 + submission_time / 180000
+    item_score = log(item_fave_count + 1) + log(item_view_counts) / 2 + submission_time / 180000
 
     180000 is roughly two days. So intuitively an item two days old needs an order of
     magnitude more favorites/views compared to a fresh one. Also the favorites are
@@ -1046,41 +1051,33 @@ def select_recently_popular():
 
     :return: A list of submission dictionaries, in score-rank order.
     """
-    db = meta.Base.dbsession
-    subq = (
-        db.query(content.Favorite.targetid, sa.func.count().label('faves'))
-        .filter_by(type='s')
-        .group_by(content.Favorite.targetid)
-        .subquery())
-    score = (
-        sa.func.log(sa.func.greatest(sa.func.coalesce(subq.c.faves, 0), 1)) +
-        sa.func.log(sa.func.greatest(content.Submission.page_views, 1)) / 2 +
-        sa.cast(content.Submission.unixtime, sa.types.INTEGER) / 180000).label('score')
-    q = (
-        db.query(content.Submission, users.Profile, score)
-        .options(sa.orm.joinedload('tag_objects'))
-        .filter(~content.Submission.is_hidden, ~content.Submission.is_friends_only)
-        .outerjoin(subq, content.Submission.submitid == subq.c.targetid)
-        .join(users.Profile, content.Submission.userid == users.Profile.userid)
-        .order_by(score.desc()))
-
     max_days = int(d.config_read_setting("popular_max_age_days", "21"))
-    if max_days > 0:
-        q = q.filter(content.Submission.unixtime >
-                     sa.func.extract('EPOCH', sa.func.now() - datetime.timedelta(days=max_days)))
-    q = q.limit(128)
 
-    submissions = [{
-        'contype': 10,
-        'score': sc,
-        'submitid': s.submitid,
-        'title': s.title,
-        'rating': s.rating.code,
-        'subtype': s.subtype,
-        'unixtime': s.unixtime.timestamp,
-        'tags': list(s.tags),
-        'userid': s.userid,
-        'username': p.username,
-    } for s, p, sc in q.all()]
+    query = d.engine.execute("""
+        SELECT
+            log(count(favorite.*) + 1) +
+                log(submission.page_views + 1) / 2 +
+                submission.unixtime / 180000 AS score,
+            submission.submitid,
+            submission.title,
+            submission.rating,
+            submission.subtype,
+            submission.unixtime,
+            submission_tags.tags,
+            submission.userid,
+            profile.username
+        FROM submission
+            INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
+            INNER JOIN profile ON submission.userid = profile.userid
+            LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
+        WHERE
+            submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
+            submission.settings !~ '[hf]'
+        GROUP BY submission.submitid, submission_tags.submitid, profile.userid
+        ORDER BY score DESC
+        LIMIT 128
+    """, max_days=max_days)
+
+    submissions = [dict(row, contype=10) for row in query]
     media.populate_with_submission_media(submissions)
     return submissions

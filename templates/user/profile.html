@@ -155,7 +155,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     $if(shouts):
       $:{RENDER("common/comment_thread.html", ["user_comments", shouts, "userid", myself, None, profile['userid']])}
     $if(myself):
-      $:{RENDER("common/comment_form.html", [myself, profile['userid'], "shouts"], cached = True)}
+      $:{RENDER("common/comment_form.html", [myself, profile['userid'], "shouts"])}
   </div><!-- /user-shouts -->
 
 </div><!-- /user-content -->

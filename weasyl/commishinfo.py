@@ -1,11 +1,12 @@
-# commishinfo.py
+from __future__ import absolute_import
 
-import error
-import define as d
-from decimal import Decimal
 from weasyl.cache import region
 from weasyl.error import WeasylError
 import re
+from decimal import Decimal
+
+from weasyl import define as d
+from weasyl import error
 
 _MAX_PRICE = 99999999
 

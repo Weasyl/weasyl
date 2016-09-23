@@ -59,7 +59,7 @@
     };
 
     // thumbnails: config
-    var thumbnailContainers,
+    var thumbnailContainers = document.getElementsByClassName('thumbnail-grid'),
         thumbnailOptions = {
             minWidth: 125,  // minimum width per cell (should match min thumbnail width)
             maxWidth: 500,  // thumbnails over this width will be cropped
@@ -176,7 +176,6 @@
         // thumbnails
         // give enhanced layout to modern browsers
         if ('classList' in document.createElement('_') && typeof window.matchMedia === 'function') {
-            thumbnailContainers = document.getElementsByClassName('thumbnail-grid');
             document.documentElement.classList.add('enhanced-thumbnails');
             if (thumbnailContainers.length > 0) {
                 calculateThumbnailLayout();
@@ -1666,6 +1665,22 @@
 
                 playableContainer.classList.toggle('small', layout.width < 155);
                 playableContainer.classList.toggle('tiny', layout.width < 115);
+            }
+        });
+    })();
+
+    // Confirm removing friends
+    (function () {
+        var hasUnfriend = $('input[name="action"][value="unfriend"]')[0];
+        if (!hasUnfriend) {
+            return;
+        }
+
+        $('form[name="frienduser"]').on('submit', function (e) {
+            var shouldUnfriend = confirm('Are you sure you wish to remove this friend?');
+
+            if (!shouldUnfriend) {
+                e.preventDefault();
             }
         });
     })();

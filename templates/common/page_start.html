@@ -18,11 +18,8 @@ $code:
   $else:
     <title>Weasyl</title>
 
-  <link type="text/css" rel="stylesheet" href="${CDNIFY('/static/fonts/museo500.css')}" />
-  <link type="text/css" rel="stylesheet" href="${CDNIFY('/static/public.css?' + SHA)}" />
-
-  <script src="${CDNIFY('/static/modernizr.custom.js')}"></script>
-  <!--[if (lt IE 9)&(!IEMobile)]><script src="${CDNIFY('/static/html5-respond.min.js')}"></script><![endif]-->
+  <link rel="stylesheet" href="${CDNIFY('/static/fonts/museo500.css')}" />
+  <link rel="stylesheet" href="${resource_path('css/site.css')}" />
 
   <link type="image/png" rel="icon" href="${CDNIFY('/static/images/favicon.png')}" />
 
@@ -49,11 +46,7 @@ $code:
 
 </head>
 
-<!--[if lt IE 7 ]><body class="ie6 lt-ie8 lt-ie9"><![endif]-->
-<!--[if IE 7 ]><body class="ie7 lt-ie8 lt-ie9"><![endif]-->
-<!--[if IE 8 ]><body class="ie8 lt-ie9"><![endif]-->
-<!--[if IE 9 ]><body class="ie9"><![endif]-->
-<!--[if (gt IE 9)|!(IE)]><!--><body><!--<![endif]-->
+<body>
 
 <div id="page-container">
   $if query is None:

@@ -10,8 +10,16 @@ apt-get install -y ca-certificates apt-transport-https
 
 echo >/etc/apt/sources.list.d/weasyl.list \
     'deb http://apt.weasyldev.com/repos/apt/debian jessie main'
+echo >/etc/apt/sources.list.d/postgresql.list \
+    'deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main 9.5'
 
 curl https://deploy.weasyldev.com/weykent-key.asc | apt-key add -
+curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+echo >/etc/apt/sources.list.d/nodesource.list \
+    'deb https://deb.nodesource.com/node_6.x jessie main'
+
+curl https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
 
 apt-get update
 apt-mark hold grub-pc
@@ -28,13 +36,17 @@ dhclient eth0
 apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libpq-dev \
     libxml2-dev libxslt-dev memcached nginx pkg-config \
-    postgresql-9.4 postgresql-contrib-9.4 \
-    liblzma-dev python-dev python-virtualenv
+    postgresql-9.5 postgresql-contrib-9.5 \
+    liblzma-dev python-dev python-virtualenv \
+    ruby-sass nodejs
+
+npm install -g gulp-cli
 
 sudo -u postgres dropdb weasyl
 sudo -u postgres dropuser vagrant
 sudo -u postgres createuser -drs vagrant
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl
+sudo -u postgres createdb -E UTF8 -O vagrant weasyl_test
 sudo -u vagrant psql weasyl -c 'CREATE EXTENSION hstore;'
 curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.gz \
     | gunzip | sudo -u vagrant psql weasyl
@@ -61,6 +73,10 @@ server {
     location /static {
         root /home/vagrant/weasyl;
         try_files \\$uri @proxy;
+    }
+
+    location /css {
+        root /home/vagrant/weasyl/build;
     }
 
     location / {

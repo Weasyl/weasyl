@@ -1,0 +1,13 @@
+.option-with-label, .input-checkbox.option-with-label {
+    display: flex;
+}
+
+.option-label {
+    display: inline-block;
+    margin-left: 0.2em;
+    vertical-align: top;
+}
+
+.option-label-description {
+    color: #888;
+}

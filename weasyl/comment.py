@@ -1,4 +1,4 @@
-# content.py
+from __future__ import absolute_import
 
 import arrow
 
@@ -270,6 +270,29 @@ def remove(userid, feature=None, commentid=None):
     return query[1]
 
 
-def count(submitid):
-    # TODO(kailys): refactor to not select from media table
-    return len(select(0, submitid))
+def count(id, contenttype='submission'):
+    """Fetches the count of comments on some content.
+
+    Args:
+        id (int): ID of the content to get the count for.
+        contenttype (str): Type of content to fetch. It accepts one of the following:
+            submission, journal, or character
+
+    Returns:
+        An int with the number of comments.
+    """
+
+    if contenttype == 'submission':
+        return d.engine.scalar(
+            'SELECT COUNT(*) FROM comments cm WHERE cm.target_sub = %s',
+            (id,))
+    elif contenttype == 'journal':
+        tablename = 'journalcomment'
+    elif contenttype == 'character':
+        tablename = 'charcomment'
+    else:
+        raise ValueError("type should be one of 'submission', 'journal', or 'character'")
+
+    return d.engine.scalar(
+        'SELECT COUNT(*) FROM {table} cm WHERE cm.targetid = %s'.format(table=tablename),
+        (id,))

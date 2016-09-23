@@ -32,6 +32,17 @@ $:{RENDER("common/stage_title.html", ["View Private Message", "Notes", "/notes?f
 
     <div class="formatted-content">$:{MARKDOWN(query['content'])}</div>
 
+    $if myself['is_mod']:
+      <form name="copynotetostaffnotes" action="/modcontrol/copynotetostaffnotes" method="post" class="form clear">
+        <button type="submit" class="button positive" style="float: right;">Copy Note to Staff Notes</button>
+        <input type="hidden" name="notecontent" value="$:{MARKDOWN(query['content'])}" />
+        <input type="hidden" name="notesubject" value="${query['title']}" />
+        <input type="hidden" name="targetuserid" value="${query['senderid']}" />
+        <input type="hidden" name="targetusername" value="${LOGIN(query['sendername'])}" />
+        <input type="hidden" name="notedatetime" value="${(arrow.get(query['unixtime']).format('YYYY-MM-DD HH:mm:ss ZZ'))}" />
+        $:{CSRF()}
+      </form>
+
     $if not query['mine']:
       <form name="notescompose" action="/notes/compose" method="post" class="form clear">
         $:{CSRF()}

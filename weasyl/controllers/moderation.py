@@ -190,3 +190,21 @@ def modcontrol_edituserconfig_(request):
 
     moderation.edituserconfig(form)
     raise HTTPSeeOther("/modcontrol")
+
+
+@moderator_only
+@token_checked
+def modcontrol_copynotetostaffnotes_post_(request):
+    form = request.web_input(targetuserid=None, targetusername=None, notecontent=None,
+                             notedatetime=None, notesubject=None)
+
+    staffnotetitle = ''.join(("Received note from ", form.targetusername, ", dated ", form.notedatetime,
+                              ', and the subject was: "', form.notesubject, '".'))
+
+    moderation.note_about(
+        userid=request.userid,
+        target_user=form.targetuserid,
+        title=staffnotetitle,
+        message=form.notecontent,
+    )
+    raise HTTPSeeOther(''.join(("/staffnotes/", form.targetusername)))

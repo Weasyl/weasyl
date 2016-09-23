@@ -11,10 +11,12 @@ $:{RENDER("common/stage_title.html", ["Advertisements"])}
 
       <table id="ad-list">
         <thead>
-          <th>Image</th>
-          <th>Link</th>
-          $if is_mod:
-            <th>Actions</th>
+          <tr>
+            <th>Image</th>
+            <th>Link</th>
+            $if is_mod:
+              <th>Actions</th>
+          </tr>
         </thead>
         <tbody>
           $for ad in ads:

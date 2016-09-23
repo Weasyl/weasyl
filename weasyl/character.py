@@ -1,33 +1,29 @@
-# character.py
+from __future__ import absolute_import
 
 import arrow
 import re
-
-from error import PostgresError, WeasylError
-import macro
-import define
-
-import image
-import comment
-import profile
-import welcome
-import blocktag
-import searchtag
-import thumbnail
-import frienduser
-import ignoreuser
-
-import files
-import report
-import favorite
 
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
 
 from weasyl import api
-from weasyl import macro as m
+from weasyl import blocktag
+from weasyl import comment
+from weasyl import define
+from weasyl import favorite
+from weasyl import files
+from weasyl import frienduser
+from weasyl import ignoreuser
+from weasyl import image
+from weasyl import macro
 from weasyl import media
+from weasyl import profile
+from weasyl import report
+from weasyl import searchtag
+from weasyl import thumbnail
+from weasyl import welcome
+from weasyl.error import PostgresError, WeasylError
 
 
 _MEGABYTE = 1048576
@@ -53,7 +49,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     if thumbsize:
         files.easyupload(tempthumb, thumbfile, "image")
         thumbextension = files.get_extension_for_category(
-            thumbfile, m.ART_SUBMISSION_CATEGORY)
+            thumbfile, macro.ART_SUBMISSION_CATEGORY)
     else:
         thumbextension = None
 
@@ -61,7 +57,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     if submitsize:
         files.easyupload(tempsubmit, submitfile, "image")
         submitextension = files.get_extension_for_category(
-            submitfile, m.ART_SUBMISSION_CATEGORY)
+            submitfile, macro.ART_SUBMISSION_CATEGORY)
     else:
         submitextension = None
 
@@ -93,7 +89,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     ch = define.meta.tables["character"]
 
     try:
-        charid = define.engine.execute(ch.insert().returning(ch.c.charid), {
+        charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
             "userid": userid,
             "unixtime": arrow.now(),
             "char_name": character.char_name,
@@ -105,7 +101,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
             "content": character.content,
             "rating": character.rating.code,
             "settings": settings,
-        }).scalar()
+        })
     except PostgresError:
         files.clear_temporary(userid)
         raise
@@ -236,7 +232,7 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
 def select_view(userid, charid, rating, ignore=True, anyway=None):
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=ignore, anyway=anyway == 'anyway')
+        userid, charid, rating=rating, ignore=ignore, anyway=anyway == "true")
 
     login = define.get_sysname(query['username'])
 

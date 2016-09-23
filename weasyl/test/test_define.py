@@ -1,4 +1,6 @@
-# coding=utf-8
+# encoding: utf-8
+from __future__ import absolute_import
+
 from pyramid.threadlocal import get_current_request
 import pytest
 

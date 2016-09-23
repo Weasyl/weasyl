@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import arrow
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import aliased, contains_eager, joinedload

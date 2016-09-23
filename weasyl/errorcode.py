@@ -1,4 +1,4 @@
-# errorcode.py
+from __future__ import absolute_import
 
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."

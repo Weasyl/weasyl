@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from pyramid.httpexceptions import (
     HTTPFound,
     HTTPSeeOther,
@@ -108,10 +110,9 @@ def signup_get_(request):
 def signup_post_(request):
     form = request.web_input(
         username="", password="", passcheck="", email="", emailcheck="",
-        day="", month="", year="", recaptcha_challenge_field="",
-        g_recaptcha_response=request.web_input("g-recaptcha-response"))
+        day="", month="", year="")
 
-    if not define.captcha_verify(form):
+    if 'g-recaptcha-response' not in form or not define.captcha_verify(form['g-recaptcha-response']):
         return Response(define.errorpage(
             request.userid,
             "There was an error validating the CAPTCHA response; you should go back and try again."))

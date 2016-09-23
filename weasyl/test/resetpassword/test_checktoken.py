@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from weasyl.test import db_utils
 from weasyl import resetpassword
 from weasyl import define as d

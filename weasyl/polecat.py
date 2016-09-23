@@ -3,10 +3,14 @@
 Just bear with me here.
 """
 
-from __future__ import division
+from __future__ import absolute_import, division
+
+import os
 import time
 
 import anyjson as json
+
+from bisect import bisect_left
 from twisted.application.internet import TimerService
 from twisted.application.service import Service
 from twisted.internet.protocol import DatagramProtocol, Factory
@@ -19,9 +23,6 @@ from twisted.web.http import HTTPChannel, INTERNAL_SERVER_ERROR
 from twisted.web.resource import ForbiddenResource, Resource
 from twisted.web.server import Request, Site
 from twisted.web.static import File
-
-from bisect import bisect_left
-import os
 
 from weasyl import macro as m
 

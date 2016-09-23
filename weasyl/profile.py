@@ -1,25 +1,22 @@
-# profile.py
-
-from translationstring import TranslationString as _
-
-from error import WeasylError
-import macro as m
-import define as d
+from __future__ import absolute_import
 
 import pytz
-
-import orm
-import shout
-import welcome
+from translationstring import TranslationString as _
 
 from libweasyl.html import strip_html
 from libweasyl.models import tables
 from libweasyl import ratings
 from libweasyl import staff
 
+from weasyl import define as d
+from weasyl import macro as m
+from weasyl import media
+from weasyl import orm
+from weasyl import shout
+from weasyl import welcome
 from weasyl.cache import region
 from weasyl.configuration_builder import create_configuration, BoolOption, ConfigOption
-from weasyl import media
+from weasyl.error import WeasylError
 
 
 class ExchangeType:
@@ -512,7 +509,7 @@ def edit_userinfo(userid, form):
 
 def edit_email_password(userid, username, password, newemail, newemailcheck,
                         newpassword, newpasscheck):
-    import login
+    from weasyl import login
 
     # Check that credentials are correct
     logid, logerror = login.authenticate_bcrypt(username, password, session=False)
@@ -644,7 +641,8 @@ def select_manage(userid):
 
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None, remove_social=None):
+              birthday=None, gender=None, country=None, remove_social=None,
+              permission_tag=None):
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
 
@@ -660,6 +658,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         gender (str): New gender for user. Defaults to None.
         country (str): New country for user. Defaults to None.
         remove_social (list): Items to remove from the user's social/contact links. Defaults to None.
+        permission_tag (bool): New tagging permission for user. Defaults to None.
 
     Returns:
         Does not return.
@@ -744,6 +743,21 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         for social_link in remove_social:
             d.engine.execute("DELETE FROM user_links WHERE userid = %(userid)s AND link_type = %(link)s", userid=userid, link=social_link)
             updates.append('- Removed social link for %s' % (social_link,))
+
+    # Permissions
+    if permission_tag is not None:
+        if permission_tag:
+            query = (
+                "UPDATE profile SET config = replace(config, 'g', '') "
+                "WHERE userid = %(user)s AND position('g' in config) != 0")
+        else:
+            query = (
+                "UPDATE profile SET config = config || 'g' "
+                "WHERE userid = %(user)s AND position('g' in config) = 0")
+
+        if d.engine.execute(query, user=userid).rowcount != 0:
+            updates.append('- Permission to tag: ' + ('yes' if permission_tag else 'no'))
+            d._get_config.invalidate(userid)
 
     if updates:
         from weasyl import moderation

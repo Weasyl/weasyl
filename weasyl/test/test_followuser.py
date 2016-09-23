@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 
 import unittest
 import pytest
 import mock
 
-import db_utils
+from weasyl.test import db_utils
 
 from weasyl import profile, followuser, orm, define as d
 from weasyl.error import WeasylError

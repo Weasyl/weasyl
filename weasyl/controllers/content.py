@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import urlparse
 
 from pyramid.httpexceptions import HTTPSeeOther

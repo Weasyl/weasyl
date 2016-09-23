@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from collections import namedtuple
 
 from weasyl.controllers import (
@@ -54,6 +56,7 @@ routes = (
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
 
     # Profile views.
+    Route("/~", "profile_tilde_unnamed", profile.profile_),
     Route("/~{name}", "profile_tilde", profile.profile_),
     Route("/user", "profile_user_unnamed", profile.profile_),
     Route("/user/{name}", "profile_user", profile.profile_),

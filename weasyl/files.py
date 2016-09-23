@@ -1,4 +1,4 @@
-# files.py
+from __future__ import absolute_import
 
 import os
 import glob
@@ -120,7 +120,7 @@ def remove(glob_path):
     for f in glob.glob(glob_path):
         try:
             os.remove(f)
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
 
@@ -149,7 +149,7 @@ def makedirs(path):
     """
     try:
         os.makedirs(path)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.EEXIST:
             raise
 

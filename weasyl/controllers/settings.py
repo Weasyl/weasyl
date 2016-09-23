@@ -84,9 +84,12 @@ def control_editprofile_put_(request):
 
 @login_required
 def control_editcommissionprices_(request):
+
     return Response(define.webpage(request.userid, "control/edit_commissionprices.html", [
         # Commission prices
         commishinfo.select_list(request.userid),
+        commishinfo.CURRENCY_CHARMAP,
+        commishinfo.PRESET_COMMISSION_CLASSES,
     ]))
 
 

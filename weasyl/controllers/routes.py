@@ -10,6 +10,7 @@ from weasyl.controllers import (
     general,
     info,
     interaction,
+    marketplace,
     messages,
     moderation,
     profile,
@@ -35,6 +36,7 @@ routes = (
     Route("/search", "search", general.search_),
     Route("/popular", "popular", general.popular_),
     Route("/streaming", "streaming", general.streaming_),
+    Route("/marketplace", "marketplace", marketplace.search_),
 
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),

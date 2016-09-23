@@ -654,6 +654,21 @@ Index('ind_searchmapsubmit_tagid', searchmapsubmit.c.tagid)
 Index('ind_searchmapsubmit_targetid', searchmapsubmit.c.targetid)
 
 
+searchmapartist = Table(
+    'searchmapartist', metadata,
+    Column('tagid', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False),
+    Column('settings', CharSettingsColumn({
+        'n': 'no-draw-list',
+    }), nullable=False, server_default=''),
+    default_fkey(['targetid'], ['login.userid'], name='searchmapartist_targetid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapartist_tagid_fkey'),
+)
+
+Index('ind_searchmapartist_tagid', searchmapartist.c.tagid)
+Index('ind_searchmapartist_targetid', searchmapartist.c.targetid)
+
+
 searchtag = Table(
     'searchtag', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),

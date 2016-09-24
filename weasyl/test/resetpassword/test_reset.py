@@ -1,19 +1,14 @@
 from __future__ import absolute_import
 
-import pytest
-import bcrypt
 import arrow
+import bcrypt
+import pytest
+import web
 
 from weasyl.test import db_utils
 from weasyl import resetpassword, login
 from weasyl import define as d
 from weasyl.error import WeasylError
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
 
 
 user_name = "test"
@@ -24,9 +19,9 @@ token = "a" * 100
 @pytest.mark.usefixtures('db')
 def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
     db_utils.create_user(email_addr=email_addr, username=user_name)
-    form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-               month=arrow.now().month, year=arrow.now().year, token=token,
-               password='qwe', passcheck='asd')
+    form = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                       month=arrow.now().month, year=arrow.now().year, token=token,
+                       password='qwe', passcheck='asd')
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form)
     assert 'passwordMismatch' == err.value.value
@@ -36,9 +31,9 @@ def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
 def test_passwordInsecure_WeasylError_if_password_length_insufficient():
     db_utils.create_user(email_addr=email_addr, username=user_name)
     password = ''
-    form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-               month=arrow.now().month, year=arrow.now().year, token=token,
-               password=password, passcheck=password)
+    form = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                       month=arrow.now().month, year=arrow.now().year, token=token,
+                       password=password, passcheck=password)
     # Considered insecure...
     for i in range(0, login._PASSWORD):
         with pytest.raises(WeasylError) as err:
@@ -61,9 +56,9 @@ def test_passwordInsecure_WeasylError_if_password_length_insufficient():
 def test_forgotpasswordRecordMissing_WeasylError_if_reset_record_not_found():
     db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
-    form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-               month=arrow.now().month, year=arrow.now().year, token=token,
-               password=password, passcheck=password)
+    form = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                       month=arrow.now().month, year=arrow.now().year, token=token,
+                       password=password, passcheck=password)
     # Technically we did this in the above test, but for completeness, target it alone
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form)
@@ -76,16 +71,16 @@ def test_emailIncorrect_WeasylError_if_email_address_doesnt_match_stored_email()
     #  Requirement: Get token set from request()
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
-    form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-                           month=arrow.now().month, year=arrow.now().year)
+    form_for_request = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                                   month=arrow.now().month, year=arrow.now().year)
     resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)
     email_addr_mismatch = "invalid-email@weasyl.com"
-    form_for_reset = Bag(email=email_addr_mismatch, username=user_name, day=arrow.now().day,
-                         month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
-                         password=password, passcheck=password)
+    form_for_reset = web.Storage(email=email_addr_mismatch, username=user_name, day=arrow.now().day,
+                                 month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
+                                 password=password, passcheck=password)
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form_for_reset)
     assert 'emailIncorrect' == err.value.value
@@ -97,16 +92,16 @@ def test_emailIncorrect_WeasylError_if_username_doesnt_match_stored_username():
     #  Requirement: Get token set from request()
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
-    form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-                           month=arrow.now().month, year=arrow.now().year)
+    form_for_request = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                                   month=arrow.now().month, year=arrow.now().year)
     resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)
     user_name_mismatch = "nottheaccountname123"
-    form_for_reset = Bag(email=email_addr, username=user_name_mismatch, day=arrow.now().day,
-                         month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
-                         password=password, passcheck=password)
+    form_for_reset = web.Storage(email=email_addr, username=user_name_mismatch, day=arrow.now().day,
+                                 month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
+                                 password=password, passcheck=password)
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form_for_reset)
     assert 'usernameIncorrect' == err.value.value
@@ -118,8 +113,8 @@ def test_password_reset_fails_if_attempted_from_different_ip_address():
     #  Requirement: Get token set from request()
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
-    form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-                           month=arrow.now().month, year=arrow.now().year)
+    form_for_request = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                                   month=arrow.now().month, year=arrow.now().year)
     resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Change IP detected when request was made (required for test)
@@ -127,9 +122,9 @@ def test_password_reset_fails_if_attempted_from_different_ip_address():
                      addr="127.42.42.42", token=pw_reset_token)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)
-    form_for_reset = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-                         month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
-                         password=password, passcheck=password)
+    form_for_reset = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                                 month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
+                                 password=password, passcheck=password)
     with pytest.raises(WeasylError) as err:
         resetpassword.reset(form_for_reset)
     assert 'addressInvalid' == err.value.value
@@ -143,15 +138,15 @@ def test_verify_success_if_correct_information_supplied():
     #  > Requirement: Get token set from request()
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = '01234567890123'
-    form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-                           month=arrow.now().month, year=arrow.now().year)
+    form_for_request = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                                   month=arrow.now().month, year=arrow.now().year)
     resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     # Force update link_time (required)
     resetpassword.prepare(pw_reset_token)
-    form = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-               month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
-               password=password, passcheck=password)
+    form = web.Storage(email=email_addr, username=user_name, day=arrow.now().day,
+                       month=arrow.now().month, year=arrow.now().year, token=pw_reset_token,
+                       password=password, passcheck=password)
     resetpassword.reset(form)
     # 'forgotpassword' row should not exist after a successful reset
     row_does_not_exist = d.engine.execute("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)

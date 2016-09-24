@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import pytest
 import arrow
+import pytest
+import web
 
 from weasyl import login
 from weasyl import define as d
@@ -9,12 +10,6 @@ from weasyl.error import WeasylError
 
 
 token = "a" * 40
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
 
 
 @pytest.mark.usefixtures('db')
@@ -26,9 +21,9 @@ def test_error_raised_if_invalid_token_provided_to_function():
 
 @pytest.mark.usefixtures('db')
 def test_verify_success_if_valid_token_provided():
-    form = Bag(username=u'test', password=u'0123456789', passcheck=u'0123456789',
-               email=u'test@weasyl.com', emailcheck=u'test@weasyl.com',
-               day=u'12', month=u'12', year=u'%d' % (arrow.now().year - 19,))
+    form = web.Storage(username=u'test', password=u'0123456789', passcheck=u'0123456789',
+                       email=u'test@weasyl.com', emailcheck=u'test@weasyl.com',
+                       day=u'12', month=u'12', year=u'%d' % (arrow.now().year - 19,))
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
         "token": token,
         "username": form.username,

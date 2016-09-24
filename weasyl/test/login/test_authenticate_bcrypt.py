@@ -18,12 +18,6 @@ user_name = "test"
 raw_password = "0123456789"
 
 
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
-
-
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_no_username_provided():
     result = login.authenticate_bcrypt(username='', password='password')

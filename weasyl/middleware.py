@@ -261,7 +261,9 @@ def weasyl_exception_view(exc, request):
                                 status_code=status_code)
             errorpage_kwargs = exc.errorpage_kwargs
             if exc.value in errorcode.error_messages:
-                message = '%s %s' % (errorcode.error_messages[exc.value], exc.error_suffix)
+                message = errorcode.error_messages[exc.value]
+                if exc.error_suffix:
+                    message = '%s %s' % (message, exc.error_suffix)
                 return Response(d.errorpage(userid, message, **errorpage_kwargs),
                                 status_code=status_code)
         request_id = None

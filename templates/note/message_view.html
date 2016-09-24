@@ -34,7 +34,7 @@ $:{RENDER("common/stage_title.html", ["View Private Message", "Notes", "/notes?f
 
     $if myself['is_mod']:
       <form action="/modcontrol/copynotetostaffnotes" method="post" class="form clear">
-        <button class="button positive" style="float: right;">Copy Note to Staff Notes</button>
+        <button class="button" style="float: right;">Copy Note to Staff Notes</button>
         <input type="hidden" name="noteid" value="${query['noteid']}" />
         $:{CSRF()}
       </form>

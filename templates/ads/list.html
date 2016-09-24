@@ -29,7 +29,7 @@ $:{RENDER("common/stage_title.html", ["Advertisements"])}
               </td>
               $if is_mod:
                 <td>
-                  <button name="takedown" value="${ad.id}" class="button">Take down</button>
+                  <button name="takedown" value="${ad.id}" class="button negative">Take down</button>
                 </td>
             </tr>
         </tbody>
@@ -37,4 +37,9 @@ $:{RENDER("common/stage_title.html", ["Advertisements"])}
     </form>
   $else:
     <p>No current advertisements.</p>
+
+  $if is_mod:
+    <div class="form-actions">
+      <a href="/ads/create" class="button">Create ad</a>
+    </div>
 </div>

@@ -46,7 +46,7 @@ error_messages = {
     "adImageDimensionsInvalid": u"Ad images must be 300×100.",
     "adImageMissing": "An ad image is required.",
     "adImageSizeInvalid": "The uploaded ad image is too large (over 200 KB).",
-    "adImageTypeInvalid": "The uploaded ad image is not a valid PNG or JPEG image.",
+    "adImageTypeInvalid": "The uploaded ad image is not a valid PNG, JPEG, or GIF image.",
     "adTargetInvalid": "The provided link is invalid.",
     "addressInvalid": "Your IP address does not match the location from which this request was made.",
     "AdminLocked": "This content has been locked from any editing by an admin.",

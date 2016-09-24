@@ -6,6 +6,7 @@ from __future__ import absolute_import
 from pyramid.httpexceptions import HTTPNotFound
 import pyramid.testing
 import pytest
+from sqlalchemy.dialects.postgresql import psycopg2
 
 from weasyl import config
 config._in_test = True  # noqa
@@ -33,6 +34,11 @@ def setupdb(request):
     define.engine.execute('DROP SCHEMA public CASCADE')
     define.engine.execute('CREATE SCHEMA public')
     define.engine.execute('CREATE EXTENSION HSTORE')
+
+    # hstore oids changed; de-memoize them and create new connections
+    define.engine.dialect._hstore_oids = psycopg2.PGDialect_psycopg2._hstore_oids.__get__(define.engine.dialect)
+    define.engine.dispose()
+
     define.meta.create_all(define.engine)
 
 

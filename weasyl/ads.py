@@ -1,11 +1,14 @@
+from __future__ import absolute_import, division
+
 import os
 import random
 import time
-
 from datetime import datetime
+
+from sanpera.geometry import Size
+
 from libweasyl.files import fanout
 from libweasyl.models.media import fetch_or_create_media_item
-from sanpera.geometry import Size
 from weasyl import image
 from weasyl.define import engine, region
 from weasyl.error import WeasylError
@@ -73,7 +76,7 @@ def get_display_ads(userid, count):
 
 
 def create_ad(form):
-    if not form.target.startswith(("http://", "https://")):
+    if not form.target.startswith((u"http://", u"https://")):
         raise WeasylError("adTargetInvalid")
 
     if not form.image:

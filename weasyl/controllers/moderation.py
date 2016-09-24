@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 import anyjson as json
+import arrow
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
-from weasyl import define, macro, moderation, report
+from weasyl import define, macro, moderation, note, report
 
 
 # Moderator control panel functions
@@ -195,16 +196,20 @@ def modcontrol_edituserconfig_(request):
 @moderator_only
 @token_checked
 def modcontrol_copynotetostaffnotes_post_(request):
-    form = request.web_input(targetuserid=None, targetusername=None, notecontent=None,
-                             notedatetime=None, notesubject=None)
+    form = request.web_input(noteid=None)
 
-    staffnotetitle = ''.join(("Received note from ", form.targetusername, ", dated ", form.notedatetime,
-                              ', and the subject was: "', form.notesubject, '".'))
+    notedata = note.select_view(request.userid, int(form.noteid))
+
+    staff_note_title = "Received note from {sender}, dated {date}, and the subject was: \"{subj}\".".format(
+        sender=notedata['sendername'],
+        date=arrow.get(notedata['unixtime']).format('YYYY-MM-DD HH:mm:ss ZZ'),
+        subj=notedata['title'],
+    )
 
     moderation.note_about(
         userid=request.userid,
-        target_user=form.targetuserid,
-        title=staffnotetitle,
-        message=form.notecontent,
+        target_user=notedata['senderid'],
+        title=staff_note_title,
+        message=notedata['content'],
     )
-    raise HTTPSeeOther(''.join(("/staffnotes/", form.targetusername)))
+    raise HTTPSeeOther("/staffnotes/" + notedata['sendername'])

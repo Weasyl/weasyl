@@ -43,6 +43,9 @@ gulp.task('default', function () {
         .pipe(gulp.dest('build/'));
 });
 
-gulp.task('sass:watch', function () {
-    gulp.watch('assets/scss/**/*.scss', ['sass']);
+gulp.task('watch', function () {
+    gulp.watch([
+        'assets/scss/**/*.scss',
+        'assets/js/**/*.js',
+    ], ['default']);
 });

@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 from __future__ import absolute_import
 
 import anyjson as json
@@ -200,7 +202,7 @@ def modcontrol_copynotetostaffnotes_post_(request):
 
     notedata = note.select_view(request.userid, int(form.noteid))
 
-    staff_note_title = "Received note from {sender}, dated {date}, and the subject was: \"{subj}\".".format(
+    staff_note_title = u"Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
         sender=notedata['sendername'],
         date=arrow.get(notedata['unixtime']).format('YYYY-MM-DD HH:mm:ss ZZ'),
         subj=notedata['title'],

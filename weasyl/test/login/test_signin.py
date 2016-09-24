@@ -5,14 +5,9 @@ import pytest
 from pyramid.threadlocal import get_current_request
 
 from weasyl.test import db_utils
+from weasyl.test.utils import Bag
 from weasyl import login
 from weasyl import define as d
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
 
 
 @pytest.mark.usefixtures('db')

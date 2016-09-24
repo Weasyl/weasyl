@@ -43,11 +43,13 @@ $def with (created)
             </label>
 
             <label>
-                End date (YYYY-MM-DD):
-                <input type="text" name="end" value="${(arrow.utcnow() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')}" required />
+                End date<span class="date-format-hint"> (YYYY-MM-DD)</span>:
+                <input type="date" name="end" value="${(arrow.utcnow() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')}" required />
             </label>
 
             <button>Create Ad</button>
         </form>
+
+        <script src="${resource_path('js/main.js')}"></script>
     </body>
 </html>

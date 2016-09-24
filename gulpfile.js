@@ -1,12 +1,29 @@
 'use strict';
 
-var gulp = require('gulp');
-var autoprefixer = require('gulp-autoprefixer');
-var rename = require('gulp-rename');
-var rev = require('gulp-rev');
-var sass = require('gulp-sass');
+const gulp = require('gulp');
+const merge = require('merge-stream');
 
-gulp.task('sass', function () {
+const autoprefixer = require('gulp-autoprefixer');
+const rename = require('gulp-rename');
+const rev = require('gulp-rev');
+const sass = require('gulp-sass');
+const webpack = require('webpack-stream');
+
+function webpackNamed(scriptPath) {
+    return gulp.src('assets/js/' + scriptPath)
+        .pipe(webpack({
+            output: {
+                filename: scriptPath,
+            },
+        }))
+        .pipe(rename({dirname: 'js/'}));
+}
+
+function scriptAssets() {
+    return webpackNamed('main.js');
+}
+
+function stylesheetAssets() {
     return gulp.src('assets/scss/site.scss')
         .pipe(
             sass({outputStyle: 'compressed'})
@@ -15,8 +32,12 @@ gulp.task('sass', function () {
             autoprefixer({
                 browsers: ['last 2 versions', 'Android >= 4.4'],
             }))
+        .pipe(rename({dirname: 'css/'}));
+}
+
+gulp.task('default', function () {
+    return merge([scriptAssets(), stylesheetAssets()])
         .pipe(rev())
-        .pipe(rename({dirname: 'css/'}))
         .pipe(gulp.dest('build/'))
         .pipe(rev.manifest())
         .pipe(gulp.dest('build/'));

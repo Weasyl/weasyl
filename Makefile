@@ -80,7 +80,7 @@ node_modules: package.json
 	npm install
 
 build/rev-manifest.json: node_modules
-	gulp sass
+	gulp
 
 # Phony setup target
 .PHONY: setup

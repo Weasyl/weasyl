@@ -1,13 +1,16 @@
+# encoding: utf-8
+
 from __future__ import absolute_import
 
 import anyjson as json
+import arrow
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
-from weasyl import define, macro, moderation, report
+from weasyl import define, macro, moderation, note, report
 
 
 # Moderator control panel functions
@@ -190,3 +193,25 @@ def modcontrol_edituserconfig_(request):
 
     moderation.edituserconfig(form)
     raise HTTPSeeOther("/modcontrol")
+
+
+@moderator_only
+@token_checked
+def modcontrol_copynotetostaffnotes_post_(request):
+    form = request.web_input(noteid=None)
+
+    notedata = note.select_view(request.userid, int(form.noteid))
+
+    staff_note_title = u"Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
+        sender=notedata['sendername'],
+        date=arrow.get(notedata['unixtime']).format('YYYY-MM-DD HH:mm:ss ZZ'),
+        subj=notedata['title'],
+    )
+
+    moderation.note_about(
+        userid=request.userid,
+        target_user=notedata['senderid'],
+        title=staff_note_title,
+        message=notedata['content'],
+    )
+    raise HTTPSeeOther("/staffnotes/" + notedata['sendername'])

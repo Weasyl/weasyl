@@ -1,7 +1,28 @@
 #ad-list {
-    table-layout: auto;
+    display: flex;
+    flex-wrap: wrap;
+    margin: -1em;
 }
 
-#ad-list td {
-    vertical-align: middle;
+.ad-detail {
+    display: inline-block;
+    margin: 1em;
+    width: 300px;
+}
+
+.ad-detail-info {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+}
+
+.ad-detail-target {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ad-detail-takedown {
+    margin-left: 0.6em;
 }

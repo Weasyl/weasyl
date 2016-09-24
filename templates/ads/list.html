@@ -6,34 +6,19 @@ $:{RENDER("common/stage_title.html", ["Advertisements"])}
   <h3>Current Advertisements</h3>
 
   $if ads:
-    <form method="POST">
+    <form id="ad-list" method="POST">
       $:{CSRF()}
 
-      <table id="ad-list">
-        <thead>
-          <tr>
-            <th>Image</th>
-            <th>Link</th>
+      $for ad in ads:
+        <figure id="ad${ad.id}" class="ad-detail">
+          <img src="${CDNIFY(ad.image_path)}" alt="" class="ad-detail-image" />
+
+          <figcaption class="ad-detail-info">
+            <a href="${ad.link_target}" class="ad-detail-target">${ad.link_target}</a>
             $if is_mod:
-              <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          $for ad in ads:
-            <tr id="ad${ad.id}">
-              <td>
-                <img src="${CDNIFY(ad.image_path)}" alt="" />
-              </td>
-              <td>
-                <a href="${ad.link_target}">${ad.link_target}</a>
-              </td>
-              $if is_mod:
-                <td>
-                  <button name="takedown" value="${ad.id}" class="button negative">Take down</button>
-                </td>
-            </tr>
-        </tbody>
-      </table>
+              <button name="takedown" value="${ad.id}" class="button negative ad-detail-takedown">Take down</button>
+          </figcaption>
+        </figure>
     </form>
   $else:
     <p>No current advertisements.</p>

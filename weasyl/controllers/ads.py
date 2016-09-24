@@ -7,16 +7,16 @@ from pyramid.response import Response
 
 from weasyl import ads
 from weasyl import define
-from weasyl.controllers.decorators import moderator_only, token_checked
+from weasyl.controllers.decorators import director_only, token_checked
 from weasyl.error import WeasylError
 
 
-@moderator_only
+@director_only
 def create_form_(request):
     return Response(define.render("ads/create.html", (None,)))
 
 
-@moderator_only
+@director_only
 @token_checked
 def create_(request):
     form = request.web_input(image="", owner="", end="")
@@ -40,7 +40,7 @@ def list_(request):
     )))
 
 
-@moderator_only
+@director_only
 @token_checked
 def takedown_(request):
     form = request.web_input(takedown="")

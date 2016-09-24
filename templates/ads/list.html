@@ -1,5 +1,5 @@
 $def with (userid, ads)
-$ is_mod = userid in staff.MODS
+$ can_takedown = userid in staff.DIRECTORS
 $:{RENDER("common/stage_title.html", ["Advertisements"])}
 
 <div id="ads-content" class="content">
@@ -15,7 +15,7 @@ $:{RENDER("common/stage_title.html", ["Advertisements"])}
 
           <figcaption class="ad-detail-info">
             <a href="${ad.link_target}" class="ad-detail-target">${ad.link_target}</a>
-            $if is_mod:
+            $if can_takedown:
               <button name="takedown" value="${ad.id}" class="button negative ad-detail-takedown">Take down</button>
           </figcaption>
         </figure>
@@ -23,7 +23,7 @@ $:{RENDER("common/stage_title.html", ["Advertisements"])}
   $else:
     <p>No current advertisements.</p>
 
-  $if is_mod:
+  $if can_takedown:
     <div class="form-actions">
       <a href="/ads/create" class="button">Create ad</a>
     </div>

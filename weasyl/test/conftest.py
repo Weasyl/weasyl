@@ -3,9 +3,9 @@
 
 from __future__ import absolute_import
 
-from pyramid.httpexceptions import HTTPNotFound
-import pyramid.testing
 import pytest
+import pyramid.testing
+from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import psycopg2
 
 from weasyl import config
@@ -89,3 +89,8 @@ def db(request):
         request.cls.db = db
 
     return db
+
+
+@pytest.fixture
+def no_csrf(monkeypatch):
+    monkeypatch.setattr(define, 'get_token', lambda: '')

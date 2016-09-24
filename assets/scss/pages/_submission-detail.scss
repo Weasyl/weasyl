@@ -1,0 +1,9 @@
+#submission-ads {
+    clear: left;
+}
+
+@media (max-width: 66em) {
+    #submission-ads .ads-multiple {
+        word-spacing: 1em;
+    }
+}

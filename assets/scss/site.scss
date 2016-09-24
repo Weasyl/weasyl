@@ -1,5 +1,9 @@
-@import 'reset';
+@import 'base/reset';
+@import 'components/ads';
 @import 'components/password-meter';
+@import 'layout/forms';
+@import 'pages/ads/list';
+@import 'pages/submission-detail';
 
 /* Basic styles
 --------------------------------*/
@@ -4827,44 +4831,4 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 
 .thumbnail-stack .caption .title {
     font-size: 13px;
-}
-
-/* Ads
---------------------------------*/
-.ads-multiple {
-    padding-top: 2.8em;
-    text-align: center;
-    word-spacing: 2em;
-}
-
-.ad-multiple {
-    display: inline-block;
-}
-
-.ad-multiple img {
-    display: block;
-}
-
-#submission-ads {
-    clear: left;
-}
-
-@media (max-width: 42em) {
-    .ads-multiple * + .ad-multiple {
-        display: none;
-    }
-}
-
-@media (max-width: 66em) {
-    #submission-ads .ads-multiple {
-        word-spacing: 1em;
-    }
-}
-
-#ad-list {
-    table-layout: auto;
-}
-
-#ad-list td {
-    vertical-align: middle;
 }

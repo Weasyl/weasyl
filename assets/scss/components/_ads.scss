@@ -1,0 +1,19 @@
+.ads-multiple {
+    padding-top: 2.8em;
+    text-align: center;
+    word-spacing: 2em;
+}
+
+.ad-multiple {
+    display: inline-block;
+}
+
+.ad-multiple img {
+    display: block;
+}
+
+@media (max-width: 42em) {
+    .ads-multiple * + .ad-multiple {
+        display: none;
+    }
+}

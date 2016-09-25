@@ -38,6 +38,7 @@ OVERSIZE_PNG_FORM = get_image_form(CORRECT_PNG + b'\0' * ads.SIZE_LIMIT)
 INCORRECT_DIMENSIONS_PNG_FORM = get_image_form(INCORRECT_DIMENSIONS_PNG)
 
 INVALID_TARGET_FORM = dict(CORRECT_PNG_FORM, target='javascript://example.com/')
+INVALID_END_DATE_FORM = dict(CORRECT_PNG_FORM, end='01/02/2016')
 
 CORRECT_PNG_STORAGE = web.Storage(
     target='https://example.com/',
@@ -54,12 +55,12 @@ EXPIRED_PNG_STORAGE = web.Storage(
 )
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_current_none():
     assert ads.get_current_ads() == []
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_current_some():
     ads.create_ad(CORRECT_PNG_STORAGE)
     current = ads.get_current_ads()
@@ -77,7 +78,7 @@ def test_upload(monkeypatch):
     assert resp.html.find(None, 'created') is not None
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_upload_csrf(monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -87,7 +88,7 @@ def test_upload_csrf(monkeypatch):
     assert resp.html.find(id='error_content').p.string == errorcode.token
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_upload_restricted(monkeypatch):
     resp = app.get('/ads/create')
     assert resp.html.find(id='error_content').contents[0].strip() == errorcode.unsigned
@@ -110,6 +111,11 @@ def test_upload_restricted(monkeypatch):
     assert resp.html.find(id='error_content').p.string == errorcode.permission
     resp = app.post('/ads/create', CORRECT_PNG_FORM, headers={'Cookie': cookie})
     assert resp.html.find(id='error_content').p.string == errorcode.permission
+
+    monkeypatch.setattr(staff, 'DIRECTORS', frozenset([user]))
+
+    resp = app.get('/ads/create', headers={'Cookie': cookie})
+    assert resp.html.find(id='error_content') is None
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
@@ -167,7 +173,17 @@ def test_upload_target(monkeypatch):
     assert resp.html.find(id='error_content').p.string == errorcode.error_messages['adTargetInvalid']
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'no_csrf')
+def test_end_date_format(monkeypatch):
+    user = db_utils.create_user()
+    cookie = db_utils.create_session(user)
+    monkeypatch.setattr(staff, 'DIRECTORS', frozenset([user]))
+
+    resp = app.post('/ads/create', INVALID_END_DATE_FORM, headers={'Cookie': cookie}, status=422)
+    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['adEndDateInvalid']
+
+
+@pytest.mark.usefixtures('db', 'cache')
 def test_expiry(monkeypatch):
     ads.create_ad(EXPIRED_PNG_STORAGE)
     resp = app.get('/ads')
@@ -186,7 +202,7 @@ def test_takedown(monkeypatch):
     assert ads.get_current_ads() == []
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_takedown_csrf(monkeypatch):
     ad_id = ads.create_ad(CORRECT_PNG_STORAGE)
 
@@ -216,14 +232,14 @@ def test_takedown_restricted(monkeypatch):
     assert resp.html.find(id='error_content').p.string == errorcode.permission
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_empty_list():
     resp = app.get('/ads')
     assert resp.html.find(id='ads-content').p.string == 'No current advertisements.'
     assert resp.html.find(None, 'ad-list') is None
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_nonempty_list():
     ads.create_ad(CORRECT_PNG_STORAGE)
     ads.create_ad(CORRECT_PNG_STORAGE)
@@ -232,7 +248,7 @@ def test_nonempty_list():
     assert resp.html.find(None, 'ad-detail-takedown') is None
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_list_takedown(monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -241,3 +257,36 @@ def test_list_takedown(monkeypatch):
     ads.create_ad(CORRECT_PNG_STORAGE)
     resp = app.get('/ads', headers={'Cookie': cookie})
     assert resp.html.find(None, 'ad-detail-takedown') is not None
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_no_displayed_ads():
+    user = db_utils.create_user()
+    cookie = db_utils.create_session(user)
+
+    resp = app.get('/')
+    assert resp.html.find(id='home-ads') is None
+
+    resp = app.get('/messages/notifications', headers={'Cookie': cookie})
+    assert resp.html.find(id='notification-ads') is None
+
+    resp = app.get('/messages/submissions', headers={'Cookie': cookie})
+    assert resp.html.find(id='notification-ads') is None
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_displayed_ads():
+    ads.create_ad(CORRECT_PNG_STORAGE)
+    ads.create_ad(CORRECT_PNG_STORAGE)
+
+    user = db_utils.create_user()
+    cookie = db_utils.create_session(user)
+
+    resp = app.get('/')
+    assert len(resp.html.findAll(None, 'ad-multiple')) == 2
+
+    resp = app.get('/messages/notifications', headers={'Cookie': cookie})
+    assert len(resp.html.findAll(None, 'ad-multiple')) == 2
+
+    resp = app.get('/messages/submissions', headers={'Cookie': cookie})
+    assert len(resp.html.findAll(None, 'ad-multiple')) == 2

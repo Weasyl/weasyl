@@ -1,17 +1,17 @@
-$def with (userid, ads)
+$def with (userid, current_ads)
 $ can_takedown = userid in staff.DIRECTORS
 $:{RENDER("common/stage_title.html", ["Advertisements"])}
 
 <div id="ads-content" class="content">
   <h3>Current Advertisements</h3>
 
-  $if ads:
+  $if current_ads:
     <form id="ad-list" method="POST">
       $:{CSRF()}
 
-      $for ad in ads:
+      $for ad in current_ads:
         <figure id="ad${ad.id}" class="ad-detail">
-          <img src="${CDNIFY(ad.image_path)}" alt="" class="ad-detail-image" />
+          <img src="${CDNIFY(ad.image_path)}" alt="" width="${ads.IMAGE_DIMENSIONS.width}" height="${ads.IMAGE_DIMENSIONS.height}" class="ad-detail-image" />
 
           <figcaption class="ad-detail-info">
             <a href="${ad.link_target}" class="ad-detail-target">${ad.link_target}</a>

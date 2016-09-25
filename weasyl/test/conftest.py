@@ -91,6 +91,11 @@ def db(request):
     return db
 
 
+@pytest.fixture(name='cache')
+def cache_(request):
+    cache.region.configure('dogpile.cache.memory', replace_existing_backend=True)
+
+
 @pytest.fixture
 def no_csrf(monkeypatch):
     monkeypatch.setattr(define, 'get_token', lambda: '')

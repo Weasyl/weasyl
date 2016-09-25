@@ -23,7 +23,7 @@ class Ad(object):
         self.image_path = image_path
 
 
-IMAGE_DIMENSIONS = Size(300, 100)
+IMAGE_DIMENSIONS = Size(300, 90)
 PERMITTED_TYPES = {"jpg", "png", "gif"}
 SIZE_LIMIT = 200 * 1024  # 200 KB
 

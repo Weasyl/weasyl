@@ -43,7 +43,7 @@ offline_mode = (
 
 error_messages = {
     "adEndDateInvalid": "The specified end date is invalid.",
-    "adImageDimensionsInvalid": u"Ad images must be 300×100.",
+    "adImageDimensionsInvalid": u"Ad images must be 300×90.",
     "adImageMissing": "An ad image is required.",
     "adImageSizeInvalid": "The uploaded ad image is too large (over 200 KB).",
     "adImageTypeInvalid": "The uploaded ad image is not a valid PNG, JPEG, or GIF image.",

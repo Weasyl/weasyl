@@ -1,12 +1,12 @@
 $def with (userid, current_ads)
-$ can_takedown = userid in staff.DIRECTORS
+$ can_modify = userid in staff.DIRECTORS
 $:{RENDER("common/stage_title.html", ["Advertisements"])}
 
 <div id="ads-content" class="content">
   <h3>Current Advertisements</h3>
 
   $if current_ads:
-    <form id="ad-list" method="POST">
+    <form id="ad-list"$:{' class="ad-list-detailed"' if can_modify else ''} method="POST">
       $:{CSRF()}
 
       $for ad in current_ads:
@@ -14,16 +14,25 @@ $:{RENDER("common/stage_title.html", ["Advertisements"])}
           <img src="${CDNIFY(ad.image_path)}" alt="" width="${ads.IMAGE_DIMENSIONS.width}" height="${ads.IMAGE_DIMENSIONS.height}" class="ad-detail-image" />
 
           <figcaption class="ad-detail-info">
-            <a href="${ad.link_target}" class="ad-detail-target">${ad.link_target}</a>
-            $if can_takedown:
+            $if can_modify:
+              <dl>
+                <dt>Link target</dt>
+                <dd><a href="${ad.link_target}" class="ad-detail-target">${ad.link_target}</a></dd>
+                <dt>Owner</dt>
+                <dd>${ad.owner}</dd>
+                <dt>End date</dt>
+                <dd>${DATE(ad.end)}</dd>
+              </dl>
               <button name="takedown" value="${ad.id}" class="button negative ad-detail-takedown">Take down</button>
+            $else:
+              <a href="${ad.link_target}" class="ad-detail-target">${ad.link_target}</a>
           </figcaption>
         </figure>
     </form>
   $else:
     <p>No current advertisements.</p>
 
-  $if can_takedown:
+  $if can_modify:
     <div class="form-actions">
       <a href="/ads/create" class="button">Create ad</a>
     </div>

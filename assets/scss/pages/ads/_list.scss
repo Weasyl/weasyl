@@ -13,6 +13,7 @@
 .ad-detail-info {
     align-items: center;
     display: flex;
+    margin-top: 0.3em;
     justify-content: space-between;
 }
 
@@ -24,5 +25,31 @@
 }
 
 .ad-detail-takedown {
-    margin-left: 0.6em;
+    margin-left: 1.6em;
+}
+
+#ad-list.ad-list-detailed {
+    display: block;
+    margin-bottom: 0;
+
+    .ad-detail {
+        display: flex;
+        width: auto;
+    }
+
+    .ad-detail-info {
+        margin-left: 1em;
+    }
+
+    dt, dd {
+        float: left;
+    }
+
+    dt {
+        clear: left;
+        font-weight: bold;
+        min-width: 6em;
+        padding-right: 0.6em;
+        text-align: right;
+    }
 }

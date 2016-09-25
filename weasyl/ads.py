@@ -15,8 +15,9 @@ from weasyl.error import WeasylError
 
 
 class Ad(object):
-    def __init__(self, id, link_target, start, end, image_path):
+    def __init__(self, id, owner, link_target, start, end, image_path):
         self.id = id
+        self.owner = owner
         self.link_target = link_target
         self.start = start
         self.end = end
@@ -40,6 +41,7 @@ def _from_row(row):
 
     return {
         "id": row.id,
+        "owner": row.owner,
         "link_target": row.link_target,
         "start": _serializable_datetime(row.start),
         "end": _serializable_datetime(row.end),
@@ -52,7 +54,7 @@ def _from_row(row):
 @region.cache_on_arguments()
 def _get_all_ads():
     all_ads = engine.execute("""
-        SELECT ads.id, ads.link_target, ads.start, ads.end, media.sha256, media.file_type
+        SELECT ads.id, ads.owner, ads.link_target, ads.start, ads.end, media.sha256, media.file_type
         FROM ads
             INNER JOIN media ON ads.file = media.mediaid
         WHERE NOW() <= ads.end AND ads.start IS NOT NULL
@@ -62,8 +64,14 @@ def _get_all_ads():
 
 
 def _get_current_ads():
+    all_ads = _get_all_ads()
+
+    if next(("owner" not in ad for ad in all_ads), False):
+        _get_all_ads.invalidate()
+        all_ads = _get_all_ads()
+
     now = _serializable_datetime(datetime.now())
-    return [ad for ad in _get_all_ads() if ad["start"] <= now <= ad["end"]]
+    return [ad for ad in all_ads if ad["start"] <= now <= ad["end"]]
 
 
 def get_current_ads():

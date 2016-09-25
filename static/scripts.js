@@ -188,7 +188,7 @@
 
         $('textarea.expanding').autosize();
 
-        $('#tags-textarea')
+        $('.tags-textarea')
             .listbuilder({ width: '100%' })
             .addClass('proxy');
 
@@ -199,9 +199,9 @@
         });
 
         // tags
-        $('#di-tags .modify').on('click', function (ev) {
+        $('.di-tags .modify').on('click', function (ev) {
             ev.preventDefault();
-            $('#di-tags .tags-form, #di-tags .tags').toggleClass('open');
+            $(this).closest('.di-tags').find('.tags-form, .tags').toggleClass('open');
             $('.listbuilder-entry-add input').focus();
         });
 

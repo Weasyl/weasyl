@@ -45,7 +45,7 @@ $:{TITLE("Literary Artwork", "Submit", "/submit")}
       <h3>Information</h3>
 
       <label for="submissiontitle">Title</label>
-      <input type="text" class="input" name="title" id="submissiontitle" maxlength="200" />
+      <input type="text" class="input" name="title" id="submissiontitle" maxlength="200" required />
 
       <label for="submissioncat">Subcategory</label>
       <select name="subtype" class="input" id="submissioncat">
@@ -62,7 +62,7 @@ $:{TITLE("Literary Artwork", "Submit", "/submit")}
       </select>
 
       <label for="submissionrating">Rating</label>
-      <select name="rating" class="input" id="submissionrating">
+      <select name="rating" class="input" id="submissionrating" required>
         <option value="" selected="selected">&nbsp;</option>
         $for rating in ratings:
           <option value="${rating.code}">${rating.name_with_age}</option>

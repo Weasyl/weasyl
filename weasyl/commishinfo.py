@@ -120,11 +120,11 @@ def select_list(userid):
                              " WHERE userid = %(userid)s ORDER BY classid, title", userid=userid)
     classes = d.engine.execute("SELECT classid, title FROM commishclass WHERE userid = %(id)s ORDER BY title", id=userid)
     content = d.engine.execute("SELECT content FROM commishdesc WHERE userid = %(id)s", id=userid).scalar()
-    tags = d.engine.execute("SELECT DISTINCT tag.title FROM searchtag tag "
+    tags = d.engine.execute("SELECT DISTINCT tag.title, sma.settings FROM searchtag tag "
                             "join searchmapartist sma on sma.tagid = tag.tagid "
                             "join login l on l.userid = sma.targetid "
                             "where l.userid = %(userid)s", userid=userid)
-
+    tags_extract = [{"t": i.title, "s": i.settings} for i in tags]
     return {
         "userid": userid,
         "class": [{
@@ -147,7 +147,8 @@ def select_list(userid):
             "priceid": i.priceid,
         } for i in query if "a" in i.settings],
         "content": content if content else "",
-        "tags": [tag.title for tag in tags],
+        "tags": [i["t"] for i in tags_extract if 'n' not in i["s"]],
+        "no_draw": [i["t"] for i in tags_extract if 'n' in i["s"]],
     }
 
 

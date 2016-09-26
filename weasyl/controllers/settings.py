@@ -146,6 +146,7 @@ def control_createcommishprice_(request):
                              settings=form.settings)
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
+
 @login_required
 @token_checked
 def control_editcommishprice_(request):

@@ -87,9 +87,8 @@ $code:
       $if cover:
         <img src="${cover['display_url']}" alt="${query['title']}" />
       <div id="detail_submission_media" style="display:inline-block;width:500px;">
-        <audio controls>
-          <source type="audio/mpeg" src="${submission['display_url']}">
-          Sorry, but your browser does not support HTML5's &lt;audio&gt; tag.
+        <audio type="audio/mpeg" src="${submission['display_url']}" controls>
+          <p>Your browser doesn’t support audio playback.</p>
         </audio>
       </div>
     </div><!-- /detail_submission -->

@@ -204,9 +204,17 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 WHERE tag.title = ANY(%(tags)s)
                 GROUP BY map.targetid
             ) AS tag ON tag.targetid = p.userid
-
+            
             WHERE p.settings ~ '[os]..?'
-            AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) """
+            AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) 
+            AND p.userid NOT IN (
+                SELECT map.targetid
+                FROM searchtag tag
+                JOIN searchmapartist map on map.tagid = tag.tagid
+                WHERE tag.title = ANY(%(tags)s)
+                AND map.settings ~ 'n'
+                GROUP BY map.targetid
+            ) """
     ]
     if min_price:
         stmt.append("AND cp.amount_min >= %(min)s ")

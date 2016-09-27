@@ -164,6 +164,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         - find a way to have max_price and min_price work with currency conversions
         - redo the entire thing when (if) commissioninfo has (gets) a better schema
         - support a "will not draw" taglist
+        - don't show results for banned or suspended users
+        - limit examples count by searcher's MVCR
 
     :param userid: The user making the request
     :param q: Weight artists with "preferred content" tags that match these higher
@@ -182,14 +184,19 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 MIN(cp.amount_min) AS pricemin,
                 GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
                 cp.settings AS pricesettings,
-                d.content AS description,
-                tag.tagcount
+                d.content AS description, s.unixtime,
+                tag.tagcount, example.examplecount
             FROM profile p
 
-            RIGHT JOIN commishclass cc ON cc.userid = p.userid
+            INNER JOIN commishclass cc ON cc.userid = p.userid
                 AND lower(cc.title) LIKE %(cclass)s
 
-            JOIN submission s ON s.userid = p.userid
+            INNER JOIN (
+                SELECT MAX(unixtime) as unixtime, userid
+                FROM submission
+                WHERE rating <= %(rating)s
+                GROUP BY userid
+            ) AS s ON s.userid = p.userid
 
             JOIN commishprice cp ON cp.classid = cc.classid
                 AND cp.userid = p.userid
@@ -204,9 +211,17 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 WHERE tag.title = ANY(%(tags)s)
                 GROUP BY map.targetid
             ) AS tag ON tag.targetid = p.userid
+
+            LEFT JOIN (
+                SELECT sub.userid, COUNT (sub.submitid) as examplecount
+                FROM submission sub
+                JOIN searchmapsubmit map ON map.targetid = sub.submitid
+                JOIN searchtag tag ON map.tagid = tag.tagid
+                WHERE tag.title = ANY(%(tags)s)
+                GROUP BY sub.userid
+            ) AS example ON example.userid = p.userid
             
             WHERE p.settings ~ '[os]..?'
-            AND s.unixtime = (select MAX(s.unixtime) FROM submission s WHERE s.userid = p.userid) 
             AND p.userid NOT IN (
                 SELECT map.targetid
                 FROM searchtag tag
@@ -220,18 +235,26 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         stmt.append("AND cp.amount_min >= %(min)s ")
     if max_price:
         stmt.append("AND cp.amount_min <= %(max)s ")
-    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, tag.tagcount "
+    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, tag.tagcount, example.examplecount "
                 "ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
                 "LIMIT %(limit)s ")
-    commishclass = "%" + commishclass + "%"
     tags = q.lower().split()
+    if commishclass:
+        tags.append(commishclass)
+    commishclass = "%" + commishclass + "%"
+    max_rating = d.get_rating(userid)
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
-                             max=max_price, cclass=commishclass, tags=tags)
+                             max=max_price, cclass=commishclass, tags=tags,
+                             rating=max_rating)
 
     def prepare(info):
         dinfo = dict(info)
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
+        if info.examplecount and tags:
+            dinfo['searchquery'] = "q=user%3A" + info.username + "+%7C" + "+%7C".join(tags)
+        else:
+            dinfo['searchquery'] = ""
         return dinfo
 
     results = [prepare(i) for i in query]

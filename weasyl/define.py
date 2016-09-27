@@ -598,8 +598,7 @@ def get_path():
 
 
 def text_price_amount(target):
-    return "%i.%s%i" % (target / 100, "" if target % 100 > 9 else "0", target % 100)
-
+    return "%.2f" % round(target/100, 2)
 
 def text_price_symbol(target):
     from weasyl.commishinfo import CURRENCY_CHARMAP

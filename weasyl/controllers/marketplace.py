@@ -4,7 +4,9 @@ from weasyl import define, media, commishinfo
 
 
 def search_(request):
-    form = request.web_input(q="", min="", max="", currency="", pc="", c="")
+    form = request.web_input(q="", min="", max="", currency="", pc="", c="", o="")
+    limit = 30
+    offset = define.get_int(form.o)
     commishclass = form.c if form.c else form.pc
     commishclass = commishclass.lower()
 
@@ -14,8 +16,13 @@ def search_(request):
                                                 commishinfo.parse_currency(form.min),
                                                 commishinfo.parse_currency(form.max),
                                                 form.currency,
-                                                30,)
-
+                                                offset,
+                                                limit*2,)
+    rcount = len(results)
+    results = results[0:limit]
     media.populate_with_user_media(results)
+    prev_index = None if offset == 0 else offset - limit if offset - limit > 0 else 0
+    next_index = offset + limit if rcount - limit > 0 else None
     return Response(define.webpage(request.userid, "etc/marketplace.html",
-                          [results, form, commishinfo.CURRENCY_CHARMAP, commishinfo.PRESET_COMMISSION_CLASSES]))
+                    [results, form, commishinfo.CURRENCY_CHARMAP, commishinfo.PRESET_COMMISSION_CLASSES,
+                     prev_index, next_index]))

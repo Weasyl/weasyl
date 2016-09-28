@@ -152,20 +152,17 @@ def select_list(userid):
     }
 
 
-def select_commissionable(userid, q, commishclass, min_price, max_price, currency, limit):
+def select_commissionable(userid, q, commishclass, min_price, max_price, currency, offset, limit):
     """
     Select a list of artists whom are open for commissions
     and have defined at least one commission class.
 
     TODO:
-        - paginate results
         - relax the requirement for setting up commission classes
         - don't return results that are on the searching user's ignore list
         - find a way to have max_price and min_price work with currency conversions
         - redo the entire thing when (if) commissioninfo has (gets) a better schema
-        - support a "will not draw" taglist
         - don't show results for banned or suspended users
-        - limit examples count by searcher's MVCR
 
     :param userid: The user making the request
     :param q: Weight artists with "preferred content" tags that match these higher
@@ -174,6 +171,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     :param max_price: Do not return artists with a minimum price above this value
     :param currency: The single-character currency code to convert the returned results in,
                      as defined in commishprice.settings
+    :param offset: Results set offset for pagination. Must be a positive Number
     :param limit: max number of results to return
     :return: The resulting list of artists & their commission info
     """
@@ -194,7 +192,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             INNER JOIN (
                 SELECT MAX(unixtime) as unixtime, userid
                 FROM submission
-                WHERE rating <= %(rating)s
                 GROUP BY userid
             ) AS s ON s.userid = p.userid
 
@@ -218,6 +215,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 JOIN searchmapsubmit map ON map.targetid = sub.submitid
                 JOIN searchtag tag ON map.tagid = tag.tagid
                 WHERE tag.title = ANY(%(tags)s)
+                AND rating <= %(rating)s
                 GROUP BY sub.userid
             ) AS example ON example.userid = p.userid
             
@@ -237,7 +235,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         stmt.append("AND cp.amount_min <= %(max)s ")
     stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, tag.tagcount, example.examplecount "
                 "ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
-                "LIMIT %(limit)s ")
+                "LIMIT %(limit)s OFFSET %(offset)s")
     tags = q.lower().split()
     if commishclass:
         tags.append(commishclass)
@@ -245,7 +243,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     max_rating = d.get_rating(userid)
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
                              max=max_price, cclass=commishclass, tags=tags,
-                             rating=max_rating)
+                             rating=max_rating, offset=offset)
 
     def prepare(info):
         dinfo = dict(info)

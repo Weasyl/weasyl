@@ -1,4 +1,4 @@
-$def with (results, form, currencies, presets)
+$def with (results, form, currencies, presets, previndex, nextindex)
 $:{TITLE("Marketplace")}
 $code:
   def is_selected(from_form, code):
@@ -80,6 +80,14 @@ $code:
               No description provided
           </div>
         </div>
+
+      <div style="padding-top: 1.4em;" class="pad-left pad-right">
+        $if previndex != None:
+          <a class="button" href="/marketplace?${QUERY_STRING(dict(form, o=previndex))}" rel="prev">Back</a>
+        $if nextindex != None:
+          <a class="button" style="float:right" href="/marketplace?${QUERY_STRING(dict(form, o=nextindex))}" rel="next">Next</a>
+      </div>
+
     $else:
       <p>No results found! Try searching with broader terms.</p>
   </div>

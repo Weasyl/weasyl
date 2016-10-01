@@ -36,6 +36,26 @@ def create(userid, form):
     welcome.site_update_insert(updateid)
 
 
+def edit(userid, form):
+    form.title = form.title.strip()[:_TITLE]
+    form.content = form.content.strip()
+
+    if not form.title:
+        raise WeasylError("titleInvalid")
+    elif not form.content:
+        raise WeasylError("titleInvalid")
+    elif not form.siteupdateid:
+        raise WeasylError("titleInvalid")
+    elif userid not in staff.ADMINS:
+        raise WeasylError("InsufficientPermissions")
+
+    d.engine.execute("""
+        UPDATE siteupdate
+        SET title = %(title)s, content = %(content)s
+        WHERE updateid = %(updateid)s
+    """, title=form.title, content=form.content, updateid=form.siteupdateid)
+
+
 def select(limit=1):
     ret = [{
         "updateid": i[0],

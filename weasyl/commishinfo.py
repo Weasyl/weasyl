@@ -96,23 +96,35 @@ def convert_currency(value, valuecode, targetcode):
     :param targetcode: Weasyl-code of the currency $value should be converted to
     :return: The converted amount
     """
-    valuecode = _charmap_to_currency_code(valuecode)
-    targetcode = _charmap_to_currency_code(targetcode)
     if targetcode == valuecode:
         return value
+    ratio = currency_ratio(valuecode, targetcode)
+    return value * ratio
+
+
+def currency_ratio(valuecode, targetcode):
+    """
+    Calculate the exchange rate multiplier used to convert from $valuecode to $targetcode
+
+    :param valuecode: Weasyl-code of the currency $value is in currently
+    :param targetcode: Weasyl-code of the currency $value should be converted to
+    :return: The conversion ratio
+    """
+    valuecode = _charmap_to_currency_code(valuecode)
+    targetcode = _charmap_to_currency_code(targetcode)
     rates = _fetch_rates()
     if not rates:
         # in the unlikely event of an error, invalidate our rates
         # (to try fetching again) and return value unaltered
         _fetch_rates.invalidate()
-        return value
+        return 1.0
     rates = rates["rates"]
     rates["USD"] = 1.0
     r1 = rates.get(valuecode)
     r2 = rates.get(targetcode)
     if not (r1 and r2):
         raise WeasylError("Unexpected")
-    return value * r2 / r1
+    return r2 / r1
 
 
 def select_list(userid):
@@ -182,6 +194,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 MIN(cp.amount_min) AS pricemin,
                 GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
                 cp.settings AS pricesettings,
+                MIN(convert.convertedmin) AS convertedmin,
                 d.content AS description, s.unixtime,
                 tag.tagcount, example.examplecount
             FROM profile p
@@ -189,15 +202,32 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             INNER JOIN commishclass cc ON cc.userid = p.userid
                 AND lower(cc.title) LIKE %(cclass)s
 
+            JOIN commishprice cp ON cp.classid = cc.classid
+                AND cp.userid = p.userid
+                AND cp.settings NOT LIKE '%%a'
+
+            INNER JOIN (
+                SELECT cp.priceid, cp.userid, cp.classid,
+                CASE cp.settings """
+    ]
+    for c in CURRENCY_CHARMAP:
+        ratio = currency_ratio(currency, c)
+        stmt.append("\n WHEN '%s' THEN MIN(cp.amount_min) / %f" % (c, ratio))
+
+    stmt.append("""
+                    ELSE MIN(cp.amount_min)
+                END AS convertedmin
+                FROM commishprice cp
+                GROUP BY cp.priceid, cp.userid, cp.classid, cp.settings
+            ) AS convert ON convert.priceid = cp.priceid
+                AND convert.userid = p.userid
+                AND convert.classid = cc.classid
+
             INNER JOIN (
                 SELECT MAX(unixtime) as unixtime, userid
                 FROM submission
                 GROUP BY userid
             ) AS s ON s.userid = p.userid
-
-            JOIN commishprice cp ON cp.classid = cc.classid
-                AND cp.userid = p.userid
-                AND cp.settings NOT LIKE '%%a'
 
             JOIN commishdesc d ON d.userid = p.userid
 
@@ -218,7 +248,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 AND rating <= %(rating)s
                 GROUP BY sub.userid
             ) AS example ON example.userid = p.userid
-            
+
             WHERE p.settings ~ '[os]..?'
             AND p.userid NOT IN (
                 SELECT map.targetid
@@ -227,13 +257,13 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 WHERE tag.title = ANY(%(tags)s)
                 AND map.settings ~ 'n'
                 GROUP BY map.targetid
-            ) """
-    ]
+            ) """)
     if min_price:
-        stmt.append("AND cp.amount_min >= %(min)s ")
+        stmt.append("AND convertedmin >= %(min)s ")
     if max_price:
-        stmt.append("AND cp.amount_min <= %(max)s ")
-    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, tag.tagcount, example.examplecount "
+        stmt.append("AND convertedmin <= %(max)s ")
+    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, "
+                "tag.tagcount, example.examplecount "
                 "ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
                 "LIMIT %(limit)s OFFSET %(offset)s")
     tags = q.lower().split()
@@ -247,7 +277,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
     def prepare(info):
         dinfo = dict(info)
-        dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
+        dinfo['localmin'] = info.convertedmin
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if info.examplecount and tags:
             dinfo['searchquery'] = "q=user%3A" + info.username + "+%7C" + "+%7C".join(tags)

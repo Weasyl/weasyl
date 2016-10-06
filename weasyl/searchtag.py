@@ -217,3 +217,89 @@ def tag_history(submitid):
         .select_from(tu.join(pr, tu.c.userid == pr.c.userid))
         .where(tu.c.submitid == submitid)
         .order_by(tu.c.updated_at.desc()))
+
+
+def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
+    """
+    Manages the user or global searchtag blacklists, adding or removing
+    tags as appropriate
+
+    Parameters:
+        userid: The userid of the user submitting the request.
+        tags: A set() object of tags.
+        edit_global_blacklist: Optional. Set to Boolean True if the global blacklist is to be edited.
+
+    Returns: Nothing.
+    """
+    if edit_global_blacklist and not userid in staff.DIRECTORS:
+        raise WeasylError("InsufficientPermissions")
+
+    # Determine what, if any, tags exist before editing, depending on what we are editing
+    if not edit_global_blacklist:
+        existing = d.engine.execute("""
+            SELECT tagid FROM searchmapuserblacklist WHERE userid = %(uid)s
+        """, uid=userid).fetchall()
+    else:
+        existing = d.engine.execute("""
+            SELECT tagid FROM searchmapglobalblacklist
+            """).fetchall()
+
+    # Get the tag titles/ids out of the searchtag table
+    query = d.engine.execute("""
+            SELECT tagid, title FROM searchtag WHERE tagid = ANY (%(tagids))
+        """, tagids=list(existing)).fetchall()
+
+    # Parse input tags for validity
+    regex_pattern = re.compile(r"""(\w+\*\w+| # Matches a*a
+                              \w{2,}\*| # Matches aa*
+                              \*\w{2,}| # Matches *aa
+                              \w+)      # Matches a, aa, aaa, red_fox, etc.
+                         """, re.VERBOSE)
+
+    # Determine if the tag is 'valid' for the blacklist. See ``regex_pattern``, above for valid formats.
+    for tag in tags:
+        # Remove tags that do not meet the requirements
+        if not re.match(regex_pattern, tag):
+            tags.remove(tag)
+
+    # Determine which (if any) of the valid tags are new; add them to the searchtag table if so.
+    newtags = list(tags - {x.title for x in query})
+    if newtags:
+        query.extend(
+            d.engine.execute(
+                "INSERT INTO searchtag (title) SELECT * FROM UNNEST (%(newtags)s) AS title RETURNING tagid, title",
+                newtags=newtags
+            ).fetchall())
+
+    existing_tagids = {t.tagid for t in existing}
+    entered_tagids = {t.tagid for t in query}
+
+    # Assign added and removed
+    added = entered_tagids - existing_tagids
+    removed = existing_tagids - entered_tagids
+
+    if added:
+        if edit_global_blacklist:
+            d.engine.execute("""
+                INSERT INTO searchmapglobalblacklist
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(added)s) AS tag
+                """, uid=userid, added=list(added))
+        else:
+            d.engine.execute("""
+                INSERT INTO searchmapuserblacklist
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(added)s) AS tag
+                """, uid=userid, added=list(added))
+
+    if removed:
+        if edit_global_blacklist:
+            d.engine.execute("""
+                DELETE FROM searchmapglobalblacklist
+                WHERE tagid = ANY (%(removed))
+                """, removed=list(removed))
+        else:
+            d.engine.execute("""
+                DELETE FROM searchmapuserblacklist
+                WHERE userid = %(uid)s AND tagid = ANY (%(removed))
+                """, uid=userid, removed=list(removed))

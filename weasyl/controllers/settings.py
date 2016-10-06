@@ -13,7 +13,7 @@ from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
-    index, oauth2, profile, thumbnail, useralias, orm)
+    index, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -408,6 +408,22 @@ def control_apikeys_post_(request):
         oauth2.revoke_consumers_for_user(request.userid, form['revoke-oauth2-consumers'])
 
     raise HTTPSeeOther(location="/control/apikeys")
+
+
+@login_required
+def control_editsearchtagblacklist_get_(request):
+    # Get tags
+    # Return to the template
+    pass
+
+
+@login_required
+@token_checked
+def control_editsearchtagblacklist_post_(request):
+    form = request.web_input(tags="")
+    tags = searchtag.parse_tags(form.tags)
+    # Parse the tags for sanity here?
+    pass
 
 
 @login_required

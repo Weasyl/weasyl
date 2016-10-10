@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from weasyl import macro as m
 from weasyl.cache import region
 from weasyl.error import WeasylError
 import re
@@ -169,15 +170,24 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     Select a list of artists whom are open for commissions
     and have defined at least one commission class.
 
+    This query sorts primarily by how many matching tags in the "content" field match
+    a user's artist tags. Secondarily, it sorts by the user's most recent upload time.
+    This way users who are more active on the site will recieve a higher search ranking.
+    Ignored users and banned/suspended users will not appear in search results.
+
+    Commission prices are converted to $currency before being compared against min_price and max_price.
+    This way, a search with a min price of "1000 JPY" can still return a result for a commission
+    class with a price of 20 USD.
+
+    If possible, the query will return the number of relevant examples (submissions matching a tag from $q
+    or the name of the commission class) in each user's gallery and a link to a search to view them.
+
     TODO:
         - relax the requirement for setting up commission classes
-        - don't return results that are on the searching user's ignore list
-        - find a way to have max_price and min_price work with currency conversions
         - redo the entire thing when (if) commissioninfo has (gets) a better schema
-        - don't show results for banned or suspended users
 
     :param userid: The user making the request
-    :param q: Weight artists with "preferred content" tags that match these higher
+    :param q: "Content" query / tags, weight artists with "preferred content" tags that match these higher
     :param commishclass: Only return artists with at least one commission class containing this keyword
     :param min_price: Do not return artists with a minimum price below this value
     :param max_price: Do not return artists with a minimum price above this value
@@ -187,8 +197,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     :param limit: max number of results to return
     :return: The resulting list of artists & their commission info
     """
-    # in this proof of concept, sort users by their most recent upload
-    # this has the benefit of displaying more active users most prominently
     stmt = [
         """SELECT p.userid, p.username, p.settings,
                 MIN(cp.amount_min) AS pricemin,
@@ -198,6 +206,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 d.content AS description, s.unixtime,
                 tag.tagcount, example.examplecount
             FROM profile p
+
+            JOIN login on p.userid = login.userid
 
             INNER JOIN commishclass cc ON cc.userid = p.userid
                 AND lower(cc.title) LIKE %(cclass)s
@@ -210,6 +220,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 SELECT cp.priceid, cp.userid, cp.classid,
                 CASE cp.settings """
     ]
+    # set up the cases to convert currencies from the artist's to the searcher's
     for c in CURRENCY_CHARMAP:
         ratio = currency_ratio(currency, c)
         stmt.append("\n WHEN '%s' THEN MIN(cp.amount_min) / %f" % (c, ratio))
@@ -245,11 +256,13 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 JOIN searchmapsubmit map ON map.targetid = sub.submitid
                 JOIN searchtag tag ON map.tagid = tag.tagid
                 WHERE tag.title = ANY(%(tags)s)
-                AND rating <= %(rating)s
+                AND sub.rating <= %(rating)s
+                AND sub.settings !~ '[hf]'
                 GROUP BY sub.userid
             ) AS example ON example.userid = p.userid
 
             WHERE p.settings ~ '[os]..?'
+            AND login.settings !~ '[bs]'
             AND p.userid NOT IN (
                 SELECT map.targetid
                 FROM searchtag tag
@@ -262,6 +275,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         stmt.append("AND convertedmin >= %(min)s ")
     if max_price:
         stmt.append("AND convertedmin <= %(max)s ")
+    if userid:
+        stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
     stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, "
                 "tag.tagcount, example.examplecount "
                 "ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
@@ -269,6 +284,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     tags = q.lower().split()
     if commishclass:
         tags.append(commishclass)
+    # allow partial matches on commishclass
     commishclass = "%" + commishclass + "%"
     max_rating = d.get_rating(userid)
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,

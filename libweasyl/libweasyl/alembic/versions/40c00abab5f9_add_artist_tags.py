@@ -22,13 +22,13 @@ import sqlalchemy as sa
 
 def upgrade():
     op.create_table('searchmapartist',
-    sa.Column('tagid', sa.Integer(), nullable=False),
-    sa.Column('targetid', sa.Integer(), nullable=False),
-    sa.Column('settings', sa.String(), server_default='', nullable=False),
-    sa.ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], onupdate='CASCADE', ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['targetid'], ['login.userid'], onupdate='CASCADE', ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('tagid', 'targetid')
-    )
+                    sa.Column('tagid', sa.Integer(), nullable=False),
+                    sa.Column('targetid', sa.Integer(), nullable=False),
+                    sa.Column('settings', sa.String(), server_default='', nullable=False),
+                    sa.ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], onupdate='CASCADE', ondelete='CASCADE'),
+                    sa.ForeignKeyConstraint(['targetid'], ['login.userid'], onupdate='CASCADE', ondelete='CASCADE'),
+                    sa.PrimaryKeyConstraint('tagid', 'targetid')
+                    )
     op.create_index('ind_searchmapartist_tagid', 'searchmapartist', ['tagid'])
     op.create_index('ind_searchmapartist_targetid', 'searchmapartist', ['targetid'])
 

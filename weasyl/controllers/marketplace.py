@@ -17,7 +17,7 @@ def search_(request):
                                                 commishinfo.parse_currency(form.max),
                                                 form.currency,
                                                 offset,
-                                                limit*2,)
+                                                limit * 2,)
     rcount = len(results)
     results = results[0:limit]
     media.populate_with_user_media(results)

@@ -118,6 +118,39 @@ def parse_tags(text):
     return tags
 
 
+def parse_blacklist_tags(text):
+    """
+    A custom implementation of ``parse_tags()`` for the searchtag blacklist.
+    Enforces the desired pattern of tag, and allows an asterisk character,
+       whereas ``parse_tags()`` would strip asterisks.
+
+    Parameters:
+        text: The string to parse for tags
+
+    Returns:
+        tags: A set() with valid tags.
+    """
+    tags = set()
+
+    regex_pattern = re.compile(r"""(\w+\*\w+| # Matches a*a
+                              \w{2,}\*| # Matches aa*
+                              \*\w{2,}| # Matches *aa
+                              \w+)      # Matches a, aa, aaa, red_fox, etc.
+                         """, re.VERBOSE)
+
+    for i in _TAG_DELIMITER.split(text):
+        target = "".join([c for c in i if ord(c) < 128])
+        target = target.replace(" ", "_")
+        target = "".join(i for i in target if i.isalnum() or i in "_*")
+        target = target.strip("_")
+        target = "_".join(i for i in target.split("_") if i)
+
+        if target.lower() and re.match(regex_pattern, target):
+            tags.add(target)
+
+    return tags
+
+
 def associate(userid, tags, submitid=None, charid=None, journalid=None):
     targetid = d.get_targetid(submitid, charid, journalid)
 
@@ -260,9 +293,8 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
 
     # Get the tag titles/ids out of the searchtag table
     query = d.engine.execute("""
-            SELECT tagid, title FROM searchtag WHERE tagid = ANY (%(tagids)s)
-        """, tagids=list(existing)).fetchall()
-
+            SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
+        """, title=list(tags)).fetchall()
     # Parse input tags for validity
     regex_pattern = re.compile(r"""(\w+\*\w+| # Matches a*a
                               \w{2,}\*| # Matches aa*
@@ -337,6 +369,7 @@ def get_searchtag_blacklist(userid, global_blacklist=False):
             FROM searchmapglobalblacklist
             INNER JOIN searchtag AS st USING (tagid)
             INNER JOIN login AS lo USING (userid)
+            ORDER BY st.title ASC
             """).fetchall()
         return query
     # User blacklist tags are being requested
@@ -346,5 +379,7 @@ def get_searchtag_blacklist(userid, global_blacklist=False):
             FROM searchmapuserblacklist
             INNER JOIN searchtag AS st USING (tagid)
             WHERE userid = %(userid)s
+            ORDER BY st.title ASC
             """, userid=userid).fetchall()
-        return query
+        tags = list(x.title for x in query)
+        return tags

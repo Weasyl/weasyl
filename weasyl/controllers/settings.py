@@ -422,10 +422,11 @@ def control_editsearchtagblacklist_get_(request):
 @token_checked
 def control_editsearchtagblacklist_post_(request):
     form = request.web_input(tags="")
-    tags = searchtag.parse_tags(form.tags)
-    if tags:
-        searchtag.edit_searchtag_blacklist(request.userid, tags)
-    pass  # Return to the editing page
+    tags = searchtag.parse_blacklist_tags(form.tags)
+    searchtag.edit_searchtag_blacklist(request.userid, tags)
+    return Response(define.webpage(request.userid, "control/edit_searchtagblacklist.html", [
+        searchtag.get_searchtag_blacklist(request.userid),
+    ]))
 
 
 @login_required

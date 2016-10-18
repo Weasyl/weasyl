@@ -210,9 +210,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
         # Get the blacklisted tags
         blacklist_query = d.engine.execute("""
             SELECT tagid FROM searchmapglobalblacklist WHERE tagid = ANY (%(added)s)
-            JOIN
-            SELECT tagid FROM searchmapuserblacklist WHERE tagid = ANY (%(added)s) AND userid = (%(uid))
-            """, added=added, uid=ownerid).fetchall()
+            UNION
+            SELECT tagid FROM searchmapuserblacklist WHERE tagid = ANY (%(added)s) AND userid = (%(uid)s)
+            """, added=list(x for x in added), uid=ownerid).fetchall()
         blacklisted_tags = {t.tagid for t in blacklist_query}
         # Remove tags that are blacklisted (if any)
         added = added - blacklisted_tags

@@ -658,7 +658,6 @@ searchmapglobalblacklist = Table(
     'searchmapglobalblacklist', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('settings', String(), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='searchmapglobalblacklist_userid_fkey'),
     default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapglobalblacklist_tagid_fkey'),
 )
@@ -671,7 +670,6 @@ searchmapuserblacklist = Table(
     'searchmapuserblacklist', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('settings', String(), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='searchmapuserblacklist_userid_fkey'),
     default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapuserblacklist_tagid_fkey'),
 )

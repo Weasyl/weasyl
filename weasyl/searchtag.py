@@ -17,6 +17,13 @@ from weasyl.error import WeasylError
 
 _TAG_DELIMITER = re.compile(r"[\s,]+")
 
+_SEARCHTAG_BLACKLIST_REGEXP_PATTERN = re.compile(r"""
+    (\w+\*\w+|    # Matches a*a
+    \w{2,}\*|     # Matches aa*
+    \*\w{2,}|     # Matches *aa
+    ^\w+$)        # Matches a, aa, aaa, red_fox, etc.
+    """, flags=re.VERBOSE|re.MULTILINE)
+
 
 def select(submitid=None, charid=None, journalid=None):
     return d.execute("SELECT st.title FROM searchtag st"
@@ -132,12 +139,6 @@ def parse_blacklist_tags(text):
     """
     tags = set()
 
-    regex_pattern = re.compile(r"""(\w+\*\w+|  # Matches a*a
-                               \w{2,}\*|       # Matches aa*
-                               \*\w{2,}|       # Matches *aa
-                               \w+)            # Matches a, aa, aaa, red_fox, etc.
-                               """, re.VERBOSE)
-
     for i in _TAG_DELIMITER.split(text):
         target = "".join([c for c in i if ord(c) < 128])
         target = target.replace(" ", "_")
@@ -145,7 +146,7 @@ def parse_blacklist_tags(text):
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
 
-        if target.lower() and re.match(regex_pattern, target):
+        if target.lower() and re.match(_SEARCHTAG_BLACKLIST_REGEXP_PATTERN, target):
             tags.add(target)
 
     return tags
@@ -290,17 +291,11 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
     query = d.engine.execute("""
             SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
         """, title=list(tags)).fetchall()
-    # Parse input tags for validity
-    regex_pattern = re.compile(r"""(\w+\*\w+| # Matches a*a
-                              \w{2,}\*| # Matches aa*
-                              \*\w{2,}| # Matches *aa
-                              \w+)      # Matches a, aa, aaa, red_fox, etc.
-                         """, re.VERBOSE)
 
-    # Determine if the tag is 'valid' for the blacklist. See ``regex_pattern``, above for valid formats.
+    # Determine if the tag is 'valid' for the blacklist via regexp. See ``_SEARCHTAG_BLACKLIST_REGEXP_PATTERN``, for valid formats.
     for tag in tags:
         # Remove tags that do not meet the requirements
-        if not re.match(regex_pattern, tag):
+        if not re.match(_SEARCHTAG_BLACKLIST_REGEXP_PATTERN, tag):
             tags.remove(tag)
 
     # Determine which (if any) of the valid tags are new; add them to the searchtag table if so.
@@ -393,10 +388,10 @@ def query_blacklisted_tags(newtagids, ownerid):
     Returns:
         blacklisted_tags: The tagids which are blacklisted as a set()
     """
-    regex_pattern = re.compile(r"""(\w+\*\w+| # Matches a*a
-                                  \w{2,}\*|   # Matches aa*
-                                  \*\w{2,})   # Matches *aa
-                               """, re.VERBOSE)
+    regex_pattern = re.compile(r"""(\w+\*\w+|   # Matches a*a
+                                    \w{2,}\*|   # Matches aa*
+                                    \*\w{2,})   # Matches *aa
+                               """, flags=re.VERBOSE)
     blacklist_query = d.engine.execute("""
         SELECT st.tagid, st.title
         FROM searchmapuserblacklist

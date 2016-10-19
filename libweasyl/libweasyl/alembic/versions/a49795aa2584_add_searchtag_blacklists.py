@@ -17,7 +17,7 @@ import sqlalchemy as sa
 def upgrade():
     # Create the table/index for user blacklist of searchtags
     op.create_table('searchmapuserblacklist',
-        sa.Column('tagid', sa.Integer(), nullable=False),
+        sa.Column('tagid', sa.Integer(), nullable=False),     # noqa: E128
         sa.Column('userid', sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapuserblacklist_tagid_fkey', onupdate='CASCADE', ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['userid'], ['login.userid'], name='searchmapuserblacklist_userid_fkey', onupdate='CASCADE', ondelete='CASCADE'),
@@ -25,10 +25,10 @@ def upgrade():
     )
     op.create_index('ind_searchmapuserblacklist_tagid', 'searchmapuserblacklist', ['tagid'], unique=False)
     op.create_index('ind_searchmapuserblacklist_userid', 'searchmapuserblacklist', ['userid'], unique=False)
-    
+
     # Create the table/index for global blacklist of searchtags
     op.create_table('searchmapglobalblacklist',
-        sa.Column('tagid', sa.Integer(), nullable=False),
+        sa.Column('tagid', sa.Integer(), nullable=False),     # noqa: E128
         sa.Column('userid', sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapglobalblacklist_tagid_fkey', onupdate='CASCADE', ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['userid'], ['login.userid'], name='searchmapglobalblacklist_userid_fkey', onupdate='CASCADE', ondelete='CASCADE'),

@@ -44,7 +44,7 @@ def test_edit_user_stbl_with_prior_entries_test_no_duplicates():
     Verifies that if a user attempts to add a duplicate STBL entry, the code does not result in duplication.
     
     E.g., user has 'apple', tries to add 'apple', verify that the resultant rows only have 'apple' once.
-    """"
+    """
     user_id = db_utils.create_user()
     pass
 

@@ -18,10 +18,12 @@ from weasyl.error import WeasylError
 _TAG_DELIMITER = re.compile(r"[\s,]+")
 
 _SEARCHTAG_BLACKLIST_REGEXP_PATTERN = re.compile(r"""
-    (\w+\*\w+|    # Matches a*a
-    \w{2,}\*|     # Matches aa*
-    \*\w{2,}|     # Matches *aa
-    ^\w+$)        # Matches a, aa, aaa, red_fox, etc.
+    ^           # Beginning anchor
+    (\w+\*\w+|  # Matches a*a
+    \w{2,}\*|   # Matches aa*
+    \*\w{2,}|   # Matches *aa
+    \w+)        # Matches a, aa, aaa, red_fox, etc.
+    $           # Ending anchor
     """, flags=re.VERBOSE|re.MULTILINE)
 
 

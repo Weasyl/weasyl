@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 from __future__ import absolute_import
 
 import pytest
@@ -30,7 +28,7 @@ def test_parse_blacklist_tags():
             Example, unicode characters.
     """
     valid_tags = set(['test*', '*test', 'te*st', 'test', 'test_too'])
-    invalid_tags = set(['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '✔'])
+    invalid_tags = set(['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'])
     combined_tags = valid_tags | invalid_tags
 
     # Function under test

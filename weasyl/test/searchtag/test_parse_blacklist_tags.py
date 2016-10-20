@@ -12,20 +12,19 @@ def test_parse_blacklist_tags():
     Additionally tests ``_SEARCHTAG_BLACKLIST_REGEXP_PATTERN`` as a consequence
       of testing this function.
 
-    Valid patterns include:
+    Examples of valid patterns include:
         - test*     (Wildcard at the end);
         - *test     (Wildcard at the start);
         - te*st     (Wildcard in the middle);
         - test      (A raw tag with no wildcard); and
         - test_too  (Underscores are also permitted)
 
-    Invalid patterns include:
+    Examples of invalid patterns include:
         - *             (No raw wildcards)
         - a* or *a      (Must have at least two alphanumeric characters with a wildcard)
         - a*a*, *a*a, *aa*, or a**a  (Only one asterisk per tag)
-        - Anything that does not meet the same requirements of ``searchtag.parse_tags()``, 
+        - }     Anything that wouldn't be returned by ``searchtag.parse_tags()``, 
             since this function essentially reimplements and extends that function.
-            Example, unicode characters.
     """
     valid_tags = set(['test*', '*test', 'te*st', 'test', 'test_too'])
     invalid_tags = set(['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'])

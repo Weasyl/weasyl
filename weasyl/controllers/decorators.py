@@ -53,6 +53,17 @@ def admin_only(view_callable):
     return login_required(inner)
 
 
+def director_only(view_callable):
+    """Implies login_required."""
+    def inner(request):
+        if weasyl.api.is_api_user():
+            raise HTTPForbidden
+        if request.userid not in staff.DIRECTORS:
+            return Response(define.errorpage(request.userid, errorcode.permission))
+        return view_callable(request)
+    return login_required(inner)
+
+
 def disallow_api(view_callable):
     def inner(request):
         if weasyl.api.is_api_user():

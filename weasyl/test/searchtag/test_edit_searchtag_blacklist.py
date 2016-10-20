@@ -10,9 +10,8 @@ import pytest
 
 from libweasyl import staff
 
-from weasyl import define as d
 from weasyl import searchtag
-from weasyl.error import WeasylErrror
+from weasyl.error import WeasylError
 from weasyl.test import db_utils
 
 # Test set of tags
@@ -36,23 +35,33 @@ def test_edit_user_stbl_with_no_prior_entries():
         assert result in valid_tags
     for result in resultant_tags:
         assert result not in invalid_tags
-    pass
-    
-@pytest.mark.usefixtures('db')
-def test_edit_user_stbl_with_prior_entries_test_no_duplicates():
-    """
-    Verifies that if a user attempts to add a duplicate STBL entry, the code does not result in duplication.
-    
-    E.g., user has 'apple', tries to add 'apple', verify that the resultant rows only have 'apple' once.
-    """
-    user_id = db_utils.create_user()
-    pass
 
 
 @pytest.mark.usefixtures('db')
 def test_edit_user_stbl_with_prior_entries_test_removal_of_stbl_entry():
+    # Setup
     user_id = db_utils.create_user()
-    pass
+    searchtag.edit_searchtag_blacklist(user_id, combined_tags)
+
+    tags_to_remove = set(['test*', '*test'])
+    tags_to_keep = set(['te*st', 'test', 'test_too'])
+    # Set the new tags; AKA, remove the two defined tags
+    searchtag.edit_searchtag_blacklist(user_id, tags_to_keep)
+
+    resultant_tags = searchtag.get_searchtag_blacklist(user_id)
+    for result in resultant_tags:
+        assert result in tags_to_keep
+        assert result not in tags_to_remove
+
+
+@pytest.mark.usefixtures('db')
+def test_edit_user_stbl_fully_clear_entries_after_adding_items():
+    user_id = db_utils.create_user()
+    searchtag.edit_searchtag_blacklist(user_id, combined_tags)
+    searchtag.edit_searchtag_blacklist(user_id, set([]))
+    resultant_tags = searchtag.get_searchtag_blacklist(user_id)
+    assert isinstance(resultant_tags, list)
+    assert len(resultant_tags) == 0
 
 
 @pytest.mark.usefixtures('db')
@@ -64,7 +73,7 @@ def test_edit_global_stbl_when_user_is_not_a_director_fails(monkeypatch):
     technical_user_id = db_utils.create_user()
 
     # Monkeypatch the staff global variables
-    monkeypatch.setattr(staff, 'DEVELOPER', frozenset([developer_user_id]))
+    monkeypatch.setattr(staff, 'DEVELOPERS', frozenset([developer_user_id]))
     monkeypatch.setattr(staff, 'MODS', frozenset([mod_user_id]))
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user_id]))
     monkeypatch.setattr(staff, 'TECHNICAL', frozenset([technical_user_id]))
@@ -94,4 +103,7 @@ def test_edit_global_stbl(monkeypatch):
     director_user_id = db_utils.create_user()
     # Monkeypatch the director global variable
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
-    pass
+    searchtag.edit_searchtag_blacklist(director_user_id, combined_tags, edit_global_blacklist=True)
+    resultant_tags = searchtag.get_searchtag_blacklist(director_user_id, global_blacklist=True)
+    for result in resultant_tags:
+        assert result.title in valid_tags

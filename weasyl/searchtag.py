@@ -295,10 +295,12 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
         """, title=list(tags)).fetchall()
 
     # Determine if the tag is 'valid' for the blacklist via regexp. See ``_SEARCHTAG_BLACKLIST_REGEXP_PATTERN``, for valid formats.
+    tags_to_remove = set()
     for tag in tags:
         # Remove tags that do not meet the requirements
         if not re.match(_SEARCHTAG_BLACKLIST_REGEXP_PATTERN, tag):
-            tags.remove(tag)
+            tags_to_remove.add(tag)
+    tags.difference_update(tags_to_remove)
 
     # Determine which (if any) of the valid tags are new; add them to the searchtag table if so.
     newtags = list(tags - {x.title for x in query})
@@ -354,6 +356,10 @@ def get_searchtag_blacklist(userid, global_blacklist=False):
     Returns:
         A list of searchtags (and users for global blacklist requests).
     """
+    # Only directors can edit the global blacklist; sanity check against the @director_only decorator
+    if global_blacklist and userid not in staff.DIRECTORS:
+        raise WeasylError("InsufficientPermissions")
+
     # Tags on the global blacklist are being requested
     if global_blacklist:
         query = d.engine.execute("""

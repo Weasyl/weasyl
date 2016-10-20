@@ -220,6 +220,7 @@ routes = (
     }),
     Route("/modcontrol/report", "modcontrol_report", moderation.modcontrol_report_),
     Route("/modcontrol/reports", "modcontrol_reports", moderation.modcontrol_reports_),
+    Route("/modcontrol/copynotetostaffnotes", "modcontrol_copynotetostaffnotes", {'POST': moderation.modcontrol_copynotetostaffnotes_post_}),
     Route("/modcontrol/closereport", "modcontrol_closereport", {'POST': moderation.modcontrol_closereport_}),
     Route("/modcontrol/contentbyuser", "modcontrol_contentbyuser", moderation.modcontrol_contentbyuser_),
     Route("/modcontrol/massaction", "modcontrol_massaction", {'POST': moderation.modcontrol_massaction_}),

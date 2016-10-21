@@ -266,6 +266,10 @@ routes = (
         'GET': director.directorcontrol_emailblacklist_get_,
         'POST': director.directorcontrol_emailblacklist_post_,
     }),
+    Route("/directorcontrol/globalsearchtagblacklist", "directorcontrol_globalsearchtagblacklist", {
+        'GET': director.directorcontrol_globalsearchtagblacklist_get_,
+        'POST': director.directorcontrol_globalsearchtagblacklist_post,
+    }),
 
     Route("/site-updates/{update_id:[0-9]+}", "site_update", general.site_update_),
 

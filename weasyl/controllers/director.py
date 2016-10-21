@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
+from weasyl import define as d
+from weasyl import searchtag
 from weasyl.controllers.decorators import director_only
 from weasyl.controllers.decorators import token_checked
-from weasyl import define as d
-
 
 """ Director control panel view callables """
 
@@ -44,3 +46,28 @@ def directorcontrol_emailblacklist_post_(request):
         })
 
     raise HTTPSeeOther(location="/directorcontrol/emailblacklist")
+
+
+@director_only
+def directorcontrol_globalsearchtagblacklist_get_(request):
+    # Get the global blacklist information and render to the template
+    tags = searchtag.get_searchtag_blacklist(request.userid, global_blacklist=True)
+    taglist = " ".join(x.title for x in tags)
+    return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagblacklist.html", [
+        tags,
+        taglist,
+    ]))
+
+
+@director_only
+@token_checked
+def directorcontrol_globalsearchtagblacklist_post(request):
+    form = request.web_input(tags="")
+    tags = searchtag.parse_blacklist_tags(form.tags)
+    searchtag.edit_searchtag_blacklist(request.userid, tags, edit_global_blacklist=True)
+    tags = searchtag.get_searchtag_blacklist(request.userid, global_blacklist=True)
+    taglist = " ".join(x.title for x in tags)
+    return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagblacklist.html", [
+        tags,
+        taglist,
+    ]))

@@ -1,14 +1,14 @@
 """Add searchtag blacklists
 
 Revision ID: a49795aa2584
-Revises: c8c088918278
+Revises: 882fe6ace5c7
 Create Date: 2016-10-01 03:00:22.859648
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'a49795aa2584'
-down_revision = 'c8c088918278'
+down_revision = '882fe6ace5c7'
 
 from alembic import op
 import sqlalchemy as sa

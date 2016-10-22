@@ -8,8 +8,8 @@ from weasyl import searchtag
 from weasyl.error import WeasylError
 from weasyl.test import db_utils
 
-valid_tags = set(['test*', '*test', 'te*st', 'test', 'test_too'])
-invalid_tags = set(['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'])
+valid_tags = {'test*', '*test', 'te*st', 'test', 'test_too'}
+invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
 combined_tags = valid_tags | invalid_tags
 
 
@@ -18,10 +18,11 @@ def test_get_user_searchtag_blacklist():
     user_id = db_utils.create_user()
     searchtag.edit_searchtag_blacklist(user_id, combined_tags)
     resultant_tags = searchtag.get_searchtag_blacklist(user_id)
-    for result in resultant_tags:
-        assert result in valid_tags
-    for result in resultant_tags:
-        assert result not in invalid_tags
+    assert len(resultant_tags) == len(valid_tags)
+    for result in valid_tags:
+        assert result in resultant_tags
+    for result in invalid_tags:
+        assert result not in resultant_tags
 
 
 @pytest.mark.usefixtures('db')
@@ -30,10 +31,12 @@ def test_get_global_searchtag_blacklist(monkeypatch):
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     searchtag.edit_searchtag_blacklist(director_user_id, combined_tags, edit_global_blacklist=True)
     resultant_tags = searchtag.get_searchtag_blacklist(director_user_id, global_blacklist=True)
-    for result in resultant_tags:
-        assert result.title in valid_tags
-    for result in resultant_tags:
-        assert result.title not in invalid_tags
+    resultant_tags_titles = {x.title for x in resultant_tags}
+    assert len(resultant_tags) == len(valid_tags)
+    for result in valid_tags:
+        assert result in resultant_tags_titles
+    for result in invalid_tags:
+        assert result not in resultant_tags_titles
 
 
 @pytest.mark.usefixtures('db')

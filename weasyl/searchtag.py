@@ -17,15 +17,6 @@ from weasyl.error import WeasylError
 
 _TAG_DELIMITER = re.compile(r"[\s,]+")
 
-_SEARCHTAG_BLACKLIST_REGEXP_PATTERN = re.compile(r"""
-    ^           # Beginning anchor
-    (\w+\*\w+|  # Matches a*a
-    \w{2,}\*|   # Matches aa*
-    \*\w{2,}|   # Matches *aa
-    \w+)        # Matches a, aa, aaa, red_fox, etc.
-    $           # Ending anchor
-    """, flags=re.VERBOSE|re.MULTILINE)
-
 
 def select(submitid=None, charid=None, journalid=None):
     return d.execute("SELECT st.title FROM searchtag st"
@@ -127,17 +118,19 @@ def parse_tags(text):
     return tags
 
 
-def parse_blacklist_tags(text):
+def parse_blacklist_tags(text, get_first_element=False):
     """
     A custom implementation of ``parse_tags()`` for the searchtag blacklist.
-    Enforces the desired pattern of tag, and allows an asterisk character,
-       whereas ``parse_tags()`` would strip asterisks.
+    Enforces the desired characteristics of STBL tags, and allows an asterisk
+       character, whereas ``parse_tags()`` would strip asterisks.
 
     Parameters:
         text: The string to parse for tags
+        get_first_element: Defaults to Boolean False. Returns only the first element of the tags set().
 
     Returns:
         tags: A set() with valid tags.
+        element: The first element in the tags set(), if get_first_element is True.
     """
     tags = set()
 
@@ -148,9 +141,14 @@ def parse_blacklist_tags(text):
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
 
-        if target.lower() and re.match(_SEARCHTAG_BLACKLIST_REGEXP_PATTERN, target):
+        if target.count("*") < 2 and "*" in target and len(target) > 2:
+            tags.add(target)
+        elif not target.count("*") and len(target):
             tags.add(target)
 
+    if get_first_element:
+        for element in tags:
+            return element
     return tags
 
 
@@ -209,11 +207,11 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
         entered_tagids.update(existing_artist_tags)
 
     # If the modifying user is not the owner of the object, check user/global blacklists
-    if not userid == ownerid:
+    if userid != ownerid:
         # Get the blacklisted tags
         blacklisted_tags = query_blacklisted_tags(added, ownerid)
         # Remove tags that are blacklisted (if any)
-        added = added - blacklisted_tags
+        added -= blacklisted_tags
 
     # Remove tags
     if removed:
@@ -287,20 +285,15 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
     else:
         existing = d.engine.execute("""
             SELECT tagid FROM searchmapglobalblacklist
-            """).fetchall()
+        """).fetchall()
 
     # Get the tag titles/ids out of the searchtag table
     query = d.engine.execute("""
-            SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
-        """, title=list(tags)).fetchall()
+        SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
+    """, title=list(tags)).fetchall()
 
-    # Determine if the tag is 'valid' for the blacklist via regexp. See ``_SEARCHTAG_BLACKLIST_REGEXP_PATTERN``, for valid formats.
-    tags_to_remove = set()
-    for tag in tags:
-        # Remove tags that do not meet the requirements
-        if not re.match(_SEARCHTAG_BLACKLIST_REGEXP_PATTERN, tag):
-            tags_to_remove.add(tag)
-    tags.difference_update(tags_to_remove)
+    # Determine if the tag is 'valid' for the blacklist by consulting ``parse_blacklist_tags()``
+    tags = {parse_blacklist_tags(tag, get_first_element=True) for tag in tags if parse_blacklist_tags(tag, get_first_element=True)}
 
     # Determine which (if any) of the valid tags are new; add them to the searchtag table if so.
     newtags = list(tags - {x.title for x in query})
@@ -324,25 +317,25 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
                 INSERT INTO searchmapglobalblacklist
                     SELECT tag, %(uid)s
                     FROM UNNEST (%(added)s) AS tag
-                """, uid=userid, added=list(added))
+            """, uid=userid, added=list(added))
         else:
             d.engine.execute("""
                 INSERT INTO searchmapuserblacklist
-                    SELECT tag, %(uid)s
-                    FROM UNNEST (%(added)s) AS tag
-                """, uid=userid, added=list(added))
+                SELECT tag, %(uid)s
+                FROM UNNEST (%(added)s) AS tag
+            """, uid=userid, added=list(added))
 
     if removed:
         if edit_global_blacklist:
             d.engine.execute("""
                 DELETE FROM searchmapglobalblacklist
                 WHERE tagid = ANY (%(removed)s)
-                """, removed=list(removed))
+            """, removed=list(removed))
         else:
             d.engine.execute("""
                 DELETE FROM searchmapuserblacklist
                 WHERE userid = %(uid)s AND tagid = ANY (%(removed)s)
-                """, uid=userid, removed=list(removed))
+            """, uid=userid, removed=list(removed))
 
 
 def get_searchtag_blacklist(userid, global_blacklist=False):
@@ -368,7 +361,7 @@ def get_searchtag_blacklist(userid, global_blacklist=False):
             INNER JOIN searchtag AS st USING (tagid)
             INNER JOIN login AS lo USING (userid)
             ORDER BY st.title ASC
-            """).fetchall()
+        """).fetchall()
         return query
     # User blacklist tags are being requested
     else:
@@ -378,8 +371,8 @@ def get_searchtag_blacklist(userid, global_blacklist=False):
             INNER JOIN searchtag AS st USING (tagid)
             WHERE userid = %(userid)s
             ORDER BY st.title ASC
-            """, userid=userid).fetchall()
-        tags = list(x.title for x in query)
+        """, userid=userid).fetchall()
+        tags = [tag.title for tag in query]
         return tags
 
 
@@ -396,10 +389,6 @@ def query_blacklisted_tags(newtagids, ownerid):
     Returns:
         blacklisted_tags: The tagids which are blacklisted as a set()
     """
-    regex_pattern = re.compile(r"""(\w+\*\w+|   # Matches a*a
-                                    \w{2,}\*|   # Matches aa*
-                                    \*\w{2,})   # Matches *aa
-                               """, flags=re.VERBOSE)
     blacklist_query = d.engine.execute("""
         SELECT st.tagid, st.title
         FROM searchmapuserblacklist
@@ -409,26 +398,25 @@ def query_blacklisted_tags(newtagids, ownerid):
         SELECT st.tagid, st.title
         FROM searchmapglobalblacklist
         INNER JOIN searchtag AS st USING (tagid)
-        """, ownerid=ownerid).fetchall()
+    """, ownerid=ownerid).fetchall()
     tag_titles = d.engine.execute("""
         SELECT title, tagid
         FROM searchtag
         WHERE tagid = ANY (%(tagids)s)
-        """, tagids=list(newtagids)).fetchall()
-    blacklisted_tags = set()
+    """, tagids=list(newtagids)).fetchall()
+
+    blacklisted_tag_ids = set()
 
     for x in blacklist_query:
         # Determine if the candidate ID is directly present in the newly added IDs.
         if x.tagid in newtagids:
-            blacklisted_tags.add(x.tagid)
+            blacklisted_tag_ids.add(x.tagid)
         # Otherwise we need to parse for wildcards
-        else:
-            # Does this candidate title even have a wildcard?
-            if re.match(regex_pattern, x.title):
-                # Convert '*' to '.*' as expected by regexp.
-                regex = x.title.replace("*", ".*")
-                for i in tag_titles:
-                    if re.match(regex, i.title):
-                        blacklisted_tags.add(i.tagid)
+        elif x.title.count("*"):
+            # Convert '*' to '.*' as expected by regexp.
+            regex = x.title.replace("*", ".*")
+            for i in tag_titles:
+                if re.match(regex, i.title):
+                    blacklisted_tag_ids.add(i.tagid)
 
-    return blacklisted_tags
+    return blacklisted_tag_ids

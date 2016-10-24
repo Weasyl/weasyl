@@ -15,8 +15,8 @@ from weasyl.error import WeasylError
 from weasyl.test import db_utils
 
 # Test set of tags
-valid_tags = set(['test*', '*test', 'te*st', 'test', 'test_too'])
-invalid_tags = set(['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'])
+valid_tags = {'test*', '*test', 'te*st', 'test', 'test_too'}
+invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
 combined_tags = valid_tags | invalid_tags
 
 
@@ -29,39 +29,56 @@ def test_edit_user_stbl_with_no_prior_entries():
     - The ``if added:``, non-global codepath adding the map into ``searchmapuserblacklist``
     """
     user_id = db_utils.create_user()
-    searchtag.edit_searchtag_blacklist(user_id, combined_tags)
+    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
+    searchtag.edit_searchtag_blacklist(user_id, tags)
     resultant_tags = searchtag.get_searchtag_blacklist(user_id)
-    for result in resultant_tags:
-        assert result in valid_tags
-    for result in resultant_tags:
-        assert result not in invalid_tags
+    assert len(resultant_tags) == len(valid_tags)
+    for result in valid_tags:
+        assert result in resultant_tags
+    for result in invalid_tags:
+        assert result not in resultant_tags
 
 
 @pytest.mark.usefixtures('db')
 def test_edit_user_stbl_with_prior_entries_test_removal_of_stbl_entry():
     # Setup
     user_id = db_utils.create_user()
-    searchtag.edit_searchtag_blacklist(user_id, combined_tags)
+    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
+    searchtag.edit_searchtag_blacklist(user_id, tags)
 
-    tags_to_remove = set(['test*', '*test'])
-    tags_to_keep = set(['te*st', 'test', 'test_too'])
+    tags_to_remove = {'test*', '*test'}
+    tags_to_keep = {'te*st', 'test', 'test_too'}
     # Set the new tags; AKA, remove the two defined tags
-    searchtag.edit_searchtag_blacklist(user_id, tags_to_keep)
+    tags = searchtag.parse_blacklist_tags(", ".join(tags_to_keep))
+    searchtag.edit_searchtag_blacklist(user_id, tags)
 
     resultant_tags = searchtag.get_searchtag_blacklist(user_id)
-    for result in resultant_tags:
-        assert result in tags_to_keep
-        assert result not in tags_to_remove
+    assert len(resultant_tags) == len(tags_to_keep)
+    for kept in tags_to_keep:
+        assert kept in resultant_tags
+    for removed in tags_to_remove:
+        assert removed not in resultant_tags
 
 
 @pytest.mark.usefixtures('db')
 def test_edit_user_stbl_fully_clear_entries_after_adding_items():
     user_id = db_utils.create_user()
-    searchtag.edit_searchtag_blacklist(user_id, combined_tags)
-    searchtag.edit_searchtag_blacklist(user_id, set([]))
-    resultant_tags = searchtag.get_searchtag_blacklist(user_id)
-    assert isinstance(resultant_tags, list)
-    assert len(resultant_tags) == 0
+    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
+    searchtag.edit_searchtag_blacklist(user_id, tags)
+    tags = searchtag.parse_blacklist_tags(", ".join({''}))
+    searchtag.edit_searchtag_blacklist(user_id, tags)
+    assert searchtag.get_searchtag_blacklist(user_id) == []
+
+
+@pytest.mark.usefixtures('db')
+def test_edit_global_stbl_fully_clear_entries_after_adding_items(monkeypatch):
+    director_user_id = db_utils.create_user()
+    monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
+    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
+    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
+    tags = searchtag.parse_blacklist_tags(", ".join({''}))
+    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
+    assert searchtag.get_searchtag_blacklist(director_user_id, global_blacklist=True) == []
 
 
 @pytest.mark.usefixtures('db')
@@ -72,18 +89,15 @@ def test_edit_global_stbl_when_user_is_not_a_director_fails(monkeypatch):
     admin_user_id = db_utils.create_user()
     technical_user_id = db_utils.create_user()
 
-    # Monkeypatch the staff global variables
     monkeypatch.setattr(staff, 'DEVELOPERS', frozenset([developer_user_id]))
     monkeypatch.setattr(staff, 'MODS', frozenset([mod_user_id]))
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user_id]))
     monkeypatch.setattr(staff, 'TECHNICAL', frozenset([technical_user_id]))
 
-    # Test normal user accounts
+    # Function under test; users and staff (except director) should error
     with pytest.raises(WeasylError) as err:
         searchtag.edit_searchtag_blacklist(normal_user_id, combined_tags, edit_global_blacklist=True)
     assert 'InsufficientPermissions' == err.value.value
-
-    # Test higher elevated users (except directors)
     with pytest.raises(WeasylError) as err:
         searchtag.edit_searchtag_blacklist(developer_user_id, combined_tags, edit_global_blacklist=True)
     assert 'InsufficientPermissions' == err.value.value
@@ -101,9 +115,11 @@ def test_edit_global_stbl_when_user_is_not_a_director_fails(monkeypatch):
 @pytest.mark.usefixtures('db')
 def test_edit_global_stbl(monkeypatch):
     director_user_id = db_utils.create_user()
-    # Monkeypatch the director global variable
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
-    searchtag.edit_searchtag_blacklist(director_user_id, combined_tags, edit_global_blacklist=True)
+    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
+    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
     resultant_tags = searchtag.get_searchtag_blacklist(director_user_id, global_blacklist=True)
-    for result in resultant_tags:
-        assert result.title in valid_tags
+    assert len(resultant_tags) == len(valid_tags)
+    resultant_tags_titles = {x.title for x in resultant_tags}
+    for result in valid_tags:
+        assert result in resultant_tags_titles

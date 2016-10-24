@@ -9,9 +9,6 @@ def test_parse_blacklist_tags():
     """
     Ensure that ``searchtag.parse_blacklist_tags() functions as expected.
 
-    Additionally tests ``_SEARCHTAG_BLACKLIST_REGEXP_PATTERN`` as a consequence
-      of testing this function.
-
     Examples of valid patterns include:
         - test*     (Wildcard at the end);
         - *test     (Wildcard at the start);
@@ -23,20 +20,21 @@ def test_parse_blacklist_tags():
         - *             (No raw wildcards)
         - a* or *a      (Must have at least two alphanumeric characters with a wildcard)
         - a*a*, *a*a, *aa*, or a**a  (Only one asterisk per tag)
-        - }     Anything that wouldn't be returned by ``searchtag.parse_tags()``, 
+        - }     Anything that wouldn't be returned by ``searchtag.parse_tags()``,
             since this function essentially reimplements and extends that function.
     """
-    valid_tags = set(['test*', '*test', 'te*st', 'test', 'test_too'])
-    invalid_tags = set(['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'])
+    valid_tags = {'test*', '*test', 'te*st', 'test', 'test_too'}
+    invalid_tags = {'*', '**', '***', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
     combined_tags = valid_tags | invalid_tags
 
     # Function under test
-    resultant_tags = searchtag.parse_blacklist_tags(u", ".join(combined_tags))
+    resultant_tags = searchtag.parse_blacklist_tags(" ".join(combined_tags))
 
     # Verify that we have the tags in the valid list
-    for valid_result in resultant_tags:
-        assert valid_result in valid_tags
+    assert len(resultant_tags) == len(valid_tags)
+    for valid_result in valid_tags:
+        assert valid_result in resultant_tags
 
     # Verify that no invalid tags were returned
-    for result in resultant_tags:
-        assert result not in invalid_tags
+    for invalid_result in invalid_tags:
+        assert invalid_result not in resultant_tags

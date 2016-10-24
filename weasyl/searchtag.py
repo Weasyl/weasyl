@@ -118,7 +118,7 @@ def parse_tags(text):
     return tags
 
 
-def parse_blacklist_tags(text, get_first_element=False):
+def parse_blacklist_tags(text):
     """
     A custom implementation of ``parse_tags()`` for the searchtag blacklist.
     Enforces the desired characteristics of STBL tags, and allows an asterisk
@@ -126,11 +126,9 @@ def parse_blacklist_tags(text, get_first_element=False):
 
     Parameters:
         text: The string to parse for tags
-        get_first_element: Defaults to Boolean False. Returns only the first element of the tags set().
 
     Returns:
         tags: A set() with valid tags.
-        element: The first element in the tags set(), if get_first_element is True.
     """
     tags = set()
 
@@ -146,9 +144,6 @@ def parse_blacklist_tags(text, get_first_element=False):
         elif not target.count("*") and len(target):
             tags.add(target)
 
-    if get_first_element:
-        for element in tags:
-            return element
     return tags
 
 
@@ -267,7 +262,8 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
 
     Parameters:
         userid: The userid of the user submitting the request.
-        tags: A set() object of tags.
+        tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
+                (occurs in the the controllers/settings.py controller)
         edit_global_blacklist: Optional. Set to Boolean True if the global blacklist is to be edited.
 
     Returns:
@@ -291,9 +287,6 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
     query = d.engine.execute("""
         SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
     """, title=list(tags)).fetchall()
-
-    # Determine if the tag is 'valid' for the blacklist by consulting ``parse_blacklist_tags()``
-    tags = {parse_blacklist_tags(tag, get_first_element=True) for tag in tags if parse_blacklist_tags(tag, get_first_element=True)}
 
     # Determine which (if any) of the valid tags are new; add them to the searchtag table if so.
     newtags = list(tags - {x.title for x in query})

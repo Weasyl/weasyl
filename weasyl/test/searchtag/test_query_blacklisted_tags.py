@@ -20,10 +20,12 @@ def test_query_without_regex(monkeypatch):
        no regexp needed).
     """
     user_id = db_utils.create_user()
-    searchtag.edit_searchtag_blacklist(user_id, user_tags)
+    tags = searchtag.parse_blacklist_tags(", ".join(user_tags))
+    searchtag.edit_searchtag_blacklist(user_id, tags)
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
-    searchtag.edit_searchtag_blacklist(director_user_id, global_tags, edit_global_blacklist=True)
+    tags = searchtag.parse_blacklist_tags(", ".join(global_tags))
+    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
 
     query = d.engine.execute("""
         SELECT tagid, title
@@ -46,10 +48,12 @@ def test_query_with_regex(monkeypatch):
        regexp needed).
     """
     user_id = db_utils.create_user()
-    searchtag.edit_searchtag_blacklist(user_id, user_tags)
+    tags = searchtag.parse_blacklist_tags(", ".join(user_tags))
+    searchtag.edit_searchtag_blacklist(user_id, tags)
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
-    searchtag.edit_searchtag_blacklist(director_user_id, global_tags, edit_global_blacklist=True)
+    tags = searchtag.parse_blacklist_tags(", ".join(global_tags))
+    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
 
     tagids_matching_regexp_pattern = {
         db_utils.create_tag("linuxmint"),

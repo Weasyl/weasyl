@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-import pytest
+from __future__ import absolute_import, unicode_literals
 
 from weasyl import searchtag
 
@@ -31,10 +29,4 @@ def test_parse_blacklist_tags():
     resultant_tags = searchtag.parse_blacklist_tags(" ".join(combined_tags))
 
     # Verify that we have the tags in the valid list
-    assert len(resultant_tags) == len(valid_tags)
-    for valid_result in valid_tags:
-        assert valid_result in resultant_tags
-
-    # Verify that no invalid tags were returned
-    for invalid_result in invalid_tags:
-        assert invalid_result not in resultant_tags
+    assert resultant_tags == valid_tags

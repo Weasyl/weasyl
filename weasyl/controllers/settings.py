@@ -414,7 +414,7 @@ def control_apikeys_post_(request):
 def control_editsearchtagblacklist_get_(request):
     # Get the user's blacklist tag settings and render to the template
     return Response(define.webpage(request.userid, "control/edit_searchtagblacklist.html", [
-        searchtag.get_searchtag_blacklist(request.userid),
+        searchtag.get_user_searchtag_blacklist(request.userid),
     ]))
 
 
@@ -425,7 +425,7 @@ def control_editsearchtagblacklist_post_(request):
     tags = searchtag.parse_blacklist_tags(form.tags)
     searchtag.edit_searchtag_blacklist(request.userid, tags)
     return Response(define.webpage(request.userid, "control/edit_searchtagblacklist.html", [
-        searchtag.get_searchtag_blacklist(request.userid),
+        searchtag.get_user_searchtag_blacklist(request.userid),
     ]))
 
 

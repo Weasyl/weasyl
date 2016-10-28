@@ -23,16 +23,10 @@ $:{RENDER("common/stage_title.html", ["Edit Global Searchtag Blacklist", "Direct
     <h3>Global Searchtag Blacklist Information</h3>
     <p>
       Search tags added here will not be able to be added to the list of search tags for an item,
-      except by the owner of the item in question. Wildcards are permitted.
-      Acceptable formats of tags are as follows:
-    </p>
-    <p>
-      <ul>
-        <li><code>fur*</code> - Blocks <em>fur<strong>y</strong>, fur<strong>ry</strong>, fur<strong>red</strong>, etc.</li>
-        <li><code>f*r</code> - Blocks <em>f<strong>u</strong>r, f<strong>a</strong>r, f<strong>o</strong>r, etc.</li>
-        <li><code>*ing</code> - Blocks <em><strong>runn</strong>ing, <em><strong>jump</strong>ing, <em><strong>play</strong>ing, etc.</li>
-        <li>Normal tags may also be used: <code>red_fox</code>, <code>hermaphrodite</code>, etc.</li>
-      </ul>
+      except by the owner of the item in question. In addition to blocking individual tags, you can 
+      forbid tag patterns by using <code>*</code> as a wildcard. Wildcard entries must have at least 
+      two additional characters. For example, <code>sun*</code> matches <em>sunrise</em> and <em>sunset</em>; 
+      <code>*_pen</code> matches <em>fountain_pen</em> and <em>ballpoint_pen</em>.
     </p>
 
     <label for="detail_tag_form_content">Add or Remove Tags:</label><br />

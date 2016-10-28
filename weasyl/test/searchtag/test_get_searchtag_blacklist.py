@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import pytest
 
@@ -8,9 +8,10 @@ from weasyl import searchtag
 from weasyl.error import WeasylError
 from weasyl.test import db_utils
 
-valid_tags = {'test*', '*test', 'te*st', 'test', 'test_too'}
-invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
-combined_tags = valid_tags | invalid_tags
+# Test lists of tags
+valid_tags = ['test', '*test', 'te*st', 'test*', 'test_too']
+invalid_tags = ['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}']
+combined_tags = valid_tags + invalid_tags
 
 
 @pytest.mark.usefixtures('db')
@@ -18,27 +19,21 @@ def test_get_user_searchtag_blacklist():
     user_id = db_utils.create_user()
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
     searchtag.edit_searchtag_blacklist(user_id, tags)
-    resultant_tags = searchtag.get_searchtag_blacklist(user_id)
-    assert len(resultant_tags) == len(valid_tags)
-    for result in valid_tags:
-        assert result in resultant_tags
-    for result in invalid_tags:
-        assert result not in resultant_tags
+    resultant_tags = searchtag.get_user_searchtag_blacklist(user_id)
+    assert resultant_tags == valid_tags
 
 
 @pytest.mark.usefixtures('db')
 def test_get_global_searchtag_blacklist(monkeypatch):
-    director_user_id = db_utils.create_user()
+    director_user_id = db_utils.create_user(username="testdirector")
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
     searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
-    resultant_tags = searchtag.get_searchtag_blacklist(director_user_id, global_blacklist=True)
-    resultant_tags_titles = {x.title for x in resultant_tags}
-    assert len(resultant_tags) == len(valid_tags)
-    for result in valid_tags:
-        assert result in resultant_tags_titles
-    for result in invalid_tags:
-        assert result not in resultant_tags_titles
+    resultant_tags = searchtag.get_global_searchtag_blacklist(director_user_id)
+    resultant_tags_titles = [x.title for x in resultant_tags]
+    assert resultant_tags_titles == valid_tags
+    for user in resultant_tags:
+        assert user.login_name == "testdirector"
 
 
 @pytest.mark.usefixtures('db')
@@ -62,21 +57,21 @@ def test_get_global_searchtag_blacklist_fails_for_non_directors(monkeypatch):
     monkeypatch.setattr(staff, 'TECHNICAL', frozenset([technical_user_id]))
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_searchtag_blacklist(normal_user_id, global_blacklist=True)
+        searchtag.get_global_searchtag_blacklist(normal_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_searchtag_blacklist(developer_user_id, global_blacklist=True)
+        searchtag.get_global_searchtag_blacklist(developer_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_searchtag_blacklist(mod_user_id, global_blacklist=True)
+        searchtag.get_global_searchtag_blacklist(mod_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_searchtag_blacklist(admin_user_id, global_blacklist=True)
+        searchtag.get_global_searchtag_blacklist(admin_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_searchtag_blacklist(technical_user_id, global_blacklist=True)
+        searchtag.get_global_searchtag_blacklist(technical_user_id)
     assert err.value.value == 'InsufficientPermissions'

@@ -16,10 +16,10 @@ $:{RENDER("common/stage_title.html", ["Blacklist Email Address", "Director Contr
       <tbody>
         $for item in entries:
           <tr>
-            <td><input class="checkbox" type="checkbox" name="remove_selection" value="$item['id']"></td>
-            <td>$item['domain_name']</td>
-            <td>$item['reason']</td>
-            <td>$item['name']</td>
+            <td style="text-align: center;"><input class="checkbox" type="checkbox" name="remove_selection" value="$item['id']"></td>
+            <td style="text-align: center;">$item['domain_name']</td>
+            <td style="text-align: center;">$item['reason']</td>
+            <td style="text-align: center;">$item['name']</td>
           </tr>
       </tbody>
     </table>
@@ -31,7 +31,7 @@ $:{RENDER("common/stage_title.html", ["Blacklist Email Address", "Director Contr
 <div class="content">
   <form method="POST" action="/directorcontrol/emailblacklist" class="form skinny clear">
     <label for="domain_name">Domain Name to Blacklist</label>
-    <input type="text" class="input" maxlength="252" name="domain_name" id="domain_name">
+    <input type="text" class="input" maxlength="252" name="domain_name" id="domain_name" required>
 
     <label for="reason">Reason Why Blacklisted</label>
     <textarea rows="4" cols="60" class="input" name="reason" id="reason"></textarea>

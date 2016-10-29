@@ -847,10 +847,9 @@ def active_users():
         for span, users in active_users)
 
 
-def common_page_end(userid, page, rating=None, config=None,
-                    now=None, options=None):
+def common_page_end(userid, page, options=None):
     active_users_string = active_users()
-    data = render("common/page_end.html", [options, active_users_string])
+    data = render("common/page_end.html", (options, active_users_string))
     page.append(data)
     return "".join(page)
 

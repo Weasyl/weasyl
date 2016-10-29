@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import itertools
-import time
 
 from pyramid.response import Response
 
@@ -12,10 +11,9 @@ from weasyl import define, index, macro, search, profile, siteupdate, submission
 
 # General browsing functions
 def index_(request):
-    now = time.time()
     page = define.common_page_start(request.userid, options=["homepage"], title="Home")
     page.append(define.render("etc/index.html", index.template_fields(request.userid)))
-    return Response(define.common_page_end(request.userid, page, now=now))
+    return Response(define.common_page_end(request.userid, page))
 
 
 def search_(request):
@@ -107,7 +105,7 @@ def search_(request):
             },
         ]))
 
-    return Response(define.common_page_end(request.userid, page, rating, options={'search'}))
+    return Response(define.common_page_end(request.userid, page, options={'search'}))
 
 
 def streaming_(request):

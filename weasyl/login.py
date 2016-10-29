@@ -303,4 +303,3 @@ def is_email_blacklisted(address):
         "SELECT EXISTS (SELECT 0 FROM emailblacklist WHERE domain_name = %(domain_name)s)",
         domain_name=domain,
     )
-

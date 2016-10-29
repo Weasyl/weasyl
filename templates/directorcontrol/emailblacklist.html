@@ -31,11 +31,11 @@ $:{RENDER("common/stage_title.html", ["Blacklist Email Address", "Director Contr
 <div class="content">
   <form method="POST" action="/directorcontrol/emailblacklist" class="form skinny clear">
     <label for="domain_name">Domain Name to Blacklist</label>
-    <input type="text" class="input" maxlength="256" name="domain_name" id="domain_name">
-    
+    <input type="text" class="input" maxlength="252" name="domain_name" id="domain_name">
+
     <label for="reason">Reason Why Blacklisted</label>
     <textarea rows="4" cols="60" class="input" name="reason" id="reason"></textarea>
-    
+
     $:{CSRF()}
     <button class="button negative" name="action" value="add">Blacklist Domain</button>
   </form>

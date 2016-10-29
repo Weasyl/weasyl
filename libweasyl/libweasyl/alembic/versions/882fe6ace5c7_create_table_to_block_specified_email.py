@@ -1,14 +1,14 @@
 """Create table to block specified email providers during signup
 
 Revision ID: 882fe6ace5c7
-Revises: c8c088918278
+Revises: cbe0ea91af79
 Create Date: 2016-07-17 23:02:31.217495
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '882fe6ace5c7'
-down_revision = 'c8c088918278'
+down_revision = 'cbe0ea91af79'
 
 from alembic import op
 import sqlalchemy as sa

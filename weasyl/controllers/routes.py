@@ -245,6 +245,8 @@ routes = (
 
     # Admin control routes.
     Route("/admincontrol", "admincontrol", admin.admincontrol_),
+    Route("/admincontrol/editsiteupdate", "admin_editsiteupdate",
+          {'GET': admin.admincontrol_editsiteupdate_get_, 'POST': admin.admincontrol_editsiteupdate_post_}),
     Route("/admincontrol/siteupdate", "admin_siteupdate",
           {'GET': admin.admincontrol_siteupdate_get_, 'POST': admin.admincontrol_siteupdate_post_}),
     Route("/admincontrol/manageuser", "admin_manageuser",

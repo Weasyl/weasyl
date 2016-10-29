@@ -36,6 +36,23 @@ def admincontrol_siteupdate_post_(request):
     raise HTTPSeeOther(location="/admincontrol")
 
 
+@moderator_only
+def admincontrol_editsiteupdate_get_(request):
+    return Response(d.webpage(request.userid, "admincontrol/editsiteupdate.html", [
+        siteupdate.select(),
+    ]))
+
+
+@token_checked
+@moderator_only
+def admincontrol_editsiteupdate_post_(request):
+    form = request.web_input(title=None, content=None, siteupdateid=None)
+
+    siteupdate.edit(request.userid, form)
+
+    raise HTTPSeeOther(location="/admincontrol")
+
+
 @admin_only
 def admincontrol_manageuser_get_(request):
     form = request.web_input(name="")

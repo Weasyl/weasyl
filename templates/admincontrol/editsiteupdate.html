@@ -1,0 +1,19 @@
+$def with (su)
+$:{TITLE("Edit Site Update", "Administrator Control Panel", "/admincontrol")}
+
+<div class="content">
+  <form class="form wide" action="/admincontrol/editsiteupdate" method="post">
+    $:{CSRF()}
+    <input type="hidden" name="siteupdateid" value="$su[0]['updateid']">
+
+    <label for="editsiteupdatetitle">Title</label>
+    <input type="text" class="input" name="title" id="editsiteupdatetitle" value="$su[0]['title']" />
+
+    <label for="editsiteupdatecontent">Content</label>
+    <textarea class="markdown input expanding last-input" name="content" rows="9" id="editsiteupdatecontent">$su[0]['content']</textarea>
+    <br />
+
+    <button class="button highlighted" style="float: right;">Edit Site Update</button>
+    <a class="button" href="/admincontrol">Go Back</a>
+  </form>
+</div>

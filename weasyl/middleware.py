@@ -10,13 +10,11 @@ import raven
 import raven.processors
 import traceback
 
-from pyramid.httpexceptions import HTTPServiceUnavailable
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import OperationalError
 from twisted.internet.threads import blockingCallFromThread
 from web.utils import storify
 
@@ -141,25 +139,26 @@ def status_check_tween_factory(handler, registry):
     return status_check_tween
 
 
+def database_session_cleanup_tween_factory(handler, registry):
+    """
+    A tween that cleans up the thread-local database session after every request.
+    """
+    def database_session_cleanup_tween(request):
+        def cleanup(request):
+            d.sessionmaker.remove()
+
+        request.add_finished_callback(cleanup)
+        return handler(request)
+
+    return database_session_cleanup_tween
+
+
 # Properties and methods to enhance the pyramid `request`.
 def pg_connection_request_property(request):
     """
     Used for the reified pg_connection property on weasyl requests.
     """
-    db = d.sessionmaker()
-    try:
-        # Make sure postgres is still there before issuing any further queries.
-        db.execute('SELECT 1')
-    except OperationalError:
-        request.log_exc()
-        raise HTTPServiceUnavailable("database error")
-
-    # postgresql is still there. Register clean-up of this property.
-    def cleanup(request):
-        db.close()
-
-    request.add_finished_callback(cleanup)
-    return db
+    return d.sessionmaker()
 
 
 def userid_request_property(request):

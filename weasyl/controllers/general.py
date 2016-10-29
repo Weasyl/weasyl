@@ -5,8 +5,9 @@ import itertools
 from pyramid.response import Response
 
 from libweasyl import ratings
+from libweasyl.models.site import SiteUpdate
 
-from weasyl import define, index, macro, search, profile, siteupdate, submission
+from weasyl import define, index, macro, search, profile, submission
 
 
 # General browsing functions
@@ -109,21 +110,17 @@ def search_(request):
 
 
 def streaming_(request):
-    extras = {
-        "title": "Streaming",
-    }
     rating = define.get_rating(request.userid)
     return Response(define.webpage(request.userid, 'etc/streaming.html',
-                                   [profile.select_streaming(request.userid, rating, 300, order_by="start_time desc")],
-                                   **extras))
+                                   (profile.select_streaming(request.userid, rating, 300, order_by="start_time desc"),),
+                                   title="Streaming"))
 
 
 def site_update_(request):
     updateid = int(request.matchdict['update_id'])
+    update = SiteUpdate.query.get_or_404(updateid)
 
-    return Response(define.webpage(request.userid, 'etc/site_update.html', [
-        siteupdate.select_by_id(updateid),
-    ]))
+    return Response(define.webpage(request.userid, 'etc/site_update.html', (update,)))
 
 
 def popular_(request):

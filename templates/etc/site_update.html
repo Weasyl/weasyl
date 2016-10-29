@@ -1,21 +1,20 @@
 $def with (update)
 <div id="home-content" class="content">
   <div class="constrained">
-    <h3>${update['title']}</h3>
+    <h3>${update.title}</h3>
 
     <figure class="thumbnail thumbnail-left clear">
-      <a class="avatar" href="/~${LOGIN(update['username'])}" title="${update['username']}">
-        $ avatar = update['user_media']['avatar'][0]
-        <img src="${avatar['display_url']}" alt="avatar of ${update['username']}" />
+      <a class="avatar" href="${request.path_for(update.owner)}" title="${update.owner.profile.username}">
+        <img src="${update.owner.avatar['display_url']}" alt="avatar of ${update.owner.profile.username}" />
       </a>
       <figcaption class="caption">
-        <h4 class="title"><i>Posted by</i> <a class="username" href="/~${LOGIN(update['username'])}">${update['username']}</a></h4>
-        <h5 class="date">${DATE(update['timestamp'])} <i>at</i> ${TIME(update['timestamp'])}</h5>
+        <h4 class="title"><i>Posted by</i> <a class="username" href="${request.path_for(update.owner)}">${update.owner.profile.username}</a></h4>
+        <h5 class="date">${DATE(update.unixtime)} <i>at</i> ${TIME(update.unixtime)}</h5>
       </figcaption>
     </figure>
 
     <div class="formatted-content" style="margin-top: 1em">
-      $:{MARKDOWN(update['content'])}
-    </div><!-- /formatted-content -->
+      $:{MARKDOWN(update.content)}
+    </div>
   </div>
 </div>

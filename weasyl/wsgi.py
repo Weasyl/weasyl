@@ -19,6 +19,7 @@ config.add_tween("weasyl.middleware.status_check_tween_factory")
 config.add_tween("weasyl.middleware.session_tween_factory")
 config.add_tween("weasyl.middleware.db_timer_tween_factory")
 config.add_tween("weasyl.middleware.cache_clear_tween_factory")
+config.add_tween("weasyl.middleware.database_session_cleanup_tween_factory")
 config.add_tween("pyramid.tweens.excview_tween_factory")  # Required to catch exceptions thrown in tweens.
 
 

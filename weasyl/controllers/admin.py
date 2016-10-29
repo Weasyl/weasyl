@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
+import arrow
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from libweasyl import staff
+from libweasyl.models.site import SiteUpdate
 
-from weasyl import dry, errorcode, login, profile, siteupdate, moderation
+from weasyl import errorcode, login, moderation, profile, welcome
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
-from weasyl.controllers.decorators import moderator_only
 from weasyl.controllers.decorators import token_checked
 import weasyl.define as d
 
@@ -18,22 +19,38 @@ import weasyl.define as d
 
 @admin_only
 def admincontrol_(request):
-    return Response(dry.admin_render_page("admincontrol/admincontrol.html"))
+    return Response(d.webpage(request.userid, "admincontrol/admincontrol.html"))
 
 
-@moderator_only
+@admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(dry.admin_render_page("admincontrol/siteupdate.html"))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html"))
 
 
 @token_checked
-@moderator_only
+@admin_only
 def admincontrol_siteupdate_post_(request):
-    form = request.web_input(title="", content="")
+    title = request.params["title"].strip()
+    content = request.params["content"].strip()
 
-    siteupdate.create(request.userid, form)
+    if not title:
+        raise WeasylError("titleInvalid")
 
-    raise HTTPSeeOther(location="/admincontrol")
+    if not content:
+        raise WeasylError("contentInvalid")
+
+    update = SiteUpdate(
+        userid=request.userid,
+        title=title,
+        content=content,
+        unixtime=arrow.utcnow(),
+    )
+
+    SiteUpdate.dbsession.add(update)
+    SiteUpdate.dbsession.flush()
+    welcome.site_update_insert(update.updateid)
+
+    raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 
 
 @admin_only

@@ -80,7 +80,9 @@ $code:
           <a href="/notes">inbox</a> <span>|</span>
           <a href="/control">settings</a> <span>|</span>
 
-          $if query['userid'] in staff.ADMINS:
+          $if query['userid'] in staff.DIRECTORS:
+            <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span> <a href="/directorcontrol">director</a> <span>|</span>
+          $elif query['userid'] in staff.ADMINS:
             <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span>
           $elif query['userid'] in staff.MODS:
             <a href="/modcontrol">mod</a> <span>|</span>

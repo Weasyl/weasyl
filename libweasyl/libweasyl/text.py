@@ -313,9 +313,13 @@ def _itertext_spaced(element):
             yield " "
 
 
+def _normalize_whitespace(text):
+    return re.sub(r"\s+", " ", text.strip())
+
+
 def markdown_excerpt(markdown_text, length=300):
     fragment = _markdown_fragment(markdown_text, image=False)
-    text = "".join(_itertext_spaced(fragment))
+    text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
 
     if len(text) <= length:
         return text

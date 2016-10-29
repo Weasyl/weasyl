@@ -155,7 +155,7 @@ def is_blacklist_pattern_valid(text):
     Returns:
         Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
     """
-    if text.count("*") < 2 and "*" in text and len(text) > 2:
+    if text.count("*") == 1 and len(text) > 2:
         return True
     elif text and "*" not in text:
         return True
@@ -429,7 +429,7 @@ def query_blacklisted_tags(ownerid, newtagids):
         # Otherwise we need to parse for wildcards
         elif "*" in x.title:
             # Convert '*' to '.*' as expected by regexp, and add start|end anchors
-            regex =  "^" + x.title.replace("*", ".*") + "\Z"
+            regex = x.title.replace("*", ".*") + "\Z"
             for i in tag_titles:
                 if re.match(regex, i.title):
                     blacklisted_tag_ids.add(i.tagid)

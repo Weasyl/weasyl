@@ -55,7 +55,7 @@ def test_edit_user_stbl_fully_clear_entries_after_adding_items():
     user_id = db_utils.create_user()
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
     searchtag.edit_searchtag_blacklist(user_id, tags)
-    tags = searchtag.parse_blacklist_tags(", ".join({''}))
+    tags = searchtag.parse_blacklist_tags("")
     searchtag.edit_searchtag_blacklist(user_id, tags)
     assert searchtag.get_user_searchtag_blacklist(user_id) == []
 
@@ -66,7 +66,7 @@ def test_edit_global_stbl_fully_clear_entries_after_adding_items(monkeypatch):
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
     searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
-    tags = searchtag.parse_blacklist_tags(", ".join({''}))
+    tags = searchtag.parse_blacklist_tags("")
     searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
     assert searchtag.get_global_searchtag_blacklist(director_user_id) == []
 

@@ -37,8 +37,7 @@ def test_query_without_regex(monkeypatch):
     # Function under test
     query_result = searchtag.query_blacklisted_tags(user_id, non_regexp_tag_ids)
 
-    for item in non_regexp_tag_ids:
-        assert item in query_result
+    assert query_result.issubset(non_regexp_tag_ids)
 
 
 def test_query_with_regex(monkeypatch):
@@ -67,5 +66,4 @@ def test_query_with_regex(monkeypatch):
     # Function under test
     query_result = searchtag.query_blacklisted_tags(user_id, tagids_matching_regexp_pattern)
 
-    for item in tagids_matching_regexp_pattern:
-        assert item in query_result
+    assert query_result.issubset(tagids_matching_regexp_pattern)

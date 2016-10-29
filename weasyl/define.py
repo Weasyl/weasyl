@@ -223,6 +223,7 @@ def compile(template_name):
                 "COMPILE": compile,
                 "CAPTCHA": captcha_public,
                 "MARKDOWN": text.markdown,
+                "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
                 "CONFIG": config_read_setting,
                 "SHA": CURRENT_SHA,

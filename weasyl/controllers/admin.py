@@ -24,7 +24,7 @@ def admincontrol_(request):
 
 @admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html"))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),)))
 
 
 @token_checked
@@ -49,6 +49,34 @@ def admincontrol_siteupdate_post_(request):
     SiteUpdate.dbsession.add(update)
     SiteUpdate.dbsession.flush()
     welcome.site_update_insert(update.updateid)
+
+    raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
+
+
+@admin_only
+def site_update_edit_(request):
+    updateid = int(request.matchdict['update_id'])
+    update = SiteUpdate.query.get_or_404(updateid)
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,)))
+
+
+@token_checked
+@admin_only
+def site_update_put_(request):
+    updateid = int(request.matchdict['update_id'])
+    title = request.params["title"].strip()
+    content = request.params["content"].strip()
+
+    if not title:
+        raise WeasylError("titleInvalid")
+
+    if not content:
+        raise WeasylError("contentInvalid")
+
+    update = SiteUpdate.query.get_or_404(updateid)
+    update.title = title
+    update.content = content
+    update.dbsession.flush()
 
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 

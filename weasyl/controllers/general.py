@@ -3,8 +3,11 @@ from __future__ import absolute_import
 import itertools
 
 from pyramid.response import Response
+from sqlalchemy.orm import joinedload
 
 from libweasyl import ratings
+from libweasyl import staff
+from libweasyl.media import get_multi_user_media
 from libweasyl.models.site import SiteUpdate
 
 from weasyl import define, index, macro, search, profile, submission
@@ -114,6 +117,20 @@ def streaming_(request):
     return Response(define.webpage(request.userid, 'etc/streaming.html',
                                    (profile.select_streaming(request.userid, rating, 300, order_by="start_time desc"),),
                                    title="Streaming"))
+
+
+def site_update_list_(request):
+    updates = (
+        SiteUpdate.query
+        .order_by(SiteUpdate.updateid.desc())
+        .options(joinedload('owner'))
+        .all()
+    )
+    get_multi_user_media(*[update.userid for update in updates])
+
+    can_edit = request.userid in staff.ADMINS
+
+    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (updates, can_edit)))
 
 
 def site_update_(request):

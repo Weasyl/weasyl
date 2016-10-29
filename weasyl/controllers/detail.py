@@ -52,7 +52,7 @@ def submission_(request):
     extras["canonical_url"] = "/submission/%d/%s" % (submitid, slug_for(item["title"]))
     extras["title"] = item["title"]
 
-    page = define.common_page_start(request.userid, options=["mediaplayer"], **extras)
+    page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [
         # Myself
         profile.select_myself(request.userid),

@@ -134,7 +134,6 @@ def parse_blacklist_tags(text):
 
     for i in _TAG_DELIMITER.split(text):
         target = "".join([c for c in i if ord(c) < 128])
-        target = target.replace(" ", "_")
         target = "".join(i for i in target if i.isalnum() or i in "_*")
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
@@ -210,18 +209,16 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     added = entered_tagids - existing_tagids
     removed = existing_tagids - entered_tagids
 
+    # If the modifying user is not the owner of the object, and is not staff, check user/global blacklists
+    if userid != ownerid and userid not in staff.MODS:
+        stbl_tags = query_user_blacklisted_tags(ownerid) + query_global_blacklisted_tags()
+        added -= determine_blacklisted_tags(stbl_tags, query)
+
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
         existing_artist_tags = {t.tagid for t in existing if 'a' in t.settings}
         removed.difference_update(existing_artist_tags)
         entered_tagids.update(existing_artist_tags)
-
-    # If the modifying user is not the owner of the object, and is not staff, check user/global blacklists
-    if userid != ownerid and userid not in staff.MODS:
-        # Get the blacklisted tags
-        blacklisted_tags = query_blacklisted_tags(ownerid, added)
-        # Remove tags that are blacklisted (if any)
-        added -= blacklisted_tags
 
     # Remove tags
     if removed:
@@ -322,15 +319,15 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
     if added:
         if edit_global_blacklist:
             d.engine.execute("""
-                INSERT INTO searchmapglobalblacklist
+                INSERT INTO searchmapglobalblacklist (tagid, userid)
                     SELECT tag, %(uid)s
                     FROM UNNEST (%(added)s) AS tag
             """, uid=userid, added=list(added))
         else:
             d.engine.execute("""
-                INSERT INTO searchmapuserblacklist
-                SELECT tag, %(uid)s
-                FROM UNNEST (%(added)s) AS tag
+                INSERT INTO searchmapuserblacklist (tagid, userid)
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(added)s) AS tag
             """, uid=userid, added=list(added))
 
     if removed:
@@ -391,47 +388,63 @@ def get_global_searchtag_blacklist(userid):
     return query
 
 
-def query_blacklisted_tags(ownerid, newtagids):
+@region.cache_on_arguments()
+def query_user_blacklisted_tags(ownerid):
     """
-    Checks both the user and global searchtag blacklists against added tags, and
-        returns the IDs of any tags matching the STBL, either based on strict
-        match, or regexp based match.
+    Gets and returns blacklisted searchtag blacklist tags for both user tags.
 
     Parameters:
-        ownerid: The userid of the submitted item being checked.
-        newtagids: The list of added tag ids.
+        ownerid: The userid of the user who owns the content tags are being added to.
 
     Returns:
-        blacklisted_tags: The tagids which are blacklisted as a set()
+        blacklist_query: User STBL tag titles.
     """
-    blacklist_query = d.engine.execute("""
-        SELECT st.tagid, st.title
+    user_blacklist_query = d.engine.execute("""
+        SELECT st.title
         FROM searchmapuserblacklist
         INNER JOIN searchtag AS st USING (tagid)
         WHERE userid = %(ownerid)s
-        UNION
-        SELECT st.tagid, st.title
+    """, ownerid=ownerid).fetchall()
+    return user_blacklist_query
+
+
+@region.cache_on_arguments()
+def query_global_blacklisted_tags():
+    """
+    Gets and returns blacklisted searchtag blacklist tags for global tags.
+
+    Parameters:
+        None. Retrieves all global searchtag blacklist entries.
+
+    Returns:
+        blacklist_query: Global STBL tag titles.
+    """
+    global_blacklist_query = d.engine.execute("""
+        SELECT st.title
         FROM searchmapglobalblacklist
         INNER JOIN searchtag AS st USING (tagid)
-    """, ownerid=ownerid).fetchall()
-    tag_titles = d.engine.execute("""
-        SELECT title, tagid
-        FROM searchtag
-        WHERE tagid = ANY (%(tagids)s)
-    """, tagids=list(newtagids)).fetchall()
+    """).fetchall()
+    return global_blacklist_query
 
-    blacklisted_tag_ids = set()
 
-    for x in blacklist_query:
-        # Determine if the candidate ID is directly present in the newly added IDs.
-        if x.tagid in newtagids:
-            blacklisted_tag_ids.add(x.tagid)
-        # Otherwise we need to parse for wildcards
-        elif "*" in x.title:
-            # Convert '*' to '.*' as expected by regexp, and add start|end anchors
-            regex = x.title.replace("*", ".*") + "\Z"
-            for i in tag_titles:
-                if re.match(regex, i.title):
-                    blacklisted_tag_ids.add(i.tagid)
+def determine_blacklisted_tags(blacklist_query, sql_query_tags):
+    """
+    Determines what, if any, new search tags match tags that are on the user/global
+      searchtag blocklist.
 
-    return blacklisted_tag_ids
+    Parameters:
+        blacklist_query: The result from ``query_blacklisted_tags(ownerid)``. Consists
+          of a list of titles of patterns which match a blacklisted tag.
+        sql_query_tags: The reused SQL query result from ``associate()`` which consists of tagids
+          and titles for tags passed to the function.
+
+    Returns:
+        blacklisted_tags: A set() of tagids which have been blacklisted.
+    """
+    blacklisted_tags = set()
+    for blacklist_pattern in blacklist_query:
+        regex = blacklist_pattern.title.replace("*", ".*") + r"\Z"
+        for tag in sql_query_tags:
+            if re.match(regex, tag.title):
+                blacklisted_tags.add(tag.tagid)
+    return blacklisted_tags

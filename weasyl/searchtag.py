@@ -134,7 +134,7 @@ def parse_blacklist_tags(text):
 
     for i in _TAG_DELIMITER.split(text):
         target = "".join([c for c in i if ord(c) < 128])
-        target = target.replace(" ", "_")
+        # target = target.replace(" ", "_")
         target = "".join(i for i in target if i.isalnum() or i in "_*")
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
@@ -322,15 +322,15 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
     if added:
         if edit_global_blacklist:
             d.engine.execute("""
-                INSERT INTO searchmapglobalblacklist
+                INSERT INTO searchmapglobalblacklist (tagid, userid)
                     SELECT tag, %(uid)s
                     FROM UNNEST (%(added)s) AS tag
             """, uid=userid, added=list(added))
         else:
             d.engine.execute("""
-                INSERT INTO searchmapuserblacklist
-                SELECT tag, %(uid)s
-                FROM UNNEST (%(added)s) AS tag
+                INSERT INTO searchmapuserblacklist (tagid, userid)
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(added)s) AS tag
             """, uid=userid, added=list(added))
 
     if removed:
@@ -423,15 +423,10 @@ def query_blacklisted_tags(ownerid, newtagids):
     blacklisted_tag_ids = set()
 
     for x in blacklist_query:
-        # Determine if the candidate ID is directly present in the newly added IDs.
-        if x.tagid in newtagids:
-            blacklisted_tag_ids.add(x.tagid)
-        # Otherwise we need to parse for wildcards
-        elif "*" in x.title:
-            # Convert '*' to '.*' as expected by regexp, and add start|end anchors
-            regex = x.title.replace("*", ".*") + "\Z"
-            for i in tag_titles:
-                if re.match(regex, i.title):
-                    blacklisted_tag_ids.add(i.tagid)
+        # Convert '*' to '.*' as expected by regexp (if any), and add end anchor
+        regex = x.title.replace("*", ".*") + r"\Z"
+        for i in tag_titles:
+            if re.match(regex, i.title):
+                blacklisted_tag_ids.add(i.tagid)
 
     return blacklisted_tag_ids

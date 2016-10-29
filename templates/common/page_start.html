@@ -32,9 +32,6 @@ $code:
     <script src="${CDNIFY('/static/pdf/compatibility.js?' + SHA)}"></script>
     <script src="${CDNIFY('/static/pdf/pdf.js?' + SHA)}"></script>
 
-  $if "mediaplayer" in options:
-    <script src="${CDNIFY('/static/mediaplayer/jwplayer.js')}"></script>
-
   $if 'twitter_card' in extended_options:
     <meta name="twitter:site" content="@weasyl" />
     <meta name="twitter:domain" content="weasyl.com" />

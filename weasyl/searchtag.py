@@ -211,7 +211,7 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
 
     # If the modifying user is not the owner of the object, and is not staff, check user/global blacklists
     if userid != ownerid and userid not in staff.MODS:
-        stbl_tags = query_blacklisted_tags(ownerid)
+        stbl_tags = query_user_blacklisted_tags(ownerid) + query_global_blacklisted_tags()
         added -= determine_blacklisted_tags(stbl_tags, query)
 
     # Check removed artist tags
@@ -388,27 +388,43 @@ def get_global_searchtag_blacklist(userid):
     return query
 
 
-def query_blacklisted_tags(ownerid):
+@region.cache_on_arguments()
+def query_user_blacklisted_tags(ownerid):
     """
-    Gets and returns blacklisted searchtag blacklist tags for both user and global tags.
+    Gets and returns blacklisted searchtag blacklist tags for both user tags.
 
     Parameters:
         ownerid: The userid of the user who owns the content tags are being added to.
 
     Returns:
-        blacklist_query: STBL tag titles.
+        blacklist_query: User STBL tag titles.
     """
-    blacklist_query = d.engine.execute("""
+    user_blacklist_query = d.engine.execute("""
         SELECT st.title
         FROM searchmapuserblacklist
         INNER JOIN searchtag AS st USING (tagid)
         WHERE userid = %(ownerid)s
-        UNION
+    """, ownerid=ownerid).fetchall()
+    return user_blacklist_query
+
+
+@region.cache_on_arguments()
+def query_global_blacklisted_tags():
+    """
+    Gets and returns blacklisted searchtag blacklist tags for global tags.
+
+    Parameters:
+        None. Retrieves all global searchtag blacklist entries.
+
+    Returns:
+        blacklist_query: Global STBL tag titles.
+    """
+    global_blacklist_query = d.engine.execute("""
         SELECT st.title
         FROM searchmapglobalblacklist
         INNER JOIN searchtag AS st USING (tagid)
-    """, ownerid=ownerid).fetchall()
-    return blacklist_query
+    """).fetchall()
+    return global_blacklist_query
 
 
 def determine_blacklisted_tags(blacklist_query, sql_query_tags):

@@ -1,7 +1,26 @@
 from __future__ import absolute_import
 
+import arrow
+
+from libweasyl.models.site import SiteUpdate
 from weasyl import define as d
 from weasyl import media
+from weasyl import welcome
+
+
+def create(userid, title, content):
+    update = SiteUpdate(
+        userid=userid,
+        title=title,
+        content=content,
+        unixtime=arrow.utcnow(),
+    )
+
+    SiteUpdate.dbsession.add(update)
+    SiteUpdate.dbsession.flush()
+    welcome.site_update_insert(update.updateid)
+
+    return update
 
 
 def select_last():

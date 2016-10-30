@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-import arrow
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from libweasyl import staff
 from libweasyl.models.site import SiteUpdate
 
-from weasyl import errorcode, login, moderation, profile, welcome
+from weasyl import errorcode, login, moderation, profile, siteupdate
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
 from weasyl.controllers.decorators import token_checked
@@ -27,8 +26,8 @@ def admincontrol_siteupdate_get_(request):
     return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),)))
 
 
-@token_checked
 @admin_only
+@token_checked
 def admincontrol_siteupdate_post_(request):
     title = request.params["title"].strip()
     content = request.params["content"].strip()
@@ -39,17 +38,7 @@ def admincontrol_siteupdate_post_(request):
     if not content:
         raise WeasylError("contentInvalid")
 
-    update = SiteUpdate(
-        userid=request.userid,
-        title=title,
-        content=content,
-        unixtime=arrow.utcnow(),
-    )
-
-    SiteUpdate.dbsession.add(update)
-    SiteUpdate.dbsession.flush()
-    welcome.site_update_insert(update.updateid)
-
+    update = siteupdate.create(request.userid, title, content)
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 
 
@@ -60,8 +49,8 @@ def site_update_edit_(request):
     return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,)))
 
 
-@token_checked
 @admin_only
+@token_checked
 def site_update_put_(request):
     updateid = int(request.matchdict['update_id'])
     title = request.params["title"].strip()
@@ -97,8 +86,8 @@ def admincontrol_manageuser_get_(request):
     ]))
 
 
-@token_checked
 @admin_only
+@token_checked
 def admincontrol_manageuser_post_(request):
     form = request.web_input(ch_username="", ch_full_name="", ch_catchphrase="", ch_email="",
                              ch_birthday="", ch_gender="", ch_country="", remove_social=[])
@@ -119,8 +108,8 @@ def admincontrol_manageuser_post_(request):
     raise HTTPSeeOther(location="/admincontrol")
 
 
-@token_checked
 @admin_only
+@token_checked
 def admincontrol_acctverifylink_(request):
     form = request.web_input(username="", email="")
 

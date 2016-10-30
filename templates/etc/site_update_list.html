@@ -19,5 +19,8 @@ $:{TITLE("Site Updates")}
                     <p class="text-post-excerpt">${MARKDOWN_EXCERPT(update.content)}</p>
                 </div>
             </article>
+
+        $if not updates:
+            <p>No site updates to show.</p>
     </div>
 </div>

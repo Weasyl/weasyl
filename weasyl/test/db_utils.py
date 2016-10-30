@@ -62,8 +62,9 @@ def create_session(user):
 
     db = d.connect()
     db.add(session)
+    db.flush()
 
-    return 'WZL=' + session.sessionid
+    return 'WZL=' + session.sessionid.encode('utf-8')
 
 
 def create_folder(userid, title="Folder", parentid=0, settings=None):

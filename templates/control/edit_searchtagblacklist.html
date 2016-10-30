@@ -1,23 +1,21 @@
 $def with (tags)
-$:{RENDER("common/stage_title.html", ["Edit Searchtag Blacklist", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Edit Community Tagging Blacklist", "Settings"])}
 
-<div id="usersearchtagblacklist-content" class="content form clear">
+<div class="content form clear">
   <form method="POST" class="form skinny clear" action="/control/editsearchtagblacklist">
     $:{CSRF()}
-    <h3>Searchtag Blacklist Information</h3>
+    <h3>Community Tagging Blacklist Information</h3>
     <p>
-      Tags you add here will not be able to be added to your submitted items by
-      other users. You may, however, still add these tags to your own submissions. In
+      Other users won't be able to add tags listed here to your submissions. In
       addition to blocking individual tags, you can forbid tag patterns by using <code>*</code>
-      as a wildcard. Wildcard entries must have at least two additional characters.
-      For example, <code>sun*</code> matches <em>sunrise</em> and <em>sunset</em>; <code>*_pen</code>
-      matches <em>fountain_pen</em> and <em>ballpoint_pen</em>.
+      as a wildcard. For example, <code>sun*</code> matches <em>sunrise</em> and
+      <em>sunset</em>; <code>*_pen</code> matches <em>fountain_pen</em> and <em>ballpoint_pen</em>.
     </p>
 
-    <label for="detail_tag_form_content">Add or Remove Tags:</label><br />
+    <label>Add or Remove Tags:</label><br />
     <textarea id="tags-textarea" name="tags">${" ".join(tags)}</textarea>
     <div style="padding-top: 1em;">
-      <button class="button positive" style="float: right;">Save Tags</button>
+    <button class="button positive" style="float: right;">Save Tags</button>
     </div>
   </form>
 </div>

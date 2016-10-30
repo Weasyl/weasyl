@@ -18,7 +18,7 @@ combined_tags = valid_tags + invalid_tags
 def test_get_user_searchtag_blacklist():
     user_id = db_utils.create_user()
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
-    searchtag.edit_searchtag_blacklist(user_id, tags)
+    searchtag.edit_user_searchtag_blacklist(user_id, tags)
     resultant_tags = searchtag.get_user_searchtag_blacklist(user_id)
     assert resultant_tags == valid_tags
 
@@ -28,7 +28,7 @@ def test_get_global_searchtag_blacklist(monkeypatch):
     director_user_id = db_utils.create_user(username="testdirector")
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
-    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
+    searchtag.edit_global_searchtag_blacklist(director_user_id, tags)
     resultant_tags = searchtag.get_global_searchtag_blacklist(director_user_id)
     resultant_tags_titles = [x.title for x in resultant_tags]
     assert resultant_tags_titles == valid_tags
@@ -42,7 +42,7 @@ def test_get_global_searchtag_blacklist_fails_for_non_directors(monkeypatch):
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
-    searchtag.edit_searchtag_blacklist(director_user_id, tags, edit_global_blacklist=True)
+    searchtag.edit_global_searchtag_blacklist(director_user_id, tags)
 
     normal_user_id = db_utils.create_user()
     developer_user_id = db_utils.create_user()

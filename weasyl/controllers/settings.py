@@ -422,7 +422,7 @@ def control_editsearchtagblacklist_get_(request):
 @token_checked
 def control_editsearchtagblacklist_post_(request):
     tags = searchtag.parse_blacklist_tags(request.params["tags"])
-    searchtag.edit_searchtag_blacklist(request.userid, tags)
+    searchtag.edit_user_searchtag_blacklist(request.userid, tags)
     return Response(define.webpage(request.userid, "control/edit_searchtagblacklist.html", (
         searchtag.get_user_searchtag_blacklist(request.userid),
     )))

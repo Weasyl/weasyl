@@ -139,7 +139,7 @@ def parse_blacklist_tags(text):
         target = "_".join(i for i in target.split("_") if i)
 
         if is_blacklist_pattern_valid(target):
-            tags.add(target)
+            tags.add(target.lower())
 
     return tags
 
@@ -188,19 +188,8 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
         "SELECT tagid, settings FROM {} WHERE targetid = %(target)s".format(table),
         target=targetid).fetchall()
 
-    # Determine tag titles and tagids
-    query = d.engine.execute(
-        "SELECT tagid, title FROM searchtag WHERE title = ANY (%(tags)s)",
-        tags=list(tags)).fetchall()
-
-    newtags = list(tags - {x.title for x in query})
-
-    if newtags:
-        query.extend(
-            d.engine.execute(
-                "INSERT INTO searchtag (title) SELECT * FROM UNNEST (%(newtags)s) AS title RETURNING tagid, title",
-                newtags=newtags
-            ).fetchall())
+    # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
+    query = add_and_get_searchtags(tags)
 
     existing_tagids = {t.tagid for t in existing}
     entered_tagids = {t.tagid for t in query}
@@ -267,34 +256,20 @@ def tag_history(submitid):
         .order_by(tu.c.updated_at.desc()))
 
 
-def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
+def add_and_get_searchtags(tags):
     """
-    Manages the user or global searchtag blacklists, adding or removing
-    tags as appropriate
+    Handles addition of, and getting existing, searchtags, abstracting the logic
+    for addition of such from editing functions. Serves to consolidate otherwise
+    duplicated code.
 
     Parameters:
-        userid: The userid of the user submitting the request.
-        tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
-                (occurs in the the controllers/settings.py controller)
-        edit_global_blacklist: Optional. Set to Boolean True if the global blacklist is to be edited.
+        tags: A set of tags.
 
     Returns:
-        Nothing.
+        query: The results of a SQL query which contains tagids and titles for
+                 tags which either currently exist, or were added as a result
+                 of this function.
     """
-    # Only directors can edit the global blacklist; sanity check against the @director_only decorator
-    if edit_global_blacklist and userid not in staff.DIRECTORS:
-        raise WeasylError("InsufficientPermissions")
-
-    # Determine what, if any, tags exist before editing, depending on what we are editing
-    if not edit_global_blacklist:
-        existing = d.engine.execute("""
-            SELECT tagid FROM searchmapuserblacklist WHERE userid = %(uid)s
-        """, uid=userid).fetchall()
-    else:
-        existing = d.engine.execute("""
-            SELECT tagid FROM searchmapglobalblacklist
-        """).fetchall()
-
     # Get the tag titles/ids out of the searchtag table
     query = d.engine.execute("""
         SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
@@ -308,6 +283,28 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
                 "INSERT INTO searchtag (title) SELECT * FROM UNNEST (%(newtags)s) AS title RETURNING tagid, title",
                 newtags=newtags
             ).fetchall())
+    return query
+
+
+def edit_user_searchtag_blacklist(userid, tags):
+    """
+    Edits the user searchtag blacklist, adding or removing tags as appropriate.
+
+    Parameters:
+        userid: The userid of the user submitting the request.
+        tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
+                (occurs in the the controllers/settings.py controller)
+
+    Returns:
+        Nothing.
+    """
+    # Determine what, if any, tags exist before editing
+    existing = d.engine.execute("""
+        SELECT tagid FROM searchmapuserblacklist WHERE userid = %(uid)s
+    """, uid=userid).fetchall()
+
+    # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
+    query = add_and_get_searchtags(tags)
 
     existing_tagids = {t.tagid for t in existing}
     entered_tagids = {t.tagid for t in query}
@@ -317,34 +314,69 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
     removed = existing_tagids - entered_tagids
 
     if added:
-        if edit_global_blacklist:
-            d.engine.execute("""
-                INSERT INTO searchmapglobalblacklist (tagid, userid)
-                    SELECT tag, %(uid)s
-                    FROM UNNEST (%(added)s) AS tag
-            """, uid=userid, added=list(added))
-            query_global_blacklisted_tags.invalidate()
-        else:
-            d.engine.execute("""
-                INSERT INTO searchmapuserblacklist (tagid, userid)
-                    SELECT tag, %(uid)s
-                    FROM UNNEST (%(added)s) AS tag
-            """, uid=userid, added=list(added))
-            query_user_blacklisted_tags.invalidate(userid)
+        d.engine.execute("""
+            INSERT INTO searchmapuserblacklist (tagid, userid)
+                SELECT tag, %(uid)s
+                FROM UNNEST (%(added)s) AS tag
+        """, uid=userid, added=list(added))
 
     if removed:
-        if edit_global_blacklist:
-            d.engine.execute("""
-                DELETE FROM searchmapglobalblacklist
-                WHERE tagid = ANY (%(removed)s)
-            """, removed=list(removed))
-            query_global_blacklisted_tags.invalidate()
-        else:
-            d.engine.execute("""
-                DELETE FROM searchmapuserblacklist
-                WHERE userid = %(uid)s AND tagid = ANY (%(removed)s)
-            """, uid=userid, removed=list(removed))
-            query_user_blacklisted_tags.invalidate(userid)
+        d.engine.execute("""
+            DELETE FROM searchmapuserblacklist
+            WHERE userid = %(uid)s AND tagid = ANY (%(removed)s)
+        """, uid=userid, removed=list(removed))
+
+    # Clear the user STBL cache if any changes were made
+    if added or removed:
+        query_user_blacklisted_tags.invalidate(userid)
+
+
+def edit_global_searchtag_blacklist(userid, tags):
+    """
+    Edits the global searchtag blacklist, adding or removing tags as appropriate.
+
+    Parameters:
+        userid: The userid of the director submitting the request.
+        tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
+                (occurs in the the controllers/director.py controller)
+
+    Returns:
+        Nothing.
+    """
+    # Only directors can edit the global blacklist; sanity check against the @director_only decorator
+    if userid not in staff.DIRECTORS:
+        raise WeasylError("InsufficientPermissions")
+
+    existing = d.engine.execute("""
+        SELECT tagid FROM searchmapglobalblacklist
+    """).fetchall()
+
+    # Retrieve tag titles and tagid pairs, for new and existing tags
+    query = add_and_get_searchtags(tags)
+
+    existing_tagids = {t.tagid for t in existing}
+    entered_tagids = {t.tagid for t in query}
+
+    # Assign added and removed
+    added = entered_tagids - existing_tagids
+    removed = existing_tagids - entered_tagids
+
+    if added:
+        d.engine.execute("""
+            INSERT INTO searchmapglobalblacklist (tagid, userid)
+                SELECT tag, %(uid)s
+                FROM UNNEST (%(added)s) AS tag
+        """, uid=userid, added=list(added))
+
+    if removed:
+        d.engine.execute("""
+            DELETE FROM searchmapglobalblacklist
+            WHERE tagid = ANY (%(removed)s)
+        """, removed=list(removed))
+
+    # Clear the global STBL cache if any changes were made
+    if added or removed:
+        query_global_blacklisted_tags.invalidate()
 
 
 def get_user_searchtag_blacklist(userid):

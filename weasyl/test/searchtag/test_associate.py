@@ -162,7 +162,7 @@ def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
     blacklisted_tag = searchtag.parse_blacklist_tags("pearl")
-    searchtag.edit_searchtag_blacklist(userid_owner, blacklisted_tag)
+    searchtag.edit_user_searchtag_blacklist(userid_owner, blacklisted_tag)
 
     searchtag.associate(userid_tag_adder, tags, submitid=submitid)
     searchtag.associate(userid_tag_adder, tags, charid=charid)
@@ -193,7 +193,7 @@ def test_moderators_and_above_can_add_blacklisted_tags_successfully(monkeypatch)
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
     blacklisted_tag = searchtag.parse_blacklist_tags("pearl")
-    searchtag.edit_searchtag_blacklist(userid_owner, blacklisted_tag)
+    searchtag.edit_user_searchtag_blacklist(userid_owner, blacklisted_tag)
 
     searchtag.associate(mod_tag_adder, tags, submitid=submitid)
     searchtag.associate(mod_tag_adder, tags, charid=charid)

@@ -30,3 +30,10 @@ def test_parse_blacklist_tags():
 
     # Verify that we have the tags in the valid list
     assert resultant_tags == valid_tags
+
+
+def test_uppercase_tags_are_converted_to_lowercase():
+    uppercase_tags = {'OMEGA_RUBY', 'ALPHA_SAPPHIRE', 'DIAMOND', 'PEARL', 'DIGI_*'}
+    lowercase_tags = {'omega_ruby', 'alpha_sapphire', 'diamond', 'pearl', 'digi_*'}
+
+    assert lowercase_tags == searchtag.parse_blacklist_tags(" ".join(uppercase_tags))

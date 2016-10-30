@@ -323,12 +323,14 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
                     SELECT tag, %(uid)s
                     FROM UNNEST (%(added)s) AS tag
             """, uid=userid, added=list(added))
+            query_global_blacklisted_tags.invalidate()
         else:
             d.engine.execute("""
                 INSERT INTO searchmapuserblacklist (tagid, userid)
                     SELECT tag, %(uid)s
                     FROM UNNEST (%(added)s) AS tag
             """, uid=userid, added=list(added))
+            query_user_blacklisted_tags.invalidate(userid)
 
     if removed:
         if edit_global_blacklist:
@@ -336,11 +338,13 @@ def edit_searchtag_blacklist(userid, tags, edit_global_blacklist=False):
                 DELETE FROM searchmapglobalblacklist
                 WHERE tagid = ANY (%(removed)s)
             """, removed=list(removed))
+            query_global_blacklisted_tags.invalidate()
         else:
             d.engine.execute("""
                 DELETE FROM searchmapuserblacklist
                 WHERE userid = %(uid)s AND tagid = ANY (%(removed)s)
             """, uid=userid, removed=list(removed))
+            query_user_blacklisted_tags.invalidate(userid)
 
 
 def get_user_searchtag_blacklist(userid):

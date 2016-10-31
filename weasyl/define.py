@@ -598,7 +598,7 @@ def get_path():
 
 
 def text_price_amount(target):
-    return "%.2f" % round(target / 100, 2)
+    return "%.2f" % (target / 100.0)
 
 
 def text_price_symbol(target):

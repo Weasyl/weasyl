@@ -39,6 +39,7 @@ o  Open
 s  Sometimes
 f  Filled
 c  Closed
+e  Exclude (does not apply to me)
 
 n  Online
 l  Later

@@ -136,8 +136,7 @@ def select_list(userid):
     tags = d.engine.execute("SELECT DISTINCT tag.title, sma.settings FROM searchtag tag "
                             "join searchmapartist sma on sma.tagid = tag.tagid "
                             "join login l on l.userid = sma.targetid "
-                            "where l.userid = %(userid)s", userid=userid)
-    tags_extract = [{"t": i.title, "s": i.settings} for i in tags]
+                            "where l.userid = %(userid)s", userid=userid).fetchall()
     return {
         "userid": userid,
         "class": [{
@@ -160,8 +159,8 @@ def select_list(userid):
             "priceid": i.priceid,
         } for i in query if "a" in i.settings],
         "content": content if content else "",
-        "tags": [i["t"] for i in tags_extract if 'n' not in i["s"]],
-        "no_draw": [i["t"] for i in tags_extract if 'n' in i["s"]],
+        "tags": [i.title for i in tags if 'n' not in i.settings],
+        "no_draw": [i.title for i in tags if 'n' in i.settings]
     }
 
 
@@ -261,7 +260,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 GROUP BY sub.userid
             ) AS example ON example.userid = p.userid
 
-            WHERE p.settings ~ '[os]..?'
+            WHERE p.settings ~ '^[os]'
             AND login.settings !~ '[bs]'
             AND p.userid NOT IN (
                 SELECT map.targetid

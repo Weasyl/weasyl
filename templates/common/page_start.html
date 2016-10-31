@@ -32,9 +32,6 @@ $code:
     <script src="${CDNIFY('/static/pdf/compatibility.js?' + SHA)}"></script>
     <script src="${CDNIFY('/static/pdf/pdf.js?' + SHA)}"></script>
 
-  $if "mediaplayer" in options:
-    <script src="${CDNIFY('/static/mediaplayer/jwplayer.js')}"></script>
-
   $if 'twitter_card' in extended_options:
     <meta name="twitter:site" content="@weasyl" />
     <meta name="twitter:domain" content="weasyl.com" />
@@ -83,7 +80,9 @@ $code:
           <a href="/notes">inbox</a> <span>|</span>
           <a href="/control">settings</a> <span>|</span>
 
-          $if query['userid'] in staff.ADMINS:
+          $if query['userid'] in staff.DIRECTORS:
+            <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span> <a href="/directorcontrol">director</a> <span>|</span>
+          $elif query['userid'] in staff.ADMINS:
             <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span>
           $elif query['userid'] in staff.MODS:
             <a href="/modcontrol">mod</a> <span>|</span>

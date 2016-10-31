@@ -10,7 +10,7 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
         <h3>Files</h3>
 
         <label>Picture</label>
-        <input type="file" name="submitfile" id="submitfile" class="styled-input" accept="image/*" />
+        <input type="file" name="submitfile" id="submitfile" class="styled-input" accept="image/*" required />
         <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (JPG): 10 MB</i></p>
         <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (PNG): 10 MB</i></p>
         <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (GIF): 10 MB</i></p>
@@ -23,7 +23,7 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
         <h3>Character Bio</h3>
 
         <label for="charactertitle">Name</label>
-        <input type="text" class="input" name="title" id="charactertitle" maxlength="100" />
+        <input type="text" class="input" name="title" id="charactertitle" maxlength="100" required />
 
         <label for="characterage">Age</label>
         <input type="text" class="input" name="age" id="characterage" maxlength="100" />
@@ -41,7 +41,7 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
         <input type="text" class="input" name="species" id="characterspecies" maxlength="100" />
 
         <label for="characterrating">Rating</label>
-        <select name="rating" class="input" id="characterrating">
+        <select name="rating" class="input" id="characterrating" required>
           <option value="" selected="selected">&nbsp;</option>
           $for rating in ratings:
             <option value="${rating.code}">${rating.name_with_age}</option>

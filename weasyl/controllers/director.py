@@ -52,10 +52,8 @@ def directorcontrol_emailblacklist_post_(request):
 def directorcontrol_globalsearchtagblacklist_get_(request):
     # Get the global blacklist information and render to the template
     tags = searchtag.get_global_searchtag_blacklist(request.userid)
-    taglist = " ".join(x.title for x in tags)
     return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagblacklist.html", (
         tags,
-        taglist
     )))
 
 
@@ -65,8 +63,6 @@ def directorcontrol_globalsearchtagblacklist_post(request):
     tags = searchtag.parse_blacklist_tags(request.params["tags"])
     searchtag.edit_global_searchtag_blacklist(request.userid, tags)
     tags = searchtag.get_global_searchtag_blacklist(request.userid)
-    taglist = " ".join(x.title for x in tags)
     return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagblacklist.html", (
         tags,
-        taglist
     )))

@@ -182,9 +182,9 @@ routes = (
         'GET': settings.control_editpreferences_get_,
         'POST': settings.control_editpreferences_post_
     }),
-    Route("/control/editsearchtagblacklist", "control_editsearchtagblacklist", {
-        'GET': settings.control_editsearchtagblacklist_get_,
-        'POST': settings.control_editsearchtagblacklist_post_
+    Route("/control/tagblacklist", "control_tagblacklist", {
+        'GET': settings.control_tagblacklist_get_,
+        'POST': settings.control_tagblacklist_post_
     }),
 
     Route("/control/createfolder", "control_createfolder", {'POST': settings.control_createfolder_}),

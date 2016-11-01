@@ -122,7 +122,7 @@ def parse_blacklist_tags(text):
     """
     A custom implementation of ``parse_tags()`` for the searchtag blacklist.
     Enforces the desired characteristics of STBL tags, and allows an asterisk
-       character, whereas ``parse_tags()`` would strip asterisks.
+    character, whereas ``parse_tags()`` would strip asterisks.
 
     Parameters:
         text: The string to parse for tags
@@ -267,8 +267,8 @@ def add_and_get_searchtags(tags):
 
     Returns:
         query: The results of a SQL query which contains tagids and titles for
-                 tags which either currently exist, or were added as a result
-                 of this function.
+        tags which either currently exist, or were added as a result
+        of this function.
     """
     # Get the tag titles/ids out of the searchtag table
     query = d.engine.execute("""
@@ -288,47 +288,37 @@ def add_and_get_searchtags(tags):
 
 def edit_user_searchtag_blacklist(userid, tags):
     """
-    Edits the user searchtag blacklist, adding or removing tags as appropriate.
+    Edits the user searchtag blacklist, by dropping all rows for ``userid`` and reinserting
+    any ``tags`` passed in to the function.
 
     Parameters:
         userid: The userid of the user submitting the request.
+
         tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
-                (occurs in the the controllers/settings.py controller)
+        (occurs in the the controllers/settings.py controller)
 
     Returns:
         Nothing.
     """
-    # Determine what, if any, tags exist before editing
-    existing = d.engine.execute("""
-        SELECT tagid FROM searchmapuserblacklist WHERE userid = %(uid)s
-    """, uid=userid).fetchall()
+    # First, drop all rows from the searchmapuserblacklist table for userid
+    d.engine.execute("""
+        DELETE FROM searchmapuserblacklist
+        WHERE userid = %(uid)s
+    """, uid=userid)
 
     # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
     query = add_and_get_searchtags(tags)
 
-    existing_tagids = {t.tagid for t in existing}
-    entered_tagids = {t.tagid for t in query}
-
-    # Assign added and removed
-    added = entered_tagids - existing_tagids
-    removed = existing_tagids - entered_tagids
-
-    if added:
+    # Insert the new STBL user entries into the table (if we have any tags to add)
+    if query:
         d.engine.execute("""
             INSERT INTO searchmapuserblacklist (tagid, userid)
                 SELECT tag, %(uid)s
                 FROM UNNEST (%(added)s) AS tag
-        """, uid=userid, added=list(added))
+        """, uid=userid, added=list(tag.tagid for tag in query))
 
-    if removed:
-        d.engine.execute("""
-            DELETE FROM searchmapuserblacklist
-            WHERE userid = %(uid)s AND tagid = ANY (%(removed)s)
-        """, uid=userid, removed=list(removed))
-
-    # Clear the user STBL cache if any changes were made
-    if added or removed:
-        query_user_blacklisted_tags.invalidate(userid)
+    # Clear the user STBL cache, since we made changes
+    query_user_blacklisted_tags.invalidate(userid)
 
 
 def edit_global_searchtag_blacklist(userid, tags):
@@ -337,8 +327,9 @@ def edit_global_searchtag_blacklist(userid, tags):
 
     Parameters:
         userid: The userid of the director submitting the request.
+
         tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
-                (occurs in the the controllers/director.py controller)
+        (occurs in the the controllers/director.py controller)
 
     Returns:
         Nothing.
@@ -405,10 +396,10 @@ def get_global_searchtag_blacklist(userid):
     Retrieves a list of tags on the global searchtag blacklist for friendly display to the director.
 
     Parameters:
-        userid: The userid of the user requesting the list of tags.
+        userid: The userid of the director requesting the list of tags.
 
     Returns:
-        A list of globally blacklisted searchtag titles and the name of the user which added it.
+        A list of globally blacklisted searchtag titles and the name of the director which added it.
     """
     # Only directors can view the global blacklist; sanity check against the @director_only decorator
     if userid not in staff.DIRECTORS:
@@ -433,7 +424,7 @@ def query_user_blacklisted_tags(ownerid):
         ownerid: The userid of the user who owns the content tags are being added to.
 
     Returns:
-        user_blacklist_query: User STBL tag titles.
+        A list of user STBL tag titles.
     """
     user_blacklist_query = d.engine.execute("""
         SELECT title
@@ -453,7 +444,7 @@ def query_global_blacklisted_tags():
         None. Retrieves all global searchtag blacklist entries.
 
     Returns:
-        global_blacklist_query: Global STBL tag titles.
+        A list of global STBL tag titles
     """
     global_blacklist_query = d.engine.execute("""
         SELECT title
@@ -469,18 +460,15 @@ def remove_blacklisted_tags(patterns, tags):
       searchtag blocklist.
 
     Parameters:
-        patterns: The result from ``query_blacklisted_tags(ownerid)``. Consists
-          of a list of titles of patterns which match a blacklisted tag.
+        patterns: The result of ``query_user_blacklisted_tags(ownerid) +
+        query_global_blacklisted_tags()``. Consists
+        of a list of titles of patterns which match a blacklisted tag.
+
         tags: The reused SQL query result from ``associate()`` which consists of tagids
-          and titles for tags passed to the function.
+        and titles for tags passed to the function.
 
     Returns:
-        blacklisted_tags: A set() of tagids which have been blacklisted.
+        A set() of tagids which have been blacklisted.
     """
-    blacklisted_tags = set()
-    for blacklist_pattern in patterns:
-        regex = blacklist_pattern.replace("*", ".*") + r"\Z"
-        for tag in tags:
-            if re.match(regex, tag.title):
-                blacklisted_tags.add(tag.tagid)
-    return blacklisted_tags
+    regex = r"(?:%s)\Z" % ("|".join(pattern.replace("*", ".*") for pattern in patterns),)
+    return {tag.tagid for tag in tags if re.match(regex, tag.title)}

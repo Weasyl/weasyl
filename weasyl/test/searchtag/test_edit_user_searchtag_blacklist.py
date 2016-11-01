@@ -52,6 +52,6 @@ def test_edit_user_stbl_fully_clear_entries_after_adding_items():
     user_id = db_utils.create_user()
     tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
     searchtag.edit_user_searchtag_blacklist(user_id, tags)
-    tags = searchtag.parse_blacklist_tags("")
+    tags = set()
     searchtag.edit_user_searchtag_blacklist(user_id, tags)
     assert searchtag.get_user_searchtag_blacklist(user_id) == []

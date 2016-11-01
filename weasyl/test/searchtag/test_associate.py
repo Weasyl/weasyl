@@ -136,7 +136,7 @@ def test_clearing_all_tags():
     searchtag.associate(userid_tag_adder, tags, journalid=journalid)
 
     # Clear all tags now that they were initially set
-    empty_tags = searchtag.parse_tags("")
+    empty_tags = set()
     searchtag.associate(userid_tag_adder, empty_tags, submitid=submitid)
     searchtag.associate(userid_tag_adder, empty_tags, charid=charid)
     searchtag.associate(userid_tag_adder, empty_tags, journalid=journalid)

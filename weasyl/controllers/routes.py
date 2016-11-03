@@ -182,9 +182,9 @@ routes = (
         'GET': settings.control_editpreferences_get_,
         'POST': settings.control_editpreferences_post_
     }),
-    Route("/control/tagblacklist", "control_tagblacklist", {
-        'GET': settings.control_tagblacklist_get_,
-        'POST': settings.control_tagblacklist_post_
+    Route("/control/tagrestrictions", "control_tagrestrictions", {
+        'GET': settings.control_tagrestrictions_get_,
+        'POST': settings.control_tagrestrictions_post_
     }),
 
     Route("/control/createfolder", "control_createfolder", {'POST': settings.control_createfolder_}),
@@ -266,9 +266,9 @@ routes = (
         'GET': director.directorcontrol_emailblacklist_get_,
         'POST': director.directorcontrol_emailblacklist_post_,
     }),
-    Route("/directorcontrol/globalsearchtagblacklist", "directorcontrol_globalsearchtagblacklist", {
-        'GET': director.directorcontrol_globalsearchtagblacklist_get_,
-        'POST': director.directorcontrol_globalsearchtagblacklist_post,
+    Route("/directorcontrol/globalsearchtagrestrictions", "directorcontrol_globalsearchtagrestrictions", {
+        'GET': director.directorcontrol_globalsearchtagrestrictions_get_,
+        'POST': director.directorcontrol_globalsearchtagrestrictions_post,
     }),
 
     Route("/site-updates/{update_id:[0-9]+}", "site_update", general.site_update_),

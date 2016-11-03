@@ -118,9 +118,9 @@ def parse_tags(text):
     return tags
 
 
-def parse_blacklist_tags(text):
+def parse_restricted_tags(text):
     """
-    A custom implementation of ``parse_tags()`` for the searchtag blacklist.
+    A custom implementation of ``parse_tags()`` for the searchtag restriction list.
     Enforces the desired characteristics of STBL tags, and allows an asterisk
     character, whereas ``parse_tags()`` would strip asterisks.
 
@@ -138,18 +138,18 @@ def parse_blacklist_tags(text):
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
 
-        if is_blacklist_pattern_valid(target):
+        if is_searchtag_restriction_pattern_valid(target):
             tags.add(target.lower())
 
     return tags
 
 
-def is_blacklist_pattern_valid(text):
+def is_searchtag_restriction_pattern_valid(text):
     """
-    Determines if a given piece of text is considered a valid searchtag blacklist pattern.
+    Determines if a given piece of text is considered a valid searchtag restriction pattern.
 
     Parameters:
-        text: A candidate searchtag blacklist entry
+        text: A candidate searchtag restriction entry
 
     Returns:
         Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
@@ -198,10 +198,10 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     added = entered_tagids - existing_tagids
     removed = existing_tagids - entered_tagids
 
-    # If the modifying user is not the owner of the object, and is not staff, check user/global blacklists
+    # If the modifying user is not the owner of the object, and is not staff, check user/global restriction lists
     if userid != ownerid and userid not in staff.MODS:
-        stbl_tags = query_user_blacklisted_tags(ownerid) + query_global_blacklisted_tags()
-        added -= remove_blacklisted_tags(stbl_tags, query)
+        stbl_tags = query_user_restricted_tags(ownerid) + query_global_restricted_tags()
+        added -= remove_restricted_tags(stbl_tags, query)
 
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
@@ -286,23 +286,23 @@ def add_and_get_searchtags(tags):
     return query
 
 
-def edit_user_searchtag_blacklist(userid, tags):
+def edit_user_searchtag_restrictions(userid, tags):
     """
-    Edits the user searchtag blacklist, by dropping all rows for ``userid`` and reinserting
+    Edits the user searchtag restriction list, by dropping all rows for ``userid`` and reinserting
     any ``tags`` passed in to the function.
 
     Parameters:
         userid: The userid of the user submitting the request.
 
-        tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
+        tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
         (occurs in the the controllers/settings.py controller)
 
     Returns:
         Nothing.
     """
-    # First, drop all rows from the searchmapuserblacklist table for userid
+    # First, drop all rows from the searchmapuserrestrictedtags table for userid
     d.engine.execute("""
-        DELETE FROM searchmapuserblacklist
+        DELETE FROM searchmapuserrestrictedtags
         WHERE userid = %(uid)s
     """, uid=userid)
 
@@ -312,34 +312,34 @@ def edit_user_searchtag_blacklist(userid, tags):
     # Insert the new STBL user entries into the table (if we have any tags to add)
     if query:
         d.engine.execute("""
-            INSERT INTO searchmapuserblacklist (tagid, userid)
+            INSERT INTO searchmapuserrestrictedtags (tagid, userid)
                 SELECT tag, %(uid)s
                 FROM UNNEST (%(added)s) AS tag
-        """, uid=userid, added=list(tag.tagid for tag in query))
+        """, uid=userid, added=[tag.tagid for tag in query])
 
     # Clear the user STBL cache, since we made changes
-    query_user_blacklisted_tags.invalidate(userid)
+    query_user_restricted_tags.invalidate(userid)
 
 
-def edit_global_searchtag_blacklist(userid, tags):
+def edit_global_searchtag_restrictions(userid, tags):
     """
-    Edits the global searchtag blacklist, adding or removing tags as appropriate.
+    Edits the global searchtag restriction list, adding or removing tags as appropriate.
 
     Parameters:
         userid: The userid of the director submitting the request.
 
-        tags: A set() object of tags; must have been passed through ``parse_blacklist_tags()``
+        tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
         (occurs in the the controllers/director.py controller)
 
     Returns:
         Nothing.
     """
-    # Only directors can edit the global blacklist; sanity check against the @director_only decorator
+    # Only directors can edit the global restriction list; sanity check against the @director_only decorator
     if userid not in staff.DIRECTORS:
         raise WeasylError("InsufficientPermissions")
 
     existing = d.engine.execute("""
-        SELECT tagid FROM searchmapglobalblacklist
+        SELECT tagid FROM searchmapglobalrestrictedtags
     """).fetchall()
 
     # Retrieve tag titles and tagid pairs, for new and existing tags
@@ -354,35 +354,35 @@ def edit_global_searchtag_blacklist(userid, tags):
 
     if added:
         d.engine.execute("""
-            INSERT INTO searchmapglobalblacklist (tagid, userid)
+            INSERT INTO searchmapglobalrestrictedtags (tagid, userid)
                 SELECT tag, %(uid)s
                 FROM UNNEST (%(added)s) AS tag
         """, uid=userid, added=list(added))
 
     if removed:
         d.engine.execute("""
-            DELETE FROM searchmapglobalblacklist
+            DELETE FROM searchmapglobalrestrictedtags
             WHERE tagid = ANY (%(removed)s)
         """, removed=list(removed))
 
     # Clear the global STBL cache if any changes were made
     if added or removed:
-        query_global_blacklisted_tags.invalidate()
+        query_global_restricted_tags.invalidate()
 
 
-def get_user_searchtag_blacklist(userid):
+def get_user_searchtag_restrictions(userid):
     """
-    Retrieves a list of tags on the user searchtag blacklist for friendly display to the user.
+    Retrieves a list of tags on the user searchtag restriction list for friendly display to the user.
 
     Parameters:
         userid: The userid of the user requesting the list of tags.
 
     Returns:
-        A list of blacklisted searchtag titles which were set by ``userid``.
+        A list of restricted searchtag titles which were set by ``userid``.
     """
     query = d.engine.execute("""
         SELECT st.title
-        FROM searchmapuserblacklist
+        FROM searchmapuserrestrictedtags
         INNER JOIN searchtag AS st USING (tagid)
         WHERE userid = %(userid)s
         ORDER BY st.title
@@ -391,34 +391,33 @@ def get_user_searchtag_blacklist(userid):
     return tags
 
 
-def get_global_searchtag_blacklist(userid):
+def get_global_searchtag_restrictions(userid):
     """
-    Retrieves a list of tags on the global searchtag blacklist for friendly display to the director.
+    Retrieves a list of tags on the global searchtag restriction list for friendly display to the director.
 
     Parameters:
         userid: The userid of the director requesting the list of tags.
 
     Returns:
-        A list of globally blacklisted searchtag titles and the name of the director which added it.
+        A list of globally restricted searchtag titles and the name of the director which added it.
     """
-    # Only directors can view the global blacklist; sanity check against the @director_only decorator
+    # Only directors can view the global searchtag restriction list; sanity check against the @director_only decorator
     if userid not in staff.DIRECTORS:
         raise WeasylError("InsufficientPermissions")
 
-    query = d.engine.execute("""
+    return d.engine.execute("""
         SELECT st.title, lo.login_name
-        FROM searchmapglobalblacklist
+        FROM searchmapglobalrestrictedtags
         INNER JOIN searchtag AS st USING (tagid)
         INNER JOIN login AS lo USING (userid)
         ORDER BY st.title
     """).fetchall()
-    return query
 
 
 @region.cache_on_arguments()
-def query_user_blacklisted_tags(ownerid):
+def query_user_restricted_tags(ownerid):
     """
-    Gets and returns blacklisted searchtag blacklist tags for both user tags.
+    Gets and returns restricted searchtag tags for users.
 
     Parameters:
         ownerid: The userid of the user who owns the content tags are being added to.
@@ -426,49 +425,49 @@ def query_user_blacklisted_tags(ownerid):
     Returns:
         A list of user STBL tag titles.
     """
-    user_blacklist_query = d.engine.execute("""
+    query = d.engine.execute("""
         SELECT title
-        FROM searchmapuserblacklist
+        FROM searchmapuserrestrictedtags
         INNER JOIN searchtag USING (tagid)
         WHERE userid = %(ownerid)s
     """, ownerid=ownerid).fetchall()
-    return [tag.title for tag in user_blacklist_query]
+    return [tag.title for tag in query]
 
 
 @region.cache_on_arguments()
-def query_global_blacklisted_tags():
+def query_global_restricted_tags():
     """
-    Gets and returns blacklisted searchtag blacklist tags for global tags.
+    Gets and returns globally restricted searchtag tags.
 
     Parameters:
-        None. Retrieves all global searchtag blacklist entries.
+        None. Retrieves all global searchtag restriction entries.
 
     Returns:
         A list of global STBL tag titles
     """
-    global_blacklist_query = d.engine.execute("""
+    query = d.engine.execute("""
         SELECT title
-        FROM searchmapglobalblacklist
+        FROM searchmapglobalrestrictedtags
         INNER JOIN searchtag USING (tagid)
     """).fetchall()
-    return [tag.title for tag in global_blacklist_query]
+    return [tag.title for tag in query]
 
 
-def remove_blacklisted_tags(patterns, tags):
+def remove_restricted_tags(patterns, tags):
     """
     Determines what, if any, new search tags match tags that are on the user/global
       searchtag blocklist.
 
     Parameters:
-        patterns: The result of ``query_user_blacklisted_tags(ownerid) +
-        query_global_blacklisted_tags()``. Consists
-        of a list of titles of patterns which match a blacklisted tag.
+        patterns: The result of ``query_user_restricted_tags(ownerid) +
+        query_global_restricted_tags()``. Consists
+        of a list of titles of patterns which match a restricted tag.
 
         tags: The reused SQL query result from ``associate()`` which consists of tagids
         and titles for tags passed to the function.
 
     Returns:
-        A set() of tagids which have been blacklisted.
+        A set() of tagids which have been restricted.
     """
     regex = r"(?:%s)\Z" % ("|".join(pattern.replace("*", ".*") for pattern in patterns),)
     return {tag.tagid for tag in tags if re.match(regex, tag.title)}

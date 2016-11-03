@@ -152,17 +152,17 @@ def test_clearing_all_tags():
 
 
 @pytest.mark.usefixtures('db')
-def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
+def test_attempt_setting_tags_when_some_tags_have_been_restricted():
     """
-    Verify that tags are excluded from being added to a submission's tags if the tag is blacklisted
+    Verify that tags are excluded from being added to a submission's tags if the tag is restricted
     """
     userid_owner = db_utils.create_user()
     userid_tag_adder = db_utils.create_user()
     journalid = db_utils.create_journal(userid_owner)
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
-    blacklisted_tag = searchtag.parse_blacklist_tags("pearl")
-    searchtag.edit_user_searchtag_blacklist(userid_owner, blacklisted_tag)
+    restricted_tag = searchtag.parse_restricted_tags("pearl")
+    searchtag.edit_user_searchtag_restrictions(userid_owner, restricted_tag)
 
     searchtag.associate(userid_tag_adder, tags, submitid=submitid)
     searchtag.associate(userid_tag_adder, tags, charid=charid)
@@ -180,9 +180,9 @@ def test_attempt_setting_tags_when_some_tags_have_been_blacklisted():
 
 
 @pytest.mark.usefixtures('db')
-def test_moderators_and_above_can_add_blacklisted_tags_successfully(monkeypatch):
+def test_moderators_and_above_can_add_restricted_tags_successfully(monkeypatch):
     """
-    Moderators (and admins, technical, and directors) can add blacklisted tags to content.
+    Moderators (and admins, technical, and directors) can add restricted tags to content.
     Developers are not included in this test, as they are for all intents and purposes just
       normal user accounts.
     """
@@ -192,14 +192,14 @@ def test_moderators_and_above_can_add_blacklisted_tags_successfully(monkeypatch)
     journalid = db_utils.create_journal(userid_owner)
     charid = db_utils.create_character(userid_owner)
     submitid = db_utils.create_submission(userid_owner)
-    blacklisted_tag = searchtag.parse_blacklist_tags("pearl")
-    searchtag.edit_user_searchtag_blacklist(userid_owner, blacklisted_tag)
+    restricted_tag = searchtag.parse_restricted_tags("pearl")
+    searchtag.edit_user_searchtag_restrictions(userid_owner, restricted_tag)
 
     searchtag.associate(mod_tag_adder, tags, submitid=submitid)
     searchtag.associate(mod_tag_adder, tags, charid=charid)
     searchtag.associate(mod_tag_adder, tags, journalid=journalid)
 
-    # Verify that all tags were added successfully. 'pearl' is blacklisted.
+    # Verify that all tags were added successfully. 'pearl' is restricted.
     submission_tags = searchtag.select(submitid=submitid)
     assert tags == set(submission_tags)
 

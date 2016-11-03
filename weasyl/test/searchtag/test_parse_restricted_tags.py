@@ -3,9 +3,9 @@ from __future__ import absolute_import, unicode_literals
 from weasyl import searchtag
 
 
-def test_parse_blacklist_tags():
+def test_parse_restricted_tags():
     """
-    Ensure that ``searchtag.parse_blacklist_tags() functions as expected.
+    Ensure that ``searchtag.parse_restricted_tags()`` functions as expected.
 
     Examples of valid patterns include:
         - test*     (Wildcard at the end);
@@ -26,7 +26,7 @@ def test_parse_blacklist_tags():
     combined_tags = valid_tags | invalid_tags
 
     # Function under test
-    resultant_tags = searchtag.parse_blacklist_tags(" ".join(combined_tags))
+    resultant_tags = searchtag.parse_restricted_tags(" ".join(combined_tags))
 
     # Verify that we have the tags in the valid list
     assert resultant_tags == valid_tags
@@ -36,4 +36,4 @@ def test_uppercase_tags_are_converted_to_lowercase():
     uppercase_tags = {'OMEGA_RUBY', 'ALPHA_SAPPHIRE', 'DIAMOND', 'PEARL', 'DIGI_*'}
     lowercase_tags = {'omega_ruby', 'alpha_sapphire', 'diamond', 'pearl', 'digi_*'}
 
-    assert lowercase_tags == searchtag.parse_blacklist_tags(" ".join(uppercase_tags))
+    assert lowercase_tags == searchtag.parse_restricted_tags(" ".join(uppercase_tags))

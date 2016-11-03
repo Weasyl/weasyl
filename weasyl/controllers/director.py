@@ -49,20 +49,20 @@ def directorcontrol_emailblacklist_post_(request):
 
 
 @director_only
-def directorcontrol_globalsearchtagblacklist_get_(request):
+def directorcontrol_globalsearchtagrestrictions_get_(request):
     # Get the global blacklist information and render to the template
-    tags = searchtag.get_global_searchtag_blacklist(request.userid)
-    return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagblacklist.html", (
+    tags = searchtag.get_global_searchtag_restrictions(request.userid)
+    return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagrestrictions.html", (
         tags,
     )))
 
 
 @director_only
 @token_checked
-def directorcontrol_globalsearchtagblacklist_post(request):
-    tags = searchtag.parse_blacklist_tags(request.params["tags"])
-    searchtag.edit_global_searchtag_blacklist(request.userid, tags)
-    tags = searchtag.get_global_searchtag_blacklist(request.userid)
-    return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagblacklist.html", (
+def directorcontrol_globalsearchtagrestrictions_post(request):
+    tags = searchtag.parse_restricted_tags(request.params["tags"])
+    searchtag.edit_global_searchtag_restrictions(request.userid, tags)
+    tags = searchtag.get_global_searchtag_restrictions(request.userid)
+    return Response(d.webpage(request.userid, "directorcontrol/globalsearchtagrestrictions.html", (
         tags,
     )))

@@ -1,8 +1,8 @@
 """
-Tests the searchtag.edit_user_searchtag_blacklist() function's codepaths.
+Tests the searchtag.edit_user_searchtag_restrictions() function's codepaths.
 
 Abbreviations used in this file:
-    stbl = searchtag blacklist
+    stbl = searchtag restriction list
 """
 from __future__ import absolute_import, unicode_literals
 
@@ -23,12 +23,12 @@ def test_edit_user_stbl_with_no_prior_entries():
     Verify that SQL code to add tags to the STBL works as expected. Additionally tests as a consequence of the test tag set:
 
     - That invalid tags are not added to the ``searchtag`` table.
-    - The ``if added:``, non-global codepath adding the map into ``searchmapuserblacklist``
+    - The ``if added:``, non-global codepath adding the map into ``searchmapuserrestrictedtags``
     """
     user_id = db_utils.create_user()
-    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
-    searchtag.edit_user_searchtag_blacklist(user_id, tags)
-    resultant_tags = searchtag.get_user_searchtag_blacklist(user_id)
+    tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
+    searchtag.edit_user_searchtag_restrictions(user_id, tags)
+    resultant_tags = searchtag.get_user_searchtag_restrictions(user_id)
     assert resultant_tags == valid_tags
 
 
@@ -36,22 +36,22 @@ def test_edit_user_stbl_with_no_prior_entries():
 def test_edit_user_stbl_with_prior_entries_test_removal_of_stbl_entry():
     # Setup
     user_id = db_utils.create_user()
-    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
-    searchtag.edit_user_searchtag_blacklist(user_id, tags)
+    tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
+    searchtag.edit_user_searchtag_restrictions(user_id, tags)
     tags_to_keep = ['test', 'te*st', 'test_too']
 
     # Set the new tags; AKA, remove the two defined tags
-    tags = searchtag.parse_blacklist_tags(", ".join(tags_to_keep))
-    searchtag.edit_user_searchtag_blacklist(user_id, tags)
-    resultant_tags = searchtag.get_user_searchtag_blacklist(user_id)
+    tags = searchtag.parse_restricted_tags(", ".join(tags_to_keep))
+    searchtag.edit_user_searchtag_restrictions(user_id, tags)
+    resultant_tags = searchtag.get_user_searchtag_restrictions(user_id)
     assert resultant_tags == tags_to_keep
 
 
 @pytest.mark.usefixtures('db')
 def test_edit_user_stbl_fully_clear_entries_after_adding_items():
     user_id = db_utils.create_user()
-    tags = searchtag.parse_blacklist_tags(", ".join(combined_tags))
-    searchtag.edit_user_searchtag_blacklist(user_id, tags)
+    tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
+    searchtag.edit_user_searchtag_restrictions(user_id, tags)
     tags = set()
-    searchtag.edit_user_searchtag_blacklist(user_id, tags)
-    assert searchtag.get_user_searchtag_blacklist(user_id) == []
+    searchtag.edit_user_searchtag_restrictions(user_id, tags)
+    assert searchtag.get_user_searchtag_restrictions(user_id) == []

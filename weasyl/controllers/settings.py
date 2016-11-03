@@ -140,8 +140,8 @@ def control_createcommishprice_(request):
     price = orm.CommishPrice()
     price.title = form.title.strip()
     price.classid = define.get_int(form.classid)
-    price.amount_min = commishinfo.convert_currency(form.min_amount)
-    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    price.amount_min = commishinfo.parse_currency(form.min_amount)
+    price.amount_max = commishinfo.parse_currency(form.max_amount)
     commishinfo.create_price(request.userid, price, currency=form.currency,
                              settings=form.settings)
     raise HTTPSeeOther(location="/control/editcommissionprices")
@@ -155,8 +155,8 @@ def control_editcommishprice_(request):
     price = orm.CommishPrice()
     price.title = form.title.strip()
     price.priceid = define.get_int(form.priceid)
-    price.amount_min = commishinfo.convert_currency(form.min_amount)
-    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    price.amount_min = commishinfo.parse_currency(form.min_amount)
+    price.amount_max = commishinfo.parse_currency(form.max_amount)
     edit_prices = bool(price.amount_min or price.amount_max)
     commishinfo.edit_price(request.userid, price, currency=form.currency,
                            settings=form.settings, edit_prices=edit_prices, edit_settings=form.edit_settings)

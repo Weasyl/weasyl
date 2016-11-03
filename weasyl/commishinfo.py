@@ -239,7 +239,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
                 GROUP BY userid
             ) AS s ON s.userid = p.userid
 
-            JOIN commishdesc d ON d.userid = p.userid
+            LEFT JOIN commishdesc d ON d.userid = p.userid
 
             LEFT JOIN (
                 SELECT map.targetid, COUNT(tag.tagid) AS tagcount

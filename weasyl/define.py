@@ -216,6 +216,7 @@ def compile(template_name):
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
                 "TIME": convert_time,
+                "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
@@ -641,6 +642,11 @@ def text_fix_url(target):
 
 def text_bool(target, default=False):
     return target.lower().strip() == "true" or default and target == ""
+
+
+def local_arrow(dt):
+    tz = get_current_request().weasyl_session.timezone
+    return arrow.Arrow.fromdatetime(tz.localtime(dt))
 
 
 def convert_to_localtime(target):

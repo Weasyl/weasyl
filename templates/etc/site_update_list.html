@@ -3,7 +3,16 @@ $:{TITLE("Site Updates")}
 
 <div class="content">
     <div class="constrained text-post-list">
+        $ last_date = None
         $for update in updates:
+            $ created = LOCAL_ARROW(update.unixtime)
+            $ date = created.date()
+            $if date != last_date:
+                $ last_date = date
+                <div class="text-post-group-header">
+                    <time datetime="${date.isoformat()}" title="${created.format()}">${created.format(u"MMMM Do, YYYY")}</time>
+                </div>
+
             <article class="text-post-item">
                 <img class="text-post-image text-post-image-small" src="${update.owner.avatar['display_url']}" title="${update.owner.profile.username}" alt="${update.owner.profile.username}’s avatar" />
 

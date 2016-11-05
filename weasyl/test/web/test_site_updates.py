@@ -85,6 +85,7 @@ def test_list(monkeypatch, site_updates):
     resp = app.get('/site-updates/')
     assert len(resp.html.findAll(None, 'text-post-item')) == 3
     assert resp.html.find(None, 'text-post-actions') is None
+    assert len(resp.html.findAll(None, 'text-post-group-header')) == 1
 
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)

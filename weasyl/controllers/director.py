@@ -35,13 +35,12 @@ def directorcontrol_emailblacklist_post_(request):
         d.engine.execute("DELETE FROM emailblacklist WHERE id = ANY (%(selected_ids)s)",
                          selected_ids=map(int, form.remove_selection))
 
-    # Add entry to blacklist
+    # Add entry to blacklist, if there is an entry in form.domain_name
     elif form.action == "add" and form.domain_name:
-        if len(form.domain_name) <= 252:
-            d.engine.execute("""
-                INSERT INTO emailblacklist (domain_name, reason, added_by)
-                    VALUES (%(domain_name)s, %(reason)s, %(added_by)s)
-                    ON CONFLICT (domain_name) DO NOTHING
-            """, domain_name=form.domain_name.lower(), reason=form.reason, added_by=request.userid)
+        d.engine.execute("""
+            INSERT INTO emailblacklist (domain_name, reason, added_by)
+                VALUES (%(domain_name)s, %(reason)s, %(added_by)s)
+                ON CONFLICT (domain_name) DO NOTHING
+        """, domain_name=form.domain_name.lower(), reason=form.reason, added_by=request.userid)
 
     raise HTTPSeeOther(location="/directorcontrol/emailblacklist")

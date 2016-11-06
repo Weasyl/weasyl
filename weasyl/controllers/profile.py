@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import time
-
 from pyramid import httpexceptions
 from pyramid.response import Response
 
@@ -15,8 +13,6 @@ from weasyl.error import WeasylError
 
 # Profile browsing functions
 def profile_(request):
-    now = time.time()
-
     form = request.web_input(userid="", name="")
 
     form.name = request.matchdict.get('name', form.name)
@@ -104,7 +100,7 @@ def profile_(request):
         followuser.select_followed(request.userid, otherid, choose=5),
     ]))
 
-    return Response(define.common_page_end(request.userid, page, now=now))
+    return Response(define.common_page_end(request.userid, page))
 
 
 def profile_media_(request):
@@ -282,8 +278,6 @@ def characters_(request):
 
 
 def shouts_(request):
-    now = time.time()
-
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
@@ -315,7 +309,7 @@ def shouts_(request):
         "shouts",
     ]))
 
-    return Response(define.common_page_end(request.userid, page, now=now))
+    return Response(define.common_page_end(request.userid, page))
 
 
 @moderator_only
@@ -350,7 +344,7 @@ def staffnotes_(request):
         "staffnotes",
     ]))
 
-    return Response(define.common_page_end(request.userid, page, now=time.time()))
+    return Response(define.common_page_end(request.userid, page))
 
 
 def favorites_(request):

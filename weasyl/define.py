@@ -216,6 +216,7 @@ def compile(template_name):
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
                 "TIME": convert_time,
+                "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
@@ -223,6 +224,7 @@ def compile(template_name):
                 "COMPILE": compile,
                 "CAPTCHA": captcha_public,
                 "MARKDOWN": text.markdown,
+                "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
                 "CONFIG": config_read_setting,
                 "SHA": CURRENT_SHA,
@@ -642,6 +644,11 @@ def text_bool(target, default=False):
     return target.lower().strip() == "true" or default and target == ""
 
 
+def local_arrow(dt):
+    tz = get_current_request().weasyl_session.timezone
+    return arrow.Arrow.fromdatetime(tz.localtime(dt))
+
+
 def convert_to_localtime(target):
     tz = get_current_request().weasyl_session.timezone
     if isinstance(target, arrow.Arrow):
@@ -847,10 +854,9 @@ def active_users():
         for span, users in active_users)
 
 
-def common_page_end(userid, page, rating=None, config=None,
-                    now=None, options=None):
+def common_page_end(userid, page, options=None):
     active_users_string = active_users()
-    data = render("common/page_end.html", [options, active_users_string])
+    data = render("common/page_end.html", (options, active_users_string))
     page.append(data)
     return "".join(page)
 

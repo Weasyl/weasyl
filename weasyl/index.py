@@ -110,7 +110,7 @@ def template_fields(userid):
 
     return ret + [
         # Recent site news update
-        siteupdate.select(),
+        siteupdate.select_last(),
         # Recent critique submissions
         submission.select_list(userid, rating, 4, options=["critique"], config=config),
         # Currently streaming users

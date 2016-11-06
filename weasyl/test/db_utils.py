@@ -4,8 +4,10 @@ import itertools
 
 import arrow
 
+from libweasyl import legacy
+from libweasyl import ratings
+from libweasyl import security
 from libweasyl.models import content, users
-from libweasyl import legacy, ratings
 import weasyl.define as d
 from weasyl import login
 from weasyl import orm
@@ -48,6 +50,21 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
         d.engine.execute("UPDATE login SET userid = %(newid)s WHERE userid = %(oldid)s", newid=user_id, oldid=user.userid)
         return user_id
     return user.userid
+
+
+def create_session(user):
+    """
+    Creates a session for a user and returns the corresponding WZL cookie.
+    """
+    session = orm.Session()
+    session.sessionid = security.generate_key(64)
+    session.userid = user
+
+    db = d.connect()
+    db.add(session)
+    db.flush()
+
+    return 'WZL=' + session.sessionid.encode('utf-8')
 
 
 def create_folder(userid, title="Folder", parentid=0, settings=None):

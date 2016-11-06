@@ -271,7 +271,12 @@ routes = (
         'POST': director.directorcontrol_globalsearchtagrestrictions_post,
     }),
 
-    Route("/site-updates/{update_id:[0-9]+}", "site_update", general.site_update_),
+    Route("/site-updates/", "site_update_list", general.site_update_list_),
+    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
+        'GET': general.site_update_,
+        'POST': admin.site_update_put_,
+    }),
+    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
 
     Route("/policy/tos", "policy_tos", info.policy_tos_),
     Route("/policy/privacy", "policy_privacy", info.policy_privacy_),

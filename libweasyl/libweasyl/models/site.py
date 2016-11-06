@@ -10,6 +10,14 @@ class SiteUpdate(Base):
 
     owner = relationship(Login, backref='siteupdate')
 
+    def canonical_path(self, request, operation='view'):
+        parts = ['site-updates', str(self.updateid)]
+
+        if operation in ('delete', 'edit'):
+            parts.append(operation)
+
+        return request.resource_path(None, *parts)
+
 
 class SavedNotification(Base):
     __table__ = tables.welcome

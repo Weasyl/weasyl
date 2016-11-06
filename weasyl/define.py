@@ -149,23 +149,23 @@ def execute(statement, argv=None, options=None):
         query.close()
 
 
-def quote_string(s):
-    """
-    SQL-escapes `target`; pg_escape_string is used if `target` is a string or
-    unicode object, else the integer equivalent is returned.
-    """
+def _quote_string(s):
     quoted = QuotedString(s).getquoted()
     assert quoted[0] == quoted[-1] == "'"
     return quoted[1:-1].replace('%', '%%')
 
 
 def sql_escape(target):
+    """
+    SQL-escapes `target`; pg_escape_string is used if `target` is a string or
+    unicode object, else the integer equivalent is returned.
+    """
     if isinstance(target, str):
         # Escape ASCII string
-        return quote_string(target)
+        return _quote_string(target)
     elif isinstance(target, unicode):
         # Escape Unicode string
-        return quote_string(target.encode("utf-8"))
+        return _quote_string(target.encode("utf-8"))
     else:
         # Escape integer
         try:

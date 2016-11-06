@@ -23,7 +23,7 @@ def test_edit_user_stbl_with_no_prior_entries():
     Verify that SQL code to add tags to the STBL works as expected. Additionally tests as a consequence of the test tag set:
 
     - That invalid tags are not added to the ``searchtag`` table.
-    - The ``if added:``, non-global codepath adding the map into ``searchmapuserrestrictedtags``
+    - The ``if added:``, non-global codepath adding the map into ``user_restricted_tags``
     """
     user_id = db_utils.create_user()
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))

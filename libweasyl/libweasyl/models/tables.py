@@ -664,28 +664,28 @@ Index('ind_searchmapsubmit_tagid', searchmapsubmit.c.tagid)
 Index('ind_searchmapsubmit_targetid', searchmapsubmit.c.targetid)
 
 
-searchmapglobalrestrictedtags = Table(
-    'searchmapglobalrestrictedtags', metadata,
+globally_restricted_tags = Table(
+    'globally_restricted_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='searchmapglobalrestrictedtags_userid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapglobalrestrictedtags_tagid_fkey'),
+    default_fkey(['userid'], ['login.userid'], name='globally_restricted_tags_userid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='globally_restricted_tags_tagid_fkey'),
 )
 
-Index('ind_searchmapglobalrestrictedtags_tagid', searchmapglobalrestrictedtags.c.tagid)
-Index('ind_searchmapglobalrestrictedtags_userid', searchmapglobalrestrictedtags.c.userid)
+Index('ind_globally_restricted_tags_tagid', globally_restricted_tags.c.tagid)
+Index('ind_globally_restricted_tags_userid', globally_restricted_tags.c.userid)
 
 
-searchmapuserrestrictedtags = Table(
-    'searchmapuserrestrictedtags', metadata,
+user_restricted_tags = Table(
+    'user_restricted_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='searchmapuserrestrictedtags_userid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapuserrestrictedtags_tagid_fkey'),
+    default_fkey(['userid'], ['login.userid'], name='user_restricted_tags_userid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='user_restricted_tags_tagid_fkey'),
 )
 
-Index('ind_searchmapuserrestrictedtags_tagid', searchmapuserrestrictedtags.c.tagid)
-Index('ind_searchmapuserrestrictedtags_userid', searchmapuserrestrictedtags.c.userid)
+Index('ind_user_restricted_tags_tagid', user_restricted_tags.c.tagid)
+Index('ind_user_restricted_tags_userid', user_restricted_tags.c.userid)
 
 
 searchtag = Table(

@@ -300,9 +300,9 @@ def edit_user_searchtag_restrictions(userid, tags):
     Returns:
         Nothing.
     """
-    # First, drop all rows from the searchmapuserrestrictedtags table for userid
+    # First, drop all rows from the user_restricted_tags table for userid
     d.engine.execute("""
-        DELETE FROM searchmapuserrestrictedtags
+        DELETE FROM user_restricted_tags
         WHERE userid = %(uid)s
     """, uid=userid)
 
@@ -312,7 +312,7 @@ def edit_user_searchtag_restrictions(userid, tags):
     # Insert the new STBL user entries into the table (if we have any tags to add)
     if query:
         d.engine.execute("""
-            INSERT INTO searchmapuserrestrictedtags (tagid, userid)
+            INSERT INTO user_restricted_tags (tagid, userid)
                 SELECT tag, %(uid)s
                 FROM UNNEST (%(added)s) AS tag
         """, uid=userid, added=[tag.tagid for tag in query])
@@ -339,7 +339,7 @@ def edit_global_searchtag_restrictions(userid, tags):
         raise WeasylError("InsufficientPermissions")
 
     existing = d.engine.execute("""
-        SELECT tagid FROM searchmapglobalrestrictedtags
+        SELECT tagid FROM globally_restricted_tags
     """).fetchall()
 
     # Retrieve tag titles and tagid pairs, for new and existing tags
@@ -354,14 +354,14 @@ def edit_global_searchtag_restrictions(userid, tags):
 
     if added:
         d.engine.execute("""
-            INSERT INTO searchmapglobalrestrictedtags (tagid, userid)
+            INSERT INTO globally_restricted_tags (tagid, userid)
                 SELECT tag, %(uid)s
                 FROM UNNEST (%(added)s) AS tag
         """, uid=userid, added=list(added))
 
     if removed:
         d.engine.execute("""
-            DELETE FROM searchmapglobalrestrictedtags
+            DELETE FROM globally_restricted_tags
             WHERE tagid = ANY (%(removed)s)
         """, removed=list(removed))
 
@@ -382,7 +382,7 @@ def get_user_searchtag_restrictions(userid):
     """
     query = d.engine.execute("""
         SELECT st.title
-        FROM searchmapuserrestrictedtags
+        FROM user_restricted_tags
         INNER JOIN searchtag AS st USING (tagid)
         WHERE userid = %(userid)s
         ORDER BY st.title
@@ -407,7 +407,7 @@ def get_global_searchtag_restrictions(userid):
 
     return d.engine.execute("""
         SELECT st.title, lo.login_name
-        FROM searchmapglobalrestrictedtags
+        FROM globally_restricted_tags
         INNER JOIN searchtag AS st USING (tagid)
         INNER JOIN login AS lo USING (userid)
         ORDER BY st.title
@@ -427,7 +427,7 @@ def query_user_restricted_tags(ownerid):
     """
     query = d.engine.execute("""
         SELECT title
-        FROM searchmapuserrestrictedtags
+        FROM user_restricted_tags
         INNER JOIN searchtag USING (tagid)
         WHERE userid = %(ownerid)s
     """, ownerid=ownerid).fetchall()
@@ -447,7 +447,7 @@ def query_global_restricted_tags():
     """
     query = d.engine.execute("""
         SELECT title
-        FROM searchmapglobalrestrictedtags
+        FROM globally_restricted_tags
         INNER JOIN searchtag USING (tagid)
     """).fetchall()
     return [tag.title for tag in query]

@@ -1201,8 +1201,3 @@ def thumb_for_sub(submission):
         thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
 
     return submission['sub_media'][thumb_key][0]
-
-
-# Temporary workaround. Delete me. Use weasyl.controllers.decoraters version as views are ported.
-def token_checked(x):
-    return x

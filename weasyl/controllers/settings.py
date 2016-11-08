@@ -412,9 +412,9 @@ def control_apikeys_post_(request):
 
 @login_required
 def control_tagrestrictions_get_(request):
-    # Get the user's blacklist tag settings and render to the template
+    # Get the user's restricted tag settings and render to the template
     return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.get_user_searchtag_restrictions(request.userid),
+        searchtag.get_user_tag_restrictions(request.userid),
     )))
 
 
@@ -422,9 +422,9 @@ def control_tagrestrictions_get_(request):
 @token_checked
 def control_tagrestrictions_post_(request):
     tags = searchtag.parse_restricted_tags(request.params["tags"])
-    searchtag.edit_user_searchtag_restrictions(request.userid, tags)
+    searchtag.edit_user_tag_restrictions(request.userid, tags)
     return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.get_user_searchtag_restrictions(request.userid),
+        searchtag.get_user_tag_restrictions(request.userid),
     )))
 
 

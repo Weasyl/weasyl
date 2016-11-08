@@ -120,8 +120,8 @@ def parse_tags(text):
 
 def parse_restricted_tags(text):
     """
-    A custom implementation of ``parse_tags()`` for the searchtag restriction list.
-    Enforces the desired characteristics of STBL tags, and allows an asterisk
+    A custom implementation of ``parse_tags()`` for the restricted tag list.
+    Enforces the desired characteristics of restricted tags, and allows an asterisk
     character, whereas ``parse_tags()`` would strip asterisks.
 
     Parameters:
@@ -138,18 +138,18 @@ def parse_restricted_tags(text):
         target = target.strip("_")
         target = "_".join(i for i in target.split("_") if i)
 
-        if is_searchtag_restriction_pattern_valid(target):
+        if is_tag_restriction_pattern_valid(target):
             tags.add(target.lower())
 
     return tags
 
 
-def is_searchtag_restriction_pattern_valid(text):
+def is_tag_restriction_pattern_valid(text):
     """
-    Determines if a given piece of text is considered a valid searchtag restriction pattern.
+    Determines if a given piece of text is considered a valid restricted tag pattern.
 
     Parameters:
-        text: A candidate searchtag restriction entry
+        text: A single candidate restricted tag entry.
 
     Returns:
         Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
@@ -200,8 +200,8 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
 
     # If the modifying user is not the owner of the object, and is not staff, check user/global restriction lists
     if userid != ownerid and userid not in staff.MODS:
-        stbl_tags = query_user_restricted_tags(ownerid) + query_global_restricted_tags()
-        added -= remove_restricted_tags(stbl_tags, query)
+        restricted_tags = query_user_restricted_tags(ownerid) + query_global_restricted_tags()
+        added -= remove_restricted_tags(restricted_tags, query)
 
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
@@ -258,7 +258,7 @@ def tag_history(submitid):
 
 def add_and_get_searchtags(tags):
     """
-    Handles addition of, and getting existing, searchtags, abstracting the logic
+    Handles addition of--and getting existing--searchtags, abstracting the logic
     for addition of such from editing functions. Serves to consolidate otherwise
     duplicated code.
 
@@ -286,9 +286,9 @@ def add_and_get_searchtags(tags):
     return query
 
 
-def edit_user_searchtag_restrictions(userid, tags):
+def edit_user_tag_restrictions(userid, tags):
     """
-    Edits the user searchtag restriction list, by dropping all rows for ``userid`` and reinserting
+    Edits the user's restricted tag list, by dropping all rows for ``userid`` and reinserting
     any ``tags`` passed in to the function.
 
     Parameters:
@@ -309,7 +309,7 @@ def edit_user_searchtag_restrictions(userid, tags):
     # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
     query = add_and_get_searchtags(tags)
 
-    # Insert the new STBL user entries into the table (if we have any tags to add)
+    # Insert the new restricted tag for ``userid`` entries into the table (if we have any tags to add)
     if query:
         d.engine.execute("""
             INSERT INTO user_restricted_tags (tagid, userid)
@@ -317,13 +317,13 @@ def edit_user_searchtag_restrictions(userid, tags):
                 FROM UNNEST (%(added)s) AS tag
         """, uid=userid, added=[tag.tagid for tag in query])
 
-    # Clear the user STBL cache, since we made changes
+    # Clear the cache for ``userid``'s restricted tags, since we made changes
     query_user_restricted_tags.invalidate(userid)
 
 
-def edit_global_searchtag_restrictions(userid, tags):
+def edit_global_tag_restrictions(userid, tags):
     """
-    Edits the global searchtag restriction list, adding or removing tags as appropriate.
+    Edits the globally restricted tag list, adding or removing tags as appropriate.
 
     Parameters:
         userid: The userid of the director submitting the request.
@@ -365,20 +365,20 @@ def edit_global_searchtag_restrictions(userid, tags):
             WHERE tagid = ANY (%(removed)s)
         """, removed=list(removed))
 
-    # Clear the global STBL cache if any changes were made
+    # Clear the globally restricted tags cache if any changes were made
     if added or removed:
         query_global_restricted_tags.invalidate()
 
 
-def get_user_searchtag_restrictions(userid):
+def get_user_tag_restrictions(userid):
     """
-    Retrieves a list of tags on the user searchtag restriction list for friendly display to the user.
+    Retrieves a list of tags on the user's restricted tags list for friendly display to the user.
 
     Parameters:
-        userid: The userid of the user requesting the list of tags.
+        userid: The userid of the user requesting the list of restricted tags.
 
     Returns:
-        A list of restricted searchtag titles which were set by ``userid``.
+        A list of restricted tag titles which were set by ``userid``.
     """
     query = d.engine.execute("""
         SELECT st.title
@@ -391,17 +391,17 @@ def get_user_searchtag_restrictions(userid):
     return tags
 
 
-def get_global_searchtag_restrictions(userid):
+def get_global_tag_restrictions(userid):
     """
-    Retrieves a list of tags on the global searchtag restriction list for friendly display to the director.
+    Retrieves a list of tags on the globally restricted tag list for friendly display to the director.
 
     Parameters:
         userid: The userid of the director requesting the list of tags.
 
     Returns:
-        A list of globally restricted searchtag titles and the name of the director which added it.
+        A list of globally restricted tag titles and the name of the director which added it.
     """
-    # Only directors can view the global searchtag restriction list; sanity check against the @director_only decorator
+    # Only directors can view the globally restricted tag list; sanity check against the @director_only decorator
     if userid not in staff.DIRECTORS:
         raise WeasylError("InsufficientPermissions")
 
@@ -417,13 +417,13 @@ def get_global_searchtag_restrictions(userid):
 @region.cache_on_arguments()
 def query_user_restricted_tags(ownerid):
     """
-    Gets and returns restricted searchtag tags for users.
+    Gets and returns restricted tags for users.
 
     Parameters:
         ownerid: The userid of the user who owns the content tags are being added to.
 
     Returns:
-        A list of user STBL tag titles.
+        A list of user restricted tag titles.
     """
     query = d.engine.execute("""
         SELECT title
@@ -437,13 +437,13 @@ def query_user_restricted_tags(ownerid):
 @region.cache_on_arguments()
 def query_global_restricted_tags():
     """
-    Gets and returns globally restricted searchtag tags.
+    Gets and returns globally restricted tags.
 
     Parameters:
-        None. Retrieves all global searchtag restriction entries.
+        None. Retrieves all global tag restriction entries.
 
     Returns:
-        A list of global STBL tag titles
+        A list of global restricted tag titles
     """
     query = d.engine.execute("""
         SELECT title
@@ -455,8 +455,8 @@ def query_global_restricted_tags():
 
 def remove_restricted_tags(patterns, tags):
     """
-    Determines what, if any, new search tags match tags that are on the user/global
-      searchtag blocklist.
+    Determines what, if any, new search tags match tags that are on the user or global
+      restricted tag list.
 
     Parameters:
         patterns: The result of ``query_user_restricted_tags(ownerid) +

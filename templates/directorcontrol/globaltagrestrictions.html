@@ -2,23 +2,27 @@ $def with (tags)
 $:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restrictions", "Director Control Panel"])}
 
 <div class="content form clear">
-  <form method="POST" class="form skinny clear" action="/directorcontrol/globalsearchtagrestrictions">
-    <h3>Current Global Community Tagging Restrictions</h3>
-    <table>
-      <thead>
-        <tr>
-          <th width="50%">Added By</th>
-          <th width="50%">Tag</th>
-        </tr>
-      </thead>
-      <tbody>
-        $for entry in tags:
+  <form method="POST" class="form skinny clear" action="/directorcontrol/globaltagrestrictions">
+    $if tags:
+      <h3>Current Global Community Tagging Restrictions</h3>
+      <table>
+        <thead>
           <tr>
-            <td style="text-align:center">$entry.login_name</td>
-            <td style="text-align:center">$entry.title</td>
+            <th width="50%">Added By</th>
+            <th width="50%">Tag</th>
           </tr>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          $for entry in tags:
+            <tr>
+              <td style="text-align:center">$entry.login_name</td>
+              <td style="text-align:center">$entry.title</td>
+            </tr>
+        </tbody>
+      </table>
+    $else:
+      <p style="text-align: center; font-weight: bold;">No community tags are currently restricted.</p>
+
     $:{CSRF()}
     <h3>Global Community Tagging Restrictions Information</h3>
     <p>

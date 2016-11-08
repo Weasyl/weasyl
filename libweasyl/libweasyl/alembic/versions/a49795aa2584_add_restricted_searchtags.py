@@ -1,6 +1,5 @@
 """
-Add tables to support user and globally restricted searchtags, which prevent tags from
-being added to content items.
+Add tables to support user and globally restricted searchtags.
 
 Revision ID: a49795aa2584
 Revises: 882fe6ace5c7
@@ -17,7 +16,7 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    # Create the table/index for user blacklist of searchtags
+    # Create the table/index for user restricted tags
     op.create_table('user_restricted_tags',
         sa.Column('tagid', sa.Integer(), nullable=False),
         sa.Column('userid', sa.Integer(), nullable=False),
@@ -28,7 +27,7 @@ def upgrade():
     op.create_index('ind_user_restricted_tags_tagid', 'user_restricted_tags', ['tagid'], unique=False)
     op.create_index('ind_user_restricted_tags_userid', 'user_restricted_tags', ['userid'], unique=False)
 
-    # Create the table/index for global blacklist of searchtags
+    # Create the table/index for globally restricted tags
     op.create_table('globally_restricted_tags',
         sa.Column('tagid', sa.Integer(), nullable=False),
         sa.Column('userid', sa.Integer(), nullable=False),
@@ -41,12 +40,12 @@ def upgrade():
 
 
 def downgrade():
-    # Drop the table/index for user blacklist of searchtags
+    # Drop the table/index for user restricted tags
     op.drop_index('ind_user_restricted_tags_tagid', table_name='user_restricted_tags')
     op.drop_index('ind_user_restricted_tags_userid', table_name='user_restricted_tags')
     op.drop_table('user_restricted_tags')
 
-    # Drop the table/index for global blacklist of searchtags
+    # Drop the table/index for globally restricted tags
     op.drop_index('ind_globally_restricted_tags_tagid', table_name='globally_restricted_tags')
     op.drop_index('ind_globally_restricted_tags_userid', table_name='globally_restricted_tags')
     op.drop_table('globally_restricted_tags')

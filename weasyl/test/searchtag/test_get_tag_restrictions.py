@@ -15,11 +15,11 @@ combined_tags = valid_tags + invalid_tags
 
 
 @pytest.mark.usefixtures('db')
-def test_get_user_searchtag_restrictions():
+def test_get_user_tag_restrictions():
     user_id = db_utils.create_user()
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
-    searchtag.edit_user_searchtag_restrictions(user_id, tags)
-    resultant_tags = searchtag.get_user_searchtag_restrictions(user_id)
+    searchtag.edit_user_tag_restrictions(user_id, tags)
+    resultant_tags = searchtag.get_user_tag_restrictions(user_id)
     assert resultant_tags == valid_tags
 
 
@@ -28,8 +28,8 @@ def test_get_global_searchtag_restrictions(monkeypatch):
     director_user_id = db_utils.create_user(username="testdirector")
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
-    searchtag.edit_global_searchtag_restrictions(director_user_id, tags)
-    resultant_tags = searchtag.get_global_searchtag_restrictions(director_user_id)
+    searchtag.edit_global_tag_restrictions(director_user_id, tags)
+    resultant_tags = searchtag.get_global_tag_restrictions(director_user_id)
     resultant_tags_titles = [x.title for x in resultant_tags]
     assert resultant_tags_titles == valid_tags
     for user in resultant_tags:
@@ -38,11 +38,11 @@ def test_get_global_searchtag_restrictions(monkeypatch):
 
 @pytest.mark.usefixtures('db')
 def test_get_global_searchtag_restrictions_fails_for_non_directors(monkeypatch):
-    # Setup the Global STBL
+    # Setup the globally restricted tags list
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
-    searchtag.edit_global_searchtag_restrictions(director_user_id, tags)
+    searchtag.edit_global_tag_restrictions(director_user_id, tags)
 
     normal_user_id = db_utils.create_user()
     developer_user_id = db_utils.create_user()
@@ -57,21 +57,21 @@ def test_get_global_searchtag_restrictions_fails_for_non_directors(monkeypatch):
     monkeypatch.setattr(staff, 'TECHNICAL', frozenset([technical_user_id]))
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_global_searchtag_restrictions(normal_user_id)
+        searchtag.get_global_tag_restrictions(normal_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_global_searchtag_restrictions(developer_user_id)
+        searchtag.get_global_tag_restrictions(developer_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_global_searchtag_restrictions(mod_user_id)
+        searchtag.get_global_tag_restrictions(mod_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_global_searchtag_restrictions(admin_user_id)
+        searchtag.get_global_tag_restrictions(admin_user_id)
     assert err.value.value == 'InsufficientPermissions'
 
     with pytest.raises(WeasylError) as err:
-        searchtag.get_global_searchtag_restrictions(technical_user_id)
+        searchtag.get_global_tag_restrictions(technical_user_id)
     assert err.value.value == 'InsufficientPermissions'

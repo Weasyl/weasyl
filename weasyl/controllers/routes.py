@@ -266,9 +266,9 @@ routes = (
         'GET': director.directorcontrol_emailblacklist_get_,
         'POST': director.directorcontrol_emailblacklist_post_,
     }),
-    Route("/directorcontrol/globalsearchtagrestrictions", "directorcontrol_globalsearchtagrestrictions", {
-        'GET': director.directorcontrol_globalsearchtagrestrictions_get_,
-        'POST': director.directorcontrol_globalsearchtagrestrictions_post,
+    Route("/directorcontrol/globaltagrestrictions", "directorcontrol_globaltagrestrictions", {
+        'GET': director.directorcontrol_globaltagrestrictions_get_,
+        'POST': director.directorcontrol_globaltagrestrictions_post,
     }),
 
     Route("/site-updates/", "site_update_list", general.site_update_list_),

@@ -116,8 +116,7 @@ def test_commish_search_invalid():
                                                 min_price=None,
                                                 max_price=None,
                                                 currency='')
-    rids = [r['username'] for r in results]
-    assert len(rids) == 0
+    assert not results
 
 
 def create_commish_searchable_user(username, commish_status='o', commishclass='badge',

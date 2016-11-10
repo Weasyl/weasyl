@@ -26,6 +26,7 @@ CURRENCY_CHARMAP = {
     "n": {"code": "CNY", "name": "Chinese Yuan", "symbol": "C&#165;"},
     "f": {"code": "CHF", "name": "Swiss Franc", "symbol": "Fr"},
 }
+ALL_CURRENCIES = "".join([key for key, value in CURRENCY_CHARMAP.items()])
 
 # These are to be used as a general guide for both artists and commissioners
 # to standardize some commission types until a more robust system
@@ -333,7 +334,7 @@ def create_price(userid, price, currency="", settings=""):
 
     # Settings are at most one currency class, and optionally an 'a' to indicate an add-on price.
     # TODO: replace these character codes with an enum.
-    settings = "%s%s" % ("".join(i for i in currency if i in "epycmufzn")[:1],
+    settings = "%s%s" % ("".join(i for i in currency if i in ALL_CURRENCIES)[:1],
                          "a" if "a" in settings else "")
 
     # TODO: should have an auto-increment ID
@@ -360,7 +361,7 @@ def edit_class(userid, commishclass):
 
 
 def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_settings=False):
-    currency = "".join(i for i in currency if i in "epycmufzn")
+    currency = "".join(i for i in currency if i in ALL_CURRENCIES)
     settings = "".join(i for i in settings if i in "a")
 
     query = d.execute("SELECT amount_min, amount_max, settings, classid FROM commishprice"

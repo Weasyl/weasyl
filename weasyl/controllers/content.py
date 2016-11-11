@@ -297,7 +297,7 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
-    form = request.web_input(submitid="", charid="", journalid="", userid="", nodrawid="", tags="")
+    form = request.web_input(submitid="", charid="", journalid="", userid="", optoutid="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -305,9 +305,9 @@ def submit_tags_(request):
     charid = define.get_int(form.charid)
     journalid = define.get_int(form.journalid)
     artistid = define.get_int(form.userid)
-    nodraw = define.get_int(form.nodrawid)
+    optoutid = define.get_int(form.optoutid)
 
-    searchtag.associate(request.userid, tags, submitid, charid, journalid, artistid, nodraw)
+    searchtag.associate(request.userid, tags, submitid, charid, journalid, artistid, optoutid)
     if submitid:
         raise HTTPSeeOther(location="/submission/%i" % (submitid,))
     elif charid:

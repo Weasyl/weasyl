@@ -118,7 +118,7 @@ def parse_tags(text):
     return tags
 
 
-def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid=None, nodrawid=None):
+def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid=None, optoutid=None):
     targetid = d.get_targetid(submitid, charid, journalid)
 
     # Assign table, feature, ownerid
@@ -131,8 +131,11 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
     elif journalid:
         table, feature = "searchmapjournal", "journal"
         ownerid = d.get_ownerid(journalid=targetid)
-    elif artistid or nodrawid:
-        table, feature = "searchmapartist", "user"
+    elif artistid:
+        table, feature = "artist_preferred_tags", "user"
+        targetid = ownerid = userid
+    elif optoutid:
+        table, feature = "artist_optout_tags", "user"
         targetid = ownerid = userid
     else:
         raise WeasylError("Unexpected")
@@ -170,15 +173,10 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
     # Assign added and removed
     added = entered_tagids - existing_tagids
     removed = existing_tagids - entered_tagids
-    modified = []
-    if artistid:
-        existing_opposite = {t.tagid for t in existing if 'n' in t.settings}
-        removed -= existing_opposite
-        modified = existing_opposite & entered_tagids
-    elif nodrawid:
-        existing_opposite = {t.tagid for t in existing if 'n' not in t.settings}
-        removed -= existing_opposite
-        modified = existing_opposite & entered_tagids
+
+    # enforce the limit on artist preference tags
+    if artistid and (len(added) - len(removed) + len(existing)) > 50:
+        raise WeasylError("tooManyPreferenceTags")
 
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
@@ -197,25 +195,11 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
             "INSERT INTO {} SELECT tag, %(target)s FROM UNNEST (%(added)s) AS tag".format(table),
             target=targetid, added=list(added))
 
-        if userid == ownerid:
+        # preference/optout tags can only be set by the artist, so this settings column does not apply
+        if userid == ownerid and not (artistid or optoutid):
             d.execute(
                 "UPDATE %s SET settings = settings || 'a' WHERE targetid = %i AND tagid IN %s",
                 [table, targetid, d.sql_number_list(list(added))])
-
-        if nodrawid:
-            d.execute(
-                "UPDATE %s SET settings = settings || 'n' WHERE targetid = %i AND tagid IN %s",
-                [table, targetid, d.sql_number_list(list(added))])
-
-    if modified:
-        if nodrawid:
-            d.execute(
-                "UPDATE %s SET settings = settings || 'n' WHERE targetid = %i AND tagid IN %s",
-                [table, targetid, d.sql_number_list(list(modified))])
-        elif artistid:
-            d.execute(
-                "UPDATE %s SET settings = replace(settings, 'n', '') WHERE targetid = %i AND tagid IN %s",
-                [table, targetid, d.sql_number_list(list(modified))])
 
     if submitid:
         d.engine.execute(

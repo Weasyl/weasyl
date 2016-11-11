@@ -134,10 +134,12 @@ def select_list(userid):
                              " WHERE userid = %(userid)s ORDER BY classid, title", userid=userid)
     classes = d.engine.execute("SELECT classid, title FROM commishclass WHERE userid = %(id)s ORDER BY title", id=userid)
     content = d.engine.execute("SELECT content FROM commishdesc WHERE userid = %(id)s", id=userid).scalar()
-    tags = d.engine.execute("SELECT DISTINCT tag.title, sma.settings FROM searchtag tag "
-                            "join searchmapartist sma on sma.tagid = tag.tagid "
-                            "join login l on l.userid = sma.targetid "
-                            "where l.userid = %(userid)s", userid=userid).fetchall()
+    preference_tags = d.engine.execute("SELECT DISTINCT tag.title FROM searchtag tag "
+                                       "join artist_preferred_tags pref on pref.tagid = tag.tagid "
+                                       "join login l on l.userid = pref.targetid ", userid=userid).fetchall()
+    optout_tags = d.engine.execute("SELECT DISTINCT tag.title FROM searchtag tag "
+                                   "join artist_optout_tags pref on pref.tagid = tag.tagid "
+                                   "join login l on l.userid = pref.targetid ", userid=userid).fetchall()
     return {
         "userid": userid,
         "class": [{
@@ -160,8 +162,8 @@ def select_list(userid):
             "priceid": i.priceid,
         } for i in query if "a" in i.settings],
         "content": content if content else "",
-        "tags": [i.title for i in tags if 'n' not in i.settings],
-        "no_draw": [i.title for i in tags if 'n' in i.settings]
+        "tags": [tag.title for tag in preference_tags],
+        "opt_out": [tag.title for tag in optout_tags],
     }
 
 
@@ -245,7 +247,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             LEFT JOIN (
                 SELECT map.targetid, COUNT(tag.tagid) AS tagcount
                 FROM searchtag tag
-                JOIN searchmapartist map ON map.tagid = tag.tagid
+                JOIN artist_preferred_tags map ON map.tagid = tag.tagid
                 WHERE tag.title = ANY(%(tags)s)
                 GROUP BY map.targetid
             ) AS tag ON tag.targetid = p.userid
@@ -266,9 +268,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             AND p.userid NOT IN (
                 SELECT map.targetid
                 FROM searchtag tag
-                JOIN searchmapartist map on map.tagid = tag.tagid
+                JOIN artist_optout_tags map on map.tagid = tag.tagid
                 WHERE tag.title = ANY(%(tags)s)
-                AND map.settings ~ 'n'
                 GROUP BY map.targetid
             ) """)
     if min_price:

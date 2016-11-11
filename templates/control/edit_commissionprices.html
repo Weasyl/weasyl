@@ -165,7 +165,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
     <div class="di-tags">
       <h3>Preference Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
       <p>
-        Use these tags to indicate subject matter you prefer to draw, making it easier for
+        Use these tags to indicate subject matter you prefer to create, making it easier for
         commissioners to find you!
       </p>
 
@@ -182,21 +182,21 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 
     </div><!-- /di-tags -->
     <div class="di-tags">
-      <h3>Will-Not-Draw Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
+      <h3>Opt-Out Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
       <p>
         You will not appear in results for commission searches containing these tags.
       </p>
 
       <div class="tags open clear">
-        $if query['no_draw']:
-          $for tag in query['no_draw']:
+        $if query['opt_out']:
+          $for tag in query['opt_out']:
             <a class="artist" href="/marketplace?q=${tag}">${tag}</a>
         $else:
-          <p class="color-lighter">You have not defined any Will-Not-Draw Tags!</p>
+          <p class="color-lighter">You have not defined any Opt-Out Tags!</p>
       </div>
 
       <h3 class="edit">Edit Tags</h3>
-      $:{RENDER("common/detail_tag_form.html", [query['userid'], "nodraw", query['no_draw']])}
+      $:{RENDER("common/detail_tag_form.html", [query['userid'], "optout", query['opt_out']])}
     </div><!-- /di-tags2 -->
   </div><!-- /info -->
 

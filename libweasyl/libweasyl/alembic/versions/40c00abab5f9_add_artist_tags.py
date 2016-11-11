@@ -14,14 +14,14 @@ Create Date: 2016-09-23 01:56:20.093477
 
 # revision identifiers, used by Alembic.
 revision = '40c00abab5f9'
-down_revision = 'c8c088918278'
+down_revision = '882fe6ace5c7'
 
 from alembic import op
 import sqlalchemy as sa
 
 
 def upgrade():
-    op.create_table('searchmapartist',
+    op.create_table('artist_preferred_tags',
                     sa.Column('tagid', sa.Integer(), nullable=False),
                     sa.Column('targetid', sa.Integer(), nullable=False),
                     sa.Column('settings', sa.String(), server_default='', nullable=False),
@@ -29,11 +29,25 @@ def upgrade():
                     sa.ForeignKeyConstraint(['targetid'], ['login.userid'], onupdate='CASCADE', ondelete='CASCADE'),
                     sa.PrimaryKeyConstraint('tagid', 'targetid')
                     )
-    op.create_index('ind_searchmapartist_tagid', 'searchmapartist', ['tagid'])
-    op.create_index('ind_searchmapartist_targetid', 'searchmapartist', ['targetid'])
+    op.create_index('ind_artist_preferred_tags_tagid', 'artist_preferred_tags', ['tagid'])
+    op.create_index('ind_artist_preferred_tags_targetid', 'artist_preferred_tags', ['targetid'])
+
+    op.create_table('artist_optout_tags',
+                    sa.Column('tagid', sa.Integer(), nullable=False),
+                    sa.Column('targetid', sa.Integer(), nullable=False),
+                    sa.Column('settings', sa.String(), server_default='', nullable=False),
+                    sa.ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], onupdate='CASCADE', ondelete='CASCADE'),
+                    sa.ForeignKeyConstraint(['targetid'], ['login.userid'], onupdate='CASCADE', ondelete='CASCADE'),
+                    sa.PrimaryKeyConstraint('tagid', 'targetid')
+                    )
+    op.create_index('ind_artist_optout_tags_tagid', 'artist_optout_tags', ['tagid'])
+    op.create_index('ind_artist_optout_tags_targetid', 'artist_optout_tags', ['targetid'])
 
 
 def downgrade():
-    op.drop_table('searchmapartist')
-    op.drop_index('ind_searchmapartist_tagid', 'searchmapartist')
-    op.drop_index('ind_searchmapartist_targetid', 'searchmapartist')
+    op.drop_index('ind_artist_preferred_tags_tagid', 'artist_preferred_tags')
+    op.drop_index('ind_artist_preferred_tags_targetid', 'artist_preferred_tags')
+    op.drop_table('artist_preferred_tags')
+    op.drop_index('ind_artist_optout_tags_tagid', 'artist_optout_tags')
+    op.drop_index('ind_artist_optout_tags_targetid', 'artist_optout_tags')
+    op.drop_table('artist_optout_tags')

@@ -664,19 +664,30 @@ Index('ind_searchmapsubmit_tagid', searchmapsubmit.c.tagid)
 Index('ind_searchmapsubmit_targetid', searchmapsubmit.c.targetid)
 
 
-searchmapartist = Table(
-    'searchmapartist', metadata,
+artist_preferred_tags = Table(
+    'artist_preferred_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
-    Column('settings', CharSettingsColumn({
-        'n': 'no-draw-list',
-    }), nullable=False, server_default=''),
-    default_fkey(['targetid'], ['login.userid'], name='searchmapartist_targetid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapartist_tagid_fkey'),
+    Column('settings', String(), nullable=False, server_default=''),
+    default_fkey(['targetid'], ['login.userid'], name='artist_preferred_tags_targetid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='artist_preferred_tags_tagid_fkey'),
 )
 
-Index('ind_searchmapartist_tagid', searchmapartist.c.tagid)
-Index('ind_searchmapartist_targetid', searchmapartist.c.targetid)
+Index('ind_artist_preferred_tags_tagid', artist_preferred_tags.c.tagid)
+Index('ind_artist_preferred_tags_targetid', artist_preferred_tags.c.targetid)
+
+
+artist_optout_tags = Table(
+    'artist_optout_tags', metadata,
+    Column('tagid', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False),
+    Column('settings', String(), nullable=False, server_default=''),
+    default_fkey(['targetid'], ['login.userid'], name='artist_optout_tags_targetid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='artist_optout_tags_tagid_fkey'),
+)
+
+Index('ind_artist_optout_tags_tagid', artist_optout_tags.c.tagid)
+Index('ind_artist_optout_tags_targetid', artist_optout_tags.c.targetid)
 
 
 searchtag = Table(

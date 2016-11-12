@@ -268,7 +268,7 @@ routes = (
     }),
     Route("/directorcontrol/globaltagrestrictions", "directorcontrol_globaltagrestrictions", {
         'GET': director.directorcontrol_globaltagrestrictions_get_,
-        'POST': director.directorcontrol_globaltagrestrictions_post,
+        'POST': director.directorcontrol_globaltagrestrictions_post_,
     }),
 
     Route("/site-updates/", "site_update_list", general.site_update_list_),

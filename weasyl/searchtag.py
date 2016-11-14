@@ -148,13 +148,19 @@ def is_tag_restriction_pattern_valid(text):
     """
     Determines if a given piece of text is considered a valid restricted tag pattern.
 
+    Valid patterns:
+    - Length: 0 < x <= 100 -- Prevents absurd tag lengths.
+    - If string contains a ``*``, must only contain one *, and be three characters or more.
+
     Parameters:
         text: A single candidate restricted tag entry.
 
     Returns:
         Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
     """
-    if text.count("*") == 1 and len(text) > 2:
+    if len(text) > 100:
+        return False
+    elif text.count("*") == 1 and len(text) > 2:
         return True
     elif text and "*" not in text:
         return True

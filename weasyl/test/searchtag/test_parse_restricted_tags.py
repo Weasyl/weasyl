@@ -3,6 +3,9 @@ from __future__ import absolute_import, unicode_literals
 from weasyl import searchtag
 
 
+valid_tags = {'test*', '*test', 'te*st', 'test', 'test_too'}
+
+
 def test_parse_restricted_tags():
     """
     Ensure that ``searchtag.parse_restricted_tags()`` functions as expected.
@@ -21,7 +24,6 @@ def test_parse_restricted_tags():
         - }     Anything that wouldn't be returned by ``searchtag.parse_tags()``,
             since this function essentially reimplements and extends that function.
     """
-    valid_tags = {'test*', '*test', 'te*st', 'test', 'test_too'}
     invalid_tags = {'*', '**', '***', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
     combined_tags = valid_tags | invalid_tags
 
@@ -37,3 +39,10 @@ def test_uppercase_tags_are_converted_to_lowercase():
     lowercase_tags = {'omega_ruby', 'alpha_sapphire', 'diamond', 'pearl', 'digi_*'}
 
     assert lowercase_tags == searchtag.parse_restricted_tags(" ".join(uppercase_tags))
+
+
+def test_tags_over_length_100_are_dropped():
+    lengthy_tags = {"a" * 99, "a" * 100, "a" * 101}
+    valid_with_lengthy = valid_tags | {"a" * 99, "a" * 100}
+
+    assert valid_with_lengthy == searchtag.parse_restricted_tags(" ".join(valid_tags | lengthy_tags))

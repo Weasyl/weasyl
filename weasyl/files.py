@@ -24,20 +24,9 @@ PATH_CONFIG = "config/"
 PATH_SEARCH = "search/"
 
 
-def read(filename, encoding="utf-8", errors="replace", encode=None):
-    """
-    Returns file data. If the filename is invalid, None is returned.
-    """
-    try:
-        data = codecs.open(filename, "r", encoding, errors).read()
-    except IOError:
-        d.log_exc()
-        return None
-
-    if encode:
-        return data.encode(encode)
-    else:
-        return data
+def read(filename):
+    with codecs.open(filename, "r", encoding="utf-8", errors="replace") as f:
+        return f.read()
 
 
 def ensure_file_directory(filename):

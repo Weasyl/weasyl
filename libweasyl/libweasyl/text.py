@@ -200,9 +200,6 @@ def add_user_links(fragment, parent, can_contain):
 
 
 def _markdown_fragment(target, image):
-    if target is None:
-        return ""
-
     if not image:
         images_left = 0
     elif type(image) is int:
@@ -289,6 +286,9 @@ def _markdown_fragment(target, image):
 
 
 def markdown(target, image=False):
+    if target is None:
+        return ""
+
     fragment = _markdown_fragment(target, image)
     return html.tostring(fragment, encoding=unicode)[5:-6]  # <div>...</div>
 

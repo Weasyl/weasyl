@@ -168,6 +168,29 @@ def is_tag_restriction_pattern_valid(text):
 
 
 def associate(userid, tags, submitid=None, charid=None, journalid=None):
+    """
+    Associates searchtags with a content item.
+
+    Parameters:
+        userid: The userid of the user associating tags
+        tags: A set of tags
+        submitid: The ID number of a submission content item to associate
+        ``tags`` to. (default: None)
+        charid: The ID number of a character content item to associate
+        ``tags`` to. (default: None)
+        journalid: The ID number of a journal content item to associate
+        ``tags`` to. (default: None)
+
+    Returns:
+        A dict containing two elements. 1) ``add_failure_restricted_tags``, which contains a space separated
+        string of tag titles which failed to be added to the content item due to the user or global restricted
+        tag lists; and 2) ``remove_failure_owner_set_tags``, which contains a space separated string of tag
+        titles which failed to be removed from the content item due to the owner of the aforementioned item
+        prohibiting users from removing tags set by the content owner.
+
+        If an element does not have tags, the element is set to None. If neither elements are set,
+        the function returns None.
+    """
     targetid = d.get_targetid(submitid, charid, journalid)
 
     # Assign table, feature, ownerid
@@ -189,9 +212,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     elif ignoreuser.check(ownerid, userid):
         raise WeasylError("contentOwnerIgnoredYou")
 
-    # Determine previous tags
+    # Determine previous tagids, titles, and settings
     existing = d.engine.execute(
-        "SELECT tagid, settings FROM {} WHERE targetid = %(target)s".format(table),
+        "SELECT tagid, title, settings FROM {} INNER JOIN searchtag USING (tagid) WHERE targetid = %(target)s".format(table),
         target=targetid).fetchall()
 
     # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
@@ -204,16 +227,28 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     added = entered_tagids - existing_tagids
     removed = existing_tagids - entered_tagids
 
+    # Track which tags fail to be added or removed to later notify the user (Note: These are tagids at this stage)
+    add_failure_restricted_tags = None
+    remove_failure_owner_set_tags = None
+
     # If the modifying user is not the owner of the object, and is not staff, check user/global restriction lists
     if userid != ownerid and userid not in staff.MODS:
-        restricted_tags = query_user_restricted_tags(ownerid) + query_global_restricted_tags()
-        added -= remove_restricted_tags(restricted_tags, query)
+        user_rtags = set(query_user_restricted_tags(ownerid))
+        global_rtags = set(query_global_restricted_tags())
+        add_failure_restricted_tags = remove_restricted_tags(user_rtags | global_rtags, query)
+        added -= add_failure_restricted_tags
+        if len(add_failure_restricted_tags) == 0:
+            add_failure_restricted_tags = None
 
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
         existing_artist_tags = {t.tagid for t in existing if 'a' in t.settings}
+        remove_failure_owner_set_tags = removed & existing_artist_tags
         removed.difference_update(existing_artist_tags)
         entered_tagids.update(existing_artist_tags)
+        # Submission items use a different method of tag protection for artist tags; ignore them
+        if submitid or len(remove_failure_owner_set_tags) == 0:
+            remove_failure_owner_set_tags = None
 
     # Remove tags
     if removed:
@@ -249,6 +284,17 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
         "%stag.%s.%s.log" % (m.MACRO_SYS_LOG_PATH, feature, d.get_timestamp()),
         "-%sID %i  -T %i  -UID %i  -X %s\n" % (feature[0].upper(), targetid, d.get_time(), userid,
                                                " ".join(tags)))
+
+    # Return dict with any tag titles as a string that failed to be added or removed
+    if add_failure_restricted_tags or remove_failure_owner_set_tags:
+        if add_failure_restricted_tags:
+            add_failure_restricted_tags = " ".join({tag.title for tag in query if tag.tagid in add_failure_restricted_tags})
+        if remove_failure_owner_set_tags:
+            remove_failure_owner_set_tags = " ".join({tag.title for tag in existing if tag.tagid in remove_failure_owner_set_tags})
+        return {"add_failure_restricted_tags": add_failure_restricted_tags,
+                "remove_failure_owner_set_tags": remove_failure_owner_set_tags}
+    else:
+        return None
 
 
 def tag_history(submitid):
@@ -429,7 +475,7 @@ def query_user_restricted_tags(ownerid):
         ownerid: The userid of the user who owns the content tags are being added to.
 
     Returns:
-        A list of user restricted tag titles.
+        A set of user restricted tag titles.
     """
     query = d.engine.execute("""
         SELECT title
@@ -437,7 +483,7 @@ def query_user_restricted_tags(ownerid):
         INNER JOIN searchtag USING (tagid)
         WHERE userid = %(ownerid)s
     """, ownerid=ownerid).fetchall()
-    return [tag.title for tag in query]
+    return {tag.title for tag in query}
 
 
 @region.cache_on_arguments()
@@ -449,14 +495,14 @@ def query_global_restricted_tags():
         None. Retrieves all global tag restriction entries.
 
     Returns:
-        A list of global restricted tag titles
+        A set of global restricted tag titles.
     """
     query = d.engine.execute("""
         SELECT title
         FROM globally_restricted_tags
         INNER JOIN searchtag USING (tagid)
     """).fetchall()
-    return [tag.title for tag in query]
+    return {tag.title for tag in query}
 
 
 def remove_restricted_tags(patterns, tags):
@@ -473,7 +519,7 @@ def remove_restricted_tags(patterns, tags):
         and titles for tags passed to the function.
 
     Returns:
-        A set() of tagids which have been restricted.
+        A set of tagids which have been restricted.
     """
     regex = r"(?:%s)\Z" % ("|".join(pattern.replace("*", ".*") for pattern in patterns),)
     return {tag.tagid for tag in tags if re.match(regex, tag.title)}

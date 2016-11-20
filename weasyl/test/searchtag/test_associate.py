@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 import pytest
 
 from libweasyl import staff
+from libweasyl.models.helpers import CharSettings
 
 from weasyl import profile, searchtag
 from weasyl.error import WeasylError
@@ -209,3 +210,95 @@ def test_moderators_and_above_can_add_restricted_tags_successfully(monkeypatch):
 
     journal_tags = searchtag.select(journalid=journalid)
     assert tags == set(journal_tags)
+
+
+@pytest.mark.usefixtures('db')
+def test_associate_return_values():
+    """
+    ``associate()`` returns a dict, of the following format:
+    return {"add_failure_restricted_tags": add_failure_restricted_tags,
+            "remove_failure_owner_set_tags": remove_failure_owner_set_tags}
+    /OR/ None
+
+    add_failure_restricted_tags is None if no tags failed to be added during the associate call,
+    when due to a tag being on the user or globally restricted tags list. Otherwise, it contains
+    a space-separated list of tags which failed to be added to the content item.
+
+    remove_failure_owner_set_tags is None if no tags failed to be removed during the associate call.
+    Otherwise, it contains the same space-separated list as above, however containing tags which the
+    content owner added and has opted to not permit others to remove.
+
+    If neither element of the dict is set, ``associate()`` returns None.
+    """
+    config = CharSettings({'disallow-others-tag-removal'}, {}, {})
+    userid_owner = db_utils.create_user(config=config)
+    userid_tag_adder = db_utils.create_user()
+    submitid = db_utils.create_submission(userid_owner)
+    journalid = db_utils.create_journal(userid_owner)
+    charid = db_utils.create_character(userid_owner)
+
+    """ Test the None result (no failures), then manually clear the tags afterwards. """
+    result = searchtag.associate(userid_tag_adder, tags, submitid=submitid)
+    assert result is None
+    result = searchtag.associate(userid_tag_adder, tags, journalid=journalid)
+    assert result is None
+    result = searchtag.associate(userid_tag_adder, tags, journalid=journalid)
+    assert result is None
+    searchtag.associate(userid_tag_adder, set(), submitid=submitid)
+    searchtag.associate(userid_tag_adder, set(), journalid=journalid)
+    searchtag.associate(userid_tag_adder, set(), journalid=journalid)
+
+    """ Test the result:None variant (restricted tags added, no tags removed) """
+    restricted_tag = searchtag.parse_restricted_tags("pearl")
+    searchtag.edit_user_tag_restrictions(userid_owner, restricted_tag)
+    result = searchtag.associate(userid_tag_adder, tags, submitid=submitid)
+    assert "pearl" in result["add_failure_restricted_tags"]
+    assert result["remove_failure_owner_set_tags"] is None
+    result = searchtag.associate(userid_tag_adder, tags, charid=charid)
+    assert "pearl" in result["add_failure_restricted_tags"]
+    assert result["remove_failure_owner_set_tags"] is None
+    result = searchtag.associate(userid_tag_adder, tags, journalid=journalid)
+    assert "pearl" in result["add_failure_restricted_tags"]
+    assert result["remove_failure_owner_set_tags"] is None
+    searchtag.associate(userid_owner, set(), submitid=submitid)
+    searchtag.associate(userid_owner, set(), charid=charid)
+    searchtag.associate(userid_owner, set(), journalid=journalid)
+    searchtag.edit_user_tag_restrictions(userid_owner, set())
+
+    """Test the None:result variant (no restricted tags added, tag removal blocked)
+    - Submission items will return None in this case (different method of preventing tag removal)
+    - Character and journal items should return the None:result variant, as expected"""
+    searchtag.associate(userid_owner, tags, submitid=submitid)
+    searchtag.associate(userid_owner, tags, charid=charid)
+    searchtag.associate(userid_owner, tags, journalid=journalid)
+    result = searchtag.associate(userid_tag_adder, tags_two, submitid=submitid)
+    assert result is None
+    result = searchtag.associate(userid_tag_adder, tags_two, charid=charid)
+    assert result["add_failure_restricted_tags"] is None
+    assert "pearl" in result["remove_failure_owner_set_tags"]
+    result = searchtag.associate(userid_tag_adder, tags_two, journalid=journalid)
+    assert result["add_failure_restricted_tags"] is None
+    assert "pearl" in result["remove_failure_owner_set_tags"]
+    searchtag.associate(userid_owner, set(), submitid=submitid)
+    searchtag.associate(userid_owner, set(), charid=charid)
+    searchtag.associate(userid_owner, set(), journalid=journalid)
+
+    """Test the result:result variant (restricted tags added, tag removal blocked)
+    - Submission items will behave in the result:None variant
+    - Character/Journal items will behave in the result:result manner"""
+    restricted_tag = searchtag.parse_restricted_tags("profanity")
+    searchtag.edit_user_tag_restrictions(userid_owner, restricted_tag)
+    searchtag.associate(userid_owner, tags, submitid=submitid)
+    searchtag.associate(userid_owner, tags, charid=charid)
+    searchtag.associate(userid_owner, tags, journalid=journalid)
+    # Effect upon adding this set: Remove user-set tag "pearl"; add restricted tag "profanity"
+    tags_three = tags_two | {"profanity"}
+    result = searchtag.associate(userid_tag_adder, tags_three, submitid=submitid)
+    assert "profanity" in result["add_failure_restricted_tags"]
+    assert result["remove_failure_owner_set_tags"] is None
+    result = searchtag.associate(userid_tag_adder, tags_three, charid=charid)
+    assert "profanity" in result["add_failure_restricted_tags"]
+    assert "pearl" in result["remove_failure_owner_set_tags"]
+    result = searchtag.associate(userid_tag_adder, tags_three, journalid=journalid)
+    assert "profanity" in result["add_failure_restricted_tags"]
+    assert "pearl" in result["remove_failure_owner_set_tags"]

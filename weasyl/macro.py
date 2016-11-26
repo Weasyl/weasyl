@@ -2,11 +2,7 @@ from __future__ import absolute_import
 
 import os
 
-from libweasyl.constants import ReportClosureReason
 from libweasyl import ratings
-
-
-_hush_pyflakes = [ReportClosureReason]
 
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"

@@ -25,6 +25,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm
 from web.template import frender
 
+import libweasyl.constants
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
@@ -238,6 +239,7 @@ def _compile(template_name):
                 "CDNIFY": cdnify_url,
                 "PATH": _get_path,
                 "arrow": arrow,
+                "constants": libweasyl.constants,
                 "getattr": getattr,
                 "json": json,
                 "sorted": sorted,

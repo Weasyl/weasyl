@@ -239,6 +239,7 @@ def _compile(template_name):
                 "PATH": _get_path,
                 "arrow": arrow,
                 "getattr": getattr,
+                "json": json,
                 "sorted": sorted,
                 "staff": staff,
                 "request": the_fake_request,

@@ -35,11 +35,11 @@ from weasyl import errorcode
 from weasyl import macro
 from weasyl.cache import region
 from weasyl.compat import FakePyramidRequest
-from weasyl.config import config_obj, config_read, config_read_setting, config_read_bool
+from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
 
 
-_shush_pyflakes = [sqlalchemy.orm, config_read]
+_shush_pyflakes = [sqlalchemy.orm]
 
 
 reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))

@@ -46,7 +46,7 @@ def submission_(request):
     login = define.get_sysname(item['username'])
     canonical_path = "/~%s/submissions/%d/%s" % (login, submitid, slug_for(item["title"]))
     if login != username:
-        raise httpexceptions.HTTPSeeOther(location=canonical_path)
+        raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
     extras["canonical_url"] = canonical_path
     extras["title"] = item["title"]
 

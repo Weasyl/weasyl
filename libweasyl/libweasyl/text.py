@@ -1,3 +1,4 @@
+# encoding: utf-8
 from __future__ import unicode_literals
 
 import re
@@ -38,6 +39,11 @@ USER_LINK = re.compile(r"""
 """, re.I | re.X)
 
 NON_USERNAME_CHARACTERS = re.compile("[^a-z0-9]+", re.I)
+
+_EXCERPT_BLOCK_ELEMENTS = frozenset([
+    "blockquote", "br", "div", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "ol",
+    "p", "pre", "ul", "li",
+])
 
 
 def _furaffinity(target):
@@ -193,10 +199,7 @@ def add_user_links(fragment, parent, can_contain):
         _nonlocal["previous"].tail = "".join(previous_text)
 
 
-def markdown(target, image=False):
-    if target is None:
-        return ""
-
+def _markdown_fragment(target, image):
     if not image:
         images_left = 0
     elif type(image) is int:
@@ -279,7 +282,49 @@ def markdown(target, image=False):
 
     defang(fragment)
 
+    return fragment
+
+
+def markdown(target, image=False):
+    if target is None:
+        return ""
+
+    fragment = _markdown_fragment(target, image)
     return html.tostring(fragment, encoding=unicode)[5:-6]  # <div>...</div>
+
+
+def _itertext_spaced(element):
+    if element.text:
+        yield element.text
+
+    for child in element:
+        is_block = child.tag in _EXCERPT_BLOCK_ELEMENTS
+
+        if is_block:
+            yield " "
+
+        for t in _itertext_spaced(child):
+            yield t
+
+        if child.tail:
+            yield child.tail
+
+        if is_block:
+            yield " "
+
+
+def _normalize_whitespace(text):
+    return re.sub(r"\s+", " ", text.strip())
+
+
+def markdown_excerpt(markdown_text, length=300):
+    fragment = _markdown_fragment(markdown_text, image=False)
+    text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
+
+    if len(text) <= length:
+        return text
+    else:
+        return text[:length - 1].rstrip() + "…"
 
 
 def markdown_link(title, url):

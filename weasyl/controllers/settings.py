@@ -13,7 +13,7 @@ from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
-    index, oauth2, profile, thumbnail, useralias, orm)
+    index, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -411,6 +411,23 @@ def control_apikeys_post_(request):
         oauth2.revoke_consumers_for_user(request.userid, form['revoke-oauth2-consumers'])
 
     raise HTTPSeeOther(location="/control/apikeys")
+
+
+@login_required
+def control_tagrestrictions_get_(request):
+    return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
+        searchtag.get_user_tag_restrictions(request.userid),
+    )))
+
+
+@login_required
+@token_checked
+def control_tagrestrictions_post_(request):
+    tags = searchtag.parse_restricted_tags(request.params["tags"])
+    searchtag.edit_user_tag_restrictions(request.userid, tags)
+    return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
+        searchtag.get_user_tag_restrictions(request.userid),
+    )))
 
 
 @login_required

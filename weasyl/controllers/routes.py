@@ -182,6 +182,11 @@ routes = (
         'GET': settings.control_editpreferences_get_,
         'POST': settings.control_editpreferences_post_
     }),
+    Route("/control/tagrestrictions", "control_tagrestrictions", {
+        'GET': settings.control_tagrestrictions_get_,
+        'POST': settings.control_tagrestrictions_post_
+    }),
+
     Route("/control/createfolder", "control_createfolder", {'POST': settings.control_createfolder_}),
     Route("/control/renamefolder", "control_renamefolder", {'POST': settings.control_renamefolder_}),
     Route("/control/removefolder", "control_removefolder", {'POST': settings.control_removefolder_}),
@@ -260,6 +265,10 @@ routes = (
     Route("/directorcontrol/emailblacklist", "directorcontrol_emailblacklist", {
         'GET': director.directorcontrol_emailblacklist_get_,
         'POST': director.directorcontrol_emailblacklist_post_,
+    }),
+    Route("/directorcontrol/globaltagrestrictions", "directorcontrol_globaltagrestrictions", {
+        'GET': director.directorcontrol_globaltagrestrictions_get_,
+        'POST': director.directorcontrol_globaltagrestrictions_post_,
     }),
 
     Route("/site-updates/", "site_update_list", general.site_update_list_),

@@ -118,7 +118,79 @@ def parse_tags(text):
     return tags
 
 
+def parse_restricted_tags(text):
+    """
+    A custom implementation of ``parse_tags()`` for the restricted tag list.
+    Enforces the desired characteristics of restricted tags, and allows an asterisk
+    character, whereas ``parse_tags()`` would strip asterisks.
+
+    Parameters:
+        text: The string to parse for tags
+
+    Returns:
+        tags: A set() with valid tags.
+    """
+    tags = set()
+
+    for i in _TAG_DELIMITER.split(text):
+        target = "".join([c for c in i if ord(c) < 128])
+        target = "".join(i for i in target if i.isalnum() or i in "_*")
+        target = target.strip("_")
+        target = "_".join(i for i in target.split("_") if i)
+
+        if is_tag_restriction_pattern_valid(target):
+            tags.add(target.lower())
+
+    return tags
+
+
+def is_tag_restriction_pattern_valid(text):
+    """
+    Determines if a given piece of text is considered a valid restricted tag pattern.
+
+    Valid patterns:
+    - Length: 0 < x <= 100 -- Prevents absurd tag lengths.
+    - If string contains a ``*``, must only contain one *, and be three characters or more.
+
+    Parameters:
+        text: A single candidate restricted tag entry.
+
+    Returns:
+        Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
+    """
+    if len(text) > 100:
+        return False
+    elif text.count("*") == 1 and len(text) > 2:
+        return True
+    elif text and "*" not in text:
+        return True
+    return False
+
+
 def associate(userid, tags, submitid=None, charid=None, journalid=None):
+    """
+    Associates searchtags with a content item.
+
+    Parameters:
+        userid: The userid of the user associating tags
+        tags: A set of tags
+        submitid: The ID number of a submission content item to associate
+        ``tags`` to. (default: None)
+        charid: The ID number of a character content item to associate
+        ``tags`` to. (default: None)
+        journalid: The ID number of a journal content item to associate
+        ``tags`` to. (default: None)
+
+    Returns:
+        A dict containing two elements. 1) ``add_failure_restricted_tags``, which contains a space separated
+        string of tag titles which failed to be added to the content item due to the user or global restricted
+        tag lists; and 2) ``remove_failure_owner_set_tags``, which contains a space separated string of tag
+        titles which failed to be removed from the content item due to the owner of the aforementioned item
+        prohibiting users from removing tags set by the content owner.
+
+        If an element does not have tags, the element is set to None. If neither elements are set,
+        the function returns None.
+    """
     targetid = d.get_targetid(submitid, charid, journalid)
 
     # Assign table, feature, ownerid
@@ -140,24 +212,13 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     elif ignoreuser.check(ownerid, userid):
         raise WeasylError("contentOwnerIgnoredYou")
 
-    # Determine previous tags
+    # Determine previous tagids, titles, and settings
     existing = d.engine.execute(
-        "SELECT tagid, settings FROM {} WHERE targetid = %(target)s".format(table),
+        "SELECT tagid, title, settings FROM {} INNER JOIN searchtag USING (tagid) WHERE targetid = %(target)s".format(table),
         target=targetid).fetchall()
 
-    # Determine tag titles and tagids
-    query = d.engine.execute(
-        "SELECT tagid, title FROM searchtag WHERE title = ANY (%(tags)s)",
-        tags=list(tags)).fetchall()
-
-    newtags = list(tags - {x.title for x in query})
-
-    if newtags:
-        query.extend(
-            d.engine.execute(
-                "INSERT INTO searchtag (title) SELECT * FROM UNNEST (%(newtags)s) AS title RETURNING tagid, title",
-                newtags=newtags
-            ).fetchall())
+    # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
+    query = add_and_get_searchtags(tags)
 
     existing_tagids = {t.tagid for t in existing}
     entered_tagids = {t.tagid for t in query}
@@ -166,11 +227,28 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
     added = entered_tagids - existing_tagids
     removed = existing_tagids - entered_tagids
 
+    # Track which tags fail to be added or removed to later notify the user (Note: These are tagids at this stage)
+    add_failure_restricted_tags = None
+    remove_failure_owner_set_tags = None
+
+    # If the modifying user is not the owner of the object, and is not staff, check user/global restriction lists
+    if userid != ownerid and userid not in staff.MODS:
+        user_rtags = set(query_user_restricted_tags(ownerid))
+        global_rtags = set(query_global_restricted_tags())
+        add_failure_restricted_tags = remove_restricted_tags(user_rtags | global_rtags, query)
+        added -= add_failure_restricted_tags
+        if len(add_failure_restricted_tags) == 0:
+            add_failure_restricted_tags = None
+
     # Check removed artist tags
     if not can_remove_tags(userid, ownerid):
         existing_artist_tags = {t.tagid for t in existing if 'a' in t.settings}
+        remove_failure_owner_set_tags = removed & existing_artist_tags
         removed.difference_update(existing_artist_tags)
         entered_tagids.update(existing_artist_tags)
+        # Submission items use a different method of tag protection for artist tags; ignore them
+        if submitid or len(remove_failure_owner_set_tags) == 0:
+            remove_failure_owner_set_tags = None
 
     # Remove tags
     if removed:
@@ -207,6 +285,17 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None):
         "-%sID %i  -T %i  -UID %i  -X %s\n" % (feature[0].upper(), targetid, d.get_time(), userid,
                                                " ".join(tags)))
 
+    # Return dict with any tag titles as a string that failed to be added or removed
+    if add_failure_restricted_tags or remove_failure_owner_set_tags:
+        if add_failure_restricted_tags:
+            add_failure_restricted_tags = " ".join({tag.title for tag in query if tag.tagid in add_failure_restricted_tags})
+        if remove_failure_owner_set_tags:
+            remove_failure_owner_set_tags = " ".join({tag.title for tag in existing if tag.tagid in remove_failure_owner_set_tags})
+        return {"add_failure_restricted_tags": add_failure_restricted_tags,
+                "remove_failure_owner_set_tags": remove_failure_owner_set_tags}
+    else:
+        return None
+
 
 def tag_history(submitid):
     db = d.connect()
@@ -217,3 +306,220 @@ def tag_history(submitid):
         .select_from(tu.join(pr, tu.c.userid == pr.c.userid))
         .where(tu.c.submitid == submitid)
         .order_by(tu.c.updated_at.desc()))
+
+
+def add_and_get_searchtags(tags):
+    """
+    Handles addition of--and getting existing--searchtags, abstracting the logic
+    for addition of such from editing functions. Serves to consolidate otherwise
+    duplicated code.
+
+    Parameters:
+        tags: A set of tags.
+
+    Returns:
+        query: The results of a SQL query which contains tagids and titles for
+        tags which either currently exist, or were added as a result
+        of this function.
+    """
+    # Get the tag titles/ids out of the searchtag table
+    query = d.engine.execute("""
+        SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
+    """, title=list(tags)).fetchall()
+
+    # Determine which (if any) of the valid tags are new; add them to the searchtag table if so.
+    newtags = list(tags - {x.title for x in query})
+    if newtags:
+        query.extend(
+            d.engine.execute(
+                "INSERT INTO searchtag (title) SELECT * FROM UNNEST (%(newtags)s) AS title RETURNING tagid, title",
+                newtags=newtags
+            ).fetchall())
+    return query
+
+
+def edit_user_tag_restrictions(userid, tags):
+    """
+    Edits the user's restricted tag list, by dropping all rows for ``userid`` and reinserting
+    any ``tags`` passed in to the function.
+
+    Parameters:
+        userid: The userid of the user submitting the request.
+
+        tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
+        (occurs in the the controllers/settings.py controller)
+
+    Returns:
+        Nothing.
+    """
+    # First, drop all rows from the user_restricted_tags table for userid
+    d.engine.execute("""
+        DELETE FROM user_restricted_tags
+        WHERE userid = %(uid)s
+    """, uid=userid)
+
+    # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
+    query = add_and_get_searchtags(tags)
+
+    # Insert the new restricted tag for ``userid`` entries into the table (if we have any tags to add)
+    if query:
+        d.engine.execute("""
+            INSERT INTO user_restricted_tags (tagid, userid)
+                SELECT tag, %(uid)s
+                FROM UNNEST (%(added)s) AS tag
+        """, uid=userid, added=[tag.tagid for tag in query])
+
+    # Clear the cache for ``userid``'s restricted tags, since we made changes
+    query_user_restricted_tags.invalidate(userid)
+
+
+def edit_global_tag_restrictions(userid, tags):
+    """
+    Edits the globally restricted tag list, adding or removing tags as appropriate.
+
+    Parameters:
+        userid: The userid of the director submitting the request.
+
+        tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
+        (occurs in the the controllers/director.py controller)
+
+    Returns:
+        Nothing.
+    """
+    # Only directors can edit the global restriction list; sanity check against the @director_only decorator
+    if userid not in staff.DIRECTORS:
+        raise WeasylError("InsufficientPermissions")
+
+    existing = d.engine.execute("""
+        SELECT tagid FROM globally_restricted_tags
+    """).fetchall()
+
+    # Retrieve tag titles and tagid pairs, for new and existing tags
+    query = add_and_get_searchtags(tags)
+
+    existing_tagids = {t.tagid for t in existing}
+    entered_tagids = {t.tagid for t in query}
+
+    # Assign added and removed
+    added = entered_tagids - existing_tagids
+    removed = existing_tagids - entered_tagids
+
+    if added:
+        d.engine.execute("""
+            INSERT INTO globally_restricted_tags (tagid, userid)
+                SELECT tag, %(uid)s
+                FROM UNNEST (%(added)s) AS tag
+        """, uid=userid, added=list(added))
+
+    if removed:
+        d.engine.execute("""
+            DELETE FROM globally_restricted_tags
+            WHERE tagid = ANY (%(removed)s)
+        """, removed=list(removed))
+
+    # Clear the globally restricted tags cache if any changes were made
+    if added or removed:
+        query_global_restricted_tags.invalidate()
+
+
+def get_user_tag_restrictions(userid):
+    """
+    Retrieves a list of tags on the user's restricted tags list for friendly display to the user.
+
+    Parameters:
+        userid: The userid of the user requesting the list of restricted tags.
+
+    Returns:
+        A list of restricted tag titles which were set by ``userid``.
+    """
+    query = d.engine.execute("""
+        SELECT st.title
+        FROM user_restricted_tags
+        INNER JOIN searchtag AS st USING (tagid)
+        WHERE userid = %(userid)s
+        ORDER BY st.title
+    """, userid=userid).fetchall()
+    tags = [tag.title for tag in query]
+    return tags
+
+
+def get_global_tag_restrictions(userid):
+    """
+    Retrieves a list of tags on the globally restricted tag list for friendly display to the director.
+
+    Parameters:
+        userid: The userid of the director requesting the list of tags.
+
+    Returns:
+        A list of globally restricted tag titles and the name of the director which added it.
+    """
+    # Only directors can view the globally restricted tag list; sanity check against the @director_only decorator
+    if userid not in staff.DIRECTORS:
+        raise WeasylError("InsufficientPermissions")
+
+    return d.engine.execute("""
+        SELECT st.title, lo.login_name
+        FROM globally_restricted_tags
+        INNER JOIN searchtag AS st USING (tagid)
+        INNER JOIN login AS lo USING (userid)
+        ORDER BY st.title
+    """).fetchall()
+
+
+@region.cache_on_arguments()
+def query_user_restricted_tags(ownerid):
+    """
+    Gets and returns restricted tags for users.
+
+    Parameters:
+        ownerid: The userid of the user who owns the content tags are being added to.
+
+    Returns:
+        A set of user restricted tag titles.
+    """
+    query = d.engine.execute("""
+        SELECT title
+        FROM user_restricted_tags
+        INNER JOIN searchtag USING (tagid)
+        WHERE userid = %(ownerid)s
+    """, ownerid=ownerid).fetchall()
+    return {tag.title for tag in query}
+
+
+@region.cache_on_arguments()
+def query_global_restricted_tags():
+    """
+    Gets and returns globally restricted tags.
+
+    Parameters:
+        None. Retrieves all global tag restriction entries.
+
+    Returns:
+        A set of global restricted tag titles.
+    """
+    query = d.engine.execute("""
+        SELECT title
+        FROM globally_restricted_tags
+        INNER JOIN searchtag USING (tagid)
+    """).fetchall()
+    return {tag.title for tag in query}
+
+
+def remove_restricted_tags(patterns, tags):
+    """
+    Determines what, if any, new search tags match tags that are on the user or global
+      restricted tag list.
+
+    Parameters:
+        patterns: The result of ``query_user_restricted_tags(ownerid) +
+        query_global_restricted_tags()``. Consists
+        of a list of titles of patterns which match a restricted tag.
+
+        tags: The reused SQL query result from ``associate()`` which consists of tagids
+        and titles for tags passed to the function.
+
+    Returns:
+        A set of tagids which have been restricted.
+    """
+    regex = r"(?:%s)\Z" % ("|".join(pattern.replace("*", ".*") for pattern in patterns),)
+    return {tag.tagid for tag in tags if re.match(regex, tag.title)}

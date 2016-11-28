@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
+from weasyl import define as d
+from weasyl import searchtag
 from weasyl.controllers.decorators import director_only
 from weasyl.controllers.decorators import token_checked
-from weasyl import define as d
-
 
 """ Director control panel view callables """
 
@@ -44,3 +46,22 @@ def directorcontrol_emailblacklist_post_(request):
         """, domain_name=form.domain_name.lower(), reason=form.reason, added_by=request.userid)
 
     raise HTTPSeeOther(location="/directorcontrol/emailblacklist")
+
+
+@director_only
+def directorcontrol_globaltagrestrictions_get_(request):
+    tags = searchtag.get_global_tag_restrictions(request.userid)
+    return Response(d.webpage(request.userid, "directorcontrol/globaltagrestrictions.html", (
+        tags,
+    )))
+
+
+@director_only
+@token_checked
+def directorcontrol_globaltagrestrictions_post_(request):
+    tags = searchtag.parse_restricted_tags(request.params["tags"])
+    searchtag.edit_global_tag_restrictions(request.userid, tags)
+    tags = searchtag.get_global_tag_restrictions(request.userid)
+    return Response(d.webpage(request.userid, "directorcontrol/globaltagrestrictions.html", (
+        tags,
+    )))

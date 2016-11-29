@@ -299,9 +299,9 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     if userid:
         stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
     stmt.append("""
-        GROUP BY p.userid, cp.settings, d.content, s.unixtime, "
-        tag.tagcount, example.examplecount "
-        ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
+        GROUP BY p.userid, cp.settings, d.content, s.unixtime,
+        tag.tagcount, example.examplecount
+        ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC
         LIMIT %(limit)s OFFSET %(offset)s
     """)
     tags = q.lower().split()

@@ -7,14 +7,14 @@ a more meaningful commission search by increasing the search
 rank when an artist's strengths match the content requested.
 
 Revision ID: 40c00abab5f9
-Revises: c8c088918278
+Revises: a49795aa2584
 Create Date: 2016-09-23 01:56:20.093477
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '40c00abab5f9'
-down_revision = '882fe6ace5c7'
+down_revision = 'a49795aa2584'
 
 from alembic import op
 import sqlalchemy as sa

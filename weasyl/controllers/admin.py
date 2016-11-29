@@ -4,11 +4,11 @@ from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from libweasyl import staff
+from libweasyl.models.site import SiteUpdate
 
-from weasyl import dry, errorcode, login, profile, siteupdate, moderation
+from weasyl import errorcode, login, moderation, profile, siteupdate
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
-from weasyl.controllers.decorators import moderator_only
 from weasyl.controllers.decorators import token_checked
 import weasyl.define as d
 
@@ -18,22 +18,56 @@ import weasyl.define as d
 
 @admin_only
 def admincontrol_(request):
-    return Response(dry.admin_render_page("admincontrol/admincontrol.html"))
+    return Response(d.webpage(request.userid, "admincontrol/admincontrol.html"))
 
 
-@moderator_only
+@admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(dry.admin_render_page("admincontrol/siteupdate.html"))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),)))
 
 
+@admin_only
 @token_checked
-@moderator_only
 def admincontrol_siteupdate_post_(request):
-    form = request.web_input(title="", content="")
+    title = request.params["title"].strip()
+    content = request.params["content"].strip()
 
-    siteupdate.create(request.userid, form)
+    if not title:
+        raise WeasylError("titleInvalid")
 
-    raise HTTPSeeOther(location="/admincontrol")
+    if not content:
+        raise WeasylError("contentInvalid")
+
+    update = siteupdate.create(request.userid, title, content)
+    raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
+
+
+@admin_only
+def site_update_edit_(request):
+    updateid = int(request.matchdict['update_id'])
+    update = SiteUpdate.query.get_or_404(updateid)
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,)))
+
+
+@admin_only
+@token_checked
+def site_update_put_(request):
+    updateid = int(request.matchdict['update_id'])
+    title = request.params["title"].strip()
+    content = request.params["content"].strip()
+
+    if not title:
+        raise WeasylError("titleInvalid")
+
+    if not content:
+        raise WeasylError("contentInvalid")
+
+    update = SiteUpdate.query.get_or_404(updateid)
+    update.title = title
+    update.content = content
+    update.dbsession.flush()
+
+    raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 
 
 @admin_only
@@ -52,8 +86,8 @@ def admincontrol_manageuser_get_(request):
     ]))
 
 
-@token_checked
 @admin_only
+@token_checked
 def admincontrol_manageuser_post_(request):
     form = request.web_input(ch_username="", ch_full_name="", ch_catchphrase="", ch_email="",
                              ch_birthday="", ch_gender="", ch_country="", remove_social=[])
@@ -74,8 +108,8 @@ def admincontrol_manageuser_post_(request):
     raise HTTPSeeOther(location="/admincontrol")
 
 
-@token_checked
 @admin_only
+@token_checked
 def admincontrol_acctverifylink_(request):
     form = request.web_input(username="", email="")
 

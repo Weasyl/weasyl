@@ -81,27 +81,25 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <div id="home-content" class="content">
 
-  $if(update):
+  $if update:
     <div id="hc-update" class="clear">
-
-      <h3>${update[0]['title']}</h3>
+      <h3>${update['title']}</h3>
 
       <figure class="thumbnail thumbnail-left clear">
-        <a class="avatar" href="/~${LOGIN(update[0]['username'])}" title="${update[0]['username']}">
-          $ avatar = update[0]['user_media']['avatar'][0]
-          <img src="${avatar['display_url']}" alt="avatar of ${i['username']}" />
+        <a class="avatar" href="/~${LOGIN(update['username'])}" title="${update['username']}">
+          $ avatar = update['user_media']['avatar'][0]
+          <img src="${avatar['display_url']}" alt="avatar of ${update['username']}" />
         </a>
         <figcaption class="caption">
-          <h4 class="title"><i>Posted by</i> <a class="username" href="/~${LOGIN(update[0]['username'])}">${update[0]['username']}</a></h4>
-          <h5 class="date">${DATE(update[0]['unixtime'])} <i>at</i> ${TIME(update[0]['unixtime'])}</h5>
+          <h4 class="title"><i>Posted by</i> <a class="username" href="/~${LOGIN(update['username'])}">${update['username']}</a></h4>
+          <h5 class="date">${DATE(update['unixtime'])} <i>at</i> ${TIME(update['unixtime'])}</h5>
         </figcaption>
       </figure>
 
       <div class="formatted-content">
-        $:{MARKDOWN(update[0]['content'])}
-      </div><!-- /formatted-content -->
-
-    </div><!-- /hc-update -->
+        $:{MARKDOWN(update['content'])}
+      </div>
+    </div>
 
   <div id="hc-critique" class="clear">
     <h3>Critique Wanted</h3>

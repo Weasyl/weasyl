@@ -163,10 +163,10 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
     </form>
 
     <div class="di-tags">
-      <h3>Preference Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
+      <h3>Preferred Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
       <p>
         Use these tags to indicate subject matter you prefer to create, making it easier for
-        commissioners to find you!
+        commissioners to find you.
       </p>
 
       <div class="tags open clear">
@@ -174,7 +174,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
           $for tag in query['tags']:
             <a href="/marketplace?q=${tag}">${tag}</a>
         $else:
-          <p class="color-lighter">You have not defined any Preference Tags!</p>
+          <p class="color-lighter">You have not defined any preferred tags.</p>
       </div>
 
       <h3 class="edit">Edit Tags</h3>
@@ -192,7 +192,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
           $for tag in query['opt_out']:
             <a class="artist" href="/marketplace?q=${tag}">${tag}</a>
         $else:
-          <p class="color-lighter">You have not defined any Opt-Out Tags!</p>
+          <p class="color-lighter">You have not defined any opt-out tags.</p>
       </div>
 
       <h3 class="edit">Edit Tags</h3>

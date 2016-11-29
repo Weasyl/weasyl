@@ -65,12 +65,11 @@ $code:
               $if artist['pricemax'] and artist['pricemax'] != artist['pricemin']:
                 <span>to $:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemax'])}</span>
               $if artist['localmin'] != artist['pricemin']:
-                ( <span>Approx. $:{SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>
+                (<span>Approx. $:{SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>
                 $if artist['pricemax'] and artist['pricemax'] != artist['pricemin']:
-                  <span>to $:{SYMBOL(form.currency)} ${PRICE(artist['localmax'])}</span>
-                )
+                  <span>to $:{SYMBOL(form.currency)} ${PRICE(artist['localmax'])}</span>)
             $else:
-              Price Not Declared
+              Price not declared
           </div>
           $# commission description
           <div class="formatted-content">
@@ -82,9 +81,9 @@ $code:
         </div>
 
       <div style="padding-top: 1.4em;" class="pad-left pad-right">
-        $if previndex != None:
+        $if previndex is not None:
           <a class="button" href="/marketplace?${QUERY_STRING(dict(form, o=previndex))}" rel="prev">Back</a>
-        $if nextindex != None:
+        $if nextindex is not None:
           <a class="button" style="float:right" href="/marketplace?${QUERY_STRING(dict(form, o=nextindex))}" rel="next">Next</a>
       </div>
 

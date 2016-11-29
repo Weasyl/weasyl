@@ -4,6 +4,7 @@ from weasyl import macro as m
 from weasyl.cache import region
 from weasyl.error import WeasylError
 import re
+import urllib
 from decimal import Decimal
 
 from weasyl import define as d
@@ -26,7 +27,6 @@ CURRENCY_CHARMAP = {
     "n": {"code": "CNY", "name": "Chinese Yuan", "symbol": "C&#165;"},
     "f": {"code": "CHF", "name": "Swiss Franc", "symbol": "Fr"},
 }
-ALL_CURRENCIES = "".join([key for key, value in CURRENCY_CHARMAP.items()])
 
 # These are to be used as a general guide for both artists and commissioners
 # to standardize some commission types until a more robust system
@@ -130,16 +130,33 @@ def currency_ratio(valuecode, targetcode):
 
 
 def select_list(userid):
-    query = d.engine.execute("SELECT classid, title, amount_min, amount_max, settings, priceid FROM commishprice"
-                             " WHERE userid = %(userid)s ORDER BY classid, title", userid=userid)
-    classes = d.engine.execute("SELECT classid, title FROM commishclass WHERE userid = %(id)s ORDER BY title", id=userid)
-    content = d.engine.execute("SELECT content FROM commishdesc WHERE userid = %(id)s", id=userid).scalar()
-    preference_tags = d.engine.execute("SELECT DISTINCT tag.title FROM searchtag tag "
-                                       "join artist_preferred_tags pref on pref.tagid = tag.tagid "
-                                       "join login l on l.userid = pref.targetid ", userid=userid).fetchall()
-    optout_tags = d.engine.execute("SELECT DISTINCT tag.title FROM searchtag tag "
-                                   "join artist_optout_tags pref on pref.tagid = tag.tagid "
-                                   "join login l on l.userid = pref.targetid ", userid=userid).fetchall()
+    query = d.engine.execute("""
+        SELECT classid, title, amount_min, amount_max, settings, priceid FROM commishprice
+        WHERE userid = %(userid)s ORDER BY classid, title
+    """, userid=userid)
+
+    classes = d.engine.execute("""
+        SELECT classid, title FROM commishclass
+        WHERE userid = %(id)s ORDER BY title
+    """, id=userid)
+
+    content = d.engine.execute("""
+        SELECT content FROM commishdesc
+        WHERE userid = %(id)s
+    """, id=userid).scalar()
+
+    preference_tags = d.engine.execute("""
+        SELECT DISTINCT tag.title FROM searchtag tag
+        JOIN artist_preferred_tags pref ON pref.tagid = tag.tagid
+        WHERE pref.targetid = %(userid)s
+   """, userid=userid).fetchall()
+
+    optout_tags = d.engine.execute("""
+        SELECT DISTINCT tag.title FROM searchtag tag
+        JOIN artist_optout_tags pref ON pref.tagid = tag.tagid
+        WHERE pref.targetid = %(userid)s
+   """, userid=userid).fetchall()
+
     return {
         "userid": userid,
         "class": [{
@@ -200,90 +217,93 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     :param limit: max number of results to return
     :return: The resulting list of artists & their commission info
     """
-    stmt = [
-        """SELECT p.userid, p.username, p.settings,
-                MIN(cp.amount_min) AS pricemin,
-                GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
-                cp.settings AS pricesettings,
-                MIN(convert.convertedmin) AS convertedmin,
-                d.content AS description, s.unixtime,
-                tag.tagcount, example.examplecount
-            FROM profile p
+    stmt = ["""
+        SELECT p.userid, p.username, p.settings,
+            MIN(cp.amount_min) AS pricemin,
+            GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
+            cp.settings AS pricesettings,
+            MIN(convert.convertedmin) AS convertedmin,
+            d.content AS description, s.unixtime,
+            tag.tagcount, example.examplecount
+        FROM profile p
 
-            JOIN login on p.userid = login.userid
+        JOIN login on p.userid = login.userid
 
-            INNER JOIN commishclass cc ON cc.userid = p.userid
-                AND lower(cc.title) LIKE %(cclass)s
+        INNER JOIN commishclass cc ON cc.userid = p.userid
+            AND lower(cc.title) LIKE %(cclass)s
 
-            JOIN commishprice cp ON cp.classid = cc.classid
-                AND cp.userid = p.userid
-                AND cp.settings NOT LIKE '%%a'
+        JOIN commishprice cp ON cp.classid = cc.classid
+            AND cp.userid = p.userid
+            AND cp.settings NOT LIKE '%%a'
 
-            INNER JOIN (
-                SELECT cp.priceid, cp.userid, cp.classid,
-                CASE cp.settings """
-    ]
+        INNER JOIN (
+            SELECT cp.priceid, cp.userid, cp.classid,
+            CASE cp.settings
+    """]
     # set up the cases to convert currencies from the artist's to the searcher's
     for c in CURRENCY_CHARMAP:
         ratio = currency_ratio(currency, c)
-        stmt.append("\n WHEN '%s' THEN MIN(cp.amount_min) / %f" % (c, ratio))
+        stmt.append("WHEN '%s' THEN MIN(cp.amount_min) / %f\n" % (c, ratio))
 
     stmt.append("""
-                    ELSE MIN(cp.amount_min)
-                END AS convertedmin
-                FROM commishprice cp
-                GROUP BY cp.priceid, cp.userid, cp.classid, cp.settings
-            ) AS convert ON convert.priceid = cp.priceid
-                AND convert.userid = p.userid
-                AND convert.classid = cc.classid
+                ELSE MIN(cp.amount_min)
+            END AS convertedmin
+            FROM commishprice cp
+            GROUP BY cp.priceid, cp.userid, cp.classid, cp.settings
+        ) AS convert ON convert.priceid = cp.priceid
+            AND convert.userid = p.userid
+            AND convert.classid = cc.classid
 
-            INNER JOIN (
-                SELECT MAX(unixtime) as unixtime, userid
-                FROM submission
-                WHERE settings !~ '[hf]'
-                GROUP BY userid
-            ) AS s ON s.userid = p.userid
+        INNER JOIN (
+            SELECT MAX(unixtime) as unixtime, userid
+            FROM submission
+            WHERE settings !~ '[hf]'
+            GROUP BY userid
+        ) AS s ON s.userid = p.userid
 
-            LEFT JOIN commishdesc d ON d.userid = p.userid
+        LEFT JOIN commishdesc d ON d.userid = p.userid
 
-            LEFT JOIN (
-                SELECT map.targetid, COUNT(tag.tagid) AS tagcount
-                FROM searchtag tag
-                JOIN artist_preferred_tags map ON map.tagid = tag.tagid
-                WHERE tag.title = ANY(%(tags)s)
-                GROUP BY map.targetid
-            ) AS tag ON tag.targetid = p.userid
+        LEFT JOIN (
+            SELECT map.targetid, COUNT(tag.tagid) AS tagcount
+            FROM searchtag tag
+            JOIN artist_preferred_tags map ON map.tagid = tag.tagid
+            WHERE tag.title = ANY(%(tags)s)
+            GROUP BY map.targetid
+        ) AS tag ON tag.targetid = p.userid
 
-            LEFT JOIN (
-                SELECT sub.userid, COUNT (sub.submitid) as examplecount
-                FROM submission sub
-                JOIN searchmapsubmit map ON map.targetid = sub.submitid
-                JOIN searchtag tag ON map.tagid = tag.tagid
-                WHERE tag.title = ANY(%(tags)s)
-                AND sub.rating <= %(rating)s
-                AND sub.settings !~ '[hf]'
-                GROUP BY sub.userid
-            ) AS example ON example.userid = p.userid
+        LEFT JOIN (
+            SELECT sub.userid, COUNT (sub.submitid) as examplecount
+            FROM submission sub
+            JOIN searchmapsubmit map ON map.targetid = sub.submitid
+            JOIN searchtag tag ON map.tagid = tag.tagid
+            WHERE tag.title = ANY(%(tags)s)
+            AND sub.rating <= %(rating)s
+            AND sub.settings !~ '[hf]'
+            GROUP BY sub.userid
+        ) AS example ON example.userid = p.userid
 
-            WHERE p.settings ~ '^[os]'
-            AND login.settings !~ '[bs]'
-            AND p.userid NOT IN (
-                SELECT map.targetid
-                FROM searchtag tag
-                JOIN artist_optout_tags map on map.tagid = tag.tagid
-                WHERE tag.title = ANY(%(tags)s)
-                GROUP BY map.targetid
-            ) """)
+        WHERE p.settings ~ '^[os]'
+        AND login.settings !~ '[bs]'
+        AND p.userid NOT IN (
+            SELECT map.targetid
+            FROM searchtag tag
+            JOIN artist_optout_tags map ON map.tagid = tag.tagid
+            WHERE tag.title = ANY(%(tags)s)
+            GROUP BY map.targetid
+        )
+    """)
     if min_price:
         stmt.append("AND convertedmin >= %(min)s ")
     if max_price:
         stmt.append("AND convertedmin <= %(max)s ")
     if userid:
         stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
-    stmt.append("GROUP BY p.userid, cp.settings, d.content, s.unixtime, "
-                "tag.tagcount, example.examplecount "
-                "ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
-                "LIMIT %(limit)s OFFSET %(offset)s")
+    stmt.append("""
+        GROUP BY p.userid, cp.settings, d.content, s.unixtime, "
+        tag.tagcount, example.examplecount "
+        ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC "
+        LIMIT %(limit)s OFFSET %(offset)s
+    """)
     tags = q.lower().split()
     if commishclass:
         tags.append(commishclass)
@@ -299,7 +319,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo['localmin'] = info.convertedmin
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if info.examplecount and tags:
-            dinfo['searchquery'] = "q=user%3A" + info.username + "+%7C" + "+%7C".join(tags)
+            terms = ["user:" + info.username] + ["|" + tag for tag in tags]
+            dinfo['searchquery'] = "q=" + urllib.quote(" ".join(terms))
         else:
             dinfo['searchquery'] = ""
         return dinfo
@@ -337,7 +358,7 @@ def create_price(userid, price, currency="", settings=""):
 
     # Settings are at most one currency class, and optionally an 'a' to indicate an add-on price.
     # TODO: replace these character codes with an enum.
-    settings = "%s%s" % ("".join(i for i in currency if i in ALL_CURRENCIES)[:1],
+    settings = "%s%s" % ("".join(i for i in currency if i in CURRENCY_CHARMAP)[:1],
                          "a" if "a" in settings else "")
 
     # TODO: should have an auto-increment ID
@@ -364,7 +385,7 @@ def edit_class(userid, commishclass):
 
 
 def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_settings=False):
-    currency = "".join(i for i in currency if i in ALL_CURRENCIES)
+    currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
     settings = "".join(i for i in settings if i in "a")
 
     query = d.execute("SELECT amount_min, amount_max, settings, classid FROM commishprice"

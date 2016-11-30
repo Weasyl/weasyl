@@ -42,6 +42,7 @@ def upgrade():
                     )
     op.create_index('ind_artist_optout_tags_tagid', 'artist_optout_tags', ['tagid'])
     op.create_index('ind_artist_optout_tags_targetid', 'artist_optout_tags', ['targetid'])
+    op.execute('CREATE EXTENSION IF NOT EXISTS FUZZYSTRMATCH')
 
 
 def downgrade():

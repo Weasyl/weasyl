@@ -71,6 +71,11 @@ $code:
             $else:
               Price not declared
           </div>
+          $# matching commission classes
+          $if form.c or form.pc:
+            <div class="artist-classes">
+              <strong>Matched: ${artist['class']}</strong>
+            </div>
           $# commission description
           <div class="formatted-content">
             $if artist.get('description'):

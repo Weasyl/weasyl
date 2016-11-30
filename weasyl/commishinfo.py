@@ -224,13 +224,14 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             cp.settings AS pricesettings,
             MIN(convert.convertedmin) AS convertedmin,
             d.content AS description, s.unixtime,
-            tag.tagcount, example.examplecount
+            tag.tagcount, example.examplecount,
+            STRING_AGG(DISTINCT cc.title, ', ') AS class
         FROM profile p
 
-        JOIN login on p.userid = login.userid
+        JOIN login ON p.userid = login.userid
 
         INNER JOIN commishclass cc ON cc.userid = p.userid
-            AND lower(cc.title) LIKE %(cclass)s
+            AND LOWER(cc.title) LIKE %(cclasslike)s
 
         JOIN commishprice cp ON cp.classid = cc.classid
             AND cp.userid = p.userid
@@ -255,7 +256,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             AND convert.classid = cc.classid
 
         INNER JOIN (
-            SELECT MAX(unixtime) as unixtime, userid
+            SELECT MAX(unixtime) AS unixtime, userid
             FROM submission
             WHERE settings !~ '[hf]'
             GROUP BY userid
@@ -292,6 +293,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             GROUP BY map.targetid
         )
     """)
+    tags = q.lower().split()
     if min_price:
         stmt.append("AND convertedmin >= %(min)s ")
     if max_price:
@@ -301,18 +303,29 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     stmt.append("""
         GROUP BY p.userid, cp.settings, d.content, s.unixtime,
         tag.tagcount, example.examplecount
-        ORDER BY COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC
+        ORDER BY
+    """)
+    if commishclass:
+        # If we are searching for a specific commission class, put closest matches
+        # near the top of the list. This is necessary because we allow partial matches
+        # on class names eg badge -> badges.
+        # however, we want the other orderings to really have more importance overall,
+        # so it's lumped into two categories of "close" (<=2) and "not close" (>2)
+        stmt.append("""
+            LEAST(GREATEST(MIN(LEVENSHTEIN(LOWER(cc.title), %(cclass)s)), 2), 3),
+        """)
+        # As well, use searched class as a tag for purposes of finding "tagged" examples of an artists work
+        tags.append(commishclass)
+    stmt.append("""
+            COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC
         LIMIT %(limit)s OFFSET %(offset)s
     """)
-    tags = q.lower().split()
-    if commishclass:
-        tags.append(commishclass)
-    # allow partial matches on commishclass
-    commishclass = "%" + commishclass + "%"
+    # to allow partial matches on commishclass
+    cclasslike = "%" + commishclass + "%"
     max_rating = d.get_rating(userid)
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
-                             max=max_price, cclass=commishclass, tags=tags,
-                             rating=max_rating, offset=offset)
+                             max=max_price, cclass=commishclass, cclasslike=cclasslike,
+                             tags=tags, rating=max_rating, offset=offset)
 
     def prepare(info):
         dinfo = dict(info)

@@ -250,10 +250,3 @@ report.settings ()
 ------------------
 
 r  Under review
-
----------------------------
-searchmapartist.settings ()
----------------------------
-
-n  Tag is for no-draw list
-

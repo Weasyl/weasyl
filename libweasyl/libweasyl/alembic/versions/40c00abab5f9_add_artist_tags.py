@@ -52,3 +52,4 @@ def downgrade():
     op.drop_index('ind_artist_optout_tags_tagid', 'artist_optout_tags')
     op.drop_index('ind_artist_optout_tags_targetid', 'artist_optout_tags')
     op.drop_table('artist_optout_tags')
+    op.execute('DROP EXTENSION IF EXISTS FUZZYSTRMATCH')

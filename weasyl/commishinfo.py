@@ -96,12 +96,15 @@ def convert_currency(value, valuecode, targetcode):
     :param value: The amount of currency to be converted
     :param valuecode: Weasyl-code of the currency $value is in currently
     :param targetcode: Weasyl-code of the currency $value should be converted to
-    :return: The converted amount
+    :return: The converted amount. If a conversion cannot be made, may return None.
     """
     if targetcode == valuecode:
         return value
     ratio = currency_ratio(valuecode, targetcode)
-    return value * ratio
+    if ratio:
+        return value * ratio
+    else:
+        return None
 
 
 def currency_ratio(valuecode, targetcode):
@@ -110,7 +113,7 @@ def currency_ratio(valuecode, targetcode):
 
     :param valuecode: Weasyl-code of the currency $value is in currently
     :param targetcode: Weasyl-code of the currency $value should be converted to
-    :return: The conversion ratio
+    :return: The conversion ratio. If a ratio cannot be found, may return None.
     """
     valuecode = _charmap_to_currency_code(valuecode)
     targetcode = _charmap_to_currency_code(targetcode)
@@ -119,11 +122,16 @@ def currency_ratio(valuecode, targetcode):
         # in the unlikely event of an error, invalidate our rates
         # (to try fetching again) and return value unaltered
         _fetch_rates.invalidate()
-        return 1.0
+        return None
     rates = rates["rates"]
     rates["USD"] = 1.0
-    r1 = rates.get(valuecode)
-    r2 = rates.get(targetcode)
+    try:
+        r1 = float(rates.get(valuecode))
+        r2 = float(rates.get(targetcode))
+    except ValueError:
+        # something is very wrong with our data source
+        _fetch_rates.invalidate()
+        return None
     if not (r1 and r2):
         raise WeasylError("Unexpected")
     return r2 / r1
@@ -243,8 +251,13 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     """]
     # set up the cases to convert currencies from the artist's to the searcher's
     for c in CURRENCY_CHARMAP:
-        ratio = currency_ratio(currency, c)
-        stmt.append("WHEN '%s' THEN MIN(cp.amount_min) / %f\n" % (c, ratio))
+        ratio = currency_ratio(c, currency)
+        if not ratio:
+            # we assume 1.0 here so a missing ratio doesnt completely mess up
+            # the sql query. convertedmin is just for sorting, in event of an
+            # error then converted price will be hidden.
+            ratio = 1.0
+        stmt.append("WHEN '%s' THEN MIN(cp.amount_min) * %f\n" % (c, ratio))
 
     stmt.append("""
                 ELSE MIN(cp.amount_min)
@@ -329,7 +342,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
     def prepare(info):
         dinfo = dict(info)
-        dinfo['localmin'] = info.convertedmin
+        dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if info.examplecount and tags:
             terms = ["user:" + info.username] + ["|" + tag for tag in tags]

@@ -104,9 +104,10 @@ def control_editcommishtext_(request):
 @login_required
 @token_checked
 def control_createcommishclass_(request):
-    form = request.web_input(title="")
+    form = request.web_input(title="", titlepreset="")
+    title = form.title or form.titlepreset
 
-    commishinfo.create_commission_class(request.userid, form.title.strip())
+    commishinfo.create_commission_class(request.userid, title.strip())
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
 

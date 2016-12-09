@@ -11,7 +11,8 @@ $code:
 
     <form id="marketplace-search" method="GET" class="form">
     <label for="commission-class-preset">Type of Commission</label>
-      <select class="input last-input" name="pc" id="commission-class-preset">
+      <select class="input last-input" name="pc" title="Commission Type"
+              id="commission-class-preset">
         <option value="" $:{is_selected(form.pc, "")}>Any/Other</option>
         $for c in presets:
           <option value="${c}" $:{is_selected(form.pc, c)}>${c}</option>
@@ -22,22 +23,24 @@ $code:
              type="text" tabindex="2" class="input" value="${form.c}">
 
       <label for="commission-type-tags">Content</label>
-      <input id="commission-type-tags" name="q" title="Search for artists"
+      <input id="commission-type-tags" name="q" title="Commission Content"
              type="text" class="input" value="${form.q}">
 
       <label for="commission-min-price">Minimum Price</label>
       <input id="commission-min-price" name="min" title="Minimum Price"
              type="text" class="input" value="${form.min}">
       <label for="commission-max-price">Maximum Price</label>
-      <input id="commission-max-price" name="max" title="maximum Price"
+      <input id="commission-max-price" name="max" title="Maximum Price"
              type="text" class="input"value="${form.max}">
       <label for="commish-currency">Currency</label>
-      <select class="input last-input" name="currency" id="commish-currency">
+      <select class="input last-input" name="currency" title="Currency"
+              id="commish-currency">
         $for char, info in currencies.iteritems():
           <option value="${char}" $:{is_selected(form.currency, char)}>${info['name']}</option>
       </select>
 
       <button class="button">Search</button>
+      <p class="color-lighter tags-help"><i><a href="/help/marketplace" target="_blank">Marketplace search help</a></i></p>
     </form>
   </div>
 

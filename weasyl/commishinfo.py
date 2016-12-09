@@ -286,7 +286,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         ) AS tag ON tag.targetid = p.userid
 
         LEFT JOIN (
-            SELECT sub.userid, COUNT (sub.submitid) as examplecount
+            SELECT sub.userid, COUNT (distinct sub.submitid) as examplecount
             FROM submission sub
             JOIN searchmapsubmit map ON map.targetid = sub.submitid
             JOIN searchtag tag ON map.tagid = tag.tagid

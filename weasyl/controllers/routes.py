@@ -296,6 +296,8 @@ routes = (
     Route("/help/tagging", "help_tagging", info.help_tagging_),
     Route("/help/markdown", "help_markdown", info.help_markdown_),
     Route("/help/searching", "help_searching", info.help_searching_),
+    Route("/help/marketplace", "help_marketplace", info.help_marketplace_),
+    Route("/help/commissions", "help_commishinfo", info.help_commishinfo_),
     Route("/help/ratings", "help_ratings", info.help_ratings_),
     Route("/help/ratings/changes", "help_ratings_changes", info.help_ratings_changes_),
     Route("/help/folders", "help_folders", info.help_folders_),

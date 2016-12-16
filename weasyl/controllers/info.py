@@ -102,11 +102,6 @@ def help_marketplace_(request):
                                    title="Marketplace"))
 
 
-def help_commishinfo_(request):
-    return Response(define.webpage(request.userid, "help/commishinfo.html",
-                                   title="Commission Prices"))
-
-
 def help_markdown_(request):
     return Response(define.webpage(request.userid, "help/markdown.html",
                                    title="Markdown"))

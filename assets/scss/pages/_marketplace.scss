@@ -16,31 +16,31 @@
 }
 
 .marketplace-desc-preview {
-  position: relative;
-  max-height: 12em;
-  overflow: hidden;
+    position: relative;
+    max-height: 12em;
+    overflow: hidden;
 }
 
 .marketplace-desc-fade {
-  position: absolute;
-  height:12em;
-  width: 100%;
-  top: 0;
-  left: 0;
-  background-image: linear-gradient(to top, #ddd 2%, rgba(0,0,0,0) 15%);
-  border-bottom: 2px solid #ccc;
-  box-sizing: border-box;
+    position: absolute;
+    height:12em;
+    width: 100%;
+    top: 0;
+    left: 0;
+    background-image: linear-gradient(to top, #ddd 2%, rgba(0,0,0,0) 15%);
+    border-bottom: 2px solid #ccc;
+    box-sizing: border-box;
 }
 
 .marketplace-desc-fade button {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  text-align: center;
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    text-align: center;
 }
 
 .no-js .marketplace-desc-fade button {
-  visibility: hidden;
+    visibility: hidden;
 }
 
 @media (min-width: 36em) {

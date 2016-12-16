@@ -269,6 +269,13 @@
             $(this).closest('form').find('input[type=checkbox]').prop('checked', false).change();
         });
 
+        // Marketplace result "Show More" button
+        $('.marketplace-desc-fade button').on('click', function (ev) {
+            var fadebox = $(this).parent();
+            fadebox.parent().removeClass('marketplace-desc-preview');
+            fadebox.remove();
+        });
+
         // checkbox containers
         $('.input-checkbox input[type=checkbox]').each(function () {
             var that = this;

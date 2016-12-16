@@ -86,11 +86,14 @@ $code:
               <strong>Matched: ${artist['class']}</strong>
             </div>
           $# commission description
-          <div class="formatted-content">
+          <div class="formatted-content marketplace-desc-preview">
             $if artist.get('description'):
               $:{MARKDOWN(artist['description'])}
             $else:
               No description provided
+            <div class="marketplace-desc-fade">
+              <button class="link-button">Show More</button>
+            </div>
           </div>
         </div>
 

@@ -180,6 +180,10 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
         ``tags`` to. (default: None)
         journalid: The ID number of a journal content item to associate
         ``tags`` to. (default: None)
+        artistid: The ID number of a user to associate
+        ``tags`` to for Preferred tags. (default: None)
+        optoutid: The ID number of a user to associate
+        ``tags`` to for Opt-Out tags. (default: None)
 
     Returns:
         A dict containing two elements. 1) ``add_failure_restricted_tags``, which contains a space separated
@@ -205,17 +209,18 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
         ownerid = d.get_ownerid(journalid=targetid)
     elif artistid:
         table, feature = "artist_preferred_tags", "user"
-        targetid = ownerid = userid
+        targetid = ownerid = artistid
     elif optoutid:
         table, feature = "artist_optout_tags", "user"
-        targetid = ownerid = userid
+        targetid = ownerid = optoutid
     else:
         raise WeasylError("Unexpected")
 
     # Check permissions and invalid target
     if not ownerid:
         raise WeasylError("TargetRecordMissing")
-    elif userid != ownerid and "g" in d.get_config(userid):
+    elif userid != ownerid and ("g" in d.get_config(userid) or artistid or optoutid):
+        # disallow if user is forbidden from tagging, or trying to set artist tags on someone other than themselves
         raise WeasylError("InsufficientPermissions")
     elif ignoreuser.check(ownerid, userid):
         raise WeasylError("contentOwnerIgnoredYou")

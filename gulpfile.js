@@ -21,3 +21,7 @@ gulp.task('sass', function () {
         .pipe(rev.manifest())
         .pipe(gulp.dest('build/'));
 });
+
+gulp.task('sass:watch', function () {
+    gulp.watch('assets/scss/**/*.scss', ['sass']);
+});

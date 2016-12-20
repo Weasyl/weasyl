@@ -1,7 +1,10 @@
+# encoding: utf-8
+from __future__ import absolute_import
+
 from lxml.etree import LIBXML_VERSION
 import pytest
 
-from libweasyl.text import markdown, markdown_link
+from libweasyl.text import markdown, markdown_excerpt, markdown_link
 
 
 libxml_xfail = pytest.mark.xfail(LIBXML_VERSION < (2, 9), reason='libxml2 too old to preserve whitespace')
@@ -120,3 +123,33 @@ markdown_link_tests = [
 @pytest.mark.parametrize(('target', 'expected'), markdown_link_tests)
 def test_markdown_link(target, expected):
     assert markdown_link(*target) == expected
+
+
+markdown_excerpt_tests = [
+    (u'', u''),
+    (u'short', u'short'),
+    (u'just short enoughAAAAAAAAAAAAA', u'just short enoughAAAAAAAAAAAAA'),
+    (u'not short enoughAAAAAAAAAAAAAAA', u'not short enoughAAAAAAAAAAAAA…'),
+    (u'*leading* inline formatting', u'leading inline formatting'),
+    (u'middle *inline* formatting', u'middle inline formatting'),
+    (u'trailing inline *formatting*', u'trailing inline formatting'),
+    (u'*nested **inline** formatting*', u'nested inline formatting'),
+    (u'   unnecessary  whitespace\t', u'unnecessary whitespace'),
+    (u'multiple\nlines', u'multiple lines'),
+    (u'multiple  \nlines', u'multiple lines'),
+    (u'multiple\n\nparagraphs', u'multiple paragraphs'),
+    (u'Üñíçôđe\N{COMBINING ACUTE ACCENT}', u'Üñíçôđe\N{COMBINING ACUTE ACCENT}'),
+    (u'single-codepoint graphemes😊😊😊😊', u'single-codepoint graphemes😊😊😊😊'),
+    (u'single-codepoint graphemes😊😊😊😊😊', u'single-codepoint graphemes😊😊😊…'),
+    (u'test\n - lists\n - of\n - items\n\ntest', u'test lists of items test'),
+]
+
+
+@pytest.mark.parametrize(('target', 'expected'), markdown_excerpt_tests)
+def test_excerpt(target, expected):
+    assert markdown_excerpt(target, length=30) == expected
+
+
+def test_excerpt_default_length():
+    assert markdown_excerpt(u'a' * 300) == u'a' * 300
+    assert markdown_excerpt(u'a' * 301) == u'a' * 299 + u'…'

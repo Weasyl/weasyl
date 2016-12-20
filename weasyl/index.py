@@ -1,20 +1,20 @@
+from __future__ import absolute_import
+
 import collections
 import itertools
 import operator
 
-import define as d
-import macro as m
-
-import blocktag
-import character
-import ignoreuser
-import profile
-import searchtag
-import siteupdate
-import submission
-
 from libweasyl import ratings
 
+from weasyl import blocktag
+from weasyl import character
+from weasyl import define as d
+from weasyl import ignoreuser
+from weasyl import macro as m
+from weasyl import profile
+from weasyl import searchtag
+from weasyl import siteupdate
+from weasyl import submission
 from weasyl.cache import region
 
 
@@ -110,7 +110,7 @@ def template_fields(userid):
 
     return ret + [
         # Recent site news update
-        siteupdate.select(),
+        siteupdate.select_last(),
         # Recent critique submissions
         submission.select_list(userid, rating, 4, options=["critique"], config=config),
         # Currently streaming users

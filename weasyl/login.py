@@ -1,4 +1,4 @@
-# login.py
+from __future__ import absolute_import
 
 import arrow
 import bcrypt
@@ -24,20 +24,16 @@ def signin(userid):
     d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
 
     # set the userid on the session
-    sess = d.web.ctx.weasyl_session
+    sess = d.get_weasyl_session()
     sess.userid = userid
     sess.save = True
 
 
-def signout(userid):
-    sess = d.web.ctx.weasyl_session
+def signout(request):
+    sess = request.weasyl_session
     # unset SFW-mode cookie on logout
-    d.web.setcookie("sfwmode", "nsfw", -1)
-    if sess.additional_data.get('user-stack'):
-        sess.userid = sess.additional_data['user-stack'].pop()
-        sess.additional_data.changed()
-    else:
-        sess.userid = None
+    request.delete_cookie_on_response("sfwmode")
+    sess.userid = None
     sess.save = True
 
 
@@ -163,6 +159,8 @@ def create(form):
         raise WeasylError("passwordInsecure")
     if not email:
         raise WeasylError("emailInvalid")
+    if is_email_blacklisted(email):
+        raise WeasylError("emailBlacklisted")
     if not sysname or ";" in username:
         raise WeasylError("usernameInvalid")
     if sysname in ["admin", "administrator", "mod", "moderator", "weasyl",
@@ -203,11 +201,11 @@ def verify(token):
     db = d.connect()
     with db.begin():
         # Create login record
-        userid = db.execute(lo.insert().returning(lo.c.userid), {
+        userid = db.scalar(lo.insert().returning(lo.c.userid), {
             "login_name": d.get_sysname(query.username),
             "last_login": arrow.now(),
             "email": query.email,
-        }).scalar()
+        })
 
         # Create profile records
         db.execute(d.meta.tables["authbcrypt"].insert(), {
@@ -239,20 +237,20 @@ def verify(token):
 
 
 def email_exists(email):
-    return d.engine.execute("""
+    return d.engine.scalar("""
         SELECT
             EXISTS (SELECT 0 FROM login WHERE email = %(email)s) OR
             EXISTS (SELECT 0 FROM logincreate WHERE email = %(email)s)
-    """, email=email).scalar()
+    """, email=email)
 
 
 def username_exists(login_name):
-    return d.engine.execute("""
+    return d.engine.scalar("""
         SELECT
             EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s) OR
             EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s) OR
             EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
-    """, name=login_name).scalar()
+    """, name=login_name)
 
 
 def update_unicode_password(userid, password, password_confirm):
@@ -288,4 +286,20 @@ def get_account_verification_token(email=None, username=None):
     else:
         statement = statement.where(logincreate.c.login_name == username)
 
-    return d.engine.execute(statement).scalar()
+    return d.engine.scalar(statement)
+
+
+def is_email_blacklisted(address):
+    """
+    Determines if a supplied email address is present in the 'emailblacklist' table.
+    Parameters:
+        address: The email address to split out the domain from.
+    Returns:
+        Boolean True if present on the blacklist, or False otherwise.
+    """
+    local, domain = address.rsplit("@", 1)
+
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT 0 FROM emailblacklist WHERE domain_name = %(domain_name)s)",
+        domain_name=domain,
+    )

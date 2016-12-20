@@ -1,99 +1,38 @@
-import web
+from __future__ import absolute_import
 
 import arrow
-import sqlalchemy as sa
 
-from libweasyl import staff
-from libweasyl.legacy import UNIXTIME_OFFSET
-
+from libweasyl.models.site import SiteUpdate
 from weasyl import define as d
-from weasyl import dry
 from weasyl import media
 from weasyl import welcome
-from weasyl.error import WeasylError
 
 
-_TITLE = 100
+def create(userid, title, content):
+    update = SiteUpdate(
+        userid=userid,
+        title=title,
+        content=content,
+        unixtime=arrow.utcnow(),
+    )
+
+    SiteUpdate.dbsession.add(update)
+    SiteUpdate.dbsession.flush()
+    welcome.site_update_insert(update.updateid)
+
+    return update
 
 
-def create(userid, form):
-    form.title = form.title.strip()[:_TITLE]
-    form.content = form.content.strip()
-
-    if not form.title:
-        raise WeasylError("titleInvalid")
-    elif not form.content:
-        raise WeasylError("titleInvalid")
-    elif userid not in staff.ADMINS:
-        raise WeasylError("InsufficientPermissions")
-
-    su = d.meta.tables['siteupdate']
-    q = (
-        su.insert()
-        .values(userid=userid, title=form.title, content=form.content, unixtime=arrow.utcnow())
-        .returning(su.c.updateid))
-    db = d.connect()
-    updateid = db.scalar(q)
-    welcome.site_update_insert(updateid)
-
-
-def select(limit=1):
-    ret = [{
-        "updateid": i[0],
-        "userid": i[1],
-        "username": i[2],
-        "title": i[3],
-        "content": i[4],
-        "unixtime": i[5],
-    } for i in d.execute("""
-        SELECT up.updateid, up.userid, pr.username, up.title, up.content, up.unixtime, pr.config
+def select_last():
+    last = d.engine.execute("""
+        SELECT up.updateid, up.userid, pr.username, up.title, up.content, up.unixtime
         FROM siteupdate up
             INNER JOIN profile pr USING (userid)
         ORDER BY updateid DESC
-        LIMIT %i
-    """, [limit])]
+        LIMIT 1
+    """).first()
 
-    media.populate_with_user_media(ret)
-    return ret
+    if not last:
+        return None
 
-
-def select_by_id(updateid):
-    su = d.meta.tables['siteupdate']
-    pr = d.meta.tables['profile']
-    q = (
-        sa.select([
-            pr.c.userid, pr.c.username, su.c.title, su.c.content, su.c.unixtime,
-        ])
-        .select_from(su.join(pr, su.c.userid == pr.c.userid))
-        .where(su.c.updateid == updateid))
-    db = d.connect()
-    results = db.execute(q).fetchall()
-    if not results:
-        raise WeasylError('RecordMissing')
-    results = dict(results[0])
-    results['user_media'] = media.get_user_media(results['userid'])
-    results['timestamp'] = results['unixtime'].timestamp + UNIXTIME_OFFSET
-    return results
-
-
-class admincontrol_siteupdate_:
-    def GET(self):
-        return dry.admin_render_page("admincontrol/siteupdate.html")
-
-    @d.token_checked
-    def POST(self):
-        userid = d.get_userid()
-        status = d.common_status_check(userid)
-
-        if status:
-            return d.common_status_page(userid, status)
-        elif not userid:
-            return d.webpage(userid)
-        elif userid not in staff.MODS:
-            return d.webpage(userid, d.errorcode.permission)
-
-        form = web.input(title="", content="")
-
-        create(userid, form)
-
-        raise web.seeother("/admincontrol")
+    return dict(last, user_media=media.get_user_media(last.userid))

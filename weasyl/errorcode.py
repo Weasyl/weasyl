@@ -1,4 +1,4 @@
-# errorcode.py
+from __future__ import absolute_import
 
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
@@ -71,6 +71,9 @@ error_messages = {
     "coverType": (
         "The cover art file you uploaded is not a valid filetype for this submission category."),
     "duplicateSubmission": "You have already made a submission with this submission file.",
+    "emailBlacklisted": (
+        "The domain of the email you entered has been associated with a high volume of spam. "
+        "Consequently, registrations from this domain have been blacklisted."),
     "emailExists": "The email you entered is already taken by another user.",
     "emailIncorrect": "The email you entered is not associated with the account you specified.",
     "emailInvalid": "The email you entered does not appear to be valid.",
@@ -162,10 +165,10 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
-    "userRecordMissing": "404 Not Found",
-    "submissionRecordMissing": "404 Not Found",
-    "journalRecordMissing": "404 Not Found",
-    "characterRecordMissing": "404 Not Found",
+    "userRecordMissing": 404,
+    "submissionRecordMissing": 404,
+    "journalRecordMissing": 404,
+    "characterRecordMissing": 404,
 }
 
 

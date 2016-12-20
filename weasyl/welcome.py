@@ -1,4 +1,4 @@
-# welcome.py
+from __future__ import absolute_import
 
 import arrow
 import sqlalchemy as sa

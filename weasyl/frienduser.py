@@ -1,12 +1,10 @@
-# frienduser.py
+from __future__ import absolute_import
 
-from error import WeasylError
-import define as d
-
-import welcome
-import ignoreuser
-
+from weasyl import define as d
+from weasyl import ignoreuser
 from weasyl import media
+from weasyl import welcome
+from weasyl.error import WeasylError
 
 
 def check(userid, otherid, pending=False, myself=True):

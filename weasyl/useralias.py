@@ -1,9 +1,8 @@
-# useralias.py
+from __future__ import absolute_import
 
-from error import WeasylError
-import define as d
-
-import login
+from weasyl import define as d
+from weasyl import login
+from weasyl.error import WeasylError
 
 
 def select(userid, premium=True):

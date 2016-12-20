@@ -368,10 +368,13 @@ RDEPS = {
 @click.option('--all', 'all_targets', is_flag=True, help=(
     "Build all targets."
 ))
+@click.option('-f', '--no-cache', is_flag=True, help=(
+    "If possible, don't use cache for this build."
+))
 @click.argument('target', nargs=-1, type=PARTS_CHOICE)
 @click.pass_context
 @ensure_wzl_dev
-def build(ctx, reverse_deps, no_deps, dry_run, all_targets, target):
+def build(ctx, reverse_deps, no_deps, dry_run, all_targets, no_cache, target):
     """
     Build docker images.
 
@@ -384,6 +387,9 @@ def build(ctx, reverse_deps, no_deps, dry_run, all_targets, target):
     If --reverse-deps is specified, instead of building the listed targets and
     the dependencies of the listed targets, the listed targets and the targets
     depending on the listed targets will be built.
+
+    If --no-cache is specified, builds that use `docker-compose build`
+    will be run with --no-cache as well.
 
     Possible targets are:
 
@@ -425,9 +431,12 @@ def build(ctx, reverse_deps, no_deps, dry_run, all_targets, target):
         k: {d for d in DEPS[k] if d in all_targets} for k in all_targets})
     for target in order:
         p = PARTS[target]
+        command = p['command']
+        if command == ['build'] and no_cache:
+            command.append('--no-cache')
         command = (
             ['docker-compose', '-f', p['compose-file']] +
-            p['command'] +
+            command +
             [p.get('service', target)] +
             p.get('args', []))
         if dry_run:

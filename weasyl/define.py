@@ -23,7 +23,7 @@ import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
-from web.template import frender
+from web.template import Template
 
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
@@ -205,9 +205,8 @@ def compile(template_name):
     template = _template_cache.get(template_name)
 
     if template is None or reload_templates:
-        template_path = pkg_resources.resource_string(__name__, 'templates/' + template_name)
-        _template_cache[template_name] = template = web.template.frender(
-            template_path,
+        _template_cache[template_name] = template = Template(
+            pkg_resources.resource_string(__name__, 'templates/' + template_name),
             filename=template_name,
             globals={
                 "INT": int,

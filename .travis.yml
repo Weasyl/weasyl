@@ -1,5 +1,5 @@
 language: python
-sudo: required
+sudo: false
 
 services:
   - docker
@@ -8,11 +8,7 @@ cache:
   directories:
     - $TRAVIS_BUILD_DIR/wheelhouse
 
-env:
-  DOCKER_VERSION: 1.10.2-0~trusty
-
 before_install:
-  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=${DOCKER_VERSION}
   - docker version
   - ./wzl setup
 

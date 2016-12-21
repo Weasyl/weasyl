@@ -26,12 +26,18 @@ $code:
       <input id="commission-type-tags" name="q" title="Commission Content"
              type="text" class="input" value="${form.q}">
 
-      <label for="commission-min-price">Minimum Price</label>
-      <input id="commission-min-price" name="min" title="Minimum Price"
-             type="text" class="input" value="${form.min}">
-      <label for="commission-max-price">Maximum Price</label>
-      <input id="commission-max-price" name="max" title="Maximum Price"
-             type="text" class="input"value="${form.max}">
+      <div class="form-2up clear">
+        <div class="form-2up-1">
+          <label for="commission-min-price">Minimum Price</label>
+          <input id="commission-min-price" name="min" title="Minimum Price" type="text" class="input" value="${form.min}">
+        </div>
+
+        <div class="form-2up-2">
+          <label for="commission-max-price">Maximum Price</label>
+          <input id="commission-max-price" name="max" title="Maximum Price" type="text" class="input"value="${form.max}">
+        </div>
+      </div>
+
       <label for="commish-currency">Currency</label>
       <select class="input last-input" name="currency" title="Currency"
               id="commish-currency">

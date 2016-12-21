@@ -138,23 +138,23 @@ def can_connect(host, port):
             return True
 
 
-def wait_for_postgres():
+def wait_for_postgres(port=5432):
     started_at = time.time()
-    if can_connect('db', 5432):
+    if can_connect('db', port):
         return
 
     bar = click.progressbar(
-        length=60,
-        show_percent=False, show_eta=False,
+        length=60, show_percent=False,
         label='waiting for postgres to come up')
     with bar:
         while True:
             waited = time.time() - started_at
+            bar.update(waited - bar.pos)
             if waited > 60:
-                raise click.Abort("waited too long for postgres to come up")
-            bar.update(waited)
+                raise click.ClickException(
+                    "waited too long for postgres to come up")
             time.sleep(1)
-            if can_connect('db', 5432):
+            if can_connect('db', port):
                 return
 
 

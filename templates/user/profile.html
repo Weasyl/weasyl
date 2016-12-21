@@ -98,15 +98,15 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
         $for j in commishinfo['price']:
           $if(j['classid'] == i['classid'] and 'a' not in j['settings']):
             <dt>${j['title']}</dt>
-            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}$:{SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
+            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
             $if(j['amount_max']):
-              <dd><i>to </i>$:{SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
+              <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
         $for j in commishinfo['price']:
           $if(j['classid'] == i['classid'] and 'a' in j['settings']):
             <dt><i>add &#160;</i>${j['title']}</dt>
-            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}$:{SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
+            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
             $if(j['amount_max']):
-              <dd><i>to </i>$:{SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
+              <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
         </dl>
 
       $if(commishinfo['content']):

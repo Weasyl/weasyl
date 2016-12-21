@@ -1,3 +1,4 @@
+# encoding: utf-8
 from __future__ import absolute_import, division
 
 import re
@@ -18,15 +19,15 @@ Currency = namedtuple('Currency', ('code', 'name', 'symbol'))
 
 # map database charset to ISO4217 currency codes
 CURRENCY_CHARMAP = {
-    "": Currency(code="USD", name="United States Dollar", symbol="&#36;"),
-    "e": Currency(code="EUR", name="Euro", symbol="&#8364;"),
-    "p": Currency(code="GBP", name="British Pound Sterling", symbol="&#163;"),
-    "y": Currency(code="JPY", name="Japanese Yen", symbol="J&#165;"),
-    "c": Currency(code="CAD", name="Canadian Dollar", symbol="C&#36;"),
-    "m": Currency(code="MXN", name="Mexican Peso", symbol="M&#36;"),
-    "u": Currency(code="AUD", name="Australian Dollar", symbol="A&#36;"),
-    "z": Currency(code="NZD", name="New Zealand Dollar", symbol="NZ&#36;"),
-    "n": Currency(code="CNY", name="Chinese Yuan", symbol="C&#165;"),
+    "": Currency(code="USD", name="United States Dollar", symbol="$"),
+    "e": Currency(code="EUR", name="Euro", symbol="€"),
+    "p": Currency(code="GBP", name="British Pound Sterling", symbol="£"),
+    "y": Currency(code="JPY", name="Japanese Yen", symbol="J¥"),
+    "c": Currency(code="CAD", name="Canadian Dollar", symbol="C$"),
+    "m": Currency(code="MXN", name="Mexican Peso", symbol="M$"),
+    "u": Currency(code="AUD", name="Australian Dollar", symbol="A$"),
+    "z": Currency(code="NZD", name="New Zealand Dollar", symbol="NZ$"),
+    "n": Currency(code="CNY", name="Chinese Yuan", symbol="C¥"),
     "f": Currency(code="CHF", name="Swiss Franc", symbol="Fr"),
 }
 

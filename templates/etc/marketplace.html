@@ -65,18 +65,18 @@ $code:
           <div class="artist-prices">
             $if artist['pricemin']:
               $# display low end of price range in artist's currency
-              <span>$:{'from ' if artist['pricemax'] else ''}$:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemin'])}</span>
+              <span>$:{'from ' if artist['pricemax'] else ''}${SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemin'])}</span>
               $if artist['pricemax'] and artist['pricemax'] != artist['pricemin']:
                 $# display high end of price range in artist's currency
-                <span>to $:{SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemax'])}</span>
+                <span>to ${SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemax'])}</span>
               $if artist['pricesettings'] != form.currency and artist['localmin']:
                 $if artist['localmax'] and artist['localmax'] != artist['localmin']:
                   $# display converted prices (range)
-                  (<span>Approx. $:{SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>
-                  <span>to $:{SYMBOL(form.currency)} ${PRICE(artist['localmax'])}</span>)
+                  (<span>Approx. ${SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>
+                  <span>to ${SYMBOL(form.currency)} ${PRICE(artist['localmax'])}</span>)
                 $else:
                   $# display converted price (single)
-                  (<span>Approx. $:{SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>)
+                  (<span>Approx. ${SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>)
             $else:
               Price not declared
           </div>

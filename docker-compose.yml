@@ -25,7 +25,7 @@ services:
       - ws_media:/weasyl-app/static/media
       - ws_local:/var/cache/weasyl/.local
     volumes_from:
-      - container:wzl-run:rw
+      - container:${WZL_RUNNER}:rw
     depends_on:
       - cache
       - db
@@ -44,7 +44,7 @@ services:
       - ws_journal:/weasyl-app/static/journal
       - ws_media:/weasyl-app/static/media
     volumes_from:
-      - container:wzl-run:rw
+      - container:${WZL_RUNNER}:rw
     depends_on:
       - weasyl-app-dev
     ports:

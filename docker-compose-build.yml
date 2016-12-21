@@ -13,7 +13,7 @@ services:
       dockerfile: weasyl-build.docker
     image: weasyl-build
     volumes_from:
-      - container:wzl-run:rw
+      - container:${WZL_RUNNER}:rw
     environment:
       LOCAL_USER_ID: "${LOCAL_USER_ID}"
 
@@ -30,7 +30,7 @@ services:
     volumes:
       - assets_node_modules:/weasyl-src/node_modules
     volumes_from:
-      - container:wzl-run:rw
+      - container:${WZL_RUNNER}:rw
     environment:
       LOCAL_USER_ID: "${LOCAL_USER_ID}"
 

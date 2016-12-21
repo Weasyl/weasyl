@@ -17,10 +17,12 @@ elif [ -S "${sock}" ]; then
     extra_args="-v ${sock}:${sock} ${extra_args}"
 fi
 
+runner="wzl-run-$$"
 h=$(pwd)
 exec docker run --rm -it \
-     --name wzl-run \
+     --name "${runner}" \
      -e WZL=dev \
+     -e WZL_RUNNER="${runner}" \
      -e LOCAL_USER_ID="${LOCAL_USER_ID-$(id -u)}" \
      -v "${h}:/weasyl-src" \
      -v "${h}/build:/weasyl-app/build" \

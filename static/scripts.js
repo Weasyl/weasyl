@@ -44,6 +44,16 @@
         }
     }
 
+    function some(list, predicate) {
+        for (var i = 0, l = list.length; i < l; i++) {
+            if (predicate(list[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function EventStream() {
         this.listeners = [];
     }
@@ -1473,6 +1483,25 @@
 
         disableWithLabel(disables, checkbox.checked);
     });
+
+    (function () {
+        function isOtherOption(option) {
+            return option.hasAttribute('data-select-other');
+        }
+
+        forEach(document.getElementsByClassName('data-select-other'), function (field) {
+            var select = document.getElementById(field.getAttribute('data-select'));
+
+            function updateVisibility() {
+                var visible = some(this.selectedOptions, isOtherOption);
+
+                field.style.display = visible ? '' : 'none';
+            }
+
+            updateVisibility.call(select);
+            select.addEventListener('change', updateVisibility, {passive: true});
+        });
+    })();
 
     // Ajax favorites
     (function () {

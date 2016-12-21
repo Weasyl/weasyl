@@ -1,8 +1,8 @@
 $def with (results, form, currencies, presets, previndex, nextindex)
 $:{TITLE("Marketplace")}
 $code:
-  def is_selected(from_form, code):
-    return 'selected="selected"' if code == from_form else ""
+  def selected(s):
+    return 'selected' if s else ''
 
 
 <div style="background:#DDD" class="clear">
@@ -10,17 +10,14 @@ $code:
     <h3>Marketplace Search</h3>
 
     <form id="marketplace-search" method="GET" class="form">
-    <label for="commission-class-preset">Type of Commission</label>
-      <select class="input last-input" name="pc" title="Commission Type"
-              id="commission-class-preset">
-        <option value="" $:{is_selected(form.pc, "")}>Any/Other</option>
+      <label for="commission-class-preset">Type of Commission</label>
+      <select class="input last-input" name="pc" id="commission-class-preset">
+        <option value="" $:{selected(form.pc == "" and not form.c)}>Any</option>
         $for c in presets:
-          <option value="${c}" $:{is_selected(form.pc, c)}>${c}</option>
+          <option value="${c}" $:{selected(form.pc == c)}>${c}</option>
+        <option value="" $:{selected(form.pc == "" and form.c)} data-select-other="">Other</option>
       </select>
-      <h4 class="or color-lighter"><i>&mdash; Or &mdash;</i></h4>
-      <label for="commission-class">Other Commission Type</label>
-      <input id="commission-class" name="c" title="Commission Type"
-             type="text" tabindex="2" class="input" value="${form.c}">
+      <input name="c" type="text" class="input data-select-other" value="${form.c}" data-select="commission-class-preset" title="Other commission type" placeholder="Other commission type">
 
       <label for="commission-type-tags">Content</label>
       <input id="commission-type-tags" name="q" title="Commission Content"
@@ -36,7 +33,7 @@ $code:
       <select class="input last-input" name="currency" title="Currency"
               id="commish-currency">
         $for char, info in currencies.iteritems():
-          <option value="${char}" $:{is_selected(form.currency, char)}>${info.name}</option>
+          <option value="${char}" $:{selected(form.currency == char)}>${info.name}</option>
       </select>
 
       <button class="button">Search</button>

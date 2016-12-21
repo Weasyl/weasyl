@@ -29,18 +29,17 @@ $code:
       <div class="form-2up clear">
         <div class="form-2up-1">
           <label for="commission-min-price">Minimum Price</label>
-          <input id="commission-min-price" name="min" title="Minimum Price" type="text" class="input" value="${form.min}">
+          <input id="commission-min-price" name="min" type="text" class="input" value="${form.min}">
         </div>
 
         <div class="form-2up-2">
           <label for="commission-max-price">Maximum Price</label>
-          <input id="commission-max-price" name="max" title="Maximum Price" type="text" class="input"value="${form.max}">
+          <input id="commission-max-price" name="max" type="text" class="input" value="${form.max}">
         </div>
       </div>
 
       <label for="commish-currency">Currency</label>
-      <select class="input last-input" name="currency" title="Currency"
-              id="commish-currency">
+      <select class="input last-input" name="currency" id="commish-currency">
         $for char, info in currencies.iteritems():
           <option value="${char}" $:{selected(form.currency == char)}>${info.name}</option>
       </select>

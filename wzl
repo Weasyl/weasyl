@@ -1,8 +1,9 @@
 #!/bin/sh -eu
 
-if [ ! ".stamp-wzl" -nt "Dockerfile" ]; then
-    docker build -t wzl .
-    touch .stamp-wzl
+sha_disk=$(shasum -ba256 Dockerfile)
+sha_docker=$(docker inspect --type image --format='{{or .Config.Labels.Sha256 ""}}' wzl 2>/dev/null || true)
+if [ "${sha_disk}" != "${sha_docker}" ]; then
+    docker build --tag=wzl --label="Sha256=${sha_disk}" .
 fi
 
 sock="/var/run/docker.sock"

@@ -187,9 +187,10 @@ def test(args):
 ))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @ensure_wzl_dev
-def compose(args):
+def compose(args, _exec=True):
     """Run a docker-compose command."""
-    forward(['docker-compose'] + list(args))
+    runner = forward if _exec else cmd
+    runner(['docker-compose'] + list(args))
 
 
 @wzl.command()
@@ -213,6 +214,17 @@ def attach(ctx, service):
     This is the same as `compose exec {service} /bin/bash`.
     """
     ctx.invoke(compose, args=('exec', service, '/bin/bash'))
+
+
+@wzl.command()
+@click.pass_context
+def stop(ctx):
+    """
+    Stop running services.
+
+    Services' volumes will not be deleted.
+    """
+    ctx.invoke(compose, args=('stop',))
 
 
 @wzl.command(add_help_option=False, context_settings=dict(
@@ -443,6 +455,39 @@ def build(ctx, reverse_deps, no_deps, dry_run, all_targets, no_cache, target):
             click.echo('--> {}'.format(command))
         else:
             cmd(command)
+
+
+@wzl.command()
+@click.option('--dist', is_flag=True, help=(
+    "Try harder to restore the system to its original state."
+))
+@click.confirmation_option(prompt=(
+    "Deleting containers or images _should_ not delete any important state "
+    "(like uncommitted code), but, still: are you sure?"
+))
+@click.pass_context
+def clean(ctx, dist):
+    """
+    Stop everything and delete services' volumes.
+
+    This will also clean up 'orphaned' containers that docker-compose spawned,
+    but was not keeping track of.
+
+    If --dist is passed, try to restore the system as close as docker-compose
+    can to its original state. This means deleting containers, cached images,
+    and volumes.
+
+    The only thing that won't be destroyed is the 'wzl' image used as the main
+    entry point, since it's in use. To delete it as well:
+
+      $ docker rmi wzl
+    """
+    compose_files = {p['compose-file'] for p in PARTS.values()}
+    for compose_file in sorted(compose_files):
+        args = ['-f', compose_file, 'down', '--remove-orphans']
+        if dist:
+            args.extend(['--rmi', 'all', '--volumes'])
+        ctx.invoke(compose, args=args, _exec=False)
 
 
 @wzl.command()

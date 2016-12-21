@@ -13,8 +13,11 @@ $code:
       <label for="commission-class-preset">Type of Commission</label>
       <select class="input last-input" name="pc" id="commission-class-preset">
         <option value="" $:{selected(form.pc == "" and not form.c)}>Any</option>
-        $for c in presets:
-          <option value="${c}" $:{selected(form.pc == c)}>${c}</option>
+        $for group_name, group_options in presets:
+          <optgroup label="${group_name}">
+            $for c in group_options:
+              <option value="${c}" $:{selected(form.pc == c)}>${c}</option>
+          </optgroup>
         <option value="" $:{selected(form.pc == "" and form.c)} data-select-other="">Other</option>
       </select>
       <input name="c" type="text" class="input data-select-other" value="${form.c}" data-select="commission-class-preset" title="Other commission type" placeholder="Other commission type">

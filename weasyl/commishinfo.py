@@ -1,31 +1,33 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
-from weasyl import macro as m
-from weasyl.cache import region
-from weasyl.error import WeasylError
 import re
 import urllib
+from collections import namedtuple
 from decimal import Decimal
 
 from weasyl import define as d
-from weasyl import error
+from weasyl import macro as m
+from weasyl.cache import region
+from weasyl.error import PostgresError, WeasylError
 
 _MAX_PRICE = 99999999
 
 CURRENCY_PRECISION = 2
 
+Currency = namedtuple('Currency', ('code', 'name', 'symbol'))
+
 # map database charset to ISO4217 currency codes
 CURRENCY_CHARMAP = {
-    "": {"code": "USD", "name": "United States Dollar", "symbol": "&#36;"},
-    "e": {"code": "EUR", "name": "Euro", "symbol": "&#8364;"},
-    "p": {"code": "GBP", "name": "British Pound Sterling", "symbol": "&#163;"},
-    "y": {"code": "JPY", "name": "Japanese Yen", "symbol": "J&#165;"},
-    "c": {"code": "CAD", "name": "Canadian Dollar", "symbol": "C&#36;"},
-    "m": {"code": "MXN", "name": "Mexican Peso", "symbol": "M&#36;"},
-    "u": {"code": "AUD", "name": "Australian Dollar", "symbol": "A&#36;"},
-    "z": {"code": "NZD", "name": "New Zealand Dollar", "symbol": "NZ&#36;"},
-    "n": {"code": "CNY", "name": "Chinese Yuan", "symbol": "C&#165;"},
-    "f": {"code": "CHF", "name": "Swiss Franc", "symbol": "Fr"},
+    "": Currency(code="USD", name="United States Dollar", symbol="&#36;"),
+    "e": Currency(code="EUR", name="Euro", symbol="&#8364;"),
+    "p": Currency(code="GBP", name="British Pound Sterling", symbol="&#163;"),
+    "y": Currency(code="JPY", name="Japanese Yen", symbol="J&#165;"),
+    "c": Currency(code="CAD", name="Canadian Dollar", symbol="C&#36;"),
+    "m": Currency(code="MXN", name="Mexican Peso", symbol="M&#36;"),
+    "u": Currency(code="AUD", name="Australian Dollar", symbol="A&#36;"),
+    "z": Currency(code="NZD", name="New Zealand Dollar", symbol="NZ&#36;"),
+    "n": Currency(code="CNY", name="Chinese Yuan", symbol="C&#165;"),
+    "f": Currency(code="CHF", name="Swiss Franc", symbol="Fr"),
 }
 
 # These are to be used as a general guide for both artists and commissioners
@@ -85,7 +87,7 @@ def _charmap_to_currency_code(charmap):
     """
     for c in charmap:
         if c in CURRENCY_CHARMAP:
-            return CURRENCY_CHARMAP.get(c)['code']
+            return CURRENCY_CHARMAP[c].code
     return "USD"
 
 
@@ -350,30 +352,30 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
 def create_commission_class(userid, title):
     if not title:
-        raise error.WeasylError("titleInvalid")
+        raise WeasylError("titleInvalid")
 
     classid = d.execute("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %i", [userid], ["element"])
 
     try:
         d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid if classid else 1, userid, title])
-    except error.PostgresError:
-        raise error.WeasylError("commishclassExists")
+    except PostgresError:
+        raise WeasylError("commishclassExists")
 
 
 def create_price(userid, price, currency="", settings=""):
     if not price.title:
-        raise error.WeasylError("titleInvalid")
+        raise WeasylError("titleInvalid")
     elif price.amount_min > _MAX_PRICE:
-        raise error.WeasylError("minamountInvalid")
+        raise WeasylError("minamountInvalid")
     elif price.amount_max > _MAX_PRICE:
-        raise error.WeasylError("maxamountInvalid")
+        raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
-        raise error.WeasylError("maxamountInvalid")
+        raise WeasylError("maxamountInvalid")
     elif not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
                        [price.classid, userid], ["bool"]):
-        raise error.WeasylError("classidInvalid")
+        raise WeasylError("classidInvalid")
     elif not price.classid:
-        raise error.WeasylError("classidInvalid")
+        raise WeasylError("classidInvalid")
 
     # Settings are at most one currency class, and optionally an 'a' to indicate an add-on price.
     # TODO: replace these character codes with an enum.
@@ -387,20 +389,20 @@ def create_price(userid, price, currency="", settings=""):
         d.execute(
             "INSERT INTO commishprice VALUES (%i, %i, %i, '%s', %i, %i, '%s')",
             [priceid if priceid else 1, price.classid, userid, price.title, price.amount_min, price.amount_max, settings])
-    except error.PostgresError:
-        return error.WeasylError("titleExists")
+    except PostgresError:
+        return WeasylError("titleExists")
 
 
 def edit_class(userid, commishclass):
 
     if not commishclass.title:
-        raise error.WeasylError("titleInvalid")
+        raise WeasylError("titleInvalid")
 
     try:
         d.execute("UPDATE commishclass SET title = '%s' WHERE (classid, userid) = (%i, %i)",
                   [commishclass.title, commishclass.classid, userid])
-    except error.PostgresError:
-        raise error.WeasylError("titleExists")
+    except PostgresError:
+        raise WeasylError("titleExists")
 
 
 def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_settings=False):
@@ -411,13 +413,13 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_
                       " WHERE (priceid, userid) = (%i, %i)", [price.priceid, userid], options="single")
 
     if not query:
-        raise error.WeasylError("priceidInvalid")
+        raise WeasylError("priceidInvalid")
     elif price.amount_min > _MAX_PRICE:
-        raise error.WeasylError("minamountInvalid")
+        raise WeasylError("minamountInvalid")
     elif price.amount_max > _MAX_PRICE:
-        raise error.WeasylError("maxamountInvalid")
+        raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
-        raise error.WeasylError("maxamountInvalid")
+        raise WeasylError("maxamountInvalid")
 
     argv = []
     statement = ["UPDATE commishprice SET "]

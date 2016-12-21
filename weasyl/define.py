@@ -607,8 +607,8 @@ def text_price_symbol(target):
     from weasyl.commishinfo import CURRENCY_CHARMAP
     for c in target:
         if c in CURRENCY_CHARMAP:
-            return CURRENCY_CHARMAP.get(c)['symbol']
-    return CURRENCY_CHARMAP.get("")['symbol']
+            return CURRENCY_CHARMAP[c].symbol
+    return CURRENCY_CHARMAP[''].symbol
 
 
 def text_first_line(target, strip=False):

@@ -36,7 +36,7 @@ $code:
       <select class="input last-input" name="currency" title="Currency"
               id="commish-currency">
         $for char, info in currencies.iteritems():
-          <option value="${char}" $:{is_selected(form.currency, char)}>${info['name']}</option>
+          <option value="${char}" $:{is_selected(form.currency, char)}>${info.name}</option>
       </select>
 
       <button class="button">Search</button>

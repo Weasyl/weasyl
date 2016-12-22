@@ -35,15 +35,9 @@ CURRENCY_CHARMAP = {
 # to standardize some commission types until a more robust system
 # of searching for commissions is put in place
 PRESET_COMMISSION_CLASSES = [
-    "Sketch",
-    "Badge",
-    "Icon",
-    "Reference",
-    "Story",
-    "Music",
-    "Fullbody",
-    "Headshot",
-    "Chibi",
+    ("Visual", ["Sketch", "Badge", "Icon", "Reference", "Fullbody", "Headshot", "Chibi"]),
+    ("Literary", ["Story"]),
+    ("Multimedia", ["Music"]),
 ]
 
 

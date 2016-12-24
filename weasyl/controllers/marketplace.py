@@ -9,7 +9,7 @@ def search_(request):
     form = request.web_input(q="", min="", max="", currency="", pc="", c="", o="")
     limit = 30
     offset = define.get_int(form.o)
-    commishclass = form.c if form.c else form.pc
+    commishclass = form.pc if form.pc else form.c
     commishclass = commishclass.lower()
 
     results = commishinfo.select_commissionable(request.userid,

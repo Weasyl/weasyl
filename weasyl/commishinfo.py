@@ -218,10 +218,11 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     stmt = ["""
         SELECT p.userid, p.username, p.settings,
             MIN(cp.amount_min) AS pricemin,
+            MAX(sub.submitid) AS latest_submission,
             GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
             cp.settings AS pricesettings,
             MIN(convert.convertedmin) AS convertedmin,
-            d.content AS description, s.unixtime,
+            d.content AS description,
             tag.tagcount, example.examplecount,
             STRING_AGG(DISTINCT cc.title, ', ') AS class
         FROM profile p
@@ -234,6 +235,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         JOIN commishprice cp ON cp.classid = cc.classid
             AND cp.userid = p.userid
             AND cp.settings NOT LIKE '%%a'
+
+        JOIN submission sub ON sub.userid = p.userid
 
         INNER JOIN (
             SELECT cp.priceid, cp.userid, cp.classid,
@@ -257,13 +260,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         ) AS convert ON convert.priceid = cp.priceid
             AND convert.userid = p.userid
             AND convert.classid = cc.classid
-
-        INNER JOIN (
-            SELECT MAX(unixtime) AS unixtime, userid
-            FROM submission
-            WHERE settings !~ '[hf]'
-            GROUP BY userid
-        ) AS s ON s.userid = p.userid
 
         LEFT JOIN commishdesc d ON d.userid = p.userid
 
@@ -304,8 +300,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     if userid:
         stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
     stmt.append("""
-        GROUP BY p.userid, cp.settings, d.content, s.unixtime,
-        tag.tagcount, example.examplecount
+        GROUP BY p.userid, cp.settings, d.content, tag.tagcount, example.examplecount
         ORDER BY
     """)
     if commishclass:
@@ -320,7 +315,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         # As well, use searched class as a tag for purposes of finding "tagged" examples of an artists work
         tags.append(commishclass)
     stmt.append("""
-            COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC
+            COALESCE(tag.tagcount, 0) DESC, latest_submission DESC
         LIMIT %(limit)s OFFSET %(offset)s
     """)
     # to allow partial matches on commishclass

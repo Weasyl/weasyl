@@ -44,6 +44,16 @@
         }
     }
 
+    function some(list, predicate) {
+        for (var i = 0, l = list.length; i < l; i++) {
+            if (predicate(list[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function EventStream() {
         this.listeners = [];
     }
@@ -188,7 +198,7 @@
 
         $('textarea.expanding').autosize();
 
-        $('#tags-textarea')
+        $('.tags-textarea')
             .listbuilder({ width: '100%' })
             .addClass('proxy');
 
@@ -199,9 +209,9 @@
         });
 
         // tags
-        $('#di-tags .modify').on('click', function (ev) {
+        $('.di-tags .modify').on('click', function (ev) {
             ev.preventDefault();
-            $('#di-tags .tags-form, #di-tags .tags').toggleClass('open');
+            $(this).closest('.di-tags').find('.tags-form, .tags').toggleClass('open');
             $('.listbuilder-entry-add input').focus();
         });
 
@@ -267,6 +277,13 @@
         $('.do-uncheck').on('click', function (ev) {
             ev.preventDefault();
             $(this).closest('form').find('input[type=checkbox]').prop('checked', false).change();
+        });
+
+        // Marketplace result "Show More" button
+        $('.marketplace-desc-fade button').on('click', function (ev) {
+            var fadebox = $(this).parent();
+            fadebox.parent().removeClass('marketplace-desc-preview');
+            fadebox.remove();
         });
 
         // checkbox containers
@@ -1466,6 +1483,25 @@
 
         disableWithLabel(disables, checkbox.checked);
     });
+
+    (function () {
+        function isOtherOption(option) {
+            return option.hasAttribute('data-select-other');
+        }
+
+        forEach(document.getElementsByClassName('data-select-other'), function (field) {
+            var select = document.getElementById(field.getAttribute('data-select'));
+
+            function updateVisibility() {
+                var visible = some(this.selectedOptions, isOtherOption);
+
+                field.style.display = visible ? '' : 'none';
+            }
+
+            updateVisibility.call(select);
+            select.addEventListener('change', updateVisibility, {passive: true});
+        });
+    })();
 
     // Ajax favorites
     (function () {

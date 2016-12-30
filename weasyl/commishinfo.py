@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division
 
 import re
-import urllib
 from collections import namedtuple
 from decimal import Decimal
 
@@ -218,12 +217,12 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     stmt = ["""
         SELECT p.userid, p.username, p.settings,
             MIN(cp.amount_min) AS pricemin,
-            MAX(sub.submitid) AS latest_submission,
+            MAX(sub.unixtime) AS latest_submission,
             GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
             cp.settings AS pricesettings,
             MIN(convert.convertedmin) AS convertedmin,
             d.content AS description,
-            tag.tagcount, example.examplecount,
+            tag.tagcount,
             STRING_AGG(DISTINCT cc.title, ', ') AS class
         FROM profile p
 
@@ -271,19 +270,9 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             GROUP BY map.targetid
         ) AS tag ON tag.targetid = p.userid
 
-        LEFT JOIN (
-            SELECT sub.userid, COUNT (distinct sub.submitid) as examplecount
-            FROM submission sub
-            JOIN searchmapsubmit map ON map.targetid = sub.submitid
-            JOIN searchtag tag ON map.tagid = tag.tagid
-            WHERE tag.title = ANY(%(tags)s)
-            AND sub.rating <= %(rating)s
-            AND sub.settings !~ '[hf]'
-            GROUP BY sub.userid
-        ) AS example ON example.userid = p.userid
-
         WHERE p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
+        AND sub.settings !~ '[hf]'
         AND p.userid NOT IN (
             SELECT map.targetid
             FROM searchtag tag
@@ -300,7 +289,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     if userid:
         stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
     stmt.append("""
-        GROUP BY p.userid, cp.settings, d.content, tag.tagcount, example.examplecount
+        GROUP BY p.userid, cp.settings, d.content, tag.tagcount
         ORDER BY
     """)
     if commishclass:
@@ -329,11 +318,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo = dict(info)
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
-        if info.examplecount and tags:
-            terms = ["user:" + info.username] + ["|" + tag for tag in tags]
-            dinfo['searchquery'] = "q=" + urllib.quote(" ".join(terms))
-        else:
-            dinfo['searchquery'] = ""
         return dinfo
 
     results = [prepare(i) for i in query]

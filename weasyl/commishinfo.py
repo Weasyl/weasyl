@@ -218,7 +218,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     stmt = ["""
         SELECT p.userid, p.username, p.settings,
             MIN(cp.amount_min) AS pricemin,
-            MAX(sub.unixtime) AS latest_submission,
+            MAX(sub.submitid) AS latest_submission,
             GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
             cp.settings AS pricesettings,
             MIN(convert.convertedmin) AS convertedmin,

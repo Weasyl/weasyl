@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division
 
 import re
-import urllib
 from collections import namedtuple
 from decimal import Decimal
 
@@ -218,11 +217,11 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     stmt = ["""
         SELECT p.userid, p.username, p.settings,
             MIN(cp.amount_min) AS pricemin,
+            MAX(sub.unixtime) AS latest_submission,
             GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
             cp.settings AS pricesettings,
-            MIN(convert.convertedmin) AS convertedmin,
-            d.content AS description, s.unixtime,
-            tag.tagcount, example.examplecount,
+            d.content AS description,
+            tag.tagcount,
             STRING_AGG(DISTINCT cc.title, ', ') AS class
         FROM profile p
 
@@ -235,35 +234,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             AND cp.userid = p.userid
             AND cp.settings NOT LIKE '%%a'
 
-        INNER JOIN (
-            SELECT cp.priceid, cp.userid, cp.classid,
-            CASE cp.settings
-    """]
-    # set up the cases to convert currencies from the artist's to the searcher's
-    for c in CURRENCY_CHARMAP:
-        ratio = currency_ratio(c, currency)
-        if not ratio:
-            # we assume 1.0 here so a missing ratio doesnt completely mess up
-            # the sql query. convertedmin is just for sorting, in event of an
-            # error then converted price will be hidden.
-            ratio = 1.0
-        stmt.append("WHEN '%s' THEN MIN(cp.amount_min) * %f\n" % (c, ratio))
-
-    stmt.append("""
-                ELSE MIN(cp.amount_min)
-            END AS convertedmin
-            FROM commishprice cp
-            GROUP BY cp.priceid, cp.userid, cp.classid, cp.settings
-        ) AS convert ON convert.priceid = cp.priceid
-            AND convert.userid = p.userid
-            AND convert.classid = cc.classid
-
-        INNER JOIN (
-            SELECT MAX(unixtime) AS unixtime, userid
-            FROM submission
-            WHERE settings !~ '[hf]'
-            GROUP BY userid
-        ) AS s ON s.userid = p.userid
+        JOIN submission sub ON sub.userid = p.userid
 
         LEFT JOIN commishdesc d ON d.userid = p.userid
 
@@ -275,37 +246,35 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             GROUP BY map.targetid
         ) AS tag ON tag.targetid = p.userid
 
-        LEFT JOIN (
-            SELECT sub.userid, COUNT (distinct sub.submitid) as examplecount
-            FROM submission sub
-            JOIN searchmapsubmit map ON map.targetid = sub.submitid
-            JOIN searchtag tag ON map.tagid = tag.tagid
-            WHERE tag.title = ANY(%(tags)s)
-            AND sub.rating <= %(rating)s
-            AND sub.settings !~ '[hf]'
-            GROUP BY sub.userid
-        ) AS example ON example.userid = p.userid
-
         WHERE p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
-        AND p.userid NOT IN (
-            SELECT map.targetid
+        AND sub.settings !~ '[hf]'
+        AND NOT EXISTS (
+            SELECT 0
             FROM searchtag tag
             JOIN artist_optout_tags map ON map.tagid = tag.tagid
             WHERE tag.title = ANY(%(tags)s)
-            GROUP BY map.targetid
+            AND map.targetid = p.userid
         )
-    """)
+    """]
     tags = q.lower().split()
-    if min_price:
-        stmt.append("AND convertedmin >= %(min)s ")
-    if max_price:
-        stmt.append("AND convertedmin <= %(max)s ")
     if userid:
         stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
     stmt.append("""
-        GROUP BY p.userid, cp.settings, d.content, s.unixtime,
-        tag.tagcount, example.examplecount
+        GROUP BY p.userid, cp.settings, d.content, tag.tagcount
+    """)
+    if min_price or max_price:
+        stmt.append("""
+            HAVING
+        """)
+        if min_price:
+            stmt.append("MIN(cp.amount_min) >= %(min)s ")
+            if max_price:
+                stmt.append("AND ")
+        if max_price:
+            stmt.append("MIN(cp.amount_min) <= %(max)s ")
+
+    stmt.append("""
         ORDER BY
     """)
     if commishclass:
@@ -320,7 +289,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         # As well, use searched class as a tag for purposes of finding "tagged" examples of an artists work
         tags.append(commishclass)
     stmt.append("""
-            COALESCE(tag.tagcount, 0) DESC, s.unixtime DESC
+            COALESCE(tag.tagcount, 0) DESC, latest_submission DESC
         LIMIT %(limit)s OFFSET %(offset)s
     """)
     # to allow partial matches on commishclass
@@ -334,11 +303,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo = dict(info)
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
-        if info.examplecount and tags:
-            terms = ["user:" + info.username] + ["|" + tag for tag in tags]
-            dinfo['searchquery'] = "q=" + urllib.quote(" ".join(terms))
-        else:
-            dinfo['searchquery'] = ""
         return dinfo
 
     results = [prepare(i) for i in query]

@@ -249,12 +249,12 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         WHERE p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
         AND sub.settings !~ '[hf]'
-        AND p.userid NOT IN (
-            SELECT map.targetid
+        AND NOT EXISTS (
+            SELECT 0
             FROM searchtag tag
             JOIN artist_optout_tags map ON map.tagid = tag.tagid
             WHERE tag.title = ANY(%(tags)s)
-            GROUP BY map.targetid
+            AND map.targetid = p.userid
         )
     """]
     tags = q.lower().split()

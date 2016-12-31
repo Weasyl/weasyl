@@ -34,7 +34,6 @@ def setupdb(request):
     define.engine.execute('DROP SCHEMA public CASCADE')
     define.engine.execute('CREATE SCHEMA public')
     define.engine.execute('CREATE EXTENSION HSTORE')
-    define.engine.execute('CREATE EXTENSION FUZZYSTRMATCH')
 
     # hstore oids changed; de-memoize them and create new connections
     define.engine.dialect._hstore_oids = psycopg2.PGDialect_psycopg2._hstore_oids.__get__(define.engine.dialect)

@@ -34,7 +34,7 @@ $:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restriction
     </p>
 
     <span class="label">Add or Remove Tags:</span><br />
-    <textarea id="tags-textarea" name="tags">${" ".join(tag.title for tag in tags)}</textarea>
+    <textarea class="tags-textarea" name="tags">${" ".join(tag.title for tag in tags)}</textarea>
     <div style="padding-top: 1em;">
       <button class="button positive" style="float: right;">Save Tags</button>
     </div>

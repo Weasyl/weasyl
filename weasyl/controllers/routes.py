@@ -11,6 +11,7 @@ from weasyl.controllers import (
     general,
     info,
     interaction,
+    marketplace,
     messages,
     moderation,
     profile,
@@ -36,6 +37,7 @@ routes = (
     Route("/search", "search", general.search_),
     Route("/popular", "popular", general.popular_),
     Route("/streaming", "streaming", general.streaming_),
+    Route("/marketplace", "marketplace", marketplace.search_),
 
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),
@@ -294,6 +296,7 @@ routes = (
     Route("/help/tagging", "help_tagging", info.help_tagging_),
     Route("/help/markdown", "help_markdown", info.help_markdown_),
     Route("/help/searching", "help_searching", info.help_searching_),
+    Route("/help/marketplace", "help_marketplace", info.help_marketplace_),
     Route("/help/ratings", "help_ratings", info.help_ratings_),
     Route("/help/ratings/changes", "help_ratings_changes", info.help_ratings_changes_),
     Route("/help/folders", "help_folders", info.help_folders_),

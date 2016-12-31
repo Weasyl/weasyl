@@ -87,6 +87,8 @@ def control_editcommissionprices_(request):
     return Response(define.webpage(request.userid, "control/edit_commissionprices.html", [
         # Commission prices
         commishinfo.select_list(request.userid),
+        commishinfo.CURRENCY_CHARMAP,
+        commishinfo.PRESET_COMMISSION_CLASSES,
     ]))
 
 
@@ -102,9 +104,10 @@ def control_editcommishtext_(request):
 @login_required
 @token_checked
 def control_createcommishclass_(request):
-    form = request.web_input(title="")
+    form = request.web_input(title="", titlepreset="")
+    title = form.title or form.titlepreset
 
-    commishinfo.create_commission_class(request.userid, form.title.strip())
+    commishinfo.create_commission_class(request.userid, title.strip())
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
@@ -137,8 +140,8 @@ def control_createcommishprice_(request):
     price = orm.CommishPrice()
     price.title = form.title.strip()
     price.classid = define.get_int(form.classid)
-    price.amount_min = commishinfo.convert_currency(form.min_amount)
-    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    price.amount_min = commishinfo.parse_currency(form.min_amount)
+    price.amount_max = commishinfo.parse_currency(form.max_amount)
     commishinfo.create_price(request.userid, price, currency=form.currency,
                              settings=form.settings)
     raise HTTPSeeOther(location="/control/editcommissionprices")
@@ -152,8 +155,8 @@ def control_editcommishprice_(request):
     price = orm.CommishPrice()
     price.title = form.title.strip()
     price.priceid = define.get_int(form.priceid)
-    price.amount_min = commishinfo.convert_currency(form.min_amount)
-    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    price.amount_min = commishinfo.parse_currency(form.min_amount)
+    price.amount_max = commishinfo.parse_currency(form.max_amount)
     edit_prices = bool(price.amount_min or price.amount_max)
     commishinfo.edit_price(request.userid, price, currency=form.currency,
                            settings=form.settings, edit_prices=edit_prices, edit_settings=form.edit_settings)

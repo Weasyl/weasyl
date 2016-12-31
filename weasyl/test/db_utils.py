@@ -174,28 +174,6 @@ def create_ignoreuser(ignorer, ignoree):
     db.flush()
 
 
-# TODO: do these two in a less bad way
-def create_banuser(userid, reason):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-        " RETURNING userid", [userid])
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO permaban VALUES (%i, '%s')", [userid, reason])
-
-
-def create_suspenduser(userid, reason, release):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-        " RETURNING userid", [userid])
-
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [userid, reason, release])
-
-
 def create_tag(title):
     tag = add_entity(content.Tag(title=title))
     return tag.tagid

@@ -1,4 +1,4 @@
-$def with (query, currencies, presets)
+$def with (query)
 $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 
 <div id="commishprices-content" class="content form clear">
@@ -8,18 +8,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 
     <form name="controlcreatecommishclass" action="/control/createcommishclass" method="post" class="clear">
       $:{CSRF()}
-      <label for="commishprices-addclass-preset">Class Presets</label>
-      <select class="input last-input" name="titlepreset" id="commishprices-addclass-preset">
-        <option value="" selected>Any/Other</option>
-        $for group_name, group_options in presets:
-          <optgroup label="${group_name}">
-            $for c in group_options:
-              <option value="${c}">${c}</option>
-          </optgroup>
-      </select>
-      <h4 class="or color-lighter"><i>&mdash; Or &mdash;</i></h4>
-      <label for="commishprices-addclass">Custom Class</label>
-      <input type="text" id="commishprices-addclass" class="input last-input" name="title"/>
+      <label for="commishprices-addclass">Class Title</label>
+      <input type="text" id="commishprices-addclass" class="input last-input" name="title" required="required" placeholder="ex: 'Sketches', 'Badges'" />
       <button type="submit" class="button last-input positive" style="float: right;">Create Class</button>
     </form>
 
@@ -70,16 +60,21 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
       </select>
 
       <label for="commish-min-amount">Minimum Amount</label>
-      <input type="number" step="any" class="input" name="min_amount" id="commish-min-amount" required="required" />
+      <input type="text" class="input" name="min_amount" id="commish-min-amount" required="required" />
 
       <label for="commish-max-amount">Maximum Amount (Optional)</label>
-      <input type="number" step="any" class="input" name="max_amount" id="commish-max-amount" />
+      <input type="text" class="input" name="max_amount" id="commish-max-amount" />
 
 
       <label for="commish-currency">Currency</label>
       <select class="input" name="currency" id="commish-currency">
-        $for char, info in currencies.iteritems():
-          <option value="${char}" $:{'selected="selected"' if not char else ""}>${info.name}</option>
+        <option value="" selected="selected">United States Dollar</option>
+        <option value="e">European Union Euro</option>
+        <option value="p">British Pound Sterling</option>
+        <option value="y">Japanese Yen</option>
+        <option value="c">Canadian Dollar</option>
+        <option value="m">Mexican Peso</option>
+        <option value="u">Australian Dollar</option>
       </select>
 
       <label for="commish-settings">Settings</label>
@@ -110,18 +105,23 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
         <input type="text" class="input" name="title" id="commish-edit-title" placeholder="ex: 'Full Color', 'Basic Pose'" />
 
         <label for="commish-edit-min-amount">Minimum Amount</label>
-        <input type="number" step="any" class="input" name="min_amount" id="commish-edit-min-amount" />
+        <input type="text" class="input" name="min_amount" id="commish-edit-min-amount" />
 
         <label for="commish-edit-max-amount">Maximum Amount (Optional)</label>
-        <input type="number" step="any" class="input last-input" name="max_amount" id="commish-edit-max-amount" />
+        <input type="text" class="input last-input" name="max_amount" id="commish-edit-max-amount" />
 
         <p><input type="checkbox" name="edit_settings" /> <strong>Edit Currency and Settings</strong></p>
 
 
         <label for="commish-edit-currency">Currency</label>
         <select class="input" name="currency" id="commish-edit-currency">
-        $for char, info in currencies.iteritems():
-          <option value="${char}" $:{'selected="selected"' if not char else ""}>${info.name}</option>
+          <option value="" selected="selected">United States Dollar</option>
+          <option value="e">European Union Euro</option>
+          <option value="p">British Pound Sterling</option>
+          <option value="y">Japanese Yen</option>
+          <option value="c">Canadian Dollar</option>
+          <option value="m">Mexican Peso</option>
+          <option value="u">Australian Dollar</option>
         </select>
 
         <label for="commish-edit-settings">Settings</label>
@@ -164,43 +164,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 
       <button type="submit" class="button positive" style="float: right;">Save Description</button>
     </form>
-
-    <div class="di-tags">
-      <h3>Preferred Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
-      <p>
-        Use these tags to indicate subject matter you prefer to create, making it easier for
-        commissioners to find you.
-      </p>
-
-      <div class="tags open clear">
-        $if query['tags']:
-          $for tag in query['tags']:
-            <a href="/marketplace?q=${tag}">${tag}</a>
-        $else:
-          <p class="color-lighter">You have not defined any preferred tags.</p>
-      </div>
-
-      <h3 class="edit">Edit Tags</h3>
-      $:{RENDER("common/detail_tag_form.html", [query['userid'], "user", query['tags']])}
-
-    </div><!-- /di-tags -->
-    <div class="di-tags">
-      <h3>Opt-Out Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
-      <p>
-        You will not appear in results for commission searches containing these tags.
-      </p>
-
-      <div class="tags open clear">
-        $if query['opt_out']:
-          $for tag in query['opt_out']:
-            <a class="artist" href="/marketplace?q=${tag}">${tag}</a>
-        $else:
-          <p class="color-lighter">You have not defined any opt-out tags.</p>
-      </div>
-
-      <h3 class="edit">Edit Tags</h3>
-      $:{RENDER("common/detail_tag_form.html", [query['userid'], "optout", query['opt_out']])}
-    </div><!-- /di-tags2 -->
   </div><!-- /info -->
 
 </div><!-- /content -->

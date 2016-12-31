@@ -27,10 +27,23 @@ def ensure_wzl_dev(func):
     return wrapper
 
 
+wzl_egg_info = '/weasyl-src/_wzl/wzl.egg-info'
+
+
+def ensure_egg_info():
+    """
+    Sometimes wzl.egg-info isn't generated when it should be.
+    """
+    if os.path.exists(wzl_egg_info):
+        return
+    cmd(['python', 'setup.py', 'egg_info'], cwd=os.path.dirname(wzl_egg_info))
+
+
 def forward_from_wzl_dev(func):
     @functools.wraps(func)
     def wrapper(args):
         if is_wzl_dev():
+            ensure_egg_info()
             forward([
                 'docker-compose', 'run', 'weasyl-app-dev',
                 func.__name__, '--'] + list(args))
@@ -43,9 +56,9 @@ def forward(args):
     os.execvp(args[0], args)
 
 
-def cmd(args):
+def cmd(args, **kw):
     click.secho('==> {}'.format(args), fg='green')
-    subprocess.check_call(args)
+    subprocess.check_call(args, **kw)
 
 
 @click.group(context_settings=dict(help_option_names=('-h', '--help')))

@@ -1,7 +1,8 @@
 FROM alpine
-RUN apk update && apk add docker py-pip
+RUN apk --no-cache --update add docker py-pip
 RUN pip install docker-compose
-ADD . /weasyl-src
+RUN mkdir /weasyl-src
+ADD _wzl /weasyl-src/_wzl
 RUN pip install -e /weasyl-src/_wzl
 VOLUME /weasyl-src
 WORKDIR /weasyl-src

@@ -1,9 +1,10 @@
-FROM node
-RUN apt-get update \
- && apt-get -qyy install runit
+FROM node:7-alpine
+ADD alpine-3.5-repositories /etc/apk/repositories
+RUN apk --no-cache --update add findutils runit shadow
 RUN npm install -qg gulp-cli
-RUN adduser --system --home /var/cache/weasyl weasyl
-ADD as-weasyl /usr/local/sbin
+RUN adduser -S -h /var/cache/weasyl weasyl
+RUN mkdir /usr/local/sbin
+ADD as-weasyl /usr/local/sbin/as-weasyl
 RUN mkdir -p /weasyl-src/node_modules
 RUN chown -R weasyl: /weasyl-src
 VOLUME /weasyl-src

@@ -2,7 +2,7 @@ version: '2'
 services:
 
   cache:
-    image: memcached
+    image: memcached:alpine
 
   db:
     build:

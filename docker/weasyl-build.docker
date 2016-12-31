@@ -2,7 +2,8 @@ FROM weasyl-base
 
 RUN apt-get update \
  && apt-get install -qyy \
-  libffi-dev libmagickcore-dev libpq-dev libxml2-dev libxslt-dev pkg-config liblzma-dev python-dev
+  libffi-dev libmagickcore-dev libpq-dev libxml2-dev libxslt-dev pkg-config liblzma-dev python-dev \
+ && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ENV WHEELHOUSE=/wheelhouse
 ENV PIP_WHEEL_DIR=/wheelhouse

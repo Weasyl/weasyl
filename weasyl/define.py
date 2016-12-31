@@ -599,24 +599,15 @@ def get_path():
 
 
 def text_price_amount(target):
-    return "%i.%s%i" % (target / 100, "" if target % 100 > 9 else "0", target % 100)
+    return "%.2f" % (float(target) / 100.0)
 
 
 def text_price_symbol(target):
-    if "e" in target:
-        return "&#8364;"
-    elif "p" in target:
-        return "&#163;"
-    elif "y" in target:
-        return "&#165;"
-    elif "c" in target:
-        return "C&#36;"
-    elif "u" in target:
-        return "A&#36;"
-    elif "m" in target:
-        return "M&#36;"
-    else:
-        return "&#36;"
+    from weasyl.commishinfo import CURRENCY_CHARMAP
+    for c in target:
+        if c in CURRENCY_CHARMAP:
+            return CURRENCY_CHARMAP[c].symbol
+    return CURRENCY_CHARMAP[''].symbol
 
 
 def text_first_line(target, strip=False):

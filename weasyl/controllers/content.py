@@ -297,15 +297,17 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
-    form = request.web_input(submitid="", charid="", journalid="", tags="")
+    form = request.web_input(submitid="", charid="", journalid="", userid="", optoutid="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
     submitid = define.get_int(form.submitid)
     charid = define.get_int(form.charid)
     journalid = define.get_int(form.journalid)
+    artistid = define.get_int(form.userid)
+    optoutid = define.get_int(form.optoutid)
 
-    result = searchtag.associate(request.userid, tags, submitid, charid, journalid)
+    result = searchtag.associate(request.userid, tags, submitid, charid, journalid, artistid, optoutid)
     if result:
         failed_tag_message = ""
         if result["add_failure_restricted_tags"] is not None:
@@ -327,13 +329,15 @@ def submit_tags_(request):
         else:
             return Response(define.errorpage(request.userid, failed_tag_message,
                                              [["Return to Content", location]]))
-    else:
+    elif journalid:
         location = "/journal/%i" % (journalid,)
         if not result:
             raise HTTPSeeOther(location=location)
         else:
             return Response(define.errorpage(request.userid, failed_tag_message,
                                              [["Return to Content", location]]))
+    else:
+        raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
 @login_required

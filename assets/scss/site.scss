@@ -2,6 +2,7 @@
 @import 'components/password-meter';
 @import 'components/option';
 @import 'components/text-post-list';
+@import 'pages/marketplace';
 
 /* Basic styles
 --------------------------------*/
@@ -1561,12 +1562,12 @@ blockquote + blockquote {
 
 /* ------------------------------------ =tags -- */
 
-#tags-textarea, .listbuilder {
+.tags-textarea, .listbuilder {
     box-sizing: border-box;
     width: 100% !important;
 }
 
-#tags-textarea.proxy {
+.tags-textarea.proxy {
     display: none;
 }
 
@@ -3193,27 +3194,27 @@ img + #detail-art-text {
     font-weight: 400;
 }
 
-#di-tags h3 a.modify, .js #di-tags h3.edit {
+.di-tags h3 a.modify, .js .di-tags h3.edit {
     display: none;
 }
 
-.js #di-tags h3 a {
+.js .di-tags h3 a {
     display: inline-block;
     font-size: 12px;
     font-size: 0.75rem;
     padding: 0 1em;
 }
 
-#di-tags .button {
+.di-tags .button {
     margin-top: 8px;
     margin-top: 0.5rem;
 }
 
-#di-tags .tags-form {
+.di-tags .tags-form {
     display: none;
 }
 
-#di-tags .tags-form.open {
+.di-tags .tags-form.open {
     display: block;
 }
 
@@ -3321,7 +3322,7 @@ img + #detail-art-text {
         clear: left;
     }
 
-    #di-tags, #di-folder {
+    .di-tags, #di-folder {
         width: 48%;
         margin-right: 0;
         margin-left: auto;
@@ -3460,7 +3461,7 @@ img + #detail-art-text {
         padding-top: 2rem;
     }
 
-    #di-info, #di-tags, #detail-manage, #detail-collection-offer, #detail-mod {
+    #di-info, .di-tags, #detail-manage, #detail-collection-offer, #detail-mod {
         width: auto;
         float: none;
         margin-left: 0;
@@ -3731,7 +3732,7 @@ img + #detail-art-text {
         padding-top: 2em;
     }
 
-    #edit-profile .social, #edit-profile .profile, #commishprices-content .info {
+    #edit-profile .social, #edit-profile .profile, #commishprices-content .info, #commishprices-content .di-tags {
         clear: both;
         width: 100%;
     }

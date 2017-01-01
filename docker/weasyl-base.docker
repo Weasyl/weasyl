@@ -1,10 +1,9 @@
-FROM ubuntu:xenial
+FROM alpine:3.5
 
-RUN apt-get update \
- && apt-get -qyy dist-upgrade \
- && apt-get -qyy install python-virtualenv libffi6 openssl runit \
- && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN adduser --system --home /var/cache/weasyl weasyl
+RUN mkdir /usr/local/sbin
+RUN apk --no-cache --update add \
+  bash ca-certificates findutils libffi python2 py-virtualenv runit shadow
+RUN adduser -S -h /var/cache/weasyl weasyl
 RUN mkdir /appenv /weasyl-src /weasyl-app
 RUN chown weasyl: /appenv /weasyl-src /weasyl-app
 ADD as-weasyl /usr/local/sbin

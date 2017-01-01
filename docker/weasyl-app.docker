@@ -1,8 +1,7 @@
 FROM weasyl-base
 
-RUN apt-get update \
- && apt-get -qyy install libmagickcore-6.q16-2 libpq5 libxslt1.1 \
- && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apk --no-cache --update add \
+  imagemagick jpeg libpq libxslt xz
 ADD static /weasyl-app/static
 ADD config /weasyl-app/config
 RUN mkdir /weasyl-app/log

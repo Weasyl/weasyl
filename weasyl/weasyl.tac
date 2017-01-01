@@ -1,5 +1,6 @@
 # -*- python -*-
 import os
+import threading
 
 import crochet
 from twisted.application.internet import StreamServerEndpointService
@@ -12,6 +13,9 @@ import weasyl.polecat
 import weasyl.wsgi
 import weasyl.define as d
 from libweasyl import cache
+
+# Required for musl.
+threading.stack_size(1024 * 1024)
 
 weasyl.wsgi.wsgi_app = Dozer(weasyl.wsgi.wsgi_app)
 

@@ -1,9 +1,8 @@
 FROM weasyl-base
 
-RUN apt-get update \
- && apt-get install -qyy \
-  libffi-dev libmagickcore-dev libpq-dev libxml2-dev libxslt-dev pkg-config liblzma-dev python-dev \
- && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apk --no-cache --update add \
+  gcc g++ libffi-dev imagemagick-dev jpeg-dev libxml2-dev libxslt-dev make \
+  musl-dev nodejs-current pkgconf postgresql-dev python2-dev xz-dev
 
 ENV WHEELHOUSE=/wheelhouse
 ENV PIP_WHEEL_DIR=/wheelhouse
@@ -11,6 +10,7 @@ ENV PIP_FIND_LINKS=/wheelhouse
 
 VOLUME /wheelhouse
 VOLUME /weasyl-src
+VOLUME /weasyl-src/node_modules
 VOLUME /var/cache/weasyl/.cache
 
 ENTRYPOINT ["as-weasyl", "pip", "wheel", "/weasyl-src", "/weasyl-src/libweasyl", "/weasyl-src/_wzl"]

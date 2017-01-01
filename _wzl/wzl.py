@@ -332,6 +332,13 @@ PARTS = {
         'service': 'weasyl-build',
         'args': ["/weasyl-src/libweasyl[development]"],
     },
+    'weasyl-build-node-modules': {
+        'requires': ['weasyl-build'],
+        'compose-file': 'docker-compose-build.yml',
+        'command': ['run', '--rm', '--entrypoint', 'as-weasyl', '--workdir', '/weasyl-src'],
+        'service': 'weasyl-build',
+        'args': ['npm', 'install', '-q'],
+    },
     'weasyl-app': {
         'requires': ['weasyl-build-dev-wheels'],
         'compose-file': 'docker-compose-build.yml',
@@ -350,21 +357,17 @@ PARTS = {
         'compose-file': 'docker-compose.yml',
         'command': ['build'],
     },
-    'assets': {
+    'weasyl-assets': {
+        'requires': ['weasyl-base'],
         'compose-file': 'docker-compose-build.yml',
         'command': ['build'],
     },
-    'assets-sass': {
-        'requires': ['assets'],
+    'weasyl-assets-sass': {
+        'requires': ['weasyl-assets', 'weasyl-build-node-modules'],
         'compose-file': 'docker-compose-build.yml',
         'command': ['run', '--rm'],
-        'service': 'assets',
-        'args': ['as-weasyl', 'sh', '-euxc', """
-
-        npm install -q
-        gulp sass
-
-        """],
+        'service': 'weasyl-assets',
+        'args': ['as-weasyl', 'gulp', 'sass'],
     },
 }
 

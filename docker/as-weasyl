@@ -1,5 +1,9 @@
 #!/bin/sh -eu
 
+if [ "$(whoami)" = "weasyl" ]; then
+    exec "$@"
+fi
+
 if [ -n "${LOCAL_USER_ID-}" ]; then
     olduid="$(id -u weasyl)"
     if [ "${LOCAL_USER_ID}" != "${olduid}" ]; then
@@ -7,7 +11,8 @@ if [ -n "${LOCAL_USER_ID-}" ]; then
         usermod -ou "${LOCAL_USER_ID}" weasyl
         for dir in /appenv /weasyl-app /weasyl-src ~weasyl; do
             test -e "${dir}" \
-                && find "${dir}" -uid "${olduid}" -print0 | xargs -r0 chown weasyl
+                && find "${dir}" \( -uid "${olduid}" -o -uid 0 \) -print0 \
+		    | xargs -r0 chown weasyl
         done
     fi
 fi

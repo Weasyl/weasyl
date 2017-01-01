@@ -29,6 +29,8 @@ services:
     depends_on:
       - cache
       - db
+    ulimits:
+      core: -1
 
     ports:
       - '8080'

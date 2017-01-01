@@ -42,7 +42,7 @@ Next Steps and Common Tasks
 - Changes to python source files (any ``.py`` file) require a restart to be
   reflected::
 
-    $ ./wzl compose restart weasyl-app-dev
+    $ ./wzl restart weasyl-app-dev
 
   ``weasyl-app-dev`` is the python application service. The URL should remain
   the same across restarts.
@@ -50,7 +50,7 @@ Next Steps and Common Tasks
 - Changes to nginx config require a restart as well, but for a different
   service::
 
-    $ ./wzl compose restart nginx
+    $ ./wzl restart nginx
     $ ./wzl url
 
   Since the URL is pointed at nginx, and its port can change on boot, this will
@@ -59,8 +59,8 @@ Next Steps and Common Tasks
 - Changes to stylesheets (any ``.sass`` file) require a rebuild of the generated
   ``.css`` files *and* a restart of the app server::
 
-    $ ./wzl build -r assets-sass
-    $ ./wzl compose restart weasyl-app-dev
+    $ ./wzl build -r weasyl-assets-sass
+    $ ./wzl restart weasyl-app-dev
 
 - If the web application indicates that there was an error, it's probably been
   logged. Logs can be streamed live to your console as they happen::
@@ -81,12 +81,11 @@ Next Steps and Common Tasks
 
     $ ./wzl test
 
-- If you need direct access to ``docker-compose`` functionality, it's exposed
-  as ``./wzl compose``. A few other useful commands which are currently only
+- If you need direct access to ``docker-compose`` functionality, it's
+  exposed as ``./wzl compose``. Most functionality is available
+  through ``./wzl``. One example of a command which is currently only
   accessible this way::
 
-    $ ./wzl compose stop  # Shut down all services without destroying their state.
-    $ ./wzl compose down  # Shut down all services and destroy persistent state.
     $ ./wzl compose ps  # Show what services are running.
 
 - Changes to the various ``Dockerfile``\ s or dependencies of the python code
@@ -112,11 +111,25 @@ Next Steps and Common Tasks
   to be restarted, it's sometimes necessary to restart services individually by
   name::
 
-    $ ./wzl compose restart {service name}
+    $ ./wzl restart {service name}
 
   Or, to restart everything unconditionally::
 
-    $ ./wzl compose restart
+    $ ./wzl restart
+
+- To shut down all services without destroying their state::
+
+    $ ./wzl stop
+
+- To shut down all services and then destroy persistent state::
+
+    $ ./wzl clean
+
+- ``./wzl clean`` by default is not very aggressive. To get as close
+  as possible to the state docker was in before running any ``./wzl``
+  commands::
+
+    $ ./wzl clean --dist
 
 Targets, images, and services are described in `the docker directory <docker>`_.
 

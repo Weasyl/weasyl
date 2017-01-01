@@ -240,6 +240,18 @@ def stop(ctx):
     ctx.invoke(compose, args=('stop',))
 
 
+@wzl.command()
+@click.pass_context
+@click.argument('services', nargs=-1, type=click.UNPROCESSED)
+def restart(ctx, services):
+    """
+    Restart services.
+
+    Name services to be restarted, or name nothing to restart all services.
+    """
+    ctx.invoke(compose, args=('restart',) + services)
+
+
 @wzl.command(add_help_option=False, context_settings=dict(
     ignore_unknown_options=True,
 ))

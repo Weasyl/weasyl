@@ -97,11 +97,6 @@ def help_searching_(request):
                                    title="Searching"))
 
 
-def help_marketplace_(request):
-    return Response(define.webpage(request.userid, "help/marketplace.html",
-                                   title="Marketplace"))
-
-
 def help_markdown_(request):
     return Response(define.webpage(request.userid, "help/markdown.html",
                                    title="Markdown"))

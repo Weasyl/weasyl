@@ -167,7 +167,7 @@ def is_tag_restriction_pattern_valid(text):
     return False
 
 
-def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid=None, optoutid=None):
+def associate(userid, tags, submitid=None, charid=None, journalid=None):
     """
     Associates searchtags with a content item.
 
@@ -180,10 +180,6 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
         ``tags`` to. (default: None)
         journalid: The ID number of a journal content item to associate
         ``tags`` to. (default: None)
-        artistid: The ID number of a user to associate
-        ``tags`` to for Preferred tags. (default: None)
-        optoutid: The ID number of a user to associate
-        ``tags`` to for Opt-Out tags. (default: None)
 
     Returns:
         A dict containing two elements. 1) ``add_failure_restricted_tags``, which contains a space separated
@@ -204,23 +200,14 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
     elif charid:
         table, feature = "searchmapchar", "char"
         ownerid = d.get_ownerid(charid=targetid)
-    elif journalid:
+    else:
         table, feature = "searchmapjournal", "journal"
         ownerid = d.get_ownerid(journalid=targetid)
-    elif artistid:
-        table, feature = "artist_preferred_tags", "user"
-        targetid = ownerid = artistid
-    elif optoutid:
-        table, feature = "artist_optout_tags", "user"
-        targetid = ownerid = optoutid
-    else:
-        raise WeasylError("Unexpected")
 
     # Check permissions and invalid target
     if not ownerid:
         raise WeasylError("TargetRecordMissing")
-    elif userid != ownerid and ("g" in d.get_config(userid) or artistid or optoutid):
-        # disallow if user is forbidden from tagging, or trying to set artist tags on someone other than themselves
+    elif userid != ownerid and "g" in d.get_config(userid):
         raise WeasylError("InsufficientPermissions")
     elif ignoreuser.check(ownerid, userid):
         raise WeasylError("contentOwnerIgnoredYou")
@@ -239,10 +226,6 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
     # Assign added and removed
     added = entered_tagids - existing_tagids
     removed = existing_tagids - entered_tagids
-
-    # enforce the limit on artist preference tags
-    if artistid and (len(added) - len(removed) + len(existing)) > 50:
-        raise WeasylError("tooManyPreferenceTags")
 
     # Track which tags fail to be added or removed to later notify the user (Note: These are tagids at this stage)
     add_failure_restricted_tags = None
@@ -278,8 +261,7 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, artistid
             "INSERT INTO {} SELECT tag, %(target)s FROM UNNEST (%(added)s) AS tag".format(table),
             target=targetid, added=list(added))
 
-        # preference/optout tags can only be set by the artist, so this settings column does not apply
-        if userid == ownerid and not (artistid or optoutid):
+        if userid == ownerid:
             d.execute(
                 "UPDATE %s SET settings = settings || 'a' WHERE targetid = %i AND tagid IN %s",
                 [table, targetid, d.sql_number_list(list(added))])

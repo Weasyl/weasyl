@@ -14,6 +14,17 @@ Quickstart
 Weasyl runs within a `Docker`_ container. The ``wzl`` program manages the
 system of Docker images. The only requirement is `Docker`_ 1.10 or greater.
 
+The ``./wzl`` command run in this document must be run by a user able
+to access the docker daemon. While setting that up is OS-specific,
+ensuring it's been done is easy::
+
+  $ docker ps  # Should display something like:
+  CONTAINER ID  [...]
+
+The `Docker documentation (for, say, Ubuntu)
+<https://docs.docker.com/engine/installation/linux/ubuntulinux/#/manage-docker-as-a-non-root-user>`_
+has more details on configuring this.
+
 The first steps are to set configuration to defaults, build all of the images,
 and ensure the database schema is up to date::
 
@@ -150,6 +161,18 @@ functionality, they will have to be added manually.
 All passwords in the database have been set to 'password'.
 
 
+Disk Usage
+----------
+
+All of the services are built off of `Alpine Linux`_, so the resulting
+images should be fairly small. In total the images, containers, and
+volumes should not exceed 1 GiB in space. Here are some quick tricks
+to reclaim space you (probably) won't miss::
+
+  $ docker ps -qa -f status=exited | xargs docker rm  # Delete exited containers.
+  $ docker images -qa -f dangling=true | xargs docker rmi  # Delete dangling images.
+
+
 Troubleshooting and Getting Help
 --------------------------------
 
@@ -181,5 +204,6 @@ When committing code, be sure to follow the `Style and Best Practices Guide`_.
 
 .. _Weasyl: https://www.weasyl.com
 .. _Docker: https://www.docker.com/products/docker
+.. _Alpine Linux: https://alpinelinux.org
 .. _Contributor Code of Conduct: CODE_OF_CONDUCT.md
 .. _Style and Best Practices Guide: STYLE_GUIDE.md

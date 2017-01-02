@@ -10,12 +10,13 @@ Services are denoted with a *(service)* suffix, which are the images that
 
 ``weasyl-base``
   The base image on which all other ``weasyl-*`` images are built. This is
-  basically just `Ubuntu Xenial <http://releases.ubuntu.com/16.04/>`_ with a
-  few packages installed via ``apt``.
+  basically just `Alpine Linux 3.5 <https://alpinelinux.org>`_ with a
+  few packages installed via ``apk``.
 
 ``weasyl-build``
   The base image for doing build-related tasks against the source tree, such as
-  creating wheels which will be installed into the app images.
+  creating wheels which will be installed into the app images and
+  compiling packages installed via ``npm``.
 
 ``weasyl-build-dev-wheels``
   A non-image target which builds all of the wheels for ``weasyl`` and
@@ -30,6 +31,13 @@ Services are denoted with a *(service)* suffix, which are the images that
   The image for running the python application server using the local source
   tree in addition to code installed from the wheelhouse.
 
+``weasyl-assets``
+  The image for building the static assets. Currently, this is only
+  stylesheets, but might include javascript in the future.
+
+``weasyl-assets-sass``
+  A non-image target that will compile Sass stylesheets into ``.css`` files.
+
 ``cache`` (service)
   The image for memcached.
 
@@ -40,13 +48,6 @@ Services are denoted with a *(service)* suffix, which are the images that
 
 ``nginx`` (service)
   The image for the nginx front-end HTTP proxy.
-
-``assets``
-  The image for building the static assets. Currently, this is only
-  stylesheets, but might include javascript in the future.
-
-``assets-sass``
-  A non-image target that will compile Sass stylesheets into ``.css`` files.
 
 The difference between ``weasyl-app`` and ``weasyl-app-dev`` is intended to be
 no more than convenience: without having the local source tree mounted in the

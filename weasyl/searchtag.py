@@ -439,8 +439,7 @@ def get_user_tag_restrictions(userid):
         WHERE userid = %(userid)s
         ORDER BY st.title
     """, userid=userid).fetchall()
-    tags = [tag.title for tag in query]
-    return tags
+    return {tag.title for tag in query}
 
 
 def get_global_tag_restrictions(userid):

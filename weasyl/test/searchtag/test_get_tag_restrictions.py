@@ -9,9 +9,9 @@ from weasyl.error import WeasylError
 from weasyl.test import db_utils
 
 # Test lists of tags
-valid_tags = ['test', '*test', 'te*st', 'test*', 'test_too']
-invalid_tags = ['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}']
-combined_tags = valid_tags + invalid_tags
+valid_tags = {'test', '*test', 'te*st', 'test*', 'test_too'}
+invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
+combined_tags = valid_tags | invalid_tags
 
 
 @pytest.mark.usefixtures('db')
@@ -30,7 +30,7 @@ def test_get_global_searchtag_restrictions(monkeypatch):
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
     searchtag.edit_global_tag_restrictions(director_user_id, tags)
     resultant_tags = searchtag.get_global_tag_restrictions(director_user_id)
-    resultant_tags_titles = [x.title for x in resultant_tags]
+    resultant_tags_titles = {x.title for x in resultant_tags}
     assert resultant_tags_titles == valid_tags
     for user in resultant_tags:
         assert user.login_name == "testdirector"

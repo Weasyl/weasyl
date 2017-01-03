@@ -219,15 +219,15 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             MIN(cp.amount_min) AS pricemin,
             MAX(sub.unixtime) AS latest_submission,
             GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
-            cp.settings AS pricesettings,
-            d.content AS description,
-            tag.tagcount,
+            MIN(cp.settings) AS pricesettings,
+            MAX(d.content) AS description,
+            COUNT(preftag.tagid) AS tagcount,
             STRING_AGG(DISTINCT cc.title, ', ') AS class
         FROM profile p
 
         JOIN login ON p.userid = login.userid
 
-        INNER JOIN commishclass cc ON cc.userid = p.userid
+        JOIN commishclass cc ON cc.userid = p.userid
             AND LOWER(cc.title) LIKE %(cclasslike)s
 
         JOIN commishprice cp ON cp.classid = cc.classid
@@ -236,15 +236,12 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
         JOIN submission sub ON sub.userid = p.userid
 
-        LEFT JOIN commishdesc d ON d.userid = p.userid
+        LEFT JOIN commishdesc d ON p.userid = d.userid
 
-        LEFT JOIN (
-            SELECT map.targetid, COUNT(tag.tagid) AS tagcount
-            FROM searchtag tag
-            JOIN artist_preferred_tags map ON map.tagid = tag.tagid
-            WHERE tag.title = ANY(%(tags)s)
-            GROUP BY map.targetid
-        ) AS tag ON tag.targetid = p.userid
+        LEFT JOIN artist_preferred_tags prefmap ON p.userid = prefmap.targetid
+
+        LEFT JOIN searchtag preftag ON prefmap.tagid = preftag.tagid
+            AND preftag.title = ANY(%(tags)s)
 
         WHERE p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
@@ -257,23 +254,23 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             AND map.targetid = p.userid
         )
     """]
+    if min_price:
+        for c in CURRENCY_CHARMAP:
+            ratio = currency_ratio(c, currency)
+            if ratio:
+                stmt.append("AND NOT (cp.settings ~ '^%s' AND cp.amount_min < %f)\n" % (c, ratio * min_price))
+    if max_price:
+        for c in CURRENCY_CHARMAP:
+            ratio = currency_ratio(c, currency)
+            if ratio:
+                stmt.append("AND NOT (cp.settings ~ '^%s' AND cp.amount_min > %f)\n" % (c, ratio * max_price))
     tags = q.lower().split()
     if userid:
         stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
     stmt.append("""
-        GROUP BY p.userid, cp.settings, d.content, tag.tagcount
+        GROUP BY p.userid
+        HAVING MIN(cp.settings) = MAX(cp.settings)
     """)
-    if min_price or max_price:
-        stmt.append("""
-            HAVING
-        """)
-        if min_price:
-            stmt.append("MIN(cp.amount_min) >= %(min)s ")
-            if max_price:
-                stmt.append("AND ")
-        if max_price:
-            stmt.append("MIN(cp.amount_min) <= %(max)s ")
-
     stmt.append("""
         ORDER BY
     """)
@@ -289,12 +286,13 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         # As well, use searched class as a tag for purposes of finding "tagged" examples of an artists work
         tags.append(commishclass)
     stmt.append("""
-            COALESCE(tag.tagcount, 0) DESC, latest_submission DESC
+            COALESCE(COUNT(preftag.tagid), 0) DESC, latest_submission DESC
         LIMIT %(limit)s OFFSET %(offset)s
     """)
     # to allow partial matches on commishclass
     cclasslike = "%" + commishclass + "%"
     max_rating = d.get_rating(userid)
+    print("".join(stmt))
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
                              max=max_price, cclass=commishclass, cclasslike=cclasslike,
                              tags=tags, rating=max_rating, offset=offset)

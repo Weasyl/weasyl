@@ -223,12 +223,11 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             MAX(d.content) AS description,
             COUNT(preftag.tagid) AS tagcount,
             STRING_AGG(DISTINCT cc.title, ', ') AS class
-        FROM profile p
+        FROM commishclass cc
+
+        JOIN profile p ON cc.userid = p.userid
 
         JOIN login ON p.userid = login.userid
-
-        JOIN commishclass cc ON cc.userid = p.userid
-            AND LOWER(cc.title) LIKE %(cclasslike)s
 
         JOIN commishprice cp ON cp.classid = cc.classid
             AND cp.userid = p.userid
@@ -243,7 +242,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         LEFT JOIN searchtag preftag ON prefmap.tagid = preftag.tagid
             AND preftag.title = ANY(%(tags)s)
 
-        WHERE p.settings ~ '^[os]'
+        WHERE LOWER(cc.title) LIKE %(cclasslike)s
+        AND p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
         AND sub.settings !~ '[hf]'
         AND NOT EXISTS (
@@ -269,9 +269,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         stmt.append(m.MACRO_IGNOREUSER % (userid, "p"))
     stmt.append("""
         GROUP BY p.userid
-        HAVING MIN(cp.settings) = MAX(cp.settings)
-    """)
-    stmt.append("""
         ORDER BY
     """)
     if commishclass:
@@ -296,7 +293,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
                              max=max_price, cclass=commishclass, cclasslike=cclasslike,
                              tags=tags, rating=max_rating, offset=offset)
-
     def prepare(info):
         dinfo = dict(info)
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)

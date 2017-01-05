@@ -150,8 +150,7 @@ The Sample Database
 
 The downloaded database contains sample content pulled and scrubbed from
 Weasyl staff accounts. No content should be included from non-staff users
-or those who haven't otherwise explicitly given permission to use their
-account.
+except from those who have explicitly given permission to use their account.
 
 For privacy and technical reasons, not all content is included: Hidden
 submissions, private messages, journals, hidden favorites, notifications,

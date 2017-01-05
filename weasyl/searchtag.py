@@ -422,48 +422,27 @@ def edit_global_tag_restrictions(userid, tags):
         query_global_restricted_tags.invalidate()
 
 
-def get_user_tag_restrictions(userid):
-    """
-    Retrieves a list of tags on the user's restricted tags list for friendly display to the user.
-
-    Parameters:
-        userid: The userid of the user requesting the list of restricted tags.
-
-    Returns:
-        A list of restricted tag titles which were set by ``userid``.
-    """
-    query = d.engine.execute("""
-        SELECT st.title
-        FROM user_restricted_tags
-        INNER JOIN searchtag AS st USING (tagid)
-        WHERE userid = %(userid)s
-        ORDER BY st.title
-    """, userid=userid).fetchall()
-    tags = [tag.title for tag in query]
-    return tags
-
-
 def get_global_tag_restrictions(userid):
     """
-    Retrieves a list of tags on the globally restricted tag list for friendly display to the director.
+    Retrieves a list of tags on the globally restricted tag list for display to a director.
 
     Parameters:
         userid: The userid of the director requesting the list of tags.
 
     Returns:
-        A list of globally restricted tag titles and the name of the director which added it.
+        A dict mapping from globally restricted tag titles to the name of the director who added the tag.
     """
     # Only directors can view the globally restricted tag list; sanity check against the @director_only decorator
     if userid not in staff.DIRECTORS:
         raise WeasylError("InsufficientPermissions")
 
-    return d.engine.execute("""
+    query = d.engine.execute("""
         SELECT st.title, lo.login_name
         FROM globally_restricted_tags
         INNER JOIN searchtag AS st USING (tagid)
         INNER JOIN login AS lo USING (userid)
-        ORDER BY st.title
     """).fetchall()
+    return {r.title: r.login_name for r in query}
 
 
 @region.cache_on_arguments()

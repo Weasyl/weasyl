@@ -3627,6 +3627,29 @@ img + #detail-art-text {
 
 /* ------------------------------------ =submit, =profile, =commish, =compose -- */
 
+#commishprices-content {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+}
+
+#commishprices-content .commish-row {
+    display: -webkit-flex;
+    display: flex;
+    margin-bottom: 10px;
+    flex-direction: column;  /* Overridden at larger sizes */
+    justify-content: space-around;
+}
+
+#commishprices-content .di-tags {
+    width: 100%
+}
+
+#commishprices-content .commish-row .half {
+    flex-basis: 48%;
+}
+
 #submit-form .options h3, #submit-form .tagging h3 {
     padding-bottom: 0.5em;
 }
@@ -3700,7 +3723,7 @@ img + #detail-art-text {
         clear: left;
     }
 
-    #edit-profile .settings, #commishprices-content .prices {
+    #edit-profile .settings {
         float: left;
         padding-left: 4%;
     }
@@ -3732,7 +3755,7 @@ img + #detail-art-text {
         padding-top: 2em;
     }
 
-    #edit-profile .social, #edit-profile .profile, #commishprices-content .info, #commishprices-content .di-tags {
+    #edit-profile .social, #edit-profile .profile {
         clear: both;
         width: 100%;
     }
@@ -3770,6 +3793,14 @@ img + #detail-art-text {
 }
 
 @media (min-width: 63em) {
+    #commishprices-content .commish-row {
+        flex-direction: row;
+    }
+
+    #commishprices-content .info {
+        flex: 0 0 60%;
+    }
+
     #submit-form.journal {
         max-width: 90em;
         margin: 0 auto;
@@ -3779,7 +3810,7 @@ img + #detail-art-text {
         width: 31%;
     }
 
-    #submit-form .info, #edit-profile .settings, #commishprices-content .prices {
+    #submit-form .info, #edit-profile .settings {
         clear: none;
         padding-left: 3.5%;
         margin-left: 0;
@@ -3789,7 +3820,7 @@ img + #detail-art-text {
         padding-left: 0;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile, #commishprices-content .info {
+    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
         margin-left: 65.5%;
         padding-left: 3.5%;
         clear: none;

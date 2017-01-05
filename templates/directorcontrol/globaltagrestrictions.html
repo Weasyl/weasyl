@@ -13,10 +13,10 @@ $:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restriction
           </tr>
         </thead>
         <tbody>
-          $for entry in tags:
+          $for title, login_name in tags.iteritems():
             <tr>
-              <td style="text-align:center">$entry.login_name</td>
-              <td style="text-align:center">$entry.title</td>
+              <td style="text-align:center">$login_name</td>
+              <td style="text-align:center">$title</td>
             </tr>
         </tbody>
       </table>
@@ -34,7 +34,7 @@ $:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restriction
     </p>
 
     <span class="label">Add or Remove Tags:</span><br />
-    <textarea id="tags-textarea" name="tags">${" ".join(tag.title for tag in tags)}</textarea>
+    <textarea id="tags-textarea" name="tags">${" ".join(sorted(tags))}</textarea>
     <div style="padding-top: 1em;">
       <button class="button positive" style="float: right;">Save Tags</button>
     </div>

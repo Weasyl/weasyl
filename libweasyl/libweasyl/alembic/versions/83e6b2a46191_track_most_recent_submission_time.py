@@ -20,15 +20,15 @@ import libweasyl
 
 
 def upgrade():
-    op.add_column('profile', sa.Column('last_active', libweasyl.models.helpers.WeasylTimestampColumn(),
+    op.add_column('profile', sa.Column('latest_submission_time', libweasyl.models.helpers.WeasylTimestampColumn(),
                                        nullable=False, server_default='0'))
     op.execute("""
-        UPDATE profile p SET last_active = (
+        UPDATE profile p SET latest_submission_time = (
             SELECT COALESCE(MAX(s.unixtime), 0) AS latest FROM submission s WHERE s.userid = p.userid
         )
     """)
 
 
 def downgrade():
-    op.drop_column('profile', 'last_active')
+    op.drop_column('profile', 'latest_submission_time')
     pass

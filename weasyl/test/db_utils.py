@@ -23,10 +23,10 @@ def add_entity(entity):
     return entity
 
 
-def update_last_active(userid):
+def update_last_submission_time(userid, unixtime):
     profile = d.meta.tables['profile']
     db = d.connect()
-    db.execute(profile.update().where(profile.c.userid == userid).values(last_active=arrow.utcnow()))
+    db.execute(profile.update().where(profile.c.userid == userid).values(latest_submission_time=unixtime))
     db.flush()
 
 
@@ -86,7 +86,7 @@ def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=ar
     submission = add_entity(content.Submission(
         userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
         folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings))
-    update_last_active(userid)
+    update_last_submission_time(userid, unixtime)
     return submission.submitid
 
 
@@ -136,7 +136,7 @@ def create_shout(userid, targetid, parentid=None, body="",
 def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
     journal = add_entity(content.Journal(
         userid=userid, title=title, rating=rating, unixtime=unixtime, settings=settings))
-    update_last_active(userid)
+    update_last_submission_time(userid, unixtime)
     return journal.journalid
 
 
@@ -152,7 +152,7 @@ def create_character(userid, name='', age='', gender='', height='', weight='', s
     character = add_entity(content.Character(
         userid=userid, char_name=name, age=age, gender=gender, height=height, weight=weight,
         species=species, content=description, rating=rating, unixtime=unixtime, settings=settings))
-    update_last_active(userid)
+    update_last_submission_time(userid, unixtime)
     return character.charid
 
 

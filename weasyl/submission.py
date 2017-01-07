@@ -132,7 +132,7 @@ def _create_submission(expected_type):
                 **kwargs)
             if newid:
                 p = d.meta.tables['profile']
-                d.connect().execute(p.update().where(p.c.userid == userid).values(last_active=arrow.utcnow()))
+                d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
             return newid
 
         return create_generic

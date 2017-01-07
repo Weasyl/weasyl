@@ -30,7 +30,7 @@ def ensure_wzl_dev(func):
 wzl_egg_info = '/weasyl-src/_wzl/wzl.egg-info'
 
 
-def ensure_egg_info():
+def write_egg_info():
     """
     Sometimes wzl.egg-info isn't generated when it should be.
     """
@@ -39,11 +39,27 @@ def ensure_egg_info():
     cmd(['python', 'setup.py', 'egg_info'], cwd=os.path.dirname(wzl_egg_info))
 
 
+def ensure_local_eid(func):
+    @functools.wraps(func)
+    def wrapper(*a, **kw):
+        did_seteuid = False
+        if os.geteuid() == 0:
+            os.setegid(int(os.environ['LOCAL_GROUP_ID']))
+            os.seteuid(int(os.environ['LOCAL_USER_ID']))
+            did_seteuid = True
+        try:
+            return func(*a, **kw)
+        finally:
+            if did_seteuid:
+                os.seteuid(0)
+                os.setegid(0)
+    return wrapper
+
+
 def forward_from_wzl_dev(func):
     @functools.wraps(func)
     def wrapper(args):
         if is_wzl_dev():
-            ensure_egg_info()
             forward([
                 'docker-compose', 'run', 'weasyl-app-dev',
                 func.__name__, '--'] + list(args))
@@ -71,6 +87,7 @@ def wzl():
 
 
 @wzl.command()
+@ensure_local_eid
 @ensure_wzl_dev
 def setup():
     """
@@ -80,7 +97,9 @@ def setup():
 
     \b
      - Copy example config files.
+     - Ensure .egg-info files are present.
     """
+    write_egg_info()
     config_dir = 'config'
     config_files = set(os.listdir(config_dir))
     for f in config_files:
@@ -275,6 +294,7 @@ def upgrade_db(ctx):
 
 
 @wzl.command('write-versions')
+@ensure_local_eid
 @ensure_wzl_dev
 def write_versions():
     """
@@ -418,7 +438,8 @@ def build(ctx, reverse_deps, no_deps, dry_run, all_targets, no_cache, target):
     """
     Build docker images.
 
-    `write-versions` will always be called first before any building is done.
+    `write-versions` and `setup` will always be called first before any
+    building is done.
 
     This is required to run anything. Building a target image will first build
     its dependencies unless --no-deps is specified. The default if no targets
@@ -449,6 +470,7 @@ def build(ctx, reverse_deps, no_deps, dry_run, all_targets, no_cache, target):
 
     [2]: Not an image, but builds the static assets for the site in place.
     """
+    ctx.invoke(setup)
     ctx.invoke(write_versions)
 
     if all_targets:

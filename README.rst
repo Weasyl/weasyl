@@ -25,10 +25,9 @@ The `Docker documentation (for, say, Ubuntu)
 <https://docs.docker.com/engine/installation/linux/ubuntulinux/#/manage-docker-as-a-non-root-user>`_
 has more details on configuring this.
 
-The first steps are to set configuration to defaults, build all of the images,
-and ensure the database schema is up to date::
+The first steps are to build all of the images and configuration, and
+ensure the database schema is up to date::
 
-  $ ./wzl setup
   $ ./wzl build --all
   $ ./wzl upgrade-db
 

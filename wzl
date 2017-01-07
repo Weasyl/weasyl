@@ -17,6 +17,7 @@ elif [ -S "${sock}" ]; then
     extra_args="-v ${sock}:${sock} ${extra_args}"
 fi
 
+mkdir -p wheelhouse
 runner="wzl-run-$$"
 h=$(pwd)
 exec docker run --rm -it \
@@ -24,6 +25,7 @@ exec docker run --rm -it \
      -e WZL=dev \
      -e WZL_RUNNER="${runner}" \
      -e LOCAL_USER_ID="${LOCAL_USER_ID-$(id -u)}" \
+     -e LOCAL_GROUP_ID="${LOCAL_GROUP_ID-$(id -g)}" \
      -v "${h}:/weasyl-src" \
      -v "${h}/build:/weasyl-app/build" \
      -v "${h}/config:/weasyl-app/config" \

@@ -3,7 +3,7 @@ FROM alpine:3.5
 RUN mkdir /usr/local/sbin
 RUN apk --no-cache --update add \
   bash ca-certificates findutils libffi python2 py-virtualenv runit shadow
-RUN adduser -S -h /var/cache/weasyl weasyl
+RUN useradd --system --user-group --create-home --home /var/cache/weasyl weasyl
 RUN mkdir /appenv /weasyl-src /weasyl-app
 RUN chown weasyl: /appenv /weasyl-src /weasyl-app
 ADD as-weasyl /usr/local/sbin

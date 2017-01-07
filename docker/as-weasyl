@@ -4,17 +4,34 @@ if [ "$(whoami)" = "weasyl" ]; then
     exec "$@"
 fi
 
+criteria="-true"
+
 if [ -n "${LOCAL_USER_ID-}" ]; then
     olduid="$(id -u weasyl)"
     if [ "${LOCAL_USER_ID}" != "${olduid}" ]; then
-        echo "=== remapping weasyl (${olduid} => ${LOCAL_USER_ID})"
+        echo "=== remapping weasyl (uid ${olduid} => ${LOCAL_USER_ID})"
         usermod -ou "${LOCAL_USER_ID}" weasyl
-        for dir in /appenv /weasyl-app /weasyl-src ~weasyl; do
-            test -e "${dir}" \
-                && find "${dir}" \( -uid "${olduid}" -o -uid 0 \) -print0 \
-		    | xargs -r0 chown weasyl
-        done
+        criteria="( ${criteria} -o -uid ${olduid} )"
     fi
+fi
+
+if [ -n "${LOCAL_GROUP_ID-}" ]; then
+    oldgid="$(id -g weasyl)"
+    if [ "${LOCAL_GROUP_ID}" != "${oldgid}" ]; then
+        echo "=== remapping weasyl (gid ${oldgid} => ${LOCAL_GROUP_ID})"
+        groupmod -og "${LOCAL_GROUP_ID}" weasyl
+        criteria="( ${criteria} -o -gid ${oldgid} )"
+    fi
+fi
+
+echo "*** ${criteria}"
+
+if [ "${criteria}" != "-true" ]; then
+    echo "=== reowning weasyl files (${criteria})"
+    for dir in /appenv /weasyl-app /weasyl-src ~weasyl; do
+        test -e "${dir}" \
+            && find "${dir}" ${criteria} -print0 | xargs -r0 chown weasyl:
+    done
 fi
 
 # This MUST be two lines, or sh gets confused.

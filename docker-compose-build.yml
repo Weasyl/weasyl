@@ -17,7 +17,8 @@ services:
     volumes_from:
       - container:${WZL_RUNNER}:rw
     environment:
-      LOCAL_USER_ID: "${LOCAL_USER_ID}"
+      - LOCAL_USER_ID
+      - LOCAL_GROUP_ID
 
   weasyl-app:
     build:
@@ -34,7 +35,8 @@ services:
     volumes_from:
       - container:${WZL_RUNNER}:rw
     environment:
-      LOCAL_USER_ID: "${LOCAL_USER_ID}"
+      - LOCAL_USER_ID
+      - LOCAL_GROUP_ID
 
 volumes:
   assets_node_modules: {}

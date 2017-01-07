@@ -126,10 +126,14 @@ def _create_submission(expected_type):
 
             profile.check_user_rating_allowed(userid, submission.rating)
 
-            return create_specific(
+            newid = create_specific(
                 userid=userid,
                 submission=submission,
                 **kwargs)
+            if newid:
+                p = d.meta.tables['profile']
+                d.connect().execute(p.update().where(p.c.userid == userid).values(last_active=arrow.utcnow()))
+            return newid
 
         return create_generic
 

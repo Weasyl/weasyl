@@ -6,9 +6,9 @@ from weasyl import searchtag
 from weasyl.test import db_utils
 
 # Test lists of tags
-valid_tags = ['test', '*test', 'te*st', 'test*', 'test_too']
-invalid_tags = ['*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}']
-combined_tags = valid_tags + invalid_tags
+valid_tags = {'test', '*test', 'te*st', 'test*', 'test_too'}
+invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
+combined_tags = valid_tags | invalid_tags
 
 
 @pytest.mark.usefixtures('db')
@@ -20,7 +20,7 @@ def test_edit_user_tag_restrictions_with_no_prior_entries():
     user_id = db_utils.create_user()
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
     searchtag.edit_user_tag_restrictions(user_id, tags)
-    resultant_tags = searchtag.get_user_tag_restrictions(user_id)
+    resultant_tags = searchtag.query_user_restricted_tags(user_id)
     assert resultant_tags == valid_tags
 
 
@@ -30,12 +30,12 @@ def test_edit_user_tag_restrictions_with_prior_entries_test_removal_of_entry():
     user_id = db_utils.create_user()
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
     searchtag.edit_user_tag_restrictions(user_id, tags)
-    tags_to_keep = ['test', 'te*st', 'test_too']
+    tags_to_keep = {'test', 'te*st', 'test_too'}
 
     # Set the new tags; AKA, remove the two defined tags
     tags = searchtag.parse_restricted_tags(", ".join(tags_to_keep))
     searchtag.edit_user_tag_restrictions(user_id, tags)
-    resultant_tags = searchtag.get_user_tag_restrictions(user_id)
+    resultant_tags = searchtag.query_user_restricted_tags(user_id)
     assert resultant_tags == tags_to_keep
 
 
@@ -46,4 +46,4 @@ def test_edit_user_tag_restrictions_fully_clear_entries_after_adding_items():
     searchtag.edit_user_tag_restrictions(user_id, tags)
     tags = set()
     searchtag.edit_user_tag_restrictions(user_id, tags)
-    assert searchtag.get_user_tag_restrictions(user_id) == []
+    assert searchtag.query_user_restricted_tags(user_id) == set()

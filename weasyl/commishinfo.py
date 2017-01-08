@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division
 
 import re
+import urllib
 from collections import namedtuple
 from decimal import Decimal
 
@@ -217,7 +218,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     stmt = ["""
         SELECT p.userid, p.username, p.settings,
             MIN(cp.amount_min) AS pricemin,
-            MAX(sub.unixtime) AS latest_submission,
             GREATEST(MAX(cp.amount_max), MAX(cp.amount_min)) AS pricemax,
             MIN(cp.settings) AS pricesettings,
             MAX(d.content) AS description,
@@ -233,8 +233,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
             AND cp.userid = p.userid
             AND cp.settings NOT LIKE '%%a'
 
-        JOIN submission sub ON sub.userid = p.userid
-
         LEFT JOIN commishdesc d ON p.userid = d.userid
 
         LEFT JOIN artist_preferred_tags prefmap ON p.userid = prefmap.targetid
@@ -245,7 +243,6 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         WHERE LOWER(cc.title) LIKE %(cclasslike)s
         AND p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
-        AND sub.settings !~ '[hf]'
         AND NOT EXISTS (
             SELECT 0
             FROM searchtag tag
@@ -283,20 +280,25 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         # As well, use searched class as a tag for purposes of finding "tagged" examples of an artists work
         tags.append(commishclass)
     stmt.append("""
-            COALESCE(COUNT(preftag.tagid), 0) DESC, latest_submission DESC
+            COALESCE(COUNT(preftag.tagid), 0) DESC, p.latest_submission_time DESC
         LIMIT %(limit)s OFFSET %(offset)s
     """)
     # to allow partial matches on commishclass
     cclasslike = "%" + commishclass + "%"
     max_rating = d.get_rating(userid)
-    print("".join(stmt))
     query = d.engine.execute("".join(stmt), limit=limit, min=min_price,
                              max=max_price, cclass=commishclass, cclasslike=cclasslike,
                              tags=tags, rating=max_rating, offset=offset)
+
     def prepare(info):
         dinfo = dict(info)
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
+        if tags:
+            terms = ["user:" + info.username] + ["|" + tag for tag in tags]
+            dinfo['searchquery'] = "q=" + urllib.quote(" ".join(terms))
+        else:
+            dinfo['searchquery'] = ""
         return dinfo
 
     results = [prepare(i) for i in query]

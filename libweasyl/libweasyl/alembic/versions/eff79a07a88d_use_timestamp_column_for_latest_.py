@@ -1,7 +1,7 @@
 """Use TIMESTAMP column for latest submission
 
 Revision ID: eff79a07a88d
-Revises: 7ff3906eccf5
+Revises: 83e6b2a46191
 Create Date: 2017-01-08 22:20:43.814375
 
 """

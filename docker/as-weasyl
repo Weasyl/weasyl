@@ -24,11 +24,9 @@ if [ -n "${LOCAL_GROUP_ID-}" ]; then
     fi
 fi
 
-echo "*** ${criteria}"
-
 if [ "${criteria}" != "-true" ]; then
     echo "=== reowning weasyl files (${criteria})"
-    for dir in /appenv /weasyl-app /weasyl-src ~weasyl; do
+    for dir in /appenv /weasyl-app /weasyl-src /node_modules ~weasyl; do
         test -e "${dir}" \
             && find "${dir}" ${criteria} -print0 | xargs -r0 chown weasyl:
     done

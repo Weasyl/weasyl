@@ -3,5 +3,5 @@ FROM weasyl-base
 RUN apk --no-cache --update add nodejs-current \
  && npm install -qg gulp-cli
 
-VOLUME /weasyl-src/node_modules
+VOLUME /node_modules
 WORKDIR /weasyl-src

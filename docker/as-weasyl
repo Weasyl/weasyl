@@ -4,7 +4,7 @@ if [ "$(whoami)" = "weasyl" ]; then
     exec "$@"
 fi
 
-criteria="-true"
+criteria="-false"
 
 if [ -n "${LOCAL_USER_ID-}" ]; then
     olduid="$(id -u weasyl)"
@@ -24,7 +24,7 @@ if [ -n "${LOCAL_GROUP_ID-}" ]; then
     fi
 fi
 
-if [ "${criteria}" != "-true" ]; then
+if [ "${criteria}" != "-false" ]; then
     echo "=== reowning weasyl files (${criteria})"
     for dir in /appenv /weasyl-app /weasyl-src /node_modules ~weasyl; do
         test -e "${dir}" \

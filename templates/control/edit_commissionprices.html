@@ -1,20 +1,47 @@
-$def with (query, currencies, presets)
-$:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
+$def with (query, currencies, presets, profile)
+$code:
+  def _SELECTED(x, y):
+    return ' selected="selected"' if profile['settings'][x] == y else ''
 
+$:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 <div id="commishprices-content" class="content form clear">
   <div>
     <h3>My General Commission Info</h3>
     <p>Information about commissioning you and preferences for commission content</p>
     <div class="commish-row">
       <div class="info">
-        <form name="controleditcommishtext" action="/control/editcommishtext" method="post" class="clear">
+        <form name="controleditcommishtext" action="/control/editcommishinfo" method="post" class="clear">
           $:{CSRF()}
+          <!-- Copied from edit_profile.html. TODO(hyena): Only put this in one place, probably here. -->
+          <label for="editprofile-setcommish">Commissions</label>
+          <select id="editprofile-setcommish" class="input" name="set_commish">
+            <option value="o"${_SELECTED(0, 'o')}>I am currently accepting commissions</option>
+            <option value="s"${_SELECTED(0, 's')}>I may sometimes accept commissions</option>
+            <option value="f"${_SELECTED(0, 'f')}>My commission queue is currently filled</option>
+            <option value="c"${_SELECTED(0, 'c')}>I am not accepting commissions right now</option>
+            <option value="e"${_SELECTED(0, 'e')}>This is not applicable to me</option>
+          </select>
 
-          <label for="commish-info">Description</label>
+          <label for="editprofile-settrade">Trades</label>
+          <select id="editprofile-settrade" class="input" name="set_trade">
+            <option value="o"${_SELECTED(1, 'o')}>I am currently accepting trades</option>
+            <option value="s"${_SELECTED(1, 's')}>I may sometimes accept trades</option>
+            <option value="c"${_SELECTED(1, 'c')}>I am not accepting trades right now</option>
+            <option value="e"${_SELECTED(1, 'e')}>This is not applicable to me</option>
+          </select>
+
+          <label for="editprofile-setrequest">Requests</label>
+          <select id="editprofile-setrequest" class="input" name="set_request">
+            <option value="o"${_SELECTED(2, 'o')}>I am currently accepting requests</option>
+            <option value="s"${_SELECTED(2, 's')}>I may sometimes accept requests</option>
+            <option value="c"${_SELECTED(2, 'c')}>I am not accepting requests right now</option>
+            <option value="e"${_SELECTED(2, 'e')}>This is not applicable to me</option>
+          </select>
+          <label for="commish-info">Your Commission Info</label>
           <textarea class="markdown input last-input expanding" name="content" rows="8" id="commish-info">${query['content'] if query['content'] else ''}</textarea>
           <br />
 
-          <button type="submit" class="button positive" style="float: right;">Save Description</button>
+          <button type="submit" class="button positive" style="float: right;">Save Info</button>
         </form>
       </div>
       <div class="commish-tags">

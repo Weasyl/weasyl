@@ -89,14 +89,19 @@ def control_editcommissionprices_(request):
         commishinfo.select_list(request.userid),
         commishinfo.CURRENCY_CHARMAP,
         commishinfo.PRESET_COMMISSION_CLASSES,
+        profile.select_profile(request.userid)
     ]))
 
 
 @login_required
 @token_checked
-def control_editcommishtext_(request):
-    form = request.web_input(content="")
+def control_editcommishinfo_(request):
+    form = request.web_input(content="", set_commish="", set_trade="", set_request="")
+    set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
+    set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
+    set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
 
+    profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
     commishinfo.edit_content(request.userid, form.content)
     raise HTTPSeeOther(location="/control/editcommissionprices")
 

@@ -122,8 +122,10 @@ def test_commish_search_invalid():
 def create_commish_searchable_user(username, commish_status='o', commishclass='badge',
                                    minprice="10.00", maxprice="15.00", currency='', submittime=arrow.get(1)):
     user = db_utils.create_user(username=username)
-    profile.edit_profile(userid=user, profile=orm.Profile(),
-                         set_commission=profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, commish_status))
+    profile.edit_profile_settings(
+        userid=user,
+        set_commission=profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, commish_status)
+    )
     commishinfo.create_commission_class(user, commishclass)
     classid = commishinfo.select_list(user)["class"][0]["classid"]
     assert classid

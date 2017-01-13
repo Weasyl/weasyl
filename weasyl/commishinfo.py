@@ -188,10 +188,10 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     and have defined at least one commission class.
 
     This query sorts primarily by how many matching tags in the "content" field match
-    a user's artist tags. Secondarily, it sorts by the user's most recent upload time
+    an artist's preferred tags. Secondarily, it sorts by the artist's most recent upload time
     (of any submission that is not hidden or friends-only).
-    This way users who are more active on the site will recieve a higher search ranking.
-    Ignored users and banned/suspended users will not appear in search results.
+    This way artists who are more active on the site will receive a higher search ranking.
+    Ignored artists and banned/suspended artists will not appear in search results.
 
     Commission prices are converted to $currency before being compared against min_price and max_price.
     This way, a search with a min price of "1000 JPY" can still return a result for a commission

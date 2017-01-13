@@ -417,6 +417,7 @@ def edit_content(userid, content):
 
 def remove_class(userid, classid):
     d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
+    d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
 
 
 def remove_price(userid, priceid):

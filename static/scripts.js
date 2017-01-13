@@ -286,6 +286,18 @@
             fadebox.remove();
         });
 
+        // Commishinfo prices "autopopulate" dropdown
+
+        $('#commish-edit-select').on('change', function () {
+            var selectedID = $(this).val();
+            console.log(selectedID);
+            forEach(document.getElementsByClassName('select-priceid'), function (field) {
+                var myID = field.getAttribute('data-priceid');
+                var visible = selectedID == myID;
+                field.style.display = visible ? '' : 'none';
+            });
+        });
+
         // checkbox containers
         $('.input-checkbox input[type=checkbox]').each(function () {
             var that = this;

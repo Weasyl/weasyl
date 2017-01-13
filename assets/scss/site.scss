@@ -3643,7 +3643,7 @@ img + #detail-art-text {
 }
 
 #commishprices-content .di-tags {
-    width: 100%
+    width: 100%;
 }
 
 #commishprices-content .commish-row .half {
@@ -3798,7 +3798,11 @@ img + #detail-art-text {
     }
 
     #commishprices-content .info {
-        flex: 0 0 60%;
+        flex: 0 0 55%;
+    }
+
+    #commishprices-content .commish-tags {
+        flex: 0 0 40%;
     }
 
     #submit-form.journal {

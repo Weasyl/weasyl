@@ -166,7 +166,7 @@ def control_createcommishprice_(request):
 @login_required
 @token_checked
 def control_editcommishprice_(request):
-    form = request.web_input(priceid="", title="", min_amount="", max_amount="", edit_settings="", currency="", settings="")
+    form = request.web_input(priceid="", title="", min_amount="", max_amount="", currency="", settings="")
 
     price = orm.CommishPrice()
     price.title = form.title.strip()
@@ -175,14 +175,14 @@ def control_editcommishprice_(request):
     price.amount_max = commishinfo.parse_currency(form.max_amount)
     edit_prices = bool(price.amount_min or price.amount_max)
     commishinfo.edit_price(request.userid, price, currency=form.currency,
-                           settings=form.settings, edit_prices=edit_prices, edit_settings=form.edit_settings)
+                           settings=form.settings, edit_prices=edit_prices)
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
 @login_required
 @token_checked
 def control_removecommishprice_(request):
-    form = request.web_input(classid="")
+    form = request.web_input(priceid="")
 
     commishinfo.remove_price(request.userid, form.priceid)
     raise HTTPSeeOther(location="/control/editcommissionprices")

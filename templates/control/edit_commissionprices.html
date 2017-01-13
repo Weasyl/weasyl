@@ -232,10 +232,10 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
           </select>
 
           $for price in query['price']:
-            <form name="controleditcommishprice" action="/control/editcommishprice" method="post"
-                  class="clear select-priceid" data-priceid="${price['priceid']}" style="display:none;">
+            <form name="controleditcommishprice" method="post" class="clear select-priceid"
+                  data-priceid="${price['priceid']}" style="display:none;">
               $:{CSRF()}
-
+              <input type="hidden" name="priceid" value="${price['priceid']}">
               <label for="commish-edit-title">Rename To</label>
               <input type="text" class="input" name="title" id="commish-edit-title"
                      placeholder="ex: 'Full Color', 'Basic Pose'" value="${price['title']}"/>
@@ -264,8 +264,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
                        $:{'checked="checked"' if 'a' in price['settings'] else ""}>This price is an additional cost
               </label>
 
-              <button type="submit" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Price</button>
-              <button type="submit" class="button negative" style="float: right;">Remove Price</button>
+              <button type="submit" formaction="/control/editcommishprice" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Price</button>
+              <button type="submit" formaction="/control/removecommishprice" class="button negative" style="float: right;">Remove Price</button>
             </form>
         </div>
       </div>

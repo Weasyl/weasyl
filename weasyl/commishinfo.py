@@ -364,7 +364,7 @@ def edit_class(userid, commishclass):
         raise WeasylError("titleExists")
 
 
-def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_settings=False):
+def edit_price(userid, price, currency="", settings="", edit_prices=False):
     currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
     settings = "".join(i for i in settings if i in "a")
 
@@ -396,9 +396,8 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_
             statement.append("%s amount_max = %%i" % ("," if argv else ""))
             argv.append(price.amount_max)
 
-    if edit_settings:
-        statement.append("%s settings = '%%s'" % ("," if argv else ""))
-        argv.append("%s%s" % (currency, settings))
+    statement.append("%s settings = '%%s'" % ("," if argv else ""))
+    argv.append("%s%s" % (currency, settings))
 
     if not argv:
         return
@@ -416,9 +415,15 @@ def edit_content(userid, content):
 
 
 def remove_class(userid, classid):
+    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
+                     [d.get_int(classid), userid], ["bool"]):
+        raise WeasylError("classidInvalid")
     d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
     d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
 
 
 def remove_price(userid, priceid):
+    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishprice WHERE (priceid, userid) = (%i, %i))",
+                     [d.get_int(priceid), userid], ["bool"]):
+        raise WeasylError("priceidInvalid")
     d.execute("DELETE FROM commishprice WHERE (priceid, userid) = (%i, %i)", [d.get_int(priceid), userid])

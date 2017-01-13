@@ -109,10 +109,21 @@ def control_editcommishinfo_(request):
 @login_required
 @token_checked
 def control_createcommishclass_(request):
-    form = request.web_input(title="", titlepreset="")
+    form = request.web_input(title="", titlepreset="", price_title="", min_amount="", max_amount="", currency="")
     title = form.title or form.titlepreset
 
-    commishinfo.create_commission_class(request.userid, title.strip())
+    classid = commishinfo.create_commission_class(request.userid, title.strip())
+    # Try to create a base price for it. If we fail, try to clean up the class.
+    try:
+        price = orm.CommishPrice()
+        price.title = form.price_title.strip()
+        price.classid = classid
+        price.amount_min = commishinfo.parse_currency(form.min_amount)
+        price.amount_max = commishinfo.parse_currency(form.max_amount)
+        commishinfo.create_price(request.userid, price, currency=form.currency)
+    except WeasylError as we:
+        commishinfo.remove_class(request.userid, classid)
+        raise we
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
 

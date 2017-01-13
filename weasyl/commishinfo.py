@@ -306,6 +306,9 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
 
 def create_commission_class(userid, title):
+    """
+    Creates a new commission class and returns its id.
+    """
     if not title:
         raise WeasylError("titleInvalid")
 
@@ -313,6 +316,7 @@ def create_commission_class(userid, title):
 
     try:
         d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid if classid else 1, userid, title])
+        return classid
     except PostgresError:
         raise WeasylError("commishclassExists")
 

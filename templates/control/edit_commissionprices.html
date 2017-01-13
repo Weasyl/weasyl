@@ -202,7 +202,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
         <div class="half">
           <h3>Edit/Remove a Class</h3>
           <p>Rename, reclassify, or remove a class</p>
-          <form name="controleditcommishclass" action="/control/editcommishclass" method="post" class="clear">
+          <form name="controleditcommishclass" method="post" class="clear">
             $:{CSRF()}
             <label for="commishprices-editclass">Class Title</label>
             <select id="commishprices-editclass" class="input" name="classid">
@@ -213,8 +213,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 
             <label for="commishprices-renameclass">Rename To</label>
             <input type="text" id="commishprices-renameclass" class="input last-input" name="title" required="required" placeholder="ex: 'Sketches', 'Badges'" />
-            <button type="submit" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Class</button>
-            <button type="submit" class="button negative" style="float: right;">Remove Class</button>
+            <button type="submit" formaction="/control/editcommishclass" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Class</button>
+            <button type="submit" formaction="/control/removecommishclass" class="button negative" formnovalidate="formnovalidate" style="float: right;">Remove Class</button>
           </form>
         </div>
 

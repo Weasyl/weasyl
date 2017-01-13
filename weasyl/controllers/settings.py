@@ -130,7 +130,7 @@ def control_createcommishclass_(request):
 @login_required
 @token_checked
 def control_editcommishclass_(request):
-    form = request.web_input(classid="")
+    form = request.web_input(classid="", title="")
 
     commishclass = orm.CommishClass()
     commishclass.title = form.title.strip()

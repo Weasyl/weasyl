@@ -89,14 +89,19 @@ def control_editcommissionprices_(request):
         commishinfo.select_list(request.userid),
         commishinfo.CURRENCY_CHARMAP,
         commishinfo.PRESET_COMMISSION_CLASSES,
+        profile.select_profile(request.userid)
     ]))
 
 
 @login_required
 @token_checked
-def control_editcommishtext_(request):
-    form = request.web_input(content="")
+def control_editcommishinfo_(request):
+    form = request.web_input(content="", set_commish="", set_trade="", set_request="")
+    set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
+    set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
+    set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
 
+    profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
     commishinfo.edit_content(request.userid, form.content)
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
@@ -104,17 +109,28 @@ def control_editcommishtext_(request):
 @login_required
 @token_checked
 def control_createcommishclass_(request):
-    form = request.web_input(title="", titlepreset="")
+    form = request.web_input(title="", titlepreset="", price_title="", min_amount="", max_amount="", currency="")
     title = form.title or form.titlepreset
 
-    commishinfo.create_commission_class(request.userid, title.strip())
+    classid = commishinfo.create_commission_class(request.userid, title.strip())
+    # Try to create a base price for it. If we fail, try to clean up the class.
+    try:
+        price = orm.CommishPrice()
+        price.title = form.price_title.strip()
+        price.classid = classid
+        price.amount_min = commishinfo.parse_currency(form.min_amount)
+        price.amount_max = commishinfo.parse_currency(form.max_amount)
+        commishinfo.create_price(request.userid, price, currency=form.currency)
+    except WeasylError as we:
+        commishinfo.remove_class(request.userid, classid)
+        raise we
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
 @login_required
 @token_checked
 def control_editcommishclass_(request):
-    form = request.web_input(classid="")
+    form = request.web_input(classid="", title="")
 
     commishclass = orm.CommishClass()
     commishclass.title = form.title.strip()
@@ -150,7 +166,7 @@ def control_createcommishprice_(request):
 @login_required
 @token_checked
 def control_editcommishprice_(request):
-    form = request.web_input(priceid="", title="", min_amount="", max_amount="", edit_settings="", currency="", settings="")
+    form = request.web_input(priceid="", title="", min_amount="", max_amount="", currency="", settings="")
 
     price = orm.CommishPrice()
     price.title = form.title.strip()
@@ -159,14 +175,14 @@ def control_editcommishprice_(request):
     price.amount_max = commishinfo.parse_currency(form.max_amount)
     edit_prices = bool(price.amount_min or price.amount_max)
     commishinfo.edit_price(request.userid, price, currency=form.currency,
-                           settings=form.settings, edit_prices=edit_prices, edit_settings=form.edit_settings)
+                           settings=form.settings, edit_prices=edit_prices)
     raise HTTPSeeOther(location="/control/editcommissionprices")
 
 
 @login_required
 @token_checked
 def control_removecommishprice_(request):
-    form = request.web_input(classid="")
+    form = request.web_input(priceid="")
 
     commishinfo.remove_price(request.userid, form.priceid)
     raise HTTPSeeOther(location="/control/editcommissionprices")

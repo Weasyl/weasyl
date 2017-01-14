@@ -188,10 +188,10 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
     and have defined at least one commission class.
 
     This query sorts primarily by how many matching tags in the "content" field match
-    a user's artist tags. Secondarily, it sorts by the user's most recent upload time
+    an artist's preferred tags. Secondarily, it sorts by the artist's most recent upload time
     (of any submission that is not hidden or friends-only).
-    This way users who are more active on the site will recieve a higher search ranking.
-    Ignored users and banned/suspended users will not appear in search results.
+    This way artists who are more active on the site will receive a higher search ranking.
+    Ignored artists and banned/suspended artists will not appear in search results.
 
     Commission prices are converted to $currency before being compared against min_price and max_price.
     This way, a search with a min price of "1000 JPY" can still return a result for a commission
@@ -306,6 +306,9 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
 
 def create_commission_class(userid, title):
+    """
+    Creates a new commission class and returns its id.
+    """
     if not title:
         raise WeasylError("titleInvalid")
 
@@ -313,6 +316,7 @@ def create_commission_class(userid, title):
 
     try:
         d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid if classid else 1, userid, title])
+        return classid
     except PostgresError:
         raise WeasylError("commishclassExists")
 
@@ -360,7 +364,7 @@ def edit_class(userid, commishclass):
         raise WeasylError("titleExists")
 
 
-def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_settings=False):
+def edit_price(userid, price, currency="", settings="", edit_prices=False):
     currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
     settings = "".join(i for i in settings if i in "a")
 
@@ -392,9 +396,8 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False, edit_
             statement.append("%s amount_max = %%i" % ("," if argv else ""))
             argv.append(price.amount_max)
 
-    if edit_settings:
-        statement.append("%s settings = '%%s'" % ("," if argv else ""))
-        argv.append("%s%s" % (currency, settings))
+    statement.append("%s settings = '%%s'" % ("," if argv else ""))
+    argv.append("%s%s" % (currency, settings))
 
     if not argv:
         return
@@ -412,8 +415,15 @@ def edit_content(userid, content):
 
 
 def remove_class(userid, classid):
+    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
+                     [d.get_int(classid), userid], ["bool"]):
+        raise WeasylError("classidInvalid")
     d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
+    d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
 
 
 def remove_price(userid, priceid):
+    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishprice WHERE (priceid, userid) = (%i, %i))",
+                     [d.get_int(priceid), userid], ["bool"]):
+        raise WeasylError("priceidInvalid")
     d.execute("DELETE FROM commishprice WHERE (priceid, userid) = (%i, %i)", [d.get_int(priceid), userid])

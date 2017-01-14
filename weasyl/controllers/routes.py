@@ -160,10 +160,11 @@ routes = (
           {'POST': settings.control_uploadavatar_}),
     Route("/control/editprofile", "control_editprofile",
           {'GET': settings.control_editprofile_get_, 'POST': settings.control_editprofile_put_}),
+
     Route("/control/editcommissionprices", "control_editcommissionprices",
           settings.control_editcommissionprices_),
-    Route("/control/editcommishtext", "control_editcommishtext",
-          {'POST': settings.control_editcommishtext_}),
+    Route("/control/editcommishinfo", "control_editcommishinfo",
+          {'POST': settings.control_editcommishinfo_}),
     Route("/control/createcommishclass", "control_createcommishclass",
           {'POST': settings.control_createcommishclass_}),
     Route("/control/editcommishclass", "control_editcommishclass",
@@ -176,6 +177,7 @@ routes = (
           {'POST': settings.control_editcommishprice_}),
     Route("/control/removecommishprice", "control_removecommishprice",
           {'POST': settings.control_removecommishprice_}),
+
     Route("/control/editemailpassword", "control_editemailpassword", {
         'GET': settings.control_editemailpassword_get_,
         'POST': settings.control_editemailpassword_post_

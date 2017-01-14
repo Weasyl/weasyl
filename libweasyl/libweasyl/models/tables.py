@@ -524,7 +524,7 @@ profile = Table(
     Column('catchphrase', String(length=200), nullable=False, server_default=''),
     Column('artist_type', String(length=100), nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('latest_submission_time', WeasylTimestampColumn(), nullable=False, server_default='0'),
+    Column('latest_submission_time', ArrowColumn(), nullable=False, server_default='epoch'),
     Column('profile_text', Text(), nullable=False, server_default=''),
     Column('settings', String(length=20), nullable=False, server_default='ccci'),
     Column('stream_url', String(length=500), nullable=False, server_default=''),

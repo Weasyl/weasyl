@@ -313,9 +313,10 @@ def create_commission_class(userid, title):
         raise WeasylError("titleInvalid")
 
     classid = d.execute("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %i", [userid], ["element"])
-
+    if not classid:
+        classid = 1
     try:
-        d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid if classid else 1, userid, title])
+        d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid, userid, title])
         return classid
     except PostgresError:
         raise WeasylError("commishclassExists")

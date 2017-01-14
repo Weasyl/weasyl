@@ -141,9 +141,10 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
 
 
           <label for="commish-currency">Currency</label>
-          <select class="input last-input" name="currency" id="commish-currency">
+          <select class="input last-input" name="currency" id="commish-currency" required="required">
+              <option value="">Please select</option>
             $for char, info in currencies.iteritems():
-              <option value="${char}">${info.name}</option>
+              <option value="${char if char else '$'}">${info.name}</option>
           </select>
           <button type="submit" class="button positive" style="float: right;">Create Type</button>
         </div>
@@ -176,9 +177,10 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
             <input type="number" step="any" class="input" name="max_amount" id="commish-max-amount" />
 
             <label for="commish-currency">Currency</label>
-            <select class="input" name="currency" id="commish-currency">
+            <select class="input" name="currency" id="commish-currency" required="required">
+              <option value="">Please select</option>
               $for char, info in currencies.iteritems():
-              <option value="${char}" $:{'selected="selected"' if not char else ""}>${info.name}</option>
+              <option value="${char if char else '$'}">${info.name}</option>
             </select>
 
               <label>Cost type</label>

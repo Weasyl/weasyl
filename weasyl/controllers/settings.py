@@ -111,6 +111,7 @@ def control_editcommishinfo_(request):
 def control_createcommishclass_(request):
     form = request.web_input(title="", titlepreset="", price_title="", min_amount="", max_amount="", currency="")
     title = form.titlepreset or form.title
+    form.currency = form.currency.replace("$", "")
 
     classid = commishinfo.create_commission_class(request.userid, title.strip())
     # Try to create a base price for it. If we fail, try to clean up the class.
@@ -152,6 +153,7 @@ def control_removecommishclass_(request):
 @token_checked
 def control_createcommishprice_(request):
     form = request.web_input(title="", classid="", min_amount="", max_amount="", currency="", settings="")
+    form.currency = form.currency.replace("$", "")
 
     price = orm.CommishPrice()
     price.title = form.title.strip()
@@ -167,6 +169,7 @@ def control_createcommishprice_(request):
 @token_checked
 def control_editcommishprice_(request):
     form = request.web_input(priceid="", title="", min_amount="", max_amount="", currency="", settings="")
+    form.currency = form.currency.replace("$", "")
 
     price = orm.CommishPrice()
     price.title = form.title.strip()

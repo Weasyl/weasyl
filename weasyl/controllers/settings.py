@@ -110,7 +110,7 @@ def control_editcommishinfo_(request):
 @token_checked
 def control_createcommishclass_(request):
     form = request.web_input(title="", titlepreset="", price_title="", min_amount="", max_amount="", currency="")
-    title = form.title or form.titlepreset
+    title = form.titlepreset or form.title
 
     classid = commishinfo.create_commission_class(request.userid, title.strip())
     # Try to create a base price for it. If we fail, try to clean up the class.

@@ -112,18 +112,18 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
       <div class="commish-row">
         $:{CSRF()}
         <div class="half">
-          <label for="commishprices-addclass-preset">Class Presets</label>
+          <label for="commishprices-addclass-preset">Class Title</label>
           <select class="input last-input" name="titlepreset" id="commishprices-addclass-preset">
-            <option value="" selected>Other</option>
+            <option value=""></option>
             $for group_name, group_options in presets:
               <optgroup label="${group_name}">
                 $for c in group_options:
                   <option value="${c}">${c}</option>
               </optgroup>
+            <option value="" data-select-other="">Other</option>
           </select>
-          <h4 class="or color-lighter"><i>&mdash; Or &mdash;</i></h4>
-          <label for="commishprices-addclass">Custom Class</label>
-          <input type="text" id="commishprices-addclass" class="input last-input" name="title"/>
+          <input name="title" type="text" class="input data-select-other" data-select="commishprices-addclass-preset"
+                 title="Other commission type" placeholder="Other commission type">
         </div>
         <div class="half">
           <label for="commishprices-addclass-price">Base Price Title</label>

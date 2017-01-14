@@ -337,7 +337,7 @@ def submit_tags_(request):
             return Response(define.errorpage(request.userid, failed_tag_message,
                                              [["Return to Content", location]]))
     else:
-        raise HTTPSeeOther(location="/control/editcommissionprices")
+        raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required

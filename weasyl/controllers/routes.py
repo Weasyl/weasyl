@@ -161,8 +161,8 @@ routes = (
     Route("/control/editprofile", "control_editprofile",
           {'GET': settings.control_editprofile_get_, 'POST': settings.control_editprofile_put_}),
 
-    Route("/control/editcommissionprices", "control_editcommissionprices",
-          settings.control_editcommissionprices_),
+    Route("/control/editcommissionsettings", "control_editcommissionsettings",
+          settings.control_editcommissionsettings_),
     Route("/control/editcommishinfo", "control_editcommishinfo",
           {'POST': settings.control_editcommishinfo_}),
     Route("/control/createcommishclass", "control_createcommishclass",

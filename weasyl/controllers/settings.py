@@ -83,8 +83,8 @@ def control_editprofile_put_(request):
 
 
 @login_required
-def control_editcommissionprices_(request):
-    return Response(define.webpage(request.userid, "control/edit_commissionprices.html", [
+def control_editcommissionsettings_(request):
+    return Response(define.webpage(request.userid, "control/edit_commissionsettings.html", [
         # Commission prices
         commishinfo.select_list(request.userid),
         commishinfo.CURRENCY_CHARMAP,
@@ -103,7 +103,7 @@ def control_editcommishinfo_(request):
 
     profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
     commishinfo.edit_content(request.userid, form.content)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -124,7 +124,7 @@ def control_createcommishclass_(request):
     except WeasylError as we:
         commishinfo.remove_class(request.userid, classid)
         raise we
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -136,7 +136,7 @@ def control_editcommishclass_(request):
     commishclass.title = form.title.strip()
     commishclass.classid = define.get_int(form.classid)
     commishinfo.edit_class(request.userid, commishclass)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -145,7 +145,7 @@ def control_removecommishclass_(request):
     form = request.web_input(classid="")
 
     commishinfo.remove_class(request.userid, form.classid)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -160,7 +160,7 @@ def control_createcommishprice_(request):
     price.amount_max = commishinfo.parse_currency(form.max_amount)
     commishinfo.create_price(request.userid, price, currency=form.currency,
                              settings=form.settings)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -176,7 +176,7 @@ def control_editcommishprice_(request):
     edit_prices = bool(price.amount_min or price.amount_max)
     commishinfo.edit_price(request.userid, price, currency=form.currency,
                            settings=form.settings, edit_prices=edit_prices)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -185,7 +185,7 @@ def control_removecommishprice_(request):
     form = request.web_input(priceid="")
 
     commishinfo.remove_price(request.userid, form.priceid)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required

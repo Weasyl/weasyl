@@ -287,7 +287,6 @@
         });
 
         // Commishinfo prices "autopopulate" dropdown
-
         $('#commish-edit-select').on('change', function () {
             var selectedID = $(this).val();
             console.log(selectedID);

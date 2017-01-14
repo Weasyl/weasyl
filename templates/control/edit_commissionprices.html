@@ -14,6 +14,10 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
           $:{CSRF()}
           <!-- Copied from edit_profile.html. TODO(hyena): Only put this in one place, probably here. -->
           <label for="editprofile-setcommish">Commissions</label>
+          <p>
+            You will not appear in <a href="/marketplace">Marketplace</a> results unless your commission status
+            is "currently accepting" or "may sometimes accept".
+          </p>
           <select id="editprofile-setcommish" class="input" name="set_commish">
             <option value="o"${_SELECTED(0, 'o')}>I am currently accepting commissions</option>
             <option value="s"${_SELECTED(0, 's')}>I may sometimes accept commissions</option>
@@ -106,13 +110,13 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
   <hr />
 
   <div>
-    <h3>New Commission Class</h3>
-    <p>Creates a new classification with a base price</p>
+    <h3>New Commission Type</h3>
+    <p>Creates a new type of commission with a base price</p>
     <form name="controlcreatecommishclass" action="/control/createcommishclass" method="post" class="clear">
       <div class="commish-row">
         $:{CSRF()}
         <div class="half">
-          <label for="commishprices-addclass-preset">Class Title</label>
+          <label for="commishprices-addclass-preset">Type Name</label>
           <select class="input last-input" name="titlepreset" id="commishprices-addclass-preset">
             <option value=""></option>
             $for group_name, group_options in presets:
@@ -141,7 +145,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
             $for char, info in currencies.iteritems():
               <option value="${char}">${info.name}</option>
           </select>
-          <button type="submit" class="button positive" style="float: right;">Create Class</button>
+          <button type="submit" class="button positive" style="float: right;">Create Type</button>
         </div>
       </div><!-- commish-row -->
     </form>
@@ -149,13 +153,13 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
   <hr />
   $if(query['class']):
     <div>
-      <h3>Add a Price to a Class</h3>
-      <p>Add a new base or add-on cost to a commission class</p>
+      <h3>Add a Price to a Type</h3>
+      <p>Add a new base or add-on cost to a commission type</p>
       <form name="controlcreatecommishprice" action="/control/createcommishprice" method="post" class="clear">
         $:{CSRF()}
         <div class="commish-row">
           <div class="half">
-            <label for="commish-classselect">Classification</label>
+            <label for="commish-classselect">Type</label>
             <select class="input" name="classid" id="commish-classselect">
               <option value="">Select class:</option>
               $for i in query['class']:
@@ -195,21 +199,21 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Prices", "Settings"])}
     <div>
       <div class="commish-row">
         <div class="half">
-          <h3>Edit/Remove a Class</h3>
-          <p>Rename, reclassify, or remove a class</p>
+          <h3>Edit/Remove a Type</h3>
+          <p>Rename or remove an existing commission type</p>
           <form name="controleditcommishclass" method="post" class="clear">
             $:{CSRF()}
-            <label for="commishprices-editclass">Class Title</label>
+            <label for="commishprices-editclass">Type Name</label>
             <select id="commishprices-editclass" class="input" name="classid">
-              <option value="">Select class:</option>
+              <option value="">Select type:</option>
               $for i in query['class']:
               <option value="${i['classid']}">${i['title']}</option>
             </select>
 
             <label for="commishprices-renameclass">Rename To</label>
-            <input type="text" id="commishprices-renameclass" class="input last-input" name="title" required="required" placeholder="ex: 'Sketches', 'Badges'" />
-            <button type="submit" formaction="/control/editcommishclass" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Class</button>
-            <button type="submit" formaction="/control/removecommishclass" class="button negative" formnovalidate="formnovalidate" style="float: right;">Remove Class</button>
+            <input type="text" id="commishprices-renameclass" class="input last-input" name="title" required="required" placeholder="ex: 'Sketch', 'Badge'" />
+            <button type="submit" formaction="/control/editcommishclass" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Type</button>
+            <button type="submit" formaction="/control/removecommishclass" class="button negative" formnovalidate="formnovalidate" style="float: right;">Remove Type</button>
           </form>
         </div>
 

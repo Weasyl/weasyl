@@ -161,7 +161,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
         <div class="commish-row">
           <div class="half">
             <label for="commish-classselect">Type</label>
-            <select class="input" name="classid" id="commish-classselect">
+            <select class="input" name="classid" required="required" id="commish-classselect">
               <option value="">Select class:</option>
               $for i in query['class']:
               <option value="${i['classid']}">${i['title']}</option>
@@ -206,7 +206,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <form name="controleditcommishclass" method="post" class="clear">
             $:{CSRF()}
             <label for="commishprices-editclass">Type Name</label>
-            <select id="commishprices-editclass" class="input" name="classid">
+            <select id="commishprices-editclass" class="input" required="required" name="classid">
               <option value="">Select type:</option>
               $for i in query['class']:
               <option value="${i['classid']}">${i['title']}</option>
@@ -223,7 +223,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <h3>Edit/Remove a Price</h3>
           <p>Rename, revalue, or delete a price</p>
           <label for="commish-edit-select">Price Title</label>
-          <select class="input" name="priceid" id="commish-edit-select">
+          <select class="input" name="priceid" required="required" id="commish-edit-select">
             <option value="">Select a Price:</option>
             $for i in query['price']:
               $for j in query['class']:
@@ -238,7 +238,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
               $:{CSRF()}
               <input type="hidden" name="priceid" value="${price['priceid']}">
               <label for="commish-edit-title">Rename To</label>
-              <input type="text" class="input" name="title" id="commish-edit-title"
+              <input type="text" class="input" name="title" required="required" id="commish-edit-title"
                      placeholder="ex: 'Full Color', 'Basic Pose'" value="${price['title']}"/>
 
               <label for="commish-edit-min-amount">Minimum Amount</label>
@@ -266,7 +266,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
               </label>
 
               <button type="submit" formaction="/control/editcommishprice" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Price</button>
-              <button type="submit" formaction="/control/removecommishprice" class="button negative" style="float: right;">Remove Price</button>
+              <button type="submit" formaction="/control/removecommishprice" formnovalidate="formnovalidate" class="button negative" style="float: right;">Remove Price</button>
             </form>
         </div>
       </div>

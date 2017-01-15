@@ -297,17 +297,17 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
-    form = request.web_input(submitid="", charid="", journalid="", userid="", optoutid="", tags="")
+    form = request.web_input(submitid="", charid="", journalid="", preferred_tags_userid="", optout_tags_userid="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
     submitid = define.get_int(form.submitid)
     charid = define.get_int(form.charid)
     journalid = define.get_int(form.journalid)
-    artistid = define.get_int(form.userid)
-    optoutid = define.get_int(form.optoutid)
+    preferred_tags_userid = define.get_int(form.preferred_tags_userid)
+    optout_tags_userid = define.get_int(form.optout_tags_userid)
 
-    result = searchtag.associate(request.userid, tags, submitid, charid, journalid, artistid, optoutid)
+    result = searchtag.associate(request.userid, tags, submitid, charid, journalid, preferred_tags_userid, optout_tags_userid)
     if result:
         failed_tag_message = ""
         if result["add_failure_restricted_tags"] is not None:

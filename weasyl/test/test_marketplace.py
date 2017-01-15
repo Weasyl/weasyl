@@ -64,12 +64,12 @@ def test_commish_search(args, result_order):
 
     # user open for commissions, with blacklisted tags
     u4 = create_commish_searchable_user("u4", submittime=arrow.now() - datetime.timedelta(days=2))
-    searchtag.associate(u4, optoutid=u4, tags={'cat'})
+    searchtag.associate(u4, optout_tags_userid=u4, tags={'cat'})
 
     # user with a different commish class and a preference tag
     u5 = create_commish_searchable_user("u5", commishclass="sketch",
                                         submittime=arrow.now() - datetime.timedelta(days=3))
-    searchtag.associate(u5, artistid=u5, tags={'cat'})
+    searchtag.associate(u5, preferred_tags_userid=u5, tags={'cat'})
 
     # user with a different price
     create_commish_searchable_user("u6", minprice="100.0", maxprice="100.0",

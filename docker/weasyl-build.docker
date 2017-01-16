@@ -8,6 +8,9 @@ ENV WHEELHOUSE=/wheelhouse
 ENV PIP_WHEEL_DIR=/wheelhouse
 ENV PIP_FIND_LINKS=/wheelhouse
 
+RUN mkdir -p /weasyl-src/node_modules \
+ && chown weasyl /weasyl-src/node_modules
+
 VOLUME /wheelhouse
 VOLUME /weasyl-src
 VOLUME /weasyl-src/node_modules

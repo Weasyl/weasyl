@@ -17,7 +17,6 @@ elif [ -S "${sock}" ]; then
     extra_args="-v ${sock}:${sock} ${extra_args}"
 fi
 
-mkdir -p wheelhouse
 runner="wzl-run-$$"
 h=$(pwd)
 exec docker run --rm -it \

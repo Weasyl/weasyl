@@ -24,7 +24,7 @@ if [ -n "${LOCAL_GROUP_ID-}" ]; then
     fi
 fi
 
-if [ "${criteria}" != "-true" ]; then
+if [ "${criteria}" != "-false" ]; then
     echo "=== reowning weasyl files (${criteria})"
     for dir in /appenv /weasyl-app /weasyl-src ~weasyl; do
         test -e "${dir}" \

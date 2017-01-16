@@ -367,7 +367,7 @@ PARTS = {
     'weasyl-build-node-modules': {
         'requires': ['weasyl-build'],
         'compose-file': 'docker-compose-build.yml',
-        'command': ['run', '--rm', '--entrypoint', 'as-weasyl', '--workdir', '/'],
+        'command': ['run', '--rm', '--entrypoint', 'as-weasyl', '--workdir', '/weasyl-src'],
         'service': 'weasyl-build',
         'args': ['npm', 'install', '-q'],
     },

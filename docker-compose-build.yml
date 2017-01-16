@@ -13,7 +13,7 @@ services:
       dockerfile: weasyl-build.docker
     image: weasyl-build
     volumes:
-      - assets_node_modules:/node_modules
+      - assets_node_modules:/weasyl-src/node_modules
     volumes_from:
       - container:${WZL_RUNNER}:rw
     environment:
@@ -31,7 +31,7 @@ services:
       context: ./docker
       dockerfile: weasyl-assets.docker
     volumes:
-      - assets_node_modules:/node_modules
+      - assets_node_modules:/weasyl-src/node_modules
     volumes_from:
       - container:${WZL_RUNNER}:rw
     environment:

@@ -44,7 +44,8 @@ Services are denoted with a *(service)* suffix, which are the images that
 ``db`` (service)
   The image for the postgres database server. The sample database referenced
   below will be fetched when a container starts from this image for the first
-  time, not when the container is built.
+  time, not when the container is built. The ``wzl`` build of ``db`` will also
+  automatically run ``upgrade-db``.
 
 ``nginx`` (service)
   The image for the nginx front-end HTTP proxy.

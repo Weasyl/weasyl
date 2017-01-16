@@ -25,11 +25,10 @@ The `Docker documentation (for, say, Ubuntu)
 <https://docs.docker.com/engine/installation/linux/ubuntulinux/#/manage-docker-as-a-non-root-user>`_
 has more details on configuring this.
 
-The first steps are to build all of the images and configuration, and
-ensure the database schema is up to date::
+The first step is to build all of the images, configuration, and database
+state::
 
   $ ./wzl build --all
-  $ ./wzl upgrade-db
 
 Once this is done, the development server can be started::
 
@@ -48,6 +47,9 @@ Next Steps and Common Tasks
   schema::
 
     $ ./wzl upgrade-db
+
+  This will be run automatically as part of a ``./wzl build`` that includes the
+  ``db`` target.
 
 - Changes to python source files (any ``.py`` file) require a restart to be
   reflected::

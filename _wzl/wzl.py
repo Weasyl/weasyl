@@ -58,12 +58,14 @@ def ensure_local_eid(func):
 
 def forward_from_wzl_dev(func):
     @functools.wraps(func)
-    def wrapper(args):
+    def wrapper(args, _exec=False):
         if is_wzl_dev():
-            forward([
+            runner = forward if _exec else cmd
+            runner([
                 'docker-compose', 'run', 'weasyl-app-dev',
                 func.__name__, '--'] + list(args))
-        return func(args)
+        else:
+            return func(args)
     return wrapper
 
 
@@ -170,7 +172,7 @@ def can_connect(host, port):
             return True
 
 
-def wait_for_postgres(port=5432):
+def wait_for_postgres(port=5432, seconds=60 * 5):
     started_at = time.time()
     if can_connect('db', port):
         return
@@ -182,7 +184,7 @@ def wait_for_postgres(port=5432):
         while True:
             waited = time.time() - started_at
             bar.update(waited - bar.pos)
-            if waited > 60:
+            if waited > seconds:
                 raise click.ClickException(
                     "waited too long for postgres to come up")
             time.sleep(1)
@@ -284,13 +286,18 @@ def alembic(args):
 
 @wzl.command('upgrade-db')
 @click.pass_context
-def upgrade_db(ctx):
+def upgrade_db(ctx, _exec=True):
     """
     Upgrade the database.
 
     This is the same as `alembic upgrade head`.
     """
-    ctx.invoke(alembic, args=('upgrade', 'head'))
+    ctx.invoke(alembic, args=('upgrade', 'head'), _exec=_exec)
+
+
+def upgrade_and_stop_db(ctx):
+    ctx.invoke(upgrade_db, _exec=False)
+    ctx.invoke(compose, args=('stop', 'db'), _exec=False)
 
 
 @wzl.command('write-versions')
@@ -383,7 +390,8 @@ PARTS = {
     },
     'db': {
         'compose-file': 'docker-compose.yml',
-        'command': ['build'],
+        'command': ['up', '-d'],
+        'and_then': upgrade_and_stop_db,
     },
     'nginx': {
         'compose-file': 'docker-compose.yml',
@@ -505,6 +513,8 @@ def build(ctx, reverse_deps, no_deps, dry_run, all_targets, no_cache, target):
             click.echo('--> {}'.format(command))
         else:
             cmd(command)
+        if 'and_then' in p:
+            p['and_then'](ctx)
 
 
 @wzl.command()

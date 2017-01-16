@@ -10,7 +10,6 @@ cache:
 
 before_install:
   - docker version
-  - ./wzl setup
 
 install:
   - ./wzl build --all

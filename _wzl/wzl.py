@@ -172,7 +172,7 @@ def can_connect(host, port):
             return True
 
 
-def wait_for_postgres(port=5432, seconds=60 * 5):
+def wait_for_postgres(port=5432, seconds=0):
     started_at = time.time()
     if can_connect('db', port):
         return
@@ -186,7 +186,9 @@ def wait_for_postgres(port=5432, seconds=60 * 5):
             bar.update(waited - bar.pos)
             if waited > seconds:
                 raise click.ClickException(
-                    "waited too long for postgres to come up")
+                    "Postgres didn't come up in {} seconds. More information"
+                    " for debugging might be available by running"
+                    " `./wzl service-log db`.".format(seconds))
             time.sleep(1)
             if can_connect('db', port):
                 return
@@ -236,6 +238,18 @@ def logtail(ctx):
     This is the same as `compose logs --tail 10 -f`.
     """
     ctx.invoke(compose, args=('logs', '--tail', '10', '-f'))
+
+
+@wzl.command('service-log')
+@click.argument('service')
+@click.pass_context
+def service_log(ctx, service):
+    """
+    List the logs for a service.
+
+    This is the same as `compose logs {service}`.
+    """
+    ctx.invoke(compose, args=('logs', service))
 
 
 @wzl.command()

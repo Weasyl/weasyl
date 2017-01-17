@@ -61,8 +61,8 @@ $code:
           </a>
           $# artist's commission info
           <div class="artist-links">
-            <a href="/~${artist['username']}#user-commissions" class="username">${artist['username']}</a>
-            <a href="/submissions/${artist['username']}">[Gallery]</a>
+            <a href="/~${LOGIN(artist['username'])}#user-commissions" class="username">${artist['username']}</a>
+            <a href="/submissions/${LOGIN(artist['username'])}">[Gallery]</a>
             $if artist['searchquery']:
               <a href="/search?${artist['searchquery']}">[Tagged in Gallery]</a>
           </div>

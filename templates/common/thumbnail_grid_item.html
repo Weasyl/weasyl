@@ -34,10 +34,12 @@ $def with (query, notifications=None)
         href="/character/${query['charid']}/${SLUG(query['title'])}">
       $elif query['contype'] == 30:
         href="/journal/${query['journalid']}/${SLUG(query['title'])}">
+      $elif query['contype'] == 40:
+        data-id="${query['submitid']}" href="/submission/${query['submitid']}/${SLUG(query['title'])}">
       $elif query['contype'] == 50:
         href="/~${LOGIN(query['username'])}">
       $else:
-        data-id="${query['submitid']}" href="/submission/${query['submitid']}/${SLUG(query['title'])}">
+        data-id="${query['submitid']}" href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">
 
       $if query['rating'] == R.MODERATE.code:
         <span class="rating moderate">The following submission is rated Moderate:</span>
@@ -65,10 +67,12 @@ $def with (query, notifications=None)
           href="/character/${query['charid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
         $elif query['contype'] == 30:
           href="/journal/${query['journalid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
+        $elif query['contype'] == 40:
+          href="/submission/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
         $elif query['contype'] == 50:
           href="/~${LOGIN(query['username'])}">${query['username']}
         $else:
-          href="/submission/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
+          href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
       </a></h6>
       <p class="byline"
         $if query['contype'] == 40:

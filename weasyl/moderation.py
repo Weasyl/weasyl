@@ -409,24 +409,16 @@ def submissionsbyuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute("""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.settings
+    query = d.engine.execute("""
+        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
+               pr.username, su.settings, su.subtype, 10 contype
         FROM submission su
             INNER JOIN profile pr USING (userid)
-        WHERE su.userid = (SELECT userid FROM login WHERE login_name = '%s')
+        WHERE su.userid = (SELECT userid FROM login WHERE login_name = %(login)s)
         ORDER BY su.submitid DESC
-    """, [d.get_sysname(form.name)])
+    """, login=d.get_sysname(form.name))
 
-    ret = [{
-        "contype": 10,
-        "submitid": i[0],
-        "title": i[1],
-        "rating": i[2],
-        "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "settings": i[6],
-    } for i in query]
+    ret = map(dict, query)
     media.populate_with_submission_media(ret)
     return ret
 

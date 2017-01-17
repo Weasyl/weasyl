@@ -35,11 +35,26 @@ $code:
             </div>
           </td>
           <td class="thumb-cell">
-            $if 'sub_media' in i:
-              $ thumb = THUMB(i)
-              <img src="${thumb['display_url']}" alt="" class="thumb" />
+            $# custom thumb, if applicable
+            $if i['contype'] == 10 and 'thumbnail-custom' in i['sub_media']:
+              <img src="${i['sub_media']['thumbnail-custom'][0]['display_url']}" alt="" class="thumb" />
+            $elif i['contype'] == 20:
+              $# for characters, all thumbnails show as 'generated'.. even if they are custom..
+              <img src="${i['sub_media']['thumbnail-generated'][0]['display_url']}" alt="" class="thumb" />
             $else:
-              <span class="journal-thumb">&lt;journal&gt;</span>
+              <span class="journal-thumb">&lt;No Thumbnail&gt;</span>
+          </td>
+          <td class="thumb-cell">
+            $# the actual submission image, if applicable
+            $if i['contype'] == 10:
+              $if i['subtype'] >= 2000 and 'cover' in i['sub_media']:
+                <img src="${i['sub_media']['cover'][0]['display_url']}" alt="" class="thumb" />
+              $else:
+                <img src="${i['sub_media']['thumbnail-generated'][0]['display_url']}" alt="" class="thumb" />
+            $elif i['contype'] == 20:
+              <img src="${i['sub_media']['cover'][0]['display_url']}" alt="" class="thumb" />
+            $elif i['contype'] == 30:
+              <span class="journal-thumb">&lt;Journal&gt;</span>
           </td>
           <td class="title-cell">
             $if i['contype'] == 10:
@@ -73,4 +88,6 @@ $code:
       </div>
     </div>
   </form>
+
+
 </div>

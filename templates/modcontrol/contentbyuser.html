@@ -41,8 +41,10 @@ $code:
             $elif i['contype'] == 20:
               $# for characters, all thumbnails show as 'generated'.. even if they are custom..
               <img src="${i['sub_media']['thumbnail-generated'][0]['display_url']}" alt="" class="thumb" />
+            $elif i['contype'] == 30:
+              &nbsp;
             $else:
-              <span class="journal-thumb">&lt;No Thumbnail&gt;</span>
+              <span class="journal-thumb">&lt;No Custom Thumbnail&gt;</span>
           </td>
           <td class="thumb-cell">
             $# the actual submission image, if applicable

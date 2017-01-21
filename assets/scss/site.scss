@@ -3628,14 +3628,11 @@ img + #detail-art-text {
 /* ------------------------------------ =submit, =profile, =commish, =compose -- */
 
 #commishprices-content {
-    display: -webkit-flex;
     display: flex;
-    -webkit-flex-direction: column;
     flex-direction: column;
 }
 
 #commishprices-content .commish-row {
-    display: -webkit-flex;
     display: flex;
     margin-bottom: 10px;
     flex-direction: column;  /* Overridden at larger sizes */

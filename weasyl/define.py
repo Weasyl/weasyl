@@ -1135,6 +1135,7 @@ def _requests_wrapper(func_name):
 
     return wrapper
 
+
 http_get = _requests_wrapper('get')
 http_post = _requests_wrapper('post')
 

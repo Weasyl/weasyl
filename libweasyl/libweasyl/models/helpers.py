@@ -196,6 +196,7 @@ class CharSettingsColumn(types.TypeDecorator):
 
         yield clause_for
 
+
 CharSettings.associate_with(CharSettingsColumn)
 
 

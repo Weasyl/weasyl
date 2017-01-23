@@ -14,77 +14,77 @@ var sectionHeaders = notificationContainer.getElementsByClassName('notification-
 var removeCheckboxes = notificationContainer.getElementsByClassName('remove');
 
 function isChecked(checkbox) {
-	return checkbox.checked;
+    return checkbox.checked;
 }
 
 function sectionToggle(section) {
-	var itemCheckboxes = section.getElementsByClassName('remove');
-	var sectionCheckbox = document.createElement('input');
+    var itemCheckboxes = section.getElementsByClassName('remove');
+    var sectionCheckbox = document.createElement('input');
 
-	sectionCheckbox.type = 'checkbox';
+    sectionCheckbox.type = 'checkbox';
 
-	function updateItemCheckboxes() {
-		var checked = sectionCheckbox.checked;
+    function updateItemCheckboxes() {
+        var checked = sectionCheckbox.checked;
 
-		forEach.call(itemCheckboxes, function (checkbox) {
-			checkbox.checked = checked;
-			checkbox.parentNode.classList.toggle('checked', checked);
-		});
+        forEach.call(itemCheckboxes, function (checkbox) {
+            checkbox.checked = checked;
+            checkbox.parentNode.classList.toggle('checked', checked);
+        });
 
-		updateRemoveChecked();
-	}
+        updateRemoveChecked();
+    }
 
-	function updateSectionCheckbox() {
-		sectionCheckbox.checked = every.call(itemCheckboxes, isChecked);
-	}
+    function updateSectionCheckbox() {
+        sectionCheckbox.checked = every.call(itemCheckboxes, isChecked);
+    }
 
-	sectionCheckbox.addEventListener('change', updateItemCheckboxes);
-	section.addEventListener('change', updateSectionCheckbox);
-	updateSectionCheckbox();
+    sectionCheckbox.addEventListener('change', updateItemCheckboxes);
+    section.addEventListener('change', updateSectionCheckbox);
+    updateSectionCheckbox();
 
-	return sectionCheckbox;
+    return sectionCheckbox;
 }
 
 var sectionCheckboxes = map.call(sectionHeaders, function (sectionHeader) {
-	var label = document.createElement('label');
-	var sectionCheckbox = sectionToggle(sectionHeader.nextElementSibling);
+    var label = document.createElement('label');
+    var sectionCheckbox = sectionToggle(sectionHeader.nextElementSibling);
 
-	label.appendChild(sectionCheckbox);
-	label.appendChild(document.createTextNode(' '));
-	label.appendChild(sectionHeader.firstChild);
+    label.appendChild(sectionCheckbox);
+    label.appendChild(document.createTextNode(' '));
+    label.appendChild(sectionHeader.firstChild);
 
-	sectionHeader.appendChild(label);
+    sectionHeader.appendChild(label);
 
-	return sectionCheckbox;
+    return sectionCheckbox;
 });
 
 function checkAllButton(text, checked) {
-	var button = document.createElement('button');
+    var button = document.createElement('button');
 
-	button.type = 'button';
-	button.className = checked ? 'button notifs-check-all' : 'button notifs-uncheck-all';
-	button.textContent = text;
+    button.type = 'button';
+    button.className = checked ? 'button notifs-check-all' : 'button notifs-uncheck-all';
+    button.textContent = text;
 
-	button.addEventListener('click', function () {
-		forEach.call(removeCheckboxes, function (checkbox) {
-			checkbox.checked = checked;
-			checkbox.parentNode.classList.toggle('checked', checked);
-		});
+    button.addEventListener('click', function () {
+        forEach.call(removeCheckboxes, function (checkbox) {
+            checkbox.checked = checked;
+            checkbox.parentNode.classList.toggle('checked', checked);
+        });
 
-		sectionCheckboxes.forEach(function (checkbox) {
-			checkbox.checked = checked;
-		});
+        sectionCheckboxes.forEach(function (checkbox) {
+            checkbox.checked = checked;
+        });
 
-		removeCheckedButton.disabled = !checked;
-		removeCheckedButtonTop.disabled = !checked;
-	});
+        removeCheckedButton.disabled = !checked;
+        removeCheckedButtonTop.disabled = !checked;
+    });
 
-	return button;
+    return button;
 }
 
 function updateRemoveChecked() {
-	removeCheckedButton.disabled = !some.call(removeCheckboxes, isChecked);
-	removeCheckedButtonTop.disabled = !some.call(removeCheckboxes, isChecked);
+    removeCheckedButton.disabled = !some.call(removeCheckboxes, isChecked);
+    removeCheckedButtonTop.disabled = !some.call(removeCheckboxes, isChecked);
 }
 
 notificationContainer.addEventListener('change', updateRemoveChecked);

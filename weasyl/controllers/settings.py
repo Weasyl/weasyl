@@ -502,12 +502,12 @@ def manage_friends_(request):
 
     if form.feature == "pending":
         return Response(define.webpage(request.userid, "manage/friends_pending.html", [
-            frienduser.select_requests(request.userid, 20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_requests(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
         ]))
     else:
         return Response(define.webpage(request.userid, "manage/friends_accepted.html", [
             # Friends
-            frienduser.select_accepted(request.userid, 20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_accepted(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
         ]))
 
 

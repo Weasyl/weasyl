@@ -24,35 +24,30 @@ class SelectListTestCase(unittest.TestCase):
         user1 = db_utils.create_user()
         user2 = db_utils.create_user()
         db_utils.create_submission(user1, rating=ratings.GENERAL.code)
-        db_utils.create_submission(user1, rating=ratings.MODERATE.code)
         db_utils.create_submission(user1, rating=ratings.MATURE.code)
         db_utils.create_submission(user1, rating=ratings.EXPLICIT.code)
-        self.assertEqual(4, len(submission.select_list(user2, ratings.EXPLICIT.code, 10, config="l")))
-        self.assertEqual(3, len(submission.select_list(user2, ratings.MATURE.code, 10, config="l")))
-        self.assertEqual(2, len(submission.select_list(user2, ratings.MODERATE.code, 10, config="l")))
+        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, 10, config="l")))
+        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, 10, config="l")))
         self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, 10, config="l")))
 
         # A user sees their own submissions regardless of the rating level
-        self.assertEqual(4, len(submission.select_list(
+        self.assertEqual(3, len(submission.select_list(
             user1, ratings.GENERAL.code, 10, otherid=user1)))
 
     def test_ratings_twittercard(self):
         user = db_utils.create_user()
 
         sub1 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
-        sub2 = db_utils.create_submission(user, rating=ratings.MODERATE.code)
-        sub3 = db_utils.create_submission(user, rating=ratings.MATURE.code)
-        sub4 = db_utils.create_submission(user, rating=ratings.EXPLICIT.code)
+        sub2 = db_utils.create_submission(user, rating=ratings.MATURE.code)
+        sub3 = db_utils.create_submission(user, rating=ratings.EXPLICIT.code)
 
         card1 = submission.twitter_card(sub1)
         card2 = submission.twitter_card(sub2)
         card3 = submission.twitter_card(sub3)
-        card4 = submission.twitter_card(sub4)
 
         self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card1['description'])
-        self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
+        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
         self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card3['description'])
-        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card4['description'])
 
     def test_filters(self):
         # Test filters of the following:

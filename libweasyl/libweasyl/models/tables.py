@@ -556,7 +556,6 @@ profile = Table(
         'j': 'watch-user-journals',
     }, {
         'tagging-level': {
-            'm': 'max-rating-moderate',
             'a': 'max-rating-mature',
             'p': 'max-rating-explicit',
         },

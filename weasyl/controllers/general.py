@@ -40,7 +40,7 @@ def search_(request):
             "q": q,
             "find": search_query.find,
             "within": form.within,
-            "rated": set('gmap') & set(form.rated),
+            "rated": set('gap') & set(form.rated),
             "cat": int(form.cat) if form.cat else None,
             "subcat": int(form.subcat) if form.subcat else None,
             "backid": int(form.backid) if form.backid else None,

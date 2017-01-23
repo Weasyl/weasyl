@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import re
 
-from libweasyl.ratings import GENERAL, MODERATE, MATURE, EXPLICIT
+from libweasyl.ratings import GENERAL, MATURE, EXPLICIT
 
 from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
@@ -19,7 +19,6 @@ _QUERY_FIND_MODIFIERS = {
 
 _QUERY_RATING_MODIFIERS = {
     "#general": GENERAL.code,
-    "#moderate": MODERATE.code,
     "#mature": MATURE.code,
     "#explicit": EXPLICIT.code,
 }

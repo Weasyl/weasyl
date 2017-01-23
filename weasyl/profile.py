@@ -58,7 +58,7 @@ ALLOWABLE_EXCHANGE_CODES = {
 
 Config = create_configuration([
     BoolOption("twelvehour", "2"),
-    ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "m", "a", "p"]))),
+    ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "a", "p"]))),
     BoolOption("tagging", "k"),
     BoolOption("edittagging", "r"),
     BoolOption("hideprofile", "h"),
@@ -730,12 +730,9 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
         d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])
 
-        if age < ratings.MODERATE.minimum_age:
+        if age < ratings.EXPLICIT.minimum_age:
             max_rating = ratings.GENERAL.code
             rating_flag = ""
-        elif age < ratings.EXPLICIT.minimum_age:
-            max_rating = ratings.MODERATE.code
-            rating_flag = "m"
         else:
             max_rating = ratings.EXPLICIT.code
 
@@ -743,7 +740,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             d.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[map]', '', 'g') || '%s'
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || '%s'
                 WHERE userid = %i
                 """,
                 [rating_flag, userid]

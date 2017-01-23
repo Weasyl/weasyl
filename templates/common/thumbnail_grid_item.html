@@ -41,9 +41,7 @@ $def with (query, notifications=None)
       $else:
         data-id="${query['submitid']}" href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">
 
-      $if query['rating'] == R.MODERATE.code:
-        <span class="rating moderate">The following submission is rated Moderate:</span>
-      $elif query['rating'] == R.MATURE.code:
+      $if query['rating'] == R.MATURE.code:
         <span class="rating mature">The following submission is rated Mature:</span>
       $elif query['rating'] == R.EXPLICIT.code:
         <span class="rating explicit">The following submission is rated Explicit:</span>

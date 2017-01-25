@@ -25,6 +25,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm
 from web.template import frender
 
+import libweasyl.constants
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
@@ -34,11 +35,11 @@ from weasyl import errorcode
 from weasyl import macro
 from weasyl.cache import region
 from weasyl.compat import FakePyramidRequest
-from weasyl.config import config_obj, config_read, config_read_setting, config_read_bool
+from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
 
 
-_shush_pyflakes = [sqlalchemy.orm, config_read]
+_shush_pyflakes = [sqlalchemy.orm]
 
 
 reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
@@ -120,7 +121,7 @@ def execute(statement, argv=None, options=None):
         options = [options]
 
     if argv:
-        statement %= tuple([sql_escape(i) for i in argv])
+        statement %= tuple([_sql_escape(i) for i in argv])
     query = db.connection().execute(statement)
 
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
@@ -149,23 +150,23 @@ def execute(statement, argv=None, options=None):
         query.close()
 
 
-def quote_string(s):
-    """
-    SQL-escapes `target`; pg_escape_string is used if `target` is a string or
-    unicode object, else the integer equivalent is returned.
-    """
+def _quote_string(s):
     quoted = QuotedString(s).getquoted()
     assert quoted[0] == quoted[-1] == "'"
     return quoted[1:-1].replace('%', '%%')
 
 
-def sql_escape(target):
+def _sql_escape(target):
+    """
+    SQL-escapes `target`; pg_escape_string is used if `target` is a string or
+    unicode object, else the integer equivalent is returned.
+    """
     if isinstance(target, str):
         # Escape ASCII string
-        return quote_string(target)
+        return _quote_string(target)
     elif isinstance(target, unicode):
         # Escape Unicode string
-        return quote_string(target.encode("utf-8"))
+        return _quote_string(target.encode("utf-8"))
     else:
         # Escape integer
         try:
@@ -196,7 +197,7 @@ the_fake_request = FakePyramidRequest()
 _template_cache = {}
 
 
-def compile(template_name):
+def _compile(template_name):
     """
     Compiles a template file and returns the result.
     """
@@ -212,17 +213,17 @@ def compile(template_name):
                 "SUM": sum,
                 "LOGIN": get_sysname,
                 "TOKEN": get_token,
-                "CSRF": get_csrf_token,
+                "CSRF": _get_csrf_input,
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
-                "TIME": convert_time,
+                "TIME": _convert_time,
                 "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
                 "RENDER": render,
-                "COMPILE": compile,
-                "CAPTCHA": captcha_public,
+                "COMPILE": _compile,
+                "CAPTCHA": _captcha_public,
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
@@ -236,9 +237,11 @@ def compile(template_name):
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
                 "CDNIFY": cdnify_url,
-                "PATH": get_path,
+                "PATH": _get_path,
                 "arrow": arrow,
+                "constants": libweasyl.constants,
                 "getattr": getattr,
+                "json": json,
                 "sorted": sorted,
                 "staff": staff,
                 "request": the_fake_request,
@@ -252,7 +255,7 @@ def render(template_name, argv=()):
     """
     Renders a template and returns the resulting HTML.
     """
-    template = compile(template_name)
+    template = _compile(template_name)
     return unicode(template(*argv))
 
 
@@ -308,7 +311,7 @@ def _captcha_section():
     return 'recaptcha-' + host
 
 
-def captcha_public():
+def _captcha_public():
     """
     Returns the reCAPTCHA public key, or None if CAPTCHA verification
     is disabled.
@@ -362,11 +365,11 @@ def get_token():
     return sess.csrf_token
 
 
-def get_csrf_token():
+def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
 
 
-SYSNAME_CHARACTERS = (
+_SYSNAME_CHARACTERS = (
     set(unicode(string.ascii_lowercase)) |
     set(unicode(string.digits)))
 
@@ -377,7 +380,7 @@ def get_sysname(target):
     """
     if isinstance(target, unicode):
         normalized = unicodedata.normalize("NFD", target.lower())
-        return "".join(i for i in normalized if i in SYSNAME_CHARACTERS).encode("ascii")
+        return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS).encode("ascii")
     else:
         return "".join(i for i in target if i.isalnum()).lower()
 
@@ -595,7 +598,7 @@ def get_address():
     return request.client_addr
 
 
-def get_path():
+def _get_path():
     return get_current_request().path_url
 
 
@@ -659,7 +662,7 @@ def convert_date(target=None):
     return result[1:] if result and result[0] == "0" else result
 
 
-def convert_time(target=None):
+def _convert_time(target=None):
     """
     Returns the time in the format 16:00:00. If no target is passed, the
     current time is returned.
@@ -1132,6 +1135,7 @@ def _requests_wrapper(func_name):
 
     return wrapper
 
+
 http_get = _requests_wrapper('get')
 http_post = _requests_wrapper('post')
 
@@ -1201,8 +1205,3 @@ def thumb_for_sub(submission):
         thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
 
     return submission['sub_media'][thumb_key][0]
-
-
-# Temporary workaround. Delete me. Use weasyl.controllers.decoraters version as views are ported.
-def token_checked(x):
-    return x

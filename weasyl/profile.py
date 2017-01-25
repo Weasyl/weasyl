@@ -24,6 +24,7 @@ class ExchangeType:
         self.name_singular = name_singular
         self.name_plural = name_plural
 
+
 EXCHANGE_TYPE_TRADE = ExchangeType("trade", "trades")
 EXCHANGE_TYPE_REQUEST = ExchangeType("request", "requests")
 EXCHANGE_TYPE_COMMISSION = ExchangeType("commission", "commissions")

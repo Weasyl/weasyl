@@ -96,6 +96,7 @@ def append(filename, content, encoding="utf-8", decode=False, formfeed=False):
     else:
         return True
 
+
 # Copy the specified file.
 copy = shutil.copy
 
@@ -166,6 +167,7 @@ def make_resource(userid, target, feature, extension=None):
         return "%s%d.txt" % (d.get_hash_path(target, "journal"), target)
     # Unknown
     raise ValueError
+
 
 feature_typeflags = {
     "thumb": "-",

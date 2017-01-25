@@ -198,6 +198,16 @@ disk_media = Table(
 )
 
 
+emailblacklist = Table(
+    'emailblacklist', metadata,
+    Column('id', Integer(), primary_key=True, nullable=False),
+    Column('added_by', Integer(), nullable=False),
+    Column('domain_name', String(length=252), nullable=False, unique=True),
+    Column('reason', Text(), nullable=False),
+    default_fkey(['added_by'], ['login.userid'], name='emailblacklist_userid_fkey'),
+)
+
+
 emailverify = Table(
     'emailverify', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
@@ -514,6 +524,7 @@ profile = Table(
     Column('catchphrase', String(length=200), nullable=False, server_default=''),
     Column('artist_type', String(length=100), nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('latest_submission_time', ArrowColumn(), nullable=False, server_default='epoch'),
     Column('profile_text', Text(), nullable=False, server_default=''),
     Column('settings', String(length=20), nullable=False, server_default='ccci'),
     Column('stream_url', String(length=500), nullable=False, server_default=''),
@@ -652,6 +663,56 @@ searchmapsubmit = Table(
 
 Index('ind_searchmapsubmit_tagid', searchmapsubmit.c.tagid)
 Index('ind_searchmapsubmit_targetid', searchmapsubmit.c.targetid)
+
+
+artist_preferred_tags = Table(
+    'artist_preferred_tags', metadata,
+    Column('tagid', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False),
+    Column('settings', String(), nullable=False, server_default=''),
+    default_fkey(['targetid'], ['login.userid'], name='artist_preferred_tags_targetid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='artist_preferred_tags_tagid_fkey'),
+)
+
+Index('ind_artist_preferred_tags_tagid', artist_preferred_tags.c.tagid)
+Index('ind_artist_preferred_tags_targetid', artist_preferred_tags.c.targetid)
+
+
+artist_optout_tags = Table(
+    'artist_optout_tags', metadata,
+    Column('tagid', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False),
+    Column('settings', String(), nullable=False, server_default=''),
+    default_fkey(['targetid'], ['login.userid'], name='artist_optout_tags_targetid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='artist_optout_tags_tagid_fkey'),
+)
+
+Index('ind_artist_optout_tags_tagid', artist_optout_tags.c.tagid)
+Index('ind_artist_optout_tags_targetid', artist_optout_tags.c.targetid)
+
+
+globally_restricted_tags = Table(
+    'globally_restricted_tags', metadata,
+    Column('tagid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), primary_key=True, nullable=False),
+    default_fkey(['userid'], ['login.userid'], name='globally_restricted_tags_userid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='globally_restricted_tags_tagid_fkey'),
+)
+
+Index('ind_globally_restricted_tags_tagid', globally_restricted_tags.c.tagid)
+Index('ind_globally_restricted_tags_userid', globally_restricted_tags.c.userid)
+
+
+user_restricted_tags = Table(
+    'user_restricted_tags', metadata,
+    Column('tagid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), primary_key=True, nullable=False),
+    default_fkey(['userid'], ['login.userid'], name='user_restricted_tags_userid_fkey'),
+    default_fkey(['tagid'], ['searchtag.tagid'], name='user_restricted_tags_tagid_fkey'),
+)
+
+Index('ind_user_restricted_tags_tagid', user_restricted_tags.c.tagid)
+Index('ind_user_restricted_tags_userid', user_restricted_tags.c.userid)
 
 
 searchtag = Table(

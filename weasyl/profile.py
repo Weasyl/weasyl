@@ -24,6 +24,7 @@ class ExchangeType:
         self.name_singular = name_singular
         self.name_plural = name_plural
 
+
 EXCHANGE_TYPE_TRADE = ExchangeType("trade", "trades")
 EXCHANGE_TYPE_REQUEST = ExchangeType("request", "requests")
 EXCHANGE_TYPE_COMMISSION = ExchangeType("commission", "commissions")
@@ -80,6 +81,18 @@ def get_exchange_setting(exchange_type, code):
     if code not in ALLOWABLE_EXCHANGE_CODES[exchange_type]:
         return EXCHANGE_SETTING_NOT_ACCEPTING
     return EXCHANGE_SETTING_CODE_MAP[code]
+
+
+def exchange_settings_from_settings_string(settings_string):
+    """
+    Given a (terrible and brittle) exchange settings string from a user profile,
+    returns a dict of their exchange settings.
+    """
+    return {
+        EXCHANGE_TYPE_COMMISSION: EXCHANGE_SETTING_CODE_MAP[settings_string[0]],
+        EXCHANGE_TYPE_TRADE: EXCHANGE_SETTING_CODE_MAP[settings_string[1]],
+        EXCHANGE_TYPE_REQUEST: EXCHANGE_SETTING_CODE_MAP[settings_string[2]],
+    }
 
 
 def resolve(userid, otherid, othername, myself=True):
@@ -378,6 +391,19 @@ def select_avatars(userids):
     results = [dict(row) for row in results]
     media.populate_with_user_media(results)
     return {d['userid']: d for d in results}
+
+
+def edit_profile_settings(userid,
+                          set_trade=EXCHANGE_SETTING_NOT_ACCEPTING,
+                          set_request=EXCHANGE_SETTING_NOT_ACCEPTING,
+                          set_commission=EXCHANGE_SETTING_NOT_ACCEPTING):
+    settings = "".join([set_commission.code, set_trade.code, set_request.code])
+    d.execute(
+        "UPDATE profile "
+        "SET settings = '%s' "
+        "WHERE userid = %i",
+        [settings, userid])
+    d._get_config.invalidate(userid)
 
 
 def edit_profile(userid, profile,
@@ -775,6 +801,7 @@ def force_resetbirthday(userid, birthday):
     d.get_login_settings.invalidate(userid)
 
 
+# TODO(hyena): Make this class unnecessary and remove it when we fix up settings.
 class ProfileSettings(object):
     """
     This class standardizes access to jsonb profile settings,

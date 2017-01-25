@@ -16,11 +16,11 @@ $:{RENDER("common/stage_title.html", ["My reports", "Settings"])}
           <td>${DATE(report.latest_report)} at ${TIME(report.latest_report)}</td>
           <td>
             ${report.status}
-            $if report.is_closed and report.closure_reason != M.ReportClosureReason.legacy:
+            $if report.is_closed and report.closure_reason != constants.ReportClosureReason.legacy:
               (resolution: ${report.closure_reason.value.replace('-', ' ')})
           </td>
         </tr>
-        $if report.is_closed and report.closure_reason == M.ReportClosureReason.no_action_taken:
+        $if report.is_closed and report.closure_reason == constants.ReportClosureReason.no_action_taken:
           <tr>
             <td colspan="3" style="padding: 0 0.5em 0.5em">
               <h5>Reason for no action taken:</h5>

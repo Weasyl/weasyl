@@ -19,6 +19,7 @@ config.add_tween("weasyl.middleware.status_check_tween_factory")
 config.add_tween("weasyl.middleware.session_tween_factory")
 config.add_tween("weasyl.middleware.db_timer_tween_factory")
 config.add_tween("weasyl.middleware.cache_clear_tween_factory")
+config.add_tween("weasyl.middleware.database_session_cleanup_tween_factory")
 config.add_tween("pyramid.tweens.excview_tween_factory")  # Required to catch exceptions thrown in tweens.
 
 
@@ -27,6 +28,7 @@ def weasyl_404(request):
     userid = d.get_userid()
     return Response(d.errorpage(userid, "**404!** The page you requested could not be found."),
                     status="404 Not Found")
+
 
 config.add_notfound_view(view=weasyl_404, append_slash=True)
 config.add_view(view=mw.weasyl_exception_view, context=Exception)

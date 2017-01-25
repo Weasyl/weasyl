@@ -20,12 +20,20 @@ from libweasyl import cache, ratings, staff
 log = logging.getLogger(__name__)
 
 
+_BLANK_AVATAR = "/static/images/avatar_default.jpg"
+
+
 class Login(Base):
     """
     A Weasyl user account, which can be used to log into the site.
     """
 
     __table__ = tables.login
+
+    default_avatar = {
+        'display_url': _BLANK_AVATAR,
+        'file_url': _BLANK_AVATAR,
+    }
 
     def _comment_criteria(self):
         return {'target_user': self.userid}
@@ -46,7 +54,10 @@ class Login(Base):
 
     @reify
     def avatar(self):
-        return self.media['avatar'][0]
+        if 'avatar' in self.media:
+            return self.media['avatar'][0]
+        else:
+            return self.default_avatar
 
     @reify
     def banner(self):
@@ -131,16 +142,17 @@ class AuthBCrypt(Base):
 
     def does_authenticate(self, password):
         """
-        If the given password, matches the hashed password in the database,
-        return True. Otherwise, returns False.
+        If the given password matches the hashed password in the database,
+        returns True. Otherwise, returns False.
 
-        If the hashed password isn't stored as utf-8, it will update it to the
+        If the hashed password isn't stored as utf-8, it will be updated to the
         newer utf-8 format while the plaintext password is available.
         """
+        expected_hash = self.hashsum.encode('ascii')
 
-        if bcrypt.hashpw(password.encode('utf-8'), self.hashsum) == self.hashsum:
+        if bcrypt.checkpw(password.encode('utf-8'), expected_hash):
             return True
-        elif bcrypt.hashpw(plaintext(password).encode('utf-8'), self.hashsum) == self.hashsum:
+        elif bcrypt.checkpw(plaintext(password).encode('utf-8'), expected_hash):
             log.debug('updated old non-ASCII password for userid %d', self.userid)
             self.set_password(password)
             return True

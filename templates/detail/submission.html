@@ -87,17 +87,9 @@ $code:
       $if cover:
         <img src="${cover['display_url']}" alt="${query['title']}" />
       <div id="detail_submission_media" style="display:inline-block;width:500px;">
-        <div id="multimedia"></div>
-        <script type="text/javascript">
-        jwplayer("multimedia").setup({
-          flashplayer: "${CDNIFY('/static/mediaplayer/player.swf')}",
-          controlbar: "bottom",
-          file: $:{INLINE_JSON(submission['display_url'])},
-          icons: false,
-          width: 500,
-          height: 24
-        });
-        </script>
+        <audio type="audio/mpeg" src="${submission['display_url']}" controls>
+          <p>Your browser doesn’t support audio playback.</p>
+        </audio>
       </div>
     </div><!-- /detail_submission -->
 
@@ -295,7 +287,7 @@ $code:
       </div><!-- /detail-mod -->
 
 
-    <div id="di-tags">
+    <div class="di-tags">
       <h3>
         Tags
         <a class="modify typeface-default color-c" href="#">Modify</a>

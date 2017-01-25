@@ -2,8 +2,10 @@
 @import 'components/ads';
 @import 'components/option';
 @import 'components/password-meter';
+@import 'components/text-post-list';
 @import 'layout/forms';
 @import 'pages/ads/list';
+@import 'pages/marketplace';
 @import 'pages/submission-detail';
 
 /* Basic styles
@@ -1564,12 +1566,12 @@ blockquote + blockquote {
 
 /* ------------------------------------ =tags -- */
 
-#tags-textarea, .listbuilder {
+.tags-textarea, .listbuilder {
     box-sizing: border-box;
     width: 100% !important;
 }
 
-#tags-textarea.proxy {
+.tags-textarea.proxy {
     display: none;
 }
 
@@ -3196,27 +3198,27 @@ img + #detail-art-text {
     font-weight: 400;
 }
 
-#di-tags h3 a.modify, .js #di-tags h3.edit {
+.di-tags h3 a.modify, .js .di-tags h3.edit {
     display: none;
 }
 
-.js #di-tags h3 a {
+.js .di-tags h3 a {
     display: inline-block;
     font-size: 12px;
     font-size: 0.75rem;
     padding: 0 1em;
 }
 
-#di-tags .button {
+.di-tags .button {
     margin-top: 8px;
     margin-top: 0.5rem;
 }
 
-#di-tags .tags-form {
+.di-tags .tags-form {
     display: none;
 }
 
-#di-tags .tags-form.open {
+.di-tags .tags-form.open {
     display: block;
 }
 
@@ -3324,7 +3326,7 @@ img + #detail-art-text {
         clear: left;
     }
 
-    #di-tags, #di-folder {
+    .di-tags, #di-folder {
         width: 48%;
         margin-right: 0;
         margin-left: auto;
@@ -3463,7 +3465,7 @@ img + #detail-art-text {
         padding-top: 2rem;
     }
 
-    #di-info, #di-tags, #detail-manage, #detail-collection-offer, #detail-mod {
+    #di-info, .di-tags, #detail-manage, #detail-collection-offer, #detail-mod {
         width: auto;
         float: none;
         margin-left: 0;
@@ -3629,6 +3631,26 @@ img + #detail-art-text {
 
 /* ------------------------------------ =submit, =profile, =commish, =compose -- */
 
+#commishprices-content {
+    display: flex;
+    flex-direction: column;
+}
+
+#commishprices-content .commish-row {
+    display: flex;
+    margin-bottom: 10px;
+    flex-direction: column;  /* Overridden at larger sizes */
+    justify-content: space-around;
+}
+
+#commishprices-content .di-tags {
+    width: 100%;
+}
+
+#commishprices-content .commish-row .half {
+    flex-basis: 48%;
+}
+
 #submit-form .options h3, #submit-form .tagging h3 {
     padding-bottom: 0.5em;
 }
@@ -3702,7 +3724,7 @@ img + #detail-art-text {
         clear: left;
     }
 
-    #edit-profile .settings, #commishprices-content .prices {
+    #edit-profile .settings {
         float: left;
         padding-left: 4%;
     }
@@ -3734,7 +3756,7 @@ img + #detail-art-text {
         padding-top: 2em;
     }
 
-    #edit-profile .social, #edit-profile .profile, #commishprices-content .info {
+    #edit-profile .social, #edit-profile .profile {
         clear: both;
         width: 100%;
     }
@@ -3772,6 +3794,18 @@ img + #detail-art-text {
 }
 
 @media (min-width: 63em) {
+    #commishprices-content .commish-row {
+        flex-direction: row;
+    }
+
+    #commishprices-content .info {
+        flex: 0 0 55%;
+    }
+
+    #commishprices-content .commish-tags {
+        flex: 0 0 40%;
+    }
+
     #submit-form.journal {
         max-width: 90em;
         margin: 0 auto;
@@ -3781,7 +3815,7 @@ img + #detail-art-text {
         width: 31%;
     }
 
-    #submit-form .info, #edit-profile .settings, #commishprices-content .prices {
+    #submit-form .info, #edit-profile .settings {
         clear: none;
         padding-left: 3.5%;
         margin-left: 0;
@@ -3791,7 +3825,7 @@ img + #detail-art-text {
         padding-left: 0;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile, #commishprices-content .info {
+    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
         margin-left: 65.5%;
         padding-left: 3.5%;
         clear: none;

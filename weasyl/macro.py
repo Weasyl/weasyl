@@ -2,11 +2,7 @@ from __future__ import absolute_import
 
 import os
 
-from libweasyl.constants import ReportClosureReason
 from libweasyl import ratings
-
-
-_hush_pyflakes = [ReportClosureReason]
 
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
@@ -146,7 +142,6 @@ MACRO_REPORT_VIOLATION = [
     (2070, 20, "Spamming or flooding", False),
     (2080, 20, "Meme or image macro", False),
     (2090, 20, "Unacceptable screenshot", False),
-    (2100, 20, "Non-original audio upload", False),
     (2110, 10, "Illegal content", False),
     (2120, 10, "Photographic pornography", False),
     (2130, 10, "Offensive content", False),

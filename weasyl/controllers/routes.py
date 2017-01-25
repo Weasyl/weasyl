@@ -7,10 +7,12 @@ from weasyl.controllers import (
     ads,
     content,
     detail,
+    director,
     events,
     general,
     info,
     interaction,
+    marketplace,
     messages,
     moderation,
     profile,
@@ -36,6 +38,7 @@ routes = (
     Route("/search", "search", general.search_),
     Route("/popular", "popular", general.popular_),
     Route("/streaming", "streaming", general.streaming_),
+    Route("/marketplace", "marketplace", marketplace.search_),
 
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),
@@ -63,7 +66,13 @@ routes = (
     Route("/profile", "profile_unnamed", profile.profile_),
     Route("/profile/{name}", "profile", profile.profile_),
     Route("/~{name}/{link_type}", "profile_media", profile.profile_media_),
-    Route("/~{name}/{ignore_s:submissions?}/{submitid:[0-9]+}{ignore_name:(/[^/.]*)?}",
+    Route("/~{name}/submission/{submitid:[0-9]+}",
+          "submission_detail_profile;no_s;no_slug", detail.submission_),
+    Route("/~{name}/submission/{submitid:[0-9]+}/{slug:[^/.]*}",
+          "submission_detail_profile;no_s", detail.submission_),
+    Route("/~{name}/submissions/{submitid:[0-9]+}",
+          "submission_detail_profile;no_slug", detail.submission_),
+    Route("/~{name}/submissions/{submitid:[0-9]+}/{slug:[^/.]*}",
           "submission_detail_profile", detail.submission_),
     Route("/~{name}/{linktype}/{submitid:[0-9]+}/{ignore_name:.*}",
           "submission_detail_media", detail.submission_media_),
@@ -158,10 +167,11 @@ routes = (
           {'POST': settings.control_uploadavatar_}),
     Route("/control/editprofile", "control_editprofile",
           {'GET': settings.control_editprofile_get_, 'POST': settings.control_editprofile_put_}),
-    Route("/control/editcommissionprices", "control_editcommissionprices",
-          settings.control_editcommissionprices_),
-    Route("/control/editcommishtext", "control_editcommishtext",
-          {'POST': settings.control_editcommishtext_}),
+
+    Route("/control/editcommissionsettings", "control_editcommissionsettings",
+          settings.control_editcommissionsettings_),
+    Route("/control/editcommishinfo", "control_editcommishinfo",
+          {'POST': settings.control_editcommishinfo_}),
     Route("/control/createcommishclass", "control_createcommishclass",
           {'POST': settings.control_createcommishclass_}),
     Route("/control/editcommishclass", "control_editcommishclass",
@@ -174,6 +184,7 @@ routes = (
           {'POST': settings.control_editcommishprice_}),
     Route("/control/removecommishprice", "control_removecommishprice",
           {'POST': settings.control_removecommishprice_}),
+
     Route("/control/editemailpassword", "control_editemailpassword", {
         'GET': settings.control_editemailpassword_get_,
         'POST': settings.control_editemailpassword_post_
@@ -182,6 +193,11 @@ routes = (
         'GET': settings.control_editpreferences_get_,
         'POST': settings.control_editpreferences_post_
     }),
+    Route("/control/tagrestrictions", "control_tagrestrictions", {
+        'GET': settings.control_tagrestrictions_get_,
+        'POST': settings.control_tagrestrictions_post_
+    }),
+
     Route("/control/createfolder", "control_createfolder", {'POST': settings.control_createfolder_}),
     Route("/control/renamefolder", "control_renamefolder", {'POST': settings.control_renamefolder_}),
     Route("/control/removefolder", "control_removefolder", {'POST': settings.control_removefolder_}),
@@ -220,6 +236,7 @@ routes = (
     }),
     Route("/modcontrol/report", "modcontrol_report", moderation.modcontrol_report_),
     Route("/modcontrol/reports", "modcontrol_reports", moderation.modcontrol_reports_),
+    Route("/modcontrol/copynotetostaffnotes", "modcontrol_copynotetostaffnotes", {'POST': moderation.modcontrol_copynotetostaffnotes_post_}),
     Route("/modcontrol/closereport", "modcontrol_closereport", {'POST': moderation.modcontrol_closereport_}),
     Route("/modcontrol/contentbyuser", "modcontrol_contentbyuser", moderation.modcontrol_contentbyuser_),
     Route("/modcontrol/massaction", "modcontrol_massaction", {'POST': moderation.modcontrol_massaction_}),
@@ -254,7 +271,23 @@ routes = (
         'POST': admin.admincontrol_finduser_post_,
     }),
 
-    Route("/site-updates/{update_id:[0-9]+}", "site_update", general.site_update_),
+    # Director control routes.
+    Route("/directorcontrol", "directorcontrol", director.directorcontrol_),
+    Route("/directorcontrol/emailblacklist", "directorcontrol_emailblacklist", {
+        'GET': director.directorcontrol_emailblacklist_get_,
+        'POST': director.directorcontrol_emailblacklist_post_,
+    }),
+    Route("/directorcontrol/globaltagrestrictions", "directorcontrol_globaltagrestrictions", {
+        'GET': director.directorcontrol_globaltagrestrictions_get_,
+        'POST': director.directorcontrol_globaltagrestrictions_post_,
+    }),
+
+    Route("/site-updates/", "site_update_list", general.site_update_list_),
+    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
+        'GET': general.site_update_,
+        'POST': admin.site_update_put_,
+    }),
+    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
 
     Route("/policy/tos", "policy_tos", info.policy_tos_),
     Route("/policy/privacy", "policy_privacy", info.policy_privacy_),
@@ -272,6 +305,7 @@ routes = (
     Route("/help/tagging", "help_tagging", info.help_tagging_),
     Route("/help/markdown", "help_markdown", info.help_markdown_),
     Route("/help/searching", "help_searching", info.help_searching_),
+    Route("/help/marketplace", "help_marketplace", info.help_marketplace_),
     Route("/help/ratings", "help_ratings", info.help_ratings_),
     Route("/help/ratings/changes", "help_ratings_changes", info.help_ratings_changes_),
     Route("/help/folders", "help_folders", info.help_folders_),

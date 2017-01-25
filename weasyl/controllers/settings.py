@@ -13,7 +13,7 @@ from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
-    index, oauth2, profile, thumbnail, useralias, orm)
+    index, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -83,41 +83,61 @@ def control_editprofile_put_(request):
 
 
 @login_required
-def control_editcommissionprices_(request):
-    return Response(define.webpage(request.userid, "control/edit_commissionprices.html", [
+def control_editcommissionsettings_(request):
+    return Response(define.webpage(request.userid, "control/edit_commissionsettings.html", [
         # Commission prices
         commishinfo.select_list(request.userid),
+        commishinfo.CURRENCY_CHARMAP,
+        commishinfo.PRESET_COMMISSION_CLASSES,
+        profile.select_profile(request.userid)
     ]))
 
 
 @login_required
 @token_checked
-def control_editcommishtext_(request):
-    form = request.web_input(content="")
+def control_editcommishinfo_(request):
+    form = request.web_input(content="", set_commish="", set_trade="", set_request="")
+    set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
+    set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
+    set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
 
+    profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
     commishinfo.edit_content(request.userid, form.content)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
 @token_checked
 def control_createcommishclass_(request):
-    form = request.web_input(title="")
+    form = request.web_input(title="", titlepreset="", price_title="", min_amount="", max_amount="", currency="")
+    title = form.title or form.titlepreset
+    form.currency = form.currency.replace("$", "")
 
-    commishinfo.create_commission_class(request.userid, form.title.strip())
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    classid = commishinfo.create_commission_class(request.userid, title.strip())
+    # Try to create a base price for it. If we fail, try to clean up the class.
+    try:
+        price = orm.CommishPrice()
+        price.title = form.price_title.strip()
+        price.classid = classid
+        price.amount_min = commishinfo.parse_currency(form.min_amount)
+        price.amount_max = commishinfo.parse_currency(form.max_amount)
+        commishinfo.create_price(request.userid, price, currency=form.currency)
+    except WeasylError as we:
+        commishinfo.remove_class(request.userid, classid)
+        raise we
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
 @token_checked
 def control_editcommishclass_(request):
-    form = request.web_input(classid="")
+    form = request.web_input(classid="", title="")
 
     commishclass = orm.CommishClass()
     commishclass.title = form.title.strip()
     commishclass.classid = define.get_int(form.classid)
     commishinfo.edit_class(request.userid, commishclass)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -126,47 +146,49 @@ def control_removecommishclass_(request):
     form = request.web_input(classid="")
 
     commishinfo.remove_class(request.userid, form.classid)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
 @token_checked
 def control_createcommishprice_(request):
     form = request.web_input(title="", classid="", min_amount="", max_amount="", currency="", settings="")
+    form.currency = form.currency.replace("$", "")
 
     price = orm.CommishPrice()
     price.title = form.title.strip()
     price.classid = define.get_int(form.classid)
-    price.amount_min = commishinfo.convert_currency(form.min_amount)
-    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    price.amount_min = commishinfo.parse_currency(form.min_amount)
+    price.amount_max = commishinfo.parse_currency(form.max_amount)
     commishinfo.create_price(request.userid, price, currency=form.currency,
                              settings=form.settings)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
 @token_checked
 def control_editcommishprice_(request):
-    form = request.web_input(priceid="", title="", min_amount="", max_amount="", edit_settings="", currency="", settings="")
+    form = request.web_input(priceid="", title="", min_amount="", max_amount="", currency="", settings="")
+    form.currency = form.currency.replace("$", "")
 
     price = orm.CommishPrice()
     price.title = form.title.strip()
     price.priceid = define.get_int(form.priceid)
-    price.amount_min = commishinfo.convert_currency(form.min_amount)
-    price.amount_max = commishinfo.convert_currency(form.max_amount)
+    price.amount_min = commishinfo.parse_currency(form.min_amount)
+    price.amount_max = commishinfo.parse_currency(form.max_amount)
     edit_prices = bool(price.amount_min or price.amount_max)
     commishinfo.edit_price(request.userid, price, currency=form.currency,
-                           settings=form.settings, edit_prices=edit_prices, edit_settings=form.edit_settings)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+                           settings=form.settings, edit_prices=edit_prices)
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
 @token_checked
 def control_removecommishprice_(request):
-    form = request.web_input(classid="")
+    form = request.web_input(priceid="")
 
     commishinfo.remove_price(request.userid, form.priceid)
-    raise HTTPSeeOther(location="/control/editcommissionprices")
+    raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required
@@ -408,6 +430,23 @@ def control_apikeys_post_(request):
         oauth2.revoke_consumers_for_user(request.userid, form['revoke-oauth2-consumers'])
 
     raise HTTPSeeOther(location="/control/apikeys")
+
+
+@login_required
+def control_tagrestrictions_get_(request):
+    return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
+        searchtag.query_user_restricted_tags(request.userid),
+    )))
+
+
+@login_required
+@token_checked
+def control_tagrestrictions_post_(request):
+    tags = searchtag.parse_restricted_tags(request.params["tags"])
+    searchtag.edit_user_tag_restrictions(request.userid, tags)
+    return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
+        searchtag.query_user_restricted_tags(request.userid),
+    )))
 
 
 @login_required

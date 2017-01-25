@@ -12,10 +12,6 @@ config_obj = ConfigParser.ConfigParser()
 config_obj.read([macro.MACRO_CFG_SITE_CONFIG])
 
 
-def config_read():
-    return dict(config_obj.items('general'))
-
-
 def config_read_setting(setting, value=None, section='general'):
     """
     Retrieves a value from the weasyl config.

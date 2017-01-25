@@ -10,7 +10,7 @@ $code:
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge;chrome=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="google-site-verification" content="2BHBQHl4B1zhVRT4jj6IZ1fIn0YMXGkv8kEpuoMf81k" />
 
   $if 'title' in extended_options:
@@ -31,9 +31,6 @@ $code:
 
     <script src="${CDNIFY('/static/pdf/compatibility.js?' + SHA)}"></script>
     <script src="${CDNIFY('/static/pdf/pdf.js?' + SHA)}"></script>
-
-  $if "mediaplayer" in options:
-    <script src="${CDNIFY('/static/mediaplayer/jwplayer.js')}"></script>
 
   $if 'twitter_card' in extended_options:
     <meta name="twitter:site" content="@weasyl" />
@@ -58,7 +55,7 @@ $code:
       </div><!-- /login-box-container -->
     </div><!-- /login-top -->
 
-  <header role="banner"><div id="header" class="clear">
+  <header><div id="header" class="clear">
 
     <h1 id="logo"><a href="/"><img src="${CDNIFY('/static/images/logo.png')}" alt="Weasyl" /></a></h1>
 
@@ -83,7 +80,9 @@ $code:
           <a href="/notes">inbox</a> <span>|</span>
           <a href="/control">settings</a> <span>|</span>
 
-          $if query['userid'] in staff.ADMINS:
+          $if query['userid'] in staff.DIRECTORS:
+            <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span> <a href="/directorcontrol">director</a> <span>|</span>
+          $elif query['userid'] in staff.ADMINS:
             <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span>
           $elif query['userid'] in staff.MODS:
             <a href="/modcontrol">mod</a> <span>|</span>
@@ -107,12 +106,11 @@ $code:
 
     <a id="nav-toggle" href="#footer-nav"><span class="icon icon-20 icon-nav"></span> <i>Menu</i></a>
 
-    <nav role="navigation"><div id="header-nav">
+    <nav><div id="header-nav">
       <ul>
         <li><a href="/submit">Submit</a></li>
         <li><a href="/search">Browse</a></li>
-        <li><a href="https://forums.weasyl.com">Forums</a></li>
-        <li><a href="/help">Help</a></li>
+        <li><a href="/marketplace">Marketplace</a></li>
         <li id="header-search-nav"><a href="/search">Search</a></li>
       </ul>
 

@@ -5,6 +5,7 @@ import pytest
 import web
 
 from weasyl.test import db_utils
+from weasyl.test.utils import Bag
 
 from weasyl import define as d
 from weasyl import login
@@ -174,6 +175,27 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'emailExists' == err.value.value
+
+
+@pytest.mark.usefixtures('db')
+def test_create_fails_if_email_domain_is_blacklisted():
+    """
+    Test verifies that login.create() will properly fail to register new accounts
+    when the domain portion of the email address is contained in the emailblacklist
+    table.
+    """
+    d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
+        "domain_name": "blacklisted.com",
+        "reason": "test case for login.create()",
+        "added_by": db_utils.create_user(),
+    })
+    blacklisted_email = "test@blacklisted.com"
+    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
+               email=blacklisted_email, emailcheck=blacklisted_email,
+               day='12', month='12', year=arrow.now().year - 19)
+    with pytest.raises(WeasylError) as err:
+        login.create(form)
+    assert 'emailBlacklisted' == err.value.value
 
 
 @pytest.mark.usefixtures('db')

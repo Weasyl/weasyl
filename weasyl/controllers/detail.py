@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import time
-
 from pyramid import httpexceptions
 from pyramid.response import Response
 
@@ -16,7 +14,6 @@ from weasyl.error import WeasylError
 def submission_(request):
     username = request.matchdict.get('name')
     submitid = request.matchdict.get('submitid')
-    now = time.time()
 
     form = request.web_input(submitid="", ignore="", anyway="")
 
@@ -47,12 +44,13 @@ def submission_(request):
         raise
 
     login = define.get_sysname(item['username'])
-    if username is not None and login != username:
-        raise httpexceptions.HTTPSeeOther(location='/~%s/post/%s/%s' % (login, submitid, slug_for(item["title"])))
-    extras["canonical_url"] = "/submission/%d/%s" % (submitid, slug_for(item["title"]))
+    canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
+    if login != username:
+        raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
+    extras["canonical_url"] = canonical_path
     extras["title"] = item["title"]
 
-    page = define.common_page_start(request.userid, options=["mediaplayer"], **extras)
+    page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [
         # Myself
         profile.select_myself(request.userid),
@@ -64,7 +62,7 @@ def submission_(request):
         [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
     ]))
 
-    return Response(define.common_page_end(request.userid, page, now=now))
+    return Response(define.common_page_end(request.userid, page))
 
 
 def submission_media_(request):

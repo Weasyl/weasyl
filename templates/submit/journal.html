@@ -9,10 +9,10 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
       <h3>Information</h3>
 
       <label for="journaltitle">Title</label>
-      <input type="text" class="input" name="title" id="journaltitle" />
+      <input type="text" class="input" name="title" id="journaltitle" required />
 
       <label for="journalrating">Rating</label>
-      <select name="rating" class="input" id="journalrating">
+      <select name="rating" class="input" id="journalrating" required>
         <option value="" selected="selected">&nbsp;</option>
         $for rating in ratings:
           <option value="${rating.code}">${rating.name_with_age}</option>
@@ -22,12 +22,12 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
     <div class="column description">
       <h3>Content</h3>
       <label for="journaldesc">Content</label>
-      <textarea name="content" class="markdown input expanding" rows="9" id="journaldesc"></textarea>
+      <textarea name="content" class="markdown input expanding" rows="9" id="journaldesc" required></textarea>
     </div><!-- /description -->
 
     <div class="column tagging">
       <h3>Tags</h3>
-      <textarea name="tags" class="input" rows="3" id="tags-textarea"></textarea>
+      <textarea name="tags" class="input tags-textarea" rows="3"></textarea>
     </div><!-- /tagging -->
 
     <div class="column options">

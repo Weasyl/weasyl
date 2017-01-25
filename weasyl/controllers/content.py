@@ -297,21 +297,47 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
-    form = request.web_input(submitid="", charid="", journalid="", tags="")
+    form = request.web_input(submitid="", charid="", journalid="", preferred_tags_userid="", optout_tags_userid="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
     submitid = define.get_int(form.submitid)
     charid = define.get_int(form.charid)
     journalid = define.get_int(form.journalid)
+    preferred_tags_userid = define.get_int(form.preferred_tags_userid)
+    optout_tags_userid = define.get_int(form.optout_tags_userid)
 
-    searchtag.associate(request.userid, tags, submitid, charid, journalid)
+    result = searchtag.associate(request.userid, tags, submitid, charid, journalid, preferred_tags_userid, optout_tags_userid)
+    if result:
+        failed_tag_message = ""
+        if result["add_failure_restricted_tags"] is not None:
+            failed_tag_message += "The following tags have been restricted from being added to this item by the content owner, or Weasyl staff: **" + result["add_failure_restricted_tags"] + "**. \n"
+        if result["remove_failure_owner_set_tags"] is not None:
+            failed_tag_message += "The following tags were not removed from this item as the tag was added by the owner: **" + result["remove_failure_owner_set_tags"] + "**.\n"
+        failed_tag_message += "Any other changes to this item's tags were completed."
     if submitid:
-        raise HTTPSeeOther(location="/submission/%i" % (submitid,))
+        location = "/submission/%i" % (submitid,)
+        if not result:
+            raise HTTPSeeOther(location=location)
+        else:
+            return Response(define.errorpage(request.userid, failed_tag_message,
+                                             [["Return to Content", location]]))
     elif charid:
-        raise HTTPSeeOther(location="/character/%i" % (charid,))
+        location = "/character/%i" % (charid,)
+        if not result:
+            raise HTTPSeeOther(location=location)
+        else:
+            return Response(define.errorpage(request.userid, failed_tag_message,
+                                             [["Return to Content", location]]))
+    elif journalid:
+        location = "/journal/%i" % (journalid,)
+        if not result:
+            raise HTTPSeeOther(location=location)
+        else:
+            return Response(define.errorpage(request.userid, failed_tag_message,
+                                             [["Return to Content", location]]))
     else:
-        raise HTTPSeeOther(location="/journal/%i" % (journalid,))
+        raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
 @login_required

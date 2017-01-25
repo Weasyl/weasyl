@@ -48,8 +48,8 @@ sudo -u postgres createuser -drs vagrant
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl_test
 sudo -u vagrant psql weasyl -c 'CREATE EXTENSION hstore;'
-curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.gz \
-    | gunzip | sudo -u vagrant psql weasyl
+curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz \
+    | unxz | sudo -u vagrant psql weasyl
 
 openssl req -subj '/CN=lo.weasyl.com' -nodes -new -newkey rsa:2048 \
     -keyout /etc/ssl/private/weasyl.key.pem -out /tmp/weasyl.req.pem

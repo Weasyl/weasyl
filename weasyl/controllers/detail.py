@@ -45,6 +45,10 @@ def submission_(request):
 
     login = define.get_sysname(item['username'])
     canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
+
+    if request.GET.get('anyway'):
+        canonical_path += '?anyway=true'
+
     if login != username:
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
     extras["canonical_url"] = canonical_path

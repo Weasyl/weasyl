@@ -1,0 +1,39 @@
+$def with (tfa_enabled, tfa_recovery_codes_count)
+$:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Settings"])}
+
+<div class="content skinny clear">
+  <div class="form skinny">
+  <h3>Two-Factor Authentication (2FA) Dashboard</h3>
+    <p>
+      2FA provides an additional layer of protection for your account during the login process.
+      When logging in, you will need to provide your password--which is <em>something you know</em>--and
+      additionally a time-based token, which is <em>something you have</em>. Without both pieces--or
+      factors--you or an adversary who has compromised your password will not be able to fully
+      authenticate to your account.
+    </p>
+    <h3>2FA Status</h3>
+    $if tfa_enabled:
+      <p>
+        2FA is currently <b>enabled</b>.
+      </p>
+      <p>
+        <a href="/control/2fa/disable">Click here to disable 2FA</a>
+      </p>
+      <h4>Recovery Code Status</h4>
+      <p>
+        You currently have ${tfa_recovery_codes_count} valid recovery code${'s' if tfa_recovery_codes_count > 1 else ''} assigned to your account.
+        We advise not relying on recovery codes as a routine access method, and further advise to never
+        use the last two codes; a minimum of two codes are required to disable 2FA from a logged-out state.
+      </p>
+      <p>
+        <a href="/control/2fa/generate_recovery_codes">Click here to get new recovery codes</a>
+      </p>
+    $else:
+      <p>
+        2FA is currently <b>disabled</b>.<br /><br />
+      </p>
+      <p>
+        <a href="/control/2fa/init">Click here to enable 2FA</a>
+      </p>
+  </div>
+</div>

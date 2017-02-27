@@ -17,3 +17,5 @@ Dozer==0.5                  # For WSGI memory profiling
 Pillow==3.3.1               # For WSGI memory profiling
 pyramid==1.7.3
 WebTest==2.0.23
+pyotp==2.2.4                # For Two-Factor Authentication
+qrcodegen==1.0.0            # For Two-Factor Authentication

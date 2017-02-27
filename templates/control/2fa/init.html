@@ -1,0 +1,41 @@
+$def with (username, tfa_secret, qrcode, error)
+$:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authentication", "/control/2fa/status"])}
+
+<div class="content form clear">
+  <form method="POST" class="form skinny clear" action="/control/2fa/init">
+    $if error == "password":
+      <div id="signin_error"><strong>Whoops!</strong> You entered an incorrect password.</div>
+    $elif error == "2fa":
+      <div id="signin_error"><strong>Whoops!</strong> The 2FA response token you provided did not validate.</div>
+    <h3>Two-Factor Authentication</h3>
+    <p><strong>Username: $:{username}</strong></p>
+    <p>
+      You are about to enable Two-Factor Authentication (2FA) for the Weasyl account identified above.
+      You will need a compatible app such as Google Authenticator to generate time-based tokens
+      each time you log into your Weasyl account, or a recovery code which will be provided in the next
+      step.
+    </p>
+
+    <h3>Confirm your Password</h3>
+      <label for="login-pass">Password</label>
+      <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required />
+    <h3>Scan with Google Authenticator...</h3>
+    <div>
+      <img src="data:image/svg+xml;utf8,${qrcode}">
+    </div>
+    <h3>... or manually enter your secret key</h3>
+    <p>
+      Your TOTP key is: ${tfa_secret}
+    </p>
+    <label for="tfa-init-verify">Enter 2FA token</label>
+    <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" autocomplete="off" required />
+
+    <input type="hidden" value="${tfa_secret}" name="tfasecret" />
+    $:{CSRF()}
+
+    <div style="padding-top: 1em;">
+      <a class="button negative" href="/control/2fa/status">Cancel</a>
+      <button class="button positive" name="action" value="continue">Continue</button>
+    </div>
+  </form>
+</div>

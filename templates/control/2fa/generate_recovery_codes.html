@@ -1,0 +1,51 @@
+$def with (tfa_recovery_codes, error)
+$:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Authentication", "/control/2fa/status"])}
+
+<div class="content form clear">
+  <form method="POST" class="form skinny clear" action="/control/2fa/generate_recovery_codes">
+    $if error == "2fa":
+      <div id="signin_error">
+        <strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.<strong>
+        If entered, your recovery code was <strong>not</strong> consumed.
+      </div>
+    $elif error == "verify":
+      <div id="signin_error">
+        <strong>Hey!</strong> Did you want to enable 2FA? You didn't check the verification checkbox!<strong>
+        If entered, your recovery code was <strong>not</strong> consumed.
+      </div>
+    <h3>Generate New Recovery Codes</h3>
+    <p>
+      The following recovery codes are <strong>not yet active</strong>. Once you provide
+      a valid 2FA token or recovery code, the below list of codes will replace all recovery
+      codes currently associated with your account.
+    </p>
+    <p>
+      Before proceeding, print or save these codes to a secure place. You will need these
+      codes to continue logging into your account. If you no longer have access to your
+      authenticator app, please <a href="/control/2fa/disable">disable 2FA</a> instead,
+      then re-enable it to reinitialize your authenticator.
+    </p>
+
+    <h3>Your new recovery codes will be...</h3>
+    <ol>
+      $for code in tfa_recovery_codes:
+        <li>${code}</li>
+    </ol>
+    <p>
+      These codes are one-time use, and upon successful use will not be able to be reused or retrieved.
+      If and when used, mark each code off. Codes may be used in any order.
+    </p>
+
+    <label for="tfa-regenerate-codes">Enter 2FA token or Recovery Code</label>
+    <input type="text" id="tfa-regenerate-codes" maxlength="20" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
+    <label><input class="checkbox" type="checkbox" name="verify" required />I confirm that I have saved the above new recovery codes.</label>
+
+    <input type="hidden" value="${','.join(tfa_recovery_codes)}" name="tfarecoverycodes" />
+    $:{CSRF()}
+
+    <div style="padding-top: 1em;">
+      <a class="button negative" href="/control/2fa/status">Cancel</a>
+      <button class="button positive" name="action" value="save">Save New Recovery Codes</button>
+    </div>
+  </form>
+</div>

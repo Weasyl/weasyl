@@ -49,6 +49,7 @@ def authenticate_bcrypt(username, password, session=True):
     - "address"
     - "banned"
     - "suspended"
+    - "2fa" - Indicates the user has opted-in to 2FA. Additional authentication required.
     """
     # Check that the user entered potentially valid values for `username` and
     # `password` before attempting to authenticate them
@@ -57,14 +58,14 @@ def authenticate_bcrypt(username, password, session=True):
 
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
-    query = d.execute("SELECT ab.userid, ab.hashsum, lo.settings FROM authbcrypt ab"
+    query = d.execute("SELECT ab.userid, ab.hashsum, lo.settings, lo.twofa_secret FROM authbcrypt ab"
                       " RIGHT JOIN login lo USING (userid)"
                       " WHERE lo.login_name = '%s'", [d.get_sysname(username)], ["single"])
 
     if not query:
         return 0, "invalid"
 
-    USERID, HASHSUM, SETTINGS = query
+    USERID, HASHSUM, SETTINGS, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
 
     d.metric('increment', 'attemptedlogins')
@@ -99,9 +100,13 @@ def authenticate_bcrypt(username, password, session=True):
     # Attempt to create a new session if `session` is True, then log the signin
     # if it succeeded.
     if session:
-        signin(USERID)
-        d.append_to_log('login.success', userid=USERID, ip=d.get_address())
-        d.metric('increment', 'logins')
+        # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
+        if TWOFA:
+            return USERID, "2fa"
+        else:
+            signin(USERID)
+            d.append_to_log('login.success', userid=USERID, ip=d.get_address())
+            d.metric('increment', 'logins')
 
     status = None
     if not unicode_success:

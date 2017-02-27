@@ -391,9 +391,20 @@ login = Table(
         },
     }, length=20), nullable=False, server_default=''),
     Column('email', String(length=100), nullable=False, server_default=''),
+    Column('twofa_secret', String(length=16), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)
+
+
+twofa_recovery_codes = Table(
+    'twofa_recovery_codes', metadata,
+    Column('userid', Integer(), primary_key=True, nullable=False),
+    Column('recovery_code', String(length=20), primary_key=True, nullable=False),
+    default_fkey(['userid'], ['login.userid'], name='twofa_recovery_codes_userid_fkey'),
+)
+
+Index('ind_twofa_recovery_codes_userid')
 
 
 loginaddress = Table(

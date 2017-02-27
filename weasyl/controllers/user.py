@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import arrow
 from pyramid.httpexceptions import (
     HTTPFound,
     HTTPSeeOther,
@@ -7,7 +8,7 @@ from pyramid.httpexceptions import (
 from pyramid.response import Response
 
 from weasyl import define, errorcode, index, login, moderation, \
-    premiumpurchase, profile, resetpassword
+    premiumpurchase, profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
@@ -42,6 +43,21 @@ def signin_post_(request):
         # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
         index.template_fields.invalidate(logid)
         raise HTTPSeeOther(location=form.referer)
+    elif logid and logerror == "2fa":
+        # Password authentication passed, but user has 2FA set, so verify second factor (Also set SFW mode now)
+        if form.sfwmode == "sfw":
+            request.set_cookie_on_response("sfwmode", "sfw", 31536000)
+        index.template_fields.invalidate(logid)
+        # Store the authenticated userid & password auth time to the session
+        sess = define.get_weasyl_session()
+        sess.additional_data['2fa_pwd_auth_timestamp'] = arrow.now().timestamp
+        sess.additional_data['2fa_pwd_auth_userid'] = logid
+        sess.save = True
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [define.get_display_name(logid), form.referer, two_factor_auth.get_number_of_recovery_codes(logid),
+             None]))
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
     elif logerror == "banned":
@@ -63,6 +79,80 @@ def signin_post_(request):
         return Response("IP ADDRESS TEMPORARILY BLOCKED")
 
     return Response(define.errorpage(request.userid))
+
+
+@guest_required
+def signin_2fa_auth_get_(request):
+    sess = define.get_weasyl_session()
+
+    # Only render page if the password has been authenticated (we have a UserID stored in the session)
+    if '2fa_pwd_auth_userid' not in sess.additional_data:
+        return Response(define.errorpage(request.userid, errorcode.permission))
+    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
+
+    # Maximum secondary authentication time: 5 minutes
+    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    if session_life > 300:
+        del sess.additional_data['2fa_pwd_auth_timestamp']
+        del sess.additional_data['2fa_pwd_auth_userid']
+        sess.save = True
+        return Response(define.errorpage(
+            request.userid,
+            "Your login session has timed out. Please try logging in again.",
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+    else:
+        ref = request.params["referer"] if "referer" in request.params else "/"
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [define.get_display_name(tfa_userid), ref, two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+             None]))
+
+
+@guest_required
+@token_checked
+def signin_2fa_auth_post_(request):
+    sess = define.get_weasyl_session()
+
+    # Only render page if the password has been authenticated (we have a UserID stored in the session)
+    if '2fa_pwd_auth_userid' not in sess.additional_data:
+        return Response(define.errorpage(request.userid, errorcode.permission))
+    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
+
+    # Maximum secondary authentication time: 5 minutes
+    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    if session_life > 300:
+        del sess.additional_data['2fa_pwd_auth_timestamp']
+        del sess.additional_data['2fa_pwd_auth_userid']
+        sess.save = True
+        return Response(define.errorpage(
+            request.userid,
+            "Your authentication session has timed out. Please try logging in again.",
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+    elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
+        # 2FA passed, so login and cleanup.
+        del sess.additional_data['2fa_pwd_auth_timestamp']
+        del sess.additional_data['2fa_pwd_auth_userid']
+        sess.save = True
+        login.signin(tfa_userid)
+        ref = request.params["referer"] or "/"
+        # User is out of recovery codes, so force-deactivate 2FA
+        if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
+            two_factor_auth.force_deactivate(tfa_userid)
+            return Response(define.errorpage(
+                tfa_userid,
+                """You have used all of your 2FA recovery codes. In order to prevent you from
+                being locked out of your account, 2FA has been disabled for your account.""",
+                [["Re-Enable 2FA", "/control/2fa/init"], ["Continue", ref]]
+            ))
+        raise HTTPSeeOther(location=ref)
+    else:
+        # 2FA failed; redirect to 2FA input page & inform user that authentication failed.
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+             "2fa"]))
 
 
 @login_required

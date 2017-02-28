@@ -561,6 +561,14 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     if newpassword:
         d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
 
+        # Invalidate all sessions for `userid` except for the current one
+        sess = d.get_weasyl_session()
+        d.engine.execute("""
+            DELETE FROM sessions
+            WHERE userid = %(userid)s
+              AND sessionid != %(currentsession)s
+        """, userid=userid, currentsession=sess.sessionid)
+
 
 def edit_preferences(userid, timezone=None,
                      preferences=None, jsonb_settings=None):

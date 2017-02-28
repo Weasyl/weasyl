@@ -1061,7 +1061,7 @@ def select_recently_popular():
         SELECT
             log(count(favorite.*) + 1) +
                 log(submission.page_views + 1) / 2 +
-                submission.unixtime / 180000 AS score,
+                submission.unixtime / 180000.0 AS score,
             submission.submitid,
             submission.title,
             submission.rating,

@@ -565,7 +565,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         sess = d.get_weasyl_session()
         d.engine.execute("""
             DELETE FROM sessions
-            WHERE userid = (%(userid)s)
+            WHERE userid = %(userid)s
               AND sessionid != (%(currentsession)s)
         """, userid=userid, currentsession=sess.sessionid)
 

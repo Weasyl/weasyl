@@ -21,17 +21,17 @@ def test_get_number_of_recovery_codes():
     assert 0 == d.engine.scalar("""
         SELECT COUNT(*)
         FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s)
+        WHERE userid = %(userid)s
     """, userid=user_id)
     assert tfa.get_number_of_recovery_codes(user_id) == 0
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        VALUES ( (%(userid)s), (%(code)s) )
-    """, userid=user_id, code=security.generate_key(20))
+        VALUES (%(userid)s, %(code)s)
+    """, userid=user_id, code=security.generate_key(tfa.LENGTH_RECOVERY_CODE))
     assert tfa.get_number_of_recovery_codes(user_id) == 1
     d.engine.execute("""
         DELETE FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s)
+        WHERE userid = %(userid)s
     """, userid=user_id)
     assert tfa.get_number_of_recovery_codes(user_id) == 0
 
@@ -40,23 +40,23 @@ def test_generate_recovery_codes():
     codes = tfa.generate_recovery_codes()
     assert len(codes) == 10
     for code in codes:
-        assert len(code) == 20
+        assert len(code) == tfa.LENGTH_RECOVERY_CODE
 
 
 def test_store_recovery_codes():
     user_id = db_utils.create_user()
     valid_code_string = "01234567890123456789,02234567890123456789,03234567890123456789,04234567890123456789,05234567890123456789,06234567890123456789,07234567890123456789,08234567890123456789,09234567890123456789,10234567890123456789"
-    recovery_code = "A" * 20
+    recovery_code = "A" * tfa.LENGTH_RECOVERY_CODE
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        VALUES ( (%(userid)s), (%(code)s) )
+        VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
 
     # store_recovery_codes() will not accept a string of codes where the total code count is not 10
     invalid_codes = valid_code_string.split(',').pop()
     assert not tfa.store_recovery_codes(user_id, ','.join(invalid_codes))
 
-    # store_recovery_codes() will not accept a string of codes when the code length is not 20
+    # store_recovery_codes() will not accept a string of codes when the code length is not tfa.LENGTH_RECOVERY_CODE
     invalid_codes = "01,02,03,04,05,06,07,08,09,10"
     assert not tfa.store_recovery_codes(user_id, invalid_codes)
 
@@ -66,30 +66,30 @@ def test_store_recovery_codes():
     query = d.engine.execute("""
         SELECT recovery_code
         FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s)
+        WHERE userid = %(userid)s
     """, userid=user_id).fetchall()
 
     # Verify that the target codes were added, and the originally stored code does not remain
     assert recovery_code not in query
     valid_code_list = valid_code_string.split(',')
     for code in query:
-        assert len(code['recovery_code']) == 20
+        assert len(code['recovery_code']) == tfa.LENGTH_RECOVERY_CODE
         assert code['recovery_code'] in valid_code_list
 
 
 @pytest.mark.usefixtures('db')
 def test_is_recovery_code_valid():
     user_id = db_utils.create_user()
-    recovery_code = "A" * 20
+    recovery_code = "A" * tfa.LENGTH_RECOVERY_CODE
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        VALUES ( (%(userid)s), (%(code)s) )
+        VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
 
     # Failure: Recovery code is invalid (code was not a real code)
-    assert not tfa.is_recovery_code_valid(user_id, "z" * 20)
+    assert not tfa.is_recovery_code_valid(user_id, "z" * tfa.LENGTH_RECOVERY_CODE)
 
-    # Failure: Recovery codes are 20 characters, and the function fast-fails if not 20 chars.
+    # Failure: Recovery codes are tfa.LENGTH_RECOVERY_CODE characters, and fast-fails if not that length.
     assert not tfa.is_recovery_code_valid(user_id, "z" * 19)
 
     # Success: Recovery code is valid (code is consumed)
@@ -101,7 +101,7 @@ def test_is_recovery_code_valid():
     # Reinsert for case-sensitivity test
     d.engine.execute("""
             INSERT INTO twofa_recovery_codes (userid, recovery_code)
-            VALUES ( (%(userid)s), (%(code)s) )
+            VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
 
     # Success: Recovery code is valid (because case does not matter)
@@ -126,7 +126,7 @@ def test_init():
     assert tfa_qrcode == computed_qrcode
     # The tfa_secret from init() should be 16 characters, and work if passed in to pyotp.TOTP.now()
     assert len(tfa_secret) == 16
-    assert len(pyotp.TOTP(tfa_secret).now()) == 6
+    assert len(pyotp.TOTP(tfa_secret).now()) == tfa.LENGTH_TOTP_CODE
 
 
 @pytest.mark.usefixtures('db')
@@ -159,7 +159,7 @@ def test_activate():
     assert not d.engine.scalar("""
         SELECT twofa_secret
         FROM login
-        WHERE userid = (%(userid)s)
+        WHERE userid = %(userid)s
     """, userid=user_id)
 
     # Validation successful, and tfa_secret written into user's `login` record
@@ -168,7 +168,7 @@ def test_activate():
     assert tfa_secret == d.engine.scalar("""
         SELECT twofa_secret
         FROM login
-        WHERE userid = (%(userid)s)
+        WHERE userid = %(userid)s
     """, userid=user_id)
 
 
@@ -182,8 +182,8 @@ def test_is_2fa_enabled():
     # 2FA is enabled
     d.engine.execute("""
         UPDATE login
-        SET twofa_secret = (%(tfas)s)
-        WHERE userid = (%(userid)s)
+        SET twofa_secret = %(tfas)s
+        WHERE userid = %(userid)s
     """, userid=user_id, tfas=pyotp.random_base32())
     assert tfa.is_2fa_enabled(user_id)
 
@@ -197,8 +197,8 @@ def test_deactivate():
     # 2FA enabled, deactivated by TOTP challenge-response code
     d.engine.execute("""
         UPDATE login
-        SET twofa_secret = (%(tfas)s)
-        WHERE userid = (%(userid)s)
+        SET twofa_secret = %(tfas)s
+        WHERE userid = %(userid)s
     """, userid=user_id, tfas=tfa_secret)
     tfa_response = totp.now()
     assert tfa.deactivate(user_id, tfa_response)
@@ -206,25 +206,25 @@ def test_deactivate():
     # 2FA enabled, deactivated by recovery code
     d.engine.execute("""
         UPDATE login
-        SET twofa_secret = (%(tfas)s)
-        WHERE userid = (%(userid)s)
+        SET twofa_secret = %(tfas)s
+        WHERE userid = %(userid)s
     """, userid=user_id, tfas=tfa_secret)
     tfa_response = totp.now()
-    recovery_code = "A" * 20
+    recovery_code = "A" * tfa.LENGTH_RECOVERY_CODE
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        VALUES ( (%(userid)s), (%(code)s) )
+        VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
     assert tfa.deactivate(user_id, recovery_code)
 
     # 2FA enabled, failed deactivation (invalid `tfa_response` (code or TOTP token))
     d.engine.execute("""
         UPDATE login
-        SET twofa_secret = (%(tfas)s)
-        WHERE userid = (%(userid)s)
+        SET twofa_secret = %(tfas)s
+        WHERE userid = %(userid)s
     """, userid=user_id, tfas=tfa_secret)
     assert not tfa.deactivate(user_id, "000000")
-    assert not tfa.deactivate(user_id, "a" * 20)
+    assert not tfa.deactivate(user_id, "a" * tfa.LENGTH_RECOVERY_CODE)
 
 
 @pytest.mark.usefixtures('db')
@@ -233,13 +233,13 @@ def test_force_deactivate():
     tfa_secret = pyotp.random_base32()
     d.engine.execute("""
         UPDATE login
-        SET twofa_secret = (%(tfas)s)
-        WHERE userid = (%(userid)s)
+        SET twofa_secret = %(tfas)s
+        WHERE userid = %(userid)s
     """, userid=user_id, tfas=tfa_secret)
-    recovery_code = "A" * 20
+    recovery_code = "A" * tfa.LENGTH_RECOVERY_CODE
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        VALUES ( (%(userid)s), (%(code)s) )
+        VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
 
     # Verify that force_deactivate() functions as expected.
@@ -257,18 +257,18 @@ def test_verify():
     user_id = db_utils.create_user()
     tfa_secret = pyotp.random_base32()
     totp = pyotp.TOTP(tfa_secret)
-    recovery_code = "A" * 20
+    recovery_code = "A" * tfa.LENGTH_RECOVERY_CODE
     d.engine.execute("""
         UPDATE login
-        SET twofa_secret = (%(tfas)s)
-        WHERE userid = (%(userid)s)
+        SET twofa_secret = %(tfas)s
+        WHERE userid = %(userid)s
     """, userid=user_id, tfas=tfa_secret)
     d.engine.execute("""
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        VALUES ( (%(userid)s), (%(code)s) )
+        VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
 
-    # Codes of any other length than 6 or 20 returns False
+    # Codes of any other length than tfa.LENGTH_TOTP_CODE or tfa.LENGTH_RECOVERY_CODE returns False
     assert not tfa.verify(user_id, "a" * 5)
     assert not tfa.verify(user_id, "a" * 21)
 
@@ -280,7 +280,7 @@ def test_verify():
     assert not tfa.verify(user_id, "000000")
 
     # Recovery code does not match stored value (Unsuccessful Verification)
-    assert not tfa.verify(user_id, "z" * 20)
+    assert not tfa.verify(user_id, "z" * tfa.LENGTH_RECOVERY_CODE)
 
     # Recovery code matches a stored recovery code (Successful Verification)
     assert tfa.verify(user_id, recovery_code)
@@ -288,9 +288,9 @@ def test_verify():
     # Recovery codes are case-insensitive (Successful Verification)
     d.engine.execute("""
             INSERT INTO twofa_recovery_codes (userid, recovery_code)
-            VALUES ( (%(userid)s), (%(code)s) )
+            VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
-    assert tfa.verify(user_id, 'a' * 20)
+    assert tfa.verify(user_id, 'a' * tfa.LENGTH_RECOVERY_CODE)
 
     # Recovery codes are consumed upon use (consumed previously) (Unsuccessful Verification)
     assert not tfa.verify(user_id, recovery_code)
@@ -298,8 +298,8 @@ def test_verify():
     # When parameter `consume_recovery_code` is set to False, a recovery code is not consumed.
     d.engine.execute("""
             INSERT INTO twofa_recovery_codes (userid, recovery_code)
-            VALUES ( (%(userid)s), (%(code)s) )
+            VALUES (%(userid)s, %(code)s)
     """, userid=user_id, code=recovery_code)
     assert tfa.get_number_of_recovery_codes(user_id) == 1
-    assert tfa.verify(user_id, 'a' * 20, consume_recovery_code=False)
+    assert tfa.verify(user_id, 'a' * tfa.LENGTH_RECOVERY_CODE, consume_recovery_code=False)
     assert tfa.get_number_of_recovery_codes(user_id) == 1

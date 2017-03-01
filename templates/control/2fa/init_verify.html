@@ -21,12 +21,13 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authenti
     <p>
       <strong>Warning:</strong> For security reasons, Weasyl staff will be unable to assist you if
       you lose access to your recovery codes. We advise never using more than eight codes, as you will
-      need two to disable 2FA from a logged-out state (one code to log in, one
-      code to disable two-factor authentication).
+      need two to disable 2FA from a logged-out state (one code to log in, and one code to disable
+      two-factor authentication).
       <br />
       As a precaution against being locked out your account if all recovery codes are used, 2FA will
-      automatically be disabled if--and only if--all recovery codes are consumed. Generating a new
-      set of codes will prevent this from occurring. If this occurs, you will need to set-up 2FA again.
+      automatically be disabled if--and only if--all recovery codes are consumed during the login process.
+      Generating a new set of codes will prevent this from occurring. If this occurs, you will need
+      to set-up 2FA again.
     </p>
     <h3>Your recovery codes are...</h3>
     <ol>
@@ -39,7 +40,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authenti
     </p>
     <label for="tfa-init-verify">Enter 2FA token</label>
     <input type="text" id="tfa-init-verify" maxlength="6" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
-    <label><input class="checkbox" type="checkbox" name="verify" required />I have printed or saved the above recovery codes and want to enable 2FA.</label>
+    <label><input class="checkbox" type="checkbox" name="verify" required /> I have printed or saved the above recovery codes and want to enable 2FA.</label>
 
     <input type="hidden" value="${','.join(tfa_recovery_codes)}" name="tfarecoverycodes" />
     <input type="hidden" value="${tfa_secret}" name="tfasecret" />

@@ -8,18 +8,17 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
     $elif error == "2fa":
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token you provided did not validate.</div>
     <h3>Two-Factor Authentication</h3>
-    <p><strong>Username: $:{username}</strong></p>
+    <p><strong>Username: $:{MARKDOWN_EXCERPT(username)}</strong></p>
     <p>
       You are about to enable Two-Factor Authentication (2FA) for the Weasyl account identified above.
-      You will need a compatible app such as Google Authenticator to generate time-based tokens
-      each time you log into your Weasyl account, or a recovery code which will be provided in the next
-      step.
+      You will need a compatible app, such as Google Authenticator, to generate time-based tokens
+      each time you log into your Weasyl account.
     </p>
 
     <h3>Confirm your Password</h3>
       <label for="login-pass">Password</label>
       <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required />
-    <h3>Scan with Google Authenticator...</h3>
+    <h3>Scan with your authenticator...</h3>
     <div>
       <img src="data:image/svg+xml;utf8,${qrcode}">
     </div>

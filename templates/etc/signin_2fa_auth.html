@@ -7,7 +7,7 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.</div>
     $:{CSRF()}
     <h3>Two-Factor Authentication</h3>
-    <p><strong>Username: ${username}</strong></p>
+    <p><strong>Username: ${MARKDOWN_EXCERPT(username)}</strong></p>
     <p>
       The Weasyl account identified above has two-factor authentication enabled.
       Enter the current time-based token for this user below. Or, if you no longer

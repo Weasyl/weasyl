@@ -16,6 +16,11 @@ from weasyl import login
 # Number of recovery codes to provide the user
 _TFA_RECOVERY_CODES = 10
 
+# This length is configurable as needed; see generate_recovery_codes() below for keyspace/character set
+LENGTH_RECOVERY_CODE = 20
+# TOTP code length of 6 is the standard length, and is supported by Google Authenticator
+LENGTH_TOTP_CODE = 6
+
 
 def init(userid):
     """
@@ -112,8 +117,8 @@ def activate(userid, tfa_secret, tfa_response):
     if totp.verify(tfa_response):
         d.engine.execute("""
             UPDATE login
-            SET twofa_secret = (%(tfa_secret)s)
-            WHERE userid = (%(userid)s)
+            SET twofa_secret = %(tfa_secret)s
+            WHERE userid = %(userid)s
         """, tfa_secret=tfa_secret, userid=userid)
         return True
     else:
@@ -135,19 +140,17 @@ def verify(userid, tfa_response, consume_recovery_code=True):
 
     Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
-    # Length six (6) is a TOTP code...
-    if len(tfa_response) == 6:
+    if len(tfa_response) == LENGTH_TOTP_CODE:
         tfa_secret = d.engine.scalar("""
             SELECT twofa_secret
             FROM login
-            WHERE userid = (%(userid)s)
+            WHERE userid = %(userid)s
         """, userid=userid)
         # Validate supplied 2FA response versus calculated current TOTP value.
         totp = pyotp.TOTP(tfa_secret)
         # Return the response of the TOTP verification; True/False
         return totp.verify(tfa_response)
-    # Length twenty (20) is a recovery code...
-    elif len(tfa_response) == 20:
+    elif len(tfa_response) == LENGTH_RECOVERY_CODE:
         # Check if `tfa_response` is valid recovery code; consume according to `consume_recovery_code`,
         #  and return True if valid, False otherwise
         return is_recovery_code_valid(userid, tfa_response, consume_recovery_code)
@@ -169,7 +172,7 @@ def get_number_of_recovery_codes(userid):
     return d.engine.scalar("""
         SELECT COUNT(*)
         FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s)
+        WHERE userid = %(userid)s
     """, userid=userid)
 
 
@@ -177,11 +180,15 @@ def generate_recovery_codes():
     """
     Generate a set of valid recovery codes.
 
+    Character set is defined by `libweasyl.security`, (ASCII+Numbers), limited to uppercase via
+    .upper() for readability.
+
     Parameters: None
 
-    Returns: A set of length ``_TFA_RECOVERY_CODES`` where each code is 20 characters in length.
+    Returns: A set of length `_TFA_RECOVERY_CODES` where each code is `LENGTH_RECOVERY_CODE`
+    characters in length.
     """
-    return {security.generate_key(20).upper() for i in range(_TFA_RECOVERY_CODES)}
+    return {security.generate_key(LENGTH_RECOVERY_CODE).upper() for i in range(_TFA_RECOVERY_CODES)}
 
 
 def store_recovery_codes(userid, recovery_codes):
@@ -198,24 +205,32 @@ def store_recovery_codes(userid, recovery_codes):
     # Force the incoming string to uppercase, then split into a list
     codes = recovery_codes.upper().split(',')
     # The list must exist and be equal to the current codes to generate
-    if not len(codes) == _TFA_RECOVERY_CODES:
+    if len(codes) != _TFA_RECOVERY_CODES:
         return False
-    # Make sure all codes are 20 characters long, as expected
+    # Make sure all codes are `LENGTH_RECOVERY_CODE` characters long, as expected
     for code in codes:
-        if not len(code) == 20:
+        if len(code) != LENGTH_RECOVERY_CODE:
             return False
 
     # If above checks have passed, clear current recovery codes for `userid` and store new ones
     d.engine.execute("""
+        BEGIN;
+
         DELETE FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s);
-    """, userid=userid)
-    d.engine.execute("""
+        WHERE userid = %(userid)s;
+
         INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        SELECT (%(userid)s), unnest( (%(tfa_recovery_codes)s) )
+        SELECT %(userid)s, unnest(%(tfa_recovery_codes)s);
+
+        COMMIT;
     """, userid=userid, tfa_recovery_codes=list(codes))
 
-    return True
+    # Verify if the atomic transaction completed; if `code` (one of the new recovery codes) is
+    #   valid at this point, the new codes were added
+    if is_recovery_code_valid(userid, code, consume_recovery_code=False):
+        return True
+    else:
+        return False
 
 
 def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
@@ -236,14 +251,14 @@ def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
 
     Returns: Boolean True if the code was valid and has been consumed, Boolean False, otherwise.
     """
-    # Recovery codes must be 20 characters; fast-fail if `tfa_code` is not 20
-    if len(tfa_code) != 20:
+    # Recovery codes must be LENGTH_RECOVERY_CODE characters; fast-fail if this is not the case
+    if len(tfa_code) != LENGTH_RECOVERY_CODE:
         return False
     # Check to see if the provided code--converting to upper-case first--is valid and consume if so
     if consume_recovery_code:
         tfa_rc = d.engine.scalar("""
             DELETE FROM twofa_recovery_codes
-            WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
+            WHERE userid = %(userid)s AND recovery_code = %(recovery_code)s
             RETURNING recovery_code
         """, userid=userid, recovery_code=tfa_code.upper())
     else:
@@ -251,7 +266,7 @@ def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
         tfa_rc = d.engine.scalar("""
             SELECT recovery_code
             FROM twofa_recovery_codes
-            WHERE userid = (%(userid)s) AND recovery_code = (%(recovery_code)s)
+            WHERE userid = %(userid)s AND recovery_code = %(recovery_code)s
         """, userid=userid, recovery_code=tfa_code.upper())
     # Return True if the recovery code was valid, False otherwise
     if tfa_rc:
@@ -272,15 +287,11 @@ def is_2fa_enabled(userid):
 
     Returns: Boolean True if 2FA is enabled for ``userid``, otherwise Boolean False.
     """
-    result = d.engine.scalar("""
-        SELECT twofa_secret
+    return d.engine.scalar("""
+        SELECT twofa_secret IS NOT NULL
         FROM login
-        WHERE userid = (%(userid)s)
+        WHERE userid = %(userid)s
     """, userid=userid)
-    if result:
-        return True
-    else:
-        return False
 
 
 def deactivate(userid, tfa_response):
@@ -298,20 +309,10 @@ def deactivate(userid, tfa_response):
     Returns: Boolean True if 2FA was successfully disabled, otherwise Boolean False if the
     verification of `tfa_response` failed (bad challenge-response or invalid recovery code).
     """
-    # Sanity checking for length requirement performed in verify() function (6 or 20 length)
+    # Sanity checking for length requirement of recovery code/TOTP is performed in verify() function
     if verify(userid, tfa_response):
-        d.engine.execute("""
-            BEGIN;
-
-            UPDATE login
-            SET twofa_secret = NULL
-            WHERE userid = (%(userid)s);
-
-            DELETE FROM twofa_recovery_codes
-            WHERE userid = (%(userid)s);
-
-            COMMIT;
-        """, userid=userid)
+        # Verification passed, so disable 2FA
+        force_deactivate(userid)
         return True
     else:
         return False
@@ -331,10 +332,10 @@ def force_deactivate(userid):
 
         UPDATE login
         SET twofa_secret = NULL
-        WHERE userid = (%(userid)s);
+        WHERE userid = %(userid)s;
 
         DELETE FROM twofa_recovery_codes
-        WHERE userid = (%(userid)s);
+        WHERE userid = %(userid)s;
 
         COMMIT;
     """, userid=userid)

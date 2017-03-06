@@ -140,6 +140,9 @@ def verify(userid, tfa_response, consume_recovery_code=True):
 
     Returns: Boolean True if 2FA verification is successful, Boolean False otherwise.
     """
+    # Strip spaces from the tfa_response; they are not valid character, and some authenticator
+    #   implementations display the code as "123 456"
+    tfa_response = re.sub("[\ ]", '', tfa_response)
     if len(tfa_response) == LENGTH_TOTP_CODE:
         tfa_secret = d.engine.scalar("""
             SELECT twofa_secret

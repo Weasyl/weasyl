@@ -63,6 +63,8 @@ routes = (
     Route("/control/2fa/status", "control_2fa_status", {'GET': two_factor_auth.tfa_status_get_}),
     Route("/control/2fa/init", "control_2fa_init",
           {'GET': two_factor_auth.tfa_init_get_, 'POST': two_factor_auth.tfa_init_post_}),
+    Route("/control/2fa/init_qrcode", "control_2fa_init_qrcode",
+          {'GET': two_factor_auth.tfa_init_qrcode_get_, 'POST': two_factor_auth.tfa_init_qrcode_post_}),
     Route("/control/2fa/init_verify", "control_2fa_init_verify",
           {'GET': two_factor_auth.tfa_init_verify_get_, 'POST': two_factor_auth.tfa_init_verify_post_}),
     Route("/control/2fa/disable", "control_2fa_disable",

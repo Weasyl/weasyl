@@ -1,5 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
+import re
+
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPSeeOther
 
@@ -11,6 +13,7 @@ from weasyl.controllers.decorators import (
     token_checked,
 )
 from weasyl.error import WeasylError
+from weasyl.profile import invalidate_other_sessions
 
 
 def _error_if_2fa_enabled(userid):
@@ -46,10 +49,11 @@ def tfa_init_get_(request):
     # Return an error if 2FA is already enabled (there's nothing to do in this route)
     _error_if_2fa_enabled(request.userid)
 
-    # Otherwise begin the 2FA initialization process for this user
-    tfa_secret, tfa_qrcode = tfa.init(request.userid)
-    return Response(define.webpage(request.userid, "control/2fa/init.html",
-                    [define.get_display_name(request.userid), tfa_secret, tfa_qrcode, None]))
+    # Otherwise, render the page
+    return Response(define.webpage(request.userid, "control/2fa/init.html", [
+        define.get_display_name(request.userid),
+        None
+    ]))
 
 
 @login_required
@@ -66,18 +70,60 @@ def tfa_init_post_(request):
         if status == "invalid":
             return Response(define.webpage(request.userid, "control/2fa/init.html", [
                 define.get_display_name(request.userid),
-                request.params['tfasecret'],
-                tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']),
                 "password"
             ]))
         # Unlikely that this block will get triggered, but just to be safe, check for it
         elif status == "unicode-failure":
             raise HTTPSeeOther(location='/signin/unicode-failure')
-        tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, request.params['tfasecret'], request.params['tfaresponse'])
+        # The user has authenticated, so continue with the initialization process.
+        else:
+            tfa_secret, tfa_qrcode = tfa.init(request.userid)
+            return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
+                define.get_display_name(request.userid),
+                tfa_secret,
+                tfa_qrcode,
+                None
+            ]))
+    else:
+        # This shouldn't be reached normally (user intentionally altered action?)
+        raise WeasylError("Unexpected")
+
+
+@login_required
+def tfa_init_qrcode_get_(request):
+    """
+    IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user has not yet
+    verified ownership over the account by verifying their password. That said, be helpful and inform
+    the user of this instead of erroring without explanation.
+    """
+    # Return an error if 2FA is already enabled (there's nothing to do in this route)
+    _error_if_2fa_enabled(request.userid)
+
+    # If 2FA is not enabled, inform the user of where to go to begin
+    return Response(define.errorpage(
+                    request.userid,
+                    """This page cannot be accessed directly, and must be accessed as part of the 2FA
+                    setup process. Click <b>2FA Status</b>, below, to go to the 2FA Dashboard to begin.""",
+                    [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
+
+
+@login_required
+@token_checked
+def tfa_init_qrcode_post_(request):
+    # Return an error if 2FA is already enabled (there's nothing to do in this route)
+    _error_if_2fa_enabled(request.userid)
+
+    # Otherwise, process the form
+    if request.params['action'] == "continue":
+        # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
+        tfaresponse = re.sub("[\ ]", '', request.params['tfaresponse'])
+
+        # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
+        tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, request.params['tfasecret'], tfaresponse)
 
         # The 2FA TOTP code did not match with the generated 2FA secret
         if not tfa_secret:
-            return Response(define.webpage(request.userid, "control/2fa/init.html", [
+            return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
                 define.get_display_name(request.userid),
                 request.params['tfasecret'],
                 tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']),
@@ -124,8 +170,13 @@ def tfa_init_verify_post_(request):
 
     # Does the user want to proceed with enabling 2FA?
     if action == "enable" and verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
+        # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
+        tfaresponse = re.sub("[\ ]", '', tfaresponse)
+
         # TOTP+2FA Secret validates (activate & redirect to status page)
         if tfa.activate(request.userid, tfasecret, tfaresponse):
+            # Invalidate all other login sessions
+            invalidate_other_sessions(request.userid)
             raise HTTPSeeOther(location="/control/2fa/status")
         # TOTP+2FA Secret did not validate
         else:

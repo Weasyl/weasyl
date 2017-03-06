@@ -132,8 +132,8 @@ def verify(userid, tfa_response, consume_recovery_code=True):
 
     Parameters:
         userid: The userid to compare the 2FA challenge-response against.
-        tfa_response: User-supplied response. May be either the Google Authenticator
-        (or other app) supplied code, or a recovery code
+        tfa_response: User-supplied response string. May be either the Google Authenticator
+        (or other app) supplied code, or a recovery code.
         consume_recovery_code:  If set to True, the recovery code is consumed if it is
         valid, otherwise the call to this function is treated as a query to the validity
         of the recovery code. (Default: Boolean True)
@@ -142,7 +142,7 @@ def verify(userid, tfa_response, consume_recovery_code=True):
     """
     # Strip spaces from the tfa_response; they are not valid character, and some authenticator
     #   implementations display the code as "123 456"
-    tfa_response = re.sub("[\ ]", '', tfa_response)
+    tfa_response = tfa_response.replace(' ', '')
     if len(tfa_response) == LENGTH_TOTP_CODE:
         tfa_secret = d.engine.scalar("""
             SELECT twofa_secret

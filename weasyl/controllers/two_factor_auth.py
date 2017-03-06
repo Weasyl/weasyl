@@ -1,7 +1,5 @@
 from __future__ import absolute_import, unicode_literals
 
-import re
-
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPSeeOther
 
@@ -116,7 +114,7 @@ def tfa_init_qrcode_post_(request):
     # Otherwise, process the form
     if request.params['action'] == "continue":
         # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
-        tfaresponse = re.sub("[\ ]", '', request.params['tfaresponse'])
+        tfaresponse = request.params['tfaresponse'].replace(' ', '')
 
         # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
         tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, request.params['tfasecret'], tfaresponse)
@@ -140,9 +138,11 @@ def tfa_init_qrcode_post_(request):
 @login_required
 def tfa_init_verify_get_(request):
     """
-    IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user has not generated
-    their 2FA secret at this point, and thus not loaded the secret into their 2FA authenticator of choice.
-    That said, be helpful and inform the user of this instead of erroring without explanation.
+    IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user needs to both verify
+    their password to assert ownership of their account (`tfa_init_*_()`), and needs to be provided with their
+    TOTP provisioning QRcode/secret key, and prove that they have successfully loaded it to their 2FA authenticator
+    of choice (`tfa_init_qrcode_*_()`). That said, be helpful and inform the user of this instead of erroring without
+    explanation.
     """
     # Return an error if 2FA is already enabled (there's nothing to do in this route)
     _error_if_2fa_enabled(request.userid)
@@ -171,7 +171,7 @@ def tfa_init_verify_post_(request):
     # Does the user want to proceed with enabling 2FA?
     if action == "enable" and verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
         # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
-        tfaresponse = re.sub("[\ ]", '', tfaresponse)
+        tfaresponse = request.params['tfaresponse'].replace(' ', '')
 
         # TOTP+2FA Secret validates (activate & redirect to status page)
         if tfa.activate(request.userid, tfasecret, tfaresponse):

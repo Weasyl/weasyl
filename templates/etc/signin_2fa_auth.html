@@ -13,15 +13,15 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
       Enter the current time-based token for this user below. Or, if you no longer
       have access to the authenticator for this account, enter one of your unused
       twenty-character recovery codes. <strong>You have ${remaining_recovery_codes}
-      code${'s' if remaining_recovery_codes > 1 else ''} remaining.</strong>
+      recovery code${'s' if remaining_recovery_codes > 1 else ''} remaining.</strong>
     </p>
     $if remaining_recovery_codes == 1:
       <p>
-        <strong>Note:</strong> 2FA will be disabled upon providing your last recovery
+        <strong>Note:</strong> 2FA will be disabled upon using your last recovery
         code.
       </p>
     <label for="tfa-response">Time-based Token or Recovery Code</label>
-    <input type="text" id="tfa-response" maxlength="20" class="input" name="tfaresponse" placeholder="012345" autofocus="autofocus" autocomplete="off" required />
+    <input type="text" id="tfa-response" maxlength="24" class="input" name="tfaresponse" placeholder="012345" autofocus="autofocus" autocomplete="off" required />
 
     <div style="padding-top: 1em;">
       <button class="button positive">Sign In</button>

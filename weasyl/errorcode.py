@@ -149,6 +149,8 @@ error_messages = {
         "The link you followed does not appear to be valid. You may have already added these premium terms "
         "to your account, or you may have copied the link incorrectly."),
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
+    "TwoFactorAuthenticationRequireEnabled": "Two-Factor Authentication must be enabled to access this page.",
+    "TwoFactorAuthenticationRequireDisbled": "Two-Factor Authentication must not be enabled to access this page.",
     "unknownMessageFolder": "The specified message folder does not exist.",
     "UserIgnored": "This content was posted by a user you have chosen to ignore.",
     "userRecordMissing": userid,

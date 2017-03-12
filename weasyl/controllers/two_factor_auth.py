@@ -9,30 +9,11 @@ from weasyl import two_factor_auth as tfa
 from weasyl.controllers.decorators import (
     login_required,
     token_checked,
+    twofactorauth_disabled_required,
+    twofactorauth_enabled_required,
 )
 from weasyl.error import WeasylError
 from weasyl.profile import invalidate_other_sessions
-
-
-def _error_if_2fa_enabled(userid):
-    """
-    In lieu of a module-specific decorator, this function returns an error if 2FA is enabled, preventing the user
-    from self-wiping their own 2FA Secret (AKA, re-setting up 2FA while it is already enabled)
-    """
-    if tfa.is_2fa_enabled(userid):
-        return Response(define.errorpage(userid, "2FA is already configured for this account.", [
-            ["Go Back", "/control"], ["Return to the Home Page", "/"]
-        ]))
-
-
-def _error_if_2fa_is_not_enabled(userid):
-    """
-    In lieu of a module-specific decorator, this function returns an error if 2FA is not enabled.
-    """
-    if not tfa.is_2fa_enabled(userid):
-        return Response(define.errorpage(userid, "2FA is not configured for this account.", [
-            ["Go Back", "/control"], ["Return to the Home Page", "/"]
-        ]))
 
 
 @login_required
@@ -43,11 +24,8 @@ def tfa_status_get_(request):
 
 
 @login_required
+@twofactorauth_disabled_required
 def tfa_init_get_(request):
-    # Return an error if 2FA is already enabled (there's nothing to do in this route)
-    _error_if_2fa_enabled(request.userid)
-
-    # Otherwise, render the page
     return Response(define.webpage(request.userid, "control/2fa/init.html", [
         define.get_display_name(request.userid),
         None
@@ -56,11 +34,8 @@ def tfa_init_get_(request):
 
 @login_required
 @token_checked
+@twofactorauth_disabled_required
 def tfa_init_post_(request):
-    # Return an error if 2FA is already enabled (there's nothing to do in this route)
-    _error_if_2fa_enabled(request.userid)
-
-    # Otherwise, process the form
     if request.params['action'] == "continue":
         userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
                                                    request.params['password'], session=False)
@@ -88,16 +63,14 @@ def tfa_init_post_(request):
 
 
 @login_required
+@twofactorauth_disabled_required
 def tfa_init_qrcode_get_(request):
     """
     IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user has not yet
     verified ownership over the account by verifying their password. That said, be helpful and inform
     the user of this instead of erroring without explanation.
     """
-    # Return an error if 2FA is already enabled (there's nothing to do in this route)
-    _error_if_2fa_enabled(request.userid)
-
-    # If 2FA is not enabled, inform the user of where to go to begin
+    # Inform the user of where to go to begin
     return Response(define.errorpage(
                     request.userid,
                     """This page cannot be accessed directly, and must be accessed as part of the 2FA
@@ -107,11 +80,8 @@ def tfa_init_qrcode_get_(request):
 
 @login_required
 @token_checked
+@twofactorauth_disabled_required
 def tfa_init_qrcode_post_(request):
-    # Return an error if 2FA is already enabled (there's nothing to do in this route)
-    _error_if_2fa_enabled(request.userid)
-
-    # Otherwise, process the form
     if request.params['action'] == "continue":
         # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
         tfaresponse = request.params['tfaresponse'].replace(' ', '')
@@ -136,6 +106,7 @@ def tfa_init_qrcode_post_(request):
 
 
 @login_required
+@twofactorauth_disabled_required
 def tfa_init_verify_get_(request):
     """
     IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user needs to both verify
@@ -144,10 +115,7 @@ def tfa_init_verify_get_(request):
     of choice (`tfa_init_qrcode_*_()`). That said, be helpful and inform the user of this instead of erroring without
     explanation.
     """
-    # Return an error if 2FA is already enabled (there's nothing to do in this route)
-    _error_if_2fa_enabled(request.userid)
-
-    # If 2FA is not enabled, inform the user of where to go to begin
+    # Inform the user of where to go to begin
     return Response(define.errorpage(
                     request.userid,
                     """This page cannot be accessed directly, and must be accessed as part of the 2FA
@@ -157,10 +125,8 @@ def tfa_init_verify_get_(request):
 
 @login_required
 @token_checked
+@twofactorauth_disabled_required
 def tfa_init_verify_post_(request):
-    # Return an error if 2FA is already enabled (there's nothing to do in this route)
-    _error_if_2fa_enabled(request.userid)
-
     # Extract parameters from the form
     action = request.params['action']
     verify_checkbox = request.params['verify']
@@ -192,20 +158,16 @@ def tfa_init_verify_post_(request):
 
 
 @login_required
+@twofactorauth_enabled_required
 def tfa_disable_get_(request):
-    # Return an error if 2FA is not enabled (there's nothing to do in this route)
-    _error_if_2fa_is_not_enabled(request.userid)
-
     return Response(define.webpage(request.userid, "control/2fa/disable.html",
                     [define.get_display_name(request.userid), None]))
 
 
 @login_required
 @token_checked
+@twofactorauth_enabled_required
 def tfa_disable_post_(request):
-    # Return an error if 2FA is not enabled (there's nothing to do in this route)
-    _error_if_2fa_is_not_enabled(request.userid)
-
     tfaresponse = request.params['tfaresponse']
     verify_checkbox = request.params['verify']
     action = request.params['action']
@@ -227,10 +189,8 @@ def tfa_disable_post_(request):
 
 
 @login_required
+@twofactorauth_enabled_required
 def tfa_generate_recovery_codes_get_(request):
-    # Return an error if 2FA is not enabled (there's nothing to do in this route)
-    _error_if_2fa_is_not_enabled(request.userid)
-
     return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
         tfa.generate_recovery_codes(),
         None
@@ -238,11 +198,9 @@ def tfa_generate_recovery_codes_get_(request):
 
 
 @login_required
+@twofactorauth_enabled_required
 @token_checked
 def tfa_generate_recovery_codes_post_(request):
-    # Return an error if 2FA is not enabled (there's nothing to do in this route)
-    _error_if_2fa_is_not_enabled(request.userid)
-
     # Extract parameters from the form
     action = request.params['action']
     verify_checkbox = request.params['verify']

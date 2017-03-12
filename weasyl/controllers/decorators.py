@@ -6,7 +6,7 @@ from pyramid.response import Response
 
 from libweasyl import staff
 
-from weasyl import define, errorcode
+from weasyl import define, errorcode, two_factor_auth
 import weasyl.api
 from weasyl.error import WeasylError
 
@@ -68,6 +68,22 @@ def disallow_api(view_callable):
     def inner(request):
         if weasyl.api.is_api_user():
             raise HTTPForbidden
+        return view_callable(request)
+    return inner
+
+
+def twofactorauth_enabled_required(view_callable):
+    def inner(request):
+        if not two_factor_auth.is_2fa_enabled(request.userid):
+            raise WeasylError("TwoFactorAuthenticationRequireEnabled")
+        return view_callable(request)
+    return inner
+
+
+def twofactorauth_disabled_required(view_callable):
+    def inner(request):
+        if two_factor_auth.is_2fa_enabled(request.userid):
+            raise WeasylError("TwoFactorAuthenticationRequireDisbled")
         return view_callable(request)
     return inner
 

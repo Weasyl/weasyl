@@ -30,15 +30,16 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 3", "Two-Factor Authenti
       Generating a new set of codes will prevent this from occurring. If this occurs, you will need
       to set-up 2FA again.
     </p>
-    <h3>Your recovery codes are...</h3>
+    <h3>Your recovery codes are:</h3>
     <ol>
       $for code in tfa_recovery_codes:
-        <li>${code}</li>
+        <li>${code[0:4] + ' ' + code[4:8] + ' ' + code[8:12] + ' ' + code[12:16] + ' ' + code[16:20]}</li>
     </ol>
     <p>
       These codes are one-time use, and upon successful use will not be able to be reused or retrieved.
       If and when used, mark each code off. Codes may be used in any order.
     </p>
+
     <label for="tfa-init-verify">Enter 2FA token</label>
     <input type="text" id="tfa-init-verify" maxlength="7" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
     <label><input class="checkbox" type="checkbox" name="verify" required /> I have printed or saved the above recovery codes and want to enable 2FA.</label>

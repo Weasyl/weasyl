@@ -404,7 +404,7 @@ twofa_recovery_codes = Table(
     default_fkey(['userid'], ['login.userid'], name='twofa_recovery_codes_userid_fkey'),
 )
 
-Index('ind_twofa_recovery_codes_userid')
+Index('ind_twofa_recovery_codes_userid', twofa_recovery_codes.c.userid)
 
 
 loginaddress = Table(

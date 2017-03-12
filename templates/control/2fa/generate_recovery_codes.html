@@ -6,13 +6,13 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
     $if error == "2fa":
       <div id="signin_error">
         <strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.<strong>
-        If entered, your recovery code was <strong>not</strong> consumed.
       </div>
     $elif error == "verify":
       <div id="signin_error">
-        <strong>Hey!</strong> Did you want to enable 2FA? You didn't check the verification checkbox!<strong>
+        <strong>Hey!</strong> Did you want to generate a new set of recovery codes? You didn't check the verification checkbox!<strong>
         If entered, your recovery code was <strong>not</strong> consumed.
       </div>
+
     <h3>Generate New Recovery Codes</h3>
     <p>
       The following recovery codes are <strong>not yet active</strong>. Once you provide
@@ -20,16 +20,16 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
       codes currently associated with your account.
     </p>
     <p>
-      Before proceeding, print or save these codes to a secure place. You will need these
-      codes to continue logging into your account. If you no longer have access to your
-      authenticator app, please <a href="/control/2fa/disable">disable 2FA</a> instead,
-      then re-enable it to reinitialize your authenticator.
+      Before proceeding, print or save these codes to a secure place. In the event you lose access
+      to your authenticator app, you will need these codes to regain access to your Weasyl account.
+      If you no longer have access to your authenticator app, please <a href="/control/2fa/disable">disable 2FA</a>
+      instead, then re-enable it to reinitialize your authenticator.
     </p>
 
-    <h3>Your new recovery codes will be...</h3>
+    <h3>Your new recovery codes will be:</h3>
     <ol>
       $for code in tfa_recovery_codes:
-        <li>${code}</li>
+        <li>${code[0:4] + ' ' + code[4:8] + ' ' + code[8:12] + ' ' + code[12:16] + ' ' + code[16:20]}</li>
     </ol>
     <p>
       These codes are one-time use, and upon successful use will not be able to be reused or retrieved.
@@ -37,7 +37,7 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
     </p>
 
     <label for="tfa-regenerate-codes">Enter 2FA token or Recovery Code</label>
-    <input type="text" id="tfa-regenerate-codes" maxlength="20" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
+    <input type="text" id="tfa-regenerate-codes" maxlength="24" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
     <label><input class="checkbox" type="checkbox" name="verify" required /> I confirm that I have saved the above new recovery codes.</label>
 
     <input type="hidden" value="${','.join(tfa_recovery_codes)}" name="tfarecoverycodes" />

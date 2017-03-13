@@ -73,6 +73,10 @@ def disallow_api(view_callable):
 
 
 def twofactorauth_enabled_required(view_callable):
+    """
+    This decorator requires that 2FA be enabled for a given Weasyl account as identified
+    by ``request.userid``.
+    """
     def inner(request):
         if not two_factor_auth.is_2fa_enabled(request.userid):
             raise WeasylError("TwoFactorAuthenticationRequireEnabled")
@@ -81,6 +85,10 @@ def twofactorauth_enabled_required(view_callable):
 
 
 def twofactorauth_disabled_required(view_callable):
+    """
+    This decorator requires that 2FA be disabled for a given Weasyl account as identified
+    by ``request.userid``.
+    """
     def inner(request):
         if two_factor_auth.is_2fa_enabled(request.userid):
             raise WeasylError("TwoFactorAuthenticationRequireDisbled")

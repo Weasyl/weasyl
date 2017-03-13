@@ -198,8 +198,8 @@ def tfa_generate_recovery_codes_get_(request):
 
 
 @login_required
-@twofactorauth_enabled_required
 @token_checked
+@twofactorauth_enabled_required
 def tfa_generate_recovery_codes_post_(request):
     # Extract parameters from the form
     action = request.params['action']

@@ -8,7 +8,7 @@ $:{RENDER("common/stage_title.html", ["Disable 2FA", "Two-Factor Authentication"
     $elif error == "verify":
       <div id="signin_error"><strong>Hey!</strong> Did you want to disable 2FA? You didn't check the verification checkbox!</div>
     <h3>Disable Two-Factor Authentication (2FA)</h3>
-    <p><strong>Username: $:{MARKDOWN_EXCERPT(username)}</strong></p>
+    <p><strong>Username: ${username}</strong></p>
     <p>
       You are about to disable 2FA for the above account, and remove the
       security which it provides. If you wish to re-enable 2FA, you will

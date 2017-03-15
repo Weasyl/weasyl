@@ -23,6 +23,10 @@ def signin(userid):
     # Update the last login record for the user
     d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
 
+    # Log the successful login and increment the login count
+    d.append_to_log('login.success', userid=userid, ip=d.get_address())
+    d.metric('increment', 'logins')
+
     # set the userid on the session
     sess = d.get_weasyl_session()
     sess.userid = userid
@@ -105,8 +109,6 @@ def authenticate_bcrypt(username, password, session=True):
             return USERID, "2fa"
         else:
             signin(USERID)
-            d.append_to_log('login.success', userid=USERID, ip=d.get_address())
-            d.metric('increment', 'logins')
 
     status = None
     if not unicode_success:

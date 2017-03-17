@@ -151,6 +151,9 @@ error_messages = {
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
     "TwoFactorAuthenticationRequireEnabled": "Two-Factor Authentication must be enabled to access this page.",
     "TwoFactorAuthenticationRequireDisbled": "Two-Factor Authentication must not be enabled to access this page.",
+    "TwoFactorAuthenticationZeroRecoveryCodesRemaining": (
+        "Your account had zero recovery codes remaining, and as such 2FA was disabled to prevent "
+        "you from being permanently unable to log into your account. You may re-enable 2FA if you desire to do so."),
     "unknownMessageFolder": "The specified message folder does not exist.",
     "UserIgnored": "This content was posted by a user you have chosen to ignore.",
     "userRecordMissing": userid,

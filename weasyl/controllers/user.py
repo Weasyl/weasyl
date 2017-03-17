@@ -15,6 +15,7 @@ from weasyl.controllers.decorators import (
     login_required,
     token_checked,
 )
+from weasyl.error import WeasylError
 
 
 # Session management functions
@@ -48,6 +49,15 @@ def signin_post_(request):
         if form.sfwmode == "sfw":
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
         index.template_fields.invalidate(logid)
+        # Check if out of recovery codes; this should *never* execute normally, save for crafted
+        #   webtests, but just to cover all edge cases, handle it here if necessary.
+        remaining_recovery_codes = two_factor_auth.get_number_of_recovery_codes(logid)
+        if remaining_recovery_codes == 0:
+            login.signin(logid)
+            two_factor_auth.force_deactivate(logid)
+            raise RuntimeError("Two-factor Authentication: Count of recovery codes for userid " +
+                               str(logid) + " was zero upon password authentication succeeding, " +
+                               "which should be impossible. 2FA was disabled for this user's account.")
         # Store the authenticated userid & password auth time to the session
         sess = define.get_weasyl_session()
         sess.additional_data['2fa_pwd_auth_timestamp'] = arrow.now().timestamp
@@ -56,7 +66,7 @@ def signin_post_(request):
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(logid), form.referer, two_factor_auth.get_number_of_recovery_codes(logid),
+            [define.get_display_name(logid), form.referer, remaining_recovery_codes,
              None]))
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
@@ -139,12 +149,7 @@ def signin_2fa_auth_post_(request):
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
-            return Response(define.errorpage(
-                tfa_userid,
-                """You have used all of your 2FA recovery codes. In order to prevent you from
-                being locked out of your account, 2FA has been disabled for your account.""",
-                [["Re-Enable 2FA", "/control/2fa/init"], ["Continue", ref]]
-            ))
+            raise WeasylError("TwoFactorAuthenticationZeroRecoveryCodesRemaining")
         raise HTTPSeeOther(location=ref)
     else:
         # 2FA failed; redirect to 2FA input page & inform user that authentication failed.

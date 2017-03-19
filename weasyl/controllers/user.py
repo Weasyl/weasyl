@@ -50,14 +50,12 @@ def signin_post_(request):
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
         index.template_fields.invalidate(logid)
         # Check if out of recovery codes; this should *never* execute normally, save for crafted
-        #   webtests, but just to cover all edge cases, handle it here if necessary.
+        #   webtests. However, check for it and log an error to Sentry if it happens.
         remaining_recovery_codes = two_factor_auth.get_number_of_recovery_codes(logid)
         if remaining_recovery_codes == 0:
-            login.signin(logid)
-            two_factor_auth.force_deactivate(logid)
             raise RuntimeError("Two-factor Authentication: Count of recovery codes for userid " +
                                str(logid) + " was zero upon password authentication succeeding, " +
-                               "which should be impossible. 2FA was disabled for this user's account.")
+                               "which should be impossible.")
         # Store the authenticated userid & password auth time to the session
         sess = define.get_weasyl_session()
         sess.additional_data['2fa_pwd_auth_timestamp'] = arrow.now().timestamp

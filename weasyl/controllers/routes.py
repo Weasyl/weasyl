@@ -56,6 +56,7 @@ routes = (
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
     Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
+    Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
 
     # Profile views.
     Route("/~", "profile_tilde_unnamed", profile.profile_),

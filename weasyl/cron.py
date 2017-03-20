@@ -44,10 +44,17 @@ def run_periodic_tasks():
             db.execute("DELETE FROM views")
             log.msg('cleared views')
 
-        # Delete password resets older than one day
         # Daily at 0:00
         if now.hour == 0 and now.minute == 0:
+            # Delete password resets older than one day
             db.execute("DELETE FROM forgotpassword WHERE set_time < %(expiry)s", expiry=time_now - 86400)
             log.msg('cleared old forgotten password requests')
+
+            # Delete email reset requests older than two days
+            db.execute("""
+                DELETE FROM emailverify
+                WHERE createtimestamp < (NOW() - INTERVAL '2 days')
+            """)
+            log.msg('cleared stale email change records')
 
         db.execute("UPDATE cron_runs SET last_run = %(now)s", now=now.naive)

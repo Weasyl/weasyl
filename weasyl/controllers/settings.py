@@ -207,12 +207,24 @@ def control_editemailpassword_post_(request):
     newemail = emailer.normalize_address(form.newemail)
     newemailcheck = emailer.normalize_address(form.newemailcheck)
 
-    profile.edit_email_password(request.userid, form.username, form.password,
-                                newemail, newemailcheck, form.newpassword, form.newpasscheck)
+    # Check if the email was invalid; Both fields must be valid (not None), and have the form fields set
+    if not newemail and not newemailcheck and form.newemail != "" and form.newemailcheck != "":
+        raise WeasylError("emailInvalid")
 
+    return_message = profile.edit_email_password(
+        request.userid, form.username, form.password, newemail, newemailcheck,
+        form.newpassword, form.newpasscheck
+    )
+
+    if not return_message:  # No changes were made
+        message = "No changes were made to your account."
+    else:  # Changes were made, so inform the user of this
+        message = "**Success!** " + return_message
+    # Finally return the message about what (if anything) changed to the user
     return Response(define.errorpage(
-        request.userid, "**Success!** Your settings have been updated.",
-        [["Go Back", "/control"], ["Return Home", "/"]]))
+        request.userid, message,
+        [["Go Back", "/control"], ["Return Home", "/"]])
+    )
 
 
 @login_required

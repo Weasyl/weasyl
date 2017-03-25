@@ -106,7 +106,7 @@ def signin_2fa_auth_get_(request):
         sess.save = True
         return Response(define.errorpage(
             request.userid,
-            "Your login session has timed out. Please try logging in again.",
+            "Your authentication session has timed out. Please try logging in again.",
             [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
     else:
         ref = request.params["referer"] if "referer" in request.params else "/"

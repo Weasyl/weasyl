@@ -149,6 +149,9 @@ error_messages = {
         "The link you followed does not appear to be valid. You may have already added these premium terms "
         "to your account, or you may have copied the link incorrectly."),
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
+    "TwoFactorAuthenticationAuthenticationAttemptsExceeded": (
+        "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),
+    "TwoFactorAuthenticationAuthenticationTimeout": "Your authentication session has timed out. Please try logging in again.",
     "TwoFactorAuthenticationRequireEnabled": "Two-Factor Authentication must be enabled to access this page.",
     "TwoFactorAuthenticationRequireDisbled": "Two-Factor Authentication must not be enabled to access this page.",
     "TwoFactorAuthenticationZeroRecoveryCodesRemaining": (

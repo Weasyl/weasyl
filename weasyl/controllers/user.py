@@ -58,8 +58,12 @@ def signin_post_(request):
                                "which should be impossible.")
         # Store the authenticated userid & password auth time to the session
         sess = define.get_weasyl_session()
+        # The timestamp at which password authentication succeeded
         sess.additional_data['2fa_pwd_auth_timestamp'] = arrow.now().timestamp
+        # The userid of the user attempting authentication
         sess.additional_data['2fa_pwd_auth_userid'] = logid
+        # The number of times the user has attempted to authenticate via 2FA
+        sess.additional_data['2fa_pwd_auth_attempts'] = 0
         sess.save = True
         return Response(define.webpage(
             request.userid,
@@ -89,6 +93,21 @@ def signin_post_(request):
     return Response(define.errorpage(request.userid))
 
 
+def _cleanup_2fa_session():
+    """
+    Cleans up a Weasyl session of any 2FA data stored during the authentication process.
+
+    Parameters: None; keys off of the currently active session making the request.
+
+    Returns: Nothing.
+    """
+    sess = define.get_weasyl_session()
+    del sess.additional_data['2fa_pwd_auth_timestamp']
+    del sess.additional_data['2fa_pwd_auth_userid']
+    del sess.additional_data['2fa_pwd_auth_attempts']
+    sess.save = True
+
+
 @guest_required
 def signin_2fa_auth_get_(request):
     sess = define.get_weasyl_session()
@@ -101,12 +120,10 @@ def signin_2fa_auth_get_(request):
     # Maximum secondary authentication time: 5 minutes
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
-        del sess.additional_data['2fa_pwd_auth_timestamp']
-        del sess.additional_data['2fa_pwd_auth_userid']
-        sess.save = True
+        _cleanup_2fa_session()
         return Response(define.errorpage(
             request.userid,
-            "Your authentication session has timed out. Please try logging in again.",
+            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
             [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
     else:
         ref = request.params["referer"] if "referer" in request.params else "/"
@@ -127,21 +144,18 @@ def signin_2fa_auth_post_(request):
         return Response(define.errorpage(request.userid, errorcode.permission))
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
-    # Maximum secondary authentication time: 5 minutes
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
-        del sess.additional_data['2fa_pwd_auth_timestamp']
-        del sess.additional_data['2fa_pwd_auth_userid']
-        sess.save = True
+        # Maximum secondary authentication time: 5 minutes
+        _cleanup_2fa_session()
         return Response(define.errorpage(
             request.userid,
-            "Your authentication session has timed out. Please try logging in again.",
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
+        ))
     elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
         # 2FA passed, so login and cleanup.
-        del sess.additional_data['2fa_pwd_auth_timestamp']
-        del sess.additional_data['2fa_pwd_auth_userid']
-        sess.save = True
+        _cleanup_2fa_session()
         login.signin(tfa_userid)
         ref = request.params["referer"] or "/"
         # User is out of recovery codes, so force-deactivate 2FA
@@ -149,7 +163,18 @@ def signin_2fa_auth_post_(request):
             two_factor_auth.force_deactivate(tfa_userid)
             raise WeasylError("TwoFactorAuthenticationZeroRecoveryCodesRemaining")
         raise HTTPSeeOther(location=ref)
+    elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
+        # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
+        _cleanup_2fa_session()
+        return Response(define.errorpage(
+            request.userid,
+            errorcode.error_messages['TwoFactorAuthenticationAuthenticationAttemptsExceeded'],
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
+        ))
     else:
+        # Log the failed authentication attempt to the session and save
+        sess.additional_data['2fa_pwd_auth_attempts'] += 1
+        sess.save = True
         # 2FA failed; redirect to 2FA input page & inform user that authentication failed.
         return Response(define.webpage(
             request.userid,

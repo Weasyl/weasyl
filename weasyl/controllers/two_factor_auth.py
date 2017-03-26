@@ -129,7 +129,7 @@ def tfa_init_verify_get_(request):
 def tfa_init_verify_post_(request):
     # Extract parameters from the form
     action = request.params['action']
-    verify_checkbox = request.params['verify']
+    verify_checkbox = True if 'verify' in request.params else False
     tfasecret = request.params['tfasecret']
     tfaresponse = request.params['tfaresponse']
     tfarecoverycodes = request.params['tfarecoverycodes']
@@ -169,7 +169,7 @@ def tfa_disable_get_(request):
 @twofactorauth_enabled_required
 def tfa_disable_post_(request):
     tfaresponse = request.params['tfaresponse']
-    verify_checkbox = request.params['verify']
+    verify_checkbox = True if 'verify' in request.params else False
     action = request.params['action']
 
     if action == "disable" and verify_checkbox:
@@ -203,7 +203,7 @@ def tfa_generate_recovery_codes_get_(request):
 def tfa_generate_recovery_codes_post_(request):
     # Extract parameters from the form
     action = request.params['action']
-    verify_checkbox = request.params['verify']
+    verify_checkbox = True if 'verify' in request.params else False
     tfaresponse = request.params['tfaresponse']
     tfarecoverycodes = request.params['tfarecoverycodes']
 

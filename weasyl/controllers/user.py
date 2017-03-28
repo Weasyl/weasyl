@@ -161,7 +161,11 @@ def signin_2fa_auth_post_(request):
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
-            raise WeasylError("TwoFactorAuthenticationZeroRecoveryCodesRemaining")
+            return Response(define.errorpage(
+                tfa_userid,
+                errorcode.error_messages['TwoFactorAuthenticationZeroRecoveryCodesRemaining'],
+                [["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]]
+            ))
         raise HTTPSeeOther(location=ref)
     elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.

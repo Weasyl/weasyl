@@ -6,6 +6,7 @@ from __future__ import absolute_import, unicode_literals
 import re
 import urllib
 
+import bcrypt
 import pyotp
 from qrcodegen import QrCode
 
@@ -15,7 +16,8 @@ from weasyl import login
 
 # Number of recovery codes to provide the user
 _TFA_RECOVERY_CODES = 10
-
+# Work factor for bcrypt to be used in hashing each recovery code
+BCRYPT_WORK_FACTOR = 10
 # This length is configurable as needed; see generate_recovery_codes() below for keyspace/character set
 LENGTH_RECOVERY_CODE = 20
 # TOTP code length of 6 is the standard length, and is supported by Google Authenticator
@@ -114,7 +116,7 @@ def activate(userid, tfa_secret, tfa_response):
     """
     totp = pyotp.TOTP(tfa_secret)
     # If the provided `tfa_response` matches the TOTP value, write the 2FA secret into `login`, activating 2FA for `userid`
-    if totp.verify(tfa_response):
+    if totp.verify(tfa_response, valid_window=1):
         d.engine.execute("""
             UPDATE login
             SET twofa_secret = %(tfa_secret)s
@@ -215,6 +217,9 @@ def store_recovery_codes(userid, recovery_codes):
         if len(code) != LENGTH_RECOVERY_CODE:
             return False
 
+    # Store the recovery codes securely by hashing them with bcrypt (as login.passhash())
+    hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)) for code in codes]
+
     # If above checks have passed, clear current recovery codes for `userid` and store new ones
     d.engine.execute("""
         BEGIN;
@@ -226,7 +231,7 @@ def store_recovery_codes(userid, recovery_codes):
         SELECT %(userid)s, unnest(%(tfa_recovery_codes)s);
 
         COMMIT;
-    """, userid=userid, tfa_recovery_codes=list(codes))
+    """, userid=userid, tfa_recovery_codes=list(hashed_codes))
 
     # Verify if the atomic transaction completed; if `code` (one of the new recovery codes) is
     #   valid at this point, the new codes were added
@@ -257,25 +262,25 @@ def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
     # Recovery codes must be LENGTH_RECOVERY_CODE characters; fast-fail if this is not the case
     if len(tfa_code) != LENGTH_RECOVERY_CODE:
         return False
-    # Check to see if the provided code--converting to upper-case first--is valid and consume if so
-    if consume_recovery_code:
-        tfa_rc = d.engine.scalar("""
-            DELETE FROM twofa_recovery_codes
-            WHERE userid = %(userid)s AND recovery_code = %(recovery_code)s
-            RETURNING recovery_code
-        """, userid=userid, recovery_code=tfa_code.upper())
-    else:
-        # We only want to see if the code is valid at the moment.
-        tfa_rc = d.engine.scalar("""
-            SELECT recovery_code
-            FROM twofa_recovery_codes
-            WHERE userid = %(userid)s AND recovery_code = %(recovery_code)s
-        """, userid=userid, recovery_code=tfa_code.upper())
-    # Return True if the recovery code was valid, False otherwise
-    if tfa_rc:
-        return True
-    else:
-        return False
+    # First extract the bcrypt hashes.
+    recovery_code_hash_query = d.engine.execute("""
+        SELECT recovery_code
+        FROM twofa_recovery_codes
+        WHERE userid = %(userid)s
+    """, userid=userid).fetchall()
+    # Then attempt to hash the input code versus the stored code(s).
+    for row in recovery_code_hash_query:
+        if bcrypt.checkpw(tfa_code.upper().encode('utf-8'), row['recovery_code'].encode('utf-8')):
+            # We have a match! If we are deleting the code, do it now.
+            if consume_recovery_code:
+                d.engine.execute("""
+                    DELETE FROM twofa_recovery_codes
+                    WHERE userid = %(userid)s AND recovery_code = %(recovery_code)s
+                """, userid=userid, recovery_code=row['recovery_code'])
+            # After deletion--if applicable--return that we succeeded.
+            return True
+    # If we get here, ``tfa_code`` did not match any stored codes. Return that we failed.
+    return False
 
 
 def is_2fa_enabled(userid):

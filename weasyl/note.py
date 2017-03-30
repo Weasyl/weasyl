@@ -196,8 +196,8 @@ def send(userid, form):
 #   folderid
 
 def move(userid, form):
-    noteid = d.get_int(form.noteid)
-    folderid = d.get_int(form.folderid)
+    noteid = d.get_int_DEPRECIATED(form.noteid)
+    folderid = d.get_int_DEPRECIATED(form.folderid)
     query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], options="single")
 
     if not query:

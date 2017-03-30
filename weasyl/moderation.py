@@ -282,7 +282,7 @@ def get_suspension(userid):
 
 
 def finduser(userid, form):
-    form.userid = d.get_int(form.userid)
+    form.userid = d.get_int_DEPRECIATED(form.userid)
     lo = d.meta.tables['login']
     sh = d.meta.tables['comments']
     q = d.sa.select([

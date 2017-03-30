@@ -1,19 +1,19 @@
 from __future__ import absolute_import
 
-import os
-import re
-import time
-import random
-import urllib
+import datetime
+import functools
 import hashlib
 import logging
 import numbers
-import datetime
-import urlparse
-import functools
+import os
+import random
+import re
 import string
 import subprocess
+import time
 import unicodedata
+import urllib
+import urlparse
 
 import anyjson as json
 import arrow
@@ -504,9 +504,33 @@ def get_display_name(userid):
 
 
 def get_int(target):
+    """
+    Attempt to convert `target` to an Integer, otherwise returns zero if an exception is thrown.
+
+    Parameters: An item to attempt to convert to an Integer (such as a string).
+
+    Returns: The integer representation of `target`--dropping any decimals--if `target` can be
+    resolved to an int(), otherwise zero (0).
+    """
+    try:
+        return int(float(target))
+    except:
+        return 0
+
+
+def get_int_DEPRECIATED(target):
+    """
+    As on the tin, this function is depreciated. It does not return correct results as one might expect in 100% of the cases.
+
+    Existing code should have this function replaced with get_int() if it can be verified if there is no negative consequence
+    in doing so.
+
+    Examples of this incorrect behavior:
+      - get_int_DEPRECIATED('123.234') => 123234
+      - get_int_DEPRECIATED('123aaaaaaa2234') => 1232234
+    """
     if isinstance(target, numbers.Number):
         return int(target)
-
     try:
         return int("".join(i for i in target if i.isdigit()))
     except:
@@ -681,7 +705,7 @@ def convert_unixdate(day, month, year, escape=True):
     the date is not valid, None is returned.
     """
     if escape:
-        day, month, year = (get_int(i) for i in [day, month, year])
+        day, month, year = (get_int_DEPRECIATED(i) for i in [day, month, year])
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
@@ -709,8 +733,8 @@ def convert_inputdate(target):
     if re.match(r"[0-9]+ [a-z]+,? [0-9]+", target):
         # 1 January 1990
         target = target.split()
-        target[0] = get_int(target[0])
-        target[2] = get_int(target[2])
+        target[0] = get_int_DEPRECIATED(target[0])
+        target[2] = get_int_DEPRECIATED(target[2])
 
         if 1933 <= target[0] <= 2037:
             return convert_unixdate(target[2], _month(target[1]), target[0])
@@ -719,16 +743,16 @@ def convert_inputdate(target):
     elif re.match("[a-z]+ [0-9]+,? [0-9]+", target):
         # January 1 1990
         target = target.split()
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
+        target[1] = get_int_DEPRECIATED(target[1])
+        target[2] = get_int_DEPRECIATED(target[2])
 
         return convert_unixdate(target[1], _month(target[0]), target[2])
     elif re.match("[0-9]+ ?/ ?[0-9]+ ?/ ?[0-9]+", target):
         # 1/1/1990
         target = target.split("/")
-        target[0] = get_int(target[0])
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
+        target[0] = get_int_DEPRECIATED(target[0])
+        target[1] = get_int_DEPRECIATED(target[1])
+        target[2] = get_int_DEPRECIATED(target[2])
 
         if target[0] > 12:
             return convert_unixdate(target[0], target[1], target[2])

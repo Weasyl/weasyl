@@ -104,7 +104,7 @@ def resolve(userid, otherid, othername, myself=True):
     result = None
 
     if otherid:
-        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int(otherid)], ["element"])
+        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int_DEPRECIATED(otherid)], ["element"])
 
         if result:
             return result
@@ -498,17 +498,21 @@ def edit_userinfo(userid, form):
             continue
         row = {
             'userid': userid,
-            'link_type': site_name,
+            'link_type': site_name[0:64],  # Max length = 64
             'link_value': site_value,
         }
         row['userid'] = userid
         social_rows.append(row)
 
+    # Enforce attribute length limits
+    gender = form.gender[0:100].strip()  # Max length = 100
+    country = form.country[0:50].strip()  # Max length = 50
+
     d.engine.execute("""
         UPDATE userinfo
         SET gender = %(gender)s, country = %(country)s
         WHERE userid = %(userid)s
-    """, userid=userid, gender=form.gender.strip(), country=form.country.strip())
+    """, userid=userid, gender=gender, country=country)
     d.engine.execute("""
         DELETE FROM user_links
         WHERE userid = %(userid)s

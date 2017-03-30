@@ -14,7 +14,7 @@ from weasyl import (
 @token_checked
 def followuser_(request):
     form = request.web_input(userid="")
-    otherid = define.get_int(form.userid)
+    otherid = define.get_int_DEPRECIATED(form.userid)
 
     if request.userid == otherid:
         return Response(define.errorpage(request.userid, "You cannot follow yourself."))
@@ -32,7 +32,7 @@ def followuser_(request):
 @token_checked
 def unfollowuser_(request):
     form = request.web_input(userid="")
-    form.otherid = define.get_int(form.userid)
+    form.otherid = define.get_int_DEPRECIATED(form.userid)
 
     followuser.remove(request.userid, form.otherid)
 
@@ -45,7 +45,7 @@ def unfollowuser_(request):
 @token_checked
 def frienduser_(request):
     form = request.web_input(userid="")
-    otherid = define.get_int(form.userid)
+    otherid = define.get_int_DEPRECIATED(form.userid)
 
     if request.userid == otherid:
         return Response(define.errorpage(request.userid, "You cannot friend yourself."))
@@ -69,7 +69,7 @@ def frienduser_(request):
 @token_checked
 def unfrienduser_(request):
     form = request.web_input(userid="", feature="")
-    otherid = define.get_int(form.userid)
+    otherid = define.get_int_DEPRECIATED(form.userid)
 
     if request.userid == otherid:
         return Response(define.errorpage(request.userid, "You cannot friend yourself."))
@@ -83,7 +83,7 @@ def unfrienduser_(request):
 @token_checked
 def ignoreuser_(request):
     form = request.web_input(userid="")
-    otherid = define.get_int(form.userid)
+    otherid = define.get_int_DEPRECIATED(form.userid)
 
     if form.action == "ignore":
         if not ignoreuser.check(request.userid, otherid):
@@ -180,9 +180,9 @@ def notes_remove_(request):
 @token_checked
 def favorite_(request):
     form = request.web_input(submitid="", charid="", journalid="")
-    form.charid = define.get_int(form.charid)
-    form.submitid = define.get_int(form.submitid)
-    form.journalid = define.get_int(form.journalid)
+    form.charid = define.get_int_DEPRECIATED(form.charid)
+    form.submitid = define.get_int_DEPRECIATED(form.submitid)
+    form.journalid = define.get_int_DEPRECIATED(form.journalid)
 
     if form.action == "favorite":
         favorite.insert(request.userid, form.submitid, form.charid, form.journalid)

@@ -403,8 +403,8 @@ def select(**kwargs):
 #   cat     nextid
 
 def browse(userid, rating, limit, form, find=None, config=None):
-    backid = d.get_int(form.backid)
-    nextid = d.get_int(form.nextid)
+    backid = d.get_int_DEPRECIATED(form.backid)
+    nextid = d.get_int_DEPRECIATED(form.nextid)
 
     if find:
         form.find = find
@@ -415,7 +415,7 @@ def browse(userid, rating, limit, form, find=None, config=None):
         query = journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid, config=config)
     else:
         query = submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
-                                       subcat=d.get_int(form.cat) if d.get_int(form.cat) in [1000, 2000, 3000] else None,
+                                       subcat=d.get_int_DEPRECIATED(form.cat) if d.get_int_DEPRECIATED(form.cat) in [1000, 2000, 3000] else None,
                                        config=config)
 
     if query and not backid:

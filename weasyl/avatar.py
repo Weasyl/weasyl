@@ -34,7 +34,7 @@ def upload(userid, filedata):
 
 # TODO: Make this function respect new geometry.
 def create(userid, x1, y1, x2, y2, auto=False, config=None):
-    x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
+    x1, y1, x2, y2 = d.get_int_DEPRECIATED(x1), d.get_int_DEPRECIATED(y1), d.get_int_DEPRECIATED(x2), d.get_int_DEPRECIATED(y2)
     db = d.connect()
     im = db.query(orm.MediaItem).get(avatar_source(userid)['mediaid']).as_image()
     file_type = image.image_file_type(im)

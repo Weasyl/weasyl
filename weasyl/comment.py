@@ -192,7 +192,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, parentid=None, co
 
 # NOTE: This method is UNUSED.
 def edit(userid, form):
-    commentid = d.get_int(form.commentid)
+    commentid = d.get_int_DEPRECIATED(form.commentid)
 
     if form.feature not in ["submit", "char", "journal"]:
         raise WeasylError("Unexpected")

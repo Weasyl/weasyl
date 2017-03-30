@@ -50,7 +50,7 @@ def submit_visual_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
@@ -58,8 +58,8 @@ def submit_visual_post_(request):
     s.title = form.title
     s.rating = rating
     s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.folderid = define.get_int_DEPRECIATED(form.folderid) or None
+    s.subtype = define.get_int_DEPRECIATED(form.subtype)
 
     submitid = submission.create_visual(
         request.userid, s, friends_only=form.friends, tags=tags,
@@ -95,7 +95,7 @@ def submit_literary_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
@@ -103,8 +103,8 @@ def submit_literary_post_(request):
     s.title = form.title
     s.rating = rating
     s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.folderid = define.get_int_DEPRECIATED(form.folderid) or None
+    s.subtype = define.get_int_DEPRECIATED(form.subtype)
 
     submitid, thumb = submission.create_literary(
         request.userid, s, embedlink=form.embedlink, friends_only=form.friends, tags=tags,
@@ -139,7 +139,7 @@ def submit_multimedia_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
@@ -147,8 +147,8 @@ def submit_multimedia_post_(request):
     s.title = form.title
     s.rating = rating
     s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.folderid = define.get_int_DEPRECIATED(form.folderid) or None
+    s.subtype = define.get_int_DEPRECIATED(form.subtype)
 
     autothumb = ('noautothumb' not in form)
 
@@ -182,7 +182,7 @@ def submit_character_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
@@ -217,7 +217,7 @@ def submit_journal_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
@@ -240,8 +240,8 @@ def submit_shout_(request):
         raise WeasylError("InsufficientPermissions")
 
     c = orm.Comment()
-    c.parentid = define.get_int(form.parentid)
-    c.userid = define.get_int(form.userid or form.staffnotes)
+    c.parentid = define.get_int_DEPRECIATED(form.parentid)
+    c.userid = define.get_int_DEPRECIATED(form.userid or form.staffnotes)
     c.content = form.content
 
     commentid = shout.insert(request.userid, c, staffnotes=form.staffnotes)
@@ -250,9 +250,9 @@ def submit_shout_(request):
         return {"id": commentid}
 
     if form.staffnotes:
-        raise HTTPSeeOther(location='/staffnotes?userid=%i#cid%i' % (define.get_int(form.staffnotes), commentid))
+        raise HTTPSeeOther(location='/staffnotes?userid=%i#cid%i' % (define.get_int_DEPRECIATED(form.staffnotes), commentid))
     else:
-        raise HTTPSeeOther(location="/shouts?userid=%i#cid%i" % (define.get_int(form.userid), commentid))
+        raise HTTPSeeOther(location="/shouts?userid=%i#cid%i" % (define.get_int_DEPRECIATED(form.userid), commentid))
 
 
 @login_required
@@ -261,21 +261,21 @@ def submit_shout_(request):
 def submit_comment_(request):
     form = request.web_input(submitid="", charid="", journalid="", parentid="", content="", format="")
 
-    commentid = comment.insert(request.userid, charid=define.get_int(form.charid),
-                               parentid=define.get_int(form.parentid),
-                               submitid=define.get_int(form.submitid),
-                               journalid=define.get_int(form.journalid),
+    commentid = comment.insert(request.userid, charid=define.get_int_DEPRECIATED(form.charid),
+                               parentid=define.get_int_DEPRECIATED(form.parentid),
+                               submitid=define.get_int_DEPRECIATED(form.submitid),
+                               journalid=define.get_int_DEPRECIATED(form.journalid),
                                content=form.content)
 
     if form.format == "json":
         return {"id": commentid}
 
-    if define.get_int(form.submitid):
-        raise HTTPSeeOther(location="/submission/%i#cid%i" % (define.get_int(form.submitid), commentid))
-    elif define.get_int(form.charid):
-        raise HTTPSeeOther(location="/character/%i#cid%i" % (define.get_int(form.charid), commentid))
+    if define.get_int_DEPRECIATED(form.submitid):
+        raise HTTPSeeOther(location="/submission/%i#cid%i" % (define.get_int_DEPRECIATED(form.submitid), commentid))
+    elif define.get_int_DEPRECIATED(form.charid):
+        raise HTTPSeeOther(location="/character/%i#cid%i" % (define.get_int_DEPRECIATED(form.charid), commentid))
     else:
-        raise HTTPSeeOther(location="/journal/%i#cid%i" % (define.get_int(form.journalid), commentid))
+        raise HTTPSeeOther(location="/journal/%i#cid%i" % (define.get_int_DEPRECIATED(form.journalid), commentid))
 
 
 @login_required
@@ -286,12 +286,12 @@ def submit_report_(request):
     report.create(request.userid, form)
     if form.reportid:
         raise HTTPSeeOther(location="/modcontrol/report?reportid=%s" % (form.reportid,))
-    elif define.get_int(form.submitid):
-        raise HTTPSeeOther(location="/submission/%i" % (define.get_int(form.submitid),))
-    elif define.get_int(form.charid):
-        raise HTTPSeeOther(location="/character/%i" % (define.get_int(form.charid),))
+    elif define.get_int_DEPRECIATED(form.submitid):
+        raise HTTPSeeOther(location="/submission/%i" % (define.get_int_DEPRECIATED(form.submitid),))
+    elif define.get_int_DEPRECIATED(form.charid):
+        raise HTTPSeeOther(location="/character/%i" % (define.get_int_DEPRECIATED(form.charid),))
     else:
-        raise HTTPSeeOther(location="/journal/%i" % (define.get_int(form.journalid),))
+        raise HTTPSeeOther(location="/journal/%i" % (define.get_int_DEPRECIATED(form.journalid),))
 
 
 @login_required
@@ -301,11 +301,11 @@ def submit_tags_(request):
 
     tags = searchtag.parse_tags(form.tags)
 
-    submitid = define.get_int(form.submitid)
-    charid = define.get_int(form.charid)
-    journalid = define.get_int(form.journalid)
-    preferred_tags_userid = define.get_int(form.preferred_tags_userid)
-    optout_tags_userid = define.get_int(form.optout_tags_userid)
+    submitid = define.get_int_DEPRECIATED(form.submitid)
+    charid = define.get_int_DEPRECIATED(form.charid)
+    journalid = define.get_int_DEPRECIATED(form.journalid)
+    preferred_tags_userid = define.get_int_DEPRECIATED(form.preferred_tags_userid)
+    optout_tags_userid = define.get_int_DEPRECIATED(form.optout_tags_userid)
 
     result = searchtag.associate(request.userid, tags, submitid, charid, journalid, preferred_tags_userid, optout_tags_userid)
     if result:
@@ -343,7 +343,7 @@ def submit_tags_(request):
 @login_required
 def reupload_submission_get_(request):
     form = request.web_input(submitid="")
-    form.submitid = define.get_int(form.submitid)
+    form.submitid = define.get_int_DEPRECIATED(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -359,7 +359,7 @@ def reupload_submission_get_(request):
 @token_checked
 def reupload_submission_post_(request):
     form = request.web_input(targetid="", submitfile="")
-    form.targetid = define.get_int(form.targetid)
+    form.targetid = define.get_int_DEPRECIATED(form.targetid)
 
     if request.userid != define.get_ownerid(submitid=form.targetid):
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -371,7 +371,7 @@ def reupload_submission_post_(request):
 @login_required
 def reupload_character_get_(request):
     form = request.web_input(charid="")
-    form.charid = define.get_int(form.charid)
+    form.charid = define.get_int_DEPRECIATED(form.charid)
 
     if request.userid != define.get_ownerid(charid=form.charid):
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -387,7 +387,7 @@ def reupload_character_get_(request):
 @token_checked
 def reupload_character_post_(request):
     form = request.web_input(targetid="", submitfile="")
-    form.targetid = define.get_int(form.targetid)
+    form.targetid = define.get_int_DEPRECIATED(form.targetid)
 
     if request.userid != define.get_ownerid(charid=form.targetid):
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -399,7 +399,7 @@ def reupload_character_post_(request):
 @login_required
 def reupload_cover_get_(request):
     form = request.web_input(submitid="")
-    form.submitid = define.get_int(form.submitid)
+    form.submitid = define.get_int_DEPRECIATED(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -411,7 +411,7 @@ def reupload_cover_get_(request):
 @token_checked
 def reupload_cover_post_(request):
     form = request.web_input(submitid="", coverfile="")
-    form.submitid = define.get_int(form.submitid)
+    form.submitid = define.get_int_DEPRECIATED(form.submitid)
 
     submission.reupload_cover(request.userid, form.submitid, form.coverfile)
     raise HTTPSeeOther(location="/submission/%i" % (form.submitid,))
@@ -421,7 +421,7 @@ def reupload_cover_post_(request):
 @login_required
 def edit_submission_get_(request):
     form = request.web_input(submitid="", anyway="")
-    form.submitid = define.get_int(form.submitid)
+    form.submitid = define.get_int_DEPRECIATED(form.submitid)
 
     detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
@@ -448,22 +448,22 @@ def edit_submission_post_(request):
     form = request.web_input(submitid="", title="", folderid="", subtype="", rating="",
                              content="", friends="", critique="", embedlink="")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     s = orm.Submission()
-    s.submitid = define.get_int(form.submitid)
+    s.submitid = define.get_int_DEPRECIATED(form.submitid)
     s.title = form.title
     s.rating = rating
     s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.folderid = define.get_int_DEPRECIATED(form.folderid) or None
+    s.subtype = define.get_int_DEPRECIATED(form.subtype)
 
     submission.edit(request.userid, s, embedlink=form.embedlink,
                     friends_only=form.friends, critique=form.critique)
     raise HTTPSeeOther(location="/submission/%i/%s%s" % (
-        define.get_int(form.submitid),
+        define.get_int_DEPRECIATED(form.submitid),
         slug_for(form.title),
         "?anyway=true" if request.userid in staff.MODS else ''
     ))
@@ -472,7 +472,7 @@ def edit_submission_post_(request):
 @login_required
 def edit_character_get_(request):
     form = request.web_input(charid="", anyway="")
-    form.charid = define.get_int(form.charid)
+    form.charid = define.get_int_DEPRECIATED(form.charid)
 
     detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
@@ -492,12 +492,12 @@ def edit_character_post_(request):
     form = request.web_input(charid="", title="", age="", gender="", height="",
                              weight="", species="", rating="", content="", friends="")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     c = orm.Character()
-    c.charid = define.get_int(form.charid)
+    c.charid = define.get_int_DEPRECIATED(form.charid)
     c.age = form.age
     c.gender = form.gender
     c.height = form.height
@@ -509,7 +509,7 @@ def edit_character_post_(request):
 
     character.edit(request.userid, c, friends_only=form.friends)
     raise HTTPSeeOther(location="/character/%i/%s%s" % (
-        define.get_int(form.charid),
+        define.get_int_DEPRECIATED(form.charid),
         slug_for(form.title),
         ("?anyway=true" if request.userid in staff.MODS else '')
     ))
@@ -518,7 +518,7 @@ def edit_character_post_(request):
 @login_required
 def edit_journal_get_(request):
     form = request.web_input(journalid="", anyway="")
-    form.journalid = define.get_int(form.journalid)
+    form.journalid = define.get_int_DEPRECIATED(form.journalid)
 
     detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
 
@@ -535,18 +535,18 @@ def edit_journal_get_(request):
 def edit_journal_post_(request):
     form = request.web_input(journalid="", title="", rating="", friends="", content="")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int_DEPRECIATED(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     j = orm.Journal()
-    j.journalid = define.get_int(form.journalid)
+    j.journalid = define.get_int_DEPRECIATED(form.journalid)
     j.title = form.title
     j.rating = rating
     j.content = form.content
     journal.edit(request.userid, j, friends_only=form.friends)
     raise HTTPSeeOther(location="/journal/%i/%s%s" % (
-        define.get_int(form.journalid),
+        define.get_int_DEPRECIATED(form.journalid),
         slug_for(form.title),
         ("?anyway=true" if request.userid in staff.MODS else '')
     ))
@@ -558,7 +558,7 @@ def edit_journal_post_(request):
 def remove_submission_(request):
     form = request.web_input(submitid="")
 
-    ownerid = submission.remove(request.userid, define.get_int(form.submitid))
+    ownerid = submission.remove(request.userid, define.get_int_DEPRECIATED(form.submitid))
     if request.userid == ownerid:
         raise HTTPSeeOther(location="/control")  # todo
     else:
@@ -570,7 +570,7 @@ def remove_submission_(request):
 def remove_character_(request):
     form = request.web_input(charid="")
 
-    ownerid = character.remove(request.userid, define.get_int(form.charid))
+    ownerid = character.remove(request.userid, define.get_int_DEPRECIATED(form.charid))
     if request.userid == ownerid:
         raise HTTPSeeOther(location="/control")  # todo
     else:
@@ -582,7 +582,7 @@ def remove_character_(request):
 def remove_journal_(request):
     form = request.web_input(journalid="")
 
-    ownerid = journal.remove(request.userid, define.get_int(form.journalid))
+    ownerid = journal.remove(request.userid, define.get_int_DEPRECIATED(form.journalid))
     if request.userid == ownerid:
         raise HTTPSeeOther(location="/control")  # todo
     else:
@@ -594,7 +594,7 @@ def remove_journal_(request):
 @supports_json
 def remove_comment_(request):
     form = request.web_input(commentid="", feature="", format="")
-    commentid = define.get_int(form.commentid)
+    commentid = define.get_int_DEPRECIATED(form.commentid)
 
     if form.feature == "userid":
         targetid = shout.remove(request.userid, commentid=commentid)

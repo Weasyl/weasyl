@@ -135,7 +135,7 @@ def control_editcommishclass_(request):
 
     commishclass = orm.CommishClass()
     commishclass.title = form.title.strip()
-    commishclass.classid = define.get_int(form.classid)
+    commishclass.classid = define.get_int_DEPRECIATED(form.classid)
     commishinfo.edit_class(request.userid, commishclass)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
@@ -157,7 +157,7 @@ def control_createcommishprice_(request):
 
     price = orm.CommishPrice()
     price.title = form.title.strip()
-    price.classid = define.get_int(form.classid)
+    price.classid = define.get_int_DEPRECIATED(form.classid)
     price.amount_min = commishinfo.parse_currency(form.min_amount)
     price.amount_max = commishinfo.parse_currency(form.max_amount)
     commishinfo.create_price(request.userid, price, currency=form.currency,
@@ -173,7 +173,7 @@ def control_editcommishprice_(request):
 
     price = orm.CommishPrice()
     price.title = form.title.strip()
-    price.priceid = define.get_int(form.priceid)
+    price.priceid = define.get_int_DEPRECIATED(form.priceid)
     price.amount_min = commishinfo.parse_currency(form.min_amount)
     price.amount_max = commishinfo.parse_currency(form.max_amount)
     edit_prices = bool(price.amount_min or price.amount_max)
@@ -246,10 +246,10 @@ def control_editpreferences_post_(request):
             follow_s="", follow_c="", follow_f="", follow_t="",
             follow_j="", timezone="", twelvehour="")
 
-        rating = ratings.CODE_MAP[define.get_int(form.rating)]
+        rating = ratings.CODE_MAP[define.get_int_DEPRECIATED(form.rating)]
         jsonb_settings = define.get_profile_settings(request.userid)
         jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
-        jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
+        jsonb_settings.max_sfw_rating = define.get_int_DEPRECIATED(form.sfwrating)
 
         preferences = profile.Config()
         preferences.twelvehour = bool(form.twelvehour)
@@ -292,7 +292,7 @@ def control_createfolder_(request):
 def control_renamefolder_(request):
     form = request.web_input(folderid="", title="")
 
-    if define.get_int(form.folderid):
+    if define.get_int_DEPRECIATED(form.folderid):
         folder.rename(request.userid, form)
     raise HTTPSeeOther(location="/manage/folders")
 
@@ -301,7 +301,7 @@ def control_renamefolder_(request):
 @token_checked
 def control_removefolder_(request):
     form = request.web_input(folderid="")
-    form.folderid = define.get_int(form.folderid)
+    form.folderid = define.get_int_DEPRECIATED(form.folderid)
 
     if form.folderid:
         folder.remove(request.userid, form.folderid)
@@ -335,9 +335,9 @@ def control_editfolder_post_(request):
 @token_checked
 def control_movefolder_(request):
     form = request.web_input(folderid="", parentid="")
-    form.folderid = define.get_int(form.folderid)
+    form.folderid = define.get_int_DEPRECIATED(form.folderid)
 
-    if form.folderid and define.get_int(form.parentid) >= 0:
+    if form.folderid and define.get_int_DEPRECIATED(form.parentid) >= 0:
         folder.move(request.userid, form)
     raise HTTPSeeOther(location="/manage/folders")
 
@@ -366,7 +366,7 @@ def control_streaming_get_(request):
     if form.target and request.userid not in staff.MODS:
         return Response(define.errorpage(request.userid, errorcode.permission))
     elif form.target:
-        target = define.get_int(form.target)
+        target = define.get_int_DEPRECIATED(form.target)
     else:
         target = request.userid
 
@@ -390,7 +390,7 @@ def control_streaming_post_(request):
     else:
         target = request.userid
 
-    stream_length = define.clamp(define.get_int(form.stream_length), 0, 360)
+    stream_length = define.clamp(define.get_int_DEPRECIATED(form.stream_length), 0, 360)
     p = orm.Profile()
     p.stream_text = form.stream_text
     p.stream_url = define.text_fix_url(form.stream_url.strip())
@@ -460,9 +460,9 @@ def manage_folders_(request):
 @login_required
 def manage_following_get_(request):
     form = request.web_input(userid="", backid="", nextid="")
-    form.userid = define.get_int(form.userid)
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
+    form.userid = define.get_int_DEPRECIATED(form.userid)
+    form.backid = define.get_int_DEPRECIATED(form.backid)
+    form.nextid = define.get_int_DEPRECIATED(form.nextid)
 
     if form.userid:
         return Response(define.webpage(request.userid, "manage/following_user.html", [
@@ -489,7 +489,7 @@ def manage_following_post_(request):
     watch_settings.char = bool(form.char)
     watch_settings.stream = bool(form.stream)
     watch_settings.journal = bool(form.journal)
-    followuser.update(request.userid, define.get_int(form.userid), watch_settings)
+    followuser.update(request.userid, define.get_int_DEPRECIATED(form.userid), watch_settings)
 
     raise HTTPSeeOther(location="/manage/following")
 
@@ -497,8 +497,8 @@ def manage_following_post_(request):
 @login_required
 def manage_friends_(request):
     form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
+    form.backid = define.get_int_DEPRECIATED(form.backid)
+    form.nextid = define.get_int_DEPRECIATED(form.nextid)
 
     if form.feature == "pending":
         return Response(define.webpage(request.userid, "manage/friends_pending.html", [
@@ -514,8 +514,8 @@ def manage_friends_(request):
 @login_required
 def manage_ignore_(request):
     form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
+    form.backid = define.get_int_DEPRECIATED(form.backid)
+    form.nextid = define.get_int_DEPRECIATED(form.nextid)
 
     return Response(define.webpage(request.userid, "manage/ignore.html", [
         ignoreuser.select(request.userid, 20, backid=form.backid, nextid=form.nextid),
@@ -569,8 +569,8 @@ def manage_collections_post_(request):
 @login_required
 def manage_thumbnail_get_(request):
     form = request.web_input(submitid="", charid="", auto="")
-    submitid = define.get_int(form.submitid)
-    charid = define.get_int(form.charid)
+    submitid = define.get_int_DEPRECIATED(form.submitid)
+    charid = define.get_int_DEPRECIATED(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
         return Response(define.errorpage(request.userid, errorcode.permissions))
@@ -609,8 +609,8 @@ def manage_thumbnail_get_(request):
 @token_checked
 def manage_thumbnail_post_(request):
     form = request.web_input(submitid="", charid="", x1="", y1="", x2="", y2="", thumbfile="")
-    submitid = define.get_int(form.submitid)
-    charid = define.get_int(form.charid)
+    submitid = define.get_int_DEPRECIATED(form.submitid)
+    charid = define.get_int_DEPRECIATED(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
         return Response(define.errorpage(request.userid))
@@ -649,7 +649,7 @@ def manage_tagfilters_post_(request):
     form = request.web_input(do="", title="", rating="")
 
     if form.do == "create":
-        blocktag.insert(request.userid, title=form.title, rating=define.get_int(form.rating))
+        blocktag.insert(request.userid, title=form.title, rating=define.get_int_DEPRECIATED(form.rating))
     elif form.do == "remove":
         blocktag.remove(request.userid, title=form.title)
 

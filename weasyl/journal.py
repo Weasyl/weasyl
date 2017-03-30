@@ -41,7 +41,7 @@ def create(userid, journal, friends_only=False, tags=None):
 
     journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
-        "title": journal.title,
+        "title": journal.title[0:200],  # Max len = 200
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,

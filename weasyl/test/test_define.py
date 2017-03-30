@@ -157,3 +157,18 @@ def test_viewing_own_profile(db):
 
 def test_sysname():
     assert d.get_sysname(u"ź") == "z"
+
+
+def test_get_int():
+    assert d.get_int(42) == 42
+    assert d.get_int("42") == 42
+    assert d.get_int(u"42") == 42
+    assert d.get_int(42.1) == 42
+    assert d.get_int(42.9) == 42
+    assert d.get_int("42.1") == 42
+    assert d.get_int("42.9") == 42
+    assert d.get_int(u"42.1") == 42
+    assert d.get_int(u"42.9") == 42
+    assert d.get_int("' OR 1=1;--") == 0
+    assert d.get_int("42aaaaaa24") == 0
+    assert d.get_int("42aaa1aaa24") == 0

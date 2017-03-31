@@ -505,12 +505,12 @@ def gallery_blacklisted_tags(userid, otherid):
 
 
 def hidesubmission(submitid):
-    d.execute("UPDATE submission SET settings = settings || 'h' WHERE submitid = %i AND settings !~ 'h'", [submitid])
+    d.execute("UPDATE submission SET hidden = TRUE WHERE submitid = %i", [submitid])
     welcome.submission_remove(submitid)
 
 
 def unhidesubmission(submitid):
-    d.execute("UPDATE submission SET settings = REPLACE(settings, 'h', '') WHERE submitid = %i", [submitid])
+    d.execute("UPDATE submission SET hidden = FALSE WHERE submitid = %i", [submitid])
 
 
 def hidecharacter(charid):

@@ -28,7 +28,7 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
         " submission su ON co.submitid = su.submitid"
         " INNER JOIN profile pr ON su.userid = pr.userid"
         " INNER JOIN profile cpr ON co.userid = cpr.userid"
-        " WHERE su.settings !~ 'h'"]
+        " WHERE NOT su.hidden"]
 
     # filter own content in SFW mode
     if d.is_sfw_mode():
@@ -61,7 +61,7 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
 
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
     return statement
 
 

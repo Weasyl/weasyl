@@ -190,12 +190,6 @@ def create_visual(userid, submission,
             thumb_custom.to_buffer(format=submit_file_type), file_type=submit_file_type,
             im=thumb_custom)
 
-    # Assign settings
-    settings = []
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    settings = "".join(settings)
-
     # TODO(kailys): maintain ORM object
     db = d.connect()
     now = arrow.get()
@@ -208,7 +202,8 @@ def create_visual(userid, submission,
             "content": submission.content,
             "subtype": submission.subtype,
             "rating": submission.rating.code,
-            "settings": settings,
+            "friends_only": friends_only,
+            "critique": critique,
             "sorttime": now,
         }]).returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)
@@ -286,14 +281,6 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
     if cover_media_item and not thumb_media_item:
         thumb_media_item = cover_media_item
 
-    # Assign settings
-    settings = []
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    if embedlink:
-        settings.append('D')
-    settings = "".join(settings)
-
     # Create submission
     # TODO(kailys): use ORM object
     db = d.connect()
@@ -308,7 +295,9 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
                 "content": submission.content,
                 "subtype": submission.subtype,
                 "rating": submission.rating.code,
-                "settings": settings,
+                "friends_only": friends_only,
+                "critique": critique,
+                "embed_type": 'google-drive' if embedlink else None,
                 "sorttime": now,
             }])
             .returning(d.meta.tables['submission'].c.submitid))
@@ -406,13 +395,6 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             file_type=tempthumb_type,
             im=tempthumb)
 
-    # Assign settings
-    settings = []
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    settings.append("v" if embedlink else "")
-    settings = "".join(settings)
-
     # Inject embedlink
     if embedlink:
         submission.content = "".join([embedlink, "\n", submission.content])
@@ -430,7 +412,9 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
                 "content": submission.content,
                 "subtype": submission.subtype,
                 "rating": submission.rating,
-                "settings": settings,
+                "friends_only": friends_only,
+                "critique": critique,
+                "embed_type:": 'other' if embedlink else None,
                 "sorttime": now,
             }])
             .returning(d.meta.tables['submission'].c.submitid))
@@ -472,7 +456,7 @@ def reupload(userid, submitid, submitfile):
     submitsize = len(submitfile)
 
     # Select submission data
-    query = d.execute("SELECT userid, subtype, settings, rating FROM submission WHERE submitid = %i AND settings !~ 'h'",
+    query = d.execute("SELECT userid, subtype, settings, rating FROM submission WHERE submitid = %i AND NOT hidden",
                       [submitid], ["single"])
 
     if not query:
@@ -535,9 +519,11 @@ def is_hidden(submitid):
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
+    # TODO(hyena): This `query[n]` stuff is monstrous. Use named fields.
     query = d.execute("""
         SELECT
-            su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
+            su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating,
+            su.hidden, su.friends_only, su.critique, su.tag_locked, su.comment_locked, su.admin_locked, su.embed_type,
             su.page_views, su.sorttime, pr.config, fd.title
         FROM submission su
             INNER JOIN profile pr USING (userid)
@@ -548,11 +534,11 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     # Sanity check
     if query and userid in staff.MODS and anyway == "true":
         pass
-    elif not query or "h" in query[8]:
+    elif not query or query[8]:
         raise WeasylError("submissionRecordMissing")
     elif query[7] > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()):
         raise WeasylError("RatingExceeded")
-    elif "f" in query[8] and not frienduser.check(userid, query[0]):
+    elif query[9] and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignore and ignoreuser.check(userid, query[0]):
         raise WeasylError("UserIgnored")
@@ -568,10 +554,10 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     else:
         submittext = None
 
-    embedlink = d.text_first_line(query[5]) if "v" in query[8] else None
+    embedlink = d.text_first_line(query[5]) if query[14] == 'other' else None
 
     google_doc_embed = None
-    if 'D' in query[8]:
+    if query[14] == 'google-drive':
         db = d.connect()
         gde = d.meta.tables['google_doc_embeds']
         q = (sa.select([gde.c.embed_url])
@@ -594,9 +580,16 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "content": (d.text_first_line(query[5], strip=True) if "v" in query[8] else query[5]),
         "subtype": query[6],
         "rating": query[7],
-        "settings": query[8],
+        "hidden_submission": query[8],
+        "friends_only": query[9],
+        "critique": query[10],
+        "tag_locked": query[11],
+        "comment_locked": query[12],
+        "admin_locked": query[13],
+        "embed_type": query[14],
         "page_views": (
-            query[9] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[9]),
+            query[15] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit")
+            else query[15]),
         "fave_count": d.execute(
             "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
             [submitid], ["element"]),
@@ -605,8 +598,6 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "mine": userid == query[0],
         "reported": report.check(submitid=submitid),
         "favorited": favorite.check(userid, submitid=submitid),
-        "friends_only": "f" in query[8],
-        "hidden_submission": "h" in query[8],
         "collectors": collection.find_owners(submitid),
         "no_request": not settings.allow_collection_requests,
 
@@ -624,7 +615,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "removable_tags": searchtag.removable_tags(userid, query[0], tags, artist_tags),
         "can_remove_tags": searchtag.can_remove_tags(userid, query[0]),
         "folder_more": select_near(userid, rating, 1, query[0], query[2], submitid),
-        "folder_title": query[12] if query[12] else "Root",
+        "folder_title": query[18] if query[18] else "Root",
 
 
         "comments": comment.select(userid, submitid=submitid),
@@ -752,7 +743,7 @@ def select_query(userid, rating, otherid=None, folderid=None,
         "FROM submission su "
         "INNER JOIN profile pr ON su.userid = pr.userid "
         "LEFT JOIN folder f USING (folderid) "
-        "WHERE su.settings !~ 'h'"]
+        "WHERE NOT hidden"]
     if profile_page_filter:
         statement.append(" AND COALESCE(f.settings !~ 'u', true)")
     if index_page_filter:
@@ -780,7 +771,7 @@ def select_query(userid, rating, otherid=None, folderid=None,
         statement.append(" AND su.subtype >= %i AND su.subtype < %i" % (subcat, subcat + 1000))
 
     if "critique" in options:
-        statement.append(" AND su.settings ~ 'q' AND su.unixtime > %i" % (d.get_time() - 259200,))
+        statement.append(" AND su.critique AND su.unixtime > %i" % (d.get_time() - 259200,))
 
     if backid:
         statement.append(" AND su.submitid > %i" % (backid,))
@@ -797,7 +788,7 @@ def select_query(userid, rating, otherid=None, folderid=None,
 
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
     return statement
 
 
@@ -897,7 +888,7 @@ def select_near(userid, rating, limit, otherid, folderid, submitid, config=None)
           FROM submission su
          INNER JOIN profile pr ON su.userid = pr.userid
          WHERE su.userid = %i
-               AND su.settings !~ 'h'
+               AND NOT su.hidden
     """ % (otherid,)]
 
     if userid:
@@ -907,7 +898,7 @@ def select_near(userid, rating, limit, otherid, folderid, submitid, config=None)
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.rating <= %i AND su.settings !~ 'f'" % (rating,))
+        statement.append(" AND su.rating <= %i AND NOT su.friends_only" % (rating,))
 
     if folderid:
         statement.append(" AND su.folderid = %i" % folderid)
@@ -936,12 +927,15 @@ def select_near(userid, rating, limit, otherid, folderid, submitid, config=None)
 
 def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
     query = d.execute(
-        "SELECT userid, subtype, settings FROM submission WHERE submitid = %i",
+        """
+        SELECT userid, subtype, hidden, admin_locked, embed_type
+        FROM submission WHERE submitid = %i
+        """,
         [submission.submitid], ["single"])
 
-    if not query or "h" in query[2]:
+    if not query or query[2]:
         raise WeasylError("Unexpected")
-    elif "a" in query[2] and userid not in staff.MODS:
+    elif query[3] and userid not in staff.MODS:
         raise WeasylError("AdminLocked")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
@@ -953,22 +947,16 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("Unexpected")
     elif submission.subtype / 1000 != query[1] / 1000:
         raise WeasylError("Unexpected")
-    elif 'v' in query[2] and not embed.check_valid(embedlink):
+    elif 'other' == query[4] and not embed.check_valid(embedlink):
         raise WeasylError("embedlinkInvalid")
-    elif 'D' in query[2]:
+    elif 'google-drive' == query[4]:
         check_google_doc_embed_data(embedlink)
     profile.check_user_rating_allowed(userid, submission.rating)
 
-    # Assign settings
-    settings = [query[2].replace("f", "").replace("q", "")]
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    settings = "".join(settings)
-
-    if "v" in settings:
+    if 'other' == query[4]:
         submission.content = "%s\n%s" % (embedlink, submission.content)
 
-    if "f" in settings:
+    if friends_only:
         welcome.submission_became_friends_only(submission.submitid, userid)
 
     # TODO(kailys): maintain ORM object
@@ -982,12 +970,14 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
             content=submission.content,
             subtype=submission.subtype,
             rating=submission.rating,
+            friends_only=friends_only,
+            critique=critique,
             settings=settings,
         )
         .where(su.c.submitid == submission.submitid))
     db.execute(q)
 
-    if 'D' in settings:
+    if 'google-drive' == query[4]:
         db = d.connect()
         gde = d.meta.tables['google_doc_embeds']
         q = (gde.update()
@@ -1008,8 +998,8 @@ def remove(userid, submitid):
     if userid not in staff.MODS and userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    query = d.execute("UPDATE submission SET settings = settings || 'h'"
-                      " WHERE submitid = %i AND settings !~ 'h' RETURNING submitid", [submitid])
+    query = d.execute("UPDATE submission SET hidden = TRUE"
+                      " WHERE submitid = %i AND NOT hidden RETURNING submitid", [submitid])
 
     if query:
         welcome.submission_remove(submitid)
@@ -1076,7 +1066,8 @@ def select_recently_popular():
             LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
         WHERE
             submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
-            submission.settings !~ '[hf]'
+            NOT submission.hidden AND
+            NOT submission.friends_only
         GROUP BY submission.submitid, submission_tags.submitid, profile.userid
         ORDER BY score DESC
         LIMIT 128

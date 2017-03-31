@@ -18,7 +18,7 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, 
         " FROM favorite fa INNER JOIN"
         " submission su ON fa.targetid = su.submitid"
         " INNER JOIN profile pr ON su.userid = pr.userid"
-        " WHERE fa.type = 's' AND su.settings !~ 'h'"]
+        " WHERE fa.type = 's' AND NOT su.hidden"]
 
     if userid:
         # filter own content in SFW mode
@@ -31,7 +31,7 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, 
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
     else:
         statement.append(" AND su.rating <= %i" % (rating,))
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
 
     if otherid:
         statement.append(" AND fa.userid = %i" % otherid)

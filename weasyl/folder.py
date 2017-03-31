@@ -112,9 +112,9 @@ def select_preview(userid, otherid, rating, limit=3):
             (SELECT COUNT(*)
                FROM submission su
                WHERE folderid = fd.folderid
-                 AND settings !~ '[hu]'
+                 AND NOT hidden
                  AND (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s))
-                 AND (settings !~ 'f'
+                 AND (NOT friends_only
                       OR su.userid = %(userid)s
                       OR EXISTS (SELECT 0
                                    FROM frienduser
@@ -135,8 +135,8 @@ def select_preview(userid, otherid, rating, limit=3):
         submit = d.engine.execute("""
             SELECT submitid, settings FROM submission su
                 WHERE (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s))
-                AND folderid = %(folderid)s AND settings !~ 'h'
-                AND (settings !~ 'f' OR su.userid = %(userid)s
+                AND folderid = %(folderid)s AND NOT hidden
+                AND (NOT friends_only OR su.userid = %(userid)s
                      OR EXISTS (SELECT 0 FROM frienduser
                                   WHERE ((userid, otherid) = (%(userid)s, su.userid)
                                          OR (userid, otherid) = (su.userid, %(userid)s))
@@ -175,7 +175,7 @@ def select_list(userid, feature, root=False, limit=None):
         query = d.execute("""
             SELECT
                 fd.folderid, fd.title, fd.parentid,
-                (SELECT COUNT(*) FROM submission WHERE folderid = fd.folderid AND settings !~ 'h')
+                (SELECT COUNT(*) FROM submission WHERE folderid = fd.folderid AND NOT hidden)
             FROM folder fd
             WHERE fd.userid = %i
                 AND fd.settings !~ 'h'

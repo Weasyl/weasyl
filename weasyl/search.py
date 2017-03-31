@@ -146,7 +146,10 @@ def _find_without_media(userid, rating, limit,
     # Begin statement
     statement_with = ""
     statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]
-    statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
+    if search.find == "submit":
+        statement_where = ["WHERE content.rating <= %(rating)s AND NOT content.friends_only AND NOT content.hidden"]
+    else:
+        statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
     statement_group = []
 
     if search.find == "submit":

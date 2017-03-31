@@ -120,10 +120,12 @@ def insert(userid, submitid=None, charid=None, journalid=None, parentid=None, co
         parentuserid = None
 
     # Determine otherid
-    otherid = d.execute("SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'",
-                        ["submission", "submitid", submitid] if submitid else
-                        ["character", "charid", charid] if charid else
-                        ["journal", "journalid", journalid], options="element")
+    if submitid:
+        otherid = d.execute("SELECT userid FROM submission WHERE submission = %i AND not hidden", submitid)
+    else:
+        otherid = d.execute("SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'",
+                            ["character", "charid", charid] if charid else
+                            ["journal", "journalid", journalid], options="element")
 
     # Check permissions
     if not otherid:
@@ -197,6 +199,8 @@ def edit(userid, form):
     if form.feature not in ["submit", "char", "journal"]:
         raise WeasylError("Unexpected")
 
+    # NOTE(hyena): If this method is actually used, the settings check will break for submissions after my
+    # change to settings representation.
     query = d.execute("SELECT userid, unixtime FROM %scomment WHERE commentid = %i AND settings !~ 'h'",
                       [form.feature, commentid], options="single")
 

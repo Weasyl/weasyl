@@ -1,6 +1,6 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, Index,
-    Integer, String, Text, SMALLINT, text)
+    Boolean, Enum, Integer, String, Text, SMALLINT, text)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
 
 from libweasyl.models.helpers import (
@@ -758,26 +758,16 @@ submission = Table(
     Column('content', Text(), nullable=False),
     Column('subtype', Integer(), nullable=False),
     Column('rating', RatingColumn, nullable=False),
-    Column('settings', CharSettingsColumn({
-        'h': 'hidden',
-        'f': 'friends-only',
-        'q': 'critique',
-        'p': 'pool',
-        'o': 'collaboration',
-        't': 'tag-locked',
-        'c': 'comment-locked',
-        'a': 'admin-locked',
-        'e': 'encored',
-        'u': 'thumbnail-required',
-    }, {
-        'embed-type': {
-            'D': 'google-drive',
-            'v': 'other',
-        },
-    }), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('sorttime', WeasylTimestampColumn(), nullable=False),
     Column('fave_count', Integer(), nullable=False, server_default='0'),
+    Column('hidden', Boolean(), nullable=False, server_default=False),
+    Column('friends_only', Boolean(), nullable=False, server_default=False),
+    Column('critique', Boolean(), nullable=False, server_default=False),
+    Column('tag_locked', Boolean(), nullable=False, server_default=False),
+    Column('comment_locked', Boolean(), nullable=False, server_default=False),
+    Column('admin_locked', Boolean(), nullable=False, server_default=False),
+    Column('embed_type', Enum('google-drive', 'other'), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
 )

@@ -679,7 +679,8 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
 def twitter_card(submitid):
     query = d.execute("""
         SELECT
-            su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value, su.rating
+            su.title, su.hidden, su.friends_only, su.embed_type, su.content, su.subtype, su.userid,
+            pr.username, pr.full_name, pr.config, ul.link_value, su.rating
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
@@ -689,13 +690,14 @@ def twitter_card(submitid):
 
     if not query:
         raise WeasylError("submissionRecordMissing")
-    title, settings, content, subtype, userid, username, full_name, config, twitter, rating = query
-    if 'h' in settings:
+    (title, hidden, friends_only, embed_type, content, subtype, userid,
+     username, full_name, config, twitter, rating) = query
+    if hidden:
         raise WeasylError("submissionRecordMissing")
-    elif 'f' in settings:
+    elif friends_only:
         raise WeasylError("FriendsOnly")
 
-    if 'v' in settings:
+    if 'other' == embed_type:
         content = d.text_first_line(content, strip=True)
     content = d.summarize(html.strip_html(content))
     if not content:
@@ -841,7 +843,7 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
 
     statement = [
         "SELECT su.submitid, su.title, su.rating, su.unixtime, "
-        "su.userid, pr.username, su.settings, su.subtype "]
+        "su.userid, pr.username, su.subtype "]
 
     statement.extend(select_query(
         userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, config, profile_page_filter,
@@ -860,7 +862,7 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         "unixtime": i[3],
         "userid": i[4],
         "username": i[5],
-        "subtype": i[7],
+        "subtype": i[6],
     } for i in d.execute("".join(statement))]
     media.populate_with_submission_media(query)
 
@@ -884,7 +886,7 @@ def select_near(userid, rating, limit, otherid, folderid, submitid, config=None)
 
     statement = ["""
         SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
-               pr.username, su.settings, su.subtype
+               pr.username, su.subtype
           FROM submission su
          INNER JOIN profile pr ON su.userid = pr.userid
          WHERE su.userid = %i
@@ -911,7 +913,7 @@ def select_near(userid, rating, limit, otherid, folderid, submitid, config=None)
         "unixtime": i[3],
         "userid": i[4],
         "username": i[5],
-        "subtype": i[7],
+        "subtype": i[6],
     } for i in d.execute("".join(statement))]
 
     query.sort(key=lambda i: i['submitid'])

@@ -409,8 +409,10 @@ def submissionsbyuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
+    # TODO(hyena): su.settings has been removed from here. Replace it with the individual columns and fix up
+    # the moderation side.
     query = d.execute("""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.settings
+        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username
         FROM submission su
             INNER JOIN profile pr USING (userid)
         WHERE su.userid = (SELECT userid FROM login WHERE login_name = '%s')

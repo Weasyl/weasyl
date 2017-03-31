@@ -134,7 +134,6 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 su.unixtime,
                 we.otherid AS userid,
                 pr.username,
-                su.settings,
                 we.welcomeid,
                 su.subtype,
                 array_agg(tags.title) AS tags
@@ -158,7 +157,6 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 su.unixtime,
                 su.userid,
                 pr.username,
-                su.settings,
                 we.welcomeid,
                 su.subtype,
                 array_agg(tags.title) AS tags

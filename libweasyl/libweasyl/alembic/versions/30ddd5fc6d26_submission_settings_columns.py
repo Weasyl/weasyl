@@ -18,34 +18,37 @@ import sqlalchemy as sa
 
 import libweasyl
 
+embed_types = sa.Enum('google-drive', 'other', name="embed_types")
+
 def upgrade():
+    embed_types.create(op.get_bind())
     op.add_column(
         'submission',
-        sa.Column('hidden', sa.Boolean(), nullable=False, server_default=False),
+        sa.Column('hidden', sa.Boolean(), nullable=False, server_default='f'),
     )
     op.add_column(
         'submission',
-        sa.Column('friends_only', sa.Boolean(), nullable=False, server_default=False),
+        sa.Column('friends_only', sa.Boolean(), nullable=False, server_default='f'),
     )
     op.add_column(
         'submission',
-        sa.Column('critique', sa.Boolean(), nullable=False, server_default=False),
+        sa.Column('critique', sa.Boolean(), nullable=False, server_default='f'),
     )
     op.add_column(
         'submission',
-        sa.Column('tag_locked', sa.Boolean(), nullable=False, server_default=False),
+        sa.Column('tag_locked', sa.Boolean(), nullable=False, server_default='f'),
     )
     op.add_column(
         'submission',
-        sa.Column('comment_locked', sa.Boolean(), nullable=False, server_default=False),
+        sa.Column('comment_locked', sa.Boolean(), nullable=False, server_default='f'),
     )
     op.add_column(
         'submission',
-        sa.Column('admin_locked', sa.Boolean(), nullable=False, server_default=False),
+        sa.Column('admin_locked', sa.Boolean(), nullable=False, server_default='f'),
     )
     op.add_column(
         'submission',
-        sa.Column('embed_type', sa.Enum('google-drive', 'other'), nullable=True),
+        sa.Column('embed_type', embed_types, nullable='f'),
 
     )
     op.execute(
@@ -56,11 +59,11 @@ def upgrade():
             critique = CASE WHEN settings ~ 'q' THEN TRUE ELSE FALSE END,
             tag_locked = CASE WHEN settings ~ 't' THEN TRUE ELSE FALSE END,
             comment_locked = CASE WHEN settings ~ 'c' THEN TRUE ELSE FALSE END,
-            admin_locked = CASE WHEN settings ~ 'a' THEN TRUE ELSE FALSE END
-            embed_type = CASE
-                WHEN settings ~ 'D' THEN 'google-drive'
-                WHEN settings ~ 'v' THEN 'other'
-            END
+            admin_locked = CASE WHEN settings ~ 'a' THEN TRUE ELSE FALSE END,
+            embed_type = (CASE
+                WHEN settings ~ 'D' THEN 'google-drive'::embed_types
+                WHEN settings ~ 'v' THEN 'other'::embed_types
+            END)
         """)
     op.drop_column('submission', 'settings')
 
@@ -108,3 +111,5 @@ def downgrade():
     op.drop_column('submission', 'comment_locked')
     op.drop_column('submission', 'admin_locked')
     op.drop_column('submission', 'embed_type')
+    embed_types.drop(op.get_bind())
+

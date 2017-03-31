@@ -61,13 +61,6 @@ class Submission(Base):
     tag_objects = relationship(Tag, secondary=SubmissionTag.__table__)
     tags = association_proxy('tag_objects', 'title')
 
-    with clauses_for(__table__) as c:
-        is_hidden = c('hidden')
-        is_friends_only = c('friends-only')
-        is_critique = c('critique')
-        is_google_doc = c('embed-type', 'google-drive')
-        is_other_embed = c('embed-type', 'other')
-
     def _comment_criteria(self):
         return {'target_sub': self.submitid}
 
@@ -206,8 +199,8 @@ class Submission(Base):
                    unixtime=now, sorttime=now)
         # must be set after 'owner' for validation.
         inst.rating = rating
-        inst.is_friends_only = friends_only
-        inst.is_critique = critique_requested
+        inst.friends_only = friends_only
+        inst.critique = critique_requested
 
         submission_media_item = cover_media_item = thumbnail_media_item = thumbnail_source_media_item = None
         if embed_link is None:
@@ -230,10 +223,10 @@ class Submission(Base):
         elif submission_data is not None:
             raise InvalidData("You may not submit both submission data and an embed link.")
         elif category == Category.literary:
-            inst.is_google_doc = True
+            inst.embed_type = 'google-drive'
             inst.google_doc = GoogleDocEmbed(embed_url=embed_link)
         elif category == Category.multimedia:
-            inst.is_other_embed = True
+            inst.embed_type = 'other'
             inst.content = '%s\n%s' % (embed_link, inst.content)
         else:
             raise ValueError('unknown submission category', category)

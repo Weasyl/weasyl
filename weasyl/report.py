@@ -68,13 +68,13 @@ def create(userid, form):
         raise WeasylError("ReportCommentRequired")
 
     query = d.execute(
-        "SELECT userid, settings FROM %s WHERE %s = %i",
-        ["submission", "submitid", form.submitid] if form.submitid else
-        ["character", "charid", form.charid] if form.charid else
-        ["journal", "journalid", form.journalid],
+        "SELECT userid, %s FROM %s WHERE %s = %i",
+        ["hidden", "submission", "submitid", form.submitid] if form.submitid else
+        ["settings", "character", "charid", form.charid] if form.charid else
+        ["settings", "journal", "journalid", form.journalid],
         options="single")
 
-    if not query or (form.violation != 0 and 'h' in query[1]):
+    if not query or (form.violation != 0 and (form.submitid and query[1] or not form.submitid and 'h' in query[1])):
         raise WeasylError("TargetRecordMissing")
 
     now = arrow.get()

@@ -95,6 +95,9 @@ error_messages = {
     "InsufficientPermissions": permission,
     "insufficientActionPermissions": "You do not have permission to perform this action.",
     "journalRecordMissing": journalid,
+    "logicalError": (
+        "An unexpected error occurred. This is probably a bug! Please contact a member of staff with a description "
+        "of what you were doing when you received this error."),
     "logincreateRecordMissing": "That's not a valid token!",
     "loginInvalid": "The login credentials you entered were not correct.",
     "loginRecordMissing": (
@@ -150,9 +153,6 @@ error_messages = {
         "to your account, or you may have copied the link incorrectly."),
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
     # TODO(hyena): The pointer on this could be more explicit. HOW should the user report the bug? To WHOM?
-    "unexpected": (
-        "An unexpected error occurred. This is probably a bug! Please contact a member of staff with a description "
-        "of what you were doing when you received this error."),
     "unknownMessageFolder": "The specified message folder does not exist.",
     "UserIgnored": "This content was posted by a user you have chosen to ignore.",
     "userRecordMissing": userid,

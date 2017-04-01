@@ -133,7 +133,7 @@ def select_preview(userid, otherid, rating, limit=3):
 
     for i in folder_query:
         submit = d.engine.execute("""
-            SELECT submitid, settings FROM submission su
+            SELECT submitid FROM submission su
                 WHERE (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s))
                 AND folderid = %(folderid)s AND NOT hidden
                 AND (NOT friends_only OR su.userid = %(userid)s

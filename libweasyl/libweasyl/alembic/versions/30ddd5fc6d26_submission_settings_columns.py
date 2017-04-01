@@ -54,12 +54,12 @@ def upgrade():
     op.execute(
         """
         UPDATE submission SET
-            hidden = CASE WHEN settings ~ 'h' THEN TRUE ELSE FALSE END,
-            friends_only = CASE WHEN settings ~ 'f' THEN TRUE ELSE FALSE END,
-            critique = CASE WHEN settings ~ 'q' THEN TRUE ELSE FALSE END,
-            tag_locked = CASE WHEN settings ~ 't' THEN TRUE ELSE FALSE END,
-            comment_locked = CASE WHEN settings ~ 'c' THEN TRUE ELSE FALSE END,
-            admin_locked = CASE WHEN settings ~ 'a' THEN TRUE ELSE FALSE END,
+            hidden = settings ~ 'h',
+            friends_only = settings ~ 'f',
+            critique = settings ~ 'q',
+            tag_locked = settings ~ 't',
+            comment_locked = settings ~ 'c',
+            admin_locked = settings ~ 'a',
             embed_type = (CASE
                 WHEN settings ~ 'D' THEN 'google-drive'::embed_types
                 WHEN settings ~ 'v' THEN 'other'::embed_types

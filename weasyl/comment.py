@@ -121,7 +121,8 @@ def insert(userid, submitid=None, charid=None, journalid=None, parentid=None, co
 
     # Determine otherid
     if submitid:
-        otherid = d.execute("SELECT userid FROM submission WHERE submission = %i AND not hidden", submitid)
+        otherid = d.execute("SELECT userid FROM submission WHERE submitid = %i AND not hidden",
+                            [submitid], options="element")
     else:
         otherid = d.execute("SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'",
                             ["character", "charid", charid] if charid else

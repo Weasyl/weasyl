@@ -190,14 +190,18 @@ def insert(userid, submitid=None, charid=None, journalid=None):
     else:
         content_table, id_field, target = "journal", "journalid", journalid
 
-    query = d.execute("SELECT userid, settings FROM %s WHERE %s = %i",
-                      [content_table, id_field, target], options="single")
+    if submitid:
+        query = d.execute("SELECT userid, friends_only FROM %s WHERE %s = %i",
+                          [content_table, id_field, target], options="single")
+    else:
+        query = d.execute("SELECT userid, settings FROM %s WHERE %s = %i",
+                          [content_table, id_field, target], options="single")
 
     if not query:
         raise WeasylError("TargetRecordMissing")
     elif userid == query[0]:
         raise WeasylError("CannotSelfFavorite")
-    elif "f" in query[1] and not frienduser.check(userid, query[0]):
+    elif (submitid and query[1] or not submitid and "f" in query[1]) and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignoreuser.check(userid, query[0]):
         raise WeasylError("YouIgnored")

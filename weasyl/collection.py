@@ -118,10 +118,10 @@ def find_owners(submitid, pending=False):
 
 
 def offer(userid, submitid, otherid):
-    query = d.execute("SELECT userid, rating, settings FROM submission WHERE submitid = %i",
+    query = d.execute("SELECT userid, rating, hidden, friends_only FROM submission WHERE submitid = %i",
                       [submitid], options="single")
 
-    if not query or "h" in query[2]:
+    if not query or query[2]:
         raise WeasylError("Unexpected")
     elif userid != query[0]:
         raise WeasylError("Unexpected")
@@ -132,7 +132,7 @@ def offer(userid, submitid, otherid):
 
         if rating < query[1]:
             raise WeasylError("collectionUnacceptable")
-        if "f" in query[2]:
+        if query[3]:
             raise WeasylError("collectionUnacceptable")
         if ignoreuser.check(otherid, userid):
             raise WeasylError("IgnoredYou")
@@ -167,13 +167,13 @@ def _check_throttle(userid, otherid):
 
 
 def request(userid, submitid, otherid):
-    query = d.engine.execute("SELECT userid, rating, settings "
+    query = d.engine.execute("SELECT userid, rating, hidden, friends_only "
                              "FROM submission WHERE submitid = %(submission)s",
                              submission=submitid).first()
 
     rating = d.get_rating(userid)
 
-    if not query or "h" in query.settings:
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
     if otherid != query.userid:
         raise WeasylError("Unexpected")
@@ -182,7 +182,7 @@ def request(userid, submitid, otherid):
     # something with a tag you don't like that's your business
     if rating < query.rating:
         raise WeasylError("RatingExceeded")
-    if "f" in query.settings:
+    if query.friends_only:
         raise WeasylError("collectionUnacceptable")
     if ignoreuser.check(otherid, userid):
         raise WeasylError("IgnoredYou")

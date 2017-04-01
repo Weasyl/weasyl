@@ -54,7 +54,7 @@ def _insert(template, query):
 # notifications
 #   2010 user posted submission
 
-def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''):
+def submission_insert(userid, submitid, rating=ratings.GENERAL.code, friends_only=False):
     if folder.submission_has_folder_flag(submitid, 'n'):
         return
 
@@ -62,7 +62,7 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''
                  " INNER JOIN profile pr USING (userid)"
                  " WHERE wu.otherid = %i AND wu.settings ~ 's'"]
 
-    if 'f' in settings:
+    if friends_only:
         statement.append(
             " AND (wu.userid IN (SELECT fu.userid FROM frienduser fu WHERE "
             "fu.otherid = wu.otherid AND fu.settings !~ 'p') "

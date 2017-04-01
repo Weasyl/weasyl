@@ -95,7 +95,7 @@ def MACRO_MOD_ACTIONS_FOR_SETTINGS(settings, submission_type):
     # NOTE(hyena): After my changes to submission settings, this code is no longer valid for
     # submissions.
     if "submission" == submission_type:
-        raise WeasylError('unexpected')
+        raise WeasylError('logicalError')
 
     # Journals and characters can't have the critique flag set
     if submission_type in ("journal", "character"):

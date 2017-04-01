@@ -58,13 +58,13 @@ def _limit(size, extension, premium):
         return size > limit
 
 
-def _create_notifications(userid, submitid, rating, settings, title, tags):
+def _create_notifications(userid, submitid, rating, friends_only, critique, title, tags):
     """
     Creates notifications to welcome page, watchers, Twitter.
     """
-    welcome.submission_insert(userid, submitid, rating=rating.code, settings=settings)
+    welcome.submission_insert(userid, submitid, rating=rating.code, friends_only=friends_only)
 
-    if 'q' in settings and 'f' not in settings:
+    if critique and not friends_only:
         _post_to_twitter_about(submitid, title, rating.code, tags)
 
 
@@ -98,7 +98,7 @@ def check_for_duplicate_media(userid, mediaid):
     db = d.connect()
     q = (
         db.query(orm.Submission)
-        .filter_by(userid=userid, is_hidden=False)
+        .filter_by(userid=userid, hidden=False)
         .join(orm.SubmissionMediaLink)
         .filter_by(mediaid=mediaid, link_type='submission'))
     if q.first():
@@ -224,7 +224,7 @@ def create_visual(userid, submission,
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
+        _create_notifications(userid, submitid, submission.rating, friends_only, critique,
                               submission.title, tags)
 
     d.metric('increment', 'submissions')
@@ -324,7 +324,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
+        _create_notifications(userid, submitid, submission.rating, friends_only, critique,
                               submission.title, tags)
 
     # Clear temporary files
@@ -440,7 +440,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
+        _create_notifications(userid, submitid, submission.rating, friends_only, critique,
                               submission.title, tags)
 
     # Clear temporary files
@@ -577,7 +577,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "folderid": query[2],
         "unixtime": query[3],
         "title": query[4],
-        "content": (d.text_first_line(query[5], strip=True) if "v" in query[8] else query[5]),
+        "content": (d.text_first_line(query[5], strip=True) if 'other' == query[14] else query[5]),
         "subtype": query[6],
         "rating": query[7],
         "hidden_submission": query[8],
@@ -974,7 +974,6 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
             rating=submission.rating,
             friends_only=friends_only,
             critique=critique,
-            settings=settings,
         )
         .where(su.c.submitid == submission.submitid))
     db.execute(q)

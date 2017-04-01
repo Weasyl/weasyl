@@ -288,7 +288,7 @@ def _find_without_media(userid, rating, limit,
         """
         SELECT
             content.{select}, content.{title_field} AS title, content.rating, content.unixtime, content.userid,
-            content.settings, profile.username, {subtype} as subtype
+            profile.username, {subtype} as subtype
         """,
         pagination_filter,
         "ORDER BY content.{{select}} {order} LIMIT %(limit)s".format(order="" if backid else "DESC"))
@@ -333,7 +333,6 @@ def _find_without_media(userid, rating, limit,
         "unixtime": i.unixtime,
         "userid": i.userid,
         "username": i.username,
-        "settings": i.settings,
     } for i in query]
 
     if backid:

@@ -326,7 +326,7 @@ def _select_statistics(userid):
                     WHERE jo.userid = %i AND fa.type = 'j')),
             (SELECT COUNT(*) FROM watchuser WHERE otherid = %i),
             (SELECT COUNT(*) FROM watchuser WHERE userid = %i),
-            (SELECT COUNT(*) FROM submission WHERE userid = %i AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM submission WHERE userid = %i AND not hidden),
             (SELECT COUNT(*) FROM journal WHERE userid = %i AND settings !~ 'h'),
             (SELECT COUNT(*) FROM comments WHERE target_user = %i AND settings !~ 'h' AND settings ~ 's')
     """, [userid, userid, userid, userid, userid, userid, userid, userid, userid, userid], options="single")

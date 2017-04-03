@@ -28,6 +28,15 @@ def _insert_recovery_code(userid):
 
 
 @pytest.mark.usefixtures('db')
+def _insert_2fa_secret(user_id, tfa_secret_encrypted):
+    d.engine.execute("""
+        UPDATE login
+        SET twofa_secret = %(tfas)s
+        WHERE userid = %(userid)s
+    """, userid=user_id, tfas=tfa_secret_encrypted)
+
+
+@pytest.mark.usefixtures('db')
 def test_get_number_of_recovery_codes():
     user_id = db_utils.create_user()
 
@@ -172,26 +181,28 @@ def test_activate():
     # Validation successful, and tfa_secret written into user's `login` record
     tfa_response = totp.now()
     assert tfa.activate(user_id, tfa_secret, tfa_response)
-    assert tfa_secret == d.engine.scalar("""
+    # The stored twofa_secret must not be plaintext
+    stored_secret = d.engine.scalar("""
         SELECT twofa_secret
         FROM login
         WHERE userid = %(userid)s
     """, userid=user_id)
+    assert tfa_secret != stored_secret
+    # The stored secret must be decryptable to the generated tfa_secret
+    assert tfa_secret == tfa._decrypt_totp_secret(stored_secret)
 
 
 @pytest.mark.usefixtures('db')
 def test_is_2fa_enabled():
     user_id = db_utils.create_user()
+    tfa_secret = pyotp.random_base32()
+    tfa_secret_encrypted = tfa._encrypt_totp_secret(tfa_secret)
 
     # 2FA is not enabled
     assert not tfa.is_2fa_enabled(user_id)
 
     # 2FA is enabled
-    d.engine.execute("""
-        UPDATE login
-        SET twofa_secret = %(tfas)s
-        WHERE userid = %(userid)s
-    """, userid=user_id, tfas=pyotp.random_base32())
+    _insert_2fa_secret(user_id, tfa_secret_encrypted)
     assert tfa.is_2fa_enabled(user_id)
 
 
@@ -199,34 +210,23 @@ def test_is_2fa_enabled():
 def test_deactivate():
     user_id = db_utils.create_user()
     tfa_secret = pyotp.random_base32()
+    tfa_secret_encrypted = tfa._encrypt_totp_secret(tfa_secret)
     totp = pyotp.TOTP(tfa_secret)
 
     # 2FA enabled, deactivated by TOTP challenge-response code
-    d.engine.execute("""
-        UPDATE login
-        SET twofa_secret = %(tfas)s
-        WHERE userid = %(userid)s
-    """, userid=user_id, tfas=tfa_secret)
+    _insert_2fa_secret(user_id, tfa_secret_encrypted)
     tfa_response = totp.now()
     assert tfa.deactivate(user_id, tfa_response)
 
     # 2FA enabled, deactivated by recovery code
-    d.engine.execute("""
-        UPDATE login
-        SET twofa_secret = %(tfas)s
-        WHERE userid = %(userid)s
-    """, userid=user_id, tfas=tfa_secret)
+    _insert_2fa_secret(user_id, tfa_secret_encrypted)
     tfa_response = totp.now()
 
     _insert_recovery_code(user_id)
     assert tfa.deactivate(user_id, recovery_code)
 
     # 2FA enabled, failed deactivation (invalid `tfa_response` (code or TOTP token))
-    d.engine.execute("""
-        UPDATE login
-        SET twofa_secret = %(tfas)s
-        WHERE userid = %(userid)s
-    """, userid=user_id, tfas=tfa_secret)
+    _insert_2fa_secret(user_id, tfa_secret_encrypted)
     assert not tfa.deactivate(user_id, "000000")
     assert not tfa.deactivate(user_id, "a" * tfa.LENGTH_RECOVERY_CODE)
 
@@ -235,12 +235,9 @@ def test_deactivate():
 def test_force_deactivate():
     user_id = db_utils.create_user()
     tfa_secret = pyotp.random_base32()
-    d.engine.execute("""
-        UPDATE login
-        SET twofa_secret = %(tfas)s
-        WHERE userid = %(userid)s
-    """, userid=user_id, tfas=tfa_secret)
+    tfa_secret_encrypted = tfa._encrypt_totp_secret(tfa_secret)
 
+    _insert_2fa_secret(user_id, tfa_secret_encrypted)
     _insert_recovery_code(user_id)
 
     # Verify that force_deactivate() functions as expected.
@@ -257,13 +254,10 @@ def test_force_deactivate():
 def test_verify():
     user_id = db_utils.create_user()
     tfa_secret = pyotp.random_base32()
+    tfa_secret_encrypted = tfa._encrypt_totp_secret(tfa_secret)
     totp = pyotp.TOTP(tfa_secret)
 
-    d.engine.execute("""
-        UPDATE login
-        SET twofa_secret = %(tfas)s
-        WHERE userid = %(userid)s
-    """, userid=user_id, tfas=tfa_secret)
+    _insert_2fa_secret(user_id, tfa_secret_encrypted)
     _insert_recovery_code(user_id)
 
     # Codes of any other length than tfa.LENGTH_TOTP_CODE or tfa.LENGTH_RECOVERY_CODE returns False

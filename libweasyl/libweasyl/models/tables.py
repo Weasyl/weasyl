@@ -391,7 +391,7 @@ login = Table(
         },
     }, length=20), nullable=False, server_default=''),
     Column('email', String(length=100), nullable=False, server_default=''),
-    Column('twofa_secret', String(length=16), nullable=True),
+    Column('twofa_secret', String(length=420), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)

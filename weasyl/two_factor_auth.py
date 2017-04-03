@@ -7,12 +7,13 @@ import re
 import urllib
 
 import bcrypt
+from cryptography.fernet import Fernet
 import pyotp
 from qrcodegen import QrCode
 
 from libweasyl import security
+from weasyl import config
 from weasyl import define as d
-from weasyl import login
 
 # Number of recovery codes to provide the user
 _TFA_RECOVERY_CODES = 10
@@ -22,6 +23,34 @@ BCRYPT_WORK_FACTOR = 10
 LENGTH_RECOVERY_CODE = 20
 # TOTP code length of 6 is the standard length, and is supported by Google Authenticator
 LENGTH_TOTP_CODE = 6
+
+
+def _encrypt_totp_secret(totp_secret):
+    """
+    Symmetrically encrypt a 2FA TOTP secret.
+
+    Parameters:
+        - totp_secret: A 2FA TOTP secret key to encrypt prior to storing in the DB.
+
+    Returns: An encrypted Fernet token.
+    """
+    key = config.config_read_setting(setting='secret_key', section='twofactorauth.totpsecret.encryption.key')
+    f = Fernet(key)
+    return f.encrypt(bytes(totp_secret))
+
+
+def _decrypt_totp_secret(totp_secret):
+    """
+    Decrypt a symmetrically encrypted 2FA TOTP secret.
+
+    Parameters:
+        - totp_secret: An encrypted Fernet token.
+
+    Returns: The decrypted plaintext 2FA TOTP secret corresponding to the ciphertext `totp_secret`.
+    """
+    key = config.config_read_setting(setting='secret_key', section='twofactorauth.totpsecret.encryption.key')
+    f = Fernet(key)
+    return f.decrypt(bytes(totp_secret))
 
 
 def init(userid):
@@ -117,11 +146,13 @@ def activate(userid, tfa_secret, tfa_response):
     totp = pyotp.TOTP(tfa_secret)
     # If the provided `tfa_response` matches the TOTP value, write the 2FA secret into `login`, activating 2FA for `userid`
     if totp.verify(tfa_response, valid_window=1):
+        # Encrypt the 2FA secret prior to storing it into `userid`'s login record
+        tfa_secret_encrypted = _encrypt_totp_secret(tfa_secret)
         d.engine.execute("""
             UPDATE login
             SET twofa_secret = %(tfa_secret)s
             WHERE userid = %(userid)s
-        """, tfa_secret=tfa_secret, userid=userid)
+        """, tfa_secret=tfa_secret_encrypted, userid=userid)
         return True
     else:
         return False
@@ -146,11 +177,14 @@ def verify(userid, tfa_response, consume_recovery_code=True):
     #   implementations display the code as "123 456"
     tfa_response = tfa_response.replace(' ', '')
     if len(tfa_response) == LENGTH_TOTP_CODE:
-        tfa_secret = d.engine.scalar("""
+        # Retrieve the encrypted 2FA secret from `userid`'s login record
+        tfa_secret_encrypted = d.engine.scalar("""
             SELECT twofa_secret
             FROM login
             WHERE userid = %(userid)s
         """, userid=userid)
+        # Decrypt the 2FA secret to be usable by pyotp
+        tfa_secret = _decrypt_totp_secret(tfa_secret_encrypted)
         # Validate supplied 2FA response versus calculated current TOTP value.
         totp = pyotp.TOTP(tfa_secret)
         # Return the response of the TOTP verification; True/False

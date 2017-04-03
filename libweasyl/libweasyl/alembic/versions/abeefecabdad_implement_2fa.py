@@ -28,7 +28,7 @@ def upgrade():
     # Modify `login` to hold the 2FA code (if set) for a user account
     op.add_column(
         'login',
-        sa.Column('twofa_secret', sa.String(length=16), nullable=True, server_default=None),
+        sa.Column('twofa_secret', sa.String(length=420), nullable=True, server_default=None),
     )
 
 

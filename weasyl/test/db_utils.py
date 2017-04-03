@@ -81,23 +81,26 @@ def create_folder(userid, title="Folder", parentid=0, settings=None):
 
 
 def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=arrow.get(1),
-                      description="", folderid=None, subtype=0, settings=None):
+                      description="", folderid=None, subtype=0, hidden=False,
+                      friends_only=False, critique=False
+                      ):
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(
         userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
-        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings))
+        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), hidden=hidden,
+        friends_only=friends_only, critique=critique))
     update_last_submission_time(userid, unixtime)
     return submission.submitid
 
 
 def create_submissions(count, userid, title="", rating=ratings.GENERAL.code,
                        unixtime=arrow.get(1), description="", folderid=None, subtype=0,
-                       settings=None):
+                       hidden=False, friends_only=False, critique=False):
     """ Creates multiple submissions, and returns their IDs. """
     results = []
     for i in range(count):
         results.append(create_submission(userid, title, rating, unixtime, description,
-                                         folderid, subtype, settings))
+                                         folderid, subtype, hidden, friends_only, critique))
     return results
 
 

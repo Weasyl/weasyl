@@ -40,10 +40,6 @@ apt-get -y install \
     liblzma-dev python-dev python-virtualenv \
     ruby-sass nodejs
 
-# Install dependencies for 'cryptography' PyPI package -- https://cryptography.io/en/latest/installation/#building-cryptography-on-linux
-apt-get -y install \
-    build-essential libssl-dev libffi-dev python-dev
-
 npm install -g gulp-cli
 
 sudo -u postgres dropdb weasyl

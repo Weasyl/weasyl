@@ -520,10 +520,11 @@ def is_hidden(submitid):
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
     # TODO(hyena): This `query[n]` stuff is monstrous. Use named fields.
+    # Also some of these don't appear to be used? e.g. pr.config
     query = d.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating,
-            su.hidden, su.friends_only, su.critique, su.tag_locked, su.comment_locked, su.admin_locked, su.embed_type,
+            su.hidden, su.friends_only, su.critique, su.embed_type,
             su.page_views, su.sorttime, pr.config, fd.title
         FROM submission su
             INNER JOIN profile pr USING (userid)
@@ -554,10 +555,10 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     else:
         submittext = None
 
-    embedlink = d.text_first_line(query[5]) if query[14] == 'other' else None
+    embedlink = d.text_first_line(query[5]) if query[11] == 'other' else None
 
     google_doc_embed = None
-    if query[14] == 'google-drive':
+    if query[11] == 'google-drive':
         db = d.connect()
         gde = d.meta.tables['google_doc_embeds']
         q = (sa.select([gde.c.embed_url])
@@ -577,19 +578,16 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "folderid": query[2],
         "unixtime": query[3],
         "title": query[4],
-        "content": (d.text_first_line(query[5], strip=True) if 'other' == query[14] else query[5]),
+        "content": (d.text_first_line(query[5], strip=True) if 'other' == query[11] else query[5]),
         "subtype": query[6],
         "rating": query[7],
         "hidden_submission": query[8],
         "friends_only": query[9],
         "critique": query[10],
-        "tag_locked": query[11],
-        "comment_locked": query[12],
-        "admin_locked": query[13],
-        "embed_type": query[14],
+        "embed_type": query[11],
         "page_views": (
-            query[15] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit")
-            else query[15]),
+            query[12] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit")
+            else query[12]),
         "fave_count": d.execute(
             "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
             [submitid], ["element"]),
@@ -615,7 +613,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "removable_tags": searchtag.removable_tags(userid, query[0], tags, artist_tags),
         "can_remove_tags": searchtag.can_remove_tags(userid, query[0]),
         "folder_more": select_near(userid, rating, 1, query[0], query[2], submitid),
-        "folder_title": query[18] if query[18] else "Root",
+        "folder_title": query[15] if query[15] else "Root",
 
 
         "comments": comment.select(userid, submitid=submitid),
@@ -930,15 +928,13 @@ def select_near(userid, rating, limit, otherid, folderid, submitid, config=None)
 def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
     query = d.execute(
         """
-        SELECT userid, subtype, hidden, admin_locked, embed_type
+        SELECT userid, subtype, hidden, embed_type
         FROM submission WHERE submitid = %i
         """,
         [submission.submitid], ["single"])
 
     if not query or query[2]:
         raise WeasylError("Unexpected")
-    elif query[3] and userid not in staff.MODS:
-        raise WeasylError("AdminLocked")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     elif not submission.title:
@@ -949,13 +945,13 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("Unexpected")
     elif submission.subtype / 1000 != query[1] / 1000:
         raise WeasylError("Unexpected")
-    elif 'other' == query[4] and not embed.check_valid(embedlink):
+    elif 'other' == query[3] and not embed.check_valid(embedlink):
         raise WeasylError("embedlinkInvalid")
-    elif 'google-drive' == query[4]:
+    elif 'google-drive' == query[3]:
         check_google_doc_embed_data(embedlink)
     profile.check_user_rating_allowed(userid, submission.rating)
 
-    if 'other' == query[4]:
+    if 'other' == query[3]:
         submission.content = "%s\n%s" % (embedlink, submission.content)
 
     if friends_only:
@@ -978,7 +974,7 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         .where(su.c.submitid == submission.submitid))
     db.execute(q)
 
-    if 'google-drive' == query[4]:
+    if 'google-drive' == query[3]:
         db = d.connect()
         gde = d.meta.tables['google_doc_embeds']
         q = (gde.update()

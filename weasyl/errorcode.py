@@ -41,7 +41,6 @@ offline_mode = (
 
 error_messages = {
     "addressInvalid": "Your IP address does not match the location from which this request was made.",
-    "AdminLocked": "This content has been locked from any editing by an admin.",
     "ArtistTags": "You cannot remove tags that have been added by the artist.",
     "birthdayInsufficient": (
         "Your date of birth indicates that you are not allowed to set your content rating settings to the "

@@ -36,18 +36,6 @@ def upgrade():
     )
     op.add_column(
         'submission',
-        sa.Column('tag_locked', sa.Boolean(), nullable=False, server_default='f'),
-    )
-    op.add_column(
-        'submission',
-        sa.Column('comment_locked', sa.Boolean(), nullable=False, server_default='f'),
-    )
-    op.add_column(
-        'submission',
-        sa.Column('admin_locked', sa.Boolean(), nullable=False, server_default='f'),
-    )
-    op.add_column(
-        'submission',
         sa.Column('embed_type', embed_types, nullable='f'),
 
     )
@@ -57,9 +45,6 @@ def upgrade():
             hidden = settings ~ 'h',
             friends_only = settings ~ 'f',
             critique = settings ~ 'q',
-            tag_locked = settings ~ 't',
-            comment_locked = settings ~ 'c',
-            admin_locked = settings ~ 'a',
             embed_type = (CASE
                 WHEN settings ~ 'D' THEN 'google-drive'::embed_types
                 WHEN settings ~ 'v' THEN 'other'::embed_types
@@ -94,9 +79,6 @@ def downgrade():
             CASE WHEN hidden THEN 'h' ELSE '' END
             || CASE WHEN friends_only THEN 'f' ELSE '' END
             || CASE WHEN critique THEN 'q' ELSE '' END
-            || CASE WHEN tag_locked THEN 't' ELSE '' END
-            || CASE WHEN comment_locked THEN 'c' ELSE '' END
-            || CASE WHEN admin_locked THEN 'a' ELSE '' END
             || CASE
                  WHEN embed_type = 'google-drive' THEN 'D'
                  WHEN embed_type = 'other' THEN 'v'
@@ -107,9 +89,6 @@ def downgrade():
     op.drop_column('submission', 'hidden')
     op.drop_column('submission', 'friends_only')
     op.drop_column('submission', 'critique')
-    op.drop_column('submission', 'tag_locked')
-    op.drop_column('submission', 'comment_locked')
-    op.drop_column('submission', 'admin_locked')
     op.drop_column('submission', 'embed_type')
     embed_types.drop(op.get_bind())
 

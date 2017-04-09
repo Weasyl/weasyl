@@ -22,9 +22,9 @@ recovery_code_hashed = bcrypt.hashpw(recovery_code.encode('utf-8'), bcrypt.gensa
 def _insert_recovery_code(userid):
     """Insert the test-suite's pre-hashed recovery code"""
     d.engine.execute("""
-        INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        VALUES (%(userid)s, %(code)s)
-    """, userid=userid, code=recovery_code_hashed)
+        INSERT INTO twofa_recovery_codes (userid, recovery_code_number, recovery_code_hash)
+        VALUES (%(userid)s, %(recovery_code_number)s, %(recovery_code_hash)s)
+    """, userid=userid, recovery_code_number=1, recovery_code_hash=recovery_code_hashed)
 
 
 @pytest.mark.usefixtures('db')
@@ -82,7 +82,7 @@ def test_store_recovery_codes():
 
     # Extract the current hashed recovery codes
     query = d.engine.execute("""
-        SELECT recovery_code
+        SELECT recovery_code_hash
         FROM twofa_recovery_codes
         WHERE userid = %(userid)s
     """, userid=user_id).fetchall()
@@ -92,7 +92,7 @@ def test_store_recovery_codes():
     for row in query:
         code_status = False
         for code in valid_code_list:
-            if bcrypt.checkpw(code.encode('utf-8'), row['recovery_code'].encode('utf-8')):
+            if bcrypt.checkpw(code.encode('utf-8'), row['recovery_code_hash'].encode('utf-8')):
                 # If the code matches the hash, then the recovery code stored successfully
                 code_status = True
                 break

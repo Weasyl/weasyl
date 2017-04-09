@@ -36,30 +36,26 @@ def tfa_init_get_(request):
 @token_checked
 @twofactorauth_disabled_required
 def tfa_init_post_(request):
-    if request.params['action'] == "continue":
-        userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
-                                                   request.params['password'], session=False)
-        # The user's password failed to authenticate
-        if status == "invalid":
-            return Response(define.webpage(request.userid, "control/2fa/init.html", [
-                define.get_display_name(request.userid),
-                "password"
-            ]))
-        # Unlikely that this block will get triggered, but just to be safe, check for it
-        elif status == "unicode-failure":
-            raise HTTPSeeOther(location='/signin/unicode-failure')
-        # The user has authenticated, so continue with the initialization process.
-        else:
-            tfa_secret, tfa_qrcode = tfa.init(request.userid)
-            return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
-                define.get_display_name(request.userid),
-                tfa_secret,
-                tfa_qrcode,
-                None
-            ]))
+    userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
+                                               request.params['password'], session=False)
+    # The user's password failed to authenticate
+    if status == "invalid":
+        return Response(define.webpage(request.userid, "control/2fa/init.html", [
+            define.get_display_name(request.userid),
+            "password"
+        ]))
+    # Unlikely that this block will get triggered, but just to be safe, check for it
+    elif status == "unicode-failure":
+        raise HTTPSeeOther(location='/signin/unicode-failure')
+    # The user has authenticated, so continue with the initialization process.
     else:
-        # This shouldn't be reached normally (user intentionally altered action?)
-        raise WeasylError("Unexpected")
+        tfa_secret, tfa_qrcode = tfa.init(request.userid)
+        return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
+            define.get_display_name(request.userid),
+            tfa_secret,
+            tfa_qrcode,
+            None
+        ]))
 
 
 @login_required
@@ -82,27 +78,23 @@ def tfa_init_qrcode_get_(request):
 @token_checked
 @twofactorauth_disabled_required
 def tfa_init_qrcode_post_(request):
-    if request.params['action'] == "continue":
-        # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
-        tfaresponse = request.params['tfaresponse'].replace(' ', '')
+    # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
+    tfaresponse = request.params['tfaresponse'].replace(' ', '')
 
-        # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
-        tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, request.params['tfasecret'], tfaresponse)
+    # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
+    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, request.params['tfasecret'], tfaresponse)
 
-        # The 2FA TOTP code did not match with the generated 2FA secret
-        if not tfa_secret:
-            return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
-                define.get_display_name(request.userid),
-                request.params['tfasecret'],
-                tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']),
-                "2fa"
-            ]))
-        else:
-            return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                            [tfa_secret, recovery_codes, None]))
+    # The 2FA TOTP code did not match with the generated 2FA secret
+    if not tfa_secret:
+        return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
+            define.get_display_name(request.userid),
+            request.params['tfasecret'],
+            tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']),
+            "2fa"
+        ]))
     else:
-        # This shouldn't be reached normally (user intentionally altered action?)
-        raise WeasylError("Unexpected")
+        return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
+                        [tfa_secret, recovery_codes, None]))
 
 
 @login_required
@@ -128,14 +120,13 @@ def tfa_init_verify_get_(request):
 @twofactorauth_disabled_required
 def tfa_init_verify_post_(request):
     # Extract parameters from the form
-    action = request.params['action']
-    verify_checkbox = True if 'verify' in request.params else False
+    verify_checkbox = 'verify' in request.params
     tfasecret = request.params['tfasecret']
     tfaresponse = request.params['tfaresponse']
     tfarecoverycodes = request.params['tfarecoverycodes']
 
     # Does the user want to proceed with enabling 2FA?
-    if action == "enable" and verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
+    if verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
         # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
         tfaresponse = request.params['tfaresponse'].replace(' ', '')
 
@@ -149,12 +140,9 @@ def tfa_init_verify_post_(request):
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
                             [tfasecret, tfarecoverycodes.split(','), "2fa"]))
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
-    elif action == "enable" and not verify_checkbox:
+    elif not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
                         [tfasecret, tfarecoverycodes.split(','), "verify"]))
-    else:
-        # This shouldn't be reached normally (user intentionally altered action?)
-        raise WeasylError("Unexpected")
 
 
 @login_required
@@ -169,10 +157,9 @@ def tfa_disable_get_(request):
 @twofactorauth_enabled_required
 def tfa_disable_post_(request):
     tfaresponse = request.params['tfaresponse']
-    verify_checkbox = True if 'verify' in request.params else False
-    action = request.params['action']
+    verify_checkbox = 'verify' in request.params
 
-    if action == "disable" and verify_checkbox:
+    if verify_checkbox:
         # If 2FA was successfully deactivated... return to 2FA dashboard
         if tfa.deactivate(request.userid, tfaresponse):
             raise HTTPSeeOther(location="/control/2fa/status")
@@ -180,12 +167,9 @@ def tfa_disable_post_(request):
             return Response(define.webpage(request.userid, "control/2fa/disable.html",
                             [define.get_display_name(request.userid), "2fa"]))
     # The user didn't check the verification checkbox (despite HTML5's client-side check)
-    elif action == "disable" and not verify_checkbox:
+    elif not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/disable.html",
                         [define.get_display_name(request.userid), "verify"]))
-    else:
-        # This shouldn't be reached normally (user intentionally altered action?)
-        raise WeasylError("Unexpected")
 
 
 @login_required
@@ -202,13 +186,12 @@ def tfa_generate_recovery_codes_get_(request):
 @twofactorauth_enabled_required
 def tfa_generate_recovery_codes_post_(request):
     # Extract parameters from the form
-    action = request.params['action']
-    verify_checkbox = True if 'verify' in request.params else False
+    verify_checkbox = 'verify' in request.params
     tfaresponse = request.params['tfaresponse']
     tfarecoverycodes = request.params['tfarecoverycodes']
 
     # Does the user want to save the new recovery codes?
-    if action == "save" and verify_checkbox:
+    if verify_checkbox:
         if tfa.verify(request.userid, tfaresponse, consume_recovery_code=False):
             if tfa.store_recovery_codes(request.userid, tfarecoverycodes):
                 # Successfuly stored new recovery codes.
@@ -221,11 +204,8 @@ def tfa_generate_recovery_codes_post_(request):
                 tfarecoverycodes.split(','),
                 "2fa"
             ]))
-    elif action == "save" and not verify_checkbox:
+    elif not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
             tfarecoverycodes.split(','),
             "verify"
         ]))
-    else:
-        # This shouldn't be reached normally (user intentionally altered action?)
-        raise WeasylError("Unexpected")

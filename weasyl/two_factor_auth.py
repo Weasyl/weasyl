@@ -4,6 +4,7 @@ Module for handling 2FA-related functions.
 from __future__ import absolute_import, unicode_literals
 
 import re
+import string
 import urllib
 
 import bcrypt
@@ -34,7 +35,7 @@ def _encrypt_totp_secret(totp_secret):
 
     Returns: An encrypted Fernet token.
     """
-    key = config.config_read_setting(setting='secret_key', section='twofactorauth.totpsecret.encryption.key')
+    key = config.config_read_setting(setting='secret_key', section='two_factor_auth')
     f = Fernet(key)
     return f.encrypt(bytes(totp_secret))
 
@@ -48,7 +49,7 @@ def _decrypt_totp_secret(totp_secret):
 
     Returns: The decrypted plaintext 2FA TOTP secret corresponding to the ciphertext `totp_secret`.
     """
-    key = config.config_read_setting(setting='secret_key', section='twofactorauth.totpsecret.encryption.key')
+    key = config.config_read_setting(setting='secret_key', section='two_factor_auth')
     f = Fernet(key)
     return f.decrypt(bytes(totp_secret))
 
@@ -219,15 +220,18 @@ def generate_recovery_codes():
     """
     Generate a set of valid recovery codes.
 
-    Character set is defined by `libweasyl.security`, (ASCII+Numbers), limited to uppercase via
-    .upper() for readability.
+    Character set is defined as uppercase ASCII characters (string.ascii_uppercase), plus
+    numerals '123456789'. Numeral zero is excluded due to the confusion potential between
+    '0' and 'O'.
 
     Parameters: None
 
     Returns: A set of length `_TFA_RECOVERY_CODES` where each code is `LENGTH_RECOVERY_CODE`
     characters in length.
     """
-    return {security.generate_key(LENGTH_RECOVERY_CODE).upper() for i in range(_TFA_RECOVERY_CODES)}
+    # Generate the character-set to use during the generation of the keys.
+    charset = string.ascii_uppercase + "123456789"
+    return {security.generate_key(size=LENGTH_RECOVERY_CODE, key_characters=charset) for i in range(_TFA_RECOVERY_CODES)}
 
 
 def store_recovery_codes(userid, recovery_codes):
@@ -251,7 +255,8 @@ def store_recovery_codes(userid, recovery_codes):
         if len(code) != LENGTH_RECOVERY_CODE:
             return False
 
-    # Store the recovery codes securely by hashing them with bcrypt (as login.passhash())
+    # Store the recovery codes securely by hashing them with bcrypt
+    hashed_position = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)) for code in codes]
 
     # If above checks have passed, clear current recovery codes for `userid` and store new ones
@@ -261,18 +266,14 @@ def store_recovery_codes(userid, recovery_codes):
         DELETE FROM twofa_recovery_codes
         WHERE userid = %(userid)s;
 
-        INSERT INTO twofa_recovery_codes (userid, recovery_code)
-        SELECT %(userid)s, unnest(%(tfa_recovery_codes)s);
+        INSERT INTO twofa_recovery_codes (userid, recovery_code_number, recovery_code_hash)
+        SELECT %(userid)s, unnest(%(recovery_code_number)s), unnest(%(recovery_code_hash)s);
 
         COMMIT;
-    """, userid=userid, tfa_recovery_codes=list(hashed_codes))
+    """, userid=userid, recovery_code_number=list(hashed_position), recovery_code_hash=list(hashed_codes))
 
-    # Verify if the atomic transaction completed; if `code` (one of the new recovery codes) is
-    #   valid at this point, the new codes were added
-    if is_recovery_code_valid(userid, code, consume_recovery_code=False):
-        return True
-    else:
-        return False
+    # Return that we added the codes successfully
+    return True
 
 
 def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
@@ -298,19 +299,19 @@ def is_recovery_code_valid(userid, tfa_code, consume_recovery_code=True):
         return False
     # First extract the bcrypt hashes.
     recovery_code_hash_query = d.engine.execute("""
-        SELECT recovery_code
+        SELECT recovery_code_hash
         FROM twofa_recovery_codes
         WHERE userid = %(userid)s
     """, userid=userid).fetchall()
     # Then attempt to hash the input code versus the stored code(s).
     for row in recovery_code_hash_query:
-        if bcrypt.checkpw(tfa_code.upper().encode('utf-8'), row['recovery_code'].encode('utf-8')):
+        if bcrypt.checkpw(tfa_code.upper().encode('utf-8'), row['recovery_code_hash'].encode('utf-8')):
             # We have a match! If we are deleting the code, do it now.
             if consume_recovery_code:
                 d.engine.execute("""
                     DELETE FROM twofa_recovery_codes
-                    WHERE userid = %(userid)s AND recovery_code = %(recovery_code)s
-                """, userid=userid, recovery_code=row['recovery_code'])
+                    WHERE userid = %(userid)s AND recovery_code_hash = %(recovery_code_hash)s
+                """, userid=userid, recovery_code_hash=row['recovery_code_hash'])
             # After deletion--if applicable--return that we succeeded.
             return True
     # If we get here, ``tfa_code`` did not match any stored codes. Return that we failed.

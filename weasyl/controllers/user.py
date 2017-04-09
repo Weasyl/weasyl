@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import urlparse
+
 import arrow
 from pyramid.httpexceptions import (
     HTTPFound,
@@ -166,7 +168,8 @@ def signin_2fa_auth_post_(request):
                 errorcode.error_messages['TwoFactorAuthenticationZeroRecoveryCodesRemaining'],
                 [["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]]
             ))
-        raise HTTPSeeOther(location=ref)
+        # Return to the target page, restricting to the path portion of 'ref' per urlparse.
+        raise HTTPSeeOther(location=urlparse.urlparse(ref).path)
     elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
         _cleanup_2fa_session()

@@ -5,7 +5,7 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
   <form method="POST" class="form skinny clear" action="/control/2fa/generate_recovery_codes">
     $if error == "2fa":
       <div id="signin_error">
-        <strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.<strong>
+        <strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.</strong>
       </div>
     $elif error == "verify":
       <div id="signin_error">
@@ -40,7 +40,6 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
     <input type="text" id="tfa-regenerate-codes" maxlength="24" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
     <label><input class="checkbox" type="checkbox" name="verify" required /> I confirm that I have saved the above new recovery codes.</label>
 
-    <input type="hidden" value="${','.join(tfa_recovery_codes)}" name="tfarecoverycodes" />
     $:{CSRF()}
 
     <div style="padding-top: 1em;">

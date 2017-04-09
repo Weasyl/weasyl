@@ -20,7 +20,9 @@ $:{RENDER("common/stage_title.html", ["Disable 2FA", "Two-Factor Authentication"
     <div style="padding-top: 1em;">
       <label><input class="checkbox" type="checkbox" name="verify" required /> I confirm that I want to disable 2FA</label>
     </div>
+
     $:{CSRF()}
+
     <div style="padding-top: 1em;">
       <a class="button negative" href="/control/2fa/status">Cancel</a>
       <button class="button positive">Disable 2FA</button>

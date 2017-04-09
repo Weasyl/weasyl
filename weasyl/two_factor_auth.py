@@ -231,7 +231,7 @@ def generate_recovery_codes():
     """
     # Generate the character-set to use during the generation of the keys.
     charset = string.ascii_uppercase + "123456789"
-    return {security.generate_key(size=LENGTH_RECOVERY_CODE, key_characters=charset) for i in range(_TFA_RECOVERY_CODES)}
+    return [security.generate_key(size=LENGTH_RECOVERY_CODE, key_characters=charset) for i in range(_TFA_RECOVERY_CODES)]
 
 
 def store_recovery_codes(userid, recovery_codes):

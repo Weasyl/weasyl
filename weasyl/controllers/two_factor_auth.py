@@ -16,6 +16,37 @@ from weasyl.error import WeasylError
 from weasyl.profile import invalidate_other_sessions
 
 
+def _set_totp_code_on_session(totp_code):
+    sess = define.get_weasyl_session()
+    sess.additional_data['2fa_totp_code'] = totp_code
+    sess.save = True
+
+
+def _get_totp_code_from_session():
+    sess = define.get_weasyl_session()
+    return sess.additional_data['2fa_totp_code']
+
+
+def _set_recovery_codes_on_session(recovery_codes):
+    sess = define.get_weasyl_session()
+    sess.additional_data['2fa_recovery_codes'] = recovery_codes
+    sess.save = True
+
+
+def _get_recovery_codes_from_session():
+    sess = define.get_weasyl_session()
+    return sess.additional_data['2fa_recovery_codes']
+
+
+def _cleanup_session():
+    sess = define.get_weasyl_session()
+    if '2fa_recovery_codes' in sess.additional_data:
+        del sess.additional_data['2fa_recovery_codes']
+    if '2fa_totp_code' in sess.additional_data:
+        del sess.additional_data['2fa_totp_code']
+    sess.save = True
+
+
 @login_required
 def tfa_status_get_(request):
     return Response(define.webpage(request.userid, "control/2fa/status.html", [
@@ -50,6 +81,7 @@ def tfa_init_post_(request):
     # The user has authenticated, so continue with the initialization process.
     else:
         tfa_secret, tfa_qrcode = tfa.init(request.userid)
+        _set_totp_code_on_session(tfa_secret)
         return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
             define.get_display_name(request.userid),
             tfa_secret,
@@ -80,21 +112,23 @@ def tfa_init_qrcode_get_(request):
 def tfa_init_qrcode_post_(request):
     # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
     tfaresponse = request.params['tfaresponse'].replace(' ', '')
+    tfa_secret_sess = _get_totp_code_from_session()
 
     # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
-    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, request.params['tfasecret'], tfaresponse)
+    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, tfa_secret_sess, tfaresponse)
 
     # The 2FA TOTP code did not match with the generated 2FA secret
     if not tfa_secret:
         return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
             define.get_display_name(request.userid),
-            request.params['tfasecret'],
-            tfa.generate_tfa_qrcode(request.userid, request.params['tfasecret']),
+            tfa_secret_sess,
+            tfa.generate_tfa_qrcode(request.userid, tfa_secret_sess),
             "2fa"
         ]))
     else:
+        _set_recovery_codes_on_session(','.join(recovery_codes))
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                        [tfa_secret, recovery_codes, None]))
+                        [recovery_codes, None]))
 
 
 @login_required
@@ -121,9 +155,9 @@ def tfa_init_verify_get_(request):
 def tfa_init_verify_post_(request):
     # Extract parameters from the form
     verify_checkbox = 'verify' in request.params
-    tfasecret = request.params['tfasecret']
+    tfasecret = _get_totp_code_from_session()
     tfaresponse = request.params['tfaresponse']
-    tfarecoverycodes = request.params['tfarecoverycodes']
+    tfarecoverycodes = _get_recovery_codes_from_session()
 
     # Does the user want to proceed with enabling 2FA?
     if verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
@@ -134,15 +168,17 @@ def tfa_init_verify_post_(request):
         if tfa.activate(request.userid, tfasecret, tfaresponse):
             # Invalidate all other login sessions
             invalidate_other_sessions(request.userid)
+            # Clean up the stored session variables
+            _cleanup_session()
             raise HTTPSeeOther(location="/control/2fa/status")
         # TOTP+2FA Secret did not validate
         else:
             return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                            [tfasecret, tfarecoverycodes.split(','), "2fa"]))
+                            [tfarecoverycodes.split(','), "2fa"]))
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                        [tfasecret, tfarecoverycodes.split(','), "verify"]))
+                        [tfarecoverycodes.split(','), "verify"]))
 
 
 @login_required
@@ -175,8 +211,10 @@ def tfa_disable_post_(request):
 @login_required
 @twofactorauth_enabled_required
 def tfa_generate_recovery_codes_get_(request):
+    recovery_codes = tfa.generate_recovery_codes()
+    _set_recovery_codes_on_session(','.join(recovery_codes))
     return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
-        tfa.generate_recovery_codes(),
+        recovery_codes,
         None
     ]))
 
@@ -188,12 +226,14 @@ def tfa_generate_recovery_codes_post_(request):
     # Extract parameters from the form
     verify_checkbox = 'verify' in request.params
     tfaresponse = request.params['tfaresponse']
-    tfarecoverycodes = request.params['tfarecoverycodes']
+    tfarecoverycodes = _get_recovery_codes_from_session()
 
     # Does the user want to save the new recovery codes?
     if verify_checkbox:
         if tfa.verify(request.userid, tfaresponse, consume_recovery_code=False):
             if tfa.store_recovery_codes(request.userid, tfarecoverycodes):
+                # Clean up the stored session variables
+                _cleanup_session()
                 # Successfuly stored new recovery codes.
                 raise HTTPSeeOther(location="/control/2fa/status")
             else:

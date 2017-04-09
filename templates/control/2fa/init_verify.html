@@ -1,4 +1,4 @@
-$def with (tfa_secret, tfa_recovery_codes, error)
+$def with (tfa_recovery_codes, error)
 $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 3", "Two-Factor Authentication", "/control/2fa/status"])}
 
 <div class="content form clear">
@@ -42,8 +42,6 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 3", "Two-Factor Authenti
     <input type="text" id="tfa-init-verify" maxlength="7" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
     <label><input class="checkbox" type="checkbox" name="verify" required /> I have printed or saved the above recovery codes and want to enable 2FA.</label>
 
-    <input type="hidden" value="${','.join(tfa_recovery_codes)}" name="tfarecoverycodes" />
-    <input type="hidden" value="${tfa_secret}" name="tfasecret" />
     $:{CSRF()}
 
     <div style="padding-top: 1em;">

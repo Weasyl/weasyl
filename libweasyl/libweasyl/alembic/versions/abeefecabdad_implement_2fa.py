@@ -19,9 +19,7 @@ def upgrade():
     # Create a table to store 2FA backup codes for use when the authenticator is unavailable.
     op.create_table('twofa_recovery_codes',
         sa.Column('userid', sa.Integer(), nullable=False),
-        sa.Column('recovery_code_number', sa.Integer(), nullable=False),
         sa.Column('recovery_code_hash', sa.String(length=100), nullable=False),
-        sa.PrimaryKeyConstraint('userid', 'recovery_code_number'),
         sa.ForeignKeyConstraint(['userid'], ['login.userid'], name='twofa_recovery_codes_userid_fkey', onupdate='CASCADE', ondelete='CASCADE'),
     )
     op.create_index('ind_twofa_recovery_codes_userid', 'twofa_recovery_codes', ['userid'])

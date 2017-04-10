@@ -22,9 +22,9 @@ recovery_code_hashed = bcrypt.hashpw(recovery_code.encode('utf-8'), bcrypt.gensa
 def _insert_recovery_code(userid):
     """Insert the test-suite's pre-hashed recovery code"""
     d.engine.execute("""
-        INSERT INTO twofa_recovery_codes (userid, recovery_code_number, recovery_code_hash)
-        VALUES (%(userid)s, %(recovery_code_number)s, %(recovery_code_hash)s)
-    """, userid=userid, recovery_code_number=1, recovery_code_hash=recovery_code_hashed)
+        INSERT INTO twofa_recovery_codes (userid, recovery_code_hash)
+        VALUES (%(userid)s, %(recovery_code_hash)s)
+    """, userid=userid, recovery_code_hash=recovery_code_hashed)
 
 
 @pytest.mark.usefixtures('db')

@@ -256,7 +256,6 @@ def store_recovery_codes(userid, recovery_codes):
             return False
 
     # Store the recovery codes securely by hashing them with bcrypt
-    hashed_position = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)) for code in codes]
 
     # If above checks have passed, clear current recovery codes for `userid` and store new ones
@@ -266,11 +265,11 @@ def store_recovery_codes(userid, recovery_codes):
         DELETE FROM twofa_recovery_codes
         WHERE userid = %(userid)s;
 
-        INSERT INTO twofa_recovery_codes (userid, recovery_code_number, recovery_code_hash)
-        SELECT %(userid)s, unnest(%(recovery_code_number)s), unnest(%(recovery_code_hash)s);
+        INSERT INTO twofa_recovery_codes (userid, recovery_code_hash)
+        SELECT %(userid)s, unnest(%(recovery_code_hash)s);
 
         COMMIT;
-    """, userid=userid, recovery_code_number=list(hashed_position), recovery_code_hash=list(hashed_codes))
+    """, userid=userid, recovery_code_hash=list(hashed_codes))
 
     # Return that we added the codes successfully
     return True

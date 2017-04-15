@@ -214,15 +214,14 @@ def web_input_request_method(request, *required, **kwargs):
 # were registered. Note that these will not run if an exception is thrown that isn't handled by
 # our exception view.
 def set_cookie_on_response(request, name=None, value='', max_age=None, path='/', domain=None,
-                           secure=False, httponly=False, comment=None, expires=None,
-                           overwrite=False):
+                           secure=False, httponly=False, comment=None, overwrite=False):
     """
     Registers a callback on the request to set a cookie in the response.
     Parameters have the same meaning as ``pyramid.response.Response.set_cookie``.
     """
     def callback(request, response):
         response.set_cookie(name, value, max_age, path, domain, secure, httponly, comment,
-                            expires, overwrite)
+                            overwrite)
     request.add_response_callback(callback)
 
 

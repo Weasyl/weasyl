@@ -97,7 +97,10 @@ $def with (profile, userinfo, relationship)
       $if([i for i in info if i]):
         <h4>
           $if(info[0]):
-            <strong>${info[0]}</strong>
+            $if relationship['follower']:
+              <strong>${info[0]}</strong> <em>follows you</em>
+            $else:
+              <strong>${info[0]}</strong>
           $if([i for i in info[:1] if i] and info[1]):
             <span>/</span>
           ${info[1]}

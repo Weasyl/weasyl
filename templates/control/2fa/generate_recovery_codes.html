@@ -2,7 +2,7 @@ $def with (tfa_recovery_codes, error)
 $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Authentication", "/control/2fa/status"])}
 
 <div class="content form clear">
-  <form method="POST" class="form skinny clear" action="/control/2fa/generate_recovery_codes">
+  <div class="constrained">
     $if error == "2fa":
       <div id="signin_error">
         <strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.
@@ -23,17 +23,22 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
       Before proceeding, print or save these codes to a secure place. In the event you lose access
       to your authenticator app, you will need these codes to regain access to your Weasyl account.
       If you no longer have access to your authenticator app, please <a href="/control/2fa/disable">disable 2FA</a>
-      instead, then re-enable it to reinitialize your authenticator.
+      instead. You may then set up another authenticator.
     </p>
+  </div> <!-- /div.constrained -->
 
+  <form method="POST" class="form skinny clear" action="/control/2fa/generate_recovery_codes">
     <h3>Your new recovery codes will be:</h3>
     <ol>
       $for code in tfa_recovery_codes:
         <li>${code[0:4] + ' ' + code[4:8] + ' ' + code[8:12] + ' ' + code[12:16] + ' ' + code[16:20]}</li>
     </ol>
+
+    <br />
+
     <p>
       These codes are one-time use, and upon successful use will not be able to be reused or retrieved.
-      If and when used, mark each code off. Codes may be used in any order.
+      Codes may be used in any order. Cross each code off when used.
     </p>
 
     <label for="tfa-regenerate-codes">Enter 2FA token or Recovery Code</label>

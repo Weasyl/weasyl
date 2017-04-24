@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 
+import arrow
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPSeeOther
 
@@ -30,18 +31,24 @@ def _get_totp_code_from_session():
 def _set_recovery_codes_on_session(recovery_codes):
     sess = define.get_weasyl_session()
     sess.additional_data['2fa_recovery_codes'] = recovery_codes
+    sess.additional_data['2fa_recovery_codes_timestamp'] = arrow.now().timestamp
     sess.save = True
 
 
 def _get_recovery_codes_from_session():
     sess = define.get_weasyl_session()
-    return sess.additional_data['2fa_recovery_codes']
+    if '2fa_recovery_codes' in sess.additional_data:
+        return sess.additional_data['2fa_recovery_codes']
+    else:
+        return None
 
 
 def _cleanup_session():
     sess = define.get_weasyl_session()
     if '2fa_recovery_codes' in sess.additional_data:
         del sess.additional_data['2fa_recovery_codes']
+    if '2fa_recovery_codes_timestamp' in sess.additional_data:
+        del sess.additional_data['2fa_recovery_codes_timestamp']
     if '2fa_totp_code' in sess.additional_data:
         del sess.additional_data['2fa_totp_code']
     sess.save = True
@@ -210,13 +217,70 @@ def tfa_disable_post_(request):
 
 @login_required
 @twofactorauth_enabled_required
+def tfa_generate_recovery_codes_verify_password_get_(request):
+    return Response(define.webpage(
+        request.userid,
+        "control/2fa/generate_recovery_codes_verify_password.html",
+        [None]
+    ))
+
+
+@token_checked
+@login_required
+@twofactorauth_enabled_required
+def tfa_generate_recovery_codes_verify_password_post_(request):
+    userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
+                                               request.params['password'], session=False)
+    # The user's password failed to authenticate
+    if status == "invalid":
+        return Response(define.webpage(
+            request.userid,
+            "control/2fa/generate_recovery_codes_verify_password.html",
+            ["password"]
+        ))
+    # The user has authenticated, so continue with generating the new recovery codes.
+    else:
+        # Edge case prevention: Stop the user from having two Weasyl sessions open and trying
+        #   to proceed through the generation process with two sets of recovery codes.
+        invalidate_other_sessions(request.userid)
+        # Edge case prevention: Do we have existing (and recent) codes on this session? Prevent
+        #   a user from confusing themselves if they visit the request page twice.
+        sess = define.get_weasyl_session()
+        gen_rec_codes = True
+        if '2fa_recovery_codes_timestamp' in sess.additional_data:
+            # Are the codes on the current session < 30 minutes old?
+            tstamp = sess.additional_data['2fa_recovery_codes_timestamp']
+            if arrow.now().timestamp - tstamp < 1800:
+                # We have recent codes on the session, use them instead of generating fresh codes.
+                recovery_codes = sess.additional_data['2fa_recovery_codes'].split(',')
+                gen_rec_codes = False
+        if gen_rec_codes:
+            # Either this is a fresh request to generate codes, or the timelimit was exceeded.
+            recovery_codes = tfa.generate_recovery_codes()
+            _set_recovery_codes_on_session(','.join(recovery_codes))
+        return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
+            recovery_codes,
+            None
+        ]))
+
+
+@login_required
+@twofactorauth_enabled_required
 def tfa_generate_recovery_codes_get_(request):
-    recovery_codes = tfa.generate_recovery_codes()
-    _set_recovery_codes_on_session(','.join(recovery_codes))
-    return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
-        recovery_codes,
-        None
-    ]))
+    """
+    IMPLEMENTATION NOTE: This page cannot be accessed directly (HTTP GET), as the user may not have verified
+    control over the account by providing their password. Further, prevent edge cases where a user may
+    (un)intentionally attempt to encounter edge cases, such as having two browsers or windows open and generate
+    a situation where it isn't obvious which set of recovery codes will be saved; all other sessions are cleared
+    in this path to prevent this. That said, be nice and tell the user where to go to proceed.
+    """
+    # Inform the user of where to go to begin
+    return Response(define.errorpage(
+        request.userid,
+        """This page cannot be accessed directly. Please click <b>Generate Recovery Codes</b>, below, in order to
+        begin generating new recovery codes.""",
+        [["Generate Recovery Codes", "/control/2fa/status"], ["Return to the Home Page", "/"]]
+    ))
 
 
 @login_required

@@ -1,0 +1,47 @@
+Notes on collaborative filtering enhancements for weasyl
+
+* Did this many years ago on a weaker computer. Took a few minutes to generate recommendations for one user.
+* Reasons this might be faster now? Faster computer. Using numpy and pandas and scipy.
+  
+* Getting the data:
+weasyl=# COPY (SELECT userid, targetid FROM favorite WHERE type='s') TO '/tmp/favorites.csv' DELIMITER ',' CSV HEADER;
+COPY 4389453
+
+* Note that in this format there's only 1 possible rating
+Once this is off the ground, we'll have a new way to rate items:*
+** Users can view their recommendations for the day and mark them as 'favorite', 'like', 'neutral', and 'dislike'.
+** Likes and dislikes will only be used for recommendations and nothing else.
+** 'no opinion' is just a way to reset the value, but also means that you won't be recommended that item again.
+Once this is set up a favorite is worth 2, a like is worth 1, and a dislike is worth -1.
+
+* Text for this:
+"You can mark any item here as a favorite if you wish.
+You may also an item as something you like. This doesn't add it to your favorites but will be used to improve your recommendations. A 'like' is weighed about half as much as a favorite.
+If you don't want to see further items like this, you can mark it as disliked. We'll avoid showing you content like this in the future.
+Note that while favorites may be shared, only you can see what content you've liked or disliked.
+If you don't have a strong opinion about the content but don't want it to appear in your recommendations again, mark it as 'neutral'. We won't recommend it to you again and it won't have an impact on your future recommendations."
+
+* Changes to display on detail pages:
+We should actually list likes on items along with favorites and views. Why not?
+When a user visits a page, they should have buttons for like, dislike, neutral, and favorite lined up. There should be information that explains what the current setting means.
+Obviously we don't advertise dislikes.
+
+* Should we add this to our recently popular evaluation?
+Yes. It's just a slightly different number.
+
+Trying to get data into pandas:
+
+```
+import numpy as np
+import pandas as pd
+from pandas import Series, DataFrame
+
+
+rating = pd.read_csv('/home/hyena/favorites.csv')
+rating['rating'] = 2  # Default value of favorites.
+rp = rating.pivot_table(columns=['userid'], index=['targetid'], values='rating')
+```
+
+This results in running out of memory, which makes sense: We have a lot of users and several million items.
+
+As a workaround we try to create a sparse representation by calling 'to_sparse()' on the rating dataframe before pivoting. Pivoting still takes a very long time.

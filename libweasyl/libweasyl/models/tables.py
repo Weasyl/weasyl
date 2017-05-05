@@ -288,7 +288,7 @@ character = Table(
     Column('height', String(length=100), nullable=False, server_default=''),
     Column('weight', String(length=100), nullable=False, server_default=''),
     Column('species', String(length=100), nullable=False, server_default=''),
-    Column('content', Text(), nullable=False, server_default=text(u"''::text")),
+    Column('content', Text(), nullable=False, server_default=u""),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',

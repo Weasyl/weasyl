@@ -288,7 +288,7 @@ character = Table(
     Column('height', String(length=100), nullable=False, server_default=''),
     Column('weight', String(length=100), nullable=False, server_default=''),
     Column('species', String(length=100), nullable=False, server_default=''),
-    Column('content', Text(), nullable=False, server_default=text(u"''::text")),
+    Column('content', Text(), nullable=False, server_default=u""),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
@@ -897,7 +897,7 @@ userinfo = Table(
     'userinfo', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('birthday', WeasylTimestampColumn(), nullable=False),
-    Column('gender', String(length=25), nullable=False, server_default=''),
+    Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),
 )

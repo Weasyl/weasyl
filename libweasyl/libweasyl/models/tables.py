@@ -185,7 +185,7 @@ emailverify = Table(
 favorite = Table(
     'favorite', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('targetid', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
     Column('type', String(length=5), primary_key=True, nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default=''),
@@ -879,8 +879,8 @@ userstats = Table(
 views = Table(
     'views', metadata,
     Column('viewer', String(length=127), primary_key=True, nullable=False),
-    Column('targetid', Integer(), primary_key=True, nullable=False),
-    Column('type', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
+    Column('type', Integer(), primary_key=True, nullable=False, autoincrement=False),
 )
 
 

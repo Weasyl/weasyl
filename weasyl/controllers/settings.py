@@ -240,7 +240,7 @@ def control_editpreferences_get_(request):
 @token_checked
 def control_editpreferences_post_(request):
         form = request.web_input(
-            rating="", sfwrating="", custom_thumbs="", tagging="", edittagging="",
+            rating="", sfwrating="", custom_thumbs="", tagging="",
             hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
             shouts="", notes="", filter="",
             follow_s="", follow_c="", follow_f="", follow_t="",
@@ -255,7 +255,6 @@ def control_editpreferences_post_(request):
         preferences.twelvehour = bool(form.twelvehour)
         preferences.rating = rating
         preferences.tagging = bool(form.tagging)
-        preferences.edittagging = bool(form.edittagging)
         preferences.hideprofile = bool(form.hideprofile)
         preferences.hidestats = bool(form.hidestats)
         preferences.hidefavorites = bool(form.hidefavorites)

@@ -25,3 +25,8 @@ url = postgresql+psycopg2cffi:///weasyl
 [recaptcha-lo.weasyl.com]
 public_key = 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
 private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+
+[two_factor_auth]
+# This key MUST be changed when in production;
+# See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
+secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=

@@ -683,6 +683,7 @@ sessions = Table(
 )
 
 Index('ind_sessions_created_at', sessions.c.created_at)
+Index('ind_sessions_userid', sessions.c.userid)
 
 
 siteupdate = Table(

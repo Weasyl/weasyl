@@ -19,7 +19,7 @@ from weasyl import define as d
 # Number of recovery codes to provide the user
 _TFA_RECOVERY_CODES = 10
 # Work factor for bcrypt to be used in hashing each recovery code
-BCRYPT_WORK_FACTOR = 10
+BCRYPT_WORK_FACTOR = 4
 # This length is configurable as needed; see generate_recovery_codes() below for keyspace/character set
 LENGTH_RECOVERY_CODE = 20
 # TOTP code length of 6 is the standard length, and is supported by Google Authenticator

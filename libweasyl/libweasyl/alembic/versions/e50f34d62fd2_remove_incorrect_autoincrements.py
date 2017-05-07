@@ -15,8 +15,8 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.execute("DROP SEQUENCE favorite_targetid_seq CASCADE")
-    op.execute("DROP SEQUENCE views_targetid_seq CASCADE")
+    op.execute("DROP SEQUENCE IF EXISTS favorite_targetid_seq CASCADE")
+    op.execute("DROP SEQUENCE IF EXISTS views_targetid_seq CASCADE")
 
 
 def downgrade():

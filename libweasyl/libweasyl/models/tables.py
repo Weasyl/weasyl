@@ -61,8 +61,8 @@ Index('ind_blocktag_userid', blocktag.c.userid)
 charcomment = Table(
     'charcomment', metadata,
     Column('commentid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
-    Column('targetid', Integer()),
+    Column('userid', Integer(), nullable=False),
+    Column('targetid', Integer(), nullable=False),
     Column('parentid', Integer(), nullable=False, server_default='0'),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -200,7 +200,7 @@ folder = Table(
     'folder', metadata,
     Column('folderid', Integer(), primary_key=True, nullable=False),
     Column('parentid', Integer(), nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('title', String(length=100), nullable=False),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
@@ -217,7 +217,7 @@ Index('ind_folder_userid', folder.c.userid)
 
 forgotpassword = Table(
     'forgotpassword', metadata,
-    Column('userid', Integer(), unique=True),
+    Column('userid', Integer(), unique=True, nullable=False),
     Column('token', String(length=100), primary_key=True, nullable=False),
     Column('set_time', Integer(), nullable=False),
     Column('link_time', Integer(), nullable=False, server_default='0'),
@@ -246,7 +246,7 @@ Index('ind_frienduser_userid', frienduser.c.userid)
 character = Table(
     'character', metadata,
     Column('charid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('char_name', String(length=100), nullable=False, server_default=''),
     Column('age', String(length=100), nullable=False, server_default=''),
@@ -291,7 +291,7 @@ Index('ind_ignoreuser_userid', ignoreuser.c.userid)
 journal = Table(
     'journal', metadata,
     Column('journalid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('title', String(length=200), nullable=False),
     Column('rating', RatingColumn, nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -311,8 +311,8 @@ Index('ind_journal_userid', journal.c.userid)
 journalcomment = Table(
     'journalcomment', metadata,
     Column('commentid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
-    Column('targetid', Integer()),
+    Column('userid', Integer(), nullable=False),
+    Column('targetid', Integer(), nullable=False),
     Column('parentid', Integer(), nullable=False, server_default='0'),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -405,8 +405,8 @@ Index('ind_media_media_links_described_with_id', media_media_links.c.described_w
 message = Table(
     'message', metadata,
     Column('noteid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
-    Column('otherid', Integer()),
+    Column('userid', Integer(), nullable=False),
+    Column('otherid', Integer(), nullable=False),
     Column('user_folder', Integer(), nullable=False, server_default='0'),
     Column('other_folder', Integer(), nullable=False, server_default='0'),
     Column('title', String(length=100), nullable=False),
@@ -689,7 +689,7 @@ Index('ind_sessions_userid', sessions.c.userid)
 siteupdate = Table(
     'siteupdate', metadata,
     Column('updateid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('title', String(length=100), nullable=False),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -701,7 +701,7 @@ submission = Table(
     'submission', metadata,
     Column('submitid', Integer(), primary_key=True, nullable=False),
     Column('folderid', Integer(), nullable=True),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('title', String(length=200), nullable=False),
     Column('content', Text(), nullable=False),

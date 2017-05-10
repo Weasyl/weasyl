@@ -753,6 +753,7 @@
             'abbr', 'time', 'code', 'var', 'samp', 'kbd',
             'sub', 'sup', 'i', 'b', 'u', 'mark',
             'ruby', 'rt', 'rp', 'bdi', 'bdo', 'span', 'br', 'wbr',
+            'del',
             'table', 'caption',
             'tbody', 'thead', 'tfoot', 'tr', 'td', 'th',
             'a', 'img'

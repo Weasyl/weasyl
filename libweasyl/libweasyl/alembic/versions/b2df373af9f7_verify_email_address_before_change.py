@@ -5,13 +5,13 @@ the email on an account, requiring the user to provide a token to confirm owners
 before changing the email on the user's account.
 
 Revision ID: b2df373af9f7
-Revises: 40c00abab5f9
+Revises: 3f18ecfaf637
 Create Date: 2017-03-15 01:09:34.651344
 """
 
 # revision identifiers, used by Alembic.
 revision = 'b2df373af9f7'
-down_revision = '40c00abab5f9'
+down_revision = '3f18ecfaf637'
 
 from alembic import op
 import sqlalchemy as sa

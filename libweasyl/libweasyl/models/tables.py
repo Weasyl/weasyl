@@ -7,6 +7,7 @@ from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn, enum_column)
 from libweasyl import constants
 
+
 metadata = MetaData()
 
 

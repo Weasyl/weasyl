@@ -200,6 +200,16 @@ Index('ind_favorite_userid', favorite.c.userid)
 Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid, unique=False)
 
 
+recommendation_rating = Table(
+    'recommendation_rating', metadata,
+    Column('userid', Integer(), primary_key=True, nullable=False),
+    Column('submitid', Integer(), primary_key=True, nullable=False),
+    Column('rating', Integer(), nullable=False),
+    default_fkey(['userid'], ['login.userid'], name='recommendation_rating_userid_fkey'),
+    default_fkey(['submitid'], ['submission.submitid'], name='recommendation_rating_submitid_fkey'),
+)
+
+
 folder = Table(
     'folder', metadata,
     Column('folderid', Integer(), primary_key=True, nullable=False),

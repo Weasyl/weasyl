@@ -14,6 +14,7 @@ from __future__ import absolute_import
 
 from collections import namedtuple
 
+from enum import Enum
 import numpy as np
 from pandas import DataFrame
 import scipy.sparse as sparse
@@ -21,6 +22,16 @@ import scipy.sparse as sparse
 from libweasyl.cache import region
 
 from weasyl import define as d
+from weasyl.error import WeasylError
+from weasyl.errorcode import unexpected
+
+
+class RecommendationRating(Enum):
+    """Gives meaningful names to different rating constants."""
+    DISLIKE = -1
+    NEUTRAL = 0
+    LIKE = 1
+    FAVORITE = 2
 
 
 # TODO(hyena): Combine tables of favorites with likes/dislikes
@@ -32,6 +43,49 @@ from weasyl import define as d
 # A named tuple representing everything we need for generating user-to-user similarities.
 # Updated periodically.
 _Similarities = namedtuple('_Similarities', 'user_similarity, ratings, user_map, submit_map')
+
+
+def clear_user_rating(userid, submitid):
+    """
+    Clears a user's rating for an item.
+
+    Note that this is not quite the same as rating it zero: An item rating zero will not
+    show up in recommendations.
+    @param userid:
+    @param submitid:
+    @return: The number of rows cleared (1 or 0).
+    """
+    return d.engine.execute(
+        "DELETE FROM recommendation_rating WHERE (userid, submitid) = (%s, %s)",
+        [userid, submitid]).rowcount
+
+
+def set_user_rating(userid, submitid, rating):
+    """
+    Sets a user's rating for an item.
+
+    Throws an exception if rating isn't valid.
+    @param userid:
+    @param submitid:
+    @param rating:
+    @return:
+    """
+    if not rating in RecommendationRating:
+        raise WeasylError(unexpected)
+    return d.engine.execute("""
+        INSERT INTO recommendation_rating
+            VALUES (%(userid)s, %(submitid)s, %(rating)s)
+            ON CONFLICT (userid, submitid) DO UPDATE SET rating = %(rating)s
+        """, userid=userid, submitid=submitid, rating=rating.value).rowcount
+
+
+def get_user_rating(userid, submitid):
+    rating = d.engine.scalar(
+        "SELECT rating FROM recommendation_rating WHERE userid=%(userid)s AND submitid=%(submitid)s",
+        userid=userid, submitid=submitid)
+    if rating is None:
+        return rating
+    return RecommendationRating(rating)
 
 
 @region.cache_on_arguments()

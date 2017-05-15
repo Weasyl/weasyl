@@ -570,15 +570,13 @@ def get_userid_list(target):
     return [userid for (userid,) in query]
 
 
-def get_ownerid(submitid=None, charid=None, journalid=None, commishid=None):
+def get_ownerid(submitid=None, charid=None, journalid=None):
     if submitid:
         return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
         return engine.scalar("SELECT userid FROM character WHERE charid = %(id)s", id=charid)
     if journalid:
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
-    if commishid:
-        return engine.scalar("SELECT userid FROM commission WHERE commishid = %(id)s", id=commishid)
 
 
 def get_random_set(target, count=None):
@@ -930,7 +928,7 @@ _content_types = {
 
 def common_view_content(userid, targetid, feature):
     """
-    Return True if a record was successfully inserted into the contentview table
+    Return True if a record was successfully inserted into the views table
     and the page view statistic incremented, else False.
     """
     if feature == "profile" and targetid == userid:

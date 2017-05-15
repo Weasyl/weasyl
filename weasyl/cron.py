@@ -38,7 +38,7 @@ def run_periodic_tasks():
             submission.select_recently_popular.refresh()
             log.msg('refreshed recently popular submissions')
 
-        # Delete all records from contentview table
+        # Delete all records from views table
         # Every 15 minutes
         if now.minute % 15 == 0:
             db.execute("DELETE FROM views")

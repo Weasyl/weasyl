@@ -3,6 +3,8 @@
 
 from __future__ import absolute_import
 
+import json
+
 import pytest
 import pyramid.testing
 from pyramid.httpexceptions import HTTPNotFound
@@ -13,7 +15,15 @@ config._in_test = True  # noqa
 
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
-from weasyl import cache, define, emailer, macro, media, middleware
+from weasyl import (
+    cache,
+    commishinfo,
+    define,
+    emailer,
+    macro,
+    media,
+    middleware
+)
 
 
 cache.region.configure('dogpile.cache.memory')
@@ -100,3 +110,13 @@ def cache_(request):
 @pytest.fixture
 def no_csrf(monkeypatch):
     monkeypatch.setattr(define, 'get_token', lambda: '')
+
+
+@pytest.fixture(autouse=True)
+def deterministic_marketplace_tests(monkeypatch):
+    rates = """{"base":"USD","date":"2017-04-03","rates":{"AUD":1.3143,"BGN":1.8345,"BRL":3.1248,"CAD":1.3347,"CHF":1.002,"CNY":6.8871,"CZK":25.367,"DKK":6.9763,"GBP":0.79974,"HKD":7.7721,"HRK":6.9698,"HUF":289.54,"IDR":13322.0,"ILS":3.6291,"INR":64.985,"JPY":111.28,"KRW":1117.2,"MXN":18.74,"MYR":4.4275,"NOK":8.5797,"NZD":1.4282,"PHP":50.142,"PLN":3.9658,"RON":4.2674,"RUB":56.355,"SEK":8.9246,"SGD":1.3975,"THB":34.385,"TRY":3.6423,"ZAR":13.555,"EUR":0.938}}"""
+
+    def _fetch_rates():
+        return json.loads(rates)
+
+    monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)

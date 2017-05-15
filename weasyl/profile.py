@@ -63,7 +63,6 @@ Config = create_configuration([
     BoolOption("twelvehour", "2"),
     ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "m", "a", "p"]))),
     BoolOption("tagging", "k"),
-    BoolOption("edittagging", "r"),
     BoolOption("hideprofile", "h"),
     BoolOption("hidestats", "i"),
     BoolOption("hidefavorites", "v"),
@@ -590,7 +589,10 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
             ON CONFLICT (userid) DO
               UPDATE SET email = %(newemail)s, token = %(token)s, createtimestamp = NOW()
         """, userid=userid, newemail=newemail, token=token)
+
+        # Then add text to `changes_made` telling that we have completed the email change request, and how to proceed.
         changes_made += "Your email change request is currently pending. An email has been sent to " + newemail + ". Follow the instructions within to finalize your email address change.\n"
+
         # Send out the email containing the verification token.
         emailer.append([newemail], None, "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
 
@@ -601,6 +603,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         # Invalidate all sessions for `userid` except for the current one
         invalidate_other_sessions(userid)
 
+        # Then add to `changes_made` detailing that the password change has successfully occurred.
         changes_made += "Your password has been successfully changed. As a security precaution, you have been logged out of all other active sessions."
 
     if changes_made != "":

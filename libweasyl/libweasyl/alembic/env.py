@@ -18,6 +18,11 @@ fileConfig(config.config_file_name)
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+extra_config = {
+    'compare_type': True,
+    'compare_server_default': True,
+}
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
 
@@ -31,7 +36,7 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url)
+    context.configure(url=url, **extra_config)
 
     with context.begin_transaction():
         context.run_migrations()
@@ -51,7 +56,9 @@ def run_migrations_online():
     connection = engine.connect()
     context.configure(
         connection=connection,
-        target_metadata=target_metadata)
+        target_metadata=target_metadata,
+        **extra_config
+    )
 
     try:
         with context.begin_transaction():

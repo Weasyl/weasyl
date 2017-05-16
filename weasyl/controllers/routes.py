@@ -15,6 +15,7 @@ from weasyl.controllers import (
     messages,
     moderation,
     profile,
+    recommendations,
     settings,
     two_factor_auth,
     user,
@@ -287,6 +288,9 @@ routes = (
         'GET': admin.admincontrol_finduser_get_,
         'POST': admin.admincontrol_finduser_post_,
     }),
+
+    # Recommendation routes.
+    Route("/recommendations", "recommendations", recommendations.recommendations_list_),
 
     # Director control routes.
     Route("/directorcontrol", "directorcontrol", director.directorcontrol_),

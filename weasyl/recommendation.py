@@ -14,16 +14,23 @@ from __future__ import absolute_import
 
 from collections import namedtuple
 
+from dogpile.cache import make_region
 from enum import Enum
 import numpy as np
-from pandas import DataFrame
+import pandas
 import scipy.sparse as sparse
 
-from libweasyl.cache import region
+from libweasyl import ratings
 
 from weasyl import define as d
 from weasyl.error import WeasylError
 from weasyl.errorcode import unexpected
+from weasyl import submission
+
+
+# Unfortunately dogpile memcache chokes on large numpy matrices.
+# So we make our own in-memory representation for them.
+_region = make_region().configure('dogpile.cache.memory')
 
 
 class RecommendationRating(Enum):
@@ -42,7 +49,7 @@ class RecommendationRating(Enum):
 
 # A named tuple representing everything we need for generating user-to-user similarities.
 # Updated periodically.
-_Similarities = namedtuple('_Similarities', 'user_similarity, ratings, user_map, submit_map')
+Similarities = namedtuple('Similarities', 'user_similarity, ratings, user_map, submit_map, reverse_submit_map')
 
 
 def clear_user_rating(userid, submitid):
@@ -88,7 +95,76 @@ def get_user_rating(userid, submitid):
     return RecommendationRating(rating)
 
 
-@region.cache_on_arguments()
+def get_user_ratings(userid):
+    ratings = d.engine.execute(
+        "SELECT submitid, rating FROM recommendation_rating WHERE userid=%(userid)s",
+        userid=userid)
+    return {i['submitid']: i['rating'] for i in ratings}
+
+
+def _fast_similarity(ratings, kind='user'):
+    """
+    Calculate user to user or item to item similarities.
+    This function can take a few seconds to run.
+    """
+    # The function below was adapted from the blog post linked above. See:
+    # http://blog.ethanrosenthal.com/2015/11/02/intro-to-collaborative-filtering/#Collaborative-filtering
+    #
+    # With some minor alterations:
+    #   - We don't use epsilon because scipy dies when we try to add a scalar to a sparse matrix.
+    #     This shouldn't be matter because all users in the matrix have at least one favorite.
+    #   - I use sim.diagonal() instead of np.diag() because sparse matrices complain mightily when
+    #     it comes to np.diag().
+    #   - Things die if we try to do regular division. Instead, we construct a diagonal matrix with
+    #     the reciprocals of everything we would have divided with and both pre-multiply (to scale
+    #     every row by the first user) and post multiply (to scale every column by the second user).
+    if kind == 'user':
+        sim = ratings.dot(ratings.T)
+    elif kind == 'item':
+        sim = ratings.T.dot(ratings)
+    norms = np.array([np.sqrt(sim.diagonal())])
+    norms_sparse_diag = sparse.diags(1/norms.ravel(), format='csr')
+    return (norms_sparse_diag * sim * norms_sparse_diag)
+
+
+@d.record_timing
+def recs_for_user(userid, k=20, count=100):
+    """
+    Generates recommendations for a weasyl user.
+    Will not include the user's own submissions or items they've rated.
+
+    Args:
+        userid (int): The weasyl userid.
+        k (int, optional): How many closest other users to use. Defaults to 20.
+        count (int, optional): How many items to return for the user. Defaults to 10.
+
+    Returns:
+        An array of weasyl submission ids for the user.
+    """
+    rec_info = get_recommendation_data()
+
+    # Don't recommend our own content or things we've rated.
+    user_submissions = submission.select_list(userid=userid, otherid=userid, limit=100, rating=ratings.EXPLICIT.code)
+    blacklist = set(get_user_ratings(userid).keys() + [x['submitid'] for x in user_submissions])
+    blacklist_indices = [rec_info.submit_map[x] for x in blacklist if x in rec_info.submit_map]
+
+    if userid not in rec_info.user_map:
+        # User has no favorites.
+        return []
+    user_index = rec_info.user_map[userid]
+    top_friends = np.argpartition(rec_info.user_similarity[:, user_index].toarray().ravel(), -k)[-2:-k - 2:-1]
+
+    # Don't use ourselves for recommendations.
+    top_friends = top_friends[top_friends != user_index]  # Don't use ourselves for recommendations.
+
+    preds = rec_info.user_similarity[user_index, top_friends].dot(rec_info.ratings[top_friends, :])
+    pred_array = preds.toarray().ravel()
+    pred_array[blacklist_indices] = -100
+    # TODO: Use argpartition to speed this up
+    return [rec_info.reverse_submit_map[x] for x in np.argsort(pred_array)[-count:]]
+
+
+@_region.cache_on_arguments()
 @d.record_timing
 def get_recommendation_data():
     """
@@ -104,10 +180,30 @@ def get_recommendation_data():
     This can be a memory and computationally expensive operation and should only be run periodically.
 
     Returns:
-        A _Similarities namedtuple with these fields:
+        A Similarities namedtuple with these fields:
             user_similarity: A sparse matrix of user-to-user similarities
             ratings: A sparse matrix of how users have favorited, liked, or disliked submissions
             user_map: A dictionary matching Weasyl user ids to indices in the matrices
             submit_map: A dictionary matching Weasyl submission ids to indices in the matrices
+            reverse_submit_map: A reverse dictionary of the submit_map
     """
-    q = d.execute("SELECT userid, targetid FROM favorite WHERE type='s'")
+    df = pandas.read_sql("recommendation_rating", d.engine)  # This command is extremely slow.
+
+    user_map = {x[1]: x[0] for x in enumerate(df.userid.unique())}
+    item_map = {x[1]: x[0] for x in enumerate(df.submitid.unique())}
+    rev_item_map = {v: k for k, v in item_map.iteritems()}
+
+    n_users = df.userid.unique().shape[0]
+    n_items = df.submitid.unique().shape[0]
+
+    ratings = sparse.csr_matrix((df['rating'], (df.userid.map(user_map), df.submitid.map(item_map))),
+                                shape=(n_users, n_items))
+    print("Ratings made.")
+    user_similarity = _fast_similarity(ratings, kind='user')
+    print("User similarities made.")
+
+    return Similarities(user_similarity=user_similarity,
+                        ratings=ratings,
+                        user_map=user_map,
+                        submit_map=item_map,
+                        reverse_submit_map=rev_item_map)

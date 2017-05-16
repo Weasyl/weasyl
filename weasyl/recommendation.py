@@ -25,6 +25,7 @@ from libweasyl import ratings
 from weasyl import define as d
 from weasyl.error import WeasylError
 from weasyl.errorcode import unexpected
+from weasyl import media
 from weasyl import submission
 
 
@@ -127,6 +128,36 @@ def _fast_similarity(ratings, kind='user'):
     return (norms_sparse_diag * sim * norms_sparse_diag)
 
 
+def select_list(userid, rating):
+    """
+    Get the top recommendations for a user and select their submission info. Doesn't show hidden
+    content or content that violates friends rules.
+    """
+    submitids = recs_for_user(userid)
+
+    # TODO(hyena): This is grossly adapted from submission.py. Commit less SQL violence.
+    statement = [
+        "SELECT su.submitid, su.title, su.rating, su.unixtime, "
+        "su.userid, pr.username, su.settings, su.subtype "]
+    statement.extend(submission.select_query(userid=userid, rating=rating))
+    statement.append(" AND su.submitid IN %(recs)s")
+
+    items = {i[0]: {
+                 "contype": 10,
+                 "submitid": i[0],
+                 "title": i[1],
+                 "rating": i[2],
+                 "unixtime": i[3],
+                 "userid": i[4],
+                 "username": i[5],
+                 "subtype": i[7],
+             } for i in d.engine.execute("".join(statement), recs=tuple(submitids))}
+    query = [items[x] for x in submitids if x in items]  # Re-sort.
+    media.populate_with_submission_media(query)
+
+    return query
+
+
 @d.record_timing
 def recs_for_user(userid, k=20, count=100):
     """
@@ -161,7 +192,7 @@ def recs_for_user(userid, k=20, count=100):
     pred_array = preds.toarray().ravel()
     pred_array[blacklist_indices] = -100
     # TODO: Use argpartition to speed this up
-    return [rec_info.reverse_submit_map[x] for x in np.argsort(pred_array)[-count:]]
+    return [rec_info.reverse_submit_map[x] for x in np.argsort(pred_array)[:-count - 1:-1]]
 
 
 @_region.cache_on_arguments()
@@ -187,6 +218,9 @@ def get_recommendation_data():
             submit_map: A dictionary matching Weasyl submission ids to indices in the matrices
             reverse_submit_map: A reverse dictionary of the submit_map
     """
+    # TODO(hyena): This construction is extremely slow. Testing indicates that we can speed it up
+    # significantly if we first execute a COPY query to save the table to disk and then use
+    # `pandas.read_csv()` instead. This takes the operation down from 30 seconds to about 3.
     df = pandas.read_sql("recommendation_rating", d.engine)  # This command is extremely slow.
 
     user_map = {x[1]: x[0] for x in enumerate(df.userid.unique())}
@@ -198,9 +232,7 @@ def get_recommendation_data():
 
     ratings = sparse.csr_matrix((df['rating'], (df.userid.map(user_map), df.submitid.map(item_map))),
                                 shape=(n_users, n_items))
-    print("Ratings made.")
     user_similarity = _fast_similarity(ratings, kind='user')
-    print("User similarities made.")
 
     return Similarities(user_similarity=user_similarity,
                         ratings=ratings,

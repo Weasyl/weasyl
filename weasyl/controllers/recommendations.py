@@ -1,9 +1,15 @@
 from pyramid.response import Response
 
+from weasyl import define as d
 from weasyl.controllers.decorators import login_required
-from weasyl.recommendation import recs_for_user
+from weasyl.recommendation import select_list
 
 
 @login_required
 def recommendations_list_(request):
-    return Response("\n".join(str(x) for x in recs_for_user(request.userid)))
+    # TODO(hyena): This will return roughly 100 items. We don't need that many so cut them off.
+    recs = select_list(userid=request.userid, rating=d.get_rating(request.userid))
+
+    page = d.common_page_start(request.userid, options=["recommendations"], title="Recommendations")
+    page.append(d.render("recommendation/recommendations.html", [recs]))
+    return Response(d.common_page_end(request.userid, page))

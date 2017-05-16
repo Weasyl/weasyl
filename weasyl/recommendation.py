@@ -176,7 +176,8 @@ def recs_for_user(userid, k=20, count=100):
     rec_info = get_recommendation_data()
 
     # Don't recommend our own content or things we've rated.
-    user_submissions = submission.select_list(userid=userid, otherid=userid, limit=100, rating=ratings.EXPLICIT.code)
+    user_submissions = d.engine.execute("SELECT submitid FROM submission WHERE userid=%(userid)s",
+                                        userid=userid).fetchall()
     blacklist = set(get_user_ratings(userid).keys() + [x['submitid'] for x in user_submissions])
     blacklist_indices = [rec_info.submit_map[x] for x in blacklist if x in rec_info.submit_map]
 

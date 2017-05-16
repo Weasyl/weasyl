@@ -134,7 +134,8 @@ def select_list(userid, rating):
     content or content that violates friends rules.
     """
     submitids = recs_for_user(userid)
-
+    if not submitids:
+        return submitids
     # TODO(hyena): This is grossly adapted from submission.py. Commit less SQL violence.
     statement = [
         "SELECT su.submitid, su.title, su.rating, su.unixtime, "

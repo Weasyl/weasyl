@@ -220,9 +220,8 @@ def get_recommendation_data():
             submit_map: A dictionary matching Weasyl submission ids to indices in the matrices
             reverse_submit_map: A reverse dictionary of the submit_map
     """
-    # TODO(hyena): This construction is extremely slow. Testing indicates that we can speed it up
-    # significantly if we first execute a COPY query to save the table to disk and then use
-    # `pandas.read_csv()` instead. This takes the operation down from 30 seconds to about 3.
+    # TODO(hyena): This construction is extremely slow. Testing indicates that most of the time
+    # is spent reading out the entirety of the recommendation_rating table.
     df = pandas.read_sql("recommendation_rating", d.engine)  # This command is extremely slow.
 
     user_map = {x[1]: x[0] for x in enumerate(df.userid.unique())}

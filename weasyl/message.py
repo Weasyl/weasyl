@@ -363,12 +363,14 @@ def select_comments(userid):
     queries = []
 
     # Shout comments
+    current_username = d.get_sysname(d.get_display_name(userid))
     queries.append({
         "type": 4010,
         "id": i.welcomeid,
         "unixtime": i.unixtime,
         "userid": i.otherid,
         "username": i.username,
+        "ownername": current_username,
         "commentid": i.targetid,
     } for i in d.engine.execute("""
         SELECT we.welcomeid, we.unixtime, we.otherid, we.targetid, pr.username

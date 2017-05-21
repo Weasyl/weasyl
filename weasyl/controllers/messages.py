@@ -20,7 +20,7 @@ def messages_remove_(request):
     if remove_all_before:
         message.remove_all_before(request.userid, int(remove_all_before))
     elif form.get('remove-all-submissions'):
-        message.remove_all_submissions(request.userid, define.get_int(form['remove-all-submissions']))
+        message.remove_all_submissions(request.userid, define.get_int_DEPRECIATED(form['remove-all-submissions']))
     else:
         message.remove(request.userid, map(int, form.remove))
 
@@ -72,5 +72,5 @@ def messages_submissions_(request):
         form.feature,
         # Submissions
         message.select_submissions(request.userid, 66,
-                                   backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
+                                   backtime=define.get_int_DEPRECIATED(form.backtime), nexttime=define.get_int_DEPRECIATED(form.nexttime)),
     ]))

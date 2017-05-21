@@ -18,7 +18,7 @@ def submission_(request):
     form = request.web_input(submitid="", ignore="", anyway="")
 
     rating = define.get_rating(request.userid)
-    submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
+    submitid = define.get_int_DEPRECIATED(submitid) if submitid else define.get_int_DEPRECIATED(form.submitid)
 
     extras = {
         "pdf": True,
@@ -106,7 +106,7 @@ def character_(request):
     form = request.web_input(charid="", ignore="", anyway="")
 
     rating = define.get_rating(request.userid)
-    charid = define.get_int(request.matchdict.get('charid', form.charid))
+    charid = define.get_int_DEPRECIATED(request.matchdict.get('charid', form.charid))
 
     try:
         item = character.select_view(
@@ -140,7 +140,7 @@ def journal_(request):
     form = request.web_input(journalid="", ignore="", anyway="")
 
     rating = define.get_rating(request.userid)
-    journalid = define.get_int(request.matchdict.get('journalid', form.journalid))
+    journalid = define.get_int_DEPRECIATED(request.matchdict.get('journalid', form.journalid))
 
     try:
         item = journal.select_view(

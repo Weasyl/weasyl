@@ -28,7 +28,7 @@ $code:
       <input type="text" id="editprofile-gender" class="input" name="gender" value="${userinfo['gender']}" maxlength="100" />
 
       <label for="editprofile-country">Location</label>
-      <input type="text" id="editprofile-country" class="input" name="country" value="${userinfo['country']}" maxlength="100" />
+      <input type="text" id="editprofile-country" class="input" name="country" value="${userinfo['country']}" maxlength="50" />
 
       <label for="editprofile-catchphrase">Catchphrase</label>
       <input type="text" id="editprofile-catchphrase" class="input" name="catchphrase" value="${profile['catchphrase']}" maxlength="200" />
@@ -110,11 +110,11 @@ $code:
       $for site, values in userinfo['sorted_user_links']:
         $for value in values:
           <div class="group">
-            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site">
+            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site Name" maxlength="64">
             <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
           </div>
       <div class="group">
-        <input type="text" class="input site-name" name="site_names" placeholder="Site">
+        <input type="text" class="input site-name" name="site_names" placeholder="Site Name" maxlength="64">
         <input type="text" class="input" name="site_values" placeholder="Username or URL">
       </div>
       <div class="group">

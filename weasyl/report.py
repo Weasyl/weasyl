@@ -43,10 +43,10 @@ def _dict_of_targetid(submitid, charid, journalid):
 #   journalid
 
 def create(userid, form):
-    form.submitid = d.get_int(form.submitid)
-    form.charid = d.get_int(form.charid)
-    form.journalid = d.get_int(form.journalid)
-    form.violation = d.get_int(form.violation)
+    form.submitid = d.get_int_DEPRECIATED(form.submitid)
+    form.charid = d.get_int_DEPRECIATED(form.charid)
+    form.journalid = d.get_int_DEPRECIATED(form.journalid)
+    form.violation = d.get_int_DEPRECIATED(form.violation)
     form.content = form.content.strip()[:_CONTENT]
 
     # get the violation type from allowed types

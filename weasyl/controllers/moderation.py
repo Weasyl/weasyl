@@ -155,7 +155,7 @@ def modcontrol_manageuser_(request):
 def modcontrol_removeavatar_(request):
     form = request.web_input(userid="")
 
-    moderation.removeavatar(request.userid, define.get_int(form.userid))
+    moderation.removeavatar(request.userid, define.get_int_DEPRECIATED(form.userid))
     raise HTTPSeeOther(location="/modcontrol")
 
 
@@ -164,7 +164,7 @@ def modcontrol_removeavatar_(request):
 def modcontrol_removebanner_(request):
     form = request.web_input(userid="")
 
-    moderation.removebanner(request.userid, define.get_int(form.userid))
+    moderation.removebanner(request.userid, define.get_int_DEPRECIATED(form.userid))
     raise HTTPSeeOther(location="/modcontrol")
 
 
@@ -173,7 +173,7 @@ def modcontrol_removebanner_(request):
 def modcontrol_editprofiletext_(request):
     form = request.web_input(userid="", content="")
 
-    moderation.editprofiletext(request.userid, define.get_int(form.userid), form.content)
+    moderation.editprofiletext(request.userid, define.get_int_DEPRECIATED(form.userid), form.content)
     raise HTTPSeeOther(location="/modcontrol")
 
 
@@ -182,7 +182,7 @@ def modcontrol_editprofiletext_(request):
 def modcontrol_editcatchphrase_(request):
     form = request.web_input(userid="", content="")
 
-    moderation.editcatchphrase(request.userid, define.get_int(form.userid), form.content)
+    moderation.editcatchphrase(request.userid, define.get_int_DEPRECIATED(form.userid), form.content)
     raise HTTPSeeOther(location="/modcontrol")
 
 

@@ -89,7 +89,7 @@ def upload(userid, filedata, submitid=None, charid=None):
 
 
 def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
-    x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
+    x1, y1, x2, y2 = d.get_int_DEPRECIATED(x1), d.get_int_DEPRECIATED(y1), d.get_int_DEPRECIATED(x2), d.get_int_DEPRECIATED(y2)
     filename = d.url_make(charid, "char/.thumb", root=True)
     if not m.os.path.exists(filename):
         filename = d.url_make(charid, "char/cover", root=True)
@@ -122,7 +122,7 @@ def create(userid, x1, y1, x2, y2, submitid=None, charid=None,
         return _create_char(userid, x1, y1, x2, y2, charid, config, remove)
 
     db = d.connect()
-    x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
+    x1, y1, x2, y2 = d.get_int_DEPRECIATED(x1), d.get_int_DEPRECIATED(y1), d.get_int_DEPRECIATED(x2), d.get_int_DEPRECIATED(y2)
     source = thumbnail_source(submitid)
     im = db.query(orm.MediaItem).get(source['mediaid']).as_image()
     size = im.size.width, im.size.height

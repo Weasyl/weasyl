@@ -47,7 +47,7 @@ def check(userid, folderid=None, title=None, parentid=None, root=True):
 
 def create(userid, form):
     form.title = form.title.strip()[:_TITLE]
-    form.parentid = d.get_int(form.parentid)
+    form.parentid = d.get_int_DEPRECIATED(form.parentid)
 
     if not check(userid, form.parentid, parentid=0, root=True):
         raise WeasylError("folderRecordMissing")
@@ -253,7 +253,7 @@ def select_list(userid, feature, root=False, limit=None):
 
 def rename(userid, form):
     form.title = form.title.strip()[:_TITLE]
-    form.folderid = d.get_int(form.folderid)
+    form.folderid = d.get_int_DEPRECIATED(form.folderid)
 
     query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
                       [form.folderid], options="element")
@@ -274,8 +274,8 @@ def rename(userid, form):
 #   parentid
 
 def move(userid, form):
-    form.folderid = d.get_int(form.folderid)
-    form.parentid = d.get_int(form.parentid)
+    form.folderid = d.get_int_DEPRECIATED(form.folderid)
+    form.parentid = d.get_int_DEPRECIATED(form.parentid)
 
     folder_query = d.execute(
         "SELECT folderid, parentid, userid, title FROM folder WHERE folderid = %i",

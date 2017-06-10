@@ -8,7 +8,6 @@ import pyotp
 import pytest
 from qrcodegen import QrCode
 
-from libweasyl import security
 from weasyl import define as d
 from weasyl import two_factor_auth as tfa
 from weasyl.test import db_utils

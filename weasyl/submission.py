@@ -325,11 +325,9 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
     searchtag.associate(userid, tags, submitid=submitid)
 
     if submit_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'submission', submit_media_item, rating=submission.rating.code)
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
     if cover_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'cover', cover_media_item, rating=submission.rating.code)
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
     if thumb_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
 
@@ -443,11 +441,9 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
     searchtag.associate(userid, tags, submitid=submitid)
 
     if submit_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'submission', submit_media_item, rating=submission.rating.code)
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
     if cover_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'cover', cover_media_item, rating=submission.rating.code)
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
     if thumb_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
     if tempthumb_media_item:
@@ -472,7 +468,7 @@ def reupload(userid, submitid, submitfile):
     submitsize = len(submitfile)
 
     # Select submission data
-    query = d.execute("SELECT userid, subtype, settings, rating FROM submission WHERE submitid = %i AND settings !~ 'h'",
+    query = d.execute("SELECT userid, subtype, settings FROM submission WHERE submitid = %i AND settings !~ 'h'",
                       [submitid], ["single"])
 
     if not query:
@@ -510,20 +506,17 @@ def reupload(userid, submitid, submitfile):
     submit_media_item = orm.fetch_or_create_media_item(
         submitfile, file_type=submit_file_type, im=im)
     check_for_duplicate_media(userid, submit_media_item.mediaid)
-    orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'submission', submit_media_item, rating=query[3])
+    orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
 
     if subcat == m.ART_SUBMISSION_CATEGORY:
         cover_media_item = submit_media_item.ensure_cover_image()
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'cover', cover_media_item, rating=query[3])
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
         generated_thumb = images.make_thumbnail(im)
         generated_thumb_media_item = orm.fetch_or_create_media_item(
             generated_thumb.to_buffer(format=images.image_file_type(generated_thumb)),
             file_type=submit_file_type,
             im=generated_thumb)
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'thumbnail-generated', generated_thumb_media_item, rating=query[3])
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
 
 
 def is_hidden(submitid):
@@ -1019,7 +1012,7 @@ def remove(userid, submitid):
 
 def reupload_cover(userid, submitid, coverfile):
     query = d.execute(
-        "SELECT userid, subtype, rating FROM submission WHERE submitid = %i",
+        "SELECT userid, subtype FROM submission WHERE submitid = %i",
         [submitid], ["single", "list"])
 
     if not query:
@@ -1033,8 +1026,7 @@ def reupload_cover(userid, submitid, coverfile):
     if not cover_media_item:
         orm.SubmissionMediaLink.clear_link(submitid, 'cover')
     else:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'cover', cover_media_item, rating=query[2])
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
 
 
 @region.cache_on_arguments()

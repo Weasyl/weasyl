@@ -121,7 +121,7 @@ def help_ratings_changes_(request):
 def help_reports_(request):
     return Response(define.webpage(request.userid, "help/reports.html", [
         report.select_reported_list(request.userid),
-    ]))
+    ], title="My Reports"))
 
 
 def help_searching_(request):

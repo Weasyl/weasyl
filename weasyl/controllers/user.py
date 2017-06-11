@@ -27,7 +27,7 @@ def signin_get_(request):
     return Response(define.webpage(request.userid, "etc/signin.html", [
         False,
         request.environ.get('HTTP_REFERER', ''),
-    ]))
+    ], title="Sign In"))
 
 
 @guest_required
@@ -70,8 +70,9 @@ def signin_post_(request):
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(logid), form.referer, remaining_recovery_codes,
-             None]))
+            [define.get_display_name(logid), form.referer, remaining_recovery_codes, None],
+            title="Sign In - 2FA"
+        ))
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
     elif logerror == "banned":
@@ -133,7 +134,7 @@ def signin_2fa_auth_get_(request):
             request.userid,
             "etc/signin_2fa_auth.html",
             [define.get_display_name(tfa_userid), ref, two_factor_auth.get_number_of_recovery_codes(tfa_userid),
-             None]))
+             None], title="Sign In - 2FA"))
 
 
 @guest_required
@@ -187,7 +188,7 @@ def signin_2fa_auth_post_(request):
             request.userid,
             "etc/signin_2fa_auth.html",
             [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
-             "2fa"]))
+             "2fa"], title="Sign In - 2FA"))
 
 
 @login_required
@@ -227,7 +228,7 @@ def signup_get_(request):
             "year": None,
             "error": None,
         },
-    ]))
+    ], title="Create a Weasyl Account"))
 
 
 @guest_required
@@ -274,7 +275,7 @@ def verify_premium_(request):
 
 @guest_required
 def forgotpassword_get_(request):
-    return Response(define.webpage(request.userid, "etc/forgotpassword.html"))
+    return Response(define.webpage(request.userid, "etc/forgotpassword.html", title="Reset Forgotten Password"))
 
 
 @guest_required
@@ -301,7 +302,7 @@ def resetpassword_get_(request):
 
     resetpassword.prepare(form.token)
 
-    return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token]))
+    return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token], title="Reset Forgotten Password"))
 
 
 @guest_required

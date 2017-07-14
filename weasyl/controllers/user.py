@@ -17,7 +17,6 @@ from weasyl.controllers.decorators import (
     login_required,
     token_checked,
 )
-from weasyl.error import WeasylError
 
 
 # Session management functions

@@ -392,7 +392,6 @@ media_media_links = Table(
     Column('described_with_id', Integer(), nullable=False),
     Column('describee_id', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     default_fkey(['describee_id'], ['media.mediaid'], name='media_media_links_describee_id_fkey'),
     default_fkey(['described_with_id'], ['media.mediaid'], name='media_media_links_described_with_id_fkey'),
 )
@@ -743,7 +742,6 @@ submission_media_links = Table(
     Column('mediaid', Integer(), nullable=False),
     Column('submitid', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     default_fkey(['submitid'], ['submission.submitid'], name='submission_media_links_submitid_fkey'),
     default_fkey(['mediaid'], ['media.mediaid'], name='submission_media_links_mediaid_fkey'),
 )
@@ -791,7 +789,6 @@ user_media_links = Table(
     Column('mediaid', Integer(), nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     default_fkey(['userid'], ['login.userid'], name='user_media_links_userid_fkey'),
     default_fkey(['mediaid'], ['media.mediaid'], name='user_media_links_mediaid_fkey'),
 )

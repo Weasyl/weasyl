@@ -253,21 +253,16 @@ class Submission(Base):
         inst.set_tags(tags, done_by_artist=True)
 
         if submission_media_item is not None:
-            SubmissionMediaLink.make_or_replace_link(
-                inst.submitid, 'submission', submission_media_item, rating=rating.code)
+            SubmissionMediaLink.make_or_replace_link(inst.submitid, 'submission', submission_media_item)
             if category == Category.visual:
                 popup_media_item = submission_media_item.make_popup(submission_image)
-                SubmissionMediaLink.make_or_replace_link(
-                    inst.submitid, 'popup', popup_media_item, rating=rating.code)
+                SubmissionMediaLink.make_or_replace_link(inst.submitid, 'popup', popup_media_item)
         if cover_media_item is not None:
-            SubmissionMediaLink.make_or_replace_link(
-                inst.submitid, 'cover', cover_media_item, rating=rating.code)
+            SubmissionMediaLink.make_or_replace_link(inst.submitid, 'cover', cover_media_item)
         if thumbnail_media_item is not None:
-            SubmissionMediaLink.make_or_replace_link(
-                inst.submitid, 'thumbnail', thumbnail_media_item, rating=rating.code)
+            SubmissionMediaLink.make_or_replace_link(inst.submitid, 'thumbnail', thumbnail_media_item)
         if thumbnail_source_media_item is not None:
-            SubmissionMediaLink.make_or_replace_link(
-                inst.submitid, 'thumbnail-source', thumbnail_source_media_item, rating=rating.code)
+            SubmissionMediaLink.make_or_replace_link(inst.submitid, 'thumbnail-source', thumbnail_source_media_item)
 
         return inst
 

@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import urlparse
+
+import arrow
 from pyramid.httpexceptions import (
     HTTPFound,
     HTTPSeeOther,
@@ -7,7 +10,7 @@ from pyramid.httpexceptions import (
 from pyramid.response import Response
 
 from weasyl import define, errorcode, index, login, moderation, \
-    premiumpurchase, profile, resetpassword
+    premiumpurchase, profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
@@ -23,7 +26,7 @@ def signin_get_(request):
     return Response(define.webpage(request.userid, "etc/signin.html", [
         False,
         request.environ.get('HTTP_REFERER', ''),
-    ]))
+    ], title="Sign In"))
 
 
 @guest_required
@@ -42,6 +45,33 @@ def signin_post_(request):
         # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
         index.template_fields.invalidate(logid)
         raise HTTPSeeOther(location=form.referer)
+    elif logid and logerror == "2fa":
+        # Password authentication passed, but user has 2FA set, so verify second factor (Also set SFW mode now)
+        if form.sfwmode == "sfw":
+            request.set_cookie_on_response("sfwmode", "sfw", 31536000)
+        index.template_fields.invalidate(logid)
+        # Check if out of recovery codes; this should *never* execute normally, save for crafted
+        #   webtests. However, check for it and log an error to Sentry if it happens.
+        remaining_recovery_codes = two_factor_auth.get_number_of_recovery_codes(logid)
+        if remaining_recovery_codes == 0:
+            raise RuntimeError("Two-factor Authentication: Count of recovery codes for userid " +
+                               str(logid) + " was zero upon password authentication succeeding, " +
+                               "which should be impossible.")
+        # Store the authenticated userid & password auth time to the session
+        sess = define.get_weasyl_session()
+        # The timestamp at which password authentication succeeded
+        sess.additional_data['2fa_pwd_auth_timestamp'] = arrow.now().timestamp
+        # The userid of the user attempting authentication
+        sess.additional_data['2fa_pwd_auth_userid'] = logid
+        # The number of times the user has attempted to authenticate via 2FA
+        sess.additional_data['2fa_pwd_auth_attempts'] = 0
+        sess.save = True
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [define.get_display_name(logid), form.referer, remaining_recovery_codes, None],
+            title="Sign In - 2FA"
+        ))
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
     elif logerror == "banned":
@@ -63,6 +93,101 @@ def signin_post_(request):
         return Response("IP ADDRESS TEMPORARILY BLOCKED")
 
     return Response(define.errorpage(request.userid))
+
+
+def _cleanup_2fa_session():
+    """
+    Cleans up a Weasyl session of any 2FA data stored during the authentication process.
+
+    Parameters: None; keys off of the currently active session making the request.
+
+    Returns: Nothing.
+    """
+    sess = define.get_weasyl_session()
+    del sess.additional_data['2fa_pwd_auth_timestamp']
+    del sess.additional_data['2fa_pwd_auth_userid']
+    del sess.additional_data['2fa_pwd_auth_attempts']
+    sess.save = True
+
+
+@guest_required
+def signin_2fa_auth_get_(request):
+    sess = define.get_weasyl_session()
+
+    # Only render page if the password has been authenticated (we have a UserID stored in the session)
+    if '2fa_pwd_auth_userid' not in sess.additional_data:
+        return Response(define.errorpage(request.userid, errorcode.permission))
+    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
+
+    # Maximum secondary authentication time: 5 minutes
+    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    if session_life > 300:
+        _cleanup_2fa_session()
+        return Response(define.errorpage(
+            request.userid,
+            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+    else:
+        ref = request.params["referer"] if "referer" in request.params else "/"
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [define.get_display_name(tfa_userid), ref, two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+             None], title="Sign In - 2FA"))
+
+
+@guest_required
+@token_checked
+def signin_2fa_auth_post_(request):
+    sess = define.get_weasyl_session()
+
+    # Only render page if the password has been authenticated (we have a UserID stored in the session)
+    if '2fa_pwd_auth_userid' not in sess.additional_data:
+        return Response(define.errorpage(request.userid, errorcode.permission))
+    tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
+
+    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    if session_life > 300:
+        # Maximum secondary authentication time: 5 minutes
+        _cleanup_2fa_session()
+        return Response(define.errorpage(
+            request.userid,
+            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
+        ))
+    elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
+        # 2FA passed, so login and cleanup.
+        _cleanup_2fa_session()
+        login.signin(tfa_userid)
+        ref = request.params["referer"] or "/"
+        # User is out of recovery codes, so force-deactivate 2FA
+        if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
+            two_factor_auth.force_deactivate(tfa_userid)
+            return Response(define.errorpage(
+                tfa_userid,
+                errorcode.error_messages['TwoFactorAuthenticationZeroRecoveryCodesRemaining'],
+                [["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]]
+            ))
+        # Return to the target page, restricting to the path portion of 'ref' per urlparse.
+        raise HTTPSeeOther(location=urlparse.urlparse(ref).path)
+    elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
+        # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
+        _cleanup_2fa_session()
+        return Response(define.errorpage(
+            request.userid,
+            errorcode.error_messages['TwoFactorAuthenticationAuthenticationAttemptsExceeded'],
+            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
+        ))
+    else:
+        # Log the failed authentication attempt to the session and save
+        sess.additional_data['2fa_pwd_auth_attempts'] += 1
+        sess.save = True
+        # 2FA failed; redirect to 2FA input page & inform user that authentication failed.
+        return Response(define.webpage(
+            request.userid,
+            "etc/signin_2fa_auth.html",
+            [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+             "2fa"], title="Sign In - 2FA"))
 
 
 @login_required
@@ -102,7 +227,7 @@ def signup_get_(request):
             "year": None,
             "error": None,
         },
-    ]))
+    ], title="Create a Weasyl Account"))
 
 
 @guest_required
@@ -149,7 +274,7 @@ def verify_premium_(request):
 
 @guest_required
 def forgotpassword_get_(request):
-    return Response(define.webpage(request.userid, "etc/forgotpassword.html"))
+    return Response(define.webpage(request.userid, "etc/forgotpassword.html", title="Reset Forgotten Password"))
 
 
 @guest_required
@@ -176,7 +301,7 @@ def resetpassword_get_(request):
 
     resetpassword.prepare(form.token)
 
-    return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token]))
+    return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token], title="Reset Forgotten Password"))
 
 
 @guest_required

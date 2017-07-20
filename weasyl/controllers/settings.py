@@ -22,7 +22,7 @@ def control_(request):
     return Response(define.webpage(request.userid, "control/control.html", [
         # Premium
         define.get_premium(request.userid),
-    ]))
+    ], title="Settings"))
 
 
 @login_required
@@ -45,7 +45,7 @@ def control_editprofile_get_(request):
         profile.select_profile(request.userid, commish=False),
         # User information
         userinfo,
-    ]))
+    ], title="Edit Profile"))
 
 
 @login_required
@@ -64,7 +64,7 @@ def control_editprofile_put_(request):
         form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
         form.settings = form.set_commish + form.set_trade + form.set_request
         form.config = form.profile_display
-        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form]))
+        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form], title="Edit Profile"))
 
     p = orm.Profile()
     p.full_name = form.full_name
@@ -90,7 +90,7 @@ def control_editcommissionsettings_(request):
         commishinfo.CURRENCY_CHARMAP,
         commishinfo.PRESET_COMMISSION_CLASSES,
         profile.select_profile(request.userid)
-    ]))
+    ], title="Edit Commission Settings"))
 
 
 @login_required
@@ -194,8 +194,12 @@ def control_removecommishprice_(request):
 @login_required
 @disallow_api
 def control_editemailpassword_get_(request):
-    return Response(define.webpage(request.userid, "control/edit_emailpassword.html",
-                                   [profile.select_manage(request.userid)["email"]]))
+    return Response(define.webpage(
+        request.userid,
+        "control/edit_emailpassword.html",
+        [profile.select_manage(request.userid)["email"]],
+        title="Edit Password and Email Address"
+    ))
 
 
 @login_required
@@ -217,74 +221,73 @@ def control_editemailpassword_post_(request):
 
 @login_required
 def control_editpreferences_get_(request):
-        config = define.get_config(request.userid)
-        current_rating, current_sfw_rating = define.get_config_rating(request.userid)
-        age = profile.get_user_age(request.userid)
-        allowed_ratings = ratings.get_ratings_for_age(age)
-        jsonb_settings = define.get_profile_settings(request.userid)
-        return Response(define.webpage(request.userid, "control/edit_preferences.html", [
-            # Config
-            config,
-            jsonb_settings,
-            # Rating
-            current_rating,
-            current_sfw_rating,
-            age,
-            allowed_ratings,
-            request.weasyl_session.timezone.timezone,
-            define.timezones(),
-        ]))
+    config = define.get_config(request.userid)
+    current_rating, current_sfw_rating = define.get_config_rating(request.userid)
+    age = profile.get_user_age(request.userid)
+    allowed_ratings = ratings.get_ratings_for_age(age)
+    jsonb_settings = define.get_profile_settings(request.userid)
+    return Response(define.webpage(request.userid, "control/edit_preferences.html", [
+        # Config
+        config,
+        jsonb_settings,
+        # Rating
+        current_rating,
+        current_sfw_rating,
+        age,
+        allowed_ratings,
+        request.weasyl_session.timezone.timezone,
+        define.timezones(),
+    ], title="Site Preferences"))
 
 
 @login_required
 @token_checked
 def control_editpreferences_post_(request):
-        form = request.web_input(
-            rating="", sfwrating="", custom_thumbs="", tagging="", edittagging="",
-            hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
-            shouts="", notes="", filter="",
-            follow_s="", follow_c="", follow_f="", follow_t="",
-            follow_j="", timezone="", twelvehour="")
+    form = request.web_input(
+        rating="", sfwrating="", custom_thumbs="", tagging="",
+        hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
+        shouts="", notes="", filter="",
+        follow_s="", follow_c="", follow_f="", follow_t="",
+        follow_j="", timezone="", twelvehour="")
 
-        rating = ratings.CODE_MAP[define.get_int(form.rating)]
-        jsonb_settings = define.get_profile_settings(request.userid)
-        jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
-        jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
+    rating = ratings.CODE_MAP[define.get_int(form.rating)]
+    jsonb_settings = define.get_profile_settings(request.userid)
+    jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
+    jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
 
-        preferences = profile.Config()
-        preferences.twelvehour = bool(form.twelvehour)
-        preferences.rating = rating
-        preferences.tagging = bool(form.tagging)
-        preferences.edittagging = bool(form.edittagging)
-        preferences.hideprofile = bool(form.hideprofile)
-        preferences.hidestats = bool(form.hidestats)
-        preferences.hidefavorites = bool(form.hidefavorites)
-        preferences.hidefavbar = bool(form.hidefavbar)
-        preferences.shouts = ("friends_only" if form.shouts == "x" else
-                              "staff_only" if form.shouts == "w" else "anyone")
-        preferences.notes = ("friends_only" if form.notes == "z" else
-                             "staff_only" if form.notes == "y" else "anyone")
-        preferences.filter = bool(form.filter)
-        preferences.follow_s = bool(form.follow_s)
-        preferences.follow_c = bool(form.follow_c)
-        preferences.follow_f = bool(form.follow_f)
-        preferences.follow_t = bool(form.follow_t)
-        preferences.follow_j = bool(form.follow_j)
+    preferences = profile.Config()
+    preferences.twelvehour = bool(form.twelvehour)
+    preferences.rating = rating
+    preferences.tagging = bool(form.tagging)
+    preferences.hideprofile = bool(form.hideprofile)
+    preferences.hidestats = bool(form.hidestats)
+    preferences.hidefavorites = bool(form.hidefavorites)
+    preferences.hidefavbar = bool(form.hidefavbar)
+    preferences.shouts = ("friends_only" if form.shouts == "x" else
+                          "staff_only" if form.shouts == "w" else "anyone")
+    preferences.notes = ("friends_only" if form.notes == "z" else
+                         "staff_only" if form.notes == "y" else "anyone")
+    preferences.filter = bool(form.filter)
+    preferences.follow_s = bool(form.follow_s)
+    preferences.follow_c = bool(form.follow_c)
+    preferences.follow_f = bool(form.follow_f)
+    preferences.follow_t = bool(form.follow_t)
+    preferences.follow_j = bool(form.follow_j)
 
-        profile.edit_preferences(request.userid, timezone=form.timezone,
-                                 preferences=preferences, jsonb_settings=jsonb_settings)
-        # release the cache on the index page in case the Maximum Viewable Content Rating changed.
-        index.template_fields.invalidate(request.userid)
-        raise HTTPSeeOther(location="/control")
+    profile.edit_preferences(request.userid, timezone=form.timezone,
+                             preferences=preferences, jsonb_settings=jsonb_settings)
+    # release the cache on the index page in case the Maximum Viewable Content Rating changed.
+    index.template_fields.invalidate(request.userid)
+    raise HTTPSeeOther(location="/control")
 
 
 @login_required
 @token_checked
 def control_createfolder_(request):
-        form = request.web_input(title="", parentid="")
+    form = request.web_input(title="", parentid="")
 
-        folder.create(request.userid, form)
-        raise HTTPSeeOther(location="/manage/folders")
+    folder.create(request.userid, form)
+    raise HTTPSeeOther(location="/manage/folders")
 
 
 @login_required
@@ -316,19 +319,19 @@ def control_editfolder_get_(request):
 
     return Response(define.webpage(request.userid, "manage/folder_options.html", [
         folder.select_info(folderid),
-    ]))
+    ], title="Edit Folder Options"))
 
 
 @login_required
 @token_checked
 def control_editfolder_post_(request):
-        folderid = int(request.matchdict['folderid'])
-        if not folder.check(request.userid, folderid):
-            return Response(define.errorpage(request.userid, errorcode.permission))
+    folderid = int(request.matchdict['folderid'])
+    if not folder.check(request.userid, folderid):
+        return Response(define.errorpage(request.userid, errorcode.permission))
 
-        form = request.web_input(settings=[])
-        folder.update_settings(folderid, form.settings)
-        raise HTTPSeeOther(location='/manage/folders')
+    form = request.web_input(settings=[])
+    folder.update_settings(folderid, form.settings)
+    raise HTTPSeeOther(location='/manage/folders')
 
 
 @login_required
@@ -374,7 +377,7 @@ def control_streaming_get_(request):
         # Profile
         profile.select_profile(target, commish=False),
         form.target,
-    ]))
+    ], title="Edit Streaming Settings"))
 
 
 @login_required
@@ -413,7 +416,7 @@ def control_apikeys_get_(request):
     return Response(define.webpage(request.userid, "control/edit_apikeys.html", [
         api.get_api_keys(request.userid),
         oauth2.get_consumers_for_user(request.userid),
-    ]))
+    ], title="API Keys"))
 
 
 @login_required
@@ -436,7 +439,7 @@ def control_apikeys_post_(request):
 def control_tagrestrictions_get_(request):
     return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
         searchtag.query_user_restricted_tags(request.userid),
-    )))
+    ), title="Edit Community Tagging Restrictions"))
 
 
 @login_required
@@ -446,15 +449,15 @@ def control_tagrestrictions_post_(request):
     searchtag.edit_user_tag_restrictions(request.userid, tags)
     return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
         searchtag.query_user_restricted_tags(request.userid),
-    )))
+    ), title="Edit Community Tagging Restrictions"))
 
 
 @login_required
 def manage_folders_(request):
-        return Response(define.webpage(request.userid, "manage/folders.html", [
-            # Folders dropdown
-            folder.select_list(request.userid, "drop/all"),
-        ]))
+    return Response(define.webpage(request.userid, "manage/folders.html", [
+        # Folders dropdown
+        folder.select_list(request.userid, "drop/all"),
+    ], title="Submission Folders"))
 
 
 @login_required
@@ -470,12 +473,12 @@ def manage_following_get_(request):
             profile.select_profile(form.userid, avatar=True),
             # Follow settings
             followuser.select_settings(request.userid, form.userid),
-        ]))
+        ], title="Followed User"))
     else:
         return Response(define.webpage(request.userid, "manage/following_list.html", [
             # Following
             followuser.manage_following(request.userid, 44, backid=form.backid, nextid=form.nextid),
-        ]))
+        ], title="Users You Follow"))
 
 
 @login_required
@@ -503,12 +506,12 @@ def manage_friends_(request):
     if form.feature == "pending":
         return Response(define.webpage(request.userid, "manage/friends_pending.html", [
             frienduser.select_requests(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
-        ]))
+        ], title="Pending Friend Requests"))
     else:
         return Response(define.webpage(request.userid, "manage/friends_accepted.html", [
             # Friends
             frienduser.select_accepted(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
-        ]))
+        ], title="Friends"))
 
 
 @login_required
@@ -519,7 +522,7 @@ def manage_ignore_(request):
 
     return Response(define.webpage(request.userid, "manage/ignore.html", [
         ignoreuser.select(request.userid, 20, backid=form.backid, nextid=form.nextid),
-    ]))
+    ], title="Ignored Users"))
 
 
 @login_required
@@ -537,13 +540,13 @@ def manage_collections_get_(request):
             collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
                                    pending=True, config=config),
             request.userid
-        ]))
+        ], title="Pending Collections"))
 
     return Response(define.webpage(request.userid, "manage/collections_accepted.html", [
         # Accepted Collections
         collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
                                config=config),
-    ]))
+    ], title="Accepted Collections"))
 
 
 @login_required
@@ -602,7 +605,7 @@ def manage_thumbnail_get_(request):
         source,
         # Exists
         bool(source),
-    ], options=options))
+    ], options=options, title="Select Thumbnail"))
 
 
 @login_required
@@ -640,7 +643,7 @@ def manage_tagfilters_get_(request):
         blocktag.select(request.userid),
         # filterable ratings
         profile.get_user_ratings(request.userid),
-    ]))
+    ], title="Tag Filters"))
 
 
 @login_required
@@ -675,7 +678,9 @@ def manage_avatar_get_(request):
             # Avatar selection exists
             avatar_source_url is not None,
         ],
-        options=["imageselect", "square_select"]))
+        options=["imageselect", "square_select"],
+        title="Edit Avatar"
+    ))
 
 
 @login_required
@@ -689,7 +694,7 @@ def manage_avatar_post_(request):
 
 @login_required
 def manage_banner_get_(request):
-    return Response(define.webpage(request.userid, "manage/banner.html"))
+    return Response(define.webpage(request.userid, "manage/banner.html", title="Edit Banner"))
 
 
 @login_required
@@ -713,7 +718,7 @@ def manage_alias_get_(request):
     return Response(define.webpage(request.userid, "manage/alias.html", [
         # Alias
         useralias.select(request.userid),
-    ]))
+    ], title="Edit Username Alias"))
 
 
 @login_required

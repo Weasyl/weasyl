@@ -23,6 +23,7 @@ allowed_tags = {
     "abbr", "time", "code", "var", "samp", "kbd",
     "sub", "sup", "i", "b", "u", "mark",
     "ruby", "rt", "rp", "bdi", "bdo", "span", "br", "wbr",
+    "del",
     "table", "caption",
     "tbody", "thead", "tfoot", "tr", "td", "th",
     "a", "img"
@@ -124,19 +125,20 @@ def defang(fragment):
     Returns:
         ``None``, as modification is done in-place on *fragment*.
     """
-    remove = []
+    unwrap = []
 
     for child in fragment:
         if child.tag not in allowed_tags:
-            remove.append(child)
-            continue
+            unwrap.append(child)
+
+        extend_attributes = []
 
         for key, value in child.attrib.items():
             if key == "href" and child.tag == "a" and get_scheme(value) in allowed_schemes:
                 url = urlparse(value)
 
                 if url.scheme and url.hostname not in ("www.weasyl.com", "weasyl.com", "forums.weasyl.com"):
-                    child.attrib[u"rel"] = "nofollow"
+                    extend_attributes.append(("rel", "nofollow"))
             elif key == "src" and child.tag == "img" and get_scheme(value) in allowed_schemes:
                 pass
             elif key == "style" and ALLOWED_STYLE.match(value):
@@ -146,17 +148,10 @@ def defang(fragment):
             elif key not in allowed_attributes:
                 del child.attrib[key]
 
+        for key, value in extend_attributes:
+            child.attrib[key] = value
+
         defang(child)
 
-    for child in remove:
-        i = list(fragment).index(child)
-        fragment.remove(child)
-
-        if child.tail:
-            if i > 0:
-                if fragment[i - 1].tail:
-                    fragment[i - 1].tail += child.tail
-            elif fragment.text:
-                fragment.text += child.tail
-            else:
-                fragment.text = child.tail
+    for child in unwrap:
+        child.drop_tag()

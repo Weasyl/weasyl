@@ -65,7 +65,6 @@ z  Friend notes only
 h  Hide profile from guests
 i  Hide profile statistics
 k  Disallow content tag removal
-r  Disallow content tag editing
 
 s  Watch user submissions
 c  Watch user collections

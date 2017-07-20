@@ -113,6 +113,19 @@ def test_markdown_respect_ordered_list_start():
     assert markdown('5. five\n6. six\n7. seven') == '<ol start="5"><li>five</li><li>six</li><li>seven</li></ol>'
 
 
+def test_markdown_strikethrough():
+    assert markdown(u"~~test~~") == u"<p><del>test</del></p>"
+
+
+@pytest.mark.parametrize(('target', 'expected'), [
+    (u"[external](http://example.com/)", u'<a href="http://example.com/" rel="nofollow">external</a>'),
+    (u'<a href="http://example.com/">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
+    (u'<a href="http://example.com/" rel="noreferrer">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
+])
+def test_markdown_external_link_noreferrer(target, expected):
+    assert markdown(target) == u"<p>%s</p>" % (expected,)
+
+
 markdown_link_tests = [
     (('spam', '/eggs'), '[spam](/eggs)'),
     ((']spam[', '/eggs'), r'[\]spam\[](/eggs)'),
@@ -123,6 +136,11 @@ markdown_link_tests = [
 @pytest.mark.parametrize(('target', 'expected'), markdown_link_tests)
 def test_markdown_link(target, expected):
     assert markdown_link(*target) == expected
+
+
+def test_tag_stripping():
+    assert markdown(u"<button>text</button>") == u"<p>text</p>"
+    assert markdown(u"<button><button>text</button></button>") == u"<p>text</p>"
 
 
 markdown_excerpt_tests = [

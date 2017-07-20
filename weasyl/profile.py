@@ -24,6 +24,7 @@ class ExchangeType:
         self.name_singular = name_singular
         self.name_plural = name_plural
 
+
 EXCHANGE_TYPE_TRADE = ExchangeType("trade", "trades")
 EXCHANGE_TYPE_REQUEST = ExchangeType("request", "requests")
 EXCHANGE_TYPE_COMMISSION = ExchangeType("commission", "commissions")
@@ -60,7 +61,6 @@ Config = create_configuration([
     BoolOption("twelvehour", "2"),
     ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "a", "p"]))),
     BoolOption("tagging", "k"),
-    BoolOption("edittagging", "r"),
     BoolOption("hideprofile", "h"),
     BoolOption("hidestats", "i"),
     BoolOption("hidefavorites", "v"),
@@ -559,6 +559,29 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
 
     if newpassword:
         d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
+
+        # Invalidate all sessions for `userid` except for the current one
+        invalidate_other_sessions(userid)
+
+
+def invalidate_other_sessions(userid):
+    """
+    Invalidate all HTTP sessions for `userid` except for the current session.
+
+    Useful as a security precaution, such as if a user changes their password, or enables
+    2FA.
+
+    Parameters:
+        userid: The userid for the account to clear sessions from.
+
+    Returns: Nothing.
+    """
+    sess = d.get_weasyl_session()
+    d.engine.execute("""
+        DELETE FROM sessions
+        WHERE userid = %(userid)s
+          AND sessionid != %(currentsession)s
+    """, userid=userid, currentsession=sess.sessionid)
 
 
 def edit_preferences(userid, timezone=None,

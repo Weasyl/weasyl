@@ -24,20 +24,9 @@ PATH_CONFIG = "config/"
 PATH_SEARCH = "search/"
 
 
-def read(filename, encoding="utf-8", errors="replace", encode=None):
-    """
-    Returns file data. If the filename is invalid, None is returned.
-    """
-    try:
-        data = codecs.open(filename, "r", encoding, errors).read()
-    except IOError:
-        d.log_exc()
-        return None
-
-    if encode:
-        return data.encode(encode)
-    else:
-        return data
+def read(filename):
+    with codecs.open(filename, "r", encoding="utf-8", errors="replace") as f:
+        return f.read()
 
 
 def ensure_file_directory(filename):
@@ -106,6 +95,7 @@ def append(filename, content, encoding="utf-8", decode=False, formfeed=False):
         return False
     else:
         return True
+
 
 # Copy the specified file.
 copy = shutil.copy
@@ -177,6 +167,7 @@ def make_resource(userid, target, feature, extension=None):
         return "%s%d.txt" % (d.get_hash_path(target, "journal"), target)
     # Unknown
     raise ValueError
+
 
 feature_typeflags = {
     "thumb": "-",

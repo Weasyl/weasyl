@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 from sanpera import geometry
 
-from libweasyl import ratings
-
 from weasyl.error import WeasylError
 from weasyl import define as d
 from weasyl import image, media, orm
@@ -24,8 +22,7 @@ def upload(userid, filedata):
     """
     if filedata:
         media_item = media.make_resized_media_item(filedata, (600, 500), 'FileType')
-        orm.UserMediaLink.make_or_replace_link(
-            userid, 'avatar-source', media_item, rating=ratings.GENERAL.code)
+        orm.UserMediaLink.make_or_replace_link(userid, 'avatar-source', media_item)
     else:
         orm.UserMediaLink.clear_link(userid, 'avatar')
 
@@ -45,6 +42,5 @@ def create(userid, x1, y1, x2, y2, auto=False, config=None):
     thumb = image.shrinkcrop(im, geometry.Size(100, 100), bounds)
     media_item = orm.fetch_or_create_media_item(
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
-    orm.UserMediaLink.make_or_replace_link(
-        userid, 'avatar', media_item, rating=ratings.GENERAL.code)
+    orm.UserMediaLink.make_or_replace_link(userid, 'avatar', media_item)
     orm.UserMediaLink.clear_link(userid, 'avatar-source')

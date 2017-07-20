@@ -161,7 +161,7 @@ class _LinkMixin(object):
         cls.refresh_cache(identity)
 
     @classmethod
-    def make_or_replace_link(cls, identity, link_type, media_item, **attributes):
+    def make_or_replace_link(cls, identity, link_type, media_item):
         obj = (cls.query
                .filter(cls.link_type == link_type)
                .filter(getattr(cls, cls._identity) == identity)
@@ -171,7 +171,6 @@ class _LinkMixin(object):
             setattr(obj, cls._identity, identity)
             cls.dbsession.add(obj)
         obj.media_item = media_item
-        obj.attributes = attributes
         cls.refresh_cache(identity)
 
     @classmethod
@@ -192,7 +191,6 @@ class _LinkMixin(object):
         buckets = collections.defaultdict(lambda: collections.defaultdict(list))
         for media_item, link in q.all():
             media_data = media_item.serialize(link=link)
-            media_data['link_attributes'] = link.attributes
             buckets[getattr(link, cls._identity)][link.link_type].append(media_data)
         return [dict(buckets[identity]) for identity in identities]
 

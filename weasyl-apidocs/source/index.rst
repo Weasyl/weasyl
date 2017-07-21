@@ -245,8 +245,7 @@ The *type* key will be ``"submission"``.
 The *subtype* key for ``"submission"`` types will be one of ``"visual"``,
 ``"literary"``, or ``"multimedia"``.
 
-The *rating* key will be one of ``"general"``, ``"moderate"``, ``"mature"``,
-or ``"explicit"``.
+The *rating* key will be one of ``"general"``, ``"mature"``, or ``"explicit"``.
 
 The *media* key is the submission's :ref:`media <media>`.
 

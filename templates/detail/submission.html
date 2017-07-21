@@ -119,9 +119,7 @@ $code:
           $ id = 'id="folder-nav-prev"' if e == len(older) else ''
           <a class="nav-link older" $:{id} href="/submission/${i['submitid']}/${SLUG(i['title'])}">
             <span class="text">&#171; Older</span>
-            $if i['rating'] == R.MODERATE.code:
-              <span class="rating moderate">The following submission is rated Moderate:</span>
-            $elif i['rating'] == R.MATURE.code:
+            $if i['rating'] == R.MATURE.code:
               <span class="rating mature">The following submission is rated Mature:</span>
             $elif i['rating'] == R.EXPLICIT.code:
               <span class="rating explicit">The following submission is rated Explicit:</span>
@@ -133,9 +131,7 @@ $code:
           $ thumb = THUMB(i)
           $ id = 'id="folder-nav-next"' if e == 0 else ''
           <a class="nav-link newer" $:{id} href="/submission/${i['submitid']}/${SLUG(i['title'])}">
-            $if i['rating'] == R.MODERATE.code:
-              <span class="rating moderate">The following submission is rated Moderate:</span>
-            $elif i['rating'] == R.MATURE.code:
+            $if i['rating'] == R.MATURE.code:
               <span class="rating mature">The following submission is rated Mature:</span>
             $elif i['rating'] == R.EXPLICIT.code:
               <span class="rating explicit">The following submission is rated Explicit:</span>

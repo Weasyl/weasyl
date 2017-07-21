@@ -73,8 +73,6 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''
         statement.append(" AND pr.config ~ 'p'")
     elif rating == ratings.MATURE.code:
         statement.append(" AND pr.config ~ '[ap]'")
-    elif rating == ratings.MODERATE.code:
-        statement.append(" AND pr.config ~ '[map]'")
 
     statement.append(
         " AND NOT EXISTS (SELECT 0 FROM searchmapsubmit WHERE "
@@ -182,7 +180,6 @@ def collection_insert(userid, submitid):
                 CASE (SELECT rating FROM submission WHERE submitid = %(submission)s)
                     WHEN {explicit} THEN 'p'
                     WHEN {mature} THEN '[ap]'
-                    WHEN {moderate} THEN '[map]'
                     ELSE ''
                 END
             )
@@ -198,7 +195,6 @@ def collection_insert(userid, submitid):
     """.format(
         explicit=ratings.EXPLICIT.code,
         mature=ratings.MATURE.code,
-        moderate=ratings.MODERATE.code,
     )
 
     d.engine.execute(

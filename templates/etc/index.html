@@ -1,9 +1,7 @@
 $def with (everything, randomized, visual, literary, media, characters, update, critique, streaming, popular=None)
 $code:
   def _RATING(target):
-    if target == R.MODERATE.code:
-      return '<span class="rating moderate">The following submission is rated Moderate:</span>'
-    elif target == R.MATURE.code:
+    if target == R.MATURE.code:
       return '<span class="rating mature">The following submission is rated Mature:</span>'
     elif target == R.EXPLICIT.code:
       return '<span class="rating explicit">The following submission is rated Explicit:</span>'

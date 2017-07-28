@@ -58,6 +58,7 @@ routes = (
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
     Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
+    Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
 
     # Two-Factor Authentication views.
     Route("/control/2fa/status", "control_2fa_status", {'GET': two_factor_auth.tfa_status_get_}),

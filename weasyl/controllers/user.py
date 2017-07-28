@@ -263,6 +263,17 @@ def verify_account_(request):
 
 
 @login_required
+def verify_emailchange_get_(request):
+    token = request.web_input(token="").token
+    email = login.verify_email_change(request.userid, token)
+    return Response(define.errorpage(
+        request.userid,
+        "**Success!** Your email address was successfully updated to **" + email + "**.",
+        [["Return to the Home Page", "/"]]
+    ))
+
+
+@login_required
 def verify_premium_(request):
     premiumpurchase.verify(request.userid, request.web_input(token="").token)
     return Response(define.errorpage(
@@ -309,6 +320,10 @@ def resetpassword_post_(request):
     form = request.web_input(token="", username="", email="", day="", month="", year="", password="", passcheck="")
 
     resetpassword.reset(form)
+
+    # Invalidate all other user sessions for this user.
+    profile.invalidate_other_sessions(request.userid)
+
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your password has been reset and you may now sign in to your account.",
@@ -325,6 +340,10 @@ def force_resetpassword_(request):
     form = request.web_input(password="", passcheck="")
 
     resetpassword.force(request.userid, form)
+
+    # Invalidate all other user sessions for this user.
+    profile.invalidate_other_sessions(request.userid)
+
     raise HTTPSeeOther(location="/", headers=request.response.headers)
 
 

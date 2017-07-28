@@ -310,3 +310,36 @@ def is_email_blacklisted(address):
         "SELECT EXISTS (SELECT 0 FROM emailblacklist WHERE domain_name = %(domain_name)s)",
         domain_name=domain,
     )
+
+
+def verify_email_change(userid, token):
+    """
+    Verify a user's email change request, updating the `login` record if it validates.
+
+    Compare a supplied token against the record within the `emailverify` table, and provided
+    a match exists, copy the email within into the user's account record.
+
+    Parameters:
+        userid: The userid of the account to attempt to update.
+        token: The security token to search for.
+
+    Returns: The newly set email address when verification of the `token` was successful; raises
+    a WeasylError upon unsuccessful verification.
+    """
+    # Sanity checks: Must have userid and token
+    if not userid or not token:
+        raise WeasylError("Unexpected")
+    query_result = d.engine.scalar("""
+        DELETE FROM emailverify
+        WHERE userid = %(userid)s AND token = %(token)s
+        RETURNING email
+    """, userid=userid, token=token)
+    if not query_result:
+        raise WeasylError("ChangeEmailVerificationTokenIncorrect")
+    else:
+        d.engine.execute("""
+            UPDATE login
+            SET email = %(email)s
+            WHERE userid = %(userid)s
+        """, userid=userid, email=query_result)
+        return query_result

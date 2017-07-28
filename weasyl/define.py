@@ -442,8 +442,6 @@ def get_rating(userid):
         return ratings.EXPLICIT.code
     elif 'a' in config:
         return ratings.MATURE.code
-    elif 'm' in config:
-        return ratings.MODERATE.code
     else:
         return ratings.GENERAL.code
 
@@ -458,13 +456,12 @@ def get_config_rating(userid):
     """
     config = get_config(userid)
 
-    max_rating = ratings.GENERAL.code
     if 'p' in config:
         max_rating = ratings.EXPLICIT.code
     elif 'a' in config:
         max_rating = ratings.MATURE.code
-    elif 'm' in config:
-        max_rating = ratings.MODERATE.code
+    else:
+        max_rating = ratings.GENERAL.code
 
     profile_settings = get_profile_settings(userid)
     sfw_rating = profile_settings.max_sfw_rating

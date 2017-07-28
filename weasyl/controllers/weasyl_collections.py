@@ -15,7 +15,7 @@ def collection_options_get_(request):
         "allow_request": jsonb_settings.allow_collection_requests,
         "allow_notification": jsonb_settings.allow_collection_notifs,
     }
-    return Response(define.webpage(request.userid, "manage/collection_options.html", [form_settings]))
+    return Response(define.webpage(request.userid, "manage/collection_options.html", [form_settings], title="Collection Options"))
 
 
 @login_required

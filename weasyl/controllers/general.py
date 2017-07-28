@@ -40,7 +40,7 @@ def search_(request):
             "q": q,
             "find": search_query.find,
             "within": form.within,
-            "rated": set('gmap') & set(form.rated),
+            "rated": set('gap') & set(form.rated),
             "cat": int(form.cat) if form.cat else None,
             "subcat": int(form.subcat) if form.subcat else None,
             "backid": int(form.backid) if form.backid else None,
@@ -130,18 +130,18 @@ def site_update_list_(request):
 
     can_edit = request.userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (updates, can_edit)))
+    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (updates, can_edit), title="Site Updates"))
 
 
 def site_update_(request):
     updateid = int(request.matchdict['update_id'])
     update = SiteUpdate.query.get_or_404(updateid)
 
-    return Response(define.webpage(request.userid, 'etc/site_update.html', (update,)))
+    return Response(define.webpage(request.userid, 'etc/site_update.html', (update,), title="Site Update"))
 
 
 def popular_(request):
     return Response(define.webpage(request.userid, 'etc/popular.html', [
         list(itertools.islice(
             index.filter_submissions(request.userid, submission.select_recently_popular(), incidence_limit=1), 66))
-    ]))
+    ], title="Recently Popular"))

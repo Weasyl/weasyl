@@ -14,14 +14,14 @@ def test_query_parsing():
     assert not search.Query.parse('#character', 'submit')
     assert search.Query.parse('tag_that_does_not_exist', 'submit')
 
-    query = search.Query.parse('one, two +three & -four |five |six user:a +user:b -user:c #general #moderate #submission', 'journal')
+    query = search.Query.parse('one, two +three & -four |five |six user:a +user:b -user:c #general #mature #submission', 'journal')
 
     assert query.possible_includes == {'five', 'six'}
     assert query.required_includes == {'one', 'two', 'three'}
     assert query.required_excludes == {'four'}
     assert query.required_user_includes == {'a', 'b'}
     assert query.required_user_excludes == {'c'}
-    assert query.ratings == {ratings.GENERAL.code, ratings.MODERATE.code}
+    assert query.ratings == {ratings.GENERAL.code, ratings.MATURE.code}
     assert query.find == 'submit'
 
 
@@ -33,7 +33,7 @@ def test_query_parsing():
     (u'walrus penguin', 1),
     (u'walrus -penguin', 1),
     (u'walrus -penguin #general #explicit', 1),
-    (u'walrus -penguin #general #moderate #mature', 0),
+    (u'walrus -penguin #general #mature', 0),
     (u'-walrus +penguin', 2),
     (u'|walrus |penguin', 4),
     (u'+nothing |walrus |penguin', 0),

@@ -19,7 +19,7 @@ from weasyl.error import WeasylError
 # Content submission functions
 @login_required
 def submit_(request):
-    return Response(define.webpage(request.userid, "submit/submit.html"))
+    return Response(define.webpage(request.userid, "submit/submit.html", title="Submit Artwork"))
 
 
 @login_required
@@ -35,7 +35,7 @@ def submit_visual_get_(request):
         [i for i in macro.MACRO_SUBCAT_LIST if 1000 <= i[0] < 2000],
         profile.get_user_ratings(request.userid),
         form,
-    ]))
+    ], title="Visual Artwork"))
 
 
 @login_required
@@ -80,7 +80,7 @@ def submit_literary_get_(request):
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST if 2000 <= i[0] < 3000],
         profile.get_user_ratings(request.userid),
-    ]))
+    ], title="Literary Artwork"))
 
 
 @login_required
@@ -124,7 +124,7 @@ def submit_multimedia_get_(request):
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST if 3000 <= i[0] < 4000],
         profile.get_user_ratings(request.userid),
-    ]))
+    ], title="Multimedia Artwork"))
 
 
 @login_required
@@ -167,7 +167,7 @@ def submit_multimedia_post_(request):
 def submit_character_get_(request):
     return Response(define.webpage(request.userid, "submit/character.html", [
         profile.get_user_ratings(request.userid),
-    ]))
+    ], title="Character Profile"))
 
 
 @login_required
@@ -204,7 +204,7 @@ def submit_character_post_(request):
 @login_required
 def submit_journal_get_(request):
     return Response(define.webpage(request.userid, "submit/journal.html",
-                                   [profile.get_user_ratings(request.userid)]))
+                                   [profile.get_user_ratings(request.userid)], title="Journal Entry"))
 
 
 @login_required
@@ -352,7 +352,7 @@ def reupload_submission_get_(request):
         "submission",
         # SubmitID
         form.submitid,
-    ]))
+    ], title="Reupload Submission"))
 
 
 @login_required
@@ -380,7 +380,7 @@ def reupload_character_get_(request):
         "character",
         # charid
         form.charid,
-    ]))
+    ], title="Reupload Character Image"))
 
 
 @login_required
@@ -404,7 +404,7 @@ def reupload_cover_get_(request):
     if request.userid != define.get_ownerid(submitid=form.submitid):
         return Response(define.errorpage(request.userid, errorcode.permission))
 
-    return Response(define.webpage(request.userid, "submit/reupload_cover.html", [form.submitid]))
+    return Response(define.webpage(request.userid, "submit/reupload_cover.html", [form.submitid], title="Reupload Cover Artwork"))
 
 
 @login_required
@@ -439,7 +439,7 @@ def edit_submission_get_(request):
         [i for i in macro.MACRO_SUBCAT_LIST
          if submission_category <= i[0] < submission_category + 1000],
         profile.get_user_ratings(detail['userid']),
-    ]))
+    ], title="Edit Submission"))
 
 
 @login_required
@@ -483,7 +483,7 @@ def edit_character_get_(request):
         # Submission detail
         detail,
         profile.get_user_ratings(detail['userid']),
-    ]))
+    ], title="Edit Character"))
 
 
 @login_required
@@ -529,7 +529,7 @@ def edit_journal_get_(request):
         # Journal detail
         detail,
         profile.get_user_ratings(detail['userid']),
-    ]))
+    ], title="Edit Journal"))
 
 
 def edit_journal_post_(request):

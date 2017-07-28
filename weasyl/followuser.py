@@ -50,9 +50,6 @@ def list_followed(userid, settings=None, within=False, rating=ratings.GENERAL.co
     elif rating == ratings.MATURE.code:
         # Only notify users who view explicit or explicit
         statement.append(" AND pr.config ~ '[ap]'")
-    elif rating == ratings.MODERATE.code:
-        # Only notify users who view mature or explicit or explicit
-        statement.append(" AND pr.config ~ '[map]'")
 
     return d.execute("".join(statement),
                      [userid, settings] if settings else [userid],

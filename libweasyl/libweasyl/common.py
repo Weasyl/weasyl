@@ -39,9 +39,6 @@ def minimize_media(request, obj):
             "mediaid": 2421833,
             "described": {},
             "file_path": "static/media/34/44/8e/[...].png",
-            "link_attributes": {
-              "rating": 10
-            },
             "file_url": "/static/media/34/44/8e/[...].png"
           }
         ]

@@ -178,7 +178,6 @@ class Profile(Base):
     _tagging_level_to_rating = {
         'max-rating-explicit': ratings.EXPLICIT,
         'max-rating-mature': ratings.MATURE,
-        'max-rating-moderate': ratings.MODERATE,
         None: ratings.GENERAL,
     }
 

@@ -18,12 +18,12 @@ import weasyl.define as d
 
 @admin_only
 def admincontrol_(request):
-    return Response(d.webpage(request.userid, "admincontrol/admincontrol.html"))
+    return Response(d.webpage(request.userid, "admincontrol/admincontrol.html", title="Admin Control Panel"))
 
 
 @admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),)))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),), title="Submit Site Update"))
 
 
 @admin_only
@@ -46,7 +46,7 @@ def admincontrol_siteupdate_post_(request):
 def site_update_edit_(request):
     updateid = int(request.matchdict['update_id'])
     update = SiteUpdate.query.get_or_404(updateid)
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,)))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,), title="Edit Site Update"))
 
 
 @admin_only
@@ -83,7 +83,7 @@ def admincontrol_manageuser_get_(request):
     return Response(d.webpage(request.userid, "admincontrol/manageuser.html", [
         # Manage user information
         profile.select_manage(otherid),
-    ]))
+    ], title="User Management"))
 
 
 @admin_only
@@ -124,7 +124,7 @@ def admincontrol_acctverifylink_(request):
 
 @admin_only
 def admincontrol_finduser_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/finduser.html"))
+    return Response(d.webpage(request.userid, "admincontrol/finduser.html", title="Search Users"))
 
 
 @admin_only
@@ -135,4 +135,4 @@ def admincontrol_finduser_post_(request):
     return Response(d.webpage(request.userid, "admincontrol/finduser.html", [
         # Search results
         moderation.finduser(request.userid, form)
-    ]))
+    ], title="Search Users: Results"))

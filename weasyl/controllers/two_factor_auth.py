@@ -58,7 +58,7 @@ def _cleanup_session():
 def tfa_status_get_(request):
     return Response(define.webpage(request.userid, "control/2fa/status.html", [
         tfa.is_2fa_enabled(request.userid), tfa.get_number_of_recovery_codes(request.userid)
-    ]))
+    ], title="2FA Status"))
 
 
 @login_required
@@ -67,7 +67,7 @@ def tfa_init_get_(request):
     return Response(define.webpage(request.userid, "control/2fa/init.html", [
         define.get_display_name(request.userid),
         None
-    ]))
+    ], title="Enable 2FA: Step 1"))
 
 
 @login_required
@@ -81,7 +81,7 @@ def tfa_init_post_(request):
         return Response(define.webpage(request.userid, "control/2fa/init.html", [
             define.get_display_name(request.userid),
             "password"
-        ]))
+        ], title="Enable 2FA: Step 1"))
     # Unlikely that this block will get triggered, but just to be safe, check for it
     elif status == "unicode-failure":
         raise HTTPSeeOther(location='/signin/unicode-failure')
@@ -94,7 +94,7 @@ def tfa_init_post_(request):
             tfa_secret,
             tfa_qrcode,
             None
-        ]))
+        ], title="Enable 2FA: Step 2"))
 
 
 @login_required
@@ -131,11 +131,13 @@ def tfa_init_qrcode_post_(request):
             tfa_secret_sess,
             tfa.generate_tfa_qrcode(request.userid, tfa_secret_sess),
             "2fa"
-        ]))
+        ], title="Enable 2FA: Step 2"))
     else:
         _set_recovery_codes_on_session(','.join(recovery_codes))
-        return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                        [recovery_codes, None]))
+        return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
+            recovery_codes,
+            None
+        ], title="Enable 2FA: Final Step"))
 
 
 @login_required
@@ -180,19 +182,25 @@ def tfa_init_verify_post_(request):
             raise HTTPSeeOther(location="/control/2fa/status")
         # TOTP+2FA Secret did not validate
         else:
-            return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                            [tfarecoverycodes.split(','), "2fa"]))
+            return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
+                tfarecoverycodes.split(','),
+                "2fa"
+            ], title="Enable 2FA: Final Step"))
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif not verify_checkbox:
-        return Response(define.webpage(request.userid, "control/2fa/init_verify.html",
-                        [tfarecoverycodes.split(','), "verify"]))
+        return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
+            tfarecoverycodes.split(','),
+            "verify"
+        ], title="Enable 2FA: Final Step"))
 
 
 @login_required
 @twofactorauth_enabled_required
 def tfa_disable_get_(request):
-    return Response(define.webpage(request.userid, "control/2fa/disable.html",
-                    [define.get_display_name(request.userid), None]))
+    return Response(define.webpage(request.userid, "control/2fa/disable.html", [
+        define.get_display_name(request.userid),
+        None
+    ], title="Disable 2FA"))
 
 
 @login_required
@@ -207,12 +215,16 @@ def tfa_disable_post_(request):
         if tfa.deactivate(request.userid, tfaresponse):
             raise HTTPSeeOther(location="/control/2fa/status")
         else:
-            return Response(define.webpage(request.userid, "control/2fa/disable.html",
-                            [define.get_display_name(request.userid), "2fa"]))
+            return Response(define.webpage(request.userid, "control/2fa/disable.html", [
+                define.get_display_name(request.userid),
+                "2fa"
+            ], title="Disable 2FA"))
     # The user didn't check the verification checkbox (despite HTML5's client-side check)
     elif not verify_checkbox:
-        return Response(define.webpage(request.userid, "control/2fa/disable.html",
-                        [define.get_display_name(request.userid), "verify"]))
+        return Response(define.webpage(request.userid, "control/2fa/disable.html", [
+            define.get_display_name(request.userid),
+            "verify"
+        ], title="Disable 2FA"))
 
 
 @login_required
@@ -221,7 +233,8 @@ def tfa_generate_recovery_codes_verify_password_get_(request):
     return Response(define.webpage(
         request.userid,
         "control/2fa/generate_recovery_codes_verify_password.html",
-        [None]
+        [None],
+        title="Generate Recovery Codes: Verify Password"
     ))
 
 
@@ -236,7 +249,8 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
         return Response(define.webpage(
             request.userid,
             "control/2fa/generate_recovery_codes_verify_password.html",
-            ["password"]
+            ["password"],
+            title="Generate Recovery Codes: Verify Password"
         ))
     # The user has authenticated, so continue with generating the new recovery codes.
     else:
@@ -261,7 +275,7 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
         return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
             recovery_codes,
             None
-        ]))
+        ], title="Generate Recovery Codes: Save New Recovery Codes"))
 
 
 @login_required
@@ -307,9 +321,9 @@ def tfa_generate_recovery_codes_post_(request):
             return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
                 tfarecoverycodes.split(','),
                 "2fa"
-            ]))
+            ], title="Generate Recovery Codes: Save New Recovery Codes"))
     elif not verify_checkbox:
         return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
             tfarecoverycodes.split(','),
             "verify"
-        ]))
+        ], title="Generate Recovery Codes: Save New Recovery Codes"))

@@ -142,8 +142,8 @@ def test_edit_email_password(monkeypatch):
 
     # Case 5: Changes, new password only, password change succeeds
     result = profile.edit_email_password(
-           userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
-           newpassword="1122334455", newpasscheck="1122334455"
+        userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
+        newpassword="1122334455", newpasscheck="1122334455"
     )
     assert "Your password has been successfully changed" in result
     password = "1122334455"

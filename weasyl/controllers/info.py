@@ -41,11 +41,6 @@ def policy_community_(request):
                                    title="Community Guidelines"))
 
 
-def policy_community_changes_(request):
-    return Response(define.webpage(request.userid, "help/community-changes.html",
-                                   title="Community Guidelines"))
-
-
 def policy_copyright_(request):
     return Response(define.webpage(request.userid, "help/copyright.html",
                                    title="Copyright Policy"))
@@ -109,11 +104,6 @@ def help_marketplace_(request):
 
 def help_ratings_(request):
     return Response(define.webpage(request.userid, "help/ratings.html",
-                                   title="Content Ratings"))
-
-
-def help_ratings_changes_(request):
-    return Response(define.webpage(request.userid, "help/ratings-changes.html",
                                    title="Content Ratings"))
 
 

@@ -307,7 +307,6 @@ routes = (
     Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
 
     Route("/policy/community", "policy_community", info.policy_community_),
-    Route("/policy/community/changes", "policy_community_changes", info.policy_community_changes_),
     Route("/policy/copyright", "policy_copyright", info.policy_copyright_),
     Route("/policy/privacy", "policy_privacy", info.policy_privacy_),
     Route("/policy/scoc", "policy_scoc", info.policy_scoc_),
@@ -326,7 +325,6 @@ routes = (
     Route("/help/markdown", "help_markdown", info.help_markdown_),
     Route("/help/marketplace", "help_marketplace", info.help_marketplace_),
     Route("/help/ratings", "help_ratings", info.help_ratings_),
-    Route("/help/ratings/changes", "help_ratings_changes", info.help_ratings_changes_),
     Route("/help/reports", "help_reports", info.help_reports_),
     Route("/help/searching", "help_searching", info.help_searching_),
     Route("/help/tagging", "help_tagging", info.help_tagging_),

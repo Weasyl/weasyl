@@ -42,15 +42,11 @@ def create(userid, journal, friends_only=False, tags=None):
     journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
+        "content": journal.content,
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
     })
-
-    # Write journal file
-    files.make_path(journalid, "journal")
-    files.write(files.make_resource(userid, journalid, "journal/submit"),
-                journal.content)
 
     # Assign search tags
     searchtag.associate(userid, tags, journalid=journalid)
@@ -81,7 +77,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     """
 
     query = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
+        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
@@ -111,6 +107,10 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
     journal = _select_journal_and_check(
         userid, journalid, rating=rating, ignore=ignore, anyway=anyway == "true")
 
+    content = (
+        journal['content'] if journal['content'] is not None
+        else files.read(files.make_resource(userid, journalid, 'journal/submit')))
+
     return {
         'journalid': journalid,
         'userid': journal['userid'],
@@ -119,7 +119,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'mine': userid == journal['userid'],
         'unixtime': journal['unixtime'],
         'title': journal['title'],
-        'content': files.read(files.make_resource(userid, journalid, 'journal/submit')),
+        'content': content,
         'rating': journal['rating'],
         'settings': journal['settings'],
         'page_views': journal['page_views'],
@@ -140,7 +140,9 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         userid, journalid,
         rating=rating, ignore=anyway, anyway=anyway, increment_views=increment_views)
 
-    content = files.read(files.make_resource(userid, journalid, 'journal/submit'))
+    content = (
+        journal['content'] if journal['content'] is not None
+        else files.read(files.make_resource(userid, journalid, 'journal/submit')))
 
     return {
         'journalid': journalid,
@@ -251,7 +253,7 @@ def select_latest(userid, rating, otherid=None, config=None):
     if config is None:
         config = d.get_config(userid)
 
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
+    statement = ["SELECT jo.journalid, jo.title, jo.content, jo.unixtime FROM journal jo WHERE"]
 
     if userid:
         if d.is_sfw_mode():
@@ -272,11 +274,15 @@ def select_latest(userid, rating, otherid=None, config=None):
     query = d.execute("".join(statement), options="single")
 
     if query:
+        content = (
+            query[2] if query[2] is not None
+            else files.read("%s%s%i.txt" % (m.MACRO_SYS_JOURNAL_PATH, d.get_hash_path(query[0]), query[0])))
+
         return {
             "journalid": query[0],
             "title": query[1],
-            "unixtime": query[2],
-            "content": files.read("%s%s%i.txt" % (m.MACRO_SYS_JOURNAL_PATH, d.get_hash_path(query[0]), query[0])),
+            "unixtime": query[3],
+            "content": content,
             "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
                                   [query[0]], ["element"]),
         }
@@ -305,13 +311,8 @@ def edit(userid, journal, friends_only=False):
     if "f" in settings:
         welcome.journal_remove(journal.journalid)
 
-    # TODO(kailys): use ORM
-    d.execute("UPDATE journal SET (title, rating, settings) = ('%s', %i, '%s') WHERE journalid = %i",
-              [journal.title, journal.rating.code, settings, journal.journalid])
-
-    # Write journal file
-    files.write(files.make_resource(userid, journal.journalid, "journal/submit"),
-                journal.content)
+    d.execute("UPDATE journal SET (title, content, rating, settings) = ('%s', '%s', %i, '%s') WHERE journalid = %i",
+              [journal.title, journal.content, journal.rating.code, settings, journal.journalid])
 
     if userid != query[0]:
         from weasyl import moderation

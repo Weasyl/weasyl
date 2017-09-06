@@ -17,11 +17,7 @@ import weasyl.macro as m
 
 PATH_ROOT = os.environ['WEASYL_ROOT'] + '/'
 
-PATH_LOG = "log/"
-PATH_SAVE = "save/"
 PATH_TEMP = "temp/"
-PATH_CONFIG = "config/"
-PATH_SEARCH = "search/"
 
 
 def read(filename):

@@ -114,7 +114,7 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
     thumb = images.make_thumbnail(im, bounds)
     thumb.write(dest, format=images.image_file_type(thumb))
     if remove:
-        m.os.remove(filename)
+        os.remove(filename)
 
 
 def create(userid, x1, y1, x2, y2, submitid=None, charid=None,

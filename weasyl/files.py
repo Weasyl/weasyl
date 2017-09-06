@@ -25,63 +25,22 @@ def ensure_file_directory(filename):
     makedirs_exist_ok(dirname)
 
 
-def write(filename, content, encoding="utf-8", decode=False):
+def write(filename, content):
     """
-    Writes content to the specified file. If the content comes from a readable
-    uploaded text file, set decode to True, else if it comes from a text input,
-    use the defaults. If the content comes from an uploaded image file, set
-    encoding to None.
+    Writes bytes to the specified file.
     """
-    if decode and type(content) is str:
-        content = content.decode("raw_unicode_escape")
-
     ensure_file_directory(filename)
 
-    if encoding:
-        with codecs.open(filename, "w", encoding) as fio:
-            fio.write(content)
-    else:
-        with open(filename, "wb") as fio:
-            fio.write(content)
+    with open(filename, "wb") as f:
+        f.write(content)
 
 
-def easyupload(filename, content, feature):
-    if feature == "text":
-        write(filename, content, decode=True)
-    elif feature == "image":
-        write(filename, content, encoding=None)
-    elif feature == "file":
-        write(filename, content, encoding=None)
-    else:
-        raise ValueError
-
-
-def append(filename, content, encoding="utf-8", decode=False, formfeed=False):
+def append(filename, content):
     """
-    Appends content to the specified file. If the content comes from a readable
-    uploaded text file, set decode to True, else use the defaults. Set
-    formfeed to append a formfeed character before the content.
+    Appends text to the specified file.
     """
-    if decode and type(content) is str:
-        content = content.decode("raw_unicode_escape")
-
-    try:
-        if encoding:
-            with codecs.open(filename, "a", encoding) as fio:
-                if formfeed:
-                    fio.write("\n")
-
-                fio.write(content)
-        else:
-            with open(filename, "a") as fio:
-                if formfeed:
-                    fio.write("\n")
-
-                fio.write(content)
-    except IOError:
-        return False
-    else:
-        return True
+    with codecs.open(filename, "a", "utf-8") as f:
+        f.write(content)
 
 
 # Copy the specified file.

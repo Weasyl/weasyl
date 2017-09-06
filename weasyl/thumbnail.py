@@ -42,7 +42,7 @@ def _upload_char(userid, filedata, charid):
 
     filename = d.url_make(charid, "char/.thumb", root=True)
 
-    files.write(filename, filedata, encoding=None)
+    files.write(filename, filedata)
 
     if image.check_type(filename):
         image.make_cover(filename)

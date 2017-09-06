@@ -47,7 +47,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Write temporary thumbnail file
     if thumbsize:
-        files.easyupload(tempthumb, thumbfile, "image")
+        files.write(tempthumb, thumbfile)
         thumbextension = files.get_extension_for_category(
             thumbfile, macro.ART_SUBMISSION_CATEGORY)
     else:
@@ -55,7 +55,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Write temporary submission file
     if submitsize:
-        files.easyupload(tempsubmit, submitfile, "image")
+        files.write(tempsubmit, submitfile)
         submitextension = files.get_extension_for_category(
             submitfile, macro.ART_SUBMISSION_CATEGORY)
     else:

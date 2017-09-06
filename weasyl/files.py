@@ -97,30 +97,22 @@ def make_resource(userid, target, feature, extension=None):
     raise ValueError
 
 
-feature_typeflags = {
-    "thumb": "-",
+_feature_typeflags = {
+    "submit": "=",
     "cover": "~",
-    "avatar": ">",
-    "banner": "<",
-    "propic": "#"
 }
 
-extension_typeflags = {
+_extension_typeflags = {
     ".jpg": "J",
     ".png": "P",
     ".gif": "G",
-    ".txt": "T",
-    ".htm": "H",
-    ".mp3": "M",
-    ".swf": "F",
-    ".pdf": "A"
 }
 
 
 def typeflag(feature, extension):
-    symbol = feature_typeflags.get(feature, "=")
-    letter = extension_typeflags.get(extension)
-    return symbol + letter if letter else ""
+    symbol = _feature_typeflags[feature]
+    letter = _extension_typeflags[extension]
+    return symbol + letter
 
 
 _categories = {

@@ -9,7 +9,6 @@ matrix:
 
 env:
     global:
-        - PGPORT=5433
         - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
         - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
 
@@ -18,13 +17,7 @@ cache:
         - ~/.cache/pip
 
 addons:
-    apt:
-        sources:
-        - precise-pgdg-9.5
-        packages:
-        - postgresql-9.5
-        - postgresql-contrib-9.5
-    postgresql: "9.5"
+    postgresql: "9.6"
 
 services:
     - memcached

@@ -162,9 +162,6 @@ def make_resource(userid, target, feature, extension=None):
         return "%s%d.thumb%s" % (d.get_hash_path(target, "char"), target, extension)
     if feature == "char/.thumb":
         return "%s%d.new.thumb" % (d.get_hash_path(target, "char"), target)
-    # Journal
-    if feature == "journal/submit":
-        return "%s%d.txt" % (d.get_hash_path(target, "journal"), target)
     # Unknown
     raise ValueError
 

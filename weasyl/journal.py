@@ -11,7 +11,6 @@ from weasyl import blocktag
 from weasyl import comment
 from weasyl import define as d
 from weasyl import favorite
-from weasyl import files
 from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import macro as m
@@ -107,10 +106,6 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
     journal = _select_journal_and_check(
         userid, journalid, rating=rating, ignore=ignore, anyway=anyway == "true")
 
-    content = (
-        journal['content'] if journal['content'] is not None
-        else files.read(files.make_resource(userid, journalid, 'journal/submit')))
-
     return {
         'journalid': journalid,
         'userid': journal['userid'],
@@ -119,7 +114,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'mine': userid == journal['userid'],
         'unixtime': journal['unixtime'],
         'title': journal['title'],
-        'content': content,
+        'content': journal['content'],
         'rating': journal['rating'],
         'settings': journal['settings'],
         'page_views': journal['page_views'],
@@ -140,10 +135,6 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         userid, journalid,
         rating=rating, ignore=anyway, anyway=anyway, increment_views=increment_views)
 
-    content = (
-        journal['content'] if journal['content'] is not None
-        else files.read(files.make_resource(userid, journalid, 'journal/submit')))
-
     return {
         'journalid': journalid,
         'title': journal['title'],
@@ -151,7 +142,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'owner_login': d.get_sysname(journal['username']),
         'owner_media': api.tidy_all_media(
             media.get_user_media(journal['userid'])),
-        'content': text.markdown(content),
+        'content': text.markdown(journal['content']),
         'tags': searchtag.select(journalid=journalid),
         'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal['title']))),
         'type': 'journal',
@@ -274,15 +265,11 @@ def select_latest(userid, rating, otherid=None, config=None):
     query = d.execute("".join(statement), options="single")
 
     if query:
-        content = (
-            query[2] if query[2] is not None
-            else files.read("%s%s%i.txt" % (m.MACRO_SYS_JOURNAL_PATH, d.get_hash_path(query[0]), query[0])))
-
         return {
             "journalid": query[0],
             "title": query[1],
+            "content": query[2],
             "unixtime": query[3],
-            "content": content,
             "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
                                   [query[0]], ["element"]),
         }

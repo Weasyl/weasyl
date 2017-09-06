@@ -15,11 +15,6 @@ import weasyl.define as d
 import weasyl.macro as m
 
 
-PATH_ROOT = os.environ['WEASYL_ROOT'] + '/'
-
-PATH_TEMP = "temp/"
-
-
 def read(filename):
     with codecs.open(filename, "r", encoding="utf-8", errors="replace") as f:
         return f.read()
@@ -117,9 +112,8 @@ def get_temporary(userid, feature):
     Return the full pathname to a temporary file.
     Temporary files are named so as to be owned by a user.
     """
-
-    return "{root}{temp}{userid}.{feature}.{random}".format(root=PATH_ROOT, temp=PATH_TEMP, userid=userid,
-                                                            feature=feature, random=security.generate_key(20))
+    return "{temp}{userid}.{feature}.{random}".format(temp=m.MACRO_SYS_TEMP_PATH, userid=userid,
+                                                      feature=feature, random=security.generate_key(20))
 
 
 def clear_temporary(userid):
@@ -127,7 +121,7 @@ def clear_temporary(userid):
     Remove temporary files owned by a user.
     """
 
-    remove("{root}{temp}{userid}.*".format(root=PATH_ROOT, temp=PATH_TEMP, userid=userid))
+    remove("{temp}{userid}.*".format(temp=m.MACRO_SYS_TEMP_PATH, userid=userid))
 
 
 def makedirs(path):

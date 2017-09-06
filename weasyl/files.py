@@ -47,12 +47,10 @@ def append(filename, content):
 copy = shutil.copy
 
 
-def remove(glob_path):
+def _remove_glob(glob_path):
     """
-    Removes the specified file.
+    Removes files matching the specified pattern.
     """
-    if not glob_path:
-        return
     for f in glob.glob(glob_path):
         try:
             os.remove(f)
@@ -74,8 +72,7 @@ def clear_temporary(userid):
     """
     Remove temporary files owned by a user.
     """
-
-    remove("{temp}{userid}.*".format(temp=m.MACRO_SYS_TEMP_PATH, userid=userid))
+    _remove_glob("{temp}{userid}.*".format(temp=m.MACRO_SYS_TEMP_PATH, userid=userid))
 
 
 def make_path(target, root):

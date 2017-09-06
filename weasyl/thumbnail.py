@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os
 from sanpera import geometry
 
 from libweasyl import images
@@ -47,7 +48,7 @@ def _upload_char(userid, filedata, charid):
     if image.check_type(filename):
         image.make_cover(filename)
     else:
-        files.remove(filename)
+        os.remove(filename)
         raise WeasylError("FileType")
 
 

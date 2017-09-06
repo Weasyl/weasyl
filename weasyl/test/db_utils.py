@@ -8,6 +8,7 @@ from libweasyl import legacy
 from libweasyl import ratings
 from libweasyl import security
 from libweasyl.models import content, users
+from libweasyl.models.content import Journal
 import weasyl.define as d
 from weasyl import login
 from weasyl import orm
@@ -133,9 +134,9 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
-    journal = add_entity(content.Journal(
-        userid=userid, title=title, rating=rating, unixtime=unixtime, settings=settings))
+def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, content=''):
+    journal = add_entity(Journal(
+        userid=userid, title=title, rating=rating, unixtime=unixtime, settings=settings, content=content))
     update_last_submission_time(userid, unixtime)
     return journal.journalid
 

@@ -31,11 +31,12 @@ def read(filename):
 
 def ensure_file_directory(filename):
     dirname = os.path.dirname(filename)
+
     try:
-        os.stat(dirname)
+        os.makedirs(dirname)
     except OSError as e:
-        if e.errno == errno.ENOENT:
-            os.makedirs(dirname)
+        if e.errno != errno.EEXIST:
+            raise
 
 
 def write(filename, content, encoding="utf-8", decode=False):

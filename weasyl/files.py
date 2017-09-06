@@ -8,7 +8,7 @@ import shutil
 
 from libweasyl.constants import Category
 from libweasyl.exceptions import InvalidFileFormat, UnknownFileFormat
-from libweasyl.files import file_type_for_category
+from libweasyl.files import file_type_for_category, makedirs_exist_ok
 from libweasyl import security
 from weasyl.error import WeasylError
 import weasyl.define as d
@@ -22,12 +22,7 @@ def read(filename):
 
 def ensure_file_directory(filename):
     dirname = os.path.dirname(filename)
-
-    try:
-        os.makedirs(dirname)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
+    makedirs_exist_ok(dirname)
 
 
 def write(filename, content, encoding="utf-8", decode=False):
@@ -124,20 +119,9 @@ def clear_temporary(userid):
     remove("{temp}{userid}.*".format(temp=m.MACRO_SYS_TEMP_PATH, userid=userid))
 
 
-def makedirs(path):
-    """
-    Make the full hash path to a resource directory on the file system.
-    """
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-
-
 def make_path(target, root):
     path = d.get_hash_path(target, root)
-    makedirs(path)
+    makedirs_exist_ok(path)
 
 
 def make_resource(userid, target, feature, extension=None):

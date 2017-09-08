@@ -31,6 +31,7 @@ def upgrade():
     connection = op.get_bind()
 
     query = connection.execute("SELECT journalid, position('h' in settings) != 0 FROM journal WHERE content IS NULL")
+    updates = []
 
     for journal_id, is_hidden in query:
         try:
@@ -40,9 +41,19 @@ def upgrade():
             if e.errno != errno.ENOENT or not is_hidden:
                 raise
         else:
-            connection.execute(
-                "UPDATE journal SET content = %(content)s WHERE journalid = %(id)s AND content IS NULL",
-                id=journal_id, content=content)
+            updates.append((journal_id, content))
+
+    connection.execute(
+        """
+        UPDATE journal
+            SET content = t.content
+            FROM UNNEST (%(updates)s) AS t (journalid integer, content unknown)
+            WHERE
+                journal.journalid = t.journalid AND
+                journal.content IS NULL
+        """,
+        updates=updates,
+    )
 
     connection.execute("UPDATE journal SET content = '(file missing)' WHERE content IS NULL AND position('h' in settings) != 0")
 

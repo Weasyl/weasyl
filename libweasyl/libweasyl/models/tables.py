@@ -297,7 +297,7 @@ journal = Table(
     Column('journalid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('title', String(length=200), nullable=False),
-    Column('content', Text(), nullable=True),
+    Column('content', Text(), nullable=False),
     Column('rating', RatingColumn, nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', CharSettingsColumn({

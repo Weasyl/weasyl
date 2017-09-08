@@ -545,7 +545,6 @@ _hash_path_roots = {
     "save": [macro.MACRO_SYS_SAVE_PATH],
     "submit": [macro.MACRO_SYS_SUBMIT_PATH],
     "char": [macro.MACRO_SYS_CHAR_PATH],
-    "journal": [macro.MACRO_SYS_JOURNAL_PATH],
     None: [],
 }
 

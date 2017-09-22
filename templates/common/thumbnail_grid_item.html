@@ -1,4 +1,4 @@
-$def with (query, notifications=None)
+$def with (query, notifications=None, recommendation=False)
 
 <li class="item">
   $if notifications:
@@ -97,4 +97,13 @@ $def with (query, notifications=None)
   $if notifications:
     <input type="checkbox" name="remove" value="${query['welcomeid']}" class="checkbox" />
     </label>
+  $elif recommendation:
+    <form class="recommendation_rating_form" action="/rate" data-action-base="/api/submissions/${query['submitid']}/" method="post">
+      $:{CSRF()}
+      <input type="hidden" name="submitid" value="${query['submitid']}" />
+      <input type="hidden" name="action" value="favorite" />
+      <button><span class="icon icon-20 icon-star"></span></button>
+      <button><span class="icon icon-20 icon-star"></span></button>
+      <button><span class="icon icon-20 icon-star"></span></button>
+    </form>
 </li>

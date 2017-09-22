@@ -42,6 +42,9 @@ class RecommendationRating(Enum):
     FAVORITE = 2
 
 
+_MINIMUM_RATING_COUNT = 1  # How many ratings an item needs to be recommended
+
+
 # TODO(hyena): Combine tables of favorites with likes/dislikes
 # If submissions ever swallow characters and journals (and one
 # can certainly hope), we should consolidate the tables into one.
@@ -136,12 +139,27 @@ def select_list(userid, rating):
     submitids = recs_for_user(userid)
     if not submitids:
         return submitids
+
+    # Throw out anything with not enough ratings.
+    q = d.engine.execute("""
+        SELECT su.submitid, COUNT(rr.*) as rating_count
+        FROM submission su
+        LEFT JOIN recommendation_rating rr ON su.submitid = rr.submitid
+        WHERE su.submitid IN %(recs)s
+        GROUP BY su.submitid
+        """,
+        recs=tuple(submitids))
+    rating_counts = {row['submitid']: row['rating_count'] for row in q}
+    submitids = [x for x in submitids if rating_counts[x] > _MINIMUM_RATING_COUNT]
+
+
     # TODO(hyena): This is grossly adapted from submission.py. Commit less SQL violence.
     statement = [
         "SELECT su.submitid, su.title, su.rating, su.unixtime, "
         "su.userid, pr.username, su.settings, su.subtype "]
     statement.extend(submission.select_query(userid=userid, rating=rating))
     statement.append(" AND su.submitid IN %(recs)s")
+
 
     items = {i[0]: {
                  "contype": 10,
@@ -153,6 +171,7 @@ def select_list(userid, rating):
                  "username": i[5],
                  "subtype": i[7],
              } for i in d.engine.execute("".join(statement), recs=tuple(submitids))}
+    # Re-sort and throw out anything
     query = [items[x] for x in submitids if x in items]  # Re-sort.
     media.populate_with_submission_media(query)
 
@@ -222,7 +241,8 @@ def get_recommendation_data():
     """
     # TODO(hyena): This construction is extremely slow. Testing indicates that most of the time
     # is spent reading out the entirety of the recommendation_rating table.
-    df = pandas.read_sql("recommendation_rating", d.engine)  # This command is extremely slow.
+    # df = pandas.read_sql("recommendation_rating", d.engine)  # This command is extremely slow.
+    df = pandas.read_csv("/tmp/favorites.csv")
 
     user_map = {x[1]: x[0] for x in enumerate(df.userid.unique())}
     item_map = {x[1]: x[0] for x in enumerate(df.submitid.unique())}

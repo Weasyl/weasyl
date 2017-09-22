@@ -6,7 +6,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
   <ul class="thumbnail-grid">
     $for i in recs:
-      $:{_GRID_ITEM(i)}
+      $:{_GRID_ITEM(i, recommendation=True)}
   </ul><!-- /.thumbnail-grid -->
 
 </div><!-- recommendations -->

@@ -110,7 +110,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     searchtag.associate(userid, tags, charid=charid)
 
     # Make submission file
-    files.make_path(charid, "char")
+    files.make_character_directory(charid)
     files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
 
     # Make cover file

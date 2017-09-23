@@ -540,22 +540,13 @@ def get_timestamp():
     return time.strftime("%Y-%m", time.localtime(get_time()))
 
 
-_hash_path_roots = {
-    "user": [macro.MACRO_SYS_USER_PATH],
-    "save": [macro.MACRO_SYS_SAVE_PATH],
-    "submit": [macro.MACRO_SYS_SUBMIT_PATH],
-    "char": [macro.MACRO_SYS_CHAR_PATH],
-    None: [],
-}
+def _get_hash_path(charid):
+    id_hash = hashlib.sha1(str(charid)).hexdigest()
+    return "/".join([id_hash[i:i + 2] for i in range(0, 11, 2)]) + "/"
 
 
-def get_hash_path(target_id, content_type=None):
-    path_hash = hashlib.sha1(str(target_id)).hexdigest()
-    path_hash = "/".join([path_hash[i:i + 2] for i in range(0, 11, 2)])
-
-    root = _hash_path_roots[content_type]
-
-    return "".join(root + [path_hash, "/"])
+def get_character_directory(charid):
+    return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
 def get_userid_list(target):
@@ -1002,7 +993,7 @@ def url_make(targetid, feature, query=None, root=False, file_prefix=None):
         result.append(macro.MACRO_SYS_BASE_PATH)
 
     if "char/" in feature:
-        result.extend([macro.MACRO_URL_CHAR_PATH, get_hash_path(targetid)])
+        result.extend([macro.MACRO_URL_CHAR_PATH, _get_hash_path(targetid)])
 
     if file_prefix is not None:
         result.append("%s-" % (file_prefix,))

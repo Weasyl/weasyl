@@ -121,7 +121,7 @@ SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "weasyl-debian91.box"
-  config.vm.box_url = "http://deploy.weasyldev.com/weasyl-debian91.box"
+  config.vm.box_url = "https://deploy.weasyldev.com/weasyl-debian91.box"
   config.vm.box_download_checksum = "7bcfa1c96505d80664e23121c80763125838ba2193f41e3deb9688df4cbec945"
   config.vm.box_download_checksum_type = "sha256"
   config.vm.hostname = "vagrant-weasyl"

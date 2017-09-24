@@ -238,7 +238,7 @@ SOCIAL_SITES = {
     },
     "tumblr": {
         "name": "Tumblr",
-        "url": "http://%s.tumblr.com/",
+        "url": "https://%s.tumblr.com/",
     },
     "twitter": {
         "name": "Twitter",

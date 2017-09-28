@@ -49,7 +49,7 @@ reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
 def _load_resources():
     global resource_paths
 
-    with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
+    with open(os.path.join(macro.MACRO_APP_ROOT, 'build/rev-manifest.json'), 'r') as f:
         resource_paths = json.loads(f.read())
 
 
@@ -204,7 +204,7 @@ def _compile(template_name):
     template = _template_cache.get(template_name)
 
     if template is None or reload_templates:
-        template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
+        template_path = os.path.join(macro.MACRO_APP_ROOT, 'templates', template_name)
         _template_cache[template_name] = template = frender(
             template_path,
             globals={
@@ -990,7 +990,7 @@ def url_make(targetid, feature, query=None, root=False, file_prefix=None):
     result = [] if root else ["/"]
 
     if root:
-        result.append(macro.MACRO_SYS_BASE_PATH)
+        result.append(macro.MACRO_STORAGE_ROOT)
 
     if "char/" in feature:
         result.extend([macro.MACRO_URL_CHAR_PATH, _get_hash_path(targetid)])

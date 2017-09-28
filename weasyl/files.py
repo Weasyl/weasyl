@@ -15,7 +15,7 @@ import weasyl.define as d
 import weasyl.macro as m
 
 
-PATH_ROOT = os.environ['WEASYL_ROOT'] + '/'
+PATH_ROOT = m.MACRO_STORAGE_ROOT
 
 PATH_LOG = "log/"
 PATH_SAVE = "save/"

@@ -125,7 +125,7 @@ def test_create_csrf(monkeypatch):
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie})
+    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.string == errorcode.token
 
 
@@ -234,7 +234,7 @@ def test_edit_csrf(monkeypatch, site_updates):
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
-    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie})
+    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.string == errorcode.token
 
 

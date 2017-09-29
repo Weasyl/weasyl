@@ -519,14 +519,6 @@ def reupload(userid, submitid, submitfile):
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
 
 
-def is_hidden(submitid):
-    db = d.connect()
-    su = d.meta.tables['submission']
-    q = d.sa.select([su.c.settings.op('~')('h')]).where(su.c.submitid == submitid)
-    results = db.execute(q).fetchall()
-    return bool(results and results[0][0])
-
-
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.execute("""
         SELECT

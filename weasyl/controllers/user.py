@@ -206,7 +206,7 @@ def signin_unicode_failure_post_(request):
 @disallow_api
 def signout_(request):
     if request.web_input(token="").token != define.get_token()[:8]:
-        return Response(define.errorpage(request.userid, errorcode.token))
+        return Response(define.errorpage(request.userid, errorcode.token), status=403)
 
     login.signout(request)
 

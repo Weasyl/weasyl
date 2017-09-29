@@ -177,14 +177,6 @@ def reupload(userid, charid, submitdata):
     """, settings=settings, character=charid)
 
 
-def is_hidden(charid):
-    db = define.connect()
-    ch = define.meta.tables['character']
-    q = define.sa.select([ch.c.settings.op('~')('h')]).where(ch.c.charid == charid)
-    results = db.execute(q).fetchall()
-    return bool(results and results[0][0])
-
-
 def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway=False, increment_views=True):
     """Selects a character, after checking if the user is authorized, etc.
 

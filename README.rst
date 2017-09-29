@@ -12,7 +12,7 @@ Quickstart
 ----------
 
 The easiest way to get Weasyl running is within a virtual environment using
-`Vagrant`_ (1.6 or greater) with `VirtualBox`_ (4.3.16 or greater). From inside the
+`Vagrant`_ (2.0.0 or greater) with `VirtualBox`_ (5.1.28 or greater). From inside the
 ``weasyl`` directory, simply run::
 
   $ make setup-vagrant

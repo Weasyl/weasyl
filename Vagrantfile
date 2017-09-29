@@ -9,15 +9,15 @@ apt-get update
 apt-get install -y ca-certificates apt-transport-https
 
 echo >/etc/apt/sources.list.d/weasyl.list \
-    'deb http://apt.weasyldev.com/repos/apt/debian jessie main'
+    'deb http://apt.weasyldev.com/repos/apt/debian stretch main'
 echo >/etc/apt/sources.list.d/postgresql.list \
-    'deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main 9.5'
+    'deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main 9.6'
 
 curl https://deploy.weasyldev.com/weykent-key.asc | apt-key add -
 curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
 echo >/etc/apt/sources.list.d/nodesource.list \
-    'deb https://deb.nodesource.com/node_6.x jessie main'
+    'deb https://deb.nodesource.com/node_6.x stretch main'
 
 curl https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
 
@@ -31,12 +31,12 @@ echo "server=/i.weasyl.com/10.10.10.103" > /etc/dnsmasq.d/i.weasyl.com
 apt-get install -y dnsmasq
 echo "prepend domain-name-servers 127.0.0.1;" >> /etc/dhcp/dhclient.conf
 dhclient -x
-dhclient eth0
+dhclient enp0s3
 
 apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libpq-dev \
-    libxml2-dev libxslt-dev memcached nginx pkg-config \
-    postgresql-9.5 postgresql-contrib-9.5 \
+    libssl-dev libxml2-dev libxslt-dev memcached nginx pkg-config \
+    postgresql-9.6 postgresql-contrib-9.6 \
     liblzma-dev python-dev python-virtualenv \
     ruby-sass nodejs
 
@@ -120,9 +120,9 @@ make install-libweasyl upgrade-db
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "weasyl-debian81.box"
-  config.vm.box_url = "http://deploy.weasyldev.com/weasyl-debian81.box"
-  config.vm.box_download_checksum = "34592e65ebd4753d6f74a54b019e36d1ce006010cb4f03ed8ec131824f45ff9b"
+  config.vm.box = "weasyl-debian91.box"
+  config.vm.box_url = "https://deploy.weasyldev.com/weasyl-debian91.box"
+  config.vm.box_download_checksum = "7bcfa1c96505d80664e23121c80763125838ba2193f41e3deb9688df4cbec945"
   config.vm.box_download_checksum_type = "sha256"
   config.vm.hostname = "vagrant-weasyl"
   config.vm.provision :shell, :privileged => true, :inline => $priv_script

@@ -3,7 +3,10 @@
 
 from __future__ import absolute_import
 
+import errno
 import json
+import os
+import shutil
 
 import pytest
 import pyramid.testing
@@ -33,7 +36,7 @@ define.metric = lambda *a, **kw: None
 configure_libweasyl(
     dbsession=define.sessionmaker,
     not_found_exception=HTTPNotFound,
-    base_file_path='testing',
+    base_file_path=macro.MACRO_STORAGE_ROOT,
     staff_config_dict={},
     media_link_formatter_callback=media.format_media_link,
 )
@@ -51,6 +54,24 @@ def setupdb(request):
     define.engine.dispose()
 
     define.meta.create_all(define.engine)
+
+
+@pytest.yield_fixture(autouse=True)
+def empty_storage():
+    try:
+        os.mkdir(macro.MACRO_STORAGE_ROOT)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            raise Exception("Storage directory should not exist when running tests")
+
+        raise
+
+    os.mkdir(macro.MACRO_SYS_LOG_PATH)
+
+    try:
+        yield
+    finally:
+        shutil.rmtree(macro.MACRO_STORAGE_ROOT)
 
 
 @pytest.fixture(autouse=True)

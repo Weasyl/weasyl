@@ -106,7 +106,7 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
         SET settings = REGEXP_REPLACE(settings, '-.', '') || '-%s'
         WHERE charid = %i
     """, [image.image_setting(im), charid])
-    dest = '%s%i.thumb%s' % (d.get_hash_path(charid, "char"), charid, images.image_extension(im))
+    dest = os.path.join(d.get_character_directory(charid), '%i.thumb%s' % (charid, images.image_extension(im)))
 
     bounds = None
     if image.check_crop(size, x1, y1, x2, y2):

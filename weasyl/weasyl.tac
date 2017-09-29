@@ -21,9 +21,9 @@ weasylResource = WSGIResource(reactor, threadPool, weasyl.wsgi.wsgi_app)
 if os.environ.get('WEASYL_SERVE_STATIC_FILES'):
     weasylResource = weasyl.polecat.TryChildrenBeforeLeaf(weasylResource)
     staticResource = weasyl.polecat.NoDirectoryListingFile(
-        os.path.join(os.environ['WEASYL_ROOT'], 'static'))
+        os.path.join(os.environ['WEASYL_APP_ROOT'], 'static'))
     cssResource = weasyl.polecat.NoDirectoryListingFile(
-        os.path.join(os.environ['WEASYL_ROOT'], 'build/css'))
+        os.path.join(os.environ['WEASYL_APP_ROOT'], 'build/css'))
     weasylResource.putChild('static', staticResource)
     weasylResource.putChild('css', cssResource)
     rewriters = [weasyl.polecat.rewriteSubmissionUploads]

@@ -110,7 +110,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     searchtag.associate(userid, tags, charid=charid)
 
     # Make submission file
-    files.make_path(charid, "char")
+    files.make_character_directory(charid)
     files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
 
     # Make cover file
@@ -175,14 +175,6 @@ def reupload(userid, charid, submitdata):
            SET settings = %(settings)s
          WHERE charid = %(character)s
     """, settings=settings, character=charid)
-
-
-def is_hidden(charid):
-    db = define.connect()
-    ch = define.meta.tables['character']
-    q = define.sa.select([ch.c.settings.op('~')('h')]).where(ch.c.charid == charid)
-    results = db.execute(q).fetchall()
-    return bool(results and results[0][0])
 
 
 def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway=False, increment_views=True):

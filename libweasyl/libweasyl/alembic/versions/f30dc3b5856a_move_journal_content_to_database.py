@@ -41,7 +41,7 @@ def _try_read(paths):
 
 
 def upgrade():
-    journal_root = os.path.join(os.environ['WEASYL_ROOT'], 'static/journal')
+    journal_root = os.path.join(os.environ['WEASYL_STORAGE_ROOT'], 'static/journal')
 
     connection = op.get_bind()
 

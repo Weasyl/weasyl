@@ -49,7 +49,7 @@ reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
 def _load_resources():
     global resource_paths
 
-    with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
+    with open(os.path.join(macro.MACRO_APP_ROOT, 'build/rev-manifest.json'), 'r') as f:
         resource_paths = json.loads(f.read())
 
 
@@ -204,7 +204,7 @@ def _compile(template_name):
     template = _template_cache.get(template_name)
 
     if template is None or reload_templates:
-        template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
+        template_path = os.path.join(macro.MACRO_APP_ROOT, 'templates', template_name)
         _template_cache[template_name] = template = frender(
             template_path,
             globals={
@@ -540,22 +540,13 @@ def get_timestamp():
     return time.strftime("%Y-%m", time.localtime(get_time()))
 
 
-_hash_path_roots = {
-    "user": [macro.MACRO_SYS_USER_PATH],
-    "save": [macro.MACRO_SYS_SAVE_PATH],
-    "submit": [macro.MACRO_SYS_SUBMIT_PATH],
-    "char": [macro.MACRO_SYS_CHAR_PATH],
-    None: [],
-}
+def _get_hash_path(charid):
+    id_hash = hashlib.sha1(str(charid)).hexdigest()
+    return "/".join([id_hash[i:i + 2] for i in range(0, 11, 2)]) + "/"
 
 
-def get_hash_path(target_id, content_type=None):
-    path_hash = hashlib.sha1(str(target_id)).hexdigest()
-    path_hash = "/".join([path_hash[i:i + 2] for i in range(0, 11, 2)])
-
-    root = _hash_path_roots[content_type]
-
-    return "".join(root + [path_hash, "/"])
+def get_character_directory(charid):
+    return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
 def get_userid_list(target):
@@ -999,10 +990,10 @@ def url_make(targetid, feature, query=None, root=False, file_prefix=None):
     result = [] if root else ["/"]
 
     if root:
-        result.append(macro.MACRO_SYS_BASE_PATH)
+        result.append(macro.MACRO_STORAGE_ROOT)
 
     if "char/" in feature:
-        result.extend([macro.MACRO_URL_CHAR_PATH, get_hash_path(targetid)])
+        result.extend([macro.MACRO_URL_CHAR_PATH, _get_hash_path(targetid)])
 
     if file_prefix is not None:
         result.append("%s-" % (file_prefix,))

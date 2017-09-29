@@ -94,7 +94,8 @@ deploy-web-worker: setup
 # Phony target to run a local server
 .PHONY: run
 run: setup
-	WEASYL_ROOT=$(shell pwd) \
+	WEASYL_APP_ROOT=. \
+		WEASYL_STORAGE_ROOT=. \
 		WEASYL_SERVE_STATIC_FILES=y \
 		WEASYL_RELOAD_TEMPLATES=y \
 		WEASYL_RELOAD_ASSETS=y \
@@ -111,12 +112,12 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
-	WEASYL_ROOT=$(shell pwd) $(VE)/bin/py.test weasyl/test
+	WEASYL_APP_ROOT=. WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell
 .PHONY: shell
 shell: setup
-	WEASYL_ROOT=$(shell pwd) $(VE)/bin/python
+	WEASYL_APP_ROOT=. WEASYL_STORAGE_ROOT=. $(VE)/bin/python
 
 # Phony target to clean directory
 .PHONY: clean

@@ -175,7 +175,7 @@ def rewriteNonlocalImages(request):
 
     if request.postpath[0] != 'static':
         return
-    localPath = os.path.join(m.MACRO_SYS_BASE_PATH, request.path.lstrip('/'))
+    localPath = os.path.join(m.MACRO_STORAGE_ROOT, request.path.lstrip('/'))
     if os.path.exists(localPath):
         return
     request.postpath[0] = '_weasyl_static'

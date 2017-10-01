@@ -15,6 +15,7 @@ from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
+from weasyl import moderation
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
@@ -302,7 +303,6 @@ def edit(userid, journal, friends_only=False):
               [journal.title, journal.content, journal.rating.code, settings, journal.journalid])
 
     if userid != query[0]:
-        from weasyl import moderation
         moderation.note_about(
             userid, query[0], 'The following journal was edited:',
             '- ' + text.markdown_link(journal.title, '/journal/%s?anyway=true' % (journal.journalid,)))

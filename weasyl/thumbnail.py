@@ -43,12 +43,12 @@ def _upload_char(userid, filedata, charid):
 
     filename = d.url_make(charid, "char/.thumb", root=True)
 
-    files.write(filename, filedata, encoding=None)
+    files.write(filename, filedata)
 
     if image.check_type(filename):
         image.make_cover(filename)
     else:
-        files.remove(filename)
+        os.remove(filename)
         raise WeasylError("FileType")
 
 
@@ -114,7 +114,7 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
     thumb = images.make_thumbnail(im, bounds)
     thumb.write(dest, format=images.image_file_type(thumb))
     if remove:
-        m.os.remove(filename)
+        os.remove(filename)
 
 
 def create(userid, x1, y1, x2, y2, submitid=None, charid=None,

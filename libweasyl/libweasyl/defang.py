@@ -50,7 +50,7 @@ Otherwise, any HTML tag attributes in the *fragment* passed to
 """
 
 allowed_schemes = {
-    "", "http", "https", "mailto", "irc", "magnet"
+    "", "http", "https", "mailto", "irc", "ircs", "magnet"
 }
 """
 All allowed URL schemes.

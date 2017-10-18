@@ -185,32 +185,6 @@ def insert(userid, submitid=None, charid=None, journalid=None, parentid=None, co
     return commentid
 
 
-# form
-#   content
-#   commentid
-#   feature
-
-# NOTE: This method is UNUSED.
-def edit(userid, form):
-    commentid = d.get_int(form.commentid)
-
-    if form.feature not in ["submit", "char", "journal"]:
-        raise WeasylError("Unexpected")
-
-    query = d.execute("SELECT userid, unixtime FROM %scomment WHERE commentid = %i AND settings !~ 'h'",
-                      [form.feature, commentid], options="single")
-
-    if not query:
-        raise WeasylError("RecordMissing")
-    elif userid != query[0] and userid not in staff.MODS:
-        raise WeasylError("InsufficientPermissions")
-    elif query[1] < d.get_time() - 600:
-        raise WeasylError("TimeLimitExceeded")
-
-    d.execute("UPDATE %scomment SET content = '%s' WHERE commentid = %i",
-              [form.feature, form.content.strip(), commentid])
-
-
 def remove(userid, feature=None, commentid=None):
 
     if feature not in ["submit", "char", "journal"]:

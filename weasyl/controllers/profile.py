@@ -396,6 +396,8 @@ def favorites_(request):
             select_function = favorite.select_char
         elif form.feature == "journal":
             select_function = favorite.select_journal
+        else:
+            raise httpexceptions.HTTPNotFound()
 
         faves = pagination.PaginatedResult(
             select_function, count_function,

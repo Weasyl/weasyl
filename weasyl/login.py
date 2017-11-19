@@ -174,27 +174,33 @@ def create(form):
                    "weasyladmin", "weasylmod", "staff", "security"]:
         raise WeasylError("usernameInvalid")
     if email_exists(email):
-        raise WeasylError("emailExists")
+        # Prohibit attempting to determine if an email address is registered
+        email_unused = False
+    else:
+        # Email is unused, so the account can be created
+        email_unused = True
     if username_exists(sysname):
         raise WeasylError("usernameExists")
 
-    # Create pending account
-    token = security.generate_key(40)
+    # Only attempt to create the account if the email is unused
+    if email_unused:
+        # Create pending account
+        token = security.generate_key(40)
 
-    d.engine.execute(d.meta.tables["logincreate"].insert(), {
-        "token": token,
-        "username": username,
-        "login_name": sysname,
-        "hashpass": passhash(password),
-        "email": email,
-        "birthday": birthday,
-        "unixtime": arrow.now(),
-    })
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+            "token": token,
+            "username": username,
+            "login_name": sysname,
+            "hashpass": passhash(password),
+            "email": email,
+            "birthday": birthday,
+            "unixtime": arrow.now(),
+        })
 
-    # Queue verification email
-    emailer.append([email], None, "Weasyl Account Creation", d.render(
-        "email/verify_account.html", [token, sysname]))
-    d.metric('increment', 'createdusers')
+        # Queue verification email
+        emailer.append([email], None, "Weasyl Account Creation", d.render(
+            "email/verify_account.html", [token, sysname]))
+        d.metric('increment', 'createdusers')
 
 
 def verify(token):

@@ -173,12 +173,14 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
     address.
     """
     db_utils.create_user(username=user_name, email_addr=email_addr)
-    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
+    form = Bag(username="user", password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
-    with pytest.raises(WeasylError) as err:
-        login.create(form)
-    assert 'emailExists' == err.value.value
+    login.create(form)
+    query = d.engine.scalar("""
+        SELECT username FROM logincreate WHERE username = %(username)s LIMIT 1
+    """, username=form.username)
+    assert not query
 
 
 @pytest.mark.usefixtures('db')
@@ -221,9 +223,11 @@ def test_create_fails_if_pending_account_has_same_email():
     form = Bag(username="test", password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
                day='12', month='12', year=arrow.now().year - 19)
-    with pytest.raises(WeasylError) as err:
-        login.create(form)
-    assert 'emailExists' == err.value.value
+    login.create(form)
+    query = d.engine.scalar("""
+        SELECT username FROM logincreate WHERE username = %(username)s LIMIT 1
+    """, username=form.username)
+    assert not query
 
 
 @pytest.mark.usefixtures('db')

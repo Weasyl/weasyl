@@ -31,27 +31,30 @@ def request(form):
     if not user:
         raise WeasylError("loginRecordMissing")
 
-    # Check the user's email address against the provided e-mail address,
-    # raising an exception if there is a mismatch
+    # Check the user's email address against the provided e-mail address
+    # don't raise an error if mismatch, to preserve user privacy (deniability of existence of email)
     if email != emailer.normalize_address(user.email):
-        raise WeasylError("emailInvalid")
+        email_correct = False
+    else:
+        email_correct = True
 
-    # Insert a record into the forgotpassword table for the user,
-    # or update an existing one
-    now = d.get_time()
-    address = d.get_address()
+    if email_correct:
+        # Insert a record into the forgotpassword table for the user,
+        # or update an existing one
+        now = d.get_time()
+        address = d.get_address()
 
-    d.engine.execute("""
-        INSERT INTO forgotpassword (userid, token, set_time, address)
-        VALUES (%(id)s, %(token)s, %(time)s, %(address)s)
-        ON CONFLICT (userid) DO UPDATE SET
-            token = %(token)s,
-            set_time = %(time)s,
-            address = %(address)s
-    """, id=user.userid, token=token, time=now, address=address)
+        d.engine.execute("""
+            INSERT INTO forgotpassword (userid, token, set_time, address)
+            VALUES (%(id)s, %(token)s, %(time)s, %(address)s)
+            ON CONFLICT (userid) DO UPDATE SET
+                token = %(token)s,
+                set_time = %(time)s,
+                address = %(address)s
+        """, id=user.userid, token=token, time=now, address=address)
 
-    # Generate and send an email to the user containing a password reset link
-    emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
+        # Generate and send an email to the user containing a password reset link
+        emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
 
 
 def prepare(token):

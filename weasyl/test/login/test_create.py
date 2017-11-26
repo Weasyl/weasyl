@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import pytest
 import arrow
 
-from weasyl.test import db_utils
-
 from weasyl import define as d
 from weasyl import login
 from weasyl.error import WeasylError
+from weasyl.test import db_utils
+from weasyl.test.utils import Bag
 
 
 user_name = "test"
@@ -15,12 +15,6 @@ email_addr = "test@weasyl.com"
 
 # Main test password
 raw_password = "0123456789"
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
 
 
 @pytest.mark.usefixtures('db')

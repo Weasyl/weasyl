@@ -13,32 +13,21 @@ def checktoken(token):
 
 
 # form
-#   email       month
-#   username    year
-#   day
+#   email
 
 def request(form):
     token = security.generate_key(100)
     email = emailer.normalize_address(form.email)
-    username = d.get_sysname(form.username)
 
     # Determine the user associated with `username`; if the user is not found,
     # raise an exception
     user = d.engine.execute(
-        "SELECT userid, email FROM login WHERE login_name = %(username)s",
-        username=username).first()
+        "SELECT userid, email FROM login WHERE email = %(email)s",
+        email=email).first()
 
-    if not user:
-        raise WeasylError("loginRecordMissing")
-
-    # Check the user's email address against the provided e-mail address
-    # don't raise an error if mismatch, to preserve user privacy (deniability of existence of email)
-    if email != emailer.normalize_address(user.email):
-        email_correct = False
-    else:
-        email_correct = True
-
-    if email_correct:
+    # If `user` object exists, then the supplied email was valid; if not valid, do nothing, raising
+    #   no errors for plausible deniability of email existence
+    if user:
         # Insert a record into the forgotpassword table for the user,
         # or update an existing one
         now = d.get_time()

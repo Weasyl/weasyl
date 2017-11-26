@@ -201,6 +201,14 @@ def create(form):
         emailer.append([email], None, "Weasyl Account Creation", d.render(
             "email/verify_account.html", [token, sysname]))
         d.metric('increment', 'createdusers')
+    else:
+        # The email address in question is already in use; let the user know this via email
+        #   (perhaps they forgot their username/password)
+        query_username = d.engine.scalar("""
+            SELECT login_name FROM login WHERE email = %(email)s
+        """, email=email)
+        emailer.append([email], None, "Weasyl Account Creation - Account Already Exists", d.render(
+            "email/email_in_use.html", [query_username]))
 
 
 def verify(token):

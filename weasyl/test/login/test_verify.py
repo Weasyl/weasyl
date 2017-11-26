@@ -6,15 +6,10 @@ import arrow
 from weasyl import login
 from weasyl import define as d
 from weasyl.error import WeasylError
+from weasyl.test.utils import Bag
 
 
 token = "a" * 40
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
 
 
 @pytest.mark.usefixtures('db')

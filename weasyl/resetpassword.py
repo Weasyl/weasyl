@@ -21,13 +21,13 @@ def request(form):
 
     # Determine the user associated with `username`; if the user is not found,
     # raise an exception
-    user = d.engine.execute(
-        "SELECT userid, email FROM login WHERE email = %(email)s",
-        email=email).first()
+    user_id = d.engine.scalar("""
+        SELECT userid FROM login WHERE email = %(email)s
+    """, email=email)
 
-    # If `user` object exists, then the supplied email was valid; if not valid, do nothing, raising
+    # If `user_id` exists, then the supplied email was valid; if not valid, do nothing, raising
     #   no errors for plausible deniability of email existence
-    if user:
+    if user_id:
         # Insert a record into the forgotpassword table for the user,
         # or update an existing one
         now = d.get_time()
@@ -40,7 +40,7 @@ def request(form):
                 token = %(token)s,
                 set_time = %(time)s,
                 address = %(address)s
-        """, id=user.userid, token=token, time=now, address=address)
+        """, id=user_id, token=token, time=now, address=address)
 
         # Generate and send an email to the user containing a password reset link
         emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))

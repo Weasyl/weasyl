@@ -172,9 +172,9 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
                day='12', month='12', year=arrow.now().year - 19)
     login.create(form)
     query = d.engine.scalar("""
-        SELECT username FROM logincreate WHERE username = %(username)s LIMIT 1
+        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS NOT NULL
     """, username=form.username)
-    assert not query
+    assert query == "user"
 
 
 @pytest.mark.usefixtures('db')
@@ -219,9 +219,9 @@ def test_create_fails_if_pending_account_has_same_email():
                day='12', month='12', year=arrow.now().year - 19)
     login.create(form)
     query = d.engine.scalar("""
-        SELECT username FROM logincreate WHERE username = %(username)s LIMIT 1
+        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS NOT NULL
     """, username=form.username)
-    assert not query
+    assert query == "test"
 
 
 @pytest.mark.usefixtures('db')

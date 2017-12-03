@@ -380,7 +380,7 @@ logincreate = Table(
     # Used to determine if a record is invalid for purposes of plausible deniability of email addresses
     #   AKA, create a logincreate entry if an in-use email address is provided, thus preserving the effect of
     #   a pending username triggering a username taken error.
-    Column('invalid', Boolean(), nullable=True),
+    Column('invalid', Boolean(), server_default='f', nullable=False),
 )
 
 

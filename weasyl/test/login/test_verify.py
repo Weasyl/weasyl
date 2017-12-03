@@ -11,21 +11,19 @@ from weasyl.test.utils import Bag
 
 token = "a" * 40
 username = "test"
+email = 'test@weasyl.com'
 
 
 def _create_pending_account(invalid=False):
-    form = Bag(username='test', password='0123456789', passcheck='0123456789',
-               email='test@weasyl.com', emailcheck='test@weasyl.com',
-               day='12', month='12', year='%d' % (arrow.now().year - 19,))
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
         "token": token,
-        "username": form.username,
-        "login_name": form.username,
+        "username": username,
+        "login_name": username,
         "hashpass": login.passhash('0123456789'),
-        "email": form.email,
+        "email": email,
         "birthday": arrow.Arrow(2000, 1, 1),
         "unixtime": arrow.now(),
-        "invalid": None if not invalid else True
+        "invalid": invalid,
     })
 
 

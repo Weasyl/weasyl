@@ -15,7 +15,9 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column('logincreate', sa.Column('invalid', sa.Boolean(), nullable=True))
+    op.add_column('logincreate',
+        sa.Column('invalid', sa.Boolean(), nullable=False, server_default='f')
+    )
 
 
 def downgrade():

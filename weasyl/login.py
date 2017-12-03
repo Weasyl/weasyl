@@ -204,7 +204,7 @@ def create(form):
             "token": token,
             "username": username,
             "login_name": sysname,
-            "hashpass": '',
+            "hashpass": passhash(password),
             "email": token,
             "birthday": arrow.now(),
             "unixtime": arrow.now(),

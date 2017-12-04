@@ -172,7 +172,7 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
                day='12', month='12', year=arrow.now().year - 19)
     login.create(form)
     query = d.engine.scalar("""
-        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS NOT NULL
+        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS TRUE
     """, username=form.username)
     assert query == "user"
 
@@ -219,7 +219,7 @@ def test_create_fails_if_pending_account_has_same_email():
                day='12', month='12', year=arrow.now().year - 19)
     login.create(form)
     query = d.engine.scalar("""
-        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS NOT NULL
+        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS TRUE
     """, username=form.username)
     assert query == "test"
 

@@ -4,7 +4,7 @@ import arrow
 from twisted.python import log
 
 from weasyl.define import active_users, engine, get_time
-from weasyl import index, submission
+from weasyl import index, recommendation, submission
 
 
 def run_periodic_tasks():
@@ -31,6 +31,8 @@ def run_periodic_tasks():
         if now.minute % 5 == 0:
             active_users.refresh()
             log.msg('refreshed active user counts')
+            recommendation.get_recommendation_data.refresh()
+            log.msg('refreshed recommendation data')
 
         # Recalculate recently popular submissions
         # Every 10 minutes

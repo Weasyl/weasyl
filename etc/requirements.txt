@@ -7,6 +7,7 @@ jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==17.3.0           # as above
 raven==6.1.0
 requests[security]==2.18.4
+enum34==1.1.6
 oauth2==1.9.0.post1
 python-memcached==1.58
 txstatsd==1.0.0+weasyl.2    # https://github.com/Weasyl/txstatsd
@@ -20,3 +21,6 @@ WebTest==2.0.28
 pyotp==2.2.6                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
 cryptography==2.0.3         # For Two-Factor Authentication
+numpy==1.12.1               # For recommendations/collaborative filtering
+pandas==0.19.2              # For recommendations/collaborative filtering
+scipy==0.19.0               # For recommendations/collaborative filtering

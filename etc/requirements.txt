@@ -14,7 +14,7 @@ crochet==1.9.0
 txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
 Dozer==0.6                  # For WSGI memory profiling
-Pillow==4.2.1               # For WSGI memory profiling
+Pillow==4.3.0               # For WSGI memory profiling
 pyramid==1.7.3
 WebTest==2.0.28
 pyotp==2.2.6                # For Two-Factor Authentication

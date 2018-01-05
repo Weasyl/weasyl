@@ -1210,6 +1210,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+
+    html.no-js & {
+        position: static;
+        transform: none;
+    }
 }
 .thumbnail-grid .rating {
     width: 60px;

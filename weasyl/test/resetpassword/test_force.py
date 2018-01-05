@@ -2,15 +2,10 @@ from __future__ import absolute_import
 
 import pytest
 
-from weasyl.test import db_utils
 from weasyl import resetpassword, login
 from weasyl.error import WeasylError
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
+from weasyl.test import db_utils
+from weasyl.test.utils import Bag
 
 
 @pytest.mark.usefixtures('db')

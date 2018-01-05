@@ -4,10 +4,10 @@ import pytest
 
 from pyramid.threadlocal import get_current_request
 
-from weasyl.test import db_utils
-from weasyl.test.utils import Bag
 from weasyl import login
 from weasyl import define as d
+from weasyl.test import db_utils
+from weasyl.test.utils import Bag
 
 
 @pytest.mark.usefixtures('db')

@@ -13,45 +13,37 @@ def checktoken(token):
 
 
 # form
-#   email       month
-#   username    year
-#   day
+#   email
 
 def request(form):
     token = security.generate_key(100)
     email = emailer.normalize_address(form.email)
-    username = d.get_sysname(form.username)
 
     # Determine the user associated with `username`; if the user is not found,
     # raise an exception
-    user = d.engine.execute(
-        "SELECT userid, email FROM login WHERE login_name = %(username)s",
-        username=username).first()
+    user_id = d.engine.scalar("""
+        SELECT userid FROM login WHERE email = %(email)s
+    """, email=email)
 
-    if not user:
-        raise WeasylError("loginRecordMissing")
+    # If `user_id` exists, then the supplied email was valid; if not valid, do nothing, raising
+    #   no errors for plausible deniability of email existence
+    if user_id:
+        # Insert a record into the forgotpassword table for the user,
+        # or update an existing one
+        now = d.get_time()
+        address = d.get_address()
 
-    # Check the user's email address against the provided e-mail address,
-    # raising an exception if there is a mismatch
-    if email != emailer.normalize_address(user.email):
-        raise WeasylError("emailInvalid")
+        d.engine.execute("""
+            INSERT INTO forgotpassword (userid, token, set_time, address)
+            VALUES (%(id)s, %(token)s, %(time)s, %(address)s)
+            ON CONFLICT (userid) DO UPDATE SET
+                token = %(token)s,
+                set_time = %(time)s,
+                address = %(address)s
+        """, id=user_id, token=token, time=now, address=address)
 
-    # Insert a record into the forgotpassword table for the user,
-    # or update an existing one
-    now = d.get_time()
-    address = d.get_address()
-
-    d.engine.execute("""
-        INSERT INTO forgotpassword (userid, token, set_time, address)
-        VALUES (%(id)s, %(token)s, %(time)s, %(address)s)
-        ON CONFLICT (userid) DO UPDATE SET
-            token = %(token)s,
-            set_time = %(time)s,
-            address = %(address)s
-    """, id=user.userid, token=token, time=now, address=address)
-
-    # Generate and send an email to the user containing a password reset link
-    emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
+        # Generate and send an email to the user containing a password reset link
+        emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
 
 
 def prepare(token):

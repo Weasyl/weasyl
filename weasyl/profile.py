@@ -569,8 +569,6 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     if newemail:
         if newemail != newemailcheck:
             raise WeasylError("emailMismatch")
-        elif login.email_exists(newemail):
-            raise WeasylError("emailExists")
 
     if newpassword:
         if newpassword != newpasscheck:
@@ -581,20 +579,30 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     # If we are setting a new email, then write the email into a holding table pending confirmation
     #   that the email is valid.
     if newemail:
-        token = security.generate_key(40)
-        # Store the current token & email, updating them to overwrite a previous attempt if needed
-        d.engine.execute("""
-            INSERT INTO emailverify (userid, email, token, createtimestamp)
-            VALUES (%(userid)s, %(newemail)s, %(token)s, NOW())
-            ON CONFLICT (userid) DO
-              UPDATE SET email = %(newemail)s, token = %(token)s, createtimestamp = NOW()
-        """, userid=userid, newemail=newemail, token=token)
+        # Only actually attempt to change the email if unused; prevent finding out if an email is already registered
+        if not login.email_exists(newemail):
+            token = security.generate_key(40)
+            # Store the current token & email, updating them to overwrite a previous attempt if needed
+            d.engine.execute("""
+                INSERT INTO emailverify (userid, email, token, createtimestamp)
+                VALUES (%(userid)s, %(newemail)s, %(token)s, NOW())
+                ON CONFLICT (userid) DO
+                  UPDATE SET email = %(newemail)s, token = %(token)s, createtimestamp = NOW()
+            """, userid=userid, newemail=newemail, token=token)
+
+            # Send out the email containing the verification token.
+            emailer.append([newemail], None, "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
+        else:
+            # The target email exists: let the target know this
+            query_username = d.engine.scalar("""
+                SELECT login_name FROM login WHERE email = %(email)s
+            """, email=newemail)
+            emailer.append([newemail], None, "Weasyl Account Information - Duplicate Email on Accounts Rejected", d.render(
+                "email/email_in_use_email_change.html", [query_username])
+            )
 
         # Then add text to `changes_made` telling that we have completed the email change request, and how to proceed.
-        changes_made += "Your email change request is currently pending. An email has been sent to " + newemail + ". Follow the instructions within to finalize your email address change.\n"
-
-        # Send out the email containing the verification token.
-        emailer.append([newemail], None, "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
+        changes_made += "Your email change request is currently pending. An email has been sent to **" + newemail + "**. Follow the instructions within to finalize your email address change.\n"
 
     # If the password is being updated, update the hash, and clear other sessions.
     if newpassword:

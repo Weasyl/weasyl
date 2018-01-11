@@ -61,7 +61,7 @@ def run_periodic_tasks():
             db.execute("""
                 DELETE FROM logincreate
                 WHERE unixtime < %(time)s
-            """, time=now - (86400 * 7))
+            """, time=now - (86400 * 2))
             log.msg('cleared stale account creation records')
 
         db.execute("UPDATE cron_runs SET last_run = %(now)s", now=now.naive)

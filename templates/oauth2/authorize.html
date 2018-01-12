@@ -1,4 +1,4 @@
-$def with (scopes, credentials, client, myself, my_media, mobile, error, username, password, remember_me, not_me)
+$def with (scopes, credentials, client, myself, my_media)
 <!DOCTYPE html>
 <html>
 <head>
@@ -17,19 +17,18 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
       display: block;
     }
     a {
+      color: #17bed8;
+      cursor: pointer;
       outline: none;
       text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
     }
     img {
       max-width: 100%;
       margin: 0 auto;
       -ms-interpolation-mode: bicubic;
-    }
-    input, select {
-      vertical-align: middle;
-    }
-    input[type="checkbox"] {
-      padding: 0;
     }
     button {
       border: none;
@@ -50,10 +49,6 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
       background: url('${CDNIFY('/static/authorize/noise.png')}') repeat 0 0, #161d26 url('${CDNIFY('/static/authorize/bg.jpg')}') no-repeat 50% 0;
       background-size: auto, 100% auto;
     }
-    a, .a {
-      color: #17bed8;
-      cursor: pointer;
-    }
     .logo {
       display: block;
       max-width: 100px;
@@ -68,28 +63,7 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
     p {
       margin-bottom: 20px;
     }
-    label span {
-      display: block;
-      font: italic 14px Georgia, Palatino, serif;
-      color: #4d8993;
-    }
-    input[type=text], input[type=password] {
-      width: 100%;
-      padding: 5px 10px;
-    }
-    input[type=checkbox] + span {
-      display: inline;
-    }
 
-    .login {
-      padding-bottom: 20px;
-      overflow: hidden;
-      max-height: 160px;
-      transition: max-height 0.2s ease, padding 0.2s ease, visibility 0s linear;
-    }
-    .username, .pass {
-      margin-bottom: 10px;
-    }
     .submit {
       display: inline-block;
       padding: 10px 20px;
@@ -113,22 +87,13 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
       vertical-align: middle;
       max-width: 40px;
       margin-right: 10px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
     }
 
-    #not-me {
-      visibility: hidden;
-      position: absolute;
-      left: -100%;
-    }
-    #not-me:not(:checked) + .login {
-      max-height: 0;
-      visibility: hidden;
-      padding-bottom: 0;
-      transition: max-height 0.2s ease, padding 0.2s ease, visibility 0s linear 0.2s;
-    }
-    .not-me-label {
-      display: inline;
+    .not-me {
       font-size: 12px;
+      display: inline;
     }
 
     @media all and (min-width: 600px) {
@@ -145,22 +110,6 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
       }
       .user {
         margin-bottom: 40px;
-      }
-      .login {
-        padding-bottom: 40px;
-      }
-      .login .text-input {
-        width: 50%;
-        float: left;
-      }
-      .username {
-        padding-right: 10px;
-      }
-      .pass {
-        padding-left: 10px;
-      }
-      .remember {
-        clear: left;
       }
       .actions {
         text-align: center;
@@ -185,31 +134,8 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
         </a>
         Welcome,
         <a href="${request.path_for(myself)}">${myself.profile.username}</a>
-        <label for="not-me" class="not-me-label a">(Not ${myself.profile.username}?)</label>
+        <a href="/signout?token=${TOKEN()[:8]}" class="not-me">(Not ${myself.profile.username}?)</a>
       </p>
-      <input type="checkbox" id="not-me" name="not_me" value="yes" ${'checked' if not_me else ''} />
-    $else:
-      <input type="hidden" name="not_me" value="yes" />
-      <p>Please log in to continue.</p>
-
-    $if error:
-      <p class="error">${error}</p>
-
-    <div class="login">
-      <label class="text-input username">
-        <span>Username</span>
-        <input type="text" name="username" placeholder="Username" value="${username}" autofocus />
-      </label>
-      <label class="text-input pass">
-        <span>Password</span>
-        <input type="password" name="password" placeholder="Password" value="${password}" />
-      </label>
-      $if not myself and not mobile:
-        <label class="remember">
-          <input type="checkbox" name="remember_me" value="yes" ${'checked' if remember_me else ''}>
-          <span>Remember me</span>
-        </label>
-    </div>
 
     <p>Please confirm that the application <strong>${client.description}</strong>
       (by <a href="/~${LOGIN(client.owner.profile.username)}">${client.owner.profile.username}</a>)

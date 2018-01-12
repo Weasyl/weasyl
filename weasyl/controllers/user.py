@@ -168,8 +168,9 @@ def signin_2fa_auth_post_(request):
                 errorcode.error_messages['TwoFactorAuthenticationZeroRecoveryCodesRemaining'],
                 [["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]]
             ))
-        # Return to the target page, restricting to the path portion of 'ref' per urlparse.
-        raise HTTPSeeOther(location=urlparse.urlparse(ref).path)
+        # Return to the target page, removing the scheme and domain per urlsplit.
+        urlparts = urlparse.urlsplit(ref)
+        raise HTTPSeeOther(location=urlparse.urlunsplit(['', '', urlparts[2], urlparts[3], urlparts[4]]))
     elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
         _cleanup_2fa_session()

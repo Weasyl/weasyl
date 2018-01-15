@@ -10,14 +10,6 @@
 
     var csrfToken = document.documentElement.getAttribute('data-csrf-token');
 
-
-    // lazy load visible images
-    function loadLazyStuff() {
-        $('img.lazy').filter(':visible').each(function () {
-            this.src = this.getAttribute('data-src');
-        }).removeClass('lazy');
-    }
-
     function debounce(func, threshold) {
         var timeout;
 
@@ -194,8 +186,6 @@
         }
 
         // call appropriate functions and plugins
-        loadLazyStuff();
-
         $('textarea.expanding').autosize();
 
         $('.tags-textarea')
@@ -523,8 +513,6 @@
     $('#closure-explanation, #user-note').keydown(function () {
         setTimeout(reportInputChanged);
     });
-
-    $(window).on('resize', debounce(loadLazyStuff));
 
     // all below plugins are under MIT licenses
 
@@ -1602,7 +1590,6 @@
                 .children('.thumbnail-grid').addClass('current loaded');
 
             calculateThumbnailLayout();
-            loadLazyStuff();
 
             localStorage['home-tab'] = paneId;
         });

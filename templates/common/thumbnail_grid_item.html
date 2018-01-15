@@ -49,7 +49,10 @@ $def with (query, notifications=None)
       $if query['contype'] in (30, 50):
         <img src="${avatar['display_url']}" alt="avatar" />
       $else:
-        <img src="${display_url}" alt="" />
+        <img class="lazy" data-src="${display_url}" src="${CDNIFY('/static/images/loading_throbber.svg')}" />
+        <noscript>
+          <img src="${display_url}" />
+        </noscript>
     </a>
 
     $if playable and playable[0].get('file_type') == 'mp3':

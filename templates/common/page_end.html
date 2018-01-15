@@ -85,5 +85,14 @@ $if options and "imageselect" in options:
 $if options and 'search' in options:
   <script src="${CDNIFY('/static/search.js?' + SHA)}"></script>
 
+<script src="${CDNIFY('/static/scripts/yall-2.2.0.min.js')}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    yall({
+      threshold: 100
+    });
+  });
+</script>
+
 </body>
 </html>

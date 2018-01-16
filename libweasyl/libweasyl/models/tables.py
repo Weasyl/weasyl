@@ -381,6 +381,7 @@ logincreate = Table(
     #   AKA, create a logincreate entry if an in-use email address is provided, thus preserving the effect of
     #   a pending username triggering a username taken error.
     Column('invalid', Boolean(), server_default='f', nullable=False),
+    Column('invalid_email_addr', String(length=100), nullable=True, server_default=None),
 )
 
 

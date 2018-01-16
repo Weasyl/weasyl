@@ -57,7 +57,7 @@ def run_periodic_tasks():
             """)
             log.msg('cleared stale email change records')
 
-            # Purge stale logincreate records older than seven days
+            # Purge stale logincreate records older than two days
             db.execute("""
                 DELETE FROM logincreate
                 WHERE unixtime < %(time)s

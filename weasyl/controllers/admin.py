@@ -123,6 +123,42 @@ def admincontrol_acctverifylink_(request):
 
 
 @admin_only
+def admincontrol_pending_accounts_get_(request):
+    """
+    Retrieve a listing of any active pending accounts in the logincreate table.
+
+    :param request: The Pyramid request object.
+    :return: A Pyramid response with a webpage containing the pending accounts.
+    """
+    query = d.engine.execute("""
+        SELECT token, username, email, invalid_email_addr, unixtime
+        FROM logincreate
+    """).fetchall()
+
+    return Response(d.webpage(request.userid, "admincontrol/pending_accounts.html", [query]))
+
+
+@admin_only
+@token_checked
+def admincontrol_pending_accounts_post_(request):
+    """
+    Purges a specified logincreate record.
+
+    :param request: A Pyramid request.
+    :return: HTTPSeeOther to /admincontrol/pending_accounts
+    """
+    form = request.web_input(logincreatetoken="")
+    print(form.logincreatetoken)
+    if form.token:
+        d.engine.execute("""
+            DELETE FROM logincreate
+            WHERE token = %(token)s
+        """, token=form.logincreatetoken)
+
+    raise HTTPSeeOther(location="/admincontrol/pending_accounts")
+
+
+@admin_only
 def admincontrol_finduser_get_(request):
     return Response(d.webpage(request.userid, "admincontrol/finduser.html", title="Search Users"))
 

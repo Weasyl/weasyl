@@ -133,6 +133,7 @@ def admincontrol_pending_accounts_get_(request):
     query = d.engine.execute("""
         SELECT token, username, email, invalid_email_addr, unixtime
         FROM logincreate
+        ORDER BY username
     """).fetchall()
 
     return Response(d.webpage(request.userid, "admincontrol/pending_accounts.html", [query]))
@@ -147,13 +148,12 @@ def admincontrol_pending_accounts_post_(request):
     :param request: A Pyramid request.
     :return: HTTPSeeOther to /admincontrol/pending_accounts
     """
-    form = request.web_input(logincreatetoken="")
-    print(form.logincreatetoken)
-    if form.token:
+    logincreatetoken = request.POST.get("logincreatetoken")
+    if logincreatetoken:
         d.engine.execute("""
             DELETE FROM logincreate
             WHERE token = %(token)s
-        """, token=form.logincreatetoken)
+        """, token=logincreatetoken)
 
     raise HTTPSeeOther(location="/admincontrol/pending_accounts")
 

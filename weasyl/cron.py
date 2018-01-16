@@ -8,7 +8,7 @@ from weasyl import index, submission
 
 
 def run_periodic_tasks():
-    now = arrow.utcnow()
+    now = arrow.utcnow().timestamp
     time_now = get_time()
 
     db = engine.connect()

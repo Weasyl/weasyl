@@ -1,4 +1,4 @@
-alembic==0.9.6
+alembic==0.9.7
 anyjson==0.3.3
 arrow==0.12.0
 bcrypt==3.1.4
@@ -10,5 +10,5 @@ psycopg2cffi==2.7.7
 pytz==2017.3
 pyyaml==3.12
 sanpera==0.1.1+weasyl.6   # https://github.com/Weasyl/sanpera
-sqlalchemy==1.2.0
+sqlalchemy==1.2.1
 translationstring==1.3

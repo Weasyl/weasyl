@@ -20,8 +20,11 @@ $:{RENDER("common/stage_title.html", ["Accounts Pending Creation", "Administrato
             <tr>
               <td style="padding-bottom:1em;"><button class="button negative" name="logincreatetoken" value="${i.token}">Purge</button></td>
               <td style="padding-bottom:1em;">${i.username}</td>
-              $if i.invalid_email_addr:
-                <td style="padding-bottom:1em;"><em>Invalid <code>logincreate</code> record -- Email in use:</em> ${i.invalid_email_addr}</a></td>
+              $if i.invalid:
+                $if i.invalid_email_addr:
+                  <td style="padding-bottom:1em;"><em>Invalid <code>logincreate</code> record -- Email in use:</em> ${i.invalid_email_addr}</td>
+                $else:
+                  <td style="padding-bottom:1em;"><em>Invalid <code>logincreate</code> record -- Email in use, but not recorded</em></td>
               $else:
                 <td style="padding-bottom:1em;">${i.email}</td>
               <td style="padding-bottom:1em;">${date.isoformat()}</td>

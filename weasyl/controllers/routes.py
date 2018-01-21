@@ -287,6 +287,10 @@ routes = (
         'GET': admin.admincontrol_finduser_get_,
         'POST': admin.admincontrol_finduser_post_,
     }),
+    Route("/admincontrol/pending_accounts", "admincontrol_pending_accounts", {
+        'GET': admin.admincontrol_pending_accounts_get_,
+        'POST': admin.admincontrol_pending_accounts_post_,
+    }),
 
     # Director control routes.
     Route("/directorcontrol", "directorcontrol", director.directorcontrol_),

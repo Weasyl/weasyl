@@ -5,7 +5,7 @@ Twisted==16.3.2             # Twisted 16.4+ will need additional code work
 web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
 jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==17.5.0           # as above
-raven==6.4.0
+raven==6.5.0
 requests[security]==2.18.4
 oauth2==1.9.0.post1
 python-memcached==1.59

@@ -5,6 +5,7 @@ import arrow
 
 from weasyl import login
 from weasyl import define as d
+from weasyl.test.utils import Bag
 
 
 user_name = "test"
@@ -13,12 +14,6 @@ token = "a" * 40
 
 # Main test password
 raw_password = "0123456789"
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
 
 
 @pytest.mark.usefixtures('db')

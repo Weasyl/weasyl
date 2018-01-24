@@ -1,7 +1,8 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, Index,
-    Integer, String, Text, SMALLINT, text, DateTime, func)
+    Integer, String, Text, SMALLINT, text, DateTime, func, Boolean)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
+
 
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn, enum_column)
@@ -376,6 +377,11 @@ logincreate = Table(
     Column('email', String(length=100), nullable=False, unique=True),
     Column('birthday', WeasylTimestampColumn(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    # Used to determine if a record is invalid for purposes of plausible deniability of email addresses
+    #   AKA, create a logincreate entry if an in-use email address is provided, thus preserving the effect of
+    #   a pending username triggering a username taken error.
+    Column('invalid', Boolean(), server_default='f', nullable=False),
+    Column('invalid_email_addr', String(length=100), nullable=True, server_default=None),
 )
 
 

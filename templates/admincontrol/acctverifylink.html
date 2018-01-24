@@ -1,4 +1,6 @@
 $def with (token)
+$:{RENDER("common/stage_title.html", ["Get Confirmation Link", "Administrator Control Panel", "/admincontrol"])}
+
 <div id="error_content" class="content">
   <p><a href="/verify/account?token=${token}">https://www.weasyl.com/verify/account?token=${token}</a></p>
 

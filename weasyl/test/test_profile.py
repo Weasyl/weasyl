@@ -159,13 +159,15 @@ def test_edit_email_password(monkeypatch):
 
     # Case 7: Changes, new email only, email already in use
     db_utils.create_user(email_addr="testB@weasyl.com")
-    with pytest.raises(WeasylError) as err:
-        profile.edit_email_password(
-            userid=userid, username=username, password=password,
-            newemail="testB@weasyl.com", newemailcheck="testB@weasyl.com",
-            newpassword="", newpasscheck=""
-        )
-    assert 'emailExists' == err.value.value
+    profile.edit_email_password(
+        userid=userid, username=username, password=password,
+        newemail="testB@weasyl.com", newemailcheck="testB@weasyl.com",
+        newpassword="", newpasscheck=""
+    )
+    query = d.engine.scalar("""
+        SELECT email FROM emailverify WHERE userid = %(userid)s LIMIT 1
+    """, userid=userid)
+    assert not query
 
     # Case 8: Changes, new email only, email change succeeds
     newemailaddr = "testC@weasyl.com"

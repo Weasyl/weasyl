@@ -4,24 +4,17 @@ from __future__ import absolute_import
 import pytest
 import json
 
-from weasyl.test import db_utils
-
 from libweasyl import staff
 from weasyl import define as d
 from weasyl import login
 from weasyl import macro
+from weasyl.test import db_utils
 
 
 user_name = "test"
 
 # Main test password
 raw_password = "0123456789"
-
-
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
 
 
 @pytest.mark.usefixtures('db')

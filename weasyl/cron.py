@@ -8,7 +8,10 @@ from weasyl import index, submission
 
 
 def run_periodic_tasks():
+    # An arrow object representing the current UTC time
     now = arrow.utcnow()
+
+    # An integer representing the current unixtime (with an offset applied sourced from libweasyl.legacy)
     time_now = get_time()
 
     db = engine.connect()
@@ -56,5 +59,12 @@ def run_periodic_tasks():
                 WHERE createtimestamp < (NOW() - INTERVAL '2 days')
             """)
             log.msg('cleared stale email change records')
+
+            # Purge stale logincreate records older than two days
+            db.execute("""
+                DELETE FROM logincreate
+                WHERE unixtime < %(time)s
+            """, time=time_now - (86400 * 2))
+            log.msg('cleared stale account creation records')
 
         db.execute("UPDATE cron_runs SET last_run = %(now)s", now=now.naive)

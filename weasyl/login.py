@@ -173,28 +173,51 @@ def create(form):
     if sysname in ["admin", "administrator", "mod", "moderator", "weasyl",
                    "weasyladmin", "weasylmod", "staff", "security"]:
         raise WeasylError("usernameInvalid")
-    if email_exists(email):
-        raise WeasylError("emailExists")
     if username_exists(sysname):
         raise WeasylError("usernameExists")
 
-    # Create pending account
+    # Account verification token
     token = security.generate_key(40)
 
-    d.engine.execute(d.meta.tables["logincreate"].insert(), {
-        "token": token,
-        "username": username,
-        "login_name": sysname,
-        "hashpass": passhash(password),
-        "email": email,
-        "birthday": birthday,
-        "unixtime": arrow.now(),
-    })
+    # Only attempt to create the account if the email is unused (as defined by the function)
+    if not email_exists(email):
+        # Create pending account
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+            "token": token,
+            "username": username,
+            "login_name": sysname,
+            "hashpass": passhash(password),
+            "email": email,
+            "birthday": birthday,
+            "unixtime": arrow.now(),
+        })
 
-    # Queue verification email
-    emailer.append([email], None, "Weasyl Account Creation", d.render(
-        "email/verify_account.html", [token, sysname]))
-    d.metric('increment', 'createdusers')
+        # Queue verification email
+        emailer.append([email], None, "Weasyl Account Creation", d.render(
+            "email/verify_account.html", [token, sysname]))
+        d.metric('increment', 'createdusers')
+    else:
+        # Store a dummy record to support plausible deniability of email addresses
+        # So "reserve" the username, but mark the record invalid, and use the token to satisfy the uniqueness
+        #  constraint for the email field (e.g., if there is already a valid, pending row in the table).
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+            "token": token,
+            "username": username,
+            "login_name": sysname,
+            "hashpass": passhash(password),
+            "email": token,
+            "birthday": arrow.now(),
+            "unixtime": arrow.now(),
+            "invalid": True,
+            # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
+            "invalid_email_addr": email,
+        })
+        # The email address in question is already in use in either `login` or `logincreate`;
+        #   let the already registered user know this via email (perhaps they forgot their username/password)
+        query_username_login = d.engine.scalar("SELECT login_name FROM login WHERE email = %(email)s", email=email)
+        query_username_logincreate = d.engine.scalar("SELECT login_name FROM logincreate WHERE email = %(email)s", email=email)
+        emailer.append([email], None, "Weasyl Account Creation - Account Already Exists", d.render(
+            "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 
 def verify(token):
@@ -202,7 +225,11 @@ def verify(token):
     lc = d.meta.tables["logincreate"]
     query = d.engine.execute(lc.select().where(lc.c.token == token)).first()
 
+    # Did the token match a pending login create record?
     if not query:
+        raise WeasylError("logincreateRecordMissing")
+    elif query.invalid:
+        # If the record is explicitly marked as invalid, treat the record as if it doesn't exist.
         raise WeasylError("logincreateRecordMissing")
 
     db = d.connect()

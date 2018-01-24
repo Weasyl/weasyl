@@ -245,8 +245,8 @@ def signup_post_(request):
     login.create(form)
     return Response(define.errorpage(
         request.userid,
-        "**Success!** Your username has been reserved and a "
-        "message has been sent to the email address you specified with "
+        "**Success!** Your username has been reserved and a message "
+        "has been sent to the email address you provided with "
         "information on how to complete the registration process. You "
         "should receive this email within the next hour.",
         [["Return to the Home Page", "/"]]))
@@ -291,13 +291,14 @@ def forgotpassword_get_(request):
 @guest_required
 @token_checked
 def forgetpassword_post_(request):
-    form = request.web_input(username="", email="", day="", month="", year="")
+    form = request.web_input(email="")
 
     resetpassword.request(form)
     return Response(define.errorpage(
         request.userid,
-        "**Success!** A message containing information on "
-        "how to reset your password has been sent to your email address.",
+        "**Success!** Provided the supplied email matches a user account in our  "
+        "records, information on how to reset your password has been sent to your "
+        "email address.",
         [["Return to the Home Page", "/"]]))
 
 

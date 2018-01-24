@@ -5,7 +5,7 @@ Twisted==16.3.2             # Twisted 16.4+ will need additional code work
 web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
 jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==17.5.0           # as above
-raven==6.4.0
+raven==6.5.0
 requests[security]==2.18.4
 oauth2==1.9.0.post1
 python-memcached==1.59
@@ -14,7 +14,7 @@ crochet==1.9.0
 txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
 Dozer==0.6                  # For WSGI memory profiling
-Pillow==4.3.0               # For WSGI memory profiling
+Pillow==5.0.0               # For WSGI memory profiling
 pyramid==1.9.1
 WebTest==2.0.29
 pyotp==2.2.6                # For Two-Factor Authentication

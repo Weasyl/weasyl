@@ -209,6 +209,8 @@ def create(form):
             "birthday": arrow.now(),
             "unixtime": arrow.now(),
             "invalid": True,
+            # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
+            "invalid_email_addr": email,
         })
         # The email address in question is already in use in either `login` or `logincreate`;
         #   let the already registered user know this via email (perhaps they forgot their username/password)

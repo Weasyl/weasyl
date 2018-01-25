@@ -99,6 +99,11 @@ def ignoreuser_(request):
 def note_(request):
     form = request.web_input()
 
+    # We need ``noteid``, otherwise we'll get an AttributeError raised; check for it,
+    # redirecting to /notes if not present.
+    if 'noteid' not in form:
+        raise HTTPSeeOther(location="/notes")
+
     data = note.select_view(request.userid, int(form.noteid))
 
     return Response(define.webpage(request.userid, "note/message_view.html", [

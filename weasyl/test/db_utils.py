@@ -180,6 +180,12 @@ def create_follow(user1, user2, settings='scftj'):
 
 
 def create_ignoreuser(ignorer, ignoree):
+    """
+    Create an ignored user entry.
+    :param ignorer: Integer. The ``userid`` of the user performing the ignoring.
+    :param ignoree: Integer. The ``userid`` for the ``ignorer`` to ignore.
+    :return: Nothing.
+    """
     db = d.connect()
     db.add(users.Ignorama(userid=ignorer, otherid=ignoree))
     db.flush()

@@ -122,6 +122,8 @@ def select_view(userid, noteid):
 #   title
 #   content
 #   recipient
+#   mod_copy
+#   staff_note
 
 def send(userid, form):
     form.title = form.title.strip()

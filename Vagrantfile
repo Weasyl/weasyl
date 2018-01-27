@@ -40,6 +40,11 @@ apt-get -y install \
     liblzma-dev python-dev python-virtualenv \
     ruby-sass nodejs
 
+# Required to get Pillow >= 5.0.0 to build from source (since we've disabled using wheels from PyPI)
+apt-get -y install libtiff5-dev libjpeg62-turbo-dev zlib1g-dev \
+    libfreetype6-dev liblcms2-dev libwebp-dev libharfbuzz-dev libfribidi-dev \
+    tcl8.6-dev tk8.6-dev python-tk
+
 npm install -g gulp-cli
 
 sudo -u postgres dropdb weasyl

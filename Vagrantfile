@@ -123,9 +123,9 @@ make install-libweasyl upgrade-db
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "weasyl-debian91.box"
-  config.vm.box_url = "https://deploy.weasyldev.com/weasyl-debian91.box"
-  config.vm.box_download_checksum = "7bcfa1c96505d80664e23121c80763125838ba2193f41e3deb9688df4cbec945"
+  config.vm.box = "weasyl-debian93.box"
+  config.vm.box_url = "https://deploy.weasyldev.com/weasyl-debian93.box"
+  config.vm.box_download_checksum = "b2b65d12ac6ef62ef8d1ab4de19a04a4d817553812f54d60e7a36ac316f018d4"
   config.vm.box_download_checksum_type = "sha256"
   config.vm.hostname = "vagrant-weasyl"
   config.vm.provision :shell, :privileged => true, :inline => $priv_script

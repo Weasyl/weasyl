@@ -5,23 +5,22 @@ VAGRANTFILE_API_VERSION = "2"
 
 $priv_script = <<SCRIPT
 
-apt-get update
-apt-get install -y ca-certificates apt-transport-https
+apt-get -y update
 
-echo >/etc/apt/sources.list.d/weasyl.list \
-    'deb http://apt.weasyldev.com/repos/apt/debian stretch main'
+apt-get -y install apt-transport-https ca-certificates curl \
+     dkms linux-headers-amd64 linux-image-amd64
+
+curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc > \
+     /etc/apt/trusted.gpg.d/apt.postgresql.org.asc
+curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key > \
+     /etc/apt/trusted.gpg.d/deb.nodesource.com.asc
+
 echo >/etc/apt/sources.list.d/postgresql.list \
-    'deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main 9.6'
-
-curl https://deploy.weasyldev.com/weykent-key.asc | apt-key add -
-curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-
+    'deb https://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main 9.6'
 echo >/etc/apt/sources.list.d/nodesource.list \
     'deb https://deb.nodesource.com/node_6.x stretch main'
 
-curl https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
-
-apt-get update
+apt-get -y update
 apt-mark hold grub-pc
 apt-get -y dist-upgrade
 
@@ -34,11 +33,12 @@ dhclient -x
 dhclient enp0s3
 
 apt-get -y install \
-    git-core libffi-dev libmagickcore-dev libpam-systemd libpq-dev \
-    libssl-dev libxml2-dev libxslt-dev memcached nginx pkg-config \
-    postgresql-9.6 postgresql-contrib-9.6 \
-    liblzma-dev python-dev python-virtualenv \
-    ruby-sass nodejs
+    git-core libffi-dev libmagickcore-dev libpam-systemd libssl-dev \
+    libxml2-dev libxslt-dev memcached nginx pkg-config liblzma-dev \
+    python-dev python-virtualenv ruby-sass
+
+apt-get -y --allow-unauthenticated install \
+    libpq-dev nodejs postgresql-9.6 postgresql-contrib-9.6
 
 # Required to get Pillow >= 5.0.0 to build from source (since we've disabled using wheels from PyPI)
 apt-get -y install build-essential
@@ -123,10 +123,8 @@ make install-libweasyl upgrade-db
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "weasyl-debian93.box"
-  config.vm.box_url = "https://deploy.weasyldev.com/weasyl-debian93.box"
-  config.vm.box_download_checksum = "b2b65d12ac6ef62ef8d1ab4de19a04a4d817553812f54d60e7a36ac316f018d4"
-  config.vm.box_download_checksum_type = "sha256"
+  config.vm.box = "debian/stretch64"
+  config.vm.synced_folder '.', '/vagrant', type: "virtualbox"
   config.vm.hostname = "vagrant-weasyl"
   config.vm.provision :shell, :privileged => true, :inline => $priv_script
   config.vm.provision :shell, :privileged => false, :inline => $unpriv_script

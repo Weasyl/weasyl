@@ -30,7 +30,7 @@ echo "server=/i.weasyl.com/10.10.10.103" > /etc/dnsmasq.d/i.weasyl.com
 apt-get install -y dnsmasq
 echo "prepend domain-name-servers 127.0.0.1;" >> /etc/dhcp/dhclient.conf
 dhclient -x
-dhclient enp0s3
+dhclient eth0
 
 apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libssl-dev \

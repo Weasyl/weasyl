@@ -42,9 +42,9 @@ def directorcontrol_emailblacklist_post_(request):
     elif form.action == "add" and form.domain_name:
         d.engine.execute("""
             INSERT INTO emailblacklist (domain_name, reason, added_by)
-                VALUES (%(domain_name)s, %(reason)s, %(added_by)s)
-                ON CONFLICT (domain_name) DO NOTHING
-        """, domain_name=form.domain_name.lower(), reason=form.reason, added_by=request.userid)
+                SELECT UNNEST(%(domain_name)s), %(reason)s, %(added_by)s
+            ON CONFLICT (domain_name) DO NOTHING
+        """, domain_name=form.domain_name.splitlines(), reason=form.reason, added_by=request.userid)
 
     raise HTTPSeeOther(location="/directorcontrol/emailblacklist")
 

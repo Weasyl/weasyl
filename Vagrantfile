@@ -37,6 +37,12 @@ apt-get -y install \
     libxml2-dev libxslt-dev memcached nginx pkg-config liblzma-dev \
     python-dev python-virtualenv ruby-sass
 
+# Assure that nginx attempts restart if it can't immediately use its proxy host at startup.
+mkdir -p /etc/systemd/system/nginx.service.d
+echo "[Service]
+Restart=on-failure" > /etc/systemd/system/nginx.service.d/restart.conf
+systemctl daemon-reload
+
 apt-get -y --allow-unauthenticated install \
     libpq-dev nodejs postgresql-9.6 postgresql-contrib-9.6
 

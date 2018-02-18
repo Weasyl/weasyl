@@ -40,7 +40,8 @@ apt-get -y install \
 # Assure that nginx attempts restart if it can't immediately use its proxy host at startup.
 mkdir -p /etc/systemd/system/nginx.service.d
 echo "[Service]
-Restart=on-failure" > /etc/systemd/system/nginx.service.d/restart.conf
+Restart=on-failure
+RestartSec=5" > /etc/systemd/system/nginx.service.d/restart.conf
 systemctl daemon-reload
 
 apt-get -y --allow-unauthenticated install \

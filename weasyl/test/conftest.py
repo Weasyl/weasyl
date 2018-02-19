@@ -143,6 +143,7 @@ def deterministic_marketplace_tests(monkeypatch):
 
     monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
 
+
 @pytest.fixture(autouse=True)
 def do_not_retrieve_disposable_email_domains(monkeypatch):
     """ Don't hammer GitHub's server with testing requests. """

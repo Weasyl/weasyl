@@ -339,9 +339,8 @@ def is_email_blacklisted(address):
 
     # Check the disposable email address list
     disposable_domains = _retrieve_disposable_email_domains()
-    for site in disposable_domains:
-        if private_suffix == site:
-            return True
+    if private_suffix in disposable_domains:
+        return True
 
     # Check the explicitly defined/blacklisted domains.
     blacklisted_domains = d.engine.execute("""

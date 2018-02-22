@@ -171,7 +171,7 @@ def admincontrol_finduser_get_(request):
 @admin_only
 @token_checked
 def admincontrol_finduser_post_(request):
-    form = request.web_input(userid="", username="", email="")
+    form = request.web_input(userid="", username="", email="", suspendedorbanned="", dateafter="", datebefore="")
 
     return Response(d.webpage(request.userid, "admincontrol/finduser.html", [
         # Search results

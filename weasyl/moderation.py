@@ -285,6 +285,8 @@ def finduser(userid, form):
     form.userid = d.get_int(form.userid)
     lo = d.meta.tables['login']
     sh = d.meta.tables['comments']
+    pr = d.meta.tables['profile']
+
     q = d.sa.select([
         lo.c.userid,
         lo.c.login_name,
@@ -293,7 +295,7 @@ def finduser(userid, form):
          .select_from(sh)
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
-    ])
+    ]).select_from(lo.join(pr, lo.c.userid == pr.c.userid))
 
     if form.userid:
         q = q.where(lo.c.userid == form.userid)
@@ -304,7 +306,27 @@ def finduser(userid, form):
             lo.c.email.op('~')(form.email),
             lo.c.email.op('ilike')('%%%s%%' % form.email),
         ))
-    else:
+
+    # Filter for banned and/or suspended accounts
+    if form.suspendedorbanned == "banned":
+        q = q.where(lo.c.settings.op('~')('b'))
+    elif form.suspendedorbanned == "suspended":
+        q = q.where(lo.c.settings.op('~')('s'))
+    elif form.suspendedorbanned == "both":
+        q = q.where(d.sa.or_(
+            lo.c.settings.op('~')('b'),
+            lo.c.settings.op('~')('s'),
+        ))
+
+    # Filter for date-time
+    if form.dateafter and form.datebefore:
+        q = q.where(d.sa.between(pr.c.unixtime, arrow.get(form.dateafter), arrow.get(form.datebefore)))
+    elif form.dateafter:
+        q = q.where(pr.c.unixtime.op('>=')(arrow.get(form.dateafter)))
+    elif form.datebefore:
+        q = q.where(pr.c.unixtime.op('<=')(arrow.get(form.datebefore)))
+
+    if not form.userid and not form.username and not form.email and not form.dateafter and not form.datebefore and not form.suspendedorbanned:
         return []
 
     q = q.limit(100).order_by(lo.c.login_name.asc())

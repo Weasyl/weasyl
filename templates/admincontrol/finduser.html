@@ -18,12 +18,41 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
         <label for="adminsearchemail">Email Address:</label>
         <input type="text" class="input last-input" name="email" id="adminsearchemail" />
 
+        <div>
+          <h4>View information for...</h4>
+
+          <label for="suspendedorbanned-all">All Accounts</label>
+          <input id="suspendedorbanned-all" type="radio" name="suspendedorbanned" value="all" checked />
+
+          <label for="suspendedorbanned-suspended">Only Suspended</label>
+          <input id="suspendedorbanned-suspended" type="radio" name="suspendedorbanned" value="suspended" />
+
+          <label for="suspendedorbanned-banned">Only Banned</label>
+          <input id="suspendedorbanned-banned" type="radio" name="suspendedorbanned" value="banned" />
+
+          <label for="suspendedorbanned-both">Suspended or Banned</label>
+          <input id="suspendedorbanned-both" type="radio" name="suspendedorbanned" value="both" />
+        </div>
+        <br />
+        <div>
+          <h4>Only show accounts created...</h4>
+
+          <label for="timespan-after">After</label>
+          <input id="timespan-after" type="date" name="dateafter" />
+
+          <label for="timespan-before">Before</label>
+          <input id="timespan-before" type="date" name="datebefore" />
+        </div>
+
         <button type="submit" class="button positive" style="float: right;">Search</button>
       </form>
     </div>
   $elif(query):
     <div>
-      <h3>Search Results</h3>
+      $if query.rowcount == 1:
+        <h3>Search Results - ${query.rowcount} Account Found</h3>
+      $else:
+        <h3>Search Results - ${query.rowcount} Accounts Found</h3>
 
       <table>
         <tr>

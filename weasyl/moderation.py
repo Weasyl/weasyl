@@ -295,6 +295,7 @@ def finduser(userid, form):
          .select_from(sh)
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
+        lo.c.settings,
     ]).select_from(lo.join(pr, lo.c.userid == pr.c.userid))
 
     if form.userid:
@@ -325,6 +326,10 @@ def finduser(userid, form):
         q = q.where(pr.c.unixtime.op('>=')(arrow.get(form.dateafter)))
     elif form.datebefore:
         q = q.where(pr.c.unixtime.op('<=')(arrow.get(form.datebefore)))
+
+    # Apply any row offset
+    if form.row_offset:
+        q = q.offset(form.row_offset)
 
     if not form.userid and not form.username and not form.email and not form.dateafter and not form.datebefore and not form.suspendedorbanned:
         return []

@@ -171,9 +171,17 @@ def admincontrol_finduser_get_(request):
 @admin_only
 @token_checked
 def admincontrol_finduser_post_(request):
-    form = request.web_input(userid="", username="", email="", suspendedorbanned="", dateafter="", datebefore="")
+    form = request.web_input(userid="", username="", email="", suspendedorbanned="",
+                             dateafter="", datebefore="", row_offset=0)
+
+    # Redirect negative row offsets (PSQL errors on negative offset values)
+    if int(form.row_offset) < 0:
+        raise HTTPSeeOther("/admincontrol/finduser")
 
     return Response(d.webpage(request.userid, "admincontrol/finduser.html", [
         # Search results
-        moderation.finduser(request.userid, form)
+        moderation.finduser(request.userid, form),
+        # Pass the form and row offset in to enable pagination
+        form,
+        int(form.row_offset)
     ], title="Search Users: Results"))

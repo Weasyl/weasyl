@@ -1,4 +1,4 @@
-$def with (query = None)
+$def with (query = None, form = None, row_offset=0)
 $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Panel", "/admincontrol"])}
 
 <div class="content">
@@ -65,11 +65,30 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
         $for i in query:
           <tr>
             <td>${i.userid}</td>
-            <td><a href="/~${i.login_name}">${i.login_name}</a></td>
+            $if i.settings['account-state'] == "banned":
+              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Banned)</b></td>
+            $elif i.settings['account-state'] == "suspended":
+              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Suspended)</b></td>
+            $else:
+              <td><a href="/~${i.login_name}">${i.login_name}</a></td>
             <td>${i.email}</td>
             <td><a href="/staffnotes/${i.login_name}">${i.staff_notes} of &apos;em</a></td>
           </tr>
       </table>
+      <form action="/admincontrol/finduser" method="post">
+        $:{CSRF()}
+        <input type="hidden" name="userid" value="${form.userid}" />
+        <input type="hidden" name="username" value="${form.username}" />
+        <input type="hidden" name="email" value="${form.email}" />
+        <input type="hidden" name="suspendedorbanned" value="${form.suspendedorbanned}" />
+        <input type="hidden" name="dateafter" value="${form.dateafter}" />
+        <input type="hidden" name="datebefore" value="${form.datebefore}" />
+        <div class="clear">
+          $if row_offset > 0:
+            <button class="button" name="row_offset" value=${row_offset - 100}>Previous 100</button>
+          <button class="button" name="row_offset" value=${row_offset + 100}>Next 100</button>
+        </div>
+      </form>
     </div>
   $else:
     <div>

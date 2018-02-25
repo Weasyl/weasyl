@@ -309,15 +309,15 @@ def finduser(userid, form):
         ))
 
     # Filter for banned and/or suspended accounts
-    if form.suspendedorbanned == "banned":
-        q = q.where(lo.c.settings.op('~')('b'))
-    elif form.suspendedorbanned == "suspended":
-        q = q.where(lo.c.settings.op('~')('s'))
-    elif form.suspendedorbanned == "both":
+    if form.excludeactive == "on":
         q = q.where(d.sa.or_(
             lo.c.settings.op('~')('b'),
             lo.c.settings.op('~')('s'),
         ))
+    if form.excludebanned == "on":
+        q = q.where(lo.c.settings.op('!~')('b'))
+    if form.excludesuspended == "on":
+        q = q.where(lo.c.settings.op('!~')('s'))
 
     # Filter for date-time
     if form.dateafter and form.datebefore:
@@ -331,10 +331,11 @@ def finduser(userid, form):
     if form.row_offset:
         q = q.offset(form.row_offset)
 
-    if not form.userid and not form.username and not form.email and not form.dateafter and not form.datebefore and not form.suspendedorbanned:
+    if not form.userid and not form.username and not form.email and not form.dateafter \
+            and not form.datebefore and not form.excludesuspended and not form.excludebanned and not form.excludeactive:
         return []
 
-    q = q.limit(100).order_by(lo.c.login_name.asc())
+    q = q.limit(250).order_by(lo.c.login_name.asc())
     db = d.connect()
     return db.execute(q)
 

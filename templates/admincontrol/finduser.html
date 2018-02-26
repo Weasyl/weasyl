@@ -55,7 +55,7 @@ $code:
     <div>
       $if query.rowcount == 1:
         <h3>Search Results - ${query.rowcount} Account Found</h3>
-      $if query.rowcount == 250:
+      $elif query.rowcount == 250:
         <h3>Search Results - Many Accounts Found (250+)</h3>
       $else:
         <h3>Search Results - ${query.rowcount} Accounts Found</h3>
@@ -102,7 +102,8 @@ $code:
     </div>
   $else:
     <div>
-      <h3>Search Results</h3>
-      There are no search results to display.
+      <h3>No search criteria were specified</h3>
+      Whoops! Looks like you didn't specify any search criteria. Head on back to <a href="/admincontrol/finduser">
+      re-enter your search parameters.</a>
     </div>
 </div>

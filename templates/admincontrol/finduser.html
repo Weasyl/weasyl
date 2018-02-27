@@ -1,8 +1,5 @@
 $def with (query = None, form = None, row_offset=0)
 $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Panel", "/admincontrol"])}
-$code:
-  def _CHECKED(x):
-    return ' checked="checked"' if x in form else ''
 
 <div class="content">
   $if(query == None):
@@ -83,12 +80,12 @@ $code:
       </table>
       <form action="/admincontrol/finduser" method="post">
         $:{CSRF()}
-        <input type="hidden" name="userid" value="${form.userid}" />
+        <input type="hidden" name="userid" value="${form.userid if form.userid != 0 else None}" />
         <input type="hidden" name="username" value="${form.username}" />
         <input type="hidden" name="email" value="${form.email}" />
-        <input type="hidden" name="excludebanned" $:{_CHECKED("excludebanned")} />
-        <input type="hidden" name="excludesuspended" $:{_CHECKED("excludesuspended")} />
-        <input type="hidden" name="excludeactive" $:{_CHECKED("excludeactive")} />
+        <input type="hidden" name="excludebanned" ${'value=on' if form.excludebanned == "on" else ''} />
+        <input type="hidden" name="excludesuspended" ${'value=on' if form.excludesuspended == "on" else ''} />
+        <input type="hidden" name="excludeactive" ${'value=on' if form.excludeactive == "on" else ''} />
         <input type="hidden" name="dateafter" value="${form.dateafter}" />
         <input type="hidden" name="datebefore" value="${form.datebefore}" />
         <div class="clear">

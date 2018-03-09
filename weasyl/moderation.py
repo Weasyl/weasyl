@@ -283,6 +283,12 @@ def get_suspension(userid):
 
 def finduser(userid, form):
     form.userid = d.get_int(form.userid)
+
+    # If we don't have any of these variables, nothing will be displayed. So fast-return an empty list.
+    if not form.userid and not form.username and not form.email and not form.dateafter \
+            and not form.datebefore and not form.excludesuspended and not form.excludebanned and not form.excludeactive:
+        return []
+
     lo = d.meta.tables['login']
     sh = d.meta.tables['comments']
     pr = d.meta.tables['profile']
@@ -310,10 +316,7 @@ def finduser(userid, form):
 
     # Filter for banned and/or suspended accounts
     if form.excludeactive == "on":
-        q = q.where(d.sa.or_(
-            lo.c.settings.op('~')('b'),
-            lo.c.settings.op('~')('s'),
-        ))
+        q = q.where(lo.c.settings.op('~')('[bs]'))
     if form.excludebanned == "on":
         q = q.where(lo.c.settings.op('!~')('b'))
     if form.excludesuspended == "on":
@@ -323,17 +326,13 @@ def finduser(userid, form):
     if form.dateafter and form.datebefore:
         q = q.where(d.sa.between(pr.c.unixtime, arrow.get(form.dateafter), arrow.get(form.datebefore)))
     elif form.dateafter:
-        q = q.where(pr.c.unixtime.op('>=')(arrow.get(form.dateafter)))
+        q = q.where(pr.c.unixtime >= arrow.get(form.dateafter))
     elif form.datebefore:
-        q = q.where(pr.c.unixtime.op('<=')(arrow.get(form.datebefore)))
+        q = q.where(pr.c.unixtime <= arrow.get(form.datebefore))
 
     # Apply any row offset
     if form.row_offset:
         q = q.offset(form.row_offset)
-
-    if not form.userid and not form.username and not form.email and not form.dateafter \
-            and not form.datebefore and not form.excludesuspended and not form.excludebanned and not form.excludeactive:
-        return []
 
     q = q.limit(250).order_by(lo.c.login_name.asc())
     db = d.connect()

@@ -250,7 +250,7 @@ def select_userinfo(userid, config=None):
         """, userid=userid, config=config)
 
     user_links = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value)
+        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
@@ -721,7 +721,7 @@ def select_manage(userid):
         raise WeasylError("Unexpected")
 
     user_link_rows = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value)
+        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type

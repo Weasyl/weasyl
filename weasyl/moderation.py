@@ -268,6 +268,12 @@ BAN_TEMPLATES = {
             "way, they should receive credit for their participation. "),
         "days": -1,
     },
+    "21-spammer": {
+        "name": "Spam (Ban)",
+        "reason": (
+            "Your account has been permanently banned from Weasyl for spam."),
+        "days": -1,
+    },
 }
 
 

@@ -1,4 +1,4 @@
-$def with (query = None)
+$def with (query = None, form = None, row_offset=0)
 $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Panel", "/admincontrol"])}
 
 <div class="content">
@@ -18,12 +18,44 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
         <label for="adminsearchemail">Email Address:</label>
         <input type="text" class="input last-input" name="email" id="adminsearchemail" />
 
+        <div>
+          <h4>View information for...</h4>
+
+          <label class="input-checkbox" style="margin-top: 0.5em">
+            <input type="checkbox" name="excludebanned" />
+            Exclude banned accounts from results
+          </label>
+          <label class="input-checkbox" style="margin-top: 0.5em">
+            <input type="checkbox" name="excludesuspended" />
+            Exclude suspended accounts from results
+          </label>
+          <label class="input-checkbox" style="margin-top: 0.5em">
+            <input type="checkbox" name="excludeactive" />
+            Exclude active accounts from results
+          </label>
+        </div>
+        <br />
+        <div>
+          <label for="timespan-after">Accounts created after
+            <input id="timespan-after" type="date" name="dateafter" />
+          </label>
+
+          <label for="timespan-before">Accounts created before
+            <input id="timespan-before" type="date" name="datebefore" />
+          </label>
+        </div>
+
         <button type="submit" class="button positive" style="float: right;">Search</button>
       </form>
     </div>
   $elif(query):
     <div>
-      <h3>Search Results</h3>
+      $if query.rowcount == 1:
+        <h3>Search Results - ${query.rowcount} Account Found</h3>
+      $elif query.rowcount == 250:
+        <h3>Search Results - Many Accounts Found (250+)</h3>
+      $else:
+        <h3>Search Results - ${query.rowcount} Accounts Found</h3>
 
       <table>
         <tr>
@@ -36,15 +68,39 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
         $for i in query:
           <tr>
             <td>${i.userid}</td>
-            <td><a href="/~${i.login_name}">${i.login_name}</a></td>
+            $if i.settings['account-state'] == "banned":
+              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Banned)</b></td>
+            $elif i.settings['account-state'] == "suspended":
+              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Suspended)</b></td>
+            $else:
+              <td><a href="/~${i.login_name}">${i.login_name}</a></td>
             <td>${i.email}</td>
             <td><a href="/staffnotes/${i.login_name}">${i.staff_notes} of &apos;em</a></td>
           </tr>
       </table>
+      <form action="/admincontrol/finduser" method="post">
+        $:{CSRF()}
+        <input type="hidden" name="userid" value="${form.userid if form.userid != 0 else None}" />
+        <input type="hidden" name="username" value="${form.username}" />
+        <input type="hidden" name="email" value="${form.email}" />
+        <input type="hidden" name="excludebanned" ${'value=on' if form.excludebanned == "on" else ''} />
+        <input type="hidden" name="excludesuspended" ${'value=on' if form.excludesuspended == "on" else ''} />
+        <input type="hidden" name="excludeactive" ${'value=on' if form.excludeactive == "on" else ''} />
+        <input type="hidden" name="dateafter" value="${form.dateafter}" />
+        <input type="hidden" name="datebefore" value="${form.datebefore}" />
+        <div class="clear">
+          $if row_offset > 0:
+            <button class="button" name="row_offset" value=${row_offset - 250}>Previous 250</button>
+          $if query.rowcount == 250:
+            <button class="button" name="row_offset" value=${row_offset + 250}>Next 250</button>
+          <a class="button positive" href="/admincontrol/finduser" style="float: right;">New search</a>
+        </div>
+      </form>
     </div>
   $else:
     <div>
-      <h3>Search Results</h3>
-      There are no search results to display.
+      <h3>No search criteria were specified</h3>
+      Whoops! Looks like you didn't specify any search criteria. Head on back to <a href="/admincontrol/finduser">
+      re-enter your search parameters.</a>
     </div>
 </div>

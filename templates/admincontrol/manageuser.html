@@ -3,7 +3,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
 
 <div class="content">
 
-  <form name="admincontrolmanageuser" class="form skinny clear" action="/admincontrol/manageuser" method="post">
+  <form name="admincontrolmanageuser" class="form constrained clear" action="/admincontrol/manageuser" method="post">
     $:{CSRF()}
     <input type="hidden" name="userid" value="${profile['userid']}" />
 
@@ -13,12 +13,42 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     <p>${profile['email']}</p>
     <span class="label">Registration Date</span>
     <p>${DATE(profile['unixtime'])} ${TIME(profile['unixtime'])} (${profile['unixtime']})</p>
+    <span class="label">IP Address at Registration</span>
+    $if profile['ip_address_at_signup']:
+      <p>${profile['ip_address_at_signup']}</p>
+    $else:
+      <p>Address was not recorded.</p>
     <span class="label">Last Login</span>
     <p>${DATE(profile['last_login'])} ${TIME(profile['last_login'])} (${profile['last_login']})</p>
     <span class="label">Staff Notes</span>
     <p><a href="/staffnotes/${LOGIN(profile['username'])}">${profile['staff_notes']} of ’em</a></p>
 
+    <span class="label">Active Login Sessions (<a href="#permissions">skip to Permissions</a>)</span>
+    $if profile['user_sessions']:
+      <table>
+        <tr>
+          <td style="font-weight:700;">Time Created</td>
+          <td style="font-weight:700;">Via Address</td>
+          <td style="font-weight:700;">User Agent</td>
+        </tr>
+        $for sess in profile['user_sessions']:
+          <tr>
+            <td>${sess.created_at}</td>
+            $if sess.ip_address:
+              <td>${sess.ip_address}</td>
+            $else:
+              <td>No IP address recorded for this login session.</td>
+            $if sess.user_agent:
+              <td>${sess.user_agent}</td>
+            $else:
+              <td>No user agent recorded for this login session.</td>
+          </tr>
+      </table>
+    $else:
+      <p>No active login sessions for this user.</p>
+
     <fieldset>
+        <a id="permissions"></a>
         <legend class="label">Permissions</legend>
 
         <label class="input-checkbox option-with-label">

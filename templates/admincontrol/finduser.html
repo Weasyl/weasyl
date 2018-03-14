@@ -16,7 +16,10 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
         <input type="text" class="input" name="username" id="adminsearchuser" />
 
         <label for="adminsearchemail">Email Address:</label>
-        <input type="text" class="input last-input" name="email" id="adminsearchemail" />
+        <input type="text" class="input" name="email" id="adminsearchemail" />
+
+        <label for="adminsearchip">IP Address:</label>
+        <input type="text" class="input last-input" name="ipaddr" id="adminsearchip" />
 
         <div>
           <h4>View information for...</h4>
@@ -34,7 +37,9 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
             Exclude active accounts from results
           </label>
         </div>
+
         <br />
+
         <div>
           <label for="timespan-after">Accounts created after
             <input id="timespan-after" type="date" name="dateafter" />
@@ -88,6 +93,7 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
         <input type="hidden" name="excludeactive" ${'value=on' if form.excludeactive == "on" else ''} />
         <input type="hidden" name="dateafter" value="${form.dateafter}" />
         <input type="hidden" name="datebefore" value="${form.datebefore}" />
+        <input type="hidden" name="ipaddr" value="${form.ipaddr}" />
         <div class="clear">
           $if row_offset > 0:
             <button class="button" name="row_offset" value=${row_offset - 250}>Previous 250</button>

@@ -353,6 +353,8 @@ login = Table(
     }, length=20), nullable=False, server_default=''),
     Column('email', String(length=100), nullable=False, server_default=''),
     Column('twofa_secret', String(length=420), nullable=True),
+    # Must be nullable, since existing accounts will not have this information
+    Column('ip_address_at_signup', String(length=39), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)
@@ -382,6 +384,7 @@ logincreate = Table(
     #   a pending username triggering a username taken error.
     Column('invalid', Boolean(), server_default='f', nullable=False),
     Column('invalid_email_addr', String(length=100), nullable=True, server_default=None),
+    Column('ip_address_signup_request', String(length=39), nullable=True),
 )
 
 
@@ -688,11 +691,25 @@ sessions = Table(
     Column('userid', Integer()),
     Column('csrf_token', String(length=64)),
     Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
+    Column('ip_address', String(length=39), nullable=True),
+    Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
+    default_fkey(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
 )
 
 Index('ind_sessions_created_at', sessions.c.created_at)
 Index('ind_sessions_userid', sessions.c.userid)
+
+
+user_agents = Table(
+    'user_agents', metadata,
+    Column('user_agent_id', Integer(), primary_key=True, nullable=False),
+    # SHA-256 should be unique enough... I don't think we need to worry (yet) about collisions)
+    Column('user_agent_sha256', String(length=64), unique=True, nullable=False),
+    Column('user_agent', String(length=1024), nullable=False, unique=False),
+)
+
+Index('ind_user_agents_user_agent_sha256', user_agents.c.user_agent_sha256)
 
 
 siteupdate = Table(

@@ -704,12 +704,8 @@ Index('ind_sessions_userid', sessions.c.userid)
 user_agents = Table(
     'user_agents', metadata,
     Column('user_agent_id', Integer(), primary_key=True, nullable=False),
-    # SHA-256 should be unique enough... I don't think we need to worry (yet) about collisions)
-    Column('user_agent_sha256', String(length=64), unique=True, nullable=False),
-    Column('user_agent', String(length=1024), nullable=False, unique=False),
+    Column('user_agent', String(length=1024), nullable=False, unique=True),
 )
-
-Index('ind_user_agents_user_agent_sha256', user_agents.c.user_agent_sha256)
 
 
 siteupdate = Table(

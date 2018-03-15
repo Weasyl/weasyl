@@ -35,27 +35,27 @@ def signin(userid, ip_address=None, user_agent=None):
     sess = d.get_weasyl_session()
     sess.userid = userid
     sess.ip_address = ip_address
-    sess.user_agent_id = process_useragent(user_agent)
+    sess.user_agent_id = get_user_agent_id(user_agent)
     sess.save = True
 
 
-def process_useragent(ua_string=None):
+def get_user_agent_id(ua_string=None):
+    """
+    Retrieves and/or stores a user agent string, and returns the ID number for the DB record.
+    :param ua_string: The user agent of a web browser or other web client
+    :return: An integer representing the identifier for the record in the table corresponding to ua_string.
+    """
     if not ua_string:
         return None
     else:
-        # If we have a UA string, SHA-256 hash it, store the hash, and store the first 1024 bytes of the UA string;
-        # Then return the ID for the record.
-        ua_string_sha256 = hashlib.sha256(ua_string).hexdigest()
-        query = d.engine.scalar("""
-            INSERT INTO user_agents (user_agent_sha256, user_agent)
-            VALUES (%(user_agent_sha256)s, %(user_agent)s)
-            ON CONFLICT (user_agent_sha256) DO NOTHING;
-
-            SELECT user_agent_id
-            FROM user_agents
-            WHERE user_agent_sha256 = %(user_agent_sha256)s;
-        """, user_agent_sha256=ua_string_sha256, user_agent=ua_string[0:1024])
-        return query
+        # Store/Retrieve the UA
+        return d.engine.scalar("""
+            INSERT INTO user_agents (user_agent)
+            VALUES (%(ua_string)s)
+            ON CONFLICT (user_agent) DO
+                UPDATE SET user_agent = %(ua_string)s
+            RETURNING user_agent_id
+        """, ua_string=ua_string[0:1024])
 
 
 def signout(request):

@@ -74,11 +74,11 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
           <tr>
             <td>${i.userid}</td>
             $if i.settings['account-state'] == "banned":
-              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Banned)</b></td>
+              <td><a href="/admincontrol/manageuser?name=${i.login_name}">${i.login_name}</a> <b>(Banned)</b></td>
             $elif i.settings['account-state'] == "suspended":
-              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Suspended)</b></td>
+              <td><a href="/admincontrol/manageuser?name=${i.login_name}">${i.login_name}</a> <b>(Suspended)</b></td>
             $else:
-              <td><a href="/~${i.login_name}">${i.login_name}</a></td>
+              <td><a href="/admincontrol/manageuser?name=${i.login_name}">${i.login_name}</a></td>
             <td>${i.email}</td>
             <td><a href="/staffnotes/${i.login_name}">${i.staff_notes} of &apos;em</a></td>
           </tr>

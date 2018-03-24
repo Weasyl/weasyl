@@ -339,8 +339,8 @@ def finduser(userid, form):
     # Filter for IP address
     if form.ipaddr:
         q = q.where(d.sa.or_(
-            lo.c.ip_address_at_signup.op('ilike')('%%%s%%' % form.ipaddr),
-            sess.c.ip_address.op('ilike')('%%%s%%' % form.ipaddr)
+            lo.c.ip_address_at_signup.op('ilike')('%s%%' % form.ipaddr),
+            sess.c.ip_address.op('ilike')('%s%%' % form.ipaddr)
         ))
 
     # Filter for date-time

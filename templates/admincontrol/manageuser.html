@@ -12,18 +12,16 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     <span class="label">Email</span>
     <p>${profile['email']}</p>
     <span class="label">Registration Date</span>
-    <p>${DATE(profile['unixtime'])} ${TIME(profile['unixtime'])} (${profile['unixtime']})</p>
+    <p>${DATE(profile['unixtime'])} ${TIME(profile['unixtime'])}</p>
     <span class="label">IP Address at Registration</span>
     $if profile['ip_address_at_signup']:
       <p>${profile['ip_address_at_signup']}</p>
     $else:
       <p>Address was not recorded.</p>
-    <span class="label">Last Login</span>
-    <p>${DATE(profile['last_login'])} ${TIME(profile['last_login'])} (${profile['last_login']})</p>
     <span class="label">Staff Notes</span>
     <p><a href="/staffnotes/${LOGIN(profile['username'])}">${profile['staff_notes']} of ’em</a></p>
 
-    <span class="label">Active Login Sessions (<a href="#permissions">skip to Permissions</a>)</span>
+    <span class="label">Recent Login Sessions (<a href="#permissions">skip to Permissions</a>)</span>
     $if profile['user_sessions']:
       <table>
         <tr>
@@ -33,7 +31,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
         </tr>
         $for sess in profile['user_sessions']:
           <tr>
-            <td>${sess.created_at}</td>
+            <td>${arrow.get(sess.created_at).format('YYYY-MM-DD HH:mm:ss')}</td>
             $if sess.ip_address:
               <td>${sess.ip_address}</td>
             $else:

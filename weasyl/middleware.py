@@ -179,7 +179,7 @@ def _generate_http2_server_push_headers():
 
 
 # Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below
-HTTP2_LINK_HEADER_PRELOADS = str(_generate_http2_server_push_headers())
+HTTP2_LINK_HEADER_PRELOADS = _generate_http2_server_push_headers()
 
 
 def http2_server_push_tween_factory(handler, registry):

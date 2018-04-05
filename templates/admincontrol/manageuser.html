@@ -31,7 +31,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
         </tr>
         $for sess in profile['user_sessions']:
           <tr>
-            <td>${arrow.get(sess.created_at).format('YYYY-MM-DD HH:mm:ss')}</td>
+            <td>${arrow.get(sess.created_at).format('YYYY-MM-DD HH:mm:ss')} (PDT)</td>
             $if sess.ip_address:
               <td>${sess.ip_address}</td>
             $else:

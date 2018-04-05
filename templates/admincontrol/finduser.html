@@ -67,20 +67,29 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
           <td style="font-weight:700;">UserID</td>
           <td style="font-weight:700;">Login Name</td>
           <td style="font-weight:700;">Email Address</td>
+          <td style="font-weight:700;">Last IP Address</td>
           <td style="font-weight:700;">Staff Notes</td>
+          <td style="font-weight:700;">Manage User</td>
         </tr>
 
         $for i in query:
           <tr>
             <td>${i.userid}</td>
             $if i.settings['account-state'] == "banned":
-              <td><a href="/admincontrol/manageuser?name=${i.login_name}">${i.login_name}</a> <b>(Banned)</b></td>
+              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Banned)</b></td>
             $elif i.settings['account-state'] == "suspended":
-              <td><a href="/admincontrol/manageuser?name=${i.login_name}">${i.login_name}</a> <b>(Suspended)</b></td>
+              <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Suspended)</b></td>
             $else:
-              <td><a href="/admincontrol/manageuser?name=${i.login_name}">${i.login_name}</a></td>
+              <td><a href="/~${i.login_name}">${i.login_name}</a></td>
             <td>${i.email}</td>
+            $if i.ip_address_session:
+              <td>${i.ip_address_session}</td>
+            $elif i.ip_address_at_signup:
+              <td>${i.ip_address_at_signup}</td>
+            $else:
+              <td>No IP on file</td>
             <td><a href="/staffnotes/${i.login_name}">${i.staff_notes} of &apos;em</a></td>
+            <td><a href="/admincontrol/manageuser?name=${i.login_name}">Manage User</a></td>
           </tr>
       </table>
       <form action="/admincontrol/finduser" method="post">

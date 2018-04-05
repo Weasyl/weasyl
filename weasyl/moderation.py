@@ -310,6 +310,14 @@ def finduser(userid, form):
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
         lo.c.settings,
+        lo.c.ip_address_at_signup,
+        (d.sa.select([sess.c.ip_address])
+            .select_from(sess)
+            .where(lo.c.userid == sess.c.userid)
+            .limit(1)
+            .order_by(sess.c.created_at.desc())
+            .correlate(sess)
+         ).label('ip_address_session'),
     ]).select_from(
         lo.join(pr, lo.c.userid == pr.c.userid)
           .join(sess, sess.c.userid == pr.c.userid, isouter=True)

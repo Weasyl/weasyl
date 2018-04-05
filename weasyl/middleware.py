@@ -160,7 +160,7 @@ def _generate_http2_server_push_headers():
     time the code is relaunched (e.g., each time the web workers are kicked to a new version of the code).
 
     A component of ``http2_server_push_tween_factory``
-    :return: A string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
+    :return: A latin-1 encoded string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
     """
     css_resource_preload_list = [
         d.get_resource_path('css/site.css'),
@@ -175,7 +175,7 @@ def _generate_http2_server_push_headers():
         d.cdnify_url('/static/scripts.js?' + d.CURRENT_SHA),
     ]
     js_preload = ", ".join('<' + item + '>; rel=preload; as=script' for item in js_resource_preload_list)
-    return ", ".join([js_preload, css_preload])
+    return ", ".join([js_preload, css_preload]).encode('latin-1')
 
 
 # Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below

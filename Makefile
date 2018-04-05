@@ -55,6 +55,7 @@ guest-install-libweasyl: .vagrant
 	vagrant ssh -c 'cd weasyl && make install-libweasyl'
 
 .vagrant:
+	vagrant plugin install vagrant-vbguest
 	vagrant up
 
 .PHONY: setup-vagrant

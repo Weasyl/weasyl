@@ -9,6 +9,11 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
     <label for="signup-username">Username</label>
     <input type="text" id="signup-username" class="input" name="username" autofocus required maxlength="25" />
 
+    <div style="padding-top:10px">
+      <strong>Note</strong>: <em>If you already have a Weasyl account</em>, and you desire to change your username, please
+      <a href="mailto:support@weasyl.com">contact our Support team</a> instead of creating a new account.
+    </div>
+
     $ captcha_public_key = CAPTCHA()
 
     $if captcha_public_key:

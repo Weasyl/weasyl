@@ -30,9 +30,21 @@ def profile_(request):
         "canonical_url": "/~" + define.get_sysname(form.name)
     }
 
-    if define.user_is_twitterbot():
-        extras['twitter_card'] = profile.twitter_card(otherid)
-        extras['options'] = ['nocache']
+    if not request.userid:
+        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
+        twit_card = profile.twitter_card(otherid)
+        if define.user_is_twitterbot():
+            extras['twitter_card'] = twit_card
+            extras['options'] = ['nocache']
+        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+        extras['ogp'] = {
+            'title': twit_card['title'],
+            'site_name': "Weasyl",
+            'type': "website",
+            'url': twit_card['url'],
+            'description': twit_card['description'],
+            'image': twit_card['image:src'] if 'image:src' in twit_card else define.absolutify_url('/static/images/logo-mark-light.svg'),
+        }
 
     if not request.userid and "h" in userprofile['config']:
         return Response(define.errorpage(

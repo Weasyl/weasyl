@@ -43,7 +43,7 @@ def profile_(request):
             'type': "website",
             'url': twit_card['url'],
             'description': twit_card['description'],
-            'image': twit_card['image:src'] if 'image:src' in twit_card else define.absolutify_url('/static/images/logo-mark-light.svg'),
+            'image': twit_card['image:src'] if 'image:src' in twit_card else define.cdnify_url('/static/images/logo-mark-light.svg'),
         }
 
     if not request.userid and "h" in userprofile['config']:

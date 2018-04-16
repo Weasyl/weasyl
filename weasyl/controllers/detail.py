@@ -38,7 +38,7 @@ def submission_(request):
             'description': twit_card['description'],
             # >> BUG AVOIDANCE: https://trello.com/c/mBx51jfZ/1285-any-image-link-with-in-it-wont-preview-up-it-wont-show-up-in-embeds-too
             #    Image URLs with '~' in it will not be displayed by Discord, so replace ~ with the URL encoded char code %7E
-            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.absolutify_url(
+            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.cdnify_url(
                 '/static/images/logo-mark-light.svg'),
         }
 

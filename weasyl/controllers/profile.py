@@ -32,7 +32,6 @@ def profile_(request):
 
     if define.user_is_twitterbot():
         extras['twitter_card'] = profile.twitter_card(otherid)
-        extras['options'] = ['nocache']
 
     if not request.userid and "h" in userprofile['config']:
         return Response(define.errorpage(

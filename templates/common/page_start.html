@@ -5,10 +5,7 @@ $code:
     return 'on' if mode == 'sfw' else 'off'
 
 <!DOCTYPE html>
-$if 'ogp' in extended_options:
-  <html class="no-js" data-csrf-token="${TOKEN()}" prefix="og: http://ogp.me/ns#">
-$else:
-  <html class="no-js" data-csrf-token="${TOKEN()}">
+<html class="no-js" data-csrf-token="${TOKEN()}">
 <head>
 
   <meta charset="utf-8" />

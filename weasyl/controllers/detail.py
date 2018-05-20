@@ -20,9 +20,7 @@ def submission_(request):
     rating = define.get_rating(request.userid)
     submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
 
-    extras = {
-        "pdf": True,
-    }
+    extras = {}
 
     if not request.userid:
         # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
@@ -66,6 +64,10 @@ def submission_(request):
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
     extras["canonical_url"] = canonical_path
     extras["title"] = item["title"]
+
+    submission_files = item["sub_media"].get("submission")
+    submission_file = submission_files[0] if submission_files else None
+    extras["pdf"] = bool(submission_file) and submission_file["file_type"] == "pdf"
 
     page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [

@@ -172,7 +172,7 @@ def admincontrol_finduser_get_(request):
 @token_checked
 def admincontrol_finduser_post_(request):
     form = request.web_input(userid="", username="", email="", excludebanned="", excludesuspended="", excludeactive="",
-                             dateafter="", datebefore="", row_offset=0)
+                             dateafter="", datebefore="", row_offset=0, ipaddr="")
 
     # Redirect negative row offsets (PSQL errors on negative offset values)
     if int(form.row_offset) < 0:

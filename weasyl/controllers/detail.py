@@ -24,8 +24,23 @@ def submission_(request):
         "pdf": True,
     }
 
-    if define.user_is_twitterbot():
-        extras['twitter_card'] = submission.twitter_card(submitid)
+    if not request.userid:
+        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
+        twit_card = submission.twitter_card(submitid)
+        if define.user_is_twitterbot():
+            extras['twitter_card'] = twit_card
+        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+        extras['ogp'] = {
+            'title': twit_card['title'],
+            'site_name': "Weasyl",
+            'type': "website",
+            'url': twit_card['url'],
+            'description': twit_card['description'],
+            # >> BUG AVOIDANCE: https://trello.com/c/mBx51jfZ/1285-any-image-link-with-in-it-wont-preview-up-it-wont-show-up-in-embeds-too
+            #    Image URLs with '~' in it will not be displayed by Discord, so replace ~ with the URL encoded char code %7E
+            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.cdnify_url(
+                '/static/images/logo-mark-light.svg'),
+        }
 
     try:
         item = submission.select_view(

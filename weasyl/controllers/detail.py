@@ -34,8 +34,6 @@ def submission_(request):
         )
     except WeasylError as we:
         we.errorpage_kwargs = extras
-        if 'twitter_card' in extras:
-            extras['options'] = ['nocache']
         if we.value in ("UserIgnored", "TagBlocked"):
             extras['links'] = [
                 ("View Submission", "?ignore=false"),
@@ -157,7 +155,7 @@ def journal_(request):
 
     canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
 
-    page = define.common_page_start(request.userid, options=["pager"], canonical_url=canonical_url, title=item["title"])
+    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
     page.append(define.render('detail/journal.html', [
         # Myself
         profile.select_myself(request.userid),

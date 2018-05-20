@@ -606,8 +606,6 @@ def manage_thumbnail_get_(request):
         except WeasylError:
             source = None
 
-    options = ['imageselect']
-
     return Response(define.webpage(request.userid, "manage/thumbnail.html", [
         # Feature
         "submit" if submitid else "char",
@@ -617,7 +615,7 @@ def manage_thumbnail_get_(request):
         source,
         # Exists
         bool(source),
-    ], options=options, title="Select Thumbnail"))
+    ], options=['imageselect'], title="Select Thumbnail"))
 
 
 @login_required

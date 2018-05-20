@@ -35,7 +35,6 @@ def profile_(request):
         twit_card = profile.twitter_card(otherid)
         if define.user_is_twitterbot():
             extras['twitter_card'] = twit_card
-            extras['options'] = ['nocache']
         # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
         extras['ogp'] = {
             'title': twit_card['title'],

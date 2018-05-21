@@ -7,6 +7,7 @@ import arrow
 from libweasyl import legacy
 from libweasyl import ratings
 from libweasyl import security
+from libweasyl import staff
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
@@ -40,8 +41,18 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
         username = "User-" + str(next(_user_index))
-    user = add_entity(users.Login(login_name=legacy.login_name(username),
-                                  last_login=arrow.get(0)))
+
+    while True:
+        user = add_entity(users.Login(login_name=legacy.login_name(username),
+                                      last_login=arrow.get(0)))
+
+        if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:
+            break
+
+        db = d.connect()
+        db.delete(user)
+        db.flush()
+
     add_entity(users.Profile(userid=user.userid, username=username,
                              full_name=full_name, unixtime=arrow.get(0), config=config))
     add_entity(users.UserInfo(userid=user.userid, birthday=birthday))

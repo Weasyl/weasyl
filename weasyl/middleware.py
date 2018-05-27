@@ -189,16 +189,8 @@ def http2_server_push_tween_factory(handler, registry):
     def http2_server_push(request):
         resp = handler(request)
 
-        # Only HTTP/2 server push once per session (let's assume the UA caches correctly)
-        if 'wzl.http2.resources-pushed' not in request.cookies:
-            # Combined HTTP/2 headers indicating which resources to server push
-            resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
-
-            def callback(request, response):
-                response.set_cookie('wzl.http2.resources-pushed', "true", max_age=None, expires=None,
-                                    secure=request.scheme == 'https', httponly=True)
-            request.add_response_callback(callback)
-
+        # Combined HTTP/2 headers indicating which resources to server push
+        resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
         return resp
     return http2_server_push
 

@@ -292,12 +292,14 @@ def finduser(userid, form):
 
     # If we don't have any of these variables, nothing will be displayed. So fast-return an empty list.
     if not form.userid and not form.username and not form.email and not form.dateafter \
-            and not form.datebefore and not form.excludesuspended and not form.excludebanned and not form.excludeactive:
+            and not form.datebefore and not form.excludesuspended and not form.excludebanned \
+            and not form.excludeactive and not form.ipaddr:
         return []
 
     lo = d.meta.tables['login']
     sh = d.meta.tables['comments']
     pr = d.meta.tables['profile']
+    sess = d.meta.tables['sessions']
 
     q = d.sa.select([
         lo.c.userid,
@@ -308,7 +310,21 @@ def finduser(userid, form):
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
         lo.c.settings,
-    ]).select_from(lo.join(pr, lo.c.userid == pr.c.userid))
+        lo.c.ip_address_at_signup,
+        (d.sa.select([sess.c.ip_address])
+            .select_from(sess)
+            .where(lo.c.userid == sess.c.userid)
+            .limit(1)
+            .order_by(sess.c.created_at.desc())
+            .correlate(sess)
+         ).label('ip_address_session'),
+    ]).select_from(
+        lo.join(pr, lo.c.userid == pr.c.userid)
+          .join(sess, sess.c.userid == pr.c.userid, isouter=True)
+    )
+
+    # Is there a better way to only select unique accounts, when _also_ joining sessions? This _does_ work, though.
+    q = q.distinct(lo.c.login_name)
 
     if form.userid:
         q = q.where(lo.c.userid == form.userid)
@@ -327,6 +343,13 @@ def finduser(userid, form):
         q = q.where(lo.c.settings.op('!~')('b'))
     if form.excludesuspended == "on":
         q = q.where(lo.c.settings.op('!~')('s'))
+
+    # Filter for IP address
+    if form.ipaddr:
+        q = q.where(d.sa.or_(
+            lo.c.ip_address_at_signup.op('ilike')('%s%%' % form.ipaddr),
+            sess.c.ip_address.op('ilike')('%s%%' % form.ipaddr)
+        ))
 
     # Filter for date-time
     if form.dateafter and form.datebefore:

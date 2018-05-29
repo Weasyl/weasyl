@@ -362,7 +362,7 @@ def setup_routes_and_views(config):
     # API routes.
     config.add_route("useravatar", "/api/useravatar")
     config.add_route("whoami", "/api/whoami")
-    config.add_route("version", "/api/version{format:(\.[^.]+)?}")
+    config.add_route("version", r"/api/version{format:(\.[^.]+)?}")
     config.add_route("api_frontpage", "/api/submissions/frontpage")
     config.add_route("api_submission_view", "/api/submissions/{submitid:[0-9]+}/view")
     config.add_route("api_journal_view", "/api/journals/{journalid:[0-9]+}/view")

@@ -65,19 +65,16 @@ def check_crop(dim, x1, y1, x2, y2):
         y1 <= dim[1] and x2 <= dim[0] and y2 <= dim[1] and x2 > x1 and y2 > y1)
 
 
-def check_type(filename, secure=True):
+def check_type(filename):
     """
     Return True if the filename corresponds to an image file, else False.
     """
-    if secure:
-        try:
-            im = Image.read(filename)
-        except SanperaError:
-            return False
-        else:
-            return im.original_format in ['JPEG', 'PNG', 'GIF']
+    try:
+        im = Image.read(filename)
+    except SanperaError:
+        return False
     else:
-        return filename and filename[-4:] in [".jpg", ".png", ".gif"]
+        return im.original_format in ['JPEG', 'PNG', 'GIF']
 
 
 def _resize(im, width, height):

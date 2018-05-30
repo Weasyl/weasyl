@@ -160,22 +160,25 @@ def _generate_http2_server_push_headers():
     time the code is relaunched (e.g., each time the web workers are kicked to a new version of the code).
 
     A component of ``http2_server_push_tween_factory``
-    :return: A latin-1 encoded string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
+    :return: An ASCII encoded string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
     """
-    css_resource_preload_list = [
-        d.get_resource_path('css/site.css'),
-        d.cdnify_url('/static/fonts/museo500.css'),
+    css_preload = [
+        '<' + item + '>; rel=preload; as=style' for item in [
+            d.get_resource_path('css/site.css'),
+            d.cdnify_url('/static/fonts/museo500.css'),
+        ]
     ]
-    css_preload = ", ".join('<' + item + '>; rel=preload; as=style' for item in css_resource_preload_list)
 
-    js_resource_preload_list = [
-        d.cdnify_url('/static/jquery-2.2.4.min.js'),
-        d.cdnify_url('/static/typeahead.bundle.min.js'),
-        d.cdnify_url('/static/marked.js?' + d.CURRENT_SHA),
-        d.cdnify_url('/static/scripts.js?' + d.CURRENT_SHA),
+    js_preload = [
+        '<' + item + '>; rel=preload; as=script' for item in [
+            d.cdnify_url('/static/jquery-2.2.4.min.js'),
+            d.cdnify_url('/static/typeahead.bundle.min.js'),
+            d.cdnify_url('/static/marked.js?' + d.CURRENT_SHA),
+            d.cdnify_url('/static/scripts.js?' + d.CURRENT_SHA),
+        ]
     ]
-    js_preload = ", ".join('<' + item + '>; rel=preload; as=script' for item in js_resource_preload_list)
-    return ", ".join([js_preload, css_preload]).encode('latin-1')
+
+    return ", ".join(css_preload + js_preload).encode('ascii')
 
 
 # Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below

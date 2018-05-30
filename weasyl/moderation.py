@@ -666,6 +666,52 @@ _tables = [
 ]
 
 
+def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals=()):
+    action_string = 'rerated to ' + ratings.CODE_TO_NAME[new_rating]
+
+    with d.engine.begin() as db:
+        affected = collections.defaultdict(list)
+        copyable = []
+
+        for (tbl, pk, title_col, urlpart), ids in zip(_tables, [submissions, characters, journals]):
+            if not ids:
+                continue
+
+            join = (
+                tbl.select()
+                .where(tbl.c[pk].in_(ids))
+                .where(tbl.c.rating != new_rating)
+                .with_for_update()
+                .alias('join'))
+
+            results = db.execute(
+                tbl.update()
+                .where(tbl.c[pk] == join.c[pk])
+                .values(rating=new_rating)
+                .returning(tbl.c[pk], tbl.c[title_col], tbl.c.userid, join.c.rating))
+
+            for thingid, title, ownerid, original_rating in results:
+                item_format = '- (from %s) %%s' % (original_rating.name,)
+                affected[ownerid].append(item_format % text.markdown_link(title, '/%s/%s?anyway=true' % (urlpart, thingid)))
+                copyable.append(item_format % text.markdown_link(title, '/%s/%s' % (urlpart, thingid)))
+
+        now = arrow.utcnow()
+        values = []
+        for target, target_affected in affected.iteritems():
+            staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
+            values.append({
+                'userid': userid,
+                'target_user': target,
+                'unixtime': now,
+                'settings': 's',
+                'content': staff_note,
+            })
+        if values:
+            db.execute(d.meta.tables['comments'].insert().values(values))
+
+    return 'Affected items (%s): \n\n%s' % (action_string, '\n'.join(copyable))
+
+
 def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
@@ -697,14 +743,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         _, _, rating = action.partition('-')
         rating = int(rating)
 
-        def action(tbl):
-            return (
-                tbl.update()
-                .values(rating=rating)
-                .where(tbl.c.rating != rating))
-
-        action_string = 'rerated ' + ratings.CODE_TO_NAME[rating]
-        provide_link = True
+        return bulk_edit_rating(userid, rating, submissions, characters, journals)
 
     elif action == 'clearcritique':
         # Clear the "critique requested" flag

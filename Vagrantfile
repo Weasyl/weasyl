@@ -72,7 +72,7 @@ openssl x509 -req -days 3650 -in /tmp/weasyl.req.pem \
 cat >/etc/nginx/sites-available/weasyl <<NGINX
 
 server {
-    listen 8443 ssl;
+    listen 8443 ssl http2;
 
     ssl_certificate /etc/ssl/private/weasyl.crt.pem;
     ssl_certificate_key /etc/ssl/private/weasyl.key.pem;

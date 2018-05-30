@@ -136,8 +136,3 @@ def create(userid, x1, y1, x2, y2, submitid=None, charid=None,
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
     orm.SubmissionMediaLink.make_or_replace_link(
         submitid, 'thumbnail-custom', media_item)
-
-
-def unhide(userid, submitid=None, charid=None):
-    d.execute("UPDATE %s SET settings = REPLACE(settings, 'hu', '') WHERE %s = %i",
-              ["submission", "submitid", submitid] if submitid else ["character", "charid", charid])

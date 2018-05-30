@@ -1044,7 +1044,7 @@ def get_resource_path(resource):
     if reload_assets:
         _load_resources()
 
-    return cdnify_url('/' + resource_paths[resource])
+    return '/' + resource_paths[resource]
 
 
 def absolutify_url(url):

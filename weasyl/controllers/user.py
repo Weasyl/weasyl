@@ -116,7 +116,7 @@ def signin_2fa_auth_get_(request):
 
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
-    if not sess or not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
+    if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
         return Response(define.errorpage(request.userid, errorcode.permission))
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
@@ -144,7 +144,7 @@ def signin_2fa_auth_post_(request):
 
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
-    if not sess or not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
+    if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
         return Response(define.errorpage(request.userid, errorcode.permission))
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 

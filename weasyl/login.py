@@ -2,10 +2,12 @@ from __future__ import absolute_import
 
 import arrow
 import bcrypt
+from publicsuffixlist import PublicSuffixList
 from sqlalchemy.sql.expression import select
 
 from libweasyl import security
 from libweasyl import staff
+from libweasyl.cache import region
 
 from weasyl import define as d
 from weasyl import macro as m
@@ -19,7 +21,7 @@ _PASSWORD = 10
 _USERNAME = 25
 
 
-def signin(userid):
+def signin(userid, ip_address=None, user_agent=None):
     # Update the last login record for the user
     d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
 
@@ -30,7 +32,28 @@ def signin(userid):
     # set the userid on the session
     sess = d.get_weasyl_session()
     sess.userid = userid
+    sess.ip_address = ip_address
+    sess.user_agent_id = get_user_agent_id(user_agent)
     sess.save = True
+
+
+def get_user_agent_id(ua_string=None):
+    """
+    Retrieves and/or stores a user agent string, and returns the ID number for the DB record.
+    :param ua_string: The user agent of a web browser or other web client
+    :return: An integer representing the identifier for the record in the table corresponding to ua_string.
+    """
+    if not ua_string:
+        return None
+    else:
+        # Store/Retrieve the UA
+        return d.engine.scalar("""
+            INSERT INTO user_agents (user_agent)
+            VALUES (%(ua_string)s)
+            ON CONFLICT (user_agent) DO
+                UPDATE SET user_agent = %(ua_string)s
+            RETURNING user_agent_id
+        """, ua_string=ua_string[0:1024])
 
 
 def signout(request):
@@ -38,14 +61,22 @@ def signout(request):
     # unset SFW-mode cookie on logout
     request.delete_cookie_on_response("sfwmode")
     sess.userid = None
+    # We aren't (currently) tracking userid-to-IP after logout, also clear IP/useragent.
+    sess.ip_address = None
+    sess.user_agent_id = None
     sess.save = True
 
 
-def authenticate_bcrypt(username, password, session=True):
+def authenticate_bcrypt(username, password, ip_address=None, user_agent=None, session=True):
     """
     Return a result tuple of the form (userid, error); `error` is None if the
     login was successful. Pass `session` as False to authenticate a user without
     creating a new session.
+
+    :param username: The username of the user attempting authentication.
+    :param password: The user's claimed password to check against the stored hash.
+    :param ip_address: The address requesting authentication.
+    :param user_agent: The user agent string of the submitting client.
 
     Possible errors are:
     - "invalid"
@@ -108,7 +139,7 @@ def authenticate_bcrypt(username, password, session=True):
         if TWOFA:
             return USERID, "2fa"
         else:
-            signin(USERID)
+            signin(USERID, ip_address=ip_address, user_agent=user_agent)
 
     status = None
     if not unicode_success:
@@ -144,7 +175,6 @@ def create(form):
 
     password = form.password
     passcheck = form.passcheck
-
     if form.day and form.month and form.year:
         try:
             birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
@@ -220,7 +250,7 @@ def create(form):
             "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 
-def verify(token):
+def verify(token, ip_address=None):
     lo = d.meta.tables["login"]
     lc = d.meta.tables["logincreate"]
     query = d.engine.execute(lc.select().where(lc.c.token == token)).first()
@@ -239,6 +269,7 @@ def verify(token):
             "login_name": d.get_sysname(query.username),
             "last_login": arrow.now(),
             "email": query.email,
+            "ip_address_at_signup": ip_address,
         })
 
         # Create profile records
@@ -331,12 +362,41 @@ def is_email_blacklisted(address):
     Returns:
         Boolean True if present on the blacklist, or False otherwise.
     """
-    local, domain = address.rsplit("@", 1)
+    _, domain = address.rsplit("@", 1)
+    psl = PublicSuffixList()
+    private_suffix = psl.privatesuffix(domain=domain)
 
-    return d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM emailblacklist WHERE domain_name = %(domain_name)s)",
-        domain_name=domain,
-    )
+    # Check the disposable email address list
+    disposable_domains = _retrieve_disposable_email_domains()
+    if private_suffix in disposable_domains:
+        return True
+
+    # Check the explicitly defined/blacklisted domains.
+    blacklisted_domains = d.engine.execute("""
+        SELECT domain_name
+        FROM emailblacklist
+    """).fetchall()
+    for site in blacklisted_domains:
+        if private_suffix == site['domain_name']:
+            return True
+
+    # If we get here, the domain (or subdomain) is not blacklisted
+    return False
+
+
+@region.cache_on_arguments(expiration_time=12*60*60)
+def _retrieve_disposable_email_domains():
+    """
+    Retrieves a periodically updated list of disposable email address domains from the 'url' variable, below.
+
+    :return: A [list] of disposable email address domains. Results are cached for 12 hours.
+    """
+    url = "https://raw.githubusercontent.com/ivolo/disposable-email-domains/master/index.json"
+    resp = d.http_get(url=url)
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        return []
 
 
 def verify_email_change(userid, token):

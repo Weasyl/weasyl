@@ -33,8 +33,8 @@ $:{RENDER("common/stage_title.html", ["Edit Account Creation Email Blacklist", "
 
 <div class="content">
   <form method="POST" action="/directorcontrol/emailblacklist" class="form skinny clear">
-    <label for="domain_name">Domain Name to Blacklist</label>
-    <input type="text" class="input" maxlength="252" name="domain_name" id="domain_name" required>
+    <label for="domain_name">Domain Name(s) to Blacklist</label>
+    <textarea rows="4" class="input" name="domain_name" id="domain_name" placeholder="Enter domain names one per line... spammer.net"></textarea>
 
     <label for="reason">Reason Why Blacklisted</label>
     <textarea rows="4" cols="60" class="input" name="reason" id="reason"></textarea>

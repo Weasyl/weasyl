@@ -250,7 +250,7 @@ def select_userinfo(userid, config=None):
         """, userid=userid, config=config)
 
     user_links = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value)
+        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
@@ -709,8 +709,9 @@ def select_manage(userid):
     """
     query = d.execute("""
         SELECT
-            lo.userid, lo.last_login, lo.email, pr.unixtime, pr.username, pr.full_name, pr.catchphrase, ui.birthday,
-            ui.gender, ui.country, pr.config
+            lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
+            pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
+            ui.birthday, ui.gender, ui.country, pr.config
         FROM login lo
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
@@ -721,26 +722,37 @@ def select_manage(userid):
         raise WeasylError("Unexpected")
 
     user_link_rows = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value)
+        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
     """, userid=userid)
 
+    active_user_sessions = d.engine.execute("""
+        SELECT sess.created_at, sess.ip_address, ua.user_agent
+        FROM login lo
+            INNER JOIN sessions sess ON lo.userid = sess.userid
+            INNER JOIN user_agents ua ON sess.user_agent_id = ua.user_agent_id
+        WHERE lo.userid = %(userid)s
+        ORDER BY sess.created_at DESC
+    """, userid=userid).fetchall()
+
     return {
         "userid": query[0],
         "last_login": query[1],
         "email": query[2],
-        "unixtime": query[3],
-        "username": query[4],
-        "full_name": query[5],
-        "catchphrase": query[6],
-        "birthday": query[7],
-        "gender": query[8],
-        "country": query[9],
-        "config": query[10],
+        "ip_address_at_signup": query[3],
+        "unixtime": query[4],
+        "username": query[5],
+        "full_name": query[6],
+        "catchphrase": query[7],
+        "birthday": query[8],
+        "gender": query[9],
+        "country": query[10],
+        "config": query[11],
         "staff_notes": shout.count(userid, staffnotes=True),
         "sorted_user_links": sort_user_links(user_link_rows),
+        "user_sessions": active_user_sessions,
     }
 
 

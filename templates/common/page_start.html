@@ -18,7 +18,7 @@ $code:
   $else:
     <title>Weasyl</title>
 
-  <link rel="stylesheet" href="${CDNIFY('/static/fonts/museo500.css')}" />
+  <link rel="stylesheet" href="/static/fonts/museo500.css" />
   <link rel="stylesheet" href="${resource_path('css/site.css')}" />
 
   <link type="image/png" rel="icon" href="${CDNIFY('/static/images/favicon.png')}" />
@@ -38,6 +38,9 @@ $code:
     <meta name="twitter:domain" content="weasyl.com" />
     $for k, v in extended_options['twitter_card'].iteritems():
       <meta name="twitter:${k}" content="$v" />
+  $if 'ogp' in extended_options:
+    $for k, v in extended_options['ogp'].iteritems():
+      <meta property="og:${k}" content="${v}" />
 
   $if 'canonical_url' in extended_options:
     <link rel="canonical" href="https://www.weasyl.com/${extended_options['canonical_url'].lstrip('/')}" />

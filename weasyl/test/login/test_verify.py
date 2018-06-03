@@ -6,7 +6,6 @@ import arrow
 from weasyl import login
 from weasyl import define as d
 from weasyl.error import WeasylError
-from weasyl.test.utils import Bag
 
 
 token = "a" * 40

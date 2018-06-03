@@ -19,7 +19,7 @@ def default_fkey(*args, **kwargs):
 ads = Table(
     'ads', metadata,
     Column('id', Integer(), primary_key=True, nullable=False),
-    Column('owner', Text(), nullable=False),
+    Column('owner', String(length=254), nullable=False),
     Column('link_target', Text(), nullable=False),
     Column('file', Integer(), nullable=False),
     Column('start', TIMESTAMP(), nullable=True),
@@ -65,7 +65,7 @@ charcomment = Table(
     Column('userid', Integer(), nullable=False),
     Column('targetid', Integer(), nullable=False),
     Column('parentid', Integer(), nullable=False, server_default='0'),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=10000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('indent', Integer(), nullable=False, server_default='0'),
     Column('settings', String(length=20), nullable=False, server_default=''),
@@ -130,7 +130,7 @@ Index('ind_commishclass_userid', commishclass.c.userid)
 commishdesc = Table(
     'commishdesc', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('content', String(), nullable=False),
+    Column('content', String(length=20000), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='commishdesc_userid_fkey'),
 )
 
@@ -259,7 +259,7 @@ character = Table(
     Column('height', String(length=100), nullable=False, server_default=''),
     Column('weight', String(length=100), nullable=False, server_default=''),
     Column('species', String(length=100), nullable=False, server_default=''),
-    Column('content', Text(), nullable=False, server_default=u""),
+    Column('content', String(length=100000), nullable=False, server_default=u""),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
@@ -298,7 +298,7 @@ journal = Table(
     Column('journalid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('title', String(length=200), nullable=False),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=100000), nullable=False),
     Column('rating', RatingColumn, nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', CharSettingsColumn({
@@ -320,7 +320,7 @@ journalcomment = Table(
     Column('userid', Integer(), nullable=False),
     Column('targetid', Integer(), nullable=False),
     Column('parentid', Integer(), nullable=False, server_default='0'),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=10000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('indent', Integer(), nullable=False, server_default='0'),
     Column('settings', String(length=20), nullable=False, server_default=''),
@@ -353,6 +353,8 @@ login = Table(
     }, length=20), nullable=False, server_default=''),
     Column('email', String(length=100), nullable=False, server_default=''),
     Column('twofa_secret', String(length=420), nullable=True),
+    # Must be nullable, since existing accounts will not have this information
+    Column('ip_address_at_signup', String(length=39), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)
@@ -382,6 +384,7 @@ logincreate = Table(
     #   a pending username triggering a username taken error.
     Column('invalid', Boolean(), server_default='f', nullable=False),
     Column('invalid_email_addr', String(length=100), nullable=True, server_default=None),
+    Column('ip_address_signup_request', String(length=39), nullable=True),
 )
 
 
@@ -420,7 +423,7 @@ message = Table(
     Column('user_folder', Integer(), nullable=False, server_default='0'),
     Column('other_folder', Integer(), nullable=False, server_default='0'),
     Column('title', String(length=100), nullable=False),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=100000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default='u'),
     default_fkey(['otherid'], ['login.userid'], name='message_otherid_fkey'),
@@ -470,7 +473,7 @@ permaban = Table(
 premiumpurchase = Table(
     'premiumpurchase', metadata,
     Column('token', String(), primary_key=True, nullable=False),
-    Column('email', String(), nullable=False),
+    Column('email', String(length=254), nullable=False),
     Column('terms', SMALLINT(), nullable=False),
 )
 
@@ -484,7 +487,7 @@ profile = Table(
     Column('artist_type', String(length=100), nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('latest_submission_time', ArrowColumn(), nullable=False, server_default='epoch'),
-    Column('profile_text', Text(), nullable=False, server_default=''),
+    Column('profile_text', String(length=100000), nullable=False, server_default=''),
     Column('settings', String(length=20), nullable=False, server_default='ccci'),
     Column('stream_url', String(length=500), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
@@ -524,7 +527,7 @@ profile = Table(
     }, length=50), nullable=False, server_default=''),
     Column('jsonb_settings', JSONB()),
     Column('stream_time', Integer()),
-    Column('stream_text', String()),
+    Column('stream_text', String(length=2000)),
     default_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
 )
 
@@ -675,7 +678,7 @@ Index('ind_user_restricted_tags_userid', user_restricted_tags.c.userid)
 searchtag = Table(
     'searchtag', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('title', Text(), nullable=False, unique=True),
+    Column('title', String(length=162), nullable=False, unique=True),
 )
 
 Index('ind_searchtag_tagid', searchtag.c.tagid)
@@ -688,11 +691,21 @@ sessions = Table(
     Column('userid', Integer()),
     Column('csrf_token', String(length=64)),
     Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
+    Column('ip_address', String(length=39), nullable=True),
+    Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
+    default_fkey(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
 )
 
 Index('ind_sessions_created_at', sessions.c.created_at)
 Index('ind_sessions_userid', sessions.c.userid)
+
+
+user_agents = Table(
+    'user_agents', metadata,
+    Column('user_agent_id', Integer(), primary_key=True, nullable=False),
+    Column('user_agent', String(length=1024), nullable=False, unique=True),
+)
 
 
 siteupdate = Table(
@@ -713,7 +726,7 @@ submission = Table(
     Column('userid', Integer(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('title', String(length=200), nullable=False),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=300000), nullable=False),
     Column('subtype', Integer(), nullable=False),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({
@@ -812,7 +825,7 @@ user_links = Table(
     Column('linkid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('link_type', String(length=64), nullable=False),
-    Column('link_value', String(), nullable=False),
+    Column('link_value', String(length=2000), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='user_links_userid_fkey'),
 )
 

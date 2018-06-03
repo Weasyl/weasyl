@@ -153,6 +153,51 @@ def database_session_cleanup_tween_factory(handler, registry):
     return database_session_cleanup_tween
 
 
+def _generate_http2_server_push_headers():
+    """
+    Generates the Link headers to load HTTP/2 Server Push resources which are needed on each pageload. Written
+    as a separate function to only execute this code a single time, since we just need to generate this each
+    time the code is relaunched (e.g., each time the web workers are kicked to a new version of the code).
+
+    A component of ``http2_server_push_tween_factory``
+    :return: An ASCII encoded string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
+    """
+    css_preload = [
+        '<' + item + '>; rel=preload; as=style' for item in [
+            d.get_resource_path('css/site.css'),
+            '/static/fonts/museo500.css',
+        ]
+    ]
+
+    js_preload = [
+        '<' + item + '>; rel=preload; as=script' for item in [
+            '/static/jquery-2.2.4.min.js',
+            '/static/typeahead.bundle.min.js',
+            '/static/marked.js?' + d.CURRENT_SHA,
+            '/static/scripts.js?' + d.CURRENT_SHA,
+        ]
+    ]
+
+    return ", ".join(css_preload + js_preload).encode('ascii')
+
+
+# Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below
+HTTP2_LINK_HEADER_PRELOADS = _generate_http2_server_push_headers()
+
+
+def http2_server_push_tween_factory(handler, registry):
+    """
+    Add the 'Link' header to outgoing responses to HTTP/2 Server Push render-blocking resources
+    """
+    def http2_server_push(request):
+        resp = handler(request)
+
+        # Combined HTTP/2 headers indicating which resources to server push
+        resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
+        return resp
+    return http2_server_push
+
+
 # Properties and methods to enhance the pyramid `request`.
 def pg_connection_request_property(request):
     """

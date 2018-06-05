@@ -180,13 +180,13 @@ def select_list(userid):
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_preferred_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     optout_tags = d.engine.execute("""
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_optout_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     return {
         "userid": userid,

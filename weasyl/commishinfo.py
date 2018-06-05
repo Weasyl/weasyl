@@ -65,11 +65,7 @@ def _fetch_rates():
 
     :return: see http://fixer.io/
     """
-    try:
-        return d.http_get("http://api.fixer.io/latest?base=USD").json()
-    except WeasylError:
-        # There was an HTTP error while fetching from the API
-        return None
+    return None
 
 
 def _charmap_to_currency_code(charmap):

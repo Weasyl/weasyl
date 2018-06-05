@@ -111,12 +111,12 @@ def currency_ratio(valuecode, targetcode):
     valuecode = _charmap_to_currency_code(valuecode)
     targetcode = _charmap_to_currency_code(targetcode)
     rates = _fetch_rates()
-    if not rates:
+    rates = rates.get("rates") if isinstance(rates, dict) else None
+    if not isinstance(rates, dict):
         # in the unlikely event of an error, invalidate our rates
         # (to try fetching again) and return value unaltered
         _fetch_rates.invalidate()
         return None
-    rates = rates["rates"]
     rates["USD"] = 1.0
     try:
         r1 = float(rates.get(valuecode))

@@ -142,6 +142,7 @@ def test_markdown_link(target, expected):
 def test_tag_stripping():
     assert markdown(u"<button>text</button>") == u"<p>text</p>"
     assert markdown(u"<button><button>text</button></button>") == u"<p>text</p>"
+    assert markdown(u"<!--[if IE]><script>alert(1)</script><![endif]-->") == u""
 
 
 markdown_excerpt_tests = [

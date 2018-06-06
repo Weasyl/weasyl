@@ -1,11 +1,15 @@
 # encoding: utf-8
 from __future__ import absolute_import, division
 
+import logging
 import re
 import urllib
 from collections import namedtuple
 from decimal import Decimal
 
+from pyramid.threadlocal import get_current_request
+
+from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl.cache import region
@@ -56,16 +60,48 @@ def parse_currency(target):
 
 
 @region.cache_on_arguments(expiration_time=60 * 60 * 24)
+def _fetch_rates_xml():
+    """
+    Retrieve most recent currency exchange rates from the European Central Bank.
+
+    This value is cached with a 24h expiry period.
+    """
+    if not config.config_read_bool('convert_currency'):
+        return None
+
+    try:
+        response = d.http_get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+    except WeasylError:
+        # http_get already logged the exception
+        return None
+    else:
+        request = get_current_request()
+        request.environ['raven.captureMessage']("Fetched exchange rates", level=logging.INFO)
+
+    return response.content
+
+
+@region.cache_on_arguments(expiration_time=60 * 60 * 24)
 def _fetch_rates():
-    """
-    Retrieves most recent currency exchange rates from fixer.io, which uses
-    the European Central Bank as its upstream source.
+    xml = _fetch_rates_xml()
 
-    This value is cached with a 24h expiry period
+    if xml is None:
+        return None
 
-    :return: see http://fixer.io/
-    """
-    return None
+    rates = {'EUR': 1.0}
+
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", xml):
+        code, rate = match.groups()
+
+        try:
+            rate = float(rate)
+        except ValueError:
+            pass
+        else:
+            if 0.0 < rate < float('inf'):
+                rates[code] = rate
+
+    return rates
 
 
 def _charmap_to_currency_code(charmap):
@@ -111,22 +147,16 @@ def currency_ratio(valuecode, targetcode):
     valuecode = _charmap_to_currency_code(valuecode)
     targetcode = _charmap_to_currency_code(targetcode)
     rates = _fetch_rates()
-    rates = rates.get("rates") if isinstance(rates, dict) else None
-    if not isinstance(rates, dict):
-        # in the unlikely event of an error, invalidate our rates
-        # (to try fetching again) and return value unaltered
-        _fetch_rates.invalidate()
+
+    if rates is None:
         return None
-    rates["USD"] = 1.0
-    try:
-        r1 = float(rates.get(valuecode))
-        r2 = float(rates.get(targetcode))
-    except ValueError:
-        # something is very wrong with our data source
-        _fetch_rates.invalidate()
+
+    r1 = rates.get(valuecode)
+    r2 = rates.get(targetcode)
+
+    if r1 is None or r2 is None:
         return None
-    if not (r1 and r2):
-        raise WeasylError("Unexpected")
+
     return r2 / r1
 
 

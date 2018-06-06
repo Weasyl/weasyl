@@ -121,6 +121,7 @@ def test_markdown_strikethrough():
     (u"[external](http://example.com/)", u'<a href="http://example.com/" rel="nofollow">external</a>'),
     (u'<a href="http://example.com/">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
     (u'<a href="http://example.com/" rel="noreferrer">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
+    (u"[external](//example.com/)", u'<a href="//example.com/" rel="nofollow">external</a>'),
 ])
 def test_markdown_external_link_noreferrer(target, expected):
     assert markdown(target) == u"<p>%s</p>" % (expected,)

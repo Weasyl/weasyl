@@ -180,13 +180,13 @@ def select_list(userid):
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_preferred_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     optout_tags = d.engine.execute("""
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_optout_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     return {
         "userid": userid,
@@ -210,7 +210,7 @@ def select_list(userid):
 
 def select_commissionable(userid, q, commishclass, min_price, max_price, currency, offset, limit):
     """
-    Select a list of artists whom are open for commissions
+    Select a list of artists who are open for commissions
     and have defined at least one commission class.
 
     This query sorts primarily by how many matching tags in the "content" field match

@@ -6,7 +6,7 @@ web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
 jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==18.0.0           # as above
 raven==6.9.0
-requests[security]==2.19.0
+requests[security]==2.19.1
 oauth2==1.9.0.post1
 python-memcached==1.59
 txstatsd==1.0.0+weasyl.2    # https://github.com/Weasyl/txstatsd

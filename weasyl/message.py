@@ -94,9 +94,9 @@ def select_journals(userid):
 
 def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None):
     if backtime:
-        time_filter = "WHERE we.unixtime > %(backtime)s"
+        time_filter = "AND we.unixtime > %(backtime)s"
     elif nexttime:
-        time_filter = "WHERE we.unixtime < %(nexttime)s"
+        time_filter = "AND we.unixtime < %(nexttime)s"
     else:
         time_filter = ""
 
@@ -117,7 +117,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 ch.charid AS id,
                 ch.char_name AS title,
                 ch.rating,
-                ch.unixtime,
+                we.unixtime,
                 ch.userid,
                 pr.username,
                 ch.settings,
@@ -132,6 +132,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 we.type = 2050 AND
                 we.userid = %(userid)s AND
                 ch.rating <= %(rating)s
+                {time_filter}
             {char_tags_groupby}
             ORDER BY welcomeid DESC LIMIT %(limit)s
         ) t
@@ -141,7 +142,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 su.submitid AS id,
                 su.title,
                 su.rating,
-                su.unixtime,
+                we.unixtime,
                 we.otherid AS userid,
                 pr.username,
                 su.settings,
@@ -156,6 +157,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 we.type = 2030 AND
                 we.userid = %(userid)s AND
                 su.rating <= %(rating)s
+                {time_filter}
             ORDER BY welcomeid DESC LIMIT %(limit)s
         ) t
         UNION ALL SELECT * FROM (
@@ -164,7 +166,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 su.submitid AS id,
                 su.title,
                 su.rating,
-                su.unixtime,
+                we.unixtime,
                 su.userid,
                 pr.username,
                 su.settings,
@@ -179,9 +181,9 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 we.type = 2010 AND
                 we.userid = %(userid)s AND
                 su.rating <= %(rating)s
+                {time_filter}
             ORDER BY welcomeid DESC LIMIT %(limit)s
         ) t
-        {time_filter}
         ORDER BY welcomeid DESC LIMIT %(limit)s
     """.format(
         time_filter=time_filter,

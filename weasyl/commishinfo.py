@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division
 
 import logging
+import operator
 import re
 import urllib
 from collections import namedtuple
@@ -59,12 +60,12 @@ def parse_currency(target):
     return int(Decimal(digits) * (10 ** CURRENCY_PRECISION))
 
 
-@region.cache_on_arguments(expiration_time=60 * 60 * 24)
-def _fetch_rates_xml():
+@region.cache_on_arguments(expiration_time=60 * 60 * 24, should_cache_fn=bool)
+def _fetch_rates_no_cache_failure():
     """
     Retrieve most recent currency exchange rates from the European Central Bank.
 
-    This value is cached with a 24h expiry period.
+    This value is cached with a 24h expiry period. Failures are cached for one hour.
     """
     if not config.config_read_bool('convert_currency'):
         return None
@@ -78,19 +79,9 @@ def _fetch_rates_xml():
         request = get_current_request()
         request.environ['raven.captureMessage']("Fetched exchange rates", level=logging.INFO)
 
-    return response.content
-
-
-@region.cache_on_arguments(expiration_time=60 * 60 * 24)
-def _fetch_rates():
-    xml = _fetch_rates_xml()
-
-    if xml is None:
-        return None
-
     rates = {'EUR': 1.0}
 
-    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", xml):
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.content):
         code, rate = match.groups()
 
         try:
@@ -102,6 +93,11 @@ def _fetch_rates():
                 rates[code] = rate
 
     return rates
+
+
+@region.cache_on_arguments(expiration_time=60 * 60, should_cache_fn=operator.not_)
+def _fetch_rates():
+    return _fetch_rates_no_cache_failure()
 
 
 def _charmap_to_currency_code(charmap):

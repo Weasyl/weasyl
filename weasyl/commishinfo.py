@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division
 
 import logging
-import operator
 import re
 import urllib
 from collections import namedtuple
@@ -95,7 +94,7 @@ def _fetch_rates_no_cache_failure():
     return rates
 
 
-@region.cache_on_arguments(expiration_time=60 * 60, should_cache_fn=operator.not_)
+@region.cache_on_arguments(expiration_time=60 * 60)
 def _fetch_rates():
     return _fetch_rates_no_cache_failure()
 

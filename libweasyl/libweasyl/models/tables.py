@@ -931,7 +931,6 @@ welcome = Table(
     Column('targetid', Integer(), nullable=False, server_default='0'),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('type', Integer(), nullable=False),
-    Column('deleted', ArrowColumn()),
     default_fkey(['userid'], ['login.userid'], name='welcome_userid_fkey'),
 )
 

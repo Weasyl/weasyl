@@ -84,8 +84,6 @@ def session_tween_factory(handler, registry):
     # TODO(hyena): Investigate a pyramid session_factory implementation instead.
     def session_tween(request):
         cookies_to_clear = set()
-        if 'beaker.session.id' in request.cookies:
-            cookies_to_clear.add('beaker.session.id')
 
         session = request.pg_connection
         sess_obj = None

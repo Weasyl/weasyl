@@ -129,6 +129,11 @@ def cache_(request):
     cache.region.configure('dogpile.cache.memory', replace_existing_backend=True)
 
 
+@pytest.fixture(autouse=True)
+def template_cache():
+    define._template_cache.clear()
+
+
 @pytest.fixture
 def no_csrf(monkeypatch):
     monkeypatch.setattr(define, 'get_token', lambda: '')

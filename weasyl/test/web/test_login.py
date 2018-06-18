@@ -6,7 +6,7 @@ from weasyl.test import db_utils
 from weasyl.test.web.wsgi import app
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_user_change_changes_token():
     db_utils.create_user(username='user1', password='password1')
 

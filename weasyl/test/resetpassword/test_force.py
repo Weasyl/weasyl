@@ -36,5 +36,5 @@ def test_verify_success_if_correct_information_provided():
     password = '01234567890123'
     form = Bag(password=password, passcheck=password)
     resetpassword.force(user_id, form)
-    result = login.authenticate_bcrypt(username=user_name, password=password, session=False)
+    result = login.authenticate_bcrypt(username=user_name, password=password, request=None)
     assert result == (user_id, None)

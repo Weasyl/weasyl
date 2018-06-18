@@ -35,7 +35,7 @@ def signin_post_(request):
     form = request.web_input(username="", password="", referer="", sfwmode="nsfw")
     form.referer = form.referer or '/'
 
-    logid, logerror = login.authenticate_bcrypt(form.username, form.password, ip_address=request.client_addr, user_agent=request.user_agent)
+    logid, logerror = login.authenticate_bcrypt(form.username, form.password, request=request, ip_address=request.client_addr, user_agent=request.user_agent)
 
     if logid and logerror == 'unicode-failure':
         raise HTTPSeeOther(location='/signin/unicode-failure')
@@ -160,7 +160,7 @@ def signin_2fa_auth_post_(request):
     elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
         # 2FA passed, so login and cleanup.
         _cleanup_2fa_session()
-        login.signin(tfa_userid, ip_address=request.client_addr, user_agent=request.user_agent)
+        login.signin(request, tfa_userid, ip_address=request.client_addr, user_agent=request.user_agent)
         ref = request.params["referer"] or "/"
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:

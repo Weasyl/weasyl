@@ -560,7 +560,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     changes_made = ""
 
     # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, session=False)
+    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
 
     # Run checks prior to modifying anything...
     if userid != logid or logerror is not None:

@@ -139,6 +139,10 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     if request is not None:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
+            request.pg_connection.delete(request.weasyl_session)
+            request.pg_connection.flush()
+            request.weasyl_session = create_session(None)
+            request.weasyl_session.additional_data = {}
             return USERID, "2fa"
         else:
             signin(request, USERID, ip_address=ip_address, user_agent=user_agent)

@@ -355,10 +355,12 @@ def get_userid():
 def get_token():
     from weasyl import api
 
-    if api.is_api_user():
+    request = get_current_request()
+
+    if api.is_api_user(request):
         return ''
 
-    sess = get_current_request().weasyl_session
+    sess = request.weasyl_session
     if sess.csrf_token is None:
         sess.csrf_token = security.generate_key(64)
         sess.save = True

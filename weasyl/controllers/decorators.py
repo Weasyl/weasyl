@@ -35,7 +35,7 @@ def guest_required(view_callable):
 def moderator_only(view_callable):
     """Implies login_required."""
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
         if request.userid not in staff.MODS:
             return Response(define.errorpage(request.userid, errorcode.permission))
@@ -46,7 +46,7 @@ def moderator_only(view_callable):
 def admin_only(view_callable):
     """Implies login_required."""
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
         if request.userid not in staff.ADMINS:
             return Response(define.errorpage(request.userid, errorcode.permission))
@@ -57,7 +57,7 @@ def admin_only(view_callable):
 def director_only(view_callable):
     """Implies login_required."""
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
         if request.userid not in staff.DIRECTORS:
             return Response(define.errorpage(request.userid, errorcode.permission))
@@ -67,7 +67,7 @@ def director_only(view_callable):
 
 def disallow_api(view_callable):
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
         return view_callable(request)
     return inner
@@ -99,7 +99,7 @@ def twofactorauth_disabled_required(view_callable):
 
 def token_checked(view_callable):
     def inner(request):
-        if not weasyl.api.is_api_user() and not hmac.compare_digest(request.params.get('token', ""), define.get_token()):
+        if not weasyl.api.is_api_user(request) and not hmac.compare_digest(request.params.get('token', ""), define.get_token()):
             return Response(define.errorpage(request.userid, errorcode.token), status=403)
         return view_callable(request)
     return inner

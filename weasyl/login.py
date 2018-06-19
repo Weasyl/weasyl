@@ -14,6 +14,7 @@ from weasyl import macro as m
 from weasyl import emailer
 from weasyl import moderation
 from weasyl.error import WeasylError
+from weasyl.sessions import create_session
 
 
 _EMAIL = 100
@@ -21,7 +22,7 @@ _PASSWORD = 10
 _USERNAME = 25
 
 
-def signin(userid, ip_address=None, user_agent=None):
+def signin(request, userid, ip_address=None, user_agent=None):
     # Update the last login record for the user
     d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
 
@@ -30,11 +31,14 @@ def signin(userid, ip_address=None, user_agent=None):
     d.metric('increment', 'logins')
 
     # set the userid on the session
-    sess = d.get_weasyl_session()
-    sess.userid = userid
+    sess = create_session(userid)
     sess.ip_address = ip_address
     sess.user_agent_id = get_user_agent_id(user_agent)
-    sess.save = True
+    sess.create = True
+
+    request.pg_connection.delete(request.weasyl_session)
+    request.pg_connection.flush()
+    request.weasyl_session = sess
 
 
 def get_user_agent_id(ua_string=None):
@@ -57,21 +61,19 @@ def get_user_agent_id(ua_string=None):
 
 
 def signout(request):
-    sess = request.weasyl_session
+    request.pg_connection.delete(request.weasyl_session)
+    request.pg_connection.flush()
+    request.weasyl_session = create_session(None)
+
     # unset SFW-mode cookie on logout
     request.delete_cookie_on_response("sfwmode")
-    sess.userid = None
-    # We aren't (currently) tracking userid-to-IP after logout, also clear IP/useragent.
-    sess.ip_address = None
-    sess.user_agent_id = None
-    sess.save = True
 
 
-def authenticate_bcrypt(username, password, ip_address=None, user_agent=None, session=True):
+def authenticate_bcrypt(username, password, request, ip_address=None, user_agent=None):
     """
     Return a result tuple of the form (userid, error); `error` is None if the
-    login was successful. Pass `session` as False to authenticate a user without
-    creating a new session.
+    login was successful. Pass None as the `request` to authenticate a user
+    without creating a new session.
 
     :param username: The username of the user attempting authentication.
     :param password: The user's claimed password to check against the stored hash.
@@ -132,14 +134,18 @@ def authenticate_bcrypt(username, password, ip_address=None, user_agent=None, se
             # account has been temporarily suspended)
             return USERID, "suspended"
 
-    # Attempt to create a new session if `session` is True, then log the signin
+    # Attempt to create a new session if this is a request to log in, then log the signin
     # if it succeeded.
-    if session:
+    if request is not None:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
+            request.pg_connection.delete(request.weasyl_session)
+            request.pg_connection.flush()
+            request.weasyl_session = create_session(None)
+            request.weasyl_session.additional_data = {}
             return USERID, "2fa"
         else:
-            signin(USERID, ip_address=ip_address, user_agent=user_agent)
+            signin(request, USERID, ip_address=ip_address, user_agent=user_agent)
 
     status = None
     if not unicode_success:

@@ -75,7 +75,7 @@ def tfa_init_get_(request):
 @twofactorauth_disabled_required
 def tfa_init_post_(request):
     userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
-                                               request.params['password'], session=False)
+                                               request.params['password'], request=None)
     # The user's password failed to authenticate
     if status == "invalid":
         return Response(define.webpage(request.userid, "control/2fa/init.html", [
@@ -243,7 +243,7 @@ def tfa_generate_recovery_codes_verify_password_get_(request):
 @twofactorauth_enabled_required
 def tfa_generate_recovery_codes_verify_password_post_(request):
     userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
-                                               request.params['password'], session=False)
+                                               request.params['password'], request=None)
     # The user's password failed to authenticate
     if status == "invalid":
         return Response(define.webpage(

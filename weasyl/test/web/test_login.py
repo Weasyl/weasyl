@@ -6,38 +6,35 @@ import pytest
 from weasyl import define as d
 from weasyl import two_factor_auth as tfa
 from weasyl.test import db_utils
-from weasyl.test.web.wsgi import app
 
 
 @pytest.mark.usefixtures('db', 'cache')
-def test_user_change_changes_token():
+def test_user_change_changes_token(app):
     user = db_utils.create_user(username='user1', password='password1')
 
     resp = app.get('/')
-    cookie = resp.headers['Set-Cookie'].split(';', 1)[0]
+    old_cookie = app.cookies['WZL']
     csrf = resp.html.find('html')['data-csrf-token']
 
-    resp = app.get('/', headers={'Cookie': cookie})
+    resp = app.get('/')
     assert resp.html.find('html')['data-csrf-token'] == csrf
 
-    resp = app.post('/signin', {'token': csrf, 'username': 'user1', 'password': 'password1'}, headers={'Cookie': cookie})
-    assert 'Set-Cookie' in resp.headers
-    new_cookie = resp.headers['Set-Cookie'].split(';', 1)[0]
+    resp = app.post('/signin', {'token': csrf, 'username': 'user1', 'password': 'password1'})
+    new_cookie = app.cookies['WZL']
     resp = resp.follow()
     new_csrf = resp.html.find('html')['data-csrf-token']
-    assert new_cookie != cookie
+    assert new_cookie != old_cookie
     assert new_csrf != csrf
 
     sessionid = d.engine.scalar("SELECT sessionid FROM sessions WHERE userid = %(user)s", user=user)
     assert sessionid is not None
 
-    resp = app.get('/signout?token=' + new_csrf[:8], headers={'Cookie': new_cookie})
-    assert 'Set-Cookie' in resp.headers
-    new_cookie_2 = resp.headers['Set-Cookie'].split(';', 1)[0]
+    resp = app.get('/signout?token=' + new_csrf[:8])
+    new_cookie_2 = app.cookies['WZL']
     resp = resp.follow()
     new_csrf_2 = resp.html.find('html')['data-csrf-token']
     assert new_cookie_2 != new_cookie
-    assert new_cookie_2 != cookie
+    assert new_cookie_2 != old_cookie
     assert new_csrf_2 != new_csrf
     assert new_csrf_2 != csrf
 
@@ -45,11 +42,10 @@ def test_user_change_changes_token():
 
 
 @pytest.mark.usefixtures('db', 'cache')
-def test_2fa_changes_token():
+def test_2fa_changes_token(app):
     user = db_utils.create_user(username='user1', password='password1')
 
     resp = app.get('/')
-    cookie = resp.headers['Set-Cookie'].split(';', 1)[0]
     csrf = resp.html.find('html')['data-csrf-token']
 
     assert tfa.store_recovery_codes(user, ','.join(tfa.generate_recovery_codes()))
@@ -58,11 +54,10 @@ def test_2fa_changes_token():
     tfa_response = totp.now()
     assert tfa.activate(user, tfa_secret, tfa_response)
 
-    resp = app.post('/signin', {'token': csrf, 'username': 'user1', 'password': 'password1'}, headers={'Cookie': cookie})
-    assert 'Set-Cookie' in resp.headers
-    new_cookie = resp.headers['Set-Cookie'].split(';', 1)[0]
+    old_cookie = app.cookies['WZL']
+    resp = app.post('/signin', {'token': csrf, 'username': 'user1', 'password': 'password1'})
     new_csrf = resp.html.find('html')['data-csrf-token']
-    assert new_cookie != cookie
+    assert app.cookies['WZL'] != old_cookie
     assert new_csrf != csrf
     assert not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM sessions WHERE userid = %(user)s)", user=user)
     assert d.engine.scalar("SELECT EXISTS (SELECT 0 FROM sessions WHERE additional_data->'2fa_pwd_auth_userid' = %(user)s::text)", user=user)

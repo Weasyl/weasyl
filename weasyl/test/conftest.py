@@ -12,6 +12,7 @@ import pytest
 import pyramid.testing
 from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import psycopg2
+from webtest import TestApp
 
 from weasyl import config
 config._in_test = True  # noqa
@@ -28,6 +29,7 @@ from weasyl import (
     media,
     middleware
 )
+from weasyl.wsgi import wsgi_app
 
 
 cache.region.configure('dogpile.cache.memory')
@@ -156,3 +158,8 @@ def do_not_retrieve_disposable_email_domains(monkeypatch):
         return ['test-domain-0001.co.nz', 'test-domain-0001.com']
 
     monkeypatch.setattr(login, '_retrieve_disposable_email_domains', _retrieve_disposable_email_domains)
+
+
+@pytest.fixture
+def app():
+    return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})

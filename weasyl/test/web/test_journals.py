@@ -6,7 +6,6 @@ import pytest
 from libweasyl import ratings
 from libweasyl.models.helpers import CharSettings
 from weasyl.test import db_utils
-from weasyl.test.web.wsgi import app
 
 
 @pytest.fixture(name='journal_user')
@@ -26,19 +25,19 @@ def _journals(journal_user):
 
 
 @pytest.mark.usefixtures('db', 'journal_user')
-def test_profile_empty():
+def test_profile_empty(app):
     resp = app.get('/~journal_test')
     assert resp.html.find(id='user-journal') is None
 
 
 @pytest.mark.usefixtures('db', 'journal_user', 'journals')
-def test_profile_guest():
+def test_profile_guest(app):
     resp = app.get('/~journal_test')
     assert resp.html.find(id='user-journal').h4.string == u'Public journal'
 
 
 @pytest.mark.usefixtures('db', 'journal_user', 'journals')
-def test_profile_user():
+def test_profile_user(app):
     user = db_utils.create_user(config=CharSettings(frozenset(), {}, {'tagging-level': 'max-rating-mature'}))
     cookie = db_utils.create_session(user)
 
@@ -47,7 +46,7 @@ def test_profile_user():
 
 
 @pytest.mark.usefixtures('db', 'journal_user', 'journals')
-def test_profile_friend(journal_user):
+def test_profile_friend(app, journal_user):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
     db_utils.create_friendship(user, journal_user)
@@ -57,14 +56,14 @@ def test_profile_friend(journal_user):
 
 
 @pytest.mark.usefixtures('db', 'journal_user', 'journals')
-def test_list_guest():
+def test_list_guest(app):
     resp = app.get('/journals/journal_test')
     titles = [link.string for link in resp.html.find(id='journals-content').find_all('a')]
     assert titles == [u'Public journal', u'Test journal']
 
 
 @pytest.mark.usefixtures('db', 'journal_user', 'no_csrf')
-def test_create(journal_user):
+def test_create(app, journal_user):
     cookie = db_utils.create_session(journal_user)
 
     app.post('/submit/journal', {'title': u'Created journal', 'rating': '10', 'content': u'A journal'}, headers={'Cookie': cookie})

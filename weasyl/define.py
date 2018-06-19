@@ -354,8 +354,7 @@ def get_userid():
 
 
 def is_csrf_valid(request, token):
-    expected = request.weasyl_session.csrf_token
-    return expected is not None and hmac.compare_digest(token, expected)
+    return any(hmac.compare_digest(token, expected) for expected in request.weasyl_session.csrf_tokens)
 
 
 def get_token():

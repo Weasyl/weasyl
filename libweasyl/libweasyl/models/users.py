@@ -209,7 +209,7 @@ class Session(Base):
 
     @property
     def csrf_tokens(self):
-        return (self.csrf_token,)
+        return () if self.csrf_token is None else (self.csrf_token,)
 
 
 class GuestSession(object):

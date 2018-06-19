@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import anyjson as json
-import hmac
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.response import Response
 
@@ -99,7 +98,7 @@ def twofactorauth_disabled_required(view_callable):
 
 def token_checked(view_callable):
     def inner(request):
-        if not weasyl.api.is_api_user(request) and not hmac.compare_digest(request.params.get('token', ""), define.get_token()):
+        if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request, request.params.get('token')):
             return Response(define.errorpage(request.userid, errorcode.token), status=403)
         return view_callable(request)
     return inner

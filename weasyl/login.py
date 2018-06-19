@@ -8,13 +8,14 @@ from sqlalchemy.sql.expression import select
 from libweasyl import security
 from libweasyl import staff
 from libweasyl.cache import region
+from libweasyl.models.users import GuestSession
 
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
 from weasyl import moderation
 from weasyl.error import WeasylError
-from weasyl.sessions import create_session
+from weasyl.sessions import create_session, create_guest_session
 
 
 _EMAIL = 100
@@ -36,8 +37,10 @@ def signin(request, userid, ip_address=None, user_agent=None):
     sess.user_agent_id = get_user_agent_id(user_agent)
     sess.create = True
 
-    request.pg_connection.delete(request.weasyl_session)
-    request.pg_connection.flush()
+    if not isinstance(request.weasyl_session, GuestSession):
+        request.pg_connection.delete(request.weasyl_session)
+        request.pg_connection.flush()
+
     request.weasyl_session = sess
 
 
@@ -63,7 +66,7 @@ def get_user_agent_id(ua_string=None):
 def signout(request):
     request.pg_connection.delete(request.weasyl_session)
     request.pg_connection.flush()
-    request.weasyl_session = create_session(None)
+    request.weasyl_session = create_guest_session()
 
     # unset SFW-mode cookie on logout
     request.delete_cookie_on_response("sfwmode")
@@ -139,8 +142,9 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     if request is not None:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
-            request.pg_connection.delete(request.weasyl_session)
-            request.pg_connection.flush()
+            if not isinstance(request.weasyl_session, GuestSession):
+                request.pg_connection.delete(request.weasyl_session)
+                request.pg_connection.flush()
             request.weasyl_session = create_session(None)
             request.weasyl_session.additional_data = {}
             return USERID, "2fa"

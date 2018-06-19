@@ -138,7 +138,7 @@ def template_cache():
 
 @pytest.fixture
 def no_csrf(monkeypatch):
-    monkeypatch.setattr(define, 'get_token', lambda: '')
+    monkeypatch.setattr(define, 'is_csrf_valid', lambda request, token: True)
 
 
 @pytest.fixture(autouse=True)

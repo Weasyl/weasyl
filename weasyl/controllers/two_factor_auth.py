@@ -259,7 +259,7 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
         invalidate_other_sessions(request.userid)
         # Edge case prevention: Do we have existing (and recent) codes on this session? Prevent
         #   a user from confusing themselves if they visit the request page twice.
-        sess = define.get_weasyl_session()
+        sess = request.weasyl_session
         gen_rec_codes = True
         if '2fa_recovery_codes_timestamp' in sess.additional_data:
             # Are the codes on the current session < 30 minutes old?

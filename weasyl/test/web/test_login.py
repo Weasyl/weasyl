@@ -98,3 +98,21 @@ def test_guest_session_upgrade(app):
     # ensure the old CSRF token stops working when signed in
     resp = app.post('/submit/visual', {'token': old_csrf}, status=403)
     assert resp.html.find(id='error_content').p.text.startswith(u"This action appears to have been performed illegitimately")
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_guest_session_upgrade_no_intermediate(app):
+    db_utils.create_user(username='user1', password='password1')
+
+    old_cookie = db_utils.create_session(None).split('=')[1]
+    old_csrf = security.generate_key(64)
+    d.engine.execute("UPDATE sessions SET csrf_token = %(csrf)s WHERE sessionid = %(id)s", id=old_cookie, csrf=old_csrf)
+
+    resp = app.get('/', headers={'Cookie': 'WZL=' + old_cookie})
+    csrf = resp.html.find('html')['data-csrf-token']
+
+    assert 'WZL' not in app.cookies
+    assert '__Host-WZLcsrf' in app.cookies
+    assert csrf == old_csrf
+
+    app.post('/signin', {'token': old_csrf, 'username': 'user2', 'password': 'password2'})

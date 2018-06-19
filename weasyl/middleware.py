@@ -131,6 +131,11 @@ def session_tween_factory(handler, registry):
         if sess_obj is None:
             sess_obj = create_guest_session()
 
+            additional_csrf = request.cookies.get('__Host-WZLcsrf')
+
+            if additional_csrf is not None:
+                sess_obj.csrf_tokens.append(additional_csrf)
+
         # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
         # thrown before this part will not be handled correctly.
         request.weasyl_session = sess_obj

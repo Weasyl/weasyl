@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import pyotp
 import pytest
 
-from libweasyl import security
 from weasyl import define as d
 from weasyl import two_factor_auth as tfa
 from weasyl.test import db_utils
@@ -62,57 +61,3 @@ def test_2fa_changes_token(app):
     assert new_csrf != csrf
     assert not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM sessions WHERE userid = %(user)s)", user=user)
     assert d.engine.scalar("SELECT EXISTS (SELECT 0 FROM sessions WHERE additional_data->'2fa_pwd_auth_userid' = %(user)s::text)", user=user)
-
-
-@pytest.mark.usefixtures('db', 'cache')
-def test_guest_session_upgrade(app):
-    db_utils.create_user(username='user1', password='password1')
-
-    old_cookie = db_utils.create_session(None).split('=')[1]
-    old_csrf = security.generate_key(64)
-    d.engine.execute("UPDATE sessions SET csrf_token = %(csrf)s WHERE sessionid = %(id)s", id=old_cookie, csrf=old_csrf)
-
-    resp = app.get('/', headers={'Cookie': 'WZL=' + old_cookie})
-    csrf = resp.html.find('html')['data-csrf-token']
-
-    assert 'WZL' not in app.cookies
-    assert '__Host-WZLcsrf' in app.cookies
-    assert csrf == old_csrf
-
-    resp = app.get('/')
-    csrf = resp.html.find('html')['data-csrf-token']
-    assert app.cookies['WZL'] != old_cookie and len(app.cookies['WZL']) == 20
-    assert csrf != old_csrf
-
-    resp = app.post('/signin', {'token': old_csrf.encode('rot13'), 'username': 'user1', 'password': 'password1'}, status=403)
-    assert resp.html.find(id='error_content').p.text.startswith(u"This action appears to have been performed illegitimately")
-
-    d.engine.execute("DELETE FROM sessions WHERE sessionid = %(id)s", id=old_cookie)
-
-    # ensure the new CSRF token works
-    app.post('/signin', {'token': csrf, 'username': 'user2', 'password': 'password2'})
-
-    # ensure the old CSRF token works
-    app.post('/signin', {'token': old_csrf, 'username': 'user1', 'password': 'password1'}).follow()
-
-    # ensure the old CSRF token stops working when signed in
-    resp = app.post('/submit/visual', {'token': old_csrf}, status=403)
-    assert resp.html.find(id='error_content').p.text.startswith(u"This action appears to have been performed illegitimately")
-
-
-@pytest.mark.usefixtures('db', 'cache')
-def test_guest_session_upgrade_no_intermediate(app):
-    db_utils.create_user(username='user1', password='password1')
-
-    old_cookie = db_utils.create_session(None).split('=')[1]
-    old_csrf = security.generate_key(64)
-    d.engine.execute("UPDATE sessions SET csrf_token = %(csrf)s WHERE sessionid = %(id)s", id=old_cookie, csrf=old_csrf)
-
-    resp = app.get('/', headers={'Cookie': 'WZL=' + old_cookie})
-    csrf = resp.html.find('html')['data-csrf-token']
-
-    assert 'WZL' not in app.cookies
-    assert '__Host-WZLcsrf' in app.cookies
-    assert csrf == old_csrf
-
-    app.post('/signin', {'token': old_csrf, 'username': 'user2', 'password': 'password2'})

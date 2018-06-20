@@ -695,6 +695,7 @@ sessions = Table(
     Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
     default_fkey(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
+    CheckConstraint("userid IS NOT NULL OR additional_data != ''", name='sessions_no_guest_check'),
 )
 
 Index('ind_sessions_created_at', sessions.c.created_at)

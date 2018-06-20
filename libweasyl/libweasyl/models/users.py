@@ -207,6 +207,23 @@ class Session(Base):
         else:
             return UserTimezone.load_from_memcached_or_database(self.userid) or _server_time
 
+    @property
+    def csrf_tokens(self):
+        return () if self.csrf_token is None else (self.csrf_token,)
+
+
+class GuestSession(object):
+    __slots__ = ('sessionid', 'csrf_token', 'csrf_tokens', 'create')
+
+    userid = None
+    additional_data = None
+
+    def __init__(self, sessionid):
+        self.sessionid = sessionid
+        self.csrf_token = sessionid
+        self.csrf_tokens = [sessionid]
+        self.create = False
+
 
 class UserTimezone(Base):
     """
@@ -283,4 +300,4 @@ class Follow(Base):
     __table__ = tables.watchuser
 
 
-_server_time = UserTimezone(timezone='America/Denver')
+_server_time = GuestSession.timezone = UserTimezone(timezone='America/Denver')

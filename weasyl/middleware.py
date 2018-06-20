@@ -1,3 +1,4 @@
+# encoding: utf-8
 from __future__ import absolute_import
 
 import os
@@ -19,12 +20,13 @@ from twisted.internet.threads import blockingCallFromThread
 from web.utils import storify
 
 from libweasyl.cache import ThreadCacheProxy
+from libweasyl.models.users import GuestSession
 from weasyl import define as d
 from weasyl import errorcode
 from weasyl import http
 from weasyl import orm
 from weasyl.error import WeasylError
-from weasyl.sessions import create_session
+from weasyl.sessions import create_guest_session, is_guest_token
 
 
 class ClientGoneAway(Exception):
@@ -81,45 +83,65 @@ def session_tween_factory(handler, registry):
     """
     A tween that sets a weasyl_session on a request.
     """
+    def callback(request, response):
+        sess_obj = request.weasyl_session
+
+        if isinstance(sess_obj, GuestSession):
+            if sess_obj.create:
+                response.set_cookie('WZL', sess_obj.sessionid, max_age=None,
+                                    secure=request.scheme == 'https', httponly=True)
+        elif sess_obj.save:
+            session = request.pg_connection
+
+            if sess_obj.create:
+                session.add(sess_obj)
+                response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
+                                    secure=request.scheme == 'https', httponly=True)
+            session.flush()
+        elif sess_obj.userid is None and not sess_obj.additional_data:
+            # An old guest session stored in the database; delete it, but don’t break
+            # its former CSRF token for the duration of this browser session.
+            response.set_cookie('__Host-WZLcsrf', sess_obj.csrf_token, max_age=None,
+                                secure=request.scheme == 'https', httponly=True)
+
+            request.pg_connection.delete(sess_obj)
+            request.pg_connection.flush()
+            response.delete_cookie('WZL')
+
+            captureMessage = request.environ.get('raven.captureMessage')
+            if captureMessage is not None:
+                captureMessage("Upgraded an old guest session", level=logging.INFO)
+
     # TODO(hyena): Investigate a pyramid session_factory implementation instead.
     def session_tween(request):
-        cookies_to_clear = set()
-        if 'beaker.session.id' in request.cookies:
-            cookies_to_clear.add('beaker.session.id')
-
-        session = request.pg_connection
         sess_obj = None
-        if 'WZL' in request.cookies:
-            sess_obj = session.query(orm.Session).get(request.cookies['WZL'])
-            if sess_obj is None:
-                # clear an invalid session cookie if nothing ends up trying to create a
-                # new one
-                cookies_to_clear.add('WZL')
+        cookie = request.cookies.get('WZL')
+
+        if cookie is not None:
+            if is_guest_token(cookie):
+                sess_obj = GuestSession(cookie)
+
+                additional_csrf = request.cookies.get('__Host-WZLcsrf')
+
+                if additional_csrf is not None:
+                    sess_obj.csrf_tokens.append(additional_csrf)
+            else:
+                sess_obj = request.pg_connection.query(orm.Session).get(cookie)
 
         if sess_obj is None:
-            sess_obj = create_session(None)
+            sess_obj = create_guest_session()
+
+            additional_csrf = request.cookies.get('__Host-WZLcsrf')
+
+            if additional_csrf is not None:
+                sess_obj.csrf_tokens.append(additional_csrf)
 
         # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
         # thrown before this part will not be handled correctly.
         request.weasyl_session = sess_obj
-        del sess_obj
 
-        # Register a response callback to clear and set the session cookies before returning.
+        # Register a response callback to set the session cookies before returning.
         # Note that this requires that exceptions are handled properly by our exception view.
-        def callback(request, response):
-            sess_obj = request.weasyl_session
-
-            if sess_obj.save:
-                if sess_obj.create:
-                    session.add(sess_obj)
-                    response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
-                                        secure=request.scheme == 'https', httponly=True)
-                    # don't try to clear the cookie if we're saving it
-                    cookies_to_clear.discard('WZL')
-                session.flush()
-            for name in cookies_to_clear:
-                response.delete_cookie(name)
-
         request.add_response_callback(callback)
         return handler(request)
 

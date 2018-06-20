@@ -13,7 +13,6 @@
 /static/user
 /static/media
 /static/SHARE
-/beaker
 /config/site.config.txt
 /config/weasyl-staff.yaml
 /.vagrant

@@ -9,7 +9,6 @@ from PIL import Image
 
 from weasyl.macro import MACRO_APP_ROOT, MACRO_STORAGE_ROOT
 from weasyl.test import db_utils
-from weasyl.test.web.wsgi import app
 
 
 _BASE_FORM = {
@@ -55,7 +54,7 @@ def _character_user(db):
 
 
 @pytest.fixture(name='character')
-def _character(db, character_user, no_csrf):
+def _character(app, db, character_user, no_csrf):
     cookie = db_utils.create_session(character_user)
 
     form = dict(
@@ -70,13 +69,13 @@ def _character(db, character_user, no_csrf):
 
 
 @pytest.mark.usefixtures('db', 'character_user')
-def test_list_empty():
+def test_list_empty(app):
     resp = app.get('/characters/character_test')
     assert list(resp.html.find(class_='user-characters').stripped_strings) == [u'Characters', u'There are no characters to display.']
 
 
 @pytest.mark.usefixtures('db', 'character')
-def test_create_default_thumbnail(character):
+def test_create_default_thumbnail(app, character):
     resp = app.get('/character/%d/test-name' % (character,))
     assert resp.html.find(id='detail-bar-title').string == u'Test name'
     assert resp.html.find(id='char-stats').find('dt', text=u'Gender:').findNext('dd').string == u'🦊'
@@ -86,7 +85,7 @@ def test_create_default_thumbnail(character):
 
 
 @pytest.mark.usefixtures('db', 'character_user', 'character', 'no_csrf')
-def test_owner_edit_details(character_user, character):
+def test_owner_edit_details(app, character_user, character):
     cookie = db_utils.create_session(character_user)
 
     form = dict(
@@ -100,7 +99,7 @@ def test_owner_edit_details(character_user, character):
 
 
 @pytest.mark.usefixtures('db', 'character_user', 'character', 'no_csrf')
-def test_owner_reupload(character_user, character):
+def test_owner_reupload(app, character_user, character):
     cookie = db_utils.create_session(character_user)
 
     resp = app.post('/reupload/character', {

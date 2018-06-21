@@ -34,38 +34,11 @@ def already_pending(userid, otherid, myself=True):
         [userid, otherid], options="bool")
 
 
-def select(userid, otherid, limit=None, pending=False, backid=None, nextid=None, choose=None, gotrequest=False):
-    query = []
-
-    if gotrequest:
-        statement = ["SELECT fr.otherid, pr.username, fr.settings, pr.config FROM frienduser fr"
-                     " INNER JOIN profile pr ON fr.otherid = pr.userid"
-                     " WHERE fr.otherid = %i AND fr.settings ~ 'p'" % (userid,)]
-    else:
-        statement = ["SELECT fr.otherid, pr.username, fr.settings, pr.config FROM frienduser fr"
-                     " INNER JOIN profile pr ON fr.otherid = pr.userid"
-                     " WHERE fr.userid = %i AND fr.settings %s~ 'p'" % (otherid, "" if pending else "!")]
-
-    if backid:
-        statement.append(" AND pr.username < (SELECT username FROM profile WHERE userid = %i)" % (backid,))
-    elif nextid:
-        statement.append(" AND pr.username > (SELECT username FROM profile WHERE userid = %i)" % (nextid,))
-
-    statement.append(" ORDER BY pr.username" + (" DESC" if nextid else ""))
-
-    if limit:
-        statement.append(" LIMIT %i" % (limit,))
-
-    for i in d.execute("".join(statement)):
-        query.append({
-            "userid": i[0],
-            "username": i[1],
-            "settings": i[2],
-        })
-
-    ret = (d.get_random_set(query, choose) if choose else query[::-1] if backid else query)
-    media.populate_with_user_media(ret)
-    return ret
+def has_friends(otherid):
+    return d.engine.execute(
+        "SELECT EXISTS (SELECT 0 FROM frienduser WHERE %(user)s IN (userid, otherid) AND settings !~ 'p')",
+        user=otherid,
+    )
 
 
 def select_friends(userid, otherid, limit=None, backid=None, nextid=None, choose=False):

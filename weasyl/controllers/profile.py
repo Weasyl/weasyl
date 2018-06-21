@@ -79,6 +79,8 @@ def profile_(request):
     else:
         favorites = None
 
+    statistics, show_statistics = profile.select_statistics(otherid)
+
     page.append(define.render('user/profile.html', [
         # Profile information
         userprofile,
@@ -100,15 +102,12 @@ def profile_(request):
         # Recent shouts
         shout.select(request.userid, ownerid=otherid, limit=8),
         # Statistics information
-        profile.select_statistics(otherid),
+        statistics,
+        show_statistics,
         # Commission information
         commishinfo.select_list(otherid),
         # Friends
-        frienduser.select(request.userid, otherid, 5, choose=None),
-        # Following
-        followuser.select_following(request.userid, otherid, choose=5),
-        # Followed
-        followuser.select_followed(request.userid, otherid, choose=5),
+        lambda: frienduser.has_friends(otherid),
     ]))
 
     return Response(define.common_page_end(request.userid, page))

@@ -35,7 +35,7 @@ def already_pending(userid, otherid, myself=True):
 
 
 def has_friends(otherid):
-    return d.engine.execute(
+    return d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM frienduser WHERE %(user)s IN (userid, otherid) AND settings !~ 'p')",
         user=otherid,
     )

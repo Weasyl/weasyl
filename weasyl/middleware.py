@@ -391,7 +391,7 @@ class SentryEnvironmentMiddleware(object):
             from twisted.internet import reactor
         self.reactor = reactor
 
-    def ravenCaptureArguments(self, level=None, **extra):
+    def ravenCaptureArguments(self, level=None, merge_kwargs=None, **extra):
         request = get_current_request()
         data = {
             'level': level,
@@ -409,13 +409,18 @@ class SentryEnvironmentMiddleware(object):
             },
         }
 
-        return {
+        capture_kwargs = {
             'data': data,
             'extra': dict(
                 extra,
                 session=getattr(request, 'weasyl_session', None),
             ),
         }
+
+        if merge_kwargs is not None:
+            capture_kwargs.update(merge_kwargs)
+
+        return capture_kwargs
 
     def captureException(self, **extra):
         kwargs = self.ravenCaptureArguments(**extra)
@@ -483,3 +488,8 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)
+    if total > 0.4 and 'raven.captureMessage' in request.environ:
+        request.environ['raven.captureMessage'](
+            'Slow query: %r' % (statement,),
+            level=logging.WARNING,
+            merge_kwargs={'time_spent': int(1000 * total)})

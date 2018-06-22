@@ -483,3 +483,7 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)
+    if total > 0.2 and 'raven.captureMessage' in request.environ:
+        request.environ['raven.captureMessage'](
+            'Slow query (%.1f ms): %r' % (total * 1000, statement),
+            level=logging.WARNING)

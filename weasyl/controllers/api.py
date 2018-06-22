@@ -345,10 +345,10 @@ def api_user_view_(request):
 
     user['featured_submission'] = featured
 
-    statistics = profile.select_statistics(otherid)
+    statistics, show_statistics = profile.select_statistics(otherid)
     if statistics:
         statistics.pop('staff_notes')
-    user['statistics'] = statistics
+    user['statistics'] = statistics if show_statistics else None
 
     user_info = profile.select_userinfo(otherid)
     if user_info:

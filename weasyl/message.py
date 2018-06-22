@@ -101,7 +101,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
         time_filter = ""
 
     if include_tags:
-        char_tags_select = ", array_agg(tagid) AS tags"
+        char_tags_select = ", COALESCE(array_agg(tagid) FILTER (WHERE tagid IS NOT NULL), '{}') AS tags"
         char_tags_join = "LEFT JOIN searchmapchar AS smc ON ch.charid = smc.targetid"
         char_tags_groupby = "GROUP BY ch.charid, pr.username, we.welcomeid"
 

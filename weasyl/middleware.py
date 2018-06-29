@@ -98,19 +98,6 @@ def session_tween_factory(handler, registry):
                 response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
                                     secure=request.scheme == 'https', httponly=True)
             session.flush()
-        elif sess_obj.userid is None and not sess_obj.additional_data:
-            # An old guest session stored in the database; delete it, but don’t break
-            # its former CSRF token for the duration of this browser session.
-            response.set_cookie('__Host-WZLcsrf', sess_obj.csrf_token, max_age=None,
-                                secure=request.scheme == 'https', httponly=True)
-
-            request.pg_connection.delete(sess_obj)
-            request.pg_connection.flush()
-            response.delete_cookie('WZL')
-
-            captureMessage = request.environ.get('raven.captureMessage')
-            if captureMessage is not None:
-                captureMessage("Upgraded an old guest session", level=logging.INFO)
 
     # TODO(hyena): Investigate a pyramid session_factory implementation instead.
     def session_tween(request):
@@ -120,21 +107,11 @@ def session_tween_factory(handler, registry):
         if cookie is not None:
             if is_guest_token(cookie):
                 sess_obj = GuestSession(cookie)
-
-                additional_csrf = request.cookies.get('__Host-WZLcsrf')
-
-                if additional_csrf is not None:
-                    sess_obj.csrf_tokens.append(additional_csrf)
             else:
                 sess_obj = request.pg_connection.query(orm.Session).get(cookie)
 
         if sess_obj is None:
             sess_obj = create_guest_session()
-
-            additional_csrf = request.cookies.get('__Host-WZLcsrf')
-
-            if additional_csrf is not None:
-                sess_obj.csrf_tokens.append(additional_csrf)
 
         # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
         # thrown before this part will not be handled correctly.

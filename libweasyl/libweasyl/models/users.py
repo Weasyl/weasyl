@@ -207,13 +207,9 @@ class Session(Base):
         else:
             return UserTimezone.load_from_memcached_or_database(self.userid) or _server_time
 
-    @property
-    def csrf_tokens(self):
-        return () if self.csrf_token is None else (self.csrf_token,)
-
 
 class GuestSession(object):
-    __slots__ = ('sessionid', 'csrf_token', 'csrf_tokens', 'create')
+    __slots__ = ('sessionid', 'csrf_token', 'create')
 
     userid = None
     additional_data = None
@@ -221,7 +217,6 @@ class GuestSession(object):
     def __init__(self, sessionid):
         self.sessionid = sessionid
         self.csrf_token = sessionid
-        self.csrf_tokens = [sessionid]
         self.create = False
 
 

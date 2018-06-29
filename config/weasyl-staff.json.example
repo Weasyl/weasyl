@@ -6,10 +6,9 @@
     "# and in development environments with a static file downloaded",
     "# alongside the sample database."
   ],
-  
+
   "staff_levels": {
     "directors": {
-      "Fiz": 1014,
       "Hendikins": 23613,
       "Ikani": 2061,
       "SkylerBunny": 2402,
@@ -20,14 +19,11 @@
       "Keet": 5173
     },
     "admins": {
-      "Kihari": 3,
-      "MLR": 2011,
+      "Fiz": 1014,
       "Novacaine": 20418
     },
     "mods": {
-      "ChaosCalix": 61554,
       "Levi": 15712,
-      "Menageriecat": 89199,
       "SuburbanFox": 2252
     },
     "developers": {

@@ -28,8 +28,8 @@ setup(
         'anyjson==0.3.3',
         'arrow==0.12.1',
         'bcrypt==3.1.4',
-        'dogpile.cache==0.6.5',
-        'lxml==4.2.1',
+        'dogpile.cache==0.6.6',
+        'lxml==4.2.3',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.0.4',
         'psycopg2cffi==2.7.7',

@@ -70,3 +70,30 @@ def test_create(app, journal_user):
 
     resp = app.get('/~journal_test')
     assert resp.html.find(id='user-journal').h4.string == u'Created journal'
+
+
+@pytest.mark.usefixtures('db', 'journal_user')
+def test_csrf_on_journal_edit(app, journal_user):
+    # Test purpose: Verify that a CSRF token is required to submit a journal entry.
+    cookie = db_utils.create_session(journal_user)
+    journalid = db_utils.create_journal(journal_user, "Test", content="Test")
+
+    resp = app.post(
+        '/edit/journal',
+        {'title': u'Created journal', 'rating': '10', 'content': u'A journal', 'journalid': journalid},
+        headers={'Cookie': cookie},
+        status=403,
+    )
+    assert resp.html.find(id='error_content').p.text.startswith(u"This action appears to have been performed illegitimately")
+
+
+@pytest.mark.usefixtures('db', 'journal_user')
+def test_login_required_to_edit_journal(app, journal_user):
+    # Test purpose: Verify that an active session is required to even attempt to edit a journal.
+    journalid = db_utils.create_journal(journal_user, "Test", content="Test")
+
+    resp = app.post(
+        '/edit/journal',
+        {'title': u'Created journal', 'rating': '10', 'content': u'A journal', 'journalid': journalid},
+    )
+    assert "You must be signed in to perform this operation." in resp.html.find(id='error_content').text

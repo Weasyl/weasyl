@@ -14,7 +14,7 @@ To write a new tool using libweasyl (assuming you already have your database
 setup and libweasyl's requirements installed in your python environment), you
 probably should begin by setting up a call to [`configure_libweasyl()`]
 (libweasyl/configuration.py). At minimum this will require a SQLAlchemy
-`scoped_session` to your weasyl database and a path to a staff.yaml file
+`scoped_session` to your weasyl database and a path to a staff.json file
 identifying the staff users.
 
 

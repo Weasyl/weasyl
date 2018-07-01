@@ -15,6 +15,12 @@ import sqlalchemy as sa
 
 
 def upgrade():
+    # We need to purge any guest sessions first, so that our CHECK constraint doesn't fail to be set
+    op.execute("""
+        DELETE FROM sessions
+        WHERE userid IS NULL AND additional_data = ''
+    """)
+
     op.create_check_constraint(
         'sessions_no_guest_check',
         'sessions',

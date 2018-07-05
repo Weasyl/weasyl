@@ -24,7 +24,7 @@ setup(
         ],
     },
     install_requires=[
-        'alembic==0.9.9',
+        'alembic==0.9.10',
         'anyjson==0.3.3',
         'arrow==0.12.1',
         'bcrypt==3.1.4',

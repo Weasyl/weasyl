@@ -19,6 +19,7 @@ from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
 from web.utils import storify
 
+from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy
 from libweasyl.models.users import GuestSession
 from weasyl import define as d
@@ -123,6 +124,38 @@ def session_tween_factory(handler, registry):
         return handler(request)
 
     return session_tween
+
+
+def sql_debug_tween_factory(handler, registry):
+    """
+    A tween that allows developers to view SQL timing.
+    """
+    def _quote(s):
+        """
+        Format text as an RFC 7230 quoted-string.
+        """
+        if isinstance(s, unicode):
+            s = s.encode('utf-8')
+
+        if re.search(r'[^\t\x20-\x7e\x80-\xff]', s) is not None:
+            raise ValueError("Text can’t be formatted as a quoted-string: %r" % (s,))
+
+        return '"' + re.sub(r'[^\t\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]', r'\\\g<0>', s) + '"'
+
+    def callback(request, response):
+        for statement, t in request.sql_debug:
+            statement = ' '.join(statement.split())
+            timing = 'db;dur=%.1f;desc=%s' % (t * 1000, _quote(statement))
+            response.headers.add('Server-Timing', timing)
+
+    def sql_debug_tween(request):
+        if 'sql_debug' in request.params and request.weasyl_session.userid in staff.DEVELOPERS:
+            request.sql_debug = []
+            request.add_response_callback(callback)
+
+        return handler(request)
+
+    return sql_debug_tween
 
 
 def status_check_tween_factory(handler, registry):
@@ -460,3 +493,5 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)
+    if hasattr(request, 'sql_debug'):
+        request.sql_debug.append((statement, total))

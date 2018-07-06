@@ -34,7 +34,7 @@ setup(
         'oauthlib==2.0.4',
         'psycopg2cffi==2.7.7',
         'pytz==2018.4',
-        'pyyaml==3.12',
+        'pyyaml==3.13',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
         'sqlalchemy==1.2.9',
         'translationstring==1.3',

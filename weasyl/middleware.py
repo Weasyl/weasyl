@@ -11,6 +11,7 @@ import raven
 import raven.processors
 import traceback
 
+import pyramid.compat
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
@@ -130,23 +131,32 @@ def sql_debug_tween_factory(handler, registry):
     """
     A tween that allows developers to view SQL timing per query.
     """
-    def _quote(s):
-        """
-        Format text as an RFC 7230 quoted-string.
-        """
-        if isinstance(s, unicode):
-            s = s.encode('utf-8')
-
-        if re.search(r'[^\t\x20-\x7e\x80-\xff]', s) is not None:
-            raise ValueError("Text can’t be formatted as a quoted-string: %r" % (s,))
-
-        return '"' + re.sub(r'[^\t\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]', r'\\\g<0>', s) + '"'
-
     def callback(request, response):
+        class ParameterCounter(object):
+            def __init__(self):
+                self.next = 1
+                self.ids = {}
+
+            def __getitem__(self, name):
+                id = self.ids.get(name)
+
+                if id is None:
+                    id = self.ids[name] = self.next
+                    self.next += 1
+
+                return u'$%i' % (id,)
+
+        debug_rows = []
+
         for statement, t in request.sql_debug:
-            statement = ' '.join(statement.split())
-            timing = 'db;dur=%.1f;desc=%s' % (t * 1000, _quote(statement))
-            response.headers.add('Server-Timing', timing)
+            statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
+            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
+
+        response.text += u''.join(
+            [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
+            + debug_rows
+            + [u'</table>']
+        )
 
     def sql_debug_tween(request):
         if 'sql_debug' in request.params and request.weasyl_session.userid in staff.DEVELOPERS:

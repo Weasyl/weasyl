@@ -128,7 +128,7 @@ def session_tween_factory(handler, registry):
 
 def sql_debug_tween_factory(handler, registry):
     """
-    A tween that allows developers to view SQL timing.
+    A tween that allows developers to view SQL timing per query.
     """
     def _quote(s):
         """

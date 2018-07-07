@@ -10,7 +10,7 @@ import weasyl.define as d
 import weasyl.macro as m
 from weasyl.media import format_media_link
 import weasyl.middleware as mw
-from weasyl import read_staff_yaml
+from weasyl import staff_config
 
 
 # Get a configurator and register some tweens to handle cleanup, etc.
@@ -61,6 +61,6 @@ configure_libweasyl(
     dbsession=d.sessionmaker,
     not_found_exception=HTTPNotFound,
     base_file_path=m.MACRO_STORAGE_ROOT,
-    staff_config_dict=read_staff_yaml.load_staff_dict(),
+    staff_config_dict=staff_config.load(),
     media_link_formatter_callback=format_media_link,
 )

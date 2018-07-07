@@ -1,0 +1,37 @@
+{
+  "comment_block": [
+    "# Members of Weasyl staff.",
+    "# This file is a temporary solution for testing and deployment. It",
+    "# should be replaced in production with a file generated from ansible",
+    "# and in development environments with a static file downloaded",
+    "# alongside the sample database."
+  ],
+
+  "staff_levels": {
+    "directors": {
+      "Hendikins": 23613,
+      "Ikani": 2061,
+      "SkylerBunny": 2402,
+      "Taw": 5,
+      "Tiger": 2008
+    },
+    "technical_staff": {
+      "Keet": 5173
+    },
+    "admins": {
+      "Fiz": 1014,
+      "Novacaine": 20418
+    },
+    "mods": {
+      "Levi": 15712,
+      "SuburbanFox": 2252
+    },
+    "developers": {
+      "8BitFur": 38623,
+      "Aden": 1019,
+      "Charmander": 34165,
+      "Foximile": 15224,
+      "Weykent": 5756
+    }
+  }
+}

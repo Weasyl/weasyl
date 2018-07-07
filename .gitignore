@@ -14,7 +14,7 @@
 /static/media
 /static/SHARE
 /config/site.config.txt
-/config/weasyl-staff.yaml
+/config/weasyl-staff.json
 /.vagrant
 /weasyl-env
 /twistd.pid

@@ -11,6 +11,7 @@ import raven
 import raven.processors
 import traceback
 
+import pyramid.compat
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
@@ -19,6 +20,7 @@ from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
 from web.utils import storify
 
+from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy
 from libweasyl.models.users import GuestSession
 from weasyl import define as d
@@ -123,6 +125,47 @@ def session_tween_factory(handler, registry):
         return handler(request)
 
     return session_tween
+
+
+def sql_debug_tween_factory(handler, registry):
+    """
+    A tween that allows developers to view SQL timing per query.
+    """
+    def callback(request, response):
+        class ParameterCounter(object):
+            def __init__(self):
+                self.next = 1
+                self.ids = {}
+
+            def __getitem__(self, name):
+                id = self.ids.get(name)
+
+                if id is None:
+                    id = self.ids[name] = self.next
+                    self.next += 1
+
+                return u'$%i' % (id,)
+
+        debug_rows = []
+
+        for statement, t in request.sql_debug:
+            statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
+            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
+
+        response.text += u''.join(
+            [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
+            + debug_rows
+            + [u'</table>']
+        )
+
+    def sql_debug_tween(request):
+        if 'sql_debug' in request.params and request.weasyl_session.userid in staff.DEVELOPERS:
+            request.sql_debug = []
+            request.add_response_callback(callback)
+
+        return handler(request)
+
+    return sql_debug_tween
 
 
 def status_check_tween_factory(handler, registry):
@@ -460,3 +503,5 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)
+    if hasattr(request, 'sql_debug'):
+        request.sql_debug.append((statement, total))

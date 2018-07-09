@@ -6,12 +6,9 @@
 # alongside the sample database.
 
 directors = [
-    1014,   # Fiz
     23613,  # Hendikins
     2061,   # Ikani
     2402,   # SkylerBunny
-    5,      # Taw
-    2008,   # Tiger
 ]
 
 technical_staff = [
@@ -19,15 +16,12 @@ technical_staff = [
 ]
 
 admins = [
-    3,      # Kihari
-    2011,   # MLR
+    1014,   # Fiz
     20418,  # Novacaine
 ]
 
 mods = [
-    61554,  # ChaosCalix
-    15712,  # Levi
-    89199,  # Menageriecat
+    2161,   # poila
     2252,   # SuburbanFox
 ]
 
@@ -36,5 +30,7 @@ developers = [
     1019,   # Aden
     34165,  # Charmander
     15224,  # Foximile
+    26707,  # kyra
+    2872,   # syfaro
     5756,   # Weykent
 ]

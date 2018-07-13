@@ -198,7 +198,8 @@ favorite = Table(
 )
 
 Index('ind_favorite_userid', favorite.c.userid)
-Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid, unique=False)
+Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid)
+Index('ind_favorite_userid_type_unixtime', favorite.c.userid, favorite.c.type, favorite.c.unixtime)
 
 
 folder = Table(

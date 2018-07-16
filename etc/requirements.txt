@@ -4,9 +4,9 @@ service_identity==17.0.0    # Newer Twisted wants this for cert verification
 Twisted==16.3.2             # Twisted 16.4+ will need additional code work
 web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
 jsonlib2==1.5.2             # optional, but for convenience
-pyOpenSSL==17.5.0           # as above
-raven==6.5.0
-requests[security]==2.18.4
+pyOpenSSL==18.0.0           # as above
+raven==6.9.0
+requests[security]==2.19.1
 oauth2==1.9.0.post1
 python-memcached==1.59
 txstatsd==1.0.0+weasyl.2    # https://github.com/Weasyl/txstatsd
@@ -14,9 +14,10 @@ crochet==1.9.0
 txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
 Dozer==0.6                  # For WSGI memory profiling
-Pillow==5.0.0               # For WSGI memory profiling
-pyramid==1.9.1
-WebTest==2.0.29
+Pillow==5.2.0               # For WSGI memory profiling
+pyramid==1.9.2
+WebTest==2.0.30
 pyotp==2.2.6                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
-cryptography==2.1.4         # For Two-Factor Authentication
+cryptography==2.2.2         # For Two-Factor Authentication
+publicsuffixlist==0.6.1     # For extracting the base domain for the email blacklist

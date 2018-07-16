@@ -75,7 +75,7 @@ def tfa_init_get_(request):
 @twofactorauth_disabled_required
 def tfa_init_post_(request):
     userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
-                                               request.params['password'], session=False)
+                                               request.params['password'], request=None)
     # The user's password failed to authenticate
     if status == "invalid":
         return Response(define.webpage(request.userid, "control/2fa/init.html", [
@@ -243,7 +243,7 @@ def tfa_generate_recovery_codes_verify_password_get_(request):
 @twofactorauth_enabled_required
 def tfa_generate_recovery_codes_verify_password_post_(request):
     userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
-                                               request.params['password'], session=False)
+                                               request.params['password'], request=None)
     # The user's password failed to authenticate
     if status == "invalid":
         return Response(define.webpage(
@@ -259,7 +259,7 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
         invalidate_other_sessions(request.userid)
         # Edge case prevention: Do we have existing (and recent) codes on this session? Prevent
         #   a user from confusing themselves if they visit the request page twice.
-        sess = define.get_weasyl_session()
+        sess = request.weasyl_session
         gen_rec_codes = True
         if '2fa_recovery_codes_timestamp' in sess.additional_data:
             # Are the codes on the current session < 30 minutes old?

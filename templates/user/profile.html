@@ -1,4 +1,4 @@
-$def with (profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, commishinfo, friends, following, followed)
+$def with (profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <section><div id="user-header" class="stage clear">
@@ -114,7 +114,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     </div><!-- /user-commissions -->
 
 
-  $if(statistics):
+  $if show_statistics:
     <div id="user-stats" class="clear on-side">
       <h3>Statistics</h3>
       <p>Joined ${DATE(profile['unixtime'])}</p>
@@ -134,7 +134,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       </dl>
     </div><!-- /user_stats -->
 
-  $if(friends or following or followed):
+  $if statistics['following'] != 0 or statistics['followed'] != 0 or has_friends():
     <div id="user-connections" class="clear on-side">
       <h3>Connections</h3>
       <a class="more more-block" href="/friends/${LOGIN(profile['username'])}"><i>View</i> <span>Friends of</span> <i>${profile['username']}</i></a>

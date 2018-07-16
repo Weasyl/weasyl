@@ -9,7 +9,6 @@ from weasyl import shout
 from weasyl.error import WeasylError
 from weasyl.test import db_utils
 from weasyl.test.utils import Bag
-from weasyl.test.web.wsgi import app
 
 
 def _make_test_note(recipient="user2", title="ThisIsATestNote", content="ThisIsTheTestContent", mod_copy='', staff_note=''):
@@ -22,7 +21,7 @@ def _make_test_note(recipient="user2", title="ThisIsATestNote", content="ThisIsT
     )
 
 
-def _set_user_note_config(userid=None, set_note_config=None):
+def _set_user_note_config(userid=None, set_note_config=None, app=None):
     """
     Set the note configuration for a user
     :param userid:
@@ -93,12 +92,12 @@ class TestSendFunction(object):
         assert err.value.value == "recipientInvalid"
 
     @pytest.mark.usefixtures('db', 'no_csrf')
-    def test_only_receive_notes_from_friends_otherwise_recipientInvalid(self, create_users):
+    def test_only_receive_notes_from_friends_otherwise_recipientInvalid(self, app, create_users):
         # User 1 <FriendsWith> User2, but not User3
         # Corresponds to the "Allow only friends to send me private messages" setting
         test_case_note = _make_test_note(recipient="user1")
         # User one only can receives notes from friends.
-        _set_user_note_config(userid=create_users['user1'], set_note_config='z')
+        _set_user_note_config(userid=create_users['user1'], set_note_config='z', app=app)
         db_utils.create_friendship(create_users['user1'], create_users['user2'])
         with pytest.raises(WeasylError) as err:
             # user3 can't send to user1
@@ -111,14 +110,11 @@ class TestSendFunction(object):
             SELECT * FROM message
             WHERE userid = %(note_sender)s AND otherid = %(note_recipient)s
         """, note_sender=create_users['user2'], note_recipient=create_users['user1']).first()
-        query_debug = d.engine.execute("""
-            SELECT * FROM message;
-        """).fetchall()
 
         assert query['content'] == test_case_note.content
 
     @pytest.mark.usefixtures('db', 'no_csrf')
-    def test_only_receive_notes_from_staff_otherwise_recipientInvalid(self, monkeypatch, create_users):
+    def test_only_receive_notes_from_staff_otherwise_recipientInvalid(self, app, monkeypatch, create_users):
         # user2/3/4/5/6 is a mod/admin/director/technical/dev respectively; user7 is a normal user.
         # Corresponds to the "Allow only friends to send me private messages" setting
         mod = create_users["user2"]
@@ -136,7 +132,7 @@ class TestSendFunction(object):
         monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director]))
 
         # User one only can receives notes from staff (2/3/4/5).
-        _set_user_note_config(userid=create_users['user1'], set_note_config='y')
+        _set_user_note_config(userid=create_users['user1'], set_note_config='y', app=app)
 
         test_case_note = _make_test_note(recipient="user1")
 
@@ -171,8 +167,8 @@ class TestSendFunction(object):
 
         note.send(create_users['user1'], test_case_note)
         query = d.engine.execute("""
-                    SELECT * FROM message
-                """).fetchall()  # , note_sender=userid, note_recipient=create_users['user1']).first()
+            SELECT * FROM message
+        """).fetchall()
         assert len(query) == 1
         assert query[0]['content'] == test_case_note.content
         assert query[0]['userid'] == create_users['user1']
@@ -189,7 +185,7 @@ class TestSendFunction(object):
 
         query = d.engine.execute("""
             SELECT * FROM message
-        """).fetchall()  # , note_sender=userid, note_recipient=create_users['user1']).first()
+        """).fetchall()
         assert len(query) == 1
         assert query[0]['content'] == test_case_note.content
         assert query[0]['userid'] == create_users['user1']

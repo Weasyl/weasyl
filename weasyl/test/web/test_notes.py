@@ -7,12 +7,11 @@ import pytest
 from weasyl import note
 from weasyl.test import db_utils
 from weasyl.test.utils import Bag
-from weasyl.test.web.wsgi import app
 
 
 class TestNoteRoute(object):
     @pytest.mark.usefixtures('db')
-    def test_bare_note_route_does_not_error(self):
+    def test_bare_note_route_does_not_error(self, app):
         # Ensure visiting ``/note`` alone doesn't raise an unhandled error
         user = db_utils.create_user(username='test1')
         cookie = db_utils.create_session(user)
@@ -24,7 +23,7 @@ class TestNoteRoute(object):
         resp.mustcontain("There are no private messages to display.")
 
     @pytest.mark.usefixtures('db')
-    def test_visiting_valid_note_does_not_error(self):
+    def test_visiting_valid_note_does_not_error(self, app):
         # Ensure visiting ``/note?noteid=NN`` where NN is a valid ID does not error.
         user1 = db_utils.create_user(username='test1usernotes')
         user2 = db_utils.create_user(username='test2usernotes')

@@ -77,8 +77,8 @@ def test_link_time_field_is_updated_when_valid_token_supplied_to_function():
     resetpassword.prepare(query['token'])
     link_time = d.engine.scalar("SELECT link_time FROM forgotpassword WHERE token = %(token)s", token=query['token'])
     # The current link_time is not going to be the same as when we previously got it
-    assert link_time != query['link_time']
+    assert link_time != query['link_time'] - 10
     # The link_time will be less than or equal to the current time.
     assert link_time <= d.get_time()
     # And it will also be greater than or equal to the original value.
-    assert link_time >= query['link_time']
+    assert link_time >= query['link_time'] - 10

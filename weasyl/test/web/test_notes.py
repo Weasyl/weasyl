@@ -23,6 +23,22 @@ class TestNoteRoute(object):
         resp.mustcontain("There are no private messages to display.")
 
     @pytest.mark.usefixtures('db')
+    def test_visiting_non_numeric_note_route_does_not_error(self, app):
+        # Both of these locations aren't valid notes; they shouldn't generate an error.
+        test_locations = ['/note?noteid=foo', '/note?noteid=']
+
+        user = db_utils.create_user(username='test1')
+        cookie = db_utils.create_session(user)
+
+        for test_location in test_locations:
+            resp = app.get(test_location, headers={'Cookie': cookie})
+
+            # HTTP303 == HTTPSeeOther
+            assert resp.status_int == 303
+            resp = resp.follow(headers={'Cookie': cookie})
+            resp.mustcontain("There are no private messages to display.")
+
+    @pytest.mark.usefixtures('db')
     def test_visiting_valid_note_does_not_error(self, app):
         # Ensure visiting ``/note?noteid=NN`` where NN is a valid ID does not error.
         user1 = db_utils.create_user(username='test1usernotes')
@@ -47,7 +63,7 @@ class TestNoteRoute(object):
         html = resp.html.find_all("a", "unread")
 
         # Get the note ID out of the HTML
-        regex = re.compile("(?:.*noteid=)(\d+)(?:.*)")
+        regex = re.compile("(?:.*noteid=)(\d+)")
         note_id = re.search(regex, str(html)).group(1)
 
         resp = app.get('/note?noteid=' + note_id, headers={'Cookie': user2_cookie})

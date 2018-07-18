@@ -38,7 +38,7 @@ def _set_user_note_config(userid=None, set_note_config=None, app=None):
     app.post(url='/control/editpreferences', params=payload, headers={'Cookie': cookie})
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def create_users():
     return {"user" + str(i + 1): db_utils.create_user(username='user' + str(i + 1)) for i in range(12)}
 

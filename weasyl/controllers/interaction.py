@@ -97,14 +97,14 @@ def ignoreuser_(request):
 # Private messaging functions
 @login_required
 def note_(request):
-    form = request.web_input()
+    noteid = define.get_int(request.params['noteid']) if 'noteid' in request.params else None
 
     # We need ``noteid``, otherwise we'll get an AttributeError raised; check for it,
     # redirecting to /notes if not present.
-    if 'noteid' not in form:
+    if noteid is None or not noteid:
         raise HTTPSeeOther(location="/notes")
 
-    data = note.select_view(request.userid, int(form.noteid))
+    data = note.select_view(request.userid, int(noteid))
 
     return Response(define.webpage(request.userid, "note/message_view.html", [
         # Private message

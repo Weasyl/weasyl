@@ -6,13 +6,13 @@ import arrow
 
 from libweasyl import legacy
 from libweasyl import ratings
-from libweasyl import security
 from libweasyl import staff
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
 from weasyl import login
 from weasyl import orm
+from weasyl import sessions
 
 _user_index = itertools.count()
 TEST_DATABASE = "weasyl_test"
@@ -75,9 +75,7 @@ def create_session(user):
     """
     Creates a session for a user and returns the corresponding WZL cookie.
     """
-    session = orm.Session()
-    session.sessionid = security.generate_key(64)
-    session.userid = user
+    session = sessions.create_session(user)
 
     db = d.connect()
     db.add(session)

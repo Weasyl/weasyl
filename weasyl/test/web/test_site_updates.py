@@ -8,7 +8,6 @@ from weasyl import errorcode
 from weasyl import siteupdate
 from weasyl.define import sessionmaker
 from weasyl.test import db_utils
-from weasyl.test.web.wsgi import app
 
 
 _FORM = {
@@ -35,12 +34,12 @@ def _site_updates():
 
 
 @pytest.mark.usefixtures('db')
-def test_select_last_empty():
+def test_select_last_empty(app):
     assert siteupdate.select_last() is None
 
 
 @pytest.mark.usefixtures('db')
-def test_select_last(site_updates):
+def test_select_last(app, site_updates):
     user, updates = site_updates
     most_recent = updates[-1]
 
@@ -57,14 +56,14 @@ def test_select_last(site_updates):
 
 
 @pytest.mark.usefixtures('db', 'cache')
-def test_index_empty():
+def test_index_empty(app):
     resp = app.get('/')
     assert resp.html.find(id='home-content') is not None
     assert resp.html.find(id='hc-update') is None
 
 
 @pytest.mark.usefixtures('db', 'cache')
-def test_index(site_updates):
+def test_index(app, site_updates):
     _, updates = site_updates
     resp = app.get('/')
     update = resp.html.find(id='hc-update')
@@ -74,13 +73,13 @@ def test_index(site_updates):
 
 
 @pytest.mark.usefixtures('db')
-def test_list_empty():
+def test_list_empty(app):
     resp = app.get('/site-updates/')
     assert resp.html.find(None, 'content').p.string == u'No site updates to show.'
 
 
 @pytest.mark.usefixtures('db')
-def test_list(monkeypatch, site_updates):
+def test_list(app, monkeypatch, site_updates):
     _, updates = site_updates
     resp = app.get('/site-updates/')
     assert len(resp.html.findAll(None, 'text-post-item')) == 3
@@ -96,7 +95,7 @@ def test_list(monkeypatch, site_updates):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_create(monkeypatch):
+def test_create(app, monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
@@ -106,7 +105,7 @@ def test_create(monkeypatch):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_create_strip(monkeypatch):
+def test_create_strip(app, monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
@@ -120,7 +119,7 @@ def test_create_strip(monkeypatch):
 
 
 @pytest.mark.usefixtures('db')
-def test_create_csrf(monkeypatch):
+def test_create_csrf(app, monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
@@ -130,7 +129,7 @@ def test_create_csrf(monkeypatch):
 
 
 @pytest.mark.usefixtures('db')
-def test_create_restricted(monkeypatch):
+def test_create_restricted(app, monkeypatch):
     resp = app.get('/admincontrol/siteupdate')
     assert resp.html.find(id='error_content').contents[0].strip() == errorcode.unsigned
     resp = app.post('/admincontrol/siteupdate', _FORM)
@@ -159,7 +158,7 @@ def test_create_restricted(monkeypatch):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_create_validation(monkeypatch):
+def test_create_validation(app, monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
@@ -172,7 +171,7 @@ def test_create_validation(monkeypatch):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_create_notifications(monkeypatch):
+def test_create_notifications(app, monkeypatch):
     admin_user = db_utils.create_user()
     normal_user = db_utils.create_user()
     admin_cookie = db_utils.create_session(admin_user)
@@ -188,7 +187,7 @@ def test_create_notifications(monkeypatch):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_edit(monkeypatch, site_updates):
+def test_edit(app, monkeypatch, site_updates):
     _, updates = site_updates
 
     user = db_utils.create_user()
@@ -200,7 +199,7 @@ def test_edit(monkeypatch, site_updates):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_edit_strip(monkeypatch, site_updates):
+def test_edit_strip(app, monkeypatch, site_updates):
     _, updates = site_updates
 
     user = db_utils.create_user()
@@ -216,7 +215,7 @@ def test_edit_strip(monkeypatch, site_updates):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_edit_nonexistent(monkeypatch, site_updates):
+def test_edit_nonexistent(app, monkeypatch, site_updates):
     _, updates = site_updates
 
     user = db_utils.create_user()
@@ -227,7 +226,7 @@ def test_edit_nonexistent(monkeypatch, site_updates):
 
 
 @pytest.mark.usefixtures('db')
-def test_edit_csrf(monkeypatch, site_updates):
+def test_edit_csrf(app, monkeypatch, site_updates):
     _, updates = site_updates
 
     user = db_utils.create_user()
@@ -239,7 +238,7 @@ def test_edit_csrf(monkeypatch, site_updates):
 
 
 @pytest.mark.usefixtures('db')
-def test_edit_restricted(monkeypatch, site_updates):
+def test_edit_restricted(app, monkeypatch, site_updates):
     _, updates = site_updates
 
     resp = app.get('/site-updates/%d/edit' % (updates[-1].updateid,))
@@ -270,7 +269,7 @@ def test_edit_restricted(monkeypatch, site_updates):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_edit_validation(monkeypatch, site_updates):
+def test_edit_validation(app, monkeypatch, site_updates):
     _, updates = site_updates
 
     user = db_utils.create_user()
@@ -285,7 +284,7 @@ def test_edit_validation(monkeypatch, site_updates):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
-def test_edit_notifications(monkeypatch):
+def test_edit_notifications(app, monkeypatch):
     admin_user = db_utils.create_user()
     normal_user = db_utils.create_user()
     admin_cookie = db_utils.create_session(admin_user)

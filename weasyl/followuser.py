@@ -65,7 +65,7 @@ def select_settings(userid, otherid):
     return query[0]
 
 
-def select_followed(userid, otherid, limit=None, backid=None, nextid=None, choose=None, following=False):
+def select_followed(userid, otherid, limit=None, backid=None, nextid=None, following=False):
     """
     Returns the users who are following the specified user; note that
     ``following`` need never be passed explicitly.
@@ -87,10 +87,7 @@ def select_followed(userid, otherid, limit=None, backid=None, nextid=None, choos
     elif nextid:
         statement.append(" AND pr.username > (SELECT username FROM profile WHERE userid = %i)" % (nextid,))
 
-    if choose:
-        statement.append(" ORDER BY RANDOM() LIMIT %i" % (choose,))
-    else:
-        statement.append(" ORDER BY pr.username%s LIMIT %i" % (" DESC" if backid else "", limit))
+    statement.append(" ORDER BY pr.username%s LIMIT %i" % (" DESC" if backid else "", limit))
 
     query = [{
         "userid": i[0],
@@ -101,11 +98,11 @@ def select_followed(userid, otherid, limit=None, backid=None, nextid=None, choos
     return query[::-1] if backid else query
 
 
-def select_following(userid, otherid, limit=None, backid=None, nextid=None, choose=None):
+def select_following(userid, otherid, limit=None, backid=None, nextid=None):
     """
     Returns the users whom the specified user is following.
     """
-    return select_followed(userid, otherid, limit, backid, nextid, choose, following=True)
+    return select_followed(userid, otherid, limit, backid, nextid, following=True)
 
 
 def manage_following(userid, limit, backid=None, nextid=None):

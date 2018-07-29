@@ -347,9 +347,8 @@ def _select_statistics(userid):
 
 
 def select_statistics(userid):
-    if "i" in d.get_config(userid) and d.get_userid() not in staff.MODS:
-        return
-    return _select_statistics(userid)
+    show = "i" not in d.get_config(userid) or d.get_userid() in staff.MODS
+    return _select_statistics(userid), show
 
 
 def select_streaming(userid, rating, limit, following=True, order_by=None):
@@ -560,7 +559,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     changes_made = ""
 
     # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, session=False)
+    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
 
     # Run checks prior to modifying anything...
     if userid != logid or logerror is not None:

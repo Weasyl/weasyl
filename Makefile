@@ -78,7 +78,8 @@ $(TEMP_DIRS):
 	mkdir -p $@
 
 node_modules: package.json
-	npm ci
+	npm install
+	touch node_modules
 
 build/rev-manifest.json: node_modules
 	node build.js

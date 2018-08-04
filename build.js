@@ -35,36 +35,6 @@ const touchDir = dirPath =>
         });
     });
 
-const deleteFile = filePath =>
-    new Promise((resolve, reject) => {
-        fs.unlink(filePath, error => {
-            if (error) {
-                reject(error);
-                return;
-            }
-
-            resolve();
-        });
-    });
-
-const readAndDeleteFile = (filePath, options) =>
-    new Promise((resolve, reject) => {
-        fs.readFile(filePath, options, (error, data) => {
-            if (error) {
-                reject(error);
-                return;
-            }
-
-            resolve(data);
-
-            fs.unlink(filePath, error => {
-                if (error) {
-                    throw error;
-                }
-            });
-        });
-    });
-
 const writeFile = (filePath, content, options) =>
     new Promise((resolve, reject) => {
         fs.writeFile(filePath, content, options, error => {
@@ -77,71 +47,40 @@ const writeFile = (filePath, content, options) =>
         });
     });
 
-const sassc = (inputPath, outputPath, generateMap) =>
+const sassc = inputPath =>
     new Promise((resolve, reject) => {
-        const args = ['--style=compressed'];
+        const sassProcess = child_process.execFile(
+            'sassc', ['--style=compressed', '--', inputPath],
+            (error, stdout, stderr) => {
+                if (error) {
+                    error.message = error.message.replace('\n' + stderr, '');
+                    error.hasStderr = Boolean(stderr);
+                    reject(error);
+                    return;
+                }
 
-        if (generateMap) {
-            args.push('--sourcemap', '--omit-map-comment');
-        }
-
-        args.push('--', inputPath, outputPath);
-
-        const sassProcess = child_process.spawn(
-            'sassc', args,
-            {stdio: ['ignore', 'inherit', 'inherit']}
+                resolve(stdout);
+            }
         );
 
-        const errorListener = error => {
-            sassProcess.removeListener('exit', exitListener);
-            reject(error);
-        };
-
-        const exitListener = (code, signal) => {
-            sassProcess.removeListener('error', errorListener);
-
-            if (code !== 0) {
-                const message = 'Process exited with ' + (
-                    code === undefined ?
-                        'signal ' + signal :
-                        'code ' + code
-                );
-
-                reject(new Error(message));
-                return;
-            }
-
-            resolve();
-        };
-
-        sassProcess.once('error', errorListener);
-        sassProcess.once('exit', exitListener);
+        sassProcess.stderr.pipe(process.stderr);
     });
 
-const main = enableSourceMaps => {
+const main = () => {
     const inputPath = path.join(ASSETS, 'scss/site.scss');
-    const temporaryPath = path.join(BUILD, 'css/site.css.tmp');
     const manifestPath = path.join(BUILD, 'rev-manifest.json');
 
-    return touchDir(path.join(BUILD, 'css'))
-        .catch(() =>
-            touchDir(BUILD).then(() =>
-                touchDir(path.join(BUILD, 'css'))))
-        .then(() =>
-            sassc(inputPath, temporaryPath, enableSourceMaps))
-        .then(() =>
-            Promise.all([
-                readAndDeleteFile(temporaryPath, 'utf8'),
-                enableSourceMaps && readAndDeleteFile(temporaryPath + '.map', 'utf8'),
-            ]))
-        .then(([css, map]) =>
+    const touch =
+        touchDir(path.join(BUILD, 'css'))
+            .catch(() =>
+                touchDir(BUILD).then(() =>
+                    touchDir(path.join(BUILD, 'css'))));
+
+    return sassc(inputPath)
+        .then(css =>
             postcss([autoprefixer(autoprefixerOptions)]).process(css, {
-                from: temporaryPath,
-                to: temporaryPath,
-                map: map && {
-                    inline: false,
-                    prev: map,
-                },
+                from: undefined,
+                map: false,
             }))
         .then(result => {
             result.warnings().forEach(warning => {
@@ -154,54 +93,29 @@ const main = enableSourceMaps => {
                     .digest('hex')
                     .substring(0, 10);
 
-            const mapSuffix =
-                enableSourceMaps ?
-                    '-with-map' :
-                    '';
-
-            const outputPath = `css/site-${hash}${mapSuffix}.css`;
+            const outputPath = `css/site-${hash}.css`;
             const outputFullPath = path.join(BUILD, outputPath);
 
-            let css = result.css;
-            let mapWrite;
-
-            if (enableSourceMaps) {
-                css += `\n/*# sourceMappingURL=site-${hash}-with-map.css.map */`;
-
-                const map = JSON.parse(String(result.map));
-                map.sources = map.sources.map(sourcePath =>
-                    'file:///' + path.join(BUILD, 'css', sourcePath).replace(/^\//, ''));
-                map.file = undefined;
-
-                mapWrite = writeFile(outputFullPath + '.map', JSON.stringify(map), 'utf8');
-            } else {
-                mapWrite = deleteFile(outputFullPath + '.map')
-                    .catch(error => {
-                        if (error.code !== 'ENOENT') {
-                            throw error;
-                        }
-                    });
-            }
-
-            return Promise.all([
-                writeFile(outputFullPath, css, 'utf8'),
-                mapWrite,
-                writeFile(manifestPath, JSON.stringify({
-                    'css/site.css': outputPath,
-                }), 'utf8'),
-            ]);
+            return touch.then(() =>
+                Promise.all([
+                    writeFile(outputFullPath, result.css, 'utf8'),
+                    writeFile(manifestPath, JSON.stringify({
+                        'css/site.css': outputPath,
+                    }), 'utf8'),
+                ])
+            );
         });
 };
 
 if (module === require.main) {
-    const enableSourceMaps = process.argv.indexOf('--enable-source-maps', 2) !== -1;
+    main()
+        .catch(error => {
+            if (error.code === 1 && error.hasStderr) {
+                process.exitCode = 1;
+                return;
+            }
 
-    if (process.argv.length !== 2 + enableSourceMaps) {
-        console.error('Usage: node build.js [--enable-source-maps]');
-        process.exitCode = 1;
-        return;
-    }
-
-    main(enableSourceMaps)
+            throw error;
+        })
         .catch(terminate);
 }

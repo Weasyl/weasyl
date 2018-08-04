@@ -78,10 +78,10 @@ $(TEMP_DIRS):
 	mkdir -p $@
 
 node_modules: package.json
-	npm install
+	npm ci
 
 build/rev-manifest.json: node_modules
-	node_modules/.bin/gulp sass
+	node build.js
 
 # Phony setup target
 .PHONY: setup

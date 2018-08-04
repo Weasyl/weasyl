@@ -24,6 +24,7 @@ if os.environ.get('WEASYL_SERVE_STATIC_FILES'):
         os.path.join(os.environ['WEASYL_APP_ROOT'], 'static'))
     cssResource = weasyl.polecat.NoDirectoryListingFile(
         os.path.join(os.environ['WEASYL_APP_ROOT'], 'build/css'))
+    cssResource.contentTypes['.map'] = 'application/json'
     weasylResource.putChild('static', staticResource)
     weasylResource.putChild('css', cssResource)
     rewriters = [weasyl.polecat.rewriteSubmissionUploads]

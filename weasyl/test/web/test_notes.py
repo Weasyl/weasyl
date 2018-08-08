@@ -15,14 +15,14 @@ def test_reply_to_restricted_notes(app):
 
     d.engine.execute("UPDATE profile SET config = config || 'z' WHERE userid = %(user)s", user=user1)
 
-    def _try_send(status):
+    def try_send(status):
         app.post('/notes/compose', {
             'recipient': 'user1',
             'title': 'Title',
             'content': 'Content',
         }, headers={'Cookie': session2}, status=status)
 
-    _try_send(422)
+    try_send(422)
 
     app.post('/notes/compose', {
         'recipient': 'user2',
@@ -30,7 +30,7 @@ def test_reply_to_restricted_notes(app):
         'content': 'Content',
     }, headers={'Cookie': session1}, status=303)
 
-    _try_send(303)
+    try_send(303)
 
 
 @pytest.mark.usefixtures('db', 'cache', 'no_csrf')
@@ -51,15 +51,15 @@ def test_reply_when_blocked(app):
         'action': 'ignore',
     }, headers={'Cookie': session1}, status=303)
 
-    def _try_send(status):
+    def try_send(status):
         app.post('/notes/compose', {
             'recipient': 'user1',
             'title': 'Title',
             'content': 'Content',
         }, headers={'Cookie': session2}, status=status)
 
-    _try_send(422)
+    try_send(422)
 
     d.engine.execute("UPDATE profile SET config = config || 'z' WHERE userid = %(user)s", user=user1)
 
-    _try_send(422)
+    try_send(422)

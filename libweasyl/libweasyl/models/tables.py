@@ -471,6 +471,15 @@ permaban = Table(
 )
 
 
+permitted_senders = Table(
+    'permitted_senders', metadata,
+    Column('userid', Integer(), primary_key=True),
+    Column('sender', Integer(), primary_key=True),
+    default_fkey(['userid'], ['login.userid'], name='permitted_senders_userid_fkey'),
+    default_fkey(['sender'], ['login.userid'], name='permitted_senders_sender_fkey'),
+)
+
+
 premiumpurchase = Table(
     'premiumpurchase', metadata,
     Column('token', String(), primary_key=True, nullable=False),

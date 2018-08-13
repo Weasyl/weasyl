@@ -22,11 +22,10 @@ USE_WHEEL ?= --no-binary :all:
 all: .stamp-ve .stamp-egg-info alembic.ini
 
 # Creates python environment
-.stamp-ve: requirements.txt
+.stamp-ve:
 	test -e $(VE) || { $(PYVENV) $(VE); cp pip.conf $(VE) ; \
                 $(VE)/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; \
                 $(VE)/bin/pip install -U pip requests[security] -i https://pypi.python.org/simple; }
-	$(VE)/bin/pip install $(USE_WHEEL) -r $<
 	touch $@
 
 # Installs libweasyl package in development mode

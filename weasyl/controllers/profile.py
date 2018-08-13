@@ -30,9 +30,20 @@ def profile_(request):
         "canonical_url": "/~" + define.get_sysname(form.name)
     }
 
-    if define.user_is_twitterbot():
-        extras['twitter_card'] = profile.twitter_card(otherid)
-        extras['options'] = ['nocache']
+    if not request.userid:
+        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
+        twit_card = profile.twitter_card(otherid)
+        if define.user_is_twitterbot():
+            extras['twitter_card'] = twit_card
+        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+        extras['ogp'] = {
+            'title': twit_card['title'],
+            'site_name': "Weasyl",
+            'type': "website",
+            'url': twit_card['url'],
+            'description': twit_card['description'],
+            'image': twit_card['image:src'] if 'image:src' in twit_card else define.cdnify_url('/static/images/logo-mark-light.svg'),
+        }
 
     if not request.userid and "h" in userprofile['config']:
         return Response(define.errorpage(
@@ -68,6 +79,8 @@ def profile_(request):
     else:
         favorites = None
 
+    statistics, show_statistics = profile.select_statistics(otherid)
+
     page.append(define.render('user/profile.html', [
         # Profile information
         userprofile,
@@ -89,15 +102,12 @@ def profile_(request):
         # Recent shouts
         shout.select(request.userid, ownerid=otherid, limit=8),
         # Statistics information
-        profile.select_statistics(otherid),
+        statistics,
+        show_statistics,
         # Commission information
         commishinfo.select_list(otherid),
         # Friends
-        frienduser.select(request.userid, otherid, 5, choose=None),
-        # Following
-        followuser.select_following(request.userid, otherid, choose=5),
-        # Followed
-        followuser.select_followed(request.userid, otherid, choose=5),
+        lambda: frienduser.has_friends(otherid),
     ]))
 
     return Response(define.common_page_end(request.userid, page))

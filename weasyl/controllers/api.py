@@ -345,10 +345,10 @@ def api_user_view_(request):
 
     user['featured_submission'] = featured
 
-    statistics = profile.select_statistics(otherid)
+    statistics, show_statistics = profile.select_statistics(otherid)
     if statistics:
         statistics.pop('staff_notes')
-    user['statistics'] = statistics
+    user['statistics'] = statistics if show_statistics else None
 
     user_info = profile.select_userinfo(otherid)
     if user_info:
@@ -417,7 +417,7 @@ def api_messages_submissions_(request):
         count = min(count or 100, 100)
 
     submissions = message.select_submissions(
-        request.userid, count + 1, backtime=backtime, nexttime=nexttime)
+        request.userid, count + 1, include_tags=True, backtime=backtime, nexttime=nexttime)
     backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
 
     ret = []

@@ -8,6 +8,8 @@ captcha_disable_verification = false
 # In production, this should be set low, but giving it a high value (or 0) can
 # be useful for dev on an database.
 popular_max_age_days = 21
+# Whether currency exchange rates should be fetched for /marketplace
+convert_currency = false
 
 [backend]
 run_periodic_tasks = false

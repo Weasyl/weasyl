@@ -320,7 +320,7 @@ def make_thumbnail(im, bounds=None):
     Make a thumbnail.
 
     That is, resize an image to be no taller than :py:data:`THUMB_HEIGHT` if
-    necessary after unanimating it and maintain a reasonable aspect ration (2x)
+    necessary after unanimating it and maintain a reasonable aspect ratio (2x)
     if possible.
 
     Parameters:

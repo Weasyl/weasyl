@@ -64,7 +64,7 @@ def authorize_post_(request):
     scopes = credentials.pop('scopes')
     error = None
     if form.not_me and form.username:
-        userid, error = login.authenticate_bcrypt(form.username, form.password, bool(form.remember_me))
+        userid, error = login.authenticate_bcrypt(form.username, form.password, request=request if form.remember_me else None)
         if error:
             error = errorcode.login_errors.get(error, 'Unknown error.')
     elif not request.userid:

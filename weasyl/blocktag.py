@@ -87,6 +87,9 @@ def insert(userid, title, rating):
 
     select_ids.invalidate(userid)
 
+    from weasyl import index
+    index.template_fields.invalidate(userid)
+
 
 def remove(userid, tagid=None, title=None):
     if tagid:
@@ -96,3 +99,6 @@ def remove(userid, tagid=None, title=None):
                   [userid, d.get_search_tag(title)])
 
     select_ids.invalidate(userid)
+
+    from weasyl import index
+    index.template_fields.invalidate(userid)

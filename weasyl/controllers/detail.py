@@ -20,12 +20,25 @@ def submission_(request):
     rating = define.get_rating(request.userid)
     submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
 
-    extras = {
-        "pdf": True,
-    }
+    extras = {}
 
-    if define.user_is_twitterbot():
-        extras['twitter_card'] = submission.twitter_card(submitid)
+    if not request.userid:
+        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
+        twit_card = submission.twitter_card(submitid)
+        if define.user_is_twitterbot():
+            extras['twitter_card'] = twit_card
+        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+        extras['ogp'] = {
+            'title': twit_card['title'],
+            'site_name': "Weasyl",
+            'type': "website",
+            'url': twit_card['url'],
+            'description': twit_card['description'],
+            # >> BUG AVOIDANCE: https://trello.com/c/mBx51jfZ/1285-any-image-link-with-in-it-wont-preview-up-it-wont-show-up-in-embeds-too
+            #    Image URLs with '~' in it will not be displayed by Discord, so replace ~ with the URL encoded char code %7E
+            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.cdnify_url(
+                '/static/images/logo-mark-light.svg'),
+        }
 
     try:
         item = submission.select_view(
@@ -34,8 +47,6 @@ def submission_(request):
         )
     except WeasylError as we:
         we.errorpage_kwargs = extras
-        if 'twitter_card' in extras:
-            extras['options'] = ['nocache']
         if we.value in ("UserIgnored", "TagBlocked"):
             extras['links'] = [
                 ("View Submission", "?ignore=false"),
@@ -53,6 +64,10 @@ def submission_(request):
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
     extras["canonical_url"] = canonical_path
     extras["title"] = item["title"]
+
+    submission_files = item["sub_media"].get("submission")
+    submission_file = submission_files[0] if submission_files else None
+    extras["pdf"] = bool(submission_file) and submission_file["file_type"] == "pdf"
 
     page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [
@@ -157,7 +172,7 @@ def journal_(request):
 
     canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
 
-    page = define.common_page_start(request.userid, options=["pager"], canonical_url=canonical_url, title=item["title"])
+    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
     page.append(define.render('detail/journal.html', [
         # Myself
         profile.select_myself(request.userid),

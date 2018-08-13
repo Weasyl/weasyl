@@ -532,6 +532,8 @@ def edit_journal_get_(request):
     ], title="Edit Journal"))
 
 
+@login_required
+@token_checked
 def edit_journal_post_(request):
     form = request.web_input(journalid="", title="", rating="", friends="", content="")
 

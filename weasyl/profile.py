@@ -347,9 +347,8 @@ def _select_statistics(userid):
 
 
 def select_statistics(userid):
-    if "i" in d.get_config(userid) and d.get_userid() not in staff.MODS:
-        return
-    return _select_statistics(userid)
+    show = "i" not in d.get_config(userid) or d.get_userid() in staff.MODS
+    return _select_statistics(userid), show
 
 
 def select_streaming(userid, rating, limit, following=True, order_by=None):
@@ -560,7 +559,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     changes_made = ""
 
     # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, session=False)
+    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
 
     # Run checks prior to modifying anything...
     if userid != logid or logerror is not None:
@@ -709,8 +708,9 @@ def select_manage(userid):
     """
     query = d.execute("""
         SELECT
-            lo.userid, lo.last_login, lo.email, pr.unixtime, pr.username, pr.full_name, pr.catchphrase, ui.birthday,
-            ui.gender, ui.country, pr.config
+            lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
+            pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
+            ui.birthday, ui.gender, ui.country, pr.config
         FROM login lo
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
@@ -727,20 +727,31 @@ def select_manage(userid):
         GROUP BY link_type
     """, userid=userid)
 
+    active_user_sessions = d.engine.execute("""
+        SELECT sess.created_at, sess.ip_address, ua.user_agent
+        FROM login lo
+            INNER JOIN sessions sess ON lo.userid = sess.userid
+            INNER JOIN user_agents ua ON sess.user_agent_id = ua.user_agent_id
+        WHERE lo.userid = %(userid)s
+        ORDER BY sess.created_at DESC
+    """, userid=userid).fetchall()
+
     return {
         "userid": query[0],
         "last_login": query[1],
         "email": query[2],
-        "unixtime": query[3],
-        "username": query[4],
-        "full_name": query[5],
-        "catchphrase": query[6],
-        "birthday": query[7],
-        "gender": query[8],
-        "country": query[9],
-        "config": query[10],
+        "ip_address_at_signup": query[3],
+        "unixtime": query[4],
+        "username": query[5],
+        "full_name": query[6],
+        "catchphrase": query[7],
+        "birthday": query[8],
+        "gender": query[9],
+        "country": query[10],
+        "config": query[11],
         "staff_notes": shout.count(userid, staffnotes=True),
         "sorted_user_links": sort_user_links(user_link_rows),
+        "user_sessions": active_user_sessions,
     }
 
 

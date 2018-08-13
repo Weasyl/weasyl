@@ -292,12 +292,14 @@ def finduser(userid, form):
 
     # If we don't have any of these variables, nothing will be displayed. So fast-return an empty list.
     if not form.userid and not form.username and not form.email and not form.dateafter \
-            and not form.datebefore and not form.excludesuspended and not form.excludebanned and not form.excludeactive:
+            and not form.datebefore and not form.excludesuspended and not form.excludebanned \
+            and not form.excludeactive and not form.ipaddr:
         return []
 
     lo = d.meta.tables['login']
     sh = d.meta.tables['comments']
     pr = d.meta.tables['profile']
+    sess = d.meta.tables['sessions']
 
     q = d.sa.select([
         lo.c.userid,
@@ -308,7 +310,21 @@ def finduser(userid, form):
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
         lo.c.settings,
-    ]).select_from(lo.join(pr, lo.c.userid == pr.c.userid))
+        lo.c.ip_address_at_signup,
+        (d.sa.select([sess.c.ip_address])
+            .select_from(sess)
+            .where(lo.c.userid == sess.c.userid)
+            .limit(1)
+            .order_by(sess.c.created_at.desc())
+            .correlate(sess)
+         ).label('ip_address_session'),
+    ]).select_from(
+        lo.join(pr, lo.c.userid == pr.c.userid)
+          .join(sess, sess.c.userid == pr.c.userid, isouter=True)
+    )
+
+    # Is there a better way to only select unique accounts, when _also_ joining sessions? This _does_ work, though.
+    q = q.distinct(lo.c.login_name)
 
     if form.userid:
         q = q.where(lo.c.userid == form.userid)
@@ -327,6 +343,13 @@ def finduser(userid, form):
         q = q.where(lo.c.settings.op('!~')('b'))
     if form.excludesuspended == "on":
         q = q.where(lo.c.settings.op('!~')('s'))
+
+    # Filter for IP address
+    if form.ipaddr:
+        q = q.where(d.sa.or_(
+            lo.c.ip_address_at_signup.op('ilike')('%s%%' % form.ipaddr),
+            sess.c.ip_address.op('ilike')('%s%%' % form.ipaddr)
+        ))
 
     # Filter for date-time
     if form.dateafter and form.datebefore:
@@ -643,6 +666,52 @@ _tables = [
 ]
 
 
+def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals=()):
+    action_string = 'rerated to ' + ratings.CODE_TO_NAME[new_rating]
+
+    with d.engine.begin() as db:
+        affected = collections.defaultdict(list)
+        copyable = []
+
+        for (tbl, pk, title_col, urlpart), ids in zip(_tables, [submissions, characters, journals]):
+            if not ids:
+                continue
+
+            join = (
+                tbl.select()
+                .where(tbl.c[pk].in_(ids))
+                .where(tbl.c.rating != new_rating)
+                .with_for_update()
+                .alias('join'))
+
+            results = db.execute(
+                tbl.update()
+                .where(tbl.c[pk] == join.c[pk])
+                .values(rating=new_rating)
+                .returning(tbl.c[pk], tbl.c[title_col], tbl.c.userid, join.c.rating))
+
+            for thingid, title, ownerid, original_rating in results:
+                item_format = '- (from %s) %%s' % (original_rating.name,)
+                affected[ownerid].append(item_format % text.markdown_link(title, '/%s/%s?anyway=true' % (urlpart, thingid)))
+                copyable.append(item_format % text.markdown_link(title, '/%s/%s' % (urlpart, thingid)))
+
+        now = arrow.utcnow()
+        values = []
+        for target, target_affected in affected.iteritems():
+            staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
+            values.append({
+                'userid': userid,
+                'target_user': target,
+                'unixtime': now,
+                'settings': 's',
+                'content': staff_note,
+            })
+        if values:
+            db.execute(d.meta.tables['comments'].insert().values(values))
+
+    return 'Affected items (%s): \n\n%s' % (action_string, '\n'.join(copyable))
+
+
 def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
@@ -674,14 +743,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         _, _, rating = action.partition('-')
         rating = int(rating)
 
-        def action(tbl):
-            return (
-                tbl.update()
-                .values(rating=rating)
-                .where(tbl.c.rating != rating))
-
-        action_string = 'rerated ' + ratings.CODE_TO_NAME[rating]
-        provide_link = True
+        return bulk_edit_rating(userid, rating, submissions, characters, journals)
 
     elif action == 'clearcritique':
         # Clear the "critique requested" flag

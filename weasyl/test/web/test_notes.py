@@ -77,6 +77,24 @@ class TestNoteRoute(object):
 
 
 class TestNotesComposeRoute(object):
+    @staticmethod
+    def try_send(app=None, status=None, cookie=None, recipient='user1', title='Title', content='Content'):
+        """
+        Try to send a note using the specified parameters.
+        :param app: The instance of a TestApp/WSGI app with which to send the request to.
+        :param status: The HTTP Status code that is expected to be returned.
+        :param cookie: The session cookie to be set for the request.
+        :param recipient: Whom the note is to be sent to. Defaults to 'user1'.
+        :param title: The title of the note. Defaults to 'Title'.
+        :param content: The content of the note. Defaults to 'Content'.
+        :return: Nothing.
+        """
+        app.post('/notes/compose', {
+            'recipient': recipient,
+            'title': title,
+            'content': content,
+        }, headers={'Cookie': cookie}, status=status)
+
     @pytest.mark.usefixtures('db', 'cache', 'no_csrf')
     def test_reply_to_restricted_notes(self, app):
         user1 = db_utils.create_user(username='user1')
@@ -86,14 +104,7 @@ class TestNotesComposeRoute(object):
 
         d.engine.execute("UPDATE profile SET config = config || 'z' WHERE userid = %(user)s", user=user1)
 
-        def try_send(status):
-            app.post('/notes/compose', {
-                'recipient': 'user1',
-                'title': 'Title',
-                'content': 'Content',
-            }, headers={'Cookie': session2}, status=status)
-
-        try_send(422)
+        self.try_send(app=app, status=422, cookie=session2)
 
         app.post('/notes/compose', {
             'recipient': 'user2',
@@ -101,7 +112,7 @@ class TestNotesComposeRoute(object):
             'content': 'Content',
         }, headers={'Cookie': session1}, status=303)
 
-        try_send(303)
+        self.try_send(app=app, status=303, cookie=session2)
 
     @pytest.mark.usefixtures('db', 'cache', 'no_csrf')
     def test_reply_when_blocked(self, app):
@@ -121,15 +132,8 @@ class TestNotesComposeRoute(object):
             'action': 'ignore',
         }, headers={'Cookie': session1}, status=303)
 
-        def try_send(status):
-            app.post('/notes/compose', {
-                'recipient': 'user1',
-                'title': 'Title',
-                'content': 'Content',
-            }, headers={'Cookie': session2}, status=status)
-
-        try_send(422)
+        self.try_send(app=app, status=422, cookie=session2)
 
         d.engine.execute("UPDATE profile SET config = config || 'z' WHERE userid = %(user)s", user=user1)
 
-        try_send(422)
+        self.try_send(app=app, status=422, cookie=session2)

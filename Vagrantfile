@@ -38,7 +38,7 @@ dhclient eth0
 apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libssl-dev \
     libxml2-dev libxslt-dev memcached nginx pkg-config liblzma-dev \
-    python-dev python-virtualenv ruby-sass
+    python-dev python-virtualenv sassc
 
 # Assure that nginx attempts restart if it can't immediately use its proxy host at startup.
 mkdir -p /etc/systemd/system/nginx.service.d
@@ -52,8 +52,6 @@ apt-get -y --allow-unauthenticated install \
 
 # Required to get Pillow >= 5.0.0 to build from source (since we've disabled using wheels from PyPI)
 apt-get -y install build-essential
-
-npm install -g gulp-cli
 
 sudo -u postgres dropdb weasyl
 sudo -u postgres dropuser vagrant

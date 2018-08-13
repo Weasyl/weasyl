@@ -79,9 +79,10 @@ $(TEMP_DIRS):
 
 node_modules: package.json
 	npm install
+	touch node_modules
 
 build/rev-manifest.json: node_modules
-	node_modules/.bin/gulp sass
+	node build.js
 
 # Phony setup target
 .PHONY: setup

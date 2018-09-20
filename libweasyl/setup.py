@@ -28,7 +28,7 @@ setup(
         'anyjson==0.3.3',
         'arrow==0.12.1',
         'bcrypt==3.1.4',
-        'dogpile.cache==0.6.6',
+        'dogpile.cache==0.6.7',
         'lxml==4.2.5',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.0.4',

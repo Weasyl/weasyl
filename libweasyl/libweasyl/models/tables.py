@@ -75,7 +75,7 @@ charcomment = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='charcomment_hidden_by_fkey'),
 )
 
-Index('ind_charcomment_targetid', charcomment.c.targetid)
+Index('ind_charcomment_targetid_commentid', charcomment.c.targetid, charcomment.c.commentid)
 
 
 collection = Table(
@@ -95,8 +95,8 @@ comments = Table(
     'comments', metadata,
     Column('commentid', Integer(), primary_key=True),
     Column('userid', Integer(), nullable=False),
-    Column('target_user', Integer(), index=True),
-    Column('target_sub', Integer(), index=True),
+    Column('target_user', Integer(), nullable=True),
+    Column('target_sub', Integer(), nullable=True),
     Column('parentid', Integer(), nullable=True),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -113,6 +113,9 @@ comments = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='comments_hidden_by_fkey'),
     CheckConstraint('(target_user IS NOT NULL) != (target_sub IS NOT NULL)', name='comments_target_check'),
 )
+
+Index('ind_comments_target_user_commentid', comments.c.target_user, comments.c.commentid, postgresql_where=comments.c.target_user != None)
+Index('ind_comments_target_sub_commentid', comments.c.target_sub, comments.c.commentid, postgresql_where=comments.c.target_sub != None)
 
 
 commishclass = Table(
@@ -331,9 +334,7 @@ journalcomment = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='journalcomment_hidden_by_fkey'),
 )
 
-Index('ind_journalcomment_settings', journalcomment.c.settings)
-Index('ind_journalcomment_targetid_settings', journalcomment.c.targetid, journalcomment.c.settings)
-Index('ind_journalcomment_targetid', journalcomment.c.targetid)
+Index('ind_journalcomment_targetid_commentid', journalcomment.c.targetid, journalcomment.c.commentid)
 
 
 login = Table(

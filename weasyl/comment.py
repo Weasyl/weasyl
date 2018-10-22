@@ -12,10 +12,6 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-_MAX_LEVEL = 8
-_PER_LEVEL = 50
-
-
 def _thread(query, result, i):
     parent = result[-1]
     for j in range(i + 1, len(query)):
@@ -23,16 +19,13 @@ def _thread(query, result, i):
         if query[j][1] == query[i][0]:
             result.append({
                 "commentid": query[j][0],
-                "parentid": query[j][1],
                 "userid": query[j][2],
                 "username": query[j][3],
-                "status": "".join(i for i in query[j][4] if i in "bs"),
-                "content": query[j][5],
-                "unixtime": query[j][6],
-                "settings": query[j][7],
-                "indent": query[j][8],
-                "hidden": parent["hidden"] or 'h' in query[j][7],
-                "hidden_by": query[j][10],
+                "content": query[j][4],
+                "unixtime": query[j][5],
+                "indent": query[j][7],
+                "hidden": parent["hidden"] or 'h' in query[j][6],
+                "hidden_by": query[j][8],
             })
 
             _thread(query, result, j)
@@ -44,22 +37,21 @@ def select(userid, submitid=None, charid=None, journalid=None):
     if submitid:
         statement = ["""
             SELECT
-                cm.commentid, cm.parentid, cm.userid, pr.username, lo.settings,
-                cm.content, cm.unixtime, cm.settings, cm.indent, pr.config,
+                cm.commentid, cm.parentid, cm.userid, pr.username,
+                cm.content, cm.unixtime, cm.settings, cm.indent,
                 cm.hidden_by
             FROM comments cm
-            INNER JOIN profile pr USING (userid)
-            INNER JOIN login lo USING (userid)
+                INNER JOIN profile pr USING (userid)
             WHERE cm.target_sub = %d
         """ % (submitid,)]
     else:
         statement = ["""
             SELECT
-                cm.commentid, cm.parentid, cm.userid, pr.username, lo.settings, cm.content, cm.unixtime, cm.settings,
-                cm.indent, pr.config, cm.hidden_by
+                cm.commentid, cm.parentid, cm.userid, pr.username,
+                cm.content, cm.unixtime, cm.settings, cm.indent,
+                cm.hidden_by
             FROM %scomment cm
                 INNER JOIN profile pr USING (userid)
-                INNER JOIN login lo USING (userid)
             WHERE cm.targetid = %i
         """ % ("submit" if submitid else "char" if charid else "journal", d.get_targetid(submitid, charid, journalid))]
 
@@ -79,16 +71,13 @@ def select(userid, submitid=None, charid=None, journalid=None):
 
         result.append({
             "commentid": comment[0],
-            "parentid": comment[1],
             "userid": comment[2],
             "username": comment[3],
-            "status": "".join({"b", "s"} & set(comment[4])),
-            "content": comment[5],
-            "unixtime": comment[6],
-            "settings": comment[7],
-            "indent": comment[8],
-            "hidden": 'h' in comment[7],
-            "hidden_by": comment[10],
+            "content": comment[4],
+            "unixtime": comment[5],
+            "indent": comment[7],
+            "hidden": 'h' in comment[6],
+            "hidden_by": comment[8],
         })
 
         _thread(query, result, i)

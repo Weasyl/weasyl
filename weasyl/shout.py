@@ -17,11 +17,12 @@ from weasyl.error import WeasylError
 def select(userid, ownerid, limit=None, staffnotes=False):
     result = []
     statement = ["""
-        SELECT sh.commentid, sh.parentid, sh.userid, pr.username, lo.settings, sh.content, sh.unixtime,
-               sh.settings, sh.indent, pr.config, sh.hidden_by
+        SELECT
+            sh.commentid, sh.parentid, sh.userid, pr.username,
+            sh.content, sh.unixtime, sh.settings, sh.indent,
+            sh.hidden_by
         FROM comments sh
-            INNER JOIN profile pr ON sh.userid = pr.userid
-            INNER JOIN login lo ON sh.userid = lo.userid
+            INNER JOIN profile pr USING (userid)
         WHERE sh.target_user = %i
             AND sh.settings %s~ 's'
     """ % (ownerid, "" if staffnotes else "!")]
@@ -40,16 +41,13 @@ def select(userid, ownerid, limit=None, staffnotes=False):
         if not query[i][1]:
             result.append({
                 "commentid": query[i][0],
-                "parentid": query[i][1],
                 "userid": query[i][2],
                 "username": query[i][3],
-                "status": "".join(c for c in query[i][4] if c in "bs"),
-                "content": query[i][5],
-                "unixtime": query[i][6],
-                "settings": query[i][7],
-                "indent": query[i][8],
-                "hidden": 'h' in query[i][7],
-                "hidden_by": query[i][10],
+                "content": query[i][4],
+                "unixtime": query[i][5],
+                "indent": query[i][7],
+                "hidden": 'h' in query[i][6],
+                "hidden_by": query[i][8],
             })
 
             _thread(query, result, i)

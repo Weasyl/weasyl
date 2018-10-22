@@ -1,3 +1,4 @@
+# encoding: utf-8
 from __future__ import absolute_import
 
 import arrow
@@ -12,28 +13,57 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-def _thread(query, result, i):
-    parent = result[-1]
-    for j in range(i + 1, len(query)):
-        # comment row j is a child of i
-        if query[j][1] == query[i][0]:
-            result.append({
-                "commentid": query[j][0],
-                "userid": query[j][2],
-                "username": query[j][3],
-                "content": query[j][4],
-                "unixtime": query[j][5],
-                "indent": query[j][7],
-                "hidden": parent["hidden"] or 'h' in query[j][6],
-                "hidden_by": query[j][8],
-            })
+def thread(query, reverse_top_level):
+    """
+    Get the display order for an iterable of comments.
 
-            _thread(query, result, j)
+    Child comments are always in chronological order, but `reverse_top_level`
+    controls the order of top-level comments.
+    """
+    by_parent = {None: []}
+
+    for row in query:
+        parentid = row[1]
+        siblings = by_parent.get(parentid)
+
+        if siblings is None:
+            # the parent comment isn’t visible to this user
+            continue
+
+        commentid = row[0]
+
+        siblings.append({
+            "commentid": commentid,
+            "userid": row[2],
+            "username": row[3],
+            "content": row[4],
+            "unixtime": row[5],
+            "indent": row[7],
+            "hidden": 'h' in row[6],
+            "hidden_by": row[8],
+        })
+
+        by_parent[commentid] = []
+
+    result = []
+
+    def _add_with_descendants(comments, hidden):
+        for c in comments:
+            if hidden:
+                c["hidden"] = True
+
+            result.append(c)
+            _add_with_descendants(by_parent[c["commentid"]], c["hidden"])
+
+    _add_with_descendants(
+        reversed(by_parent[None]) if reverse_top_level else by_parent[None],
+        hidden=False,
+    )
+
+    return result
 
 
 def select(userid, submitid=None, charid=None, journalid=None):
-    result = []
-
     if submitid:
         statement = ["""
             SELECT
@@ -62,26 +92,9 @@ def select(userid, submitid=None, charid=None, journalid=None):
     if userid:
         statement.append(m.MACRO_IGNOREUSER % (userid, "cm"))
 
-    statement.append(" ORDER BY COALESCE(cm.parentid, 0), cm.unixtime")
+    statement.append(" ORDER BY cm.commentid")
     query = d.execute("".join(statement))
-
-    for i, comment in enumerate(query):
-        if comment[1]:
-            break
-
-        result.append({
-            "commentid": comment[0],
-            "userid": comment[2],
-            "username": comment[3],
-            "content": comment[4],
-            "unixtime": comment[5],
-            "indent": comment[7],
-            "hidden": 'h' in comment[6],
-            "hidden_by": comment[8],
-        })
-
-        _thread(query, result, i)
-
+    result = thread(query, reverse_top_level=False)
     media.populate_with_user_media(result)
     return result
 

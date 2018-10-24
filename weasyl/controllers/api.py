@@ -230,7 +230,6 @@ def api_user_view_(request):
     user = profile.select_profile(otherid)
 
     rating = d.get_rating(userid)
-    u_config = d.get_config(userid)
     o_config = user.pop('config')
     o_settings = user.pop('settings')
 
@@ -318,19 +317,15 @@ def api_user_view_(request):
     user['relationship'] = profile.select_relation(userid, otherid) if userid else None
 
     if 'O' in o_config:
-        submissions = collection.select_list(
-            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
+        submissions = collection.select_list(userid, rating, 11, otherid=otherid)
         more_submissions = 'collections'
         featured = None
     elif 'A' in o_config:
-        submissions = character.select_list(
-            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
+        submissions = character.select_list(userid, rating, 11, otherid=otherid)
         more_submissions = 'characters'
         featured = None
     else:
-        submissions = submission.select_list(
-            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config,
-            profile_page_filter=True)
+        submissions = submission.select_list(userid, rating, 11, otherid=otherid, profile_page_filter=True)
         more_submissions = 'submissions'
         featured = submission.select_featured(userid, otherid, rating)
 

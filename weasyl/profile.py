@@ -236,18 +236,18 @@ def check_user_rating_allowed(userid, rating):
 
 def select_userinfo(userid, config=None):
     if config is None:
-        [query] = d.engine.execute("""
+        query = tuple(d.engine.execute("""
             SELECT pr.config, ui.birthday, ui.gender, ui.country
             FROM profile pr
             INNER JOIN userinfo ui USING (userid)
             WHERE pr.userid = %(userid)s
-        """, userid=userid)
+        """, userid=userid).first())
     else:
-        [query] = d.engine.execute("""
-            SELECT %(config)s, birthday, gender, country
+        query = (config,) + tuple(d.engine.execute("""
+            SELECT birthday, gender, country
             FROM userinfo
             WHERE userid = %(userid)s
-        """, userid=userid, config=config)
+        """, userid=userid).first())
 
     user_links = d.engine.execute("""
         SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)

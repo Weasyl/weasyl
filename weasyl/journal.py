@@ -157,10 +157,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     }
 
 
-def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = [
         "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
         " FROM journal jo"
@@ -206,10 +203,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
     return query[::-1] if backid else query
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
 
     if userid:
@@ -241,10 +235,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, c
     return query[::-1] if backid else query
 
 
-def select_latest(userid, rating, otherid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_latest(userid, rating, otherid=None):
     statement = ["SELECT jo.journalid, jo.title, jo.content, jo.unixtime FROM journal jo WHERE"]
 
     if userid:

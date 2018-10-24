@@ -115,6 +115,14 @@ def find_owners(submitid):
     return [r[0] for r in result]
 
 
+def owns(userid, submitid):
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT FROM collection WHERE userid = %(user)s AND submitid = %(sub)s)",
+        user=userid,
+        sub=submitid,
+    )
+
+
 def offer(userid, submitid, otherid):
     query = d.execute("SELECT userid, rating, settings FROM submission WHERE submitid = %i",
                       [submitid], options="single")

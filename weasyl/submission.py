@@ -592,7 +592,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "favorited": favorite.check(userid, submitid=submitid),
         "friends_only": "f" in query[8],
         "hidden_submission": "h" in query[8],
-        "collectors": collection.find_owners(submitid),
+        "collected": collection.owns(userid, submitid),
         "no_request": not settings.allow_collection_requests,
 
         "text": submittext,

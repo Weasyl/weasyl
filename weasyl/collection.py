@@ -102,18 +102,16 @@ def select_list(userid, rating, limit, otherid=None, pending=False, backid=None,
     return query[::-1] if backid else query
 
 
-def find_owners(submitid, pending=False):
+def find_owners(submitid):
     """
     Retrieve a list of users who have collected the given submission.
     does NOT include the original submitter.
     :param submitid: any submission ID
-    :param pending: TRUE to include pending submissions, FALSE to exclude them
     :return: a list of userids of all users who have collected this submission
     """
-    statement = "SELECT userid FROM collection WHERE submitid = %(sub)s"
-    if not pending:
-        statement += " AND settings !~ '[pr]'"
-    result = d.engine.execute(statement, sub=submitid)
+    result = d.engine.execute(
+        "SELECT userid FROM collection WHERE submitid = %(sub)s AND settings !~ '[pr]'",
+        sub=submitid)
     return [r[0] for r in result]
 
 

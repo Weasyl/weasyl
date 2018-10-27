@@ -59,6 +59,7 @@ def db_timer_tween_factory(handler, registry):
 
         request.sql_times = []
         request.memcached_times = []
+        request.template_times = []
         time_queued = started_at - float(queued_at)
         resp = handler(request)
         ended_at = time.time()
@@ -69,6 +70,7 @@ def db_timer_tween_factory(handler, registry):
         resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
         resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
         resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
+        resp.headers['X-Python-Template-Time'] = ', '.join('%.1fms' % (t * 1000,) for t in request.template_times)
         resp.headers['X-SQL-Queries'] = str(len(request.sql_times))
         resp.headers['X-Memcached-Queries'] = str(len(request.memcached_times))
         sess = request.weasyl_session

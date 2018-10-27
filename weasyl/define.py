@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import re
 import time
+import timeit
 import random
 import urllib
 import hashlib
@@ -222,7 +223,7 @@ def _compile(template_name):
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
-                "RENDER": render,
+                "RENDER": _render,
                 "COMPILE": _compile,
                 "CAPTCHA": _captcha_public,
                 "MARKDOWN": text.markdown,
@@ -252,12 +253,25 @@ def _compile(template_name):
     return template
 
 
+def _render(template_name, argv):
+    template = _compile(template_name)
+    return unicode(template(*argv))
+
+
 def render(template_name, argv=()):
     """
     Renders a template and returns the resulting HTML.
     """
-    template = _compile(template_name)
-    return unicode(template(*argv))
+    start_time = timeit.default_timer()
+    result = _render(template_name, argv)
+    end_time = timeit.default_timer()
+
+    request = get_current_request()
+
+    if request is not None:
+        request.template_times.append(end_time - start_time)
+
+    return result
 
 
 def titlebar(title, backtext=None, backlink=None):

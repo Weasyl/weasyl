@@ -21,4 +21,4 @@ WebTest==2.0.32
 pyotp==2.2.6                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
 cryptography==2.4.2         # For Two-Factor Authentication
-publicsuffixlist==0.6.1     # For extracting the base domain for the email blacklist
+publicsuffixlist==0.6.2     # For extracting the base domain for the email blacklist

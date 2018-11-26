@@ -1,0 +1,8 @@
+path_classifiers:
+  library:
+    - static/pdf
+    - exclude: static/pdf/viewer.js
+
+extraction:
+  javascript:
+    exclude: templates

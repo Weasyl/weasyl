@@ -1,12 +1,12 @@
 # these are all pinned versions available from https://pypi.weasyldev.com
-zope.interface==4.4.3       # for twisted
+zope.interface==4.6.0       # for twisted
 service_identity==17.0.0    # Newer Twisted wants this for cert verification
 Twisted==16.3.2             # Twisted 16.4+ will need additional code work
 web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
 jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==18.0.0           # as above
 raven==6.9.0
-requests[security]==2.20.0
+requests[security]==2.20.1
 oauth2==1.9.0.post1
 python-memcached==1.59
 txstatsd==1.0.0+weasyl.2    # https://github.com/Weasyl/txstatsd
@@ -15,9 +15,10 @@ txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
 Dozer==0.6                  # For WSGI memory profiling
 Pillow==5.3.0               # For WSGI memory profiling
-pyramid==1.9.2
+pyramid==1.10.1
+WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
 WebTest==2.0.32
 pyotp==2.2.6                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
-cryptography==2.3.1         # For Two-Factor Authentication
-publicsuffixlist==0.6.1     # For extracting the base domain for the email blacklist
+cryptography==2.4.2         # For Two-Factor Authentication
+publicsuffixlist==0.6.2     # For extracting the base domain for the email blacklist

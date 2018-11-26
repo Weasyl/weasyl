@@ -24,18 +24,18 @@ setup(
         ],
     },
     install_requires=[
-        'alembic==1.0.1',
+        'alembic==1.0.2',
         'anyjson==0.3.3',
         'arrow==0.12.1',
         'bcrypt==3.1.4',
-        'dogpile.cache==0.6.7',
+        'dogpile.cache==0.6.8',
         'lxml==4.2.5',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
-        'oauthlib==2.0.4',
+        'oauthlib==2.1.0',
         'psycopg2cffi==2.7.7',
-        'pytz==2018.5',
+        'pytz==2018.7',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.2.12',
+        'sqlalchemy==1.2.14',
         'translationstring==1.3',
         'backports.lzma==0.0.12;python_version<"3.3"',
         'enum34==1.1.6;python_version<"3.4"',

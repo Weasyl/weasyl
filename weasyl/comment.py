@@ -1,3 +1,4 @@
+# encoding: utf-8
 from __future__ import absolute_import
 
 import arrow
@@ -12,54 +13,75 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-_MAX_LEVEL = 8
-_PER_LEVEL = 50
+def thread(query, reverse_top_level):
+    """
+    Get the display order for an iterable of comments.
 
+    Child comments are always in chronological order, but `reverse_top_level`
+    controls the order of top-level comments.
+    """
+    by_parent = {None: []}
 
-def _thread(query, result, i):
-    parent = result[-1]
-    for j in range(i + 1, len(query)):
-        # comment row j is a child of i
-        if query[j][1] == query[i][0]:
-            result.append({
-                "commentid": query[j][0],
-                "parentid": query[j][1],
-                "userid": query[j][2],
-                "username": query[j][3],
-                "status": "".join(i for i in query[j][4] if i in "bs"),
-                "content": query[j][5],
-                "unixtime": query[j][6],
-                "settings": query[j][7],
-                "indent": query[j][8],
-                "hidden": parent["hidden"] or 'h' in query[j][7],
-                "hidden_by": query[j][10],
-            })
+    for row in query:
+        parentid = row[1]
+        siblings = by_parent.get(parentid)
 
-            _thread(query, result, j)
+        if siblings is None:
+            # the parent comment isn’t visible to this user
+            continue
+
+        commentid = row[0]
+
+        siblings.append({
+            "commentid": commentid,
+            "userid": row[2],
+            "username": row[3],
+            "content": row[4],
+            "unixtime": row[5],
+            "indent": row[7],
+            "hidden": 'h' in row[6],
+            "hidden_by": row[8],
+        })
+
+        by_parent[commentid] = []
+
+    result = []
+
+    def _add_with_descendants(comments, hidden):
+        for c in comments:
+            if hidden:
+                c["hidden"] = True
+
+            result.append(c)
+            _add_with_descendants(by_parent[c["commentid"]], c["hidden"])
+
+    _add_with_descendants(
+        reversed(by_parent[None]) if reverse_top_level else by_parent[None],
+        hidden=False,
+    )
+
+    return result
 
 
 def select(userid, submitid=None, charid=None, journalid=None):
-    result = []
-
     if submitid:
         statement = ["""
             SELECT
-                cm.commentid, cm.parentid, cm.userid, pr.username, lo.settings,
-                cm.content, cm.unixtime, cm.settings, cm.indent, pr.config,
+                cm.commentid, cm.parentid, cm.userid, pr.username,
+                cm.content, cm.unixtime, cm.settings, cm.indent,
                 cm.hidden_by
             FROM comments cm
-            INNER JOIN profile pr USING (userid)
-            INNER JOIN login lo USING (userid)
+                INNER JOIN profile pr USING (userid)
             WHERE cm.target_sub = %d
         """ % (submitid,)]
     else:
         statement = ["""
             SELECT
-                cm.commentid, cm.parentid, cm.userid, pr.username, lo.settings, cm.content, cm.unixtime, cm.settings,
-                cm.indent, pr.config, cm.hidden_by
+                cm.commentid, cm.parentid, cm.userid, pr.username,
+                cm.content, cm.unixtime, cm.settings, cm.indent,
+                cm.hidden_by
             FROM %scomment cm
                 INNER JOIN profile pr USING (userid)
-                INNER JOIN login lo USING (userid)
             WHERE cm.targetid = %i
         """ % ("submit" if submitid else "char" if charid else "journal", d.get_targetid(submitid, charid, journalid))]
 
@@ -70,29 +92,9 @@ def select(userid, submitid=None, charid=None, journalid=None):
     if userid:
         statement.append(m.MACRO_IGNOREUSER % (userid, "cm"))
 
-    statement.append(" ORDER BY COALESCE(cm.parentid, 0), cm.unixtime")
+    statement.append(" ORDER BY cm.commentid")
     query = d.execute("".join(statement))
-
-    for i, comment in enumerate(query):
-        if comment[1]:
-            break
-
-        result.append({
-            "commentid": comment[0],
-            "parentid": comment[1],
-            "userid": comment[2],
-            "username": comment[3],
-            "status": "".join({"b", "s"} & set(comment[4])),
-            "content": comment[5],
-            "unixtime": comment[6],
-            "settings": comment[7],
-            "indent": comment[8],
-            "hidden": 'h' in comment[7],
-            "hidden_by": comment[10],
-        })
-
-        _thread(query, result, i)
-
+    result = thread(query, reverse_top_level=False)
     media.populate_with_user_media(result)
     return result
 

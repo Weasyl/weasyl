@@ -31,7 +31,7 @@ setup(
         'dogpile.cache==0.6.8',
         'lxml==4.2.5',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
-        'oauthlib==2.0.4',
+        'oauthlib==2.1.0',
         'psycopg2cffi==2.7.7',
         'pytz==2018.7',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera

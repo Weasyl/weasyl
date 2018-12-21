@@ -27,7 +27,7 @@ setup(
         'alembic==1.0.5',
         'anyjson==0.3.3',
         'arrow==0.12.1',
-        'bcrypt==3.1.4',
+        'bcrypt==3.1.5',
         'dogpile.cache==0.7.1',
         'lxml==4.2.5',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka

@@ -29,7 +29,7 @@ setup(
         'arrow==0.12.1',
         'bcrypt==3.1.5',
         'dogpile.cache==0.7.1',
-        'lxml==4.2.5',
+        'lxml==4.2.6',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
         'psycopg2cffi==2.7.7',

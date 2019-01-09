@@ -31,6 +31,7 @@ def admincontrol_siteupdate_get_(request):
 def admincontrol_siteupdate_post_(request):
     title = request.params["title"].strip()
     content = request.params["content"].strip()
+    wesley = "wesley" in request.params
 
     if not title:
         raise WeasylError("titleInvalid")
@@ -38,7 +39,7 @@ def admincontrol_siteupdate_post_(request):
     if not content:
         raise WeasylError("contentInvalid")
 
-    update = siteupdate.create(request.userid, title, content)
+    update = siteupdate.create(request.userid, title, content, wesley=wesley)
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 
 
@@ -55,6 +56,7 @@ def site_update_put_(request):
     updateid = int(request.matchdict['update_id'])
     title = request.params["title"].strip()
     content = request.params["content"].strip()
+    wesley = "wesley" in request.params
 
     if not title:
         raise WeasylError("titleInvalid")
@@ -65,6 +67,7 @@ def site_update_put_(request):
     update = SiteUpdate.query.get_or_404(updateid)
     update.title = title
     update.content = content
+    update.wesley = wesley
     update.dbsession.flush()
 
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))

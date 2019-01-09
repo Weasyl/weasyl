@@ -724,6 +724,7 @@ siteupdate = Table(
     'siteupdate', metadata,
     Column('updateid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
+    Column('wesley', Boolean(), nullable=False, server_default='f'),
     Column('title', String(length=100), nullable=False),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),

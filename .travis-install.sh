@@ -5,4 +5,4 @@ else
     weasyl_reqs='-r etc/requirements.txt -c etc/requirements.txt'
     make setup
 fi
-pip install -U $weasyl_reqs -e './libweasyl[development]' codecov pytest-cov
+pip install -U $weasyl_reqs -e './libweasyl[development]' codecov==2.0.15 pytest-cov==2.6.0

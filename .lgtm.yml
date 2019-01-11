@@ -5,4 +5,6 @@ path_classifiers:
 
 extraction:
   javascript:
-    exclude: templates
+    index:
+      filters:
+        - exclude: templates

@@ -34,3 +34,5 @@ developers = [
     2872,   # syfaro
     5756,   # Weykent
 ]
+
+wesley = 2000

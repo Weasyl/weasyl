@@ -7,6 +7,7 @@ $:{TITLE("Site Updates")}
         $for update in updates:
             $ created = LOCAL_ARROW(update.unixtime)
             $ date = created.date()
+            $ owner = update.get_display_owner()
             $if date != last_date:
                 $ last_date = date
                 <div class="text-post-group-header">
@@ -14,7 +15,7 @@ $:{TITLE("Site Updates")}
                 </div>
 
             <article class="text-post-item">
-                <img class="text-post-image text-post-image-small" src="${update.owner.avatar['display_url']}" title="${update.owner.profile.username}" alt="${update.owner.profile.username}’s avatar" />
+                <img class="text-post-image text-post-image-small" src="${owner.avatar['display_url']}" title="${owner.profile.username}" alt="${owner.profile.username}’s avatar" />
 
                 <div class="text-post-text">
                     <h4 class="text-post-title">

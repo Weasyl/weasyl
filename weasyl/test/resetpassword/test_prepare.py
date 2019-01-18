@@ -65,6 +65,8 @@ def test_link_time_field_is_updated_when_valid_token_supplied_to_function():
                            month=arrow.now().month, year=arrow.now().year)
     resetpassword.request(form_for_request)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
+    link_time = d.engine.scalar("SELECT link_time FROM forgotpassword WHERE token = %(token)s", token=pw_reset_token)
+    assert link_time == 0
     resetpassword.prepare(pw_reset_token)
     link_time = d.engine.scalar("SELECT link_time FROM forgotpassword WHERE token = %(token)s", token=pw_reset_token)
-    assert link_time >= d.get_time()
+    assert link_time >= d.get_time() - 10

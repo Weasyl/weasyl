@@ -33,7 +33,7 @@ setup(
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
         'psycopg2cffi==2.7.7',
-        'pytz==2018.7',
+        'pytz==2018.9',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
         'sqlalchemy==1.2.16',
         'translationstring==1.3',

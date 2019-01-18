@@ -14,7 +14,7 @@ crochet==1.9.0
 txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
 Dozer==0.6                  # For WSGI memory profiling
-Pillow==5.4.0               # For WSGI memory profiling
+Pillow==5.4.1               # For WSGI memory profiling
 pyramid==1.10.1
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
 WebTest==2.0.32

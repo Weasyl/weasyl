@@ -259,12 +259,14 @@ def submit_shout_(request):
 @token_checked
 @supports_json
 def submit_comment_(request):
-    form = request.web_input(submitid="", charid="", journalid="", parentid="", content="", format="")
+    form = request.web_input(submitid="", charid="", journalid="", updateid="", parentid="", content="", format="")
+    updateid = define.get_int(form.updateid)
 
     commentid = comment.insert(request.userid, charid=define.get_int(form.charid),
                                parentid=define.get_int(form.parentid),
                                submitid=define.get_int(form.submitid),
                                journalid=define.get_int(form.journalid),
+                               updateid=updateid,
                                content=form.content)
 
     if form.format == "json":
@@ -274,8 +276,12 @@ def submit_comment_(request):
         raise HTTPSeeOther(location="/submission/%i#cid%i" % (define.get_int(form.submitid), commentid))
     elif define.get_int(form.charid):
         raise HTTPSeeOther(location="/character/%i#cid%i" % (define.get_int(form.charid), commentid))
-    else:
+    elif define.get_int(form.journalid):
         raise HTTPSeeOther(location="/journal/%i#cid%i" % (define.get_int(form.journalid), commentid))
+    elif updateid:
+        raise HTTPSeeOther(location="/site-updates/%i#cid%i" % (updateid, commentid))
+    else:
+        raise WeasylError("Unexpected")
 
 
 @login_required

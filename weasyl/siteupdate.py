@@ -27,7 +27,9 @@ def create(userid, title, content, wesley=False):
 
 def select_last():
     last = d.engine.execute("""
-        SELECT up.updateid, pr.userid, pr.username, up.title, up.content, up.unixtime
+        SELECT
+            up.updateid, pr.userid, pr.username, up.title, up.content, up.unixtime,
+            (SELECT count(*) FROM siteupdatecomment c WHERE c.targetid = up.updateid) AS comment_count
         FROM siteupdate up
             LEFT JOIN profile pr ON pr.userid = CASE WHEN up.wesley THEN %(wesley)s ELSE up.userid END
         ORDER BY updateid DESC

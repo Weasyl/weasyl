@@ -1,4 +1,4 @@
-$def with (update)
+$def with (myself, update, comments)
 $ owner = update.get_display_owner()
 <div id="home-content" class="content">
   <div class="constrained">
@@ -17,5 +17,14 @@ $ owner = update.get_display_owner()
     <div class="formatted-content" style="margin-top: 1em">
       $:{MARKDOWN(update.content)}
     </div>
+  </div>
+
+  <div id="site-update-comments">
+    $if comments:
+      <div class="constrained"><h3>Comments</h3></div>
+      $:{RENDER("common/comment_thread.html", ["detail_comments", comments, "siteupdate", myself, update.updateid, update.userid])}
+    $if myself:
+      <div class="constrained"><h3>Leave a Comment</h3></div>
+      $:{RENDER("common/comment_form.html", [myself, update.updateid, "siteupdate"])}
   </div>
 </div>

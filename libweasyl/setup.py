@@ -24,7 +24,7 @@ setup(
         ],
     },
     install_requires=[
-        'alembic==1.0.5',
+        'alembic==1.0.7',
         'anyjson==0.3.3',
         'arrow==0.13.0',
         'bcrypt==3.1.6',
@@ -35,7 +35,7 @@ setup(
         'psycopg2cffi==2.7.7',
         'pytz==2018.9',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.2.16',
+        'sqlalchemy==1.2.17',
         'translationstring==1.3',
         'backports.lzma==0.0.12;python_version<"3.3"',
         'enum34==1.1.6;python_version<"3.4"',

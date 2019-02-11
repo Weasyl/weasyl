@@ -17,7 +17,7 @@ Dozer==0.6                  # For WSGI memory profiling
 Pillow==5.4.1               # For WSGI memory profiling
 pyramid==1.10.2
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
-WebTest==2.0.32
+WebTest==2.0.33
 pyotp==2.2.6                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
 cryptography==2.4.2         # For Two-Factor Authentication

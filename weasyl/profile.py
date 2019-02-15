@@ -206,13 +206,11 @@ def twitter_card(userid):
 
 def select_myself(userid):
     if not userid:
-        return
-
-    query = d.execute("SELECT username, config FROM profile WHERE userid = %i", [userid], ["single"])
+        return None
 
     return {
         "userid": userid,
-        "username": query[0],
+        "username": d.get_display_name(userid),
         "is_mod": userid in staff.MODS,
         "user_media": media.get_user_media(userid),
     }

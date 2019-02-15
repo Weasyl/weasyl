@@ -419,32 +419,32 @@ def favorites_(request):
 
 
 def friends_(request):
-        cachename = "user/friends.html"
+    cachename = "user/friends.html"
 
-        form = request.web_input(userid="", name="", backid=None, nextid=None)
-        form.name = request.matchdict.get('name', form.name)
-        form.userid = define.get_int(form.userid)
+    form = request.web_input(userid="", name="", backid=None, nextid=None)
+    form.name = request.matchdict.get('name', form.name)
+    form.userid = define.get_int(form.userid)
 
-        otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, form.userid, form.name)
 
-        if not otherid:
-            raise WeasylError("userRecordMissing")
-        elif not request.userid and "h" in define.get_config(otherid):
-            return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+    if not otherid:
+        raise WeasylError("userRecordMissing")
+    elif not request.userid and "h" in define.get_config(otherid):
+        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
 
-        userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-        return Response(define.webpage(request.userid, cachename, [
-            # Profile information
-            userprofile,
-            # User information
-            profile.select_userinfo(otherid, config=userprofile['config']),
-            # Relationship
-            profile.select_relation(request.userid, otherid),
-            # Friends
-            frienduser.select_friends(request.userid, otherid, limit=44,
-                                      backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
-        ]))
+    return Response(define.webpage(request.userid, cachename, [
+        # Profile information
+        userprofile,
+        # User information
+        profile.select_userinfo(otherid, config=userprofile['config']),
+        # Relationship
+        profile.select_relation(request.userid, otherid),
+        # Friends
+        frienduser.select_friends(request.userid, otherid, limit=44,
+                                  backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
+    ]))
 
 
 def following_(request):

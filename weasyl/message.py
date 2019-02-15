@@ -20,7 +20,7 @@ notification_clusters = {
     4010: 8, 4015: 8,
     4016: 9,
     4020: 10, 4025: 10, 4050: 10,
-    4030: 11, 4035: 11,
+    4030: 11, 4035: 11, 4060: 11, 4065: 11,
     4040: 12, 4045: 12,
     3150: 13,
 }
@@ -581,6 +581,48 @@ def select_comments(userid):
             INNER JOIN journal jo ON jc.targetid = jo.journalid
         WHERE we.userid = %(user)s
             AND we.type = 4035
+        ORDER BY we.unixtime DESC
+    """, user=userid))
+
+    # Site update comments
+    queries.append({
+        "type": 4060,
+        "id": i.welcomeid,
+        "unixtime": i.unixtime,
+        "userid": i.otherid,
+        "username": i.username,
+        "updateid": i.referid,
+        "title": i.title,
+        "commentid": i.targetid,
+    } for i in d.engine.execute("""
+        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, up.title
+        FROM welcome we
+            INNER JOIN profile pr ON we.otherid = pr.userid
+            INNER JOIN siteupdate up ON we.referid = up.updateid
+        WHERE we.userid = %(user)s
+            AND we.type = 4060
+        ORDER BY we.unixtime DESC
+    """, user=userid))
+
+    # Site update comment replies
+    queries.append({
+        "type": 4065,
+        "id": i.welcomeid,
+        "unixtime": i.unixtime,
+        "userid": i.otherid,
+        "username": i.username,
+        "updateid": i.updateid,
+        "title": i.title,
+        "replyid": i.referid,
+        "commentid": i.targetid,
+    } for i in d.engine.execute("""
+        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, up.updateid, up.title
+        FROM welcome we
+            INNER JOIN profile pr ON we.otherid = pr.userid
+            INNER JOIN siteupdatecomment uc ON we.referid = uc.commentid
+            INNER JOIN siteupdate up ON uc.targetid = up.updateid
+        WHERE we.userid = %(user)s
+            AND we.type = 4065
         ORDER BY we.unixtime DESC
     """, user=userid))
 

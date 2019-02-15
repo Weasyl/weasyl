@@ -97,6 +97,10 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       <div class="formatted-content">
         $:{MARKDOWN(update['content'])}
       </div>
+
+      $ comment_count = update.get('comment_count')
+      $if comment_count is not None:
+        <a href="/site-updates/${update['updateid']}" class="more more-block"><i>View</i> <span>This Update</span> <i>and</i> <span>${comment_count} Comment${'' if comment_count == 1 else 's'}</span></a>
     </div>
 
   <div id="hc-critique" class="clear">

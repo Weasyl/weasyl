@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, Index,
+    MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
     Integer, String, Text, SMALLINT, text, DateTime, func, Boolean)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
 
@@ -729,6 +729,28 @@ siteupdate = Table(
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='siteupdate_userid_fkey'),
+)
+
+
+siteupdatecomment = Table(
+    'siteupdatecomment', metadata,
+    Column('commentid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), nullable=False),
+    Column('targetid', Integer(), nullable=False),
+    Column('parentid', Integer(), nullable=True),
+    Column('content', String(length=10000), nullable=False),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+    Column('hidden_at', TIMESTAMP(timezone=True), nullable=True),
+    Column('hidden_by', Integer(), nullable=True),
+    ForeignKeyConstraint(['targetid'], ['siteupdate.updateid'], name='siteupdatecomment_targetid_fkey'),
+    ForeignKeyConstraint(
+        ['targetid', 'parentid'],
+        ['siteupdatecomment.targetid', 'siteupdatecomment.commentid'],
+        name='siteupdatecomment_parentid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdatecomment_userid_fkey'),
+    ForeignKeyConstraint(['hidden_by'], ['login.userid'], name='siteupdatecomment_hidden_by_fkey', ondelete='SET NULL'),
+    CheckConstraint("hidden_by IS NULL OR hidden_at IS NOT NULL", name='siteupdatecomment_hidden_check'),
+    UniqueConstraint('targetid', 'commentid'),
 )
 
 

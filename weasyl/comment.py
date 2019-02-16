@@ -24,7 +24,7 @@ def thread(query, reverse_top_level):
     by_parent = {None: (-1, [])}
 
     for row in query:
-        parentid = row[1]
+        parentid = row[1] or None  # journalcomment and charcomment use 0 instead of NULL
         t = by_parent.get(parentid)
 
         if t is None:

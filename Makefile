@@ -9,7 +9,7 @@ VE ?= weasyl-env
 
 # Whether to install from wheels
 # Build specific binaries from source, where binaries have been problematic in the past
-USE_WHEEL := --no-binary sanpera,lxml,psycopg2cffi
+USE_WHEEL := --no-binary sanpera,psycopg2cffi
 
 # Static directories
 STATIC_DIRS := character fonts journal submission tile user media

@@ -1,21 +1,18 @@
 # encoding: utf-8
 from __future__ import absolute_import
 
-from lxml.etree import LIBXML_VERSION
 import pytest
 
 from libweasyl.text import markdown, markdown_excerpt, markdown_link
 
 
-libxml_xfail = pytest.mark.xfail(LIBXML_VERSION < (2, 9), reason='libxml2 too old to preserve whitespace')
-
 user_linking_markdown_tests = [
     ('<~spam>', '<a href="/~spam">spam</a>'),
-    ('<!spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'),
+    ('<!spam>', '<a class="user-icon" href="/~spam"><img alt="spam" src="/~spam/avatar"></a>'),
     ('![](user:spam)![](user:spam)',
-     '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'
-     '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'),
-    ('<!~spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"> <span>spam</span></a>'),
+     '<a class="user-icon" href="/~spam"><img alt="spam" src="/~spam/avatar"></a>'
+     '<a class="user-icon" href="/~spam"><img alt="spam" src="/~spam/avatar"></a>'),
+    ('<!~spam>', '<a class="user-icon" href="/~spam"><img alt="" src="/~spam/avatar"> <span>spam</span></a>'),
     ('<user:spam>', '<a href="/~spam">spam</a>'),
     ('<fa:spam>', '<a href="https://www.furaffinity.net/user/spam" rel="nofollow">spam</a>'),
     ('<da:spam>', '<a href="https://spam.deviantart.com/" rel="nofollow">spam</a>'),
@@ -39,7 +36,6 @@ def test_markdown_user_linking_in_tail(target, expected):
     assert markdown('<em>eggs</em>%s' % (target,)) == '<p><em>eggs</em>%s</p>' % (expected,)
 
 
-@libxml_xfail
 @pytest.mark.parametrize(('target', 'expected'), user_linking_markdown_tests)
 def test_markdown_user_linking_twice_in_tag(target, expected):
     assert markdown('<em>%s %s</em>' % (target, target)) == '<p><em>%s %s</em></p>' % (expected, expected)
@@ -50,7 +46,6 @@ def test_markdown_user_linking_twice_in_tag_with_more_text_between(target, expec
     assert markdown('<em>%s spam %s</em>' % (target, target)) == '<p><em>%s spam %s</em></p>' % (expected, expected)
 
 
-@libxml_xfail
 @pytest.mark.parametrize(('target', 'expected'), user_linking_markdown_tests)
 def test_markdown_user_linking_twice_in_tail(target, expected):
     assert markdown('<em>eggs</em>%s %s' % (target, target)) == (
@@ -80,12 +75,8 @@ def test_markdown_no_user_links_in_links():
     assert markdown('<a><~spam></a>') == '<p><a>&lt;~spam&gt;</a></p>'
 
 
-def test_markdown_escaped_user_link():
-    assert markdown('\\\\<~spam>') == '<p>&lt;~spam&gt;</p>'
-
-
 def test_markdown_multi_element():
-    assert markdown('one\n\ntwo') == '<p>one</p><p>two</p>'
+    assert markdown('one\n\ntwo') == '<p>one</p>\n\n<p>two</p>'
 
 
 def test_markdown_user_linking_with_underscore():
@@ -102,19 +93,32 @@ def test_forum_whitelist():
 
 
 def test_markdown_unordered_list():
-    assert markdown('- five\n- six\n- seven') == '<ul><li>five</li><li>six</li><li>seven</li></ul>'
+    assert markdown('- five\n- six\n- seven') == '<ul><li>five</li>\n<li>six</li>\n<li>seven</li>\n</ul>'
 
 
 def test_markdown_regular_ordered_list_start():
-    assert markdown('1. five\n1. six\n1. seven') == '<ol start="1"><li>five</li><li>six</li><li>seven</li></ol>'
+    assert markdown('1. five\n1. six\n1. seven') == '<ol start="1"><li>five</li>\n<li>six</li>\n<li>seven</li>\n</ol>'
 
 
 def test_markdown_respect_ordered_list_start():
-    assert markdown('5. five\n6. six\n7. seven') == '<ol start="5"><li>five</li><li>six</li><li>seven</li></ol>'
+    assert markdown('5. five\n6. six\n7. seven') == '<ol start="5"><li>five</li>\n<li>six</li>\n<li>seven</li>\n</ol>'
 
 
 def test_markdown_strikethrough():
     assert markdown(u"~~test~~") == u"<p><del>test</del></p>"
+
+
+def test_markdown_class():
+    assert markdown(u'<div class="align-center">center</div>') == u'<div class="align-center"><p>center</p></div>'
+    assert markdown(u'<div class="align-other">other</div>') == u'<div><p>other</p></div>'
+
+
+@pytest.mark.parametrize(('target', 'expected'), [
+    (u'<span style="margin: 1em">margin</span>', u'<span style="">margin</span>'),
+    (u'<span style="color: #f00">red</span>', u'<span style="color: #f00">red</span>'),
+])
+def test_markdown_style(target, expected):
+    assert markdown(target) == u"<p>%s</p>" % (expected,)
 
 
 @pytest.mark.parametrize(('target', 'expected'), [
@@ -140,8 +144,8 @@ def test_markdown_link(target, expected):
 
 
 def test_tag_stripping():
-    assert markdown(u"<button>text</button>") == u"<p>text</p>"
-    assert markdown(u"<button><button>text</button></button>") == u"<p>text</p>"
+    assert markdown(u"<button>text</button>") == u"<p>&lt;button&gt;text&lt;/button&gt;</p>"
+    assert markdown(u"<button><button>text</button></button>") == u"<p>&lt;button&gt;&lt;/button&gt;&lt;button&gt;text&lt;/button&gt;</p>"
     assert markdown(u"<!--[if IE]><script>alert(1)</script><![endif]-->") == u""
 
 

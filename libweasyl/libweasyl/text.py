@@ -2,12 +2,21 @@
 from __future__ import unicode_literals
 
 import re
+from collections import namedtuple
+from xml.dom.minidom import Node, NodeList, _get_elements_by_tagName_helper
 
-from lxml import etree, html
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
+
+import html5lib
 import misaka
+from html5lib.constants import entities
+from html5lib.serializer import HTMLSerializer
 
-from .compat import unicode
-from .defang import defang
+from .compat import xrange
+from .defang import DefangFilter
 from .legacy import login_name
 
 try:
@@ -33,9 +42,10 @@ AUTOLINK_URL = (
 url_regexp = re.compile(AUTOLINK_URL)
 
 USER_LINK = re.compile(r"""
-    \\(?P<escaped>[\\<])
-| <(?P<type>!~|[!~])(?P<username>[a-z0-9_]+)>
-| .
+    <
+        (?P<type>!~|[!~])
+        (?P<username>[a-z0-9_]+)
+    >
 """, re.I | re.X)
 
 NON_USERNAME_CHARACTERS = re.compile("[^a-z0-9]+", re.I)
@@ -75,20 +85,20 @@ MISAKA_FORMAT = (
     misaka.HTML_HARD_WRAP)
 
 
-def strip_outer_tag(html):
+def _strip_outer_tag(html):
     match = locatestarttagend.match(html)
     start_tag_end = match.end()
-    end_tag_start = html.rindex(u'<')
+    end_tag_start = html.rindex("<")
     return html[:start_tag_end + 1], html[start_tag_end + 1:end_tag_start], html[end_tag_start:]
 
 
 class WeasylRenderer(misaka.HtmlRenderer):
     # Render Markdown in HTML
     def block_html(self, raw_html):
-        if raw_html.startswith('<!--'):
+        if raw_html.startswith("<!--"):
             return raw_html
-        start, stripped, end = strip_outer_tag(raw_html)
-        return u''.join([start, _markdown(stripped).rstrip(), end])
+        start, stripped, end = _strip_outer_tag(raw_html)
+        return "".join([start, _markdown(stripped).rstrip(), end])
 
     # Respect start of ordered lists
     def list(self, text, ordered, prefix):
@@ -98,7 +108,7 @@ class WeasylRenderer(misaka.HtmlRenderer):
                 text=text,
             )
         else:
-            return '<ul>{text}</ul>'.format(
+            return "<ul>{text}</ul>".format(
                 text=text,
             )
 
@@ -109,205 +119,201 @@ def _markdown(target):
     return markdown.render(target)
 
 
-def create_link(t, username):
-    link = etree.Element(u"a")
-    link.set(u"href", u"/~" + login_name(username))
+def _create_link(document, t, username):
+    link = document.createElement("a")
+    link.setAttribute("href", "/~" + login_name(username))
 
     if t == "~":
-        link.text = username
+        link.appendChild(document.createTextNode(username))
     else:
-        link.set(u"class", u"user-icon")
+        link.setAttribute("class", "user-icon")
 
-        image = etree.SubElement(link, u"img")
-        image.set(u"src", u"/~{username}/avatar".format(username=login_name(username)))
-        image.set(u"alt", username)
+        image = document.createElement("img")
+        image.setAttribute("src", "/~{username}/avatar".format(username=login_name(username)))
+        link.appendChild(image)
 
-        if t != "!":
-            label = etree.SubElement(link, u"span")
-            label.text = username
-            image.tail = u" "
+        if t == "!":
+            image.setAttribute("alt", username)
+        else:
+            image.setAttribute("alt", "")
+            link.appendChild(document.createTextNode(" "))
+            label = document.createElement("span")
+            label.appendChild(document.createTextNode(username))
+            link.appendChild(label)
 
     return link
 
 
-def add_user_links(fragment, parent, can_contain):
-    _nonlocal = {}
+def _add_user_links(element):
+    document = element.ownerDocument
 
-    def add_matches(text, got_link):
-        for m in USER_LINK.finditer(text):
-            escaped, t, username = m.group("escaped", "type", "username")
+    for i in xrange(element.childNodes.length - 1, -1, -1):
+        child = element.childNodes[i]
 
-            if escaped:
-                previous_text.append(escaped)
-                continue
+        if child.nodeType == Node.TEXT_NODE:
+            parts = []
+            last_end = 0
+            text = child.nodeValue
 
-            if not t:
-                previous_text.append(m.group())
-                continue
+            for m in USER_LINK.finditer(text):
+                t, username = m.group("type", "username")
 
-            got_link(t, username)
+                link = _create_link(document, t, username)
 
-    def got_text_link(t, username):
-        previous = _nonlocal["previous"]
+                start, end = m.span()
+                parts.append((text[last_end:start], link))
+                last_end = end
 
-        if previous is None:
-            fragment.text = "".join(previous_text)
-        else:
-            previous.tail = "".join(previous_text)
+            if parts:
+                for head, link in parts:
+                    if head:
+                        element.insertBefore(document.createTextNode(head), child)
 
-        del previous_text[:]
+                    if link is not None:
+                        element.insertBefore(link, child)
 
-        link = create_link(t, username)
-        fragment.insert(_nonlocal["insert_index"], link)
-        _nonlocal["insert_index"] += 1
-
-        _nonlocal["previous"] = link
-
-    def got_tail_link(t, username):
-        _nonlocal["previous"].tail = "".join(previous_text)
-        del previous_text[:]
-
-        _nonlocal["insert_index"] += 1
-        link = create_link(t, username)
-        parent.insert(_nonlocal["insert_index"], link)
-
-        _nonlocal["previous"] = link
-
-    if can_contain:
-        for child in list(fragment):
-            child_can_contain = child.tag not in ("a", "pre", "code")
-            add_user_links(child, fragment, child_can_contain)
-
-        if fragment.text:
-            _nonlocal["previous"] = None
-            _nonlocal["insert_index"] = 0
-            previous_text = []
-            add_matches(fragment.text, got_text_link)
-
-            previous = _nonlocal["previous"]
-
-            if previous is None:
-                fragment.text = "".join(previous_text)
-            else:
-                previous.tail = "".join(previous_text)
-
-    if fragment.tail:
-        _nonlocal["previous"] = fragment
-        _nonlocal["insert_index"] = list(parent).index(fragment)
-        previous_text = []
-        add_matches(fragment.tail, got_tail_link)
-        _nonlocal["previous"].tail = "".join(previous_text)
+                if last_end == len(text):
+                    element.removeChild(child)
+                else:
+                    element.replaceChild(document.createTextNode(text[last_end:]), child)
+        elif child.nodeType == Node.ELEMENT_NODE and child.tagName not in ("a", "pre", "code"):
+            _add_user_links(child)
 
 
-def _markdown_fragment(target, image):
-    if not image:
-        images_left = 0
-    elif type(image) is int:
-        images_left = image
+_UserLink = namedtuple("_UserLink", ["href", "text"])
+
+
+def _get_user_link(href):
+    t, _, user = href.partition(":")
+
+    if t == "user":
+        result = "/~{user}".format(user=login_name(user))
+    elif t == "da":
+        result = "https://{user}.deviantart.com/".format(user=_deviantart(user))
+    elif t == "ib":
+        result = "https://inkbunny.net/{user}".format(user=_inkbunny(user))
+    elif t == "fa":
+        result = "https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user))
+    elif t == "sf":
+        result = "https://{user}.sofurry.com/".format(user=_sofurry(user))
     else:
-        images_left = 5
+        return None
 
+    return _UserLink(result, user)
+
+
+def _empty(node):
+    while node.hasChildNodes():
+        node.removeChild(node.lastChild)
+
+
+def _add_nofollows(stream):
+    for token in stream:
+        if token["type"] == "StartTag":
+            href = token["data"].get((None, "href"))
+
+            if href is not None:
+                url = urlparse(href)
+
+                if url.hostname not in (None, "www.weasyl.com", "weasyl.com", "forums.weasyl.com"):
+                    token["data"][(None, "rel")] = "nofollow"
+
+        yield token
+
+
+def _safe_markdown_stream(target):
     rendered = _markdown(target)
-    fragment = html.fragment_fromstring(rendered, create_parent=True)
+    fragment = html5lib.parseFragment(rendered, treebuilder="dom")
+    fragment.normalize()
 
-    for link in fragment.findall(".//a"):
-        href = link.attrib.get("href")
+    document = fragment.ownerDocument
+    links = _get_elements_by_tagName_helper(fragment, "a", NodeList())
+
+    for link in links:
+        href = link.getAttribute("href")
 
         if href:
-            t, _, user = href.partition(":")
+            user_link = _get_user_link(href)
 
-            if t == "user":
-                link.attrib["href"] = u"/~{user}".format(user=login_name(user))
-            elif t == "da":
-                link.attrib["href"] = u"https://{user}.deviantart.com/".format(user=_deviantart(user))
-            elif t == "ib":
-                link.attrib["href"] = u"https://inkbunny.net/{user}".format(user=_inkbunny(user))
-            elif t == "fa":
-                link.attrib["href"] = u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user))
-            elif t == "sf":
-                link.attrib["href"] = u"https://{user}.sofurry.com/".format(user=_sofurry(user))
+            if user_link is not None:
+                link.setAttribute("href", user_link.href)
+
+                if link.childNodes.length == 0 or (
+                    link.childNodes.length == 1 and
+                    link.firstChild.nodeType == Node.TEXT_NODE and
+                    link.firstChild.nodeValue == href
+                ):
+                    _empty(link)
+                    link.appendChild(document.createTextNode(user_link.text))
+
+    del links
+
+    images = _get_elements_by_tagName_helper(fragment, "img", NodeList())
+
+    for image in images:
+        src = image.getAttribute("src")
+        alt = image.getAttribute("alt")
+
+        if src:
+            t, _, user = src.partition(":")
+
+            if t != "user":
+                link = document.createElement("a")
+                link.setAttribute("href", src)
+                link.appendChild(document.createTextNode(alt or src))
+                image.parentNode.replaceChild(link, image)
+                continue
+
+            image.setAttribute("src", "/~{user}/avatar".format(user=login_name(user)))
+
+            link = document.createElement("a")
+            link.setAttribute("href", "/~{user}".format(user=login_name(user)))
+            link.setAttribute("class", "user-icon")
+            image.parentNode.replaceChild(link, image)
+            link.appendChild(image)
+
+            if alt:
+                label = document.createElement("span")
+                label.appendChild(document.createTextNode("alt"))
+
+                link.appendChild(document.createTextNode(" "))
+                link.appendChild(label)
+
+                image.setAttribute("alt", "")
             else:
-                continue
+                image.setAttribute("alt", user)
 
-            if not link.text or link.text == href:
-                link.text = user
+    _add_user_links(fragment)
 
-    for parent in fragment.findall(".//*[img]"):
-        for image in list(parent):
-            if image.tag != "img":
-                continue
+    unsafe_stream = html5lib.getTreeWalker("dom")(fragment)
 
-            src = image.get("src")
+    safe_stream = DefangFilter(unsafe_stream)
 
-            if src:
-                t, _, user = src.partition(":")
-
-                if t != "user":
-                    if images_left:
-                        images_left -= 1
-                    else:
-                        i = list(parent).index(image)
-                        link = etree.Element(u"a")
-                        link.tail = image.tail
-                        src = image.get("src")
-
-                        if src:
-                            link.set(u"href", src)
-                            link.text = image.attrib.get("alt", src)
-
-                        parent[i] = link
-
-                    continue
-
-                image.set(u"src", u"/~{user}/avatar".format(user=login_name(user)))
-
-                link = etree.Element(u"a")
-                link.set(u"href", u"/~{user}".format(user=login_name(user)))
-                link.set(u"class", u"user-icon")
-                parent.insert(list(parent).index(image), link)
-                parent.remove(image)
-                link.append(image)
-                link.tail = image.tail
-
-                if "alt" in image.attrib and image.attrib["alt"]:
-                    image.tail = u" "
-                    label = etree.SubElement(link, u"span")
-                    label.text = image.attrib["alt"]
-                    del image.attrib["alt"]
-                else:
-                    image.tail = None
-                    image.set(u"alt", user)
-
-    add_user_links(fragment, None, True)
-
-    defang(fragment)
-
-    return fragment
+    return _add_nofollows(safe_stream)
 
 
-def markdown(target, image=False):
-    fragment = _markdown_fragment(target, image)
-    return html.tostring(fragment, encoding=unicode)[5:-6]  # <div>...</div>
+def _chomp(s):
+    return s[:-1] if s.endswith("\n") else s
 
 
-def _itertext_spaced(element):
-    if element.text:
-        yield element.text
+def markdown(target):
+    stream = _safe_markdown_stream(target)
+    serializer = HTMLSerializer(quote_attr_values="always", omit_optional_tags=False, alphabetical_attributes=True)
+    return _chomp(serializer.render(stream))
 
-    for child in element:
-        is_block = child.tag in _EXCERPT_BLOCK_ELEMENTS
 
-        if is_block:
-            yield " "
+def _itertext_spaced(stream):
+    for token in stream:
+        tt = token["type"]
 
-        for t in _itertext_spaced(child):
-            yield t
-
-        if child.tail:
-            yield child.tail
-
-        if is_block:
-            yield " "
+        if tt in ("Characters", "SpaceCharacters"):
+            yield token["data"]
+        elif tt in ("StartTag", "EndTag"):
+            if token["name"] in _EXCERPT_BLOCK_ELEMENTS:
+                yield " "
+        elif tt == "Entity":
+            key = token["name"] + ";"
+            yield entities.get(key, "&" + key)
 
 
 def _normalize_whitespace(text):
@@ -315,8 +321,8 @@ def _normalize_whitespace(text):
 
 
 def markdown_excerpt(markdown_text, length=300):
-    fragment = _markdown_fragment(markdown_text, image=False)
-    text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
+    stream = _safe_markdown_stream(markdown_text)
+    text = _normalize_whitespace("".join(_itertext_spaced(stream)))
 
     if len(text) <= length:
         return text
@@ -325,5 +331,5 @@ def markdown_excerpt(markdown_text, length=300):
 
 
 def markdown_link(title, url):
-    title = title.replace('[', '\\[').replace(']', '\\]')
-    return '[%s](%s)' % (title, url)
+    title = title.replace("[", "\\[").replace("]", "\\]")
+    return "[%s](%s)" % (title, url)

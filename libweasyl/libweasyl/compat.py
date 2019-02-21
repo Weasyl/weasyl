@@ -10,9 +10,12 @@ if _PY3:
     def iterbytes(b):
         for e in range(len(b)):
             yield b[e:e + 1]
+
+    xrange = range
 else:
     unicode = unicode
     iterbytes = iter
+    xrange = xrange
 
 
 __all__ = ['_PY3', 'iterbytes', 'unicode']

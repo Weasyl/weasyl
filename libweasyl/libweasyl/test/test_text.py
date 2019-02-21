@@ -149,6 +149,10 @@ def test_tag_stripping():
     assert markdown(u"<!--[if IE]><script>alert(1)</script><![endif]-->") == u""
 
 
+def test_link_stripping():
+    assert markdown(u"[link](data:text/html,foo)") == u"<p><a>link</a></p>"
+
+
 markdown_excerpt_tests = [
     (u'', u''),
     (u'short', u'short'),

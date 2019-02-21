@@ -3,23 +3,14 @@
 }
 
 .pdf-text-layer {
-	color: transparent;
 	left: 0;
-	line-height: 1;
 	position: absolute;
 	right: 0;
-	-webkit-transform-origin: 0 0 0;
-	    -ms-transform-origin: 0 0 0;
-	        transform-origin: 0 0 0;
 	white-space: pre;
 }
 
 .pdf-text-layer ::-moz-selection { background-color: rgba(0, 0, 255, 0.3); }
 .pdf-text-layer ::selection { background-color: rgba(0, 0, 255, 0.3); }
-
-.pdf-text-layer > div {
-	position: absolute;
-}
 
 #detail-stage {
 	overflow: visible;

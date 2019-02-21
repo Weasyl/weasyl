@@ -47,7 +47,8 @@ All allowed HTML attributes.
 """
 
 allowed_protocols = frozenset([
-    "http", "https", "mailto", "irc", "ircs", "magnet"
+    "http", "https", "mailto", "irc", "ircs", "magnet",
+    "data",  # disallowed via allowed_content_types, working around https://github.com/html5lib/html5lib-python/pull/412
 ])
 """
 All allowed URL schemes.
@@ -83,6 +84,7 @@ class DefangFilter(sanitizer.Filter):
             allowed_elements=allowed_elements,
             allowed_attributes=allowed_attributes,
             allowed_protocols=allowed_protocols,
+            allowed_content_types=frozenset(),
         )
 
     def sanitize_css(self, style):

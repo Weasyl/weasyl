@@ -81,9 +81,7 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
     else:
         unixtime = "cm.unixtime"
 
-        if submitid:
-            table = "submitcomment"
-        elif charid:
+        if charid:
             table = "charcomment"
         elif journalid:
             table = "journalcomment"

@@ -67,7 +67,6 @@ def submission_(request):
 
     submission_files = item["sub_media"].get("submission")
     submission_file = submission_files[0] if submission_files else None
-    extras["pdf"] = bool(submission_file) and submission_file["file_type"] == "pdf"
 
     page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [

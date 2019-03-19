@@ -65,9 +65,7 @@ $code:
       $if cover:
         <img src="${cover['display_url']}" alt="${query['title']}" />
       <div id="detail-art-text" class="content pdf">
-        <a href="${submission['display_url']}?download" id="pdf-download" class="button">Download PDF</a>
-        <script src="${CDNIFY('/static/pdf/text_layer_builder.js?' + SHA)}"></script>
-        <script src="${CDNIFY('/static/pdf/viewer.js?' + SHA)}"></script>
+        <a href="${submission['display_url']}" id="pdf-download" class="button">View PDF</a>
       </div>
     </div>
 

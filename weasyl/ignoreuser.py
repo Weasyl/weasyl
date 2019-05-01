@@ -66,8 +66,7 @@ def insert(userid, ignore):
             db.execute("""
                 INSERT INTO ignoreuser
                 SELECT %(user)s, ignore FROM UNNEST (%(ignore)s) AS ignore
-                    LEFT JOIN ignoreuser ON ignoreuser.otherid = ignore AND ignoreuser.userid = %(user)s
-                    WHERE ignoreuser.otherid IS NULL
+                ON CONFLICT DO NOTHING
             """, user=userid, ignore=ignore)
 
             db.execute("""
@@ -90,7 +89,7 @@ def insert(userid, ignore):
                        user=userid, ignore=ignore)
             db.execute("DELETE FROM watchuser WHERE userid = %(user)s AND otherid = %(ignore)s",
                        user=userid, ignore=ignore)
-            db.execute("INSERT INTO ignoreuser VALUES (%(user)s, %(ignore)s)",
+            db.execute("INSERT INTO ignoreuser VALUES (%(user)s, %(ignore)s) ON CONFLICT DO NOTHING",
                        user=userid, ignore=ignore)
 
     cached_list_ignoring.invalidate(userid)

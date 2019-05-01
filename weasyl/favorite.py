@@ -10,10 +10,7 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
     statement = [
         " FROM favorite fa INNER JOIN"
         " submission su ON fa.targetid = su.submitid"
@@ -48,15 +45,15 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, 
     return statement
 
 
-def select_submit_count(userid, rating, otherid=None, backid=None, nextid=None, config=None):
+def select_submit_count(userid, rating, otherid=None, backid=None, nextid=None):
     statement = ["SELECT COUNT(submitid) "]
-    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid, config))
+    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
     return d.execute("".join(statement))[0][0]
 
 
-def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
+def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT su.submitid, su.title, su.rating, fa.unixtime, su.userid, pr.username, su.subtype"]
-    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid, config))
+    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY fa.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
 
@@ -75,10 +72,7 @@ def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None,
     return query[::-1] if backid else query
 
 
-def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-    query = []
+def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["""
         SELECT ch.charid, ch.char_name, ch.rating, fa.unixtime, ch.userid, pr.username, ch.settings
         FROM favorite fa
@@ -129,10 +123,7 @@ def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None, c
     return query[::-1] if backid else query
 
 
-def select_journal(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-    query = []
+def select_journal(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["""
         SELECT jo.journalid, jo.title, jo.rating, fa.unixtime, jo.userid, pr.username, pr.config
         FROM favorite fa

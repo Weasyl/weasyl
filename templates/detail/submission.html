@@ -241,7 +241,7 @@ $code:
           </form>
         $else:
           <h3>Request Collection</h3>
-          $if myself['userid'] in query['collectors']:
+          $if query['collected']:
             <p>This submission is already in your collection.</p>
           $elif query['friends_only']:
             <p>This submission is marked friends only, and cannot be collected.</p>

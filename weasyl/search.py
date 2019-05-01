@@ -401,7 +401,7 @@ def select(**kwargs):
 #   find    backid
 #   cat     nextid
 
-def browse(userid, rating, limit, form, find=None, config=None):
+def browse(userid, rating, limit, form, find=None):
     backid = d.get_int(form.backid)
     nextid = d.get_int(form.nextid)
 
@@ -409,13 +409,12 @@ def browse(userid, rating, limit, form, find=None, config=None):
         form.find = find
 
     if form.find == "char":
-        query = character.select_list(userid, rating, limit, backid=backid, nextid=nextid, config=config)
+        query = character.select_list(userid, rating, limit, backid=backid, nextid=nextid)
     elif form.find == "journal":
-        query = journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid, config=config)
+        query = journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid)
     else:
         query = submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
-                                       subcat=d.get_int(form.cat) if d.get_int(form.cat) in [1000, 2000, 3000] else None,
-                                       config=config)
+                                       subcat=d.get_int(form.cat) if d.get_int(form.cat) in [1000, 2000, 3000] else None)
 
     if query and not backid:
         backid = query[0][form.find + "id"]

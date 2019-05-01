@@ -21,15 +21,11 @@ def check(userid, otherid):
                      [userid, otherid], options="bool")
 
 
-def list_ignoring(userid, within=False):
-    return d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i",
-                     [userid], options=["within"] if within else [])
-
-
 @region.cache_on_arguments()
 @d.record_timing
 def cached_list_ignoring(userid):
-    return list_ignoring(userid, within=True)
+    return d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i",
+                     [userid], options=["within"])
 
 
 def select(userid, limit, backid=None, nextid=None):

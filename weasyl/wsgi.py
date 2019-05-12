@@ -15,6 +15,7 @@ from weasyl import staff_config
 
 # Get a configurator and register some tweens to handle cleanup, etc.
 config = Configurator()
+config.add_tween("weasyl.middleware.rate_limit_check_tween_factory")
 config.add_tween("weasyl.middleware.status_check_tween_factory")
 config.add_tween("weasyl.middleware.sql_debug_tween_factory")
 config.add_tween("weasyl.middleware.session_tween_factory")

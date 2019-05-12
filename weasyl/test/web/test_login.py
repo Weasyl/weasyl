@@ -4,6 +4,7 @@ import pyotp
 import pytest
 
 from weasyl import define as d
+from weasyl import errorcode
 from weasyl import two_factor_auth as tfa
 from weasyl.test import db_utils
 
@@ -61,3 +62,43 @@ def test_2fa_changes_token(app):
     assert new_csrf != csrf
     assert not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM sessions WHERE userid = %(user)s)", user=user)
     assert d.engine.scalar("SELECT EXISTS (SELECT 0 FROM sessions WHERE additional_data->'2fa_pwd_auth_userid' = %(user)s::text)", user=user)
+
+
+@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+def test_login_attempts_are_rate_limited(app):
+    """ Ensure that the login route is rate limited. """
+    db_utils.create_user(username='user1', password='password1')
+    for i in range(5):
+        # Exceed the rate limit
+        app.post('/signin', {'username': 'user1', 'password': 'not_the_password'}, status=403)
+
+    # POSTs will fail...
+    resp = app.post('/signin', {'username': 'user1', 'password': 'not_the_password'}, status=429)
+    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['rateLimitExceeded']
+
+    # As will GETs, since the route is the same.
+    resp = app.get('/signin', status=429)
+    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['rateLimitExceeded']
+
+
+# TODO: This test won't work until the 2FA quasi-rate-limit check is pulled out.
+# The version we were using was an incomplete version, anyway. (As in, a re-auth could be done immediately)
+"""
+@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+def test_login_with_2fa_attempts_are_rate_limited(app):
+    "" After username/password auth succeeds, 2FA token attempts are rate limited. ""
+    user = db_utils.create_user(username='user1', password='password1')
+    assert tfa.store_recovery_codes(user, ','.join(tfa.generate_recovery_codes()))
+    tfa_secret = pyotp.random_base32()
+    totp = pyotp.TOTP(tfa_secret)
+    tfa_response = totp.now()
+    assert tfa.activate(user, tfa_secret, tfa_response)
+    resp = app.post('/signin', {'username': 'user1', 'password': 'password1'})
+
+    for _ in range(5):
+        # Exceed the rate limit
+        app.post('/signin/2fa-auth', {'tfaresponse': '000000'}, status=403)
+    # POSTs will fail...
+    resp = app.post('/signin/2fa-auth', {'tfaresponse': '000000'}, status=429)
+    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['rateLimitExceeded']
+"""

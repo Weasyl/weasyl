@@ -91,7 +91,7 @@ def twofactorauth_disabled_required(view_callable):
     """
     def inner(request):
         if two_factor_auth.is_2fa_enabled(request.userid):
-            raise WeasylError("TwoFactorAuthenticationRequireDisbled")
+            raise WeasylError("TwoFactorAuthenticationRequireDisabled")
         return view_callable(request)
     return inner
 
@@ -116,6 +116,27 @@ def supports_json(view_callable):
             return Response(json.dumps(result), headerlist=[("Content-Type", "application/json")])
         return view_callable(request)
     return inner
+
+
+def rate_limit_route(expiration_time=60 * 2, limit=5):
+    """
+    A route decorator which enables rate limiting via the rate-limiting middleware tween.
+
+    Adds (or overwrites, if for some reason the client sets them) headers for how long the rate limit block period on
+    that route should be, and what the upper-bound of the failed attempts should be.
+
+    :param expiration_time: An integer in seconds representing how long before the rate limit should expire.
+        Defaults to 120 (two minutes).
+    :param limit: How many attempts are permitted before the rate limit is hit. Default 5.
+    :return: The pyramid view_callable/request.
+    """
+    def outer(view_callable):
+        def inner(request):
+            request.headers['Wzl-RateLimit-Expiration'] = expiration_time
+            request.headers['Wzl-RateLimit-Count'] = limit
+            return view_callable(request)
+        return inner
+    return outer
 
 
 class controller_base(object):

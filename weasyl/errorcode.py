@@ -121,6 +121,9 @@ error_messages = {
     "passwordInsecure": "Passwords must be at least 10 characters in length.",
     "passwordMismatch": "The password you entered did not match the password confirmation.",
     "priceidInvalid": "You did not specify a price to edit.",
+    "rateLimitExceeded": (
+        "Multiple invalid requests have been detected, and as such you have been rate limited. "
+        "Please wait a while, and try again."),
     "RatingExceeded": rating,
     "ratingInvalid": "The specified rating is invalid.",
     "recipientExcessive": "You specified too many recipients for this message.",
@@ -157,7 +160,7 @@ error_messages = {
         "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),
     "TwoFactorAuthenticationAuthenticationTimeout": "Your authentication session has timed out. Please try logging in again.",
     "TwoFactorAuthenticationRequireEnabled": "Two-Factor Authentication must be enabled to access this page.",
-    "TwoFactorAuthenticationRequireDisbled": "Two-Factor Authentication must not be enabled to access this page.",
+    "TwoFactorAuthenticationRequireDisabled": "Two-Factor Authentication must not be enabled to access this page.",
     "TwoFactorAuthenticationZeroRecoveryCodesRemaining": (
         "Your account had zero recovery codes remaining, and as such 2FA was disabled to prevent "
         "you from being permanently unable to log into your account. You may re-enable 2FA if you desire to do so."),
@@ -178,10 +181,11 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
-    "userRecordMissing": 404,
-    "submissionRecordMissing": 404,
-    "journalRecordMissing": 404,
     "characterRecordMissing": 404,
+    "journalRecordMissing": 404,
+    "submissionRecordMissing": 404,
+    "userRecordMissing": 404,
+    "rateLimitExceeded": 429,
 }
 
 

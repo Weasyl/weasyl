@@ -15,6 +15,7 @@ from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
     login_required,
+    rate_limit_route,
     token_checked,
 )
 
@@ -22,6 +23,7 @@ from weasyl.controllers.decorators import (
 # Session management functions
 
 @guest_required
+@rate_limit_route()
 def signin_get_(request):
     return Response(define.webpage(request.userid, "etc/signin.html", [
         False,
@@ -31,6 +33,7 @@ def signin_get_(request):
 
 @guest_required
 @token_checked
+@rate_limit_route()
 def signin_post_(request):
     form = request.web_input(username="", password="", referer="", sfwmode="nsfw")
     form.referer = form.referer or '/'
@@ -73,7 +76,10 @@ def signin_post_(request):
             title="Sign In - 2FA"
         ))
     elif logerror == "invalid":
-        return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
+        # Incorrect credentials provided
+        return Response(define.webpage(
+            request.userid, "etc/signin.html", [True, form.referer]
+        ), status=403)
     elif logerror == "banned":
         reason = moderation.get_ban_reason(logid)
         return Response(define.errorpage(
@@ -141,6 +147,7 @@ def signin_2fa_auth_get_(request):
 @token_checked
 def signin_2fa_auth_post_(request):
     sess = define.get_weasyl_session()
+    referer = request.params["referer"] if 'referer' in request.params else "/"
 
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
@@ -161,7 +168,6 @@ def signin_2fa_auth_post_(request):
         # 2FA passed, so login and cleanup.
         _cleanup_2fa_session()
         login.signin(request, tfa_userid, ip_address=request.client_addr, user_agent=request.user_agent)
-        ref = request.params["referer"] or "/"
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
@@ -170,8 +176,8 @@ def signin_2fa_auth_post_(request):
                 errorcode.error_messages['TwoFactorAuthenticationZeroRecoveryCodesRemaining'],
                 [["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]]
             ))
-        # Return to the target page, restricting to the path portion of 'ref' per urlparse.
-        raise HTTPSeeOther(location=urlparse.urlparse(ref).path)
+        # Return to the target page, restricting to the path portion of 'referer' per urlparse.
+        raise HTTPSeeOther(location=urlparse.urlparse(referer).path)
     elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
         _cleanup_2fa_session()
@@ -188,8 +194,9 @@ def signin_2fa_auth_post_(request):
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
-             "2fa"], title="Sign In - 2FA"))
+            [define.get_display_name(tfa_userid), referer, two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+             "2fa"], title="Sign In - 2FA"
+        ), status=403)
 
 
 @login_required

@@ -11,6 +11,7 @@ import raven
 import raven.processors
 import traceback
 
+from dogpile.cache.api import NO_VALUE
 import pyramid.compat
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
@@ -23,6 +24,7 @@ from web.utils import storify
 from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy
 from libweasyl.models.users import GuestSession
+from weasyl.cache import region
 from weasyl import define as d
 from weasyl import errorcode
 from weasyl import http
@@ -239,6 +241,38 @@ def http2_server_push_tween_factory(handler, registry):
         resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
         return resp
     return http2_server_push
+
+
+def rate_limit_check_tween_factory(handler, registry):
+    """
+    Enforces rate limiting for routes which have been designated as having a rate limit for non 200-status requests.
+
+    Only triggers if appropriate headers have been added by `weasyl.controllers.decorators.rate_limit_route()` on the
+    route in question, and if the pyramid.response.status_code indicates a client error (4xx; e.g., 403 Forbidden, when
+    a sign-in fails authentication).
+
+    When the limit is exceeded, subsequent calls against the rate-limited route will raise WeasylError("rateLimitExceeded"),
+    (HTTP 429), until the cached expiration_time passes.
+    """
+    def limit_check(request):
+        resp = handler(request)
+        # Only process the tween if we have indicated that the route is subject to rate limiting
+        if 'Wzl-RateLimit-Count' in request.headers and 'Wzl-RateLimit-Expiration' in request.headers:
+            rate_limit_expiration = request.headers['Wzl-RateLimit-Expiration']
+            rate_limit_max = request.headers['Wzl-RateLimit-Count']
+            cache_key = "mw_rlimit--{addr}|{route_path}".format(addr=request.client_addr, route_path=request.current_route_path())
+            attempts = region.get(key=cache_key, expiration_time=rate_limit_expiration)
+            # If the value is not cached, dogpile returns NO_VALUE (thus distinguishing from None)
+            attempts = 0 if attempts == NO_VALUE else attempts + 1
+            if attempts >= rate_limit_max:
+                # TODO: Placeholder? How do we want to handle ratelimiting?
+                raise WeasylError("rateLimitExceeded")
+            elif 400 <= resp.status_code < 500:
+                # Only increment the counter if we experienced an error.
+                region.set(key=cache_key, value=attempts)
+
+        return resp
+    return limit_check
 
 
 # Properties and methods to enhance the pyramid `request`.

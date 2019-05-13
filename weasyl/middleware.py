@@ -270,7 +270,6 @@ def rate_limit_check_tween_factory(handler, registry):
             elif 400 <= resp.status_code < 500:
                 # Only increment the counter if we experienced an error.
                 region.set(key=cache_key, value=attempts)
-
         return resp
     return limit_check
 

@@ -66,8 +66,6 @@ def signin_post_(request):
         sess.additional_data['2fa_pwd_auth_timestamp'] = arrow.now().timestamp
         # The userid of the user attempting authentication
         sess.additional_data['2fa_pwd_auth_userid'] = logid
-        # The number of times the user has attempted to authenticate via 2FA
-        sess.additional_data['2fa_pwd_auth_attempts'] = 0
         sess.save = True
         return Response(define.webpage(
             request.userid,
@@ -112,11 +110,11 @@ def _cleanup_2fa_session():
     sess = define.get_weasyl_session()
     del sess.additional_data['2fa_pwd_auth_timestamp']
     del sess.additional_data['2fa_pwd_auth_userid']
-    del sess.additional_data['2fa_pwd_auth_attempts']
     sess.save = True
 
 
 @guest_required
+@rate_limit_route(expiration_time=60 * 1)
 def signin_2fa_auth_get_(request):
     sess = define.get_weasyl_session()
 
@@ -145,13 +143,14 @@ def signin_2fa_auth_get_(request):
 
 @guest_required
 @token_checked
+@rate_limit_route(expiration_time=60 * 1)
 def signin_2fa_auth_post_(request):
     sess = define.get_weasyl_session()
     referer = request.params["referer"] if 'referer' in request.params else "/"
 
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
-    if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
+    if not sess.additional_data and '2fa_pwd_auth_userid' not in sess.additional_data:
         return Response(define.errorpage(request.userid, errorcode.permission))
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
@@ -178,18 +177,7 @@ def signin_2fa_auth_post_(request):
             ))
         # Return to the target page, restricting to the path portion of 'referer' per urlparse.
         raise HTTPSeeOther(location=urlparse.urlparse(referer).path)
-    elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
-        # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
-        _cleanup_2fa_session()
-        return Response(define.errorpage(
-            request.userid,
-            errorcode.error_messages['TwoFactorAuthenticationAuthenticationAttemptsExceeded'],
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
-        ))
     else:
-        # Log the failed authentication attempt to the session and save
-        sess.additional_data['2fa_pwd_auth_attempts'] += 1
-        sess.save = True
         # 2FA failed; redirect to 2FA input page & inform user that authentication failed.
         return Response(define.webpage(
             request.userid,

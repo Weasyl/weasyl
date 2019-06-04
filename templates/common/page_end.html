@@ -73,6 +73,15 @@ $def with (options=None, active_users_string='')
 
 </div><!-- /page-container -->
 
+<script src="${CDNIFY('/static/scripts/yall.min.js')}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    yall({
+      threshold: 100
+    });
+  });
+</script>
+
 <script src="/static/jquery-2.2.4.min.js"></script>
 <script src="/static/typeahead.bundle.min.js"></script>
 <script src="/static/marked.js?${SHA}"></script>
@@ -84,15 +93,6 @@ $if options and "imageselect" in options:
 
 $if options and 'search' in options:
   <script src="${CDNIFY('/static/search.js?' + SHA)}"></script>
-
-<script src="${CDNIFY('/static/scripts/yall-2.2.0.min.js')}"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    yall({
-      threshold: 100
-    });
-  });
-</script>
 
 </body>
 </html>

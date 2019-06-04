@@ -30,12 +30,6 @@ $code:
   $if "imageselect" in options:
     <link type="text/css" rel="stylesheet" href="${CDNIFY('/static/scripts/imageselect/imageselect.css?' + SHA)}" />
 
-  $if extended_options.get("pdf"):
-    <link rel="stylesheet" href="${CDNIFY('/static/pdf/viewer.css?' + SHA)}" />
-
-    <script src="${CDNIFY('/static/pdf/compatibility.js?' + SHA)}"></script>
-    <script src="${CDNIFY('/static/pdf/pdf.js?' + SHA)}"></script>
-
   $if 'twitter_card' in extended_options:
     <meta name="twitter:site" content="@weasyl" />
     <meta name="twitter:domain" content="weasyl.com" />

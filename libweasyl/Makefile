@@ -11,7 +11,8 @@ VE ?= ve
 PYVENV ?= virtualenv
 
 # Whether to install from wheels
-USE_WHEEL ?= --no-binary :all:
+# Build specific binaries from source, where binaries have been problematic in the past
+USE_WHEEL ?= --no-binary sanpera,lxml,psycopg2cffi
 
 #
 # Rules

@@ -332,24 +332,26 @@ def shoutreply_insert(userid, commentid, otherid, parentid, staffnote=False):
 #   4030 journal comment
 #   4040 character comment
 #   4050 collection comment
+#   4060 site update comment
 
-def comment_insert(userid, commentid, otherid, submitid, charid, journalid):
-    ownerid = d.get_ownerid(submitid, charid, journalid)
-    if not otherid:
-        otherid = ownerid
+def comment_insert(userid, commentid, otherid, submitid, charid, journalid, updateid):
+    assert otherid
 
     if submitid:
+        ownerid = d.get_ownerid(submitid, charid, journalid)
         notiftype = 4020 if ownerid == otherid else 4050
     elif charid:
         notiftype = 4040
     elif journalid:
         notiftype = 4030
+    elif updateid:
+        notiftype = 4060
     else:
         raise WeasylError("Unexpected")
 
     d.execute(
         "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, %i, %i, %i)",
-        [otherid, userid, d.get_targetid(submitid, charid, journalid), commentid, d.get_time(), notiftype])
+        [otherid, userid, d.get_targetid(submitid, charid, journalid, updateid), commentid, d.get_time(), notiftype])
 
 
 # notifications
@@ -361,6 +363,8 @@ def comment_insert(userid, commentid, otherid, submitid, charid, journalid):
 #   4035 journal comment reply
 #   4040 character comment
 #   4045 character comment reply
+#   4060 site update comment
+#   4065 site update comment reply
 
 def comment_remove(commentid, feature):
     comment_code = {
@@ -368,6 +372,7 @@ def comment_remove(commentid, feature):
         'submit': 4020,
         'char': 4040,
         'journal': 4030,
+        'siteupdate': 4060,
     }[feature]
     reply_code = comment_code + 5
 
@@ -398,11 +403,23 @@ def comment_remove(commentid, feature):
 #   4025 submission comment reply
 #   4035 journal comment reply
 #   4045 character comment reply
+#   4065 site update comment reply
 
-def commentreply_insert(userid, commentid, otherid, parentid, submitid, charid, journalid):
+def commentreply_insert(userid, commentid, otherid, parentid, submitid, charid, journalid, updateid):
+    if submitid:
+        notiftype = 4025
+    elif charid:
+        notiftype = 4045
+    elif journalid:
+        notiftype = 4035
+    elif updateid:
+        notiftype = 4065
+    else:
+        raise WeasylError("Unexpected")
+
     d.execute(
         "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, %i, %i, %i)",
-        [otherid, userid, parentid, commentid, d.get_time(), 4025 if submitid else 4045 if charid else 4035])
+        [otherid, userid, parentid, commentid, d.get_time(), notiftype])
 
 
 # notifications

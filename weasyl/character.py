@@ -295,8 +295,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
     }
 
 
-def select_query(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
-
+def select_query(userid, rating, otherid=None, backid=None, nextid=None):
     statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE ch.settings !~ '[h]'"]
 
     # Ignored users and blocked tags
@@ -326,17 +325,15 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None, options
     return statement
 
 
-def select_count(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_count(userid, rating, otherid=None, backid=None, nextid=None):
     statement = ["SELECT count(ch.charid)"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
     return define.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY ch.charid%s LIMIT %i" % ("" if backid else " DESC", limit))
 

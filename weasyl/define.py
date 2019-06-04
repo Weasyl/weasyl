@@ -209,9 +209,7 @@ def _compile(template_name):
         _template_cache[template_name] = template = frender(
             template_path,
             globals={
-                "INT": int,
                 "STR": str,
-                "SUM": sum,
                 "LOGIN": get_sysname,
                 "TOKEN": get_token,
                 "CSRF": _get_csrf_input,
@@ -228,7 +226,6 @@ def _compile(template_name):
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
-                "CONFIG": config_read_setting,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
                 "THUMB": thumb_for_sub,

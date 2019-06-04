@@ -6,19 +6,19 @@ web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
 jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==19.0.0           # as above
 raven==6.10.0
-requests[security]==2.21.0
+requests[security]==2.22.0
 oauth2==1.9.0.post1
 python-memcached==1.59
 txstatsd==1.0.0+weasyl.2    # https://github.com/Weasyl/txstatsd
 crochet==1.9.0
 txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
-Dozer==0.6                  # For WSGI memory profiling
-Pillow==5.4.1               # For WSGI memory profiling
-pyramid==1.10.1
+Dozer==0.7                  # For WSGI memory profiling
+Pillow==6.0.0               # For WSGI memory profiling
+pyramid==1.10.4
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
-WebTest==2.0.32
+WebTest==2.0.33
 pyotp==2.2.6                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
-cryptography==2.4.2         # For Two-Factor Authentication
+cryptography==2.7         # For Two-Factor Authentication
 publicsuffixlist==0.6.3     # For extracting the base domain for the email blacklist

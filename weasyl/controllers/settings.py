@@ -543,21 +543,19 @@ def manage_collections_get_(request):
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
 
     if form.feature == "pending":
         return Response(define.webpage(request.userid, "manage/collections_pending.html", [
             # Pending Collections
             collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
-                                   pending=True, config=config),
+                                   pending=True),
             request.userid
         ], title="Pending Collections"))
 
     return Response(define.webpage(request.userid, "manage/collections_accepted.html", [
         # Accepted Collections
-        collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
-                               config=config),
+        collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid),
     ], title="Accepted Collections"))
 
 

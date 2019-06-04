@@ -52,6 +52,7 @@ def test_select_last(app, site_updates):
         'title': most_recent.title,
         'content': most_recent.content,
         'unixtime': most_recent.unixtime.timestamp + UNIXTIME_OFFSET,
+        'comment_count': 0,
     }
 
 

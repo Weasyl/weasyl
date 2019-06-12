@@ -274,7 +274,7 @@ def _safe_markdown_stream(target):
 
             if alt:
                 label = document.createElement("span")
-                label.appendChild(document.createTextNode("alt"))
+                label.appendChild(document.createTextNode(alt))
 
                 link.appendChild(document.createTextNode(" "))
                 link.appendChild(label)

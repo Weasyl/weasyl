@@ -26,9 +26,9 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission(user1, rating=ratings.GENERAL.code)
         db_utils.create_submission(user1, rating=ratings.MATURE.code)
         db_utils.create_submission(user1, rating=ratings.EXPLICIT.code)
-        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, 10, config="l")))
-        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, 10, config="l")))
-        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, 10, config="l")))
+        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
+        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, 10)))
+        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
 
         # A user sees their own submissions regardless of the rating level
         self.assertEqual(3, len(submission.select_list(

@@ -592,7 +592,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "favorited": favorite.check(userid, submitid=submitid),
         "friends_only": "f" in query[8],
         "hidden_submission": "h" in query[8],
-        "collectors": collection.find_owners(submitid),
+        "collected": collection.owns(userid, submitid),
         "no_request": not settings.allow_collection_requests,
 
         "text": submittext,
@@ -729,10 +729,8 @@ def twitter_card(submitid):
 
 def select_query(userid, rating, otherid=None, folderid=None,
                  backid=None, nextid=None, subcat=None, exclude=None,
-                 options=[], config=None, profile_page_filter=False,
+                 options=[], profile_page_filter=False,
                  index_page_filter=False, featured_filter=False):
-    if config is None:
-        config = d.get_config(userid)
     statement = [
         "FROM submission su "
         "INNER JOIN profile pr ON su.userid = pr.userid "
@@ -771,8 +769,6 @@ def select_query(userid, rating, otherid=None, folderid=None,
         statement.append(" AND su.submitid > %i" % (backid,))
     elif nextid:
         statement.append(" AND su.submitid < %i" % (nextid,))
-    elif "offset" in options:
-        statement.append(" AND su.unixtime < %i" % (d.get_time() - 1800,))
 
     if userid:
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
@@ -788,18 +784,21 @@ def select_query(userid, rating, otherid=None, folderid=None,
 
 def select_count(userid, rating, otherid=None, folderid=None,
                  backid=None, nextid=None, subcat=None, exclude=None,
-                 options=[], config=None, profile_page_filter=False,
+                 options=[], profile_page_filter=False,
                  index_page_filter=False, featured_filter=False):
+    if options not in [[], ['critique'], ['randomize']]:
+        raise ValueError("Unexpected options: %r" % (options,))
+
     statement = ["SELECT COUNT(submitid) "]
     statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, config, profile_page_filter,
+        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
         index_page_filter, featured_filter))
     return d.execute("".join(statement))[0][0]
 
 
 def select_list(userid, rating, limit, otherid=None, folderid=None,
                 backid=None, nextid=None, subcat=None, exclude=None,
-                options=[], config=None, profile_page_filter=False,
+                options=[], profile_page_filter=False,
                 index_page_filter=False, featured_filter=False):
     """
     Selects a list from the submissions table.
@@ -819,9 +818,6 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
             "critique": Submissions flagged for critique; additionally selects
                 submissions newer than 3 days old
             "randomize": Randomize the ordering of the results
-            "encore": Order results by sort time rather than submission id
-            "offset": Select submissions older than half an hour
-        config: Database config override
         profile_page_filter: Do not select from folders that should not appear
             on the profile page.
         index_page_filter: Do not select from folders that should not appear on
@@ -832,19 +828,21 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         An array with the following keys: "contype", "submitid", "title",
         "rating", "unixtime", "userid", "username", "subtype", "sub_media"
     """
+    if options not in [[], ['critique'], ['randomize']]:
+        raise ValueError("Unexpected options: %r" % (options,))
+
+    randomize = bool(options)
 
     statement = [
         "SELECT su.submitid, su.title, su.rating, su.unixtime, "
         "su.userid, pr.username, su.settings, su.subtype "]
 
     statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, config, profile_page_filter,
+        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
         index_page_filter, featured_filter))
 
     statement.append(
-        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if "critique" in options or "randomize" in options else
-                                     "su.sorttime" if "encore" in options else
-                                     "su.submitid", "" if backid else " DESC", limit))
+        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if randomize else "su.submitid", "" if backid else " DESC", limit))
 
     query = [{
         "contype": 10,
@@ -864,18 +862,11 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
 def select_featured(userid, otherid, rating):
     submissions = select_list(
         userid, rating, limit=1, otherid=otherid,
-        options=['randomize', 'cover'], featured_filter=True)
+        options=['randomize'], featured_filter=True)
     return None if not submissions else submissions[0]
 
 
-# options
-#   "critique"     "encore"
-#   "randomize"    "offset"
-
-def select_near(userid, rating, limit, otherid, folderid, submitid, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
         SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
                pr.username, su.settings, su.subtype

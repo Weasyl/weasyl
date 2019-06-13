@@ -1,7 +1,3 @@
-*.egg
-*.egg-info
-*.py[co]
-__pycache__
 /ve
 /libweasyl/_version.py
 /build

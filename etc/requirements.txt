@@ -1,7 +1,5 @@
 # these are all pinned versions available from https://pypi.weasyldev.com
-zope.interface==4.6.0       # for twisted
-service_identity==17.0.0    # Newer Twisted wants this for cert verification
-Twisted==16.3.2             # Twisted 16.4+ will need additional code work
+Twisted[tls]==19.2.1
 web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
 jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==19.0.0           # as above

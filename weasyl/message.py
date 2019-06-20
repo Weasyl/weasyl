@@ -67,27 +67,86 @@ def remove_all_submissions(userid, only_before=None):
     d._page_header_info.invalidate(userid)
 
 
-def select_journals(userid):
-    journals = d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, we.otherid, we.targetid, pr.username, jo.title
+def select_journals(userid, backtime=None, nexttime=None, limit=None, include_tags=False, include_content=False):
+    if limit:
+        limit_filter = "LIMIT %(limit)s"
+    else:
+        limit_filter = ""
+
+    if backtime:
+        time_filter = "AND we.unixtime > %(backtime)s"
+    elif nexttime:
+        time_filter = "AND we.unixtime < %(nexttime)s"
+    else:
+        time_filter = ""
+
+    if include_tags:
+        tags_select = ", COALESCE(array_agg(tagid) FILTER (WHERE tagid IS NOT NULL), '{}') AS tags"
+        tags_join = "LEFT JOIN searchmapjournal AS smj ON jo.journalid = smj.targetid"
+        tags_groupby = "GROUP BY jo.journalid, pr.username, we.welcomeid"
+    else:
+        tags_select = tags_join = tags_groupby = ""
+
+    if include_content:
+        content_select = ", jo.content"
+    else:
+        content_select = ""
+
+    statement = """
+        SELECT we.welcomeid, we.unixtime, we.otherid, jo.journalid, pr.username, jo.title, jo.rating {content_select} {tags_select}
         FROM welcome we
             INNER JOIN profile pr ON we.otherid = pr.userid
             INNER JOIN journal jo ON we.targetid = jo.journalid
+            {tags_join}
         WHERE
             (we.userid, we.type) = (%(user)s, 1010) AND
             rating <= %(rating)s
+            {time_filter}
+        {tags_groupby}
         ORDER BY we.unixtime DESC
-    """, user=userid, rating=d.get_rating(userid))
+        {limit_filter}
+    """.format(
+        tags_select=tags_select,
+        tags_join=tags_join,
+        tags_groupby=tags_groupby,
+        content_select=content_select,
+        time_filter=time_filter,
+        limit_filter=limit_filter,
+    )
 
-    return [{
-        "type": 1010,
-        "id": j.welcomeid,
-        "unixtime": j.unixtime,
-        "userid": j.otherid,
-        "username": j.username,
-        "journalid": j.targetid,
-        "title": j.title,
-    } for j in journals]
+    journals = d.engine.execute(
+        statement,
+        user=userid,
+        rating=d.get_rating(userid),
+        backtime=backtime,
+        nexttime=nexttime,
+        limit=limit,
+    ).fetchall()
+
+    if include_tags:
+        all_tags = list(frozenset(chain.from_iterable(i.tags for i in journals)))
+        tag_map = {t.tagid: t.title for t in d.engine.execute("SELECT tagid, title FROM searchtag WHERE tagid = ANY (%(tags)s)", tags=all_tags)}
+
+    results = []
+    for j in journals:
+        jrn = {
+            "type": 1010,
+            "contype": 30,
+            "id": j.welcomeid,
+            "journalid": j.journalid,
+            "title": j.title,
+            "rating": j.rating,
+            "unixtime": j.unixtime,
+            "userid": j.otherid,
+            "username": j.username,
+        }
+        if include_tags:
+            jrn["tags"] = [tag_map[tag] for tag in j.tags]
+        if include_content:
+            jrn["content"] = j.content
+
+        results.append(jrn)
+    return results
 
 
 def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None):

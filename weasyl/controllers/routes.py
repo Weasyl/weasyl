@@ -367,6 +367,7 @@ def setup_routes_and_views(config):
     config.add_route("api_user_view", "/api/users/{login:[^/]+}/view")
     config.add_route("api_user_gallery", "/api/users/{login:[^/]+}/gallery")
     config.add_route("api_messages_submissions", "/api/messages/submissions")
+    config.add_route("api_messages_journals", "/api/messages/journals")
     config.add_route("api_messages_summary", "/api/messages/summary")
     config.add_route("api_favorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite")
     config.add_route("api_unfavorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite")

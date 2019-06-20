@@ -149,6 +149,23 @@ def tidy_submission(submission):
             "/%s/%d/%s" % (linktype, submitid, slug_for(submission['title'])))
 
 
+def get_tidy_journal(journal):
+    new_journal = {x: journal[x] for x in journal if x in ["title", "content", "journalid", "tags"]}
+    new_journal['welcomeid'] = journal['id']
+    new_journal['posted_at'] = d.iso8601(journal['unixtime'])
+    contype = journal['contype'] if 'contype' in journal else None
+    if contype:
+        new_journal['type'] = m.CONTYPE_PARSABLE_MAP[contype]
+    new_journal['rating'] = ratings.CODE_TO_NAME[journal['rating']]
+    new_journal['owner'] = journal['username']
+    new_journal['owner_login'] = d.get_sysname(journal['username'])
+    journalid = journal['journalid']
+    if journalid > 0:
+        new_journal['link'] = d.absolutify_url(
+            "/%s/%d/%s" % ("journal", journalid, slug_for(journal['title'])))
+    return new_journal
+
+
 @view_config(route_name='api_frontpage', renderer='json')
 @api_method
 def api_frontpage_(request):
@@ -395,6 +412,38 @@ def api_messages_submissions_(request):
     return {
         'backtime': backtime, 'nexttime': nexttime,
         'submissions': ret,
+    }
+
+
+@view_config(route_name='api_messages_journals', renderer='json')
+@api_login_required
+@api_method
+def api_messages_journals_(request):
+    form = request.web_input(count=0, backtime=0, nexttime=0)
+    try:
+        count = int(form.count)
+        backtime = int(form.backtime)
+        nexttime = int(form.nexttime)
+    except ValueError:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
+    else:
+        count = min(count or 100, 100)
+
+    journals = message.select_journals(
+        request.userid,
+        backtime=backtime,
+        nexttime=nexttime,
+        limit=count + 1,
+        include_tags=True,
+        include_content=True,
+    )
+    backtime, nexttime = d.paginate(journals, backtime, nexttime, count, 'unixtime')
+
+    ret = [get_tidy_journal(jrn) for jrn in journals]
+
+    return {
+        'backtime': backtime, 'nexttime': nexttime,
+        'journals': ret,
     }
 
 

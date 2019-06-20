@@ -155,6 +155,28 @@ Basic endpoints
    :ref:`pagination <pagination>`.
 
 
+.. http:get:: /api/messages/journals
+
+   List journal entries in an :ref:`authenticated <authentication>` user's inbox.
+
+   :query count: If specified, no more than this many submissions will be
+      returned.
+
+   :query backtime: If specified, only return submissions with a ``unixtime``
+      greater (newer) than the ``backtime``. This is used in pagination.
+
+   :query nexttime: If specified, only return submissions with a ``unixtime``
+      less (older) than the ``nexttime``. This is used in pagination.
+
+   This will return at most 100 journals. If *count* is more than 100, at
+   most 100 submissions will be returned.
+
+   The result will be a JSON object with three keys: *journals*, *backtime*,
+   and *nexttime*. *journals* will be a JSON array of basic :ref:`journal
+   objects <journals>`. *backtime* and *nexttime* are used in
+   :ref:`pagination <pagination>`.
+
+
 .. http:get:: /api/messages/summary
 
    List a summary of notifications for an :ref:`authenticated <authentication>`
@@ -313,6 +335,34 @@ Journals
 A basic journal object resembles::
 
    {
+       "title": "Example",
+       "content": "This is a journal!",
+       "journalid": 7777,
+       "link": "https://www.weasyl.com/journal/7777/example",
+       "owner": "Wesley",
+       "owner_login": "wesley",
+       "posted_at": "2012-09-30T08:23:12Z",
+       "rating": "general",
+       "tags": [
+           "test",
+           "example",
+           "weasyl"
+       ],
+       "type": "journal",
+   }
+
+The *title* is the journal's title.
+
+The *content* is the journal's content.
+
+The *rating* key will be one of ``"general"``, ``"mature"``, or ``"explicit"``.
+
+The *type* key will always be ``"journal"``.
+
+Slightly different keys are returned for the
+:http:get:`/api/journals/(journalid)/view` endpoint::
+
+   {
        "comments": 3,
        "content": "<p>Man, I can't believe this site's been in development for a whole year! I'm so excited that everyone finally gets to use it, including myself! What do you all think so far?</p>",
        "favorited": false,
@@ -341,10 +391,6 @@ A basic journal object resembles::
        "type": "journal",
        "views": 174
    }
-
-The *title* is the journal's title.
-
-The *content* is the journal's content.
 
 
 .. _characters:

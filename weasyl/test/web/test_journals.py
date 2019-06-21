@@ -4,6 +4,8 @@ import pytest
 from libweasyl import ratings
 from libweasyl.models.helpers import CharSettings
 from weasyl.test import db_utils
+from weasyl import define as d
+from weasyl import profile
 
 
 @pytest.fixture(name='journal_user')
@@ -110,3 +112,46 @@ def test_login_required_to_edit_journal(app, journal_user):
         status=403,
     )
     assert "You must be signed in to perform this operation." in resp.html.find(id='error_content').text
+
+
+@pytest.mark.usefixtures('db', 'no_csrf')
+def test_api_messages_journals(app):
+    # Test purpose: Make sure journals posted by a user show up in their followers' messages.
+    user = db_utils.create_user(username="journalguy")
+    follower = db_utils.create_user(username="follower")
+    db_utils.create_follow(follower, user)
+
+    cookie_user = db_utils.create_session(user)
+    cookie_follower = db_utils.create_session(follower)
+
+    # the first two of these will be visible. the third will be hidden
+    # because of its rating, and the last will be hidden because the users aren't friends.
+    app.post('/submit/journal', {'title': u'Test journal', 'rating': '10', 'content': u'J1'}, headers={'Cookie': cookie_user})
+    app.post('/submit/journal', {'title': u'Public journal', 'rating': '10', 'content': u'J2'}, headers={'Cookie': cookie_user})
+    app.post('/submit/journal', {'title': u'Restricted journal', 'rating': str(ratings.MATURE.code), 'content': u'J3'}, headers={'Cookie': cookie_user})
+    app.post('/submit/journal', {'title': u'Friends only journal', 'rating': '10', 'content': u'J4', "friends": "1"}, headers={'Cookie': cookie_user})
+
+    resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
+    journals = resp.json["journals"]
+    assert len(journals) == 2 # public, test
+    assert unicode(journals[0]["title"]) == u'Public journal'
+
+    # make the users friends, and try a friend-only journal again.
+    db_utils.create_friendship(user, follower)
+    app.post('/submit/journal', {'title': u'Friends only journal 2', 'rating': '10', 'content': u'J5', "friends": "1"}, headers={'Cookie': cookie_user})
+
+    resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
+    journals = resp.json["journals"]
+    assert len(journals) == 3 # friendonly, test, public
+    assert unicode(journals[0]["title"]) == u'Friends only journal 2'
+
+    # change the follower's rating, and try a restricted journal again.
+    config = profile.Config.from_code(d.get_config(follower))
+    config.rating = ratings.EXPLICIT
+    profile.edit_preferences(follower, preferences=config)
+    app.post('/submit/journal', {'title': u'Restricted journal 2', 'rating': str(ratings.MATURE.code), 'content': u'J6'}, headers={'Cookie': cookie_user})
+
+    resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
+    journals = resp.json["journals"]
+    assert len(journals) == 4 # restricted, friendonly, public, test
+    assert unicode(journals[0]["title"]) == u'Restricted journal 2'

@@ -43,7 +43,7 @@ config/weasyl-staff.py:
 $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
                $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
-	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
+	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt -e .
 	$@/bin/pip install $(USE_WHEEL) pytest flake8
 	touch $@
 

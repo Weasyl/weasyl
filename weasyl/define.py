@@ -172,7 +172,7 @@ def _sql_escape(target):
         # Escape integer
         try:
             return int(target)
-        except:
+        except ValueError:
             return 0
 
 
@@ -516,7 +516,7 @@ def get_int(target):
 
     try:
         return int("".join(i for i in target if i.isdigit()))
-    except:
+    except ValueError:
         return 0
 
 
@@ -679,8 +679,8 @@ def convert_unixdate(day, month, year):
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except:
-        return
+    except ValueError:
+        return None
     # range of a postgres integer
     if ret > 2147483647 or ret < -2147483648:
         return None

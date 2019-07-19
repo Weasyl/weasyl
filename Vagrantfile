@@ -28,7 +28,7 @@ apt-get -y dist-upgrade
 mkdir -p /etc/dnsmasq.d/
 echo "server=/i.weasyl.com/10.10.10.103" > /etc/dnsmasq.d/i.weasyl.com
 apt-get install -y dnsmasq
-if ! grep -Fxq "prepend domain-name-servers 127.0.0.1;" /etc/dhcp/dhclient.conf 
+if ! grep -Fxq "prepend domain-name-servers 127.0.0.1;" /etc/dhcp/dhclient.conf
 then
     echo "prepend domain-name-servers 127.0.0.1;" >> /etc/dhcp/dhclient.conf
 fi

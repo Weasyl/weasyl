@@ -58,9 +58,6 @@ sudo -u postgres dropuser vagrant
 sudo -u postgres createuser -drs vagrant
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl_test
-sudo -u vagrant psql weasyl -c 'CREATE EXTENSION hstore;'
-curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz \
-    | unxz | sudo -u vagrant psql weasyl
 
 openssl req -subj '/CN=lo.weasyl.com' -nodes -new -newkey rsa:2048 \
     -keyout /etc/ssl/private/weasyl.key.pem -out /tmp/weasyl.req.pem
@@ -122,6 +119,10 @@ SCRIPT
 
 
 $unpriv_script = <<SCRIPT
+
+psql weasyl -c 'CREATE EXTENSION hstore;'
+curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz \
+    | unxz | psql weasyl
 
 # Install libweasyl into the weasyl directory and upgrade this VM's DB.
 ln -s /vagrant ~/weasyl

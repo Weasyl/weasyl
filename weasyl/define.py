@@ -666,13 +666,12 @@ def _convert_time(target=None):
         return dt.strftime("%H:%M:%S %Z")
 
 
-def convert_unixdate(day, month, year, escape=True):
+def convert_unixdate(day, month, year):
     """
     Returns the unixtime corresponding to the beginning of the specified date; if
     the date is not valid, None is returned.
     """
-    if escape:
-        day, month, year = (get_int(i) for i in [day, month, year])
+    day, month, year = (get_int(i) for i in [day, month, year])
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))

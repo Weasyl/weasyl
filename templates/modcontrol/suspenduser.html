@@ -1,4 +1,4 @@
-$def with (templates, json_templates)
+$def with (templates)
 $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Panel", "/modcontrol"])}
 
 <div class="content clear" style="padding-top: 2em;">
@@ -70,7 +70,7 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
       </div>
 
       <script>
-        var banTemplates = $:{json_templates};
+        var banTemplates = $:{INLINE_JSON(templates)};
         var templateId = document.getElementById("template_id");
         var suspendAction = document.getElementById("suspendaction");
         var suspendDuration = document.getElementById("duration");

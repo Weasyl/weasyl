@@ -1604,10 +1604,18 @@
             calculateThumbnailLayout();
             loadLazyStuff();
 
-            localStorage['home-tab'] = paneId;
+            try {
+                localStorage['home-tab'] = paneId;
+            } catch (error) {}
         });
 
-        var savedTab = window.localStorage && document.getElementById(localStorage['home-tab']);
+        var savedTabId = null;
+
+        try {
+            savedTabId = localStorage['home-tab'];
+        } catch (error) {}
+
+        var savedTab = savedTabId && document.getElementById(savedTabId);
 
         if (savedTab) {
             savedTab.children[0].click();

@@ -511,6 +511,9 @@ def get_display_name(userid):
 
 
 def get_int(target):
+    if target is None:
+        return 0
+
     if isinstance(target, numbers.Number):
         return int(target)
 

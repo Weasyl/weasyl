@@ -196,7 +196,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             "commentid", [
                 "charcomment" if charid else "journalcomment", userid,
                 d.get_targetid(submitid, charid, journalid),
-                parentid, content, d.get_time(), indent
+                parentid or 0, content, d.get_time(), indent
             ], options="element")
 
     # Create notification

@@ -168,12 +168,11 @@ def _sql_escape(target):
     elif isinstance(target, unicode):
         # Escape Unicode string
         return _quote_string(target.encode("utf-8"))
-    else:
+    elif type(target) is int:
         # Escape integer
-        try:
-            return int(target)
-        except ValueError:
-            return 0
+        return target
+    else:
+        raise TypeError("Can't escape %r" % (target,))
 
 
 def sql_number_list(target):

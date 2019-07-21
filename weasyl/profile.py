@@ -438,8 +438,8 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         if stream_length < 1 or stream_length > 360:
             raise WeasylError("streamDurationOutOfRange")
 
-    if set_stream == 'start' and not profile.stream_url:
-        raise WeasylError("streamLocationNotSet")
+        if not profile.stream_url:
+            raise WeasylError("streamLocationNotSet")
 
     # unless we're specifically still streaming, clear the user_streams record
     if set_stream != 'still':

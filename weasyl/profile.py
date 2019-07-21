@@ -435,11 +435,6 @@ STREAMING_ACTION_MAP = {
 def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_length=0):
 
     if set_stream == 'start':
-        try:
-            stream_length = int(stream_length)
-        except:
-            raise WeasylError("streamDurationOutOfRange")
-
         if stream_length < 1 or stream_length > 360:
             raise WeasylError("streamDurationOutOfRange")
 

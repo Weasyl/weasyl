@@ -494,7 +494,6 @@ def edit_userinfo(userid, form):
             'link_type': site_name,
             'link_value': site_value,
         }
-        row['userid'] = userid
         social_rows.append(row)
 
     d.engine.execute("""

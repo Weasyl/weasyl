@@ -20,7 +20,7 @@ notification_clusters = {
     4010: 8, 4015: 8,
     4016: 9,
     4020: 10, 4025: 10, 4050: 10,
-    4030: 11, 4035: 11,
+    4030: 11, 4035: 11, 4060: 11, 4065: 11,
     4040: 12, 4045: 12,
     3150: 13,
 }
@@ -92,13 +92,23 @@ def select_journals(userid):
     } for j in journals]
 
 
-def select_submissions(userid, limit, backtime=None, nexttime=None):
+def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None):
     if backtime:
-        time_filter = "AND unixtime > %(backtime)s"
+        time_filter = "AND we.unixtime > %(backtime)s"
     elif nexttime:
-        time_filter = "AND unixtime < %(nexttime)s"
+        time_filter = "AND we.unixtime < %(nexttime)s"
     else:
         time_filter = ""
+
+    if include_tags:
+        char_tags_select = ", COALESCE(array_agg(tagid) FILTER (WHERE tagid IS NOT NULL), '{}') AS tags"
+        char_tags_join = "LEFT JOIN searchmapchar AS smc ON ch.charid = smc.targetid"
+        char_tags_groupby = "GROUP BY ch.charid, pr.username, we.welcomeid"
+
+        submission_tags_select = ", tags"
+        submission_tags_join = "INNER JOIN submission_tags USING (submitid)"
+    else:
+        char_tags_select = char_tags_join = char_tags_groupby = submission_tags_select = submission_tags_join = ""
 
     statement = """
         SELECT * FROM (
@@ -107,80 +117,82 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
                 ch.charid AS id,
                 ch.char_name AS title,
                 ch.rating,
-                ch.unixtime,
+                we.unixtime,
                 ch.userid,
                 pr.username,
                 ch.settings,
                 we.welcomeid,
-                0 AS subtype,
-                array_agg(tags.title) AS tags
+                0 AS subtype
+                {char_tags_select}
             FROM welcome we
                 INNER JOIN character ch ON we.targetid = ch.charid
                 INNER JOIN profile pr ON ch.userid = pr.userid
-                LEFT JOIN searchmapchar AS smc ON ch.charid = smc.targetid
-                LEFT JOIN searchtag AS tags USING (tagid)
+                {char_tags_join}
             WHERE
                 we.type = 2050 AND
-                we.userid = %(userid)s
-            GROUP BY
-                ch.charid,
-                pr.username,
-                we.welcomeid
-            UNION SELECT
+                we.userid = %(userid)s AND
+                ch.rating <= %(rating)s
+                {time_filter}
+            {char_tags_groupby}
+            ORDER BY welcomeid DESC LIMIT %(limit)s
+        ) t
+        UNION ALL SELECT * FROM (
+            SELECT
                 40 AS contype,
                 su.submitid AS id,
                 su.title,
                 su.rating,
-                su.unixtime,
+                we.unixtime,
                 we.otherid AS userid,
                 pr.username,
                 su.settings,
                 we.welcomeid,
-                su.subtype,
-                array_agg(tags.title) AS tags
+                su.subtype
+                {submission_tags_select}
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON we.otherid = pr.userid
-                LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
-                LEFT JOIN searchtag AS tags USING (tagid)
+                {submission_tags_join}
             WHERE
                 we.type = 2030 AND
-                we.userid = %(userid)s
-            GROUP BY
-                su.submitid,
-                pr.username,
-                we.welcomeid
-            UNION SELECT
+                we.userid = %(userid)s AND
+                su.rating <= %(rating)s
+                {time_filter}
+            ORDER BY welcomeid DESC LIMIT %(limit)s
+        ) t
+        UNION ALL SELECT * FROM (
+            SELECT
                 10 AS contype,
                 su.submitid AS id,
                 su.title,
                 su.rating,
-                su.unixtime,
+                we.unixtime,
                 su.userid,
                 pr.username,
                 su.settings,
                 we.welcomeid,
-                su.subtype,
-                array_agg(tags.title) AS tags
+                su.subtype
+                {submission_tags_select}
             FROM welcome we
                 INNER JOIN submission su ON we.targetid = su.submitid
                 INNER JOIN profile pr ON su.userid = pr.userid
-                LEFT JOIN searchmapsubmit AS sms ON su.submitid = sms.targetid
-                LEFT JOIN searchtag AS tags USING (tagid)
+                {submission_tags_join}
             WHERE
                 we.type = 2010 AND
-                we.userid = %(userid)s
-            GROUP BY
-                su.submitid,
-                pr.username,
-                we.welcomeid
-        ) results
-        WHERE
-            rating <= %(rating)s
-            {time_filter}
-        ORDER BY unixtime DESC
-        LIMIT %(limit)s
-    """.format(time_filter=time_filter)
+                we.userid = %(userid)s AND
+                su.rating <= %(rating)s
+                {time_filter}
+            ORDER BY welcomeid DESC LIMIT %(limit)s
+        ) t
+        ORDER BY welcomeid DESC LIMIT %(limit)s
+    """.format(
+        time_filter=time_filter,
+        char_tags_select=char_tags_select,
+        char_tags_join=char_tags_join,
+        char_tags_groupby=char_tags_groupby,
+        submission_tags_select=submission_tags_select,
+        submission_tags_join=submission_tags_join,
+    )
 
     query = d.engine.execute(
         statement,
@@ -189,21 +201,38 @@ def select_submissions(userid, limit, backtime=None, nexttime=None):
         nexttime=nexttime,
         backtime=backtime,
         limit=limit,
-    )
+    ).fetchall()
 
-    results = [{
-        "contype": i.contype,
-        "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,
-        "welcomeid": i.welcomeid,
-        "title": i.title,
-        "rating": i.rating,
-        "unixtime": i.unixtime,
-        "userid": i.userid,
-        "username": i.username,
-        "subtype": i.subtype,
-        "tags": i.tags,
-        "sub_media": _fake_media_items(i),
-    } for i in query]
+    if include_tags:
+        all_tags = list(frozenset(chain.from_iterable(i.tags for i in query)))
+        tag_map = {t.tagid: t.title for t in d.engine.execute("SELECT tagid, title FROM searchtag WHERE tagid = ANY (%(tags)s)", tags=all_tags)}
+
+        results = [{
+            "contype": i.contype,
+            "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,
+            "welcomeid": i.welcomeid,
+            "title": i.title,
+            "rating": i.rating,
+            "unixtime": i.unixtime,
+            "userid": i.userid,
+            "username": i.username,
+            "subtype": i.subtype,
+            "tags": [tag_map[tag] for tag in i.tags],
+            "sub_media": _fake_media_items(i),
+        } for i in query]
+    else:
+        results = [{
+            "contype": i.contype,
+            "submitid" if i.contype != _CONTYPE_CHAR else "charid": i.id,
+            "welcomeid": i.welcomeid,
+            "title": i.title,
+            "rating": i.rating,
+            "unixtime": i.unixtime,
+            "userid": i.userid,
+            "username": i.username,
+            "subtype": i.subtype,
+            "sub_media": _fake_media_items(i),
+        } for i in query]
 
     media.populate_with_submission_media(
         [i for i in results if i["contype"] != _CONTYPE_CHAR])
@@ -552,6 +581,48 @@ def select_comments(userid):
             INNER JOIN journal jo ON jc.targetid = jo.journalid
         WHERE we.userid = %(user)s
             AND we.type = 4035
+        ORDER BY we.unixtime DESC
+    """, user=userid))
+
+    # Site update comments
+    queries.append({
+        "type": 4060,
+        "id": i.welcomeid,
+        "unixtime": i.unixtime,
+        "userid": i.otherid,
+        "username": i.username,
+        "updateid": i.referid,
+        "title": i.title,
+        "commentid": i.targetid,
+    } for i in d.engine.execute("""
+        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, up.title
+        FROM welcome we
+            INNER JOIN profile pr ON we.otherid = pr.userid
+            INNER JOIN siteupdate up ON we.referid = up.updateid
+        WHERE we.userid = %(user)s
+            AND we.type = 4060
+        ORDER BY we.unixtime DESC
+    """, user=userid))
+
+    # Site update comment replies
+    queries.append({
+        "type": 4065,
+        "id": i.welcomeid,
+        "unixtime": i.unixtime,
+        "userid": i.otherid,
+        "username": i.username,
+        "updateid": i.updateid,
+        "title": i.title,
+        "replyid": i.referid,
+        "commentid": i.targetid,
+    } for i in d.engine.execute("""
+        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, up.updateid, up.title
+        FROM welcome we
+            INNER JOIN profile pr ON we.otherid = pr.userid
+            INNER JOIN siteupdatecomment uc ON we.referid = uc.commentid
+            INNER JOIN siteupdate up ON uc.targetid = up.updateid
+        WHERE we.userid = %(user)s
+            AND we.type = 4065
         ORDER BY we.unixtime DESC
     """, user=userid))
 

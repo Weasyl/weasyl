@@ -137,7 +137,7 @@ def defang(fragment):
             if key == "href" and child.tag == "a" and get_scheme(value) in allowed_schemes:
                 url = urlparse(value)
 
-                if url.scheme and url.hostname not in ("www.weasyl.com", "weasyl.com", "forums.weasyl.com"):
+                if url.hostname not in (None, "www.weasyl.com", "weasyl.com", "forums.weasyl.com"):
                     extend_attributes.append(("rel", "nofollow"))
             elif key == "src" and child.tag == "img" and get_scheme(value) in allowed_schemes:
                 pass

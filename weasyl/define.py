@@ -6,6 +6,7 @@ import time
 import random
 import urllib
 import hashlib
+import hmac
 import logging
 import numbers
 import datetime
@@ -208,9 +209,7 @@ def _compile(template_name):
         _template_cache[template_name] = template = frender(
             template_path,
             globals={
-                "INT": int,
                 "STR": str,
-                "SUM": sum,
                 "LOGIN": get_sysname,
                 "TOKEN": get_token,
                 "CSRF": _get_csrf_input,
@@ -227,7 +226,6 @@ def _compile(template_name):
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
-                "CONFIG": config_read_setting,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
                 "THUMB": thumb_for_sub,
@@ -352,13 +350,25 @@ def get_userid():
     return get_current_request().userid
 
 
+def is_csrf_valid(request, token):
+    expected = request.weasyl_session.csrf_token
+    return expected is not None and hmac.compare_digest(str(token), str(expected))
+
+
 def get_token():
     from weasyl import api
 
-    if api.is_api_user():
+    request = get_current_request()
+
+    if api.is_api_user(request):
         return ''
 
-    sess = get_current_request().weasyl_session
+    # allow error pages with $:{TOKEN()} in the template to be rendered even
+    # when the error occurred before the session middleware set a session
+    if not hasattr(request, 'weasyl_session'):
+        return security.generate_key(20)
+
+    sess = request.weasyl_session
     if sess.csrf_token is None:
         sess.csrf_token = security.generate_key(64)
         sess.save = True

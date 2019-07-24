@@ -65,9 +65,7 @@ $code:
       $if cover:
         <img src="${cover['display_url']}" alt="${query['title']}" />
       <div id="detail-art-text" class="content pdf">
-        <a href="${submission['display_url']}?download" id="pdf-download" class="button">Download PDF</a>
-        <script src="${CDNIFY('/static/pdf/text_layer_builder.js?' + SHA)}"></script>
-        <script src="${CDNIFY('/static/pdf/viewer.js?' + SHA)}"></script>
+        <a href="${submission['display_url']}" id="pdf-download" class="button">View PDF</a>
       </div>
     </div>
 
@@ -243,7 +241,7 @@ $code:
           </form>
         $else:
           <h3>Request Collection</h3>
-          $if myself['userid'] in query['collectors']:
+          $if query['collected']:
             <p>This submission is already in your collection.</p>
           $elif query['friends_only']:
             <p>This submission is marked friends only, and cannot be collected.</p>

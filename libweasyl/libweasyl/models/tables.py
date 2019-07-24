@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, Index,
+    MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
     Integer, String, Text, SMALLINT, text, DateTime, func, Boolean)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
 
@@ -75,7 +75,7 @@ charcomment = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='charcomment_hidden_by_fkey'),
 )
 
-Index('ind_charcomment_targetid', charcomment.c.targetid)
+Index('ind_charcomment_targetid_commentid', charcomment.c.targetid, charcomment.c.commentid)
 
 
 collection = Table(
@@ -95,8 +95,8 @@ comments = Table(
     'comments', metadata,
     Column('commentid', Integer(), primary_key=True),
     Column('userid', Integer(), nullable=False),
-    Column('target_user', Integer(), index=True),
-    Column('target_sub', Integer(), index=True),
+    Column('target_user', Integer(), nullable=True),
+    Column('target_sub', Integer(), nullable=True),
     Column('parentid', Integer(), nullable=True),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -113,6 +113,9 @@ comments = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='comments_hidden_by_fkey'),
     CheckConstraint('(target_user IS NOT NULL) != (target_sub IS NOT NULL)', name='comments_target_check'),
 )
+
+Index('ind_comments_target_user_commentid', comments.c.target_user, comments.c.commentid, postgresql_where=comments.c.target_user != None)
+Index('ind_comments_target_sub_commentid', comments.c.target_sub, comments.c.commentid, postgresql_where=comments.c.target_sub != None)
 
 
 commishclass = Table(
@@ -198,7 +201,8 @@ favorite = Table(
 )
 
 Index('ind_favorite_userid', favorite.c.userid)
-Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid, unique=False)
+Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid)
+Index('ind_favorite_userid_type_unixtime', favorite.c.userid, favorite.c.type, favorite.c.unixtime)
 
 
 folder = Table(
@@ -330,9 +334,7 @@ journalcomment = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='journalcomment_hidden_by_fkey'),
 )
 
-Index('ind_journalcomment_settings', journalcomment.c.settings)
-Index('ind_journalcomment_targetid_settings', journalcomment.c.targetid, journalcomment.c.settings)
-Index('ind_journalcomment_targetid', journalcomment.c.targetid)
+Index('ind_journalcomment_targetid_commentid', journalcomment.c.targetid, journalcomment.c.commentid)
 
 
 login = Table(
@@ -467,6 +469,15 @@ permaban = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('reason', Text(), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='permaban_userid_fkey'),
+)
+
+
+permitted_senders = Table(
+    'permitted_senders', metadata,
+    Column('userid', Integer(), primary_key=True),
+    Column('sender', Integer(), primary_key=True),
+    default_fkey(['userid'], ['login.userid'], name='permitted_senders_userid_fkey'),
+    default_fkey(['sender'], ['login.userid'], name='permitted_senders_sender_fkey'),
 )
 
 
@@ -695,6 +706,7 @@ sessions = Table(
     Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
     default_fkey(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
+    CheckConstraint("userid IS NOT NULL OR additional_data != ''", name='sessions_no_guest_check'),
 )
 
 Index('ind_sessions_created_at', sessions.c.created_at)
@@ -712,10 +724,33 @@ siteupdate = Table(
     'siteupdate', metadata,
     Column('updateid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
+    Column('wesley', Boolean(), nullable=False, server_default='f'),
     Column('title', String(length=100), nullable=False),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='siteupdate_userid_fkey'),
+)
+
+
+siteupdatecomment = Table(
+    'siteupdatecomment', metadata,
+    Column('commentid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), nullable=False),
+    Column('targetid', Integer(), nullable=False),
+    Column('parentid', Integer(), nullable=True),
+    Column('content', String(length=10000), nullable=False),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+    Column('hidden_at', TIMESTAMP(timezone=True), nullable=True),
+    Column('hidden_by', Integer(), nullable=True),
+    ForeignKeyConstraint(['targetid'], ['siteupdate.updateid'], name='siteupdatecomment_targetid_fkey'),
+    ForeignKeyConstraint(
+        ['targetid', 'parentid'],
+        ['siteupdatecomment.targetid', 'siteupdatecomment.commentid'],
+        name='siteupdatecomment_parentid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdatecomment_userid_fkey'),
+    ForeignKeyConstraint(['hidden_by'], ['login.userid'], name='siteupdatecomment_hidden_by_fkey', ondelete='SET NULL'),
+    CheckConstraint("hidden_by IS NULL OR hidden_at IS NOT NULL", name='siteupdatecomment_hidden_check'),
+    UniqueConstraint('targetid', 'commentid'),
 )
 
 

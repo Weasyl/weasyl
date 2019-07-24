@@ -206,13 +206,11 @@ def twitter_card(userid):
 
 def select_myself(userid):
     if not userid:
-        return
-
-    query = d.execute("SELECT username, config FROM profile WHERE userid = %i", [userid], ["single"])
+        return None
 
     return {
         "userid": userid,
-        "username": query[0],
+        "username": d.get_display_name(userid),
         "is_mod": userid in staff.MODS,
         "user_media": media.get_user_media(userid),
     }
@@ -236,18 +234,18 @@ def check_user_rating_allowed(userid, rating):
 
 def select_userinfo(userid, config=None):
     if config is None:
-        [query] = d.engine.execute("""
+        query = tuple(d.engine.execute("""
             SELECT pr.config, ui.birthday, ui.gender, ui.country
             FROM profile pr
             INNER JOIN userinfo ui USING (userid)
             WHERE pr.userid = %(userid)s
-        """, userid=userid)
+        """, userid=userid).first())
     else:
-        [query] = d.engine.execute("""
-            SELECT %(config)s, birthday, gender, country
+        query = (config,) + tuple(d.engine.execute("""
+            SELECT birthday, gender, country
             FROM userinfo
             WHERE userid = %(userid)s
-        """, userid=userid, config=config)
+        """, userid=userid).first())
 
     user_links = d.engine.execute("""
         SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
@@ -347,9 +345,8 @@ def _select_statistics(userid):
 
 
 def select_statistics(userid):
-    if "i" in d.get_config(userid) and d.get_userid() not in staff.MODS:
-        return
-    return _select_statistics(userid)
+    show = "i" not in d.get_config(userid) or d.get_userid() in staff.MODS
+    return _select_statistics(userid), show
 
 
 def select_streaming(userid, rating, limit, following=True, order_by=None):
@@ -560,7 +557,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
     changes_made = ""
 
     # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, session=False)
+    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
 
     # Run checks prior to modifying anything...
     if userid != logid or logerror is not None:

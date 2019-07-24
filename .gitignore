@@ -1,4 +1,8 @@
+*.egg
+*.egg-info
 *.py[co]
+__pycache__/
+
 /build
 /temp
 /backup
@@ -13,9 +17,8 @@
 /static/user
 /static/media
 /static/SHARE
-/beaker
 /config/site.config.txt
-/config/weasyl-staff.yaml
+/config/weasyl-staff.py
 /.vagrant
 /weasyl-env
 /twistd.pid

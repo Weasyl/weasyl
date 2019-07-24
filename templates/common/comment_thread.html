@@ -23,7 +23,6 @@ $ can_remove = is_owner or (myself and myself['userid'] in staff.MODS)
             $ user_is_commenter = myself and comment['userid'] == myself['userid']
             $if feature and myself and (can_remove or (user_is_commenter and not has_replies)):
               <a href="#" class="comment-hide-link needs-js">Hide</a>
-            $ feature_root = {'submit': 'submission', 'char': 'character', 'journal': 'journal'}.get(feature)
             <a href="#cid${comment['commentid']}">Link</a>
         </p>
         <p class="byline">

@@ -5,11 +5,10 @@ import pytest
 
 from libweasyl import ratings
 from weasyl.test import db_utils
-from weasyl.test.web.wsgi import app
 
 
 @pytest.mark.usefixtures('db', 'cache', 'no_csrf')
-def test_blacklist_homepage():
+def test_blacklist_homepage(app):
     """
     Assert that changes to the blacklist apply to the home page immediately.
     """
@@ -45,7 +44,7 @@ def test_blacklist_homepage():
 
 
 @pytest.mark.usefixtures('db', 'cache', 'no_csrf')
-def test_block_user_homepage():
+def test_block_user_homepage(app):
     """
     Assert that changes to blocked users apply to the home page immediately.
     """

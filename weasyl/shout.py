@@ -10,18 +10,18 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
 from weasyl import welcome
-from weasyl.comment import _thread
+from weasyl.comment import thread
 from weasyl.error import WeasylError
 
 
 def select(userid, ownerid, limit=None, staffnotes=False):
-    result = []
     statement = ["""
-        SELECT sh.commentid, sh.parentid, sh.userid, pr.username, lo.settings, sh.content, sh.unixtime,
-               sh.settings, sh.indent, pr.config, sh.hidden_by
+        SELECT
+            sh.commentid, sh.parentid, sh.userid, pr.username,
+            sh.content, sh.unixtime, sh.settings, sh.indent,
+            sh.hidden_by
         FROM comments sh
-            INNER JOIN profile pr ON sh.userid = pr.userid
-            INNER JOIN login lo ON sh.userid = lo.userid
+            INNER JOIN profile pr USING (userid)
         WHERE sh.target_user = %i
             AND sh.settings %s~ 's'
     """ % (ownerid, "" if staffnotes else "!")]
@@ -33,34 +33,15 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     if userid:
         statement.append(m.MACRO_IGNOREUSER % (userid, "sh"))
 
-    statement.append(" ORDER BY COALESCE(sh.parentid, 0), sh.unixtime")
+    statement.append(" ORDER BY sh.commentid")
     query = d.execute("".join(statement))
-
-    for i in range(len(query) - 1, -1, -1):
-        if not query[i][1]:
-            result.append({
-                "commentid": query[i][0],
-                "parentid": query[i][1],
-                "userid": query[i][2],
-                "username": query[i][3],
-                "status": "".join(c for c in query[i][4] if c in "bs"),
-                "content": query[i][5],
-                "unixtime": query[i][6],
-                "settings": query[i][7],
-                "indent": query[i][8],
-                "hidden": 'h' in query[i][7],
-                "hidden_by": query[i][10],
-            })
-
-            _thread(query, result, i)
+    result = thread(query, reverse_top_level=True)
 
     if limit:
-        ret = result[:limit]
-    else:
-        ret = result
+        result = result[:limit]
 
-    media.populate_with_user_media(ret)
-    return ret
+    media.populate_with_user_media(result)
+    return result
 
 
 def count(ownerid, staffnotes=False):

@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
-from pyramid.threadlocal import get_current_request
-
 from libweasyl.models.meta import Base
 from libweasyl.models.api import APIToken
 from libweasyl import security
 from weasyl import define as d
 
 
-def is_api_user():
-    request = get_current_request()
+def is_api_user(request):
     return 'X_WEASYL_API_KEY' in request.headers or 'AUTHORIZATION' in request.headers
 
 

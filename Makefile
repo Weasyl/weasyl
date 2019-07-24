@@ -8,7 +8,8 @@
 VE ?= weasyl-env
 
 # Whether to install from wheels
-USE_WHEEL := --no-binary :all:
+# Build specific binaries from source, where binaries have been problematic in the past
+USE_WHEEL := --no-binary sanpera,lxml,psycopg2cffi
 
 # Static directories
 STATIC_DIRS := character fonts journal submission tile user media
@@ -35,14 +36,14 @@ config/site.config.txt:
 	cp -n config/site.config.txt.example $@
 
 # Staff
-config/weasyl-staff.yaml:
-	cp -n config/weasyl-staff.yaml.example $@
+config/weasyl-staff.py:
+	cp -n config/weasyl-staff.example.py $@
 
 # Creates python environment
 $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
                $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
-	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
+	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt -e .
 	$@/bin/pip install $(USE_WHEEL) pytest flake8
 	touch $@
 
@@ -79,13 +80,14 @@ $(TEMP_DIRS):
 
 node_modules: package.json
 	npm install
+	touch node_modules
 
 build/rev-manifest.json: node_modules
-	node_modules/.bin/gulp sass
+	node build.js
 
 # Phony setup target
 .PHONY: setup
-setup: $(VE) config/site.config.txt config/weasyl-staff.yaml build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
+setup: $(VE) config/site.config.txt config/weasyl-staff.py build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker

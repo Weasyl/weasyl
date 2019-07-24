@@ -77,6 +77,9 @@ def get_thumbnail(image_file, bounds=None):
     image = Image.open(image_file)
     image_format = image.format
 
+    if image.mode in ('1', 'L', 'LA', 'I', 'P'):
+        image = image.convert(mode='RGBA' if image.mode == 'LA' or 'transparency' in image.info else 'RGB')
+
     if bounds is None:
         source_rect, result_size = get_thumbnail_spec(image.size, THUMB_HEIGHT)
     else:
@@ -99,16 +102,10 @@ def get_thumbnail(image_file, bounds=None):
             compatible = (f.getvalue(), 'jpg', thumbnail_attributes)
 
         lossless = False
-    elif image_format == 'PNG':
+    elif image_format in ('PNG', 'GIF'):
         with BytesIO() as f:
             image.save(f, format='PNG', optimize=True)
             compatible = (f.getvalue(), 'png', thumbnail_attributes)
-
-        lossless = True
-    elif image_format == 'GIF':
-        with BytesIO() as f:
-            image.save(f, format='GIF', optimize=True)
-            compatible = (f.getvalue(), 'gif', thumbnail_attributes)
 
         lossless = True
     else:

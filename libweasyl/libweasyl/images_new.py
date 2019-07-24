@@ -3,6 +3,7 @@
 """
 Image manipulation with Pillow.
 """
+# TODO: rename when Sanpera libweasyl.libweasyl.images is no longer used
 
 from __future__ import absolute_import
 

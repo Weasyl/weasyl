@@ -183,17 +183,14 @@ def create_visual(userid, submission,
 
     # Thumbnail stuff.
     # Always create a 'generated' thumbnail from the source image.
-    thumb_generated_media_items = []
-
     with BytesIO(submitfile) as buf:
-        for thumb_generated, thumb_generated_file_type, thumb_generated_attributes in images_new.get_thumbnail(buf):
-            thumb_generated_media_item = orm.fetch_or_create_media_item(
-                thumb_generated,
-                file_type=thumb_generated_file_type,
-                attributes=thumb_generated_attributes,
-            )
-
-            thumb_generated_media_items.append(thumb_generated_media_item)
+        thumbnail_formats = images_new.get_thumbnail(buf)
+        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
+        thumb_generated_media_item = orm.fetch_or_create_media_item(
+            thumb_generated,
+            file_type=thumb_generated_file_type,
+            attributes=thumb_generated_attributes,
+        )
 
     # If requested, also create a 'custom' thumbnail.
     thumb_media_item = media.make_cover_media_item(thumbfile)
@@ -231,9 +228,8 @@ def create_visual(userid, submission,
     orm.SubmissionMediaLink.make_or_replace_link(
         submitid, 'cover', cover_media_item)
 
-    for thumb_generated_media_item in thumb_generated_media_items:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'thumbnail-generated', thumb_generated_media_item)
+    orm.SubmissionMediaLink.make_or_replace_link(
+        submitid, 'thumbnail-generated', thumb_generated_media_item)
 
     if thumb_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)

@@ -7,6 +7,7 @@ Image manipulation with Pillow.
 
 from __future__ import absolute_import
 
+from collections import namedtuple
 from io import BytesIO
 
 from PIL import Image
@@ -15,6 +16,8 @@ from .images import THUMB_HEIGHT
 
 
 _WEBP_ENABLED = False
+
+ThumbnailFormats = namedtuple('ThumbnailFormats', ['compatible', 'webp'])
 
 
 def get_thumbnail_spec(size, height):
@@ -93,19 +96,19 @@ def get_thumbnail(image_file, bounds=None):
     if image_format == 'JPEG':
         with BytesIO() as f:
             image.save(f, format='JPEG', quality=95, optimize=True, progressive=True, subsampling='4:2:2')
-            yield f.getvalue(), 'jpg', thumbnail_attributes
+            compatible = (f.getvalue(), 'jpg', thumbnail_attributes)
 
         lossless = False
     elif image_format == 'PNG':
         with BytesIO() as f:
             image.save(f, format='PNG', optimize=True)
-            yield f.getvalue(), 'png', thumbnail_attributes
+            compatible = (f.getvalue(), 'png', thumbnail_attributes)
 
         lossless = True
     elif image_format == 'GIF':
         with BytesIO() as f:
             image.save(f, format='GIF', optimize=True)
-            yield f.getvalue(), 'gif', thumbnail_attributes
+            compatible = (f.getvalue(), 'gif', thumbnail_attributes)
 
         lossless = True
     else:
@@ -114,4 +117,8 @@ def get_thumbnail(image_file, bounds=None):
     if _WEBP_ENABLED:
         with BytesIO() as f:
             image.save(f, format='WebP', lossless=lossless, quality=100 if lossless else 90)
-            yield f.getvalue(), 'webp', thumbnail_attributes
+            webp = (f.getvalue(), 'webp', thumbnail_attributes)
+    else:
+        webp = None
+
+    return ThumbnailFormats(compatible, webp)

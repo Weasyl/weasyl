@@ -13,6 +13,7 @@ $def with (query, notifications=None)
         avatar = query['user_media']['avatar'][0]
       else:
         thumb = THUMB(query)
+        webp_thumb = WEBP_THUMB(query)
         width = thumb['attributes']['width'] if 'attributes' in thumb else ""
 
         display_url = thumb['display_url']
@@ -48,6 +49,11 @@ $def with (query, notifications=None)
 
       $if query['contype'] in (30, 50):
         <img src="${avatar['display_url']}" alt="avatar" />
+      $elif webp_thumb is not None:
+        <picture>
+          <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+          <img src="${display_url}" alt="" />
+        </picture>
       $else:
         <img src="${display_url}" alt="" />
     </a>

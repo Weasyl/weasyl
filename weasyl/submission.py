@@ -185,8 +185,19 @@ def create_visual(userid, submission,
     # Always create a 'generated' thumbnail from the source image.
     with BytesIO(submitfile) as buf:
         thumbnail_formats = images_new.get_thumbnail(buf)
-        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
-        thumb_generated_media_item = orm.fetch_or_create_media_item(
+
+    thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
+    thumb_generated_media_item = orm.fetch_or_create_media_item(
+        thumb_generated,
+        file_type=thumb_generated_file_type,
+        attributes=thumb_generated_attributes,
+    )
+
+    if thumbnail_formats.webp is None:
+        thumb_generated_media_item_webp = None
+    else:
+        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
+        thumb_generated_media_item_webp = orm.fetch_or_create_media_item(
             thumb_generated,
             file_type=thumb_generated_file_type,
             attributes=thumb_generated_attributes,
@@ -230,6 +241,10 @@ def create_visual(userid, submission,
 
     orm.SubmissionMediaLink.make_or_replace_link(
         submitid, 'thumbnail-generated', thumb_generated_media_item)
+
+    if thumb_generated_media_item_webp is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'thumbnail-generated-webp', thumb_generated_media_item_webp)
 
     if thumb_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)

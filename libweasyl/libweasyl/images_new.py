@@ -15,8 +15,6 @@ from PIL import Image
 from .images import THUMB_HEIGHT
 
 
-_WEBP_ENABLED = False
-
 ThumbnailFormats = namedtuple('ThumbnailFormats', ['compatible', 'webp'])
 
 
@@ -111,11 +109,11 @@ def get_thumbnail(image_file, bounds=None):
     else:
         raise Exception("Unexpected image format: %r" % (image_format,))
 
-    if _WEBP_ENABLED:
-        with BytesIO() as f:
-            image.save(f, format='WebP', lossless=lossless, quality=100 if lossless else 90)
-            webp = (f.getvalue(), 'webp', thumbnail_attributes)
-    else:
+    with BytesIO() as f:
+        image.save(f, format='WebP', lossless=lossless, quality=100 if lossless else 90, method=6)
+        webp = (f.getvalue(), 'webp', thumbnail_attributes)
+
+    if len(webp[0]) >= len(compatible[0]):
         webp = None
 
     return ThumbnailFormats(compatible, webp)

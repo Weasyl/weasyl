@@ -262,17 +262,12 @@ def titlebar(title, backtext=None, backlink=None):
     return render("common/stage_title.html", [title, backtext, backlink])
 
 
-def errorpage(userid, code=None, links=None,
-              unexpected=None, request_id=None, **extras):
+def errorpage(userid, code=None, links=None, request_id=None, **extras):
     if links is None:
         links = []
 
     if code is None:
         code = errorcode.unexpected
-
-        if unexpected:
-            code = "".join([code, " The error code associated with this condition "
-                                  "is '", unexpected, "'."])
     code = text.markdown(code)
 
     return webpage(userid, "error/error.html", [code, links, request_id], **extras)

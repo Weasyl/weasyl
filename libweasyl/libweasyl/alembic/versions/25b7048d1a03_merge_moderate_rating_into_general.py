@@ -10,8 +10,8 @@ Create Date: 2017-01-22 17:47:55.239957
 revision = '25b7048d1a03'
 down_revision = '40c00abab5f9'
 
-from alembic import op
-import sqlalchemy as sa
+from alembic import op   # lgtm[py/unused-import]
+import sqlalchemy as sa  # lgtm[py/unused-import]
 
 
 _RATINGS = {

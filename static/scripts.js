@@ -10,26 +10,6 @@
 
     var csrfToken = document.documentElement.getAttribute('data-csrf-token');
 
-    function debounce(func, threshold) {
-        var timeout;
-
-        return function debounced() {
-            var obj = this;
-            var args = arguments;
-
-            function delayed() {
-                func.apply(obj, args);
-                timeout = null;
-            }
-
-            if (timeout) {
-                clearTimeout(timeout);
-            }
-
-            timeout = setTimeout(delayed, threshold || 100);
-        };
-    }
-
     function forEach(list, callback) {
         for (var i = 0, l = list.length; i < l; i++) {
             callback(list[i]);

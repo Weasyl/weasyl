@@ -55,7 +55,7 @@ $def with (query, notifications=None)
           <img src="${display_url}" alt="" />
         </picture>
       $else:
-        <img class="lazy" data-src="${display_url}" src="${CDNIFY('/static/images/loading_throbber.svg')}" />
+        <img class="lazy" data-src="${display_url}" />
         <noscript>
           <img src="${display_url}" />
         </noscript>

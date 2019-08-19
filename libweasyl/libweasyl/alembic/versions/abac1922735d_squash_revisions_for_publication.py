@@ -10,8 +10,8 @@ Create Date: 2016-05-26 23:09:36.027672
 revision = 'abac1922735d'
 down_revision = None
 
-from alembic import op
-import sqlalchemy as sa
+from alembic import op   # lgtm[py/unused-import]
+import sqlalchemy as sa  # lgtm[py/unused-import]
 from sqlalchemy.dialects import postgresql
 import libweasyl
 

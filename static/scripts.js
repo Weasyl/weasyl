@@ -1563,6 +1563,12 @@
 
     // Home tabs
     (function () {
+        function logStorageError(error) {
+            try {
+                console.warn(error);
+            } catch (consoleError) {}
+        }
+
         var homePaneLinks = $('.home-pane-link');
         var homePanes = $('#home-panes .pane');
         var homePaneGrids = homePanes.find('.thumbnail-grid');
@@ -1591,10 +1597,22 @@
 
             calculateThumbnailLayout();
 
-            localStorage['home-tab'] = paneId;
+            try {
+                localStorage['home-tab'] = paneId;
+            } catch (error) {
+                logStorageError(error);
+            }
         });
 
-        var savedTab = window.localStorage && document.getElementById(localStorage['home-tab']);
+        var savedTabId = null;
+
+        try {
+            savedTabId = localStorage['home-tab'];
+        } catch (error) {
+            logStorageError(error);
+        }
+
+        var savedTab = savedTabId && document.getElementById(savedTabId);
 
         if (savedTab) {
             savedTab.children[0].click();

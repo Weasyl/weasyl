@@ -435,16 +435,11 @@ STREAMING_ACTION_MAP = {
 def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_length=0):
 
     if set_stream == 'start':
-        try:
-            stream_length = int(stream_length)
-        except:
-            raise WeasylError("streamDurationOutOfRange")
-
         if stream_length < 1 or stream_length > 360:
             raise WeasylError("streamDurationOutOfRange")
 
-    if set_stream == 'start' and not profile.stream_url:
-        raise WeasylError("streamLocationNotSet")
+        if not profile.stream_url:
+            raise WeasylError("streamLocationNotSet")
 
     # unless we're specifically still streaming, clear the user_streams record
     if set_stream != 'still':
@@ -499,7 +494,6 @@ def edit_userinfo(userid, form):
             'link_type': site_name,
             'link_value': site_value,
         }
-        row['userid'] = userid
         social_rows.append(row)
 
     d.engine.execute("""

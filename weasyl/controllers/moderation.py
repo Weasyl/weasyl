@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-import anyjson as json
 import arrow
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -22,7 +21,7 @@ def modcontrol_(request):
 @moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
-                                   [moderation.BAN_TEMPLATES, json.dumps(moderation.BAN_TEMPLATES)], title="User Suspensions"))
+                                   (moderation.BAN_TEMPLATES,), title="User Suspensions"))
 
 
 @moderator_only

@@ -229,6 +229,7 @@ def _compile(template_name):
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
                 "THUMB": thumb_for_sub,
+                "WEBP_THUMB": webp_thumb_for_sub,
                 "M": macro,
                 "R": ratings,
                 "SLUG": text.slug_for,
@@ -261,17 +262,12 @@ def titlebar(title, backtext=None, backlink=None):
     return render("common/stage_title.html", [title, backtext, backlink])
 
 
-def errorpage(userid, code=None, links=None,
-              unexpected=None, request_id=None, **extras):
+def errorpage(userid, code=None, links=None, request_id=None, **extras):
     if links is None:
         links = []
 
     if code is None:
         code = errorcode.unexpected
-
-        if unexpected:
-            code = "".join([code, " The error code associated with this condition "
-                                  "is '", unexpected, "'."])
     code = text.markdown(code)
 
     return webpage(userid, "error/error.html", [code, links, request_id], **extras)
@@ -670,13 +666,12 @@ def _convert_time(target=None):
         return dt.strftime("%H:%M:%S %Z")
 
 
-def convert_unixdate(day, month, year, escape=True):
+def convert_unixdate(day, month, year):
     """
     Returns the unixtime corresponding to the beginning of the specified date; if
     the date is not valid, None is returned.
     """
-    if escape:
-        day, month, year = (get_int(i) for i in [day, month, year])
+    day, month, year = (get_int(i) for i in [day, month, year])
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
@@ -1200,3 +1195,29 @@ def thumb_for_sub(submission):
         thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
 
     return submission['sub_media'][thumb_key][0]
+
+
+def webp_thumb_for_sub(submission):
+    """
+    Given a submission dict containing sub_media, sub_type and userid,
+    returns the appropriate WebP media item to use as a thumbnail.
+
+    Params:
+        submission: The submission.
+
+    Returns:
+        The sub media to use as a thumb, or None.
+    """
+    user_id = get_userid()
+    profile_settings = get_profile_settings(user_id)
+    disable_custom_thumb = (
+        profile_settings.disable_custom_thumbs and
+        submission.get('subtype', 9999) < 2000 and
+        submission['userid'] != user_id
+    )
+
+    if not disable_custom_thumb and 'thumbnail-custom' in submission['sub_media']:
+        return None
+
+    thumbnail_generated_webp = submission['sub_media'].get('thumbnail-generated-webp')
+    return thumbnail_generated_webp and thumbnail_generated_webp[0]

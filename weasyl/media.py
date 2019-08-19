@@ -79,7 +79,8 @@ def format_media_link(media, link):
             slug_for(link.submission.title), media.file_type)
         return define.cdnify_url(formatted_url)
     elif link.link_type in ['cover', 'thumbnail-custom', 'thumbnail-legacy',
-                            'thumbnail-generated', 'avatar', 'banner']:
+                            'thumbnail-generated', 'thumbnail-generated-webp',
+                            'avatar', 'banner']:
         return define.cdnify_url(media.display_url)
     else:
         return None

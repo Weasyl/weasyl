@@ -19,7 +19,10 @@ $code:
     <title>Weasyl</title>
 
   $# If we have JavaScript enabled, remove the no-js class; keep before any link/style elements
-  <script>document.documentElement.classList.remove("no-js")</script>
+  <script>
+    document.documentElement.classList.remove("no-js");
+    document.documentElement.classList.add("js");
+  </script>
 
   <link rel="stylesheet" href="/static/fonts/museo500.css" />
   <link rel="stylesheet" href="${resource_path('css/site.css')}" />

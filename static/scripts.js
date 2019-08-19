@@ -172,9 +172,6 @@
 
 
     $(document).ready(function () {
-        // yes, we have js support
-        $('html').removeClass('no-js').addClass('js');
-
         // thumbnails
         // give enhanced layout to modern browsers
         if ('classList' in document.createElement('_') && typeof window.matchMedia === 'function') {

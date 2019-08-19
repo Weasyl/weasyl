@@ -52,8 +52,14 @@ $def with (query, notifications=None)
       $elif webp_thumb is not None:
         <picture>
           <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-          <img src="${display_url}" alt="" />
+          <img class="lazy" data-src="${display_url}" alt="" />
         </picture>
+        <noscript>
+          <picture>
+            <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+            <img src="${display_url}" alt="" />
+          </picture>
+        </noscript>
       $else:
         <img class="lazy" data-src="${display_url}" />
         <noscript>

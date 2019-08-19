@@ -65,9 +65,6 @@ def submission_(request):
     extras["canonical_url"] = canonical_path
     extras["title"] = item["title"]
 
-    submission_files = item["sub_media"].get("submission")
-    submission_file = submission_files[0] if submission_files else None
-
     page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [
         # Myself

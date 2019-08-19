@@ -165,7 +165,6 @@ def tfa_init_verify_post_(request):
     # Extract parameters from the form
     verify_checkbox = 'verify' in request.params
     tfasecret = _get_totp_code_from_session()
-    tfaresponse = request.params['tfaresponse']
     tfarecoverycodes = _get_recovery_codes_from_session()
 
     # Does the user want to proceed with enabling 2FA?

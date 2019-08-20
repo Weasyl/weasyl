@@ -1,4 +1,4 @@
-/* global confirm, marked, Bloodhound, socialSiteList */
+/* global marked, Bloodhound, socialSiteList */
 
 (function () {
     'use strict';
@@ -737,7 +737,7 @@
             'user-icon'
         ];
 
-        var ALLOWED_STYLE = /^\s*color:\s*(?:\#[0-9a-f]{3}|\#[0-9a-f]{6})(?:\s*;)?\s*$/i;
+        var ALLOWED_STYLE = /^\s*color:\s*(?:#[0-9a-f]{3}|#[0-9a-f]{6})(?:\s*;)?\s*$/i;
 
         function isAllowedClass(class_) {
             return allowedClasses.indexOf(class_) !== -1;

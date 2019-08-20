@@ -61,9 +61,9 @@ $def with (query, notifications=None)
           </picture>
         </noscript>
       $else:
-        <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" />
+        <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
         <noscript>
-          <img src="${display_url}" />
+          <img src="${display_url}" alt="" />
         </noscript>
     </a>
 

@@ -78,6 +78,15 @@ $def with (options=None, active_users_string='')
 <script src="/static/marked.js?${SHA}"></script>
 <script src="/static/scripts.js?${SHA}"></script>
 
+<script src="${CDNIFY('/static/scripts/yall.min.js')}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    yall({
+      threshold: 100
+    });
+  });
+</script>
+
 $if options and "imageselect" in options:
   <script src="${CDNIFY('/static/scripts/imageselect/imageselect.js?' + SHA)}"></script>
   $:{RENDER("common/image_select.html", ["square_select" in options])}

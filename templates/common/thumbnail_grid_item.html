@@ -51,11 +51,20 @@ $def with (query, notifications=None)
         <img src="${avatar['display_url']}" alt="avatar" />
       $elif webp_thumb is not None:
         <picture>
-          <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-          <img src="${display_url}" alt="" />
+          <source type="image/webp" data-srcset="${webp_thumb['display_url']}" />
+          <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
         </picture>
+        <noscript>
+          <picture>
+            <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+            <img src="${display_url}" alt="" />
+          </picture>
+        </noscript>
       $else:
-        <img src="${display_url}" alt="" />
+        <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" />
+        <noscript>
+          <img src="${display_url}" />
+        </noscript>
     </a>
 
     $if playable and playable[0].get('file_type') == 'mp3':

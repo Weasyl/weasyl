@@ -9,8 +9,11 @@ $code:
 
 <div id="search-stage" class="stage clear">
   <ul class="thumbnail-grid">
-    $for i in submissions:
-      <!-- score: ${i['score']} -->
-      $:{_GRID_ITEM(i)}
+    $for index, item in enumerate(submissions):
+      <!-- score: ${item['score']} -->
+      $if index < 10:
+        $:{_GRID_ITEM(item, lazy_load=False)}
+      $else:
+        $:{_GRID_ITEM(item)}
   </ul><!-- /.thumbnail-grid -->
 </div><!-- /#search-stage -->

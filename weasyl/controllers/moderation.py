@@ -7,7 +7,7 @@ import arrow
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
-from weasyl import define, macro, moderation, note, profile, report
+from weasyl import define, macro, moderation, note, profile, report, welcome
 from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
 
@@ -219,3 +219,54 @@ def modcontrol_copynotetostaffnotes_post_(request):
         message=notedata['content'],
     )
     raise HTTPSeeOther("/staffnotes/" + notedata['sendername'])
+
+
+@moderator_only
+def modcontrol_journalspamqueue_get_(request):
+    query = define.engine.execute("""
+        SELECT lo.login_name, jo.journalid, jo.content
+        FROM login lo
+        INNER JOIN journal jo USING (userid)
+        WHERE jo.is_spam IS TRUE
+    """).fetchall()
+    return Response(define.webpage(
+        request.userid,
+        "modcontrol/journalspamqueue.html",
+        [query],
+        title="Journal Spam Queue"
+    ))
+
+
+@moderator_only
+@token_checked
+def modcontrol_journalspamqueue_post_(request):
+    directive = request.params.get("directive")
+    if directive:
+        journalid, action = directive.split(",")
+    else:
+        raise HTTPSeeOther("/modcontrol/journalspamqueue")
+
+    if action == "approve":
+        # Approve and insert the journal into the notifications table.
+        userid, rating, settings = define.engine.execute("""
+            SELECT userid, rating, settings
+            FROM journal
+            WHERE journalid = %(id)s
+        """, id=journalid)
+        define.engine.execute("""
+            UPDATE journal
+            SET is_spam = FALSE
+            WHERE journalid = %(id)s
+        """, id=journalid)
+        welcome.journal_insert(userid=userid, journalid=journalid, rating=rating, settings=settings)
+    elif action == "delete":
+        # Delete and purge the journal from the welcome table
+        define.engine.execute("""
+            DELETE FROM journal
+            WHERE journalid = %(id)s
+        """, id=journalid)
+        welcome.journal_remove(journalid=journalid)
+    else:
+        raise HTTPSeeOther("/modcontrol/journalspamqueue")
+
+    raise HTTPSeeOther("/modcontrol/journalspamqueue")

@@ -11,9 +11,10 @@ from libweasyl.text import slug_for
 
 from weasyl import (
     character, comment, define, errorcode, folder, journal, macro, profile,
-    report, searchtag, shout, submission, orm)
+    report, searchtag, shout, spam_filtering, submission, orm)
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError
+from weasyl.login import get_user_agent_id
 
 
 # Content submission functions
@@ -225,8 +226,10 @@ def submit_journal_post_(request):
     j.title = form.title
     j.rating = rating
     j.content = form.content
+    j.submitter_ip_address = request.client_addr
+    j.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
     journalid = journal.create(request.userid, j, friends_only=form.friends,
-                               tags=tags)
+                               tags=tags, user_agent=request.user_agent)
     raise HTTPSeeOther(location="/journal/%i/%s" % (journalid, slug_for(form.title)))
 
 

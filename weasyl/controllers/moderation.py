@@ -258,12 +258,12 @@ def modcontrol_spamqueue_journal_post_(request):
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
-        userid, rating, settings, content, ua_id, ip_addr = define.engine.execute("""
+        journalid, userid, rating, settings, content, ua_id, ip_addr = define.engine.execute("""
             UPDATE journal
             SET is_spam = FALSE
             WHERE journalid = %(id)s
-            RETURNING userid, rating, settings, content, submitter_user_agent_id, submitter_ip_address
-        """, id=journalid)
+            RETURNING journalid, userid, rating, settings, content, submitter_user_agent_id, submitter_ip_address
+        """, id=journalid).first()
         # Update the spam filtering backend to indicate that this was not spam
         spam_filtering.submit(
             is_ham=True,
@@ -278,7 +278,8 @@ def modcontrol_spamqueue_journal_post_(request):
         # Delete and purge the journal from the welcome table
         define.engine.execute("""
             DELETE FROM journal
-            WHERE journalid = %(id)s
+            WHERE journalid = %(id)s AND
+                  is_spam = TRUE
         """, id=journalid)
         welcome.journal_remove(journalid=journalid)
     else:
@@ -324,12 +325,12 @@ def modcontrol_spamqueue_submission_post_(request):
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
-        userid, rating, settings, content, ua_id, ip_addr = define.engine.execute("""
+        submitid, userid, rating, settings, content, ua_id, ip_addr = define.engine.execute("""
             UPDATE submission
             SET is_spam = FALSE
             WHERE submitid = %(id)s
-            RETURNING userid, rating, settings, content, submitter_user_agent_id, submitter_ip_address
-        """, id=submitid)
+            RETURNING submitid, userid, rating, settings, content, submitter_user_agent_id, submitter_ip_address
+        """, id=submitid).first()
         # Update the spam filtering backend to indicate that this was not spam
         spam_filtering.submit(
             is_ham=True,
@@ -341,10 +342,11 @@ def modcontrol_spamqueue_submission_post_(request):
         )
         welcome.submission_insert(userid=userid, submitid=submitid, rating=rating, settings=settings)
     elif action == "delete":
-        # Delete and purge the journal from the welcome table
+        # Delete and purge the submission from the welcome table
         define.engine.execute("""
             DELETE FROM submission
-            WHERE submitid = %(id)s
+            WHERE submitid = %(id)s AND
+                  is_spam = TRUE
         """, id=submitid)
         welcome.submission_remove(submitid=submitid)
     else:
@@ -380,7 +382,7 @@ def modcontrol_deletespam_journal_post_(request):
             comment_type="journal",
             comment_content=content,
         )
-    index.recent_submissions.invalidate()
+        index.recent_submissions.invalidate()
     raise HTTPSeeOther("/modcontrol/suspenduser")
 
 
@@ -392,7 +394,8 @@ def modcontrol_deletespam_submission_post_(request):
     :param request: The Pyramid request.
     :return/raises: HTTPSeeOther to /modcontrol/suspenduser
     """
-    submitid = request.params.get("journalid")
+    submitid = request.params.get("submitid")
+    print(submitid)
     if submitid:
         # Delete and get information...
         userid, content, ua_id, ip_addr = define.engine.execute("""
@@ -400,6 +403,7 @@ def modcontrol_deletespam_submission_post_(request):
             WHERE submitid = %(id)s
             RETURNING userid, content, submitter_user_agent_id, submitter_ip_address
         """, id=submitid).first()
+        # TODO: How do we delete the remaining artifacts? Images, etc?
         # Remove from notifications...
         welcome.submission_remove(submitid=submitid)
         # Submit to the backend...
@@ -411,5 +415,5 @@ def modcontrol_deletespam_submission_post_(request):
             comment_type="submission",
             comment_content=content,
         )
-    index.recent_submissions.invalidate()
+        index.recent_submissions.invalidate()
     raise HTTPSeeOther("/modcontrol/suspenduser")

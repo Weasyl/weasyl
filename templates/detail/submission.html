@@ -281,7 +281,7 @@ $code:
         <br />
         <form action="/modcontrol/deletespam/submission" method="POST" data-confirm="Are you sure you want to SUBMIT AS SPAM and DELETE this submission?">
           $:{CSRF()}
-          <input type="hidden" name="submission" value="${query['submitid']}" />
+          <input type="hidden" name="submitid" value="${query['submitid']}" />
 
           <button class="button negative">DELETE Submission Entry and SUBMIT AS SPAM</button>
         </form>

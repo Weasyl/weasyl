@@ -9,8 +9,10 @@ from weasyl.error import WeasylError
 
 FILTERING_ENABLED = config.config_read_bool(setting='enabled', value=False, section='spam_filtering')
 AKISMET_KEY = config.config_read_setting(setting='key', value=None, section='spam_filtering')
+# Used to set the `is_spam` flag on requests sent to the backend
+_IS_ENVIRONMENT_TESTING = True if os.environ.get("WEASYL_TESTING_ENV") else False
 # AKA, the link to the main page of the web application
-AKISMET_BLOG_URL = "http://lo.weasyl.com" if os.environ.get("WEASYL_TESTING_ENV") else "https://www.weasyl.com"
+AKISMET_BLOG_URL = "http://lo.weasyl.com" if _IS_ENVIRONMENT_TESTING else "https://www.weasyl.com"
 
 
 if all([FILTERING_ENABLED, AKISMET_KEY]):
@@ -24,6 +26,7 @@ else:
 
 
 def _check_if_filtering_enabled(function):
+    """ Block use of `check()` and `submit()` if filtering is not enabled in site.config.txt """
     def inner(*args, **kwargs):
         if not FILTERING_ENABLED:
             raise WeasylError("SpamFilteringDisabled")
@@ -51,7 +54,6 @@ def check(
     user_id=None,
     comment_type=None,
     comment_content=None,
-    is_test=False,
 ):
     """
     Submits a piece of content to Akismet to check if the content is considered as spam.
@@ -62,7 +64,6 @@ def check(
     additional set of data points, which can increase performance. Optional.
     :param comment_type: A string that describes the content being sent. Optional.
     :param comment_content: The submitted content.
-    :param is_test: If set to True, indicates that this request is a test.
     :return: akismet.SpamStatus object (Ham, Unknown, ProbableSpam, DefiniteSpam). If the type is DefiniteSpam, the
     submission can be immediately dropped as it is blatant spam.
     """
@@ -81,7 +82,7 @@ def check(
         "comment_author_email": email,
         "comment_type": comment_type,
         "comment_content": comment_content,
-        "is_test": is_test,
+        "is_test": _IS_ENVIRONMENT_TESTING,
     }
     if FILTERING_ENABLED:
         return _akismet.check(**payload)
@@ -98,7 +99,6 @@ def submit(
     user_id=None,
     comment_type=None,
     comment_content=None,
-    is_test=False,
 ):
     """
     Submits a correction to Akismet, indicating that it was either ham (good), or missed spam.
@@ -113,7 +113,6 @@ def submit(
     additional set of data points, which can increase performance. Optional.
     :param comment_type: A string that describes the content being sent. Optional.
     :param comment_content: The submitted content.
-    :param is_test: If set to True, indicates that this request is a test.
     :return: akismet.SpamStatus object (Ham, Unknown, ProbableSpam, DefiniteSpam)
     """
     if all([is_spam, is_ham]):
@@ -133,7 +132,7 @@ def submit(
         "comment_author_email": email,
         "comment_type": comment_type,
         "comment_content": comment_content,
-        "is_test": is_test,
+        "is_test": _IS_ENVIRONMENT_TESTING,
     }
     if is_ham:
         _akismet.submit_ham(**payload)

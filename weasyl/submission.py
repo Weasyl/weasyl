@@ -593,7 +593,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, su.sorttime, pr.config, fd.title
+            su.page_views, su.sorttime, pr.config, fd.title, su.is_spam
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
@@ -603,7 +603,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     # Sanity check
     if query and userid in staff.MODS and anyway == "true":
         pass
-    elif not query or "h" in query[8]:
+    elif not query or "h" in query[8] or query[13]:
         raise WeasylError("submissionRecordMissing")
     elif query[7] > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()):
         raise WeasylError("RatingExceeded")
@@ -690,7 +690,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
     rating = d.get_rating(userid)
     db = d.connect()
     sub = db.query(orm.Submission).get(submitid)
-    if sub is None or 'hidden' in sub.settings:
+    if sub is None or 'hidden' in sub.settings or sub.is_spam:
         raise WeasylError("submissionRecordMissing")
     sub_rating = sub.rating.code
     if 'friends-only' in sub.settings and not frienduser.check(userid, sub.userid):

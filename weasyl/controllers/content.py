@@ -11,7 +11,7 @@ from libweasyl.text import slug_for
 
 from weasyl import (
     character, comment, define, errorcode, folder, journal, macro, profile,
-    report, searchtag, shout, spam_filtering, submission, orm)
+    report, searchtag, shout, submission, orm)
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError
 from weasyl.login import get_user_agent_id

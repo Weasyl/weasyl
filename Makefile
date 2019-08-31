@@ -98,6 +98,7 @@ deploy-web-worker: setup
 .PHONY: run
 run: setup
 	WEASYL_APP_ROOT=. \
+		WEASYL_TESTING_ENV=y \
 		WEASYL_STORAGE_ROOT=. \
 		WEASYL_SERVE_STATIC_FILES=y \
 		WEASYL_RELOAD_TEMPLATES=y \

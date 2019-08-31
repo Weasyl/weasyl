@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import urlparse
 from io import BytesIO
 
+from akismet import SpamStatus
 import arrow
 import sqlalchemy as sa
 
@@ -34,6 +35,7 @@ from weasyl import orm
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
+from weasyl import spam_filtering
 from weasyl import twits
 from weasyl import welcome
 from weasyl.error import WeasylError
@@ -100,6 +102,36 @@ def _post_to_twitter_about(submitid, title, rating, tags):
         length += len(tag) + 2
 
     twits.post(account, u'%s %s' % (url, ' '.join(selected_tags)))
+
+
+def _check_for_spam(submission, userid):
+    """
+    Queries the spam filtering backend to determine if the submitted content is spam.
+
+    Implementation note: Since this raises WeasylError if it is blatantly spam, call this _before_ writing out to the
+    database or making any saves to disk.
+
+    :param submission:
+    :param userid:
+    :return: Boolean False if the textual content submitted is not considered spam (or if an unknown Akismet response
+    is returned), or Boolean True if it the item is probably spam.
+    :raises WeasylError("SpamFilteringDropped"): If the submitted textual content is blatantly spam.
+    """
+    # Run the journal through Akismet to check for spam
+    is_spam = False
+    if spam_filtering.FILTERING_ENABLED:
+        result = spam_filtering.check(
+            user_ip=submission.submitter_ip_address,
+            user_agent_id=submission.submitter_user_agent_id,
+            user_id=userid,
+            comment_type="journal",
+            comment_content=submission.content,
+        )
+        if result == SpamStatus.DefiniteSpam:
+            raise WeasylError("SpamFilteringDropped")
+        elif result == SpamStatus.ProbableSpam:
+            is_spam = True
+    return is_spam
 
 
 def check_for_duplicate_media(userid, mediaid):
@@ -173,6 +205,10 @@ def create_visual(userid, submission,
         raise WeasylError("submitSizeExceedsLimit")
     elif submitextension not in [".jpg", ".png", ".gif"]:
         raise WeasylError("submitType")
+
+    # Check if the submission is spam
+    is_spam = _check_for_spam(submission=submission, userid=userid)
+
     submit_file_type = submitextension.lstrip('.')
     submit_media_item = orm.fetch_or_create_media_item(
         submitfile, file_type=submit_file_type, im=im)
@@ -229,6 +265,9 @@ def create_visual(userid, submission,
             "rating": submission.rating.code,
             "settings": settings,
             "sorttime": now,
+            "is_spam": is_spam,
+            "submitter_ip_address": submission.submitter_ip_address,
+            "submitter_user_agent_id": submission.submitter_user_agent_id,
         }]).returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)
 
@@ -251,6 +290,9 @@ def create_visual(userid, submission,
 
     # Assign search tags
     searchtag.associate(userid, tags, submitid=submitid)
+
+    if is_spam:
+        raise WeasylError("SpamFilteringDelayed")
 
     # Create notifications
     if create_notifications:
@@ -306,6 +348,9 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
     else:
         submit_media_item = None
 
+    # Check if the submission is spam
+    is_spam = _check_for_spam(submission=submission, userid=userid)
+
     thumb_media_item = media.make_cover_media_item(thumbfile)
     cover_media_item = media.make_cover_media_item(coverfile)
     if cover_media_item and not thumb_media_item:
@@ -334,6 +379,9 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
             "rating": submission.rating.code,
             "settings": settings,
             "sorttime": now,
+            "is_spam": is_spam,
+            "submitter_ip_address": submission.submitter_ip_address,
+            "submitter_user_agent_id": submission.submitter_user_agent_id,
         }])
         .returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)
@@ -356,6 +404,9 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
     if create_notifications:
         _create_notifications(userid, submitid, submission.rating, settings,
                               submission.title, tags)
+
+    if is_spam:
+        raise WeasylError("SpamFilteringDelayed")
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'literarysubmissions')
@@ -397,6 +448,9 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
         check_for_duplicate_media(userid, submit_media_item.mediaid)
     else:
         submit_media_item = None
+
+    # Check if the submission is spam
+    is_spam = _check_for_spam(submission=submission, userid=userid)
 
     thumb_media_item = media.make_cover_media_item(thumbfile)
     cover_media_item = media.make_cover_media_item(coverfile)
@@ -447,6 +501,9 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             "rating": submission.rating,
             "settings": settings,
             "sorttime": now,
+            "is_spam": is_spam,
+            "submitter_ip_address": submission.submitter_ip_address,
+            "submitter_user_agent_id": submission.submitter_user_agent_id,
         }])
         .returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)
@@ -463,6 +520,9 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
     if tempthumb_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-custom',
                                                      tempthumb_media_item)
+
+    if is_spam:
+        raise WeasylError("SpamFilteringDelayed")
 
     # Create notifications
     if create_notifications:

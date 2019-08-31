@@ -25,7 +25,7 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-def create(userid, journal, friends_only=False, tags=None, user_agent=None):
+def create(userid, journal, friends_only=False, tags=None):
     # Check invalid arguments
     if not journal.title:
         raise WeasylError("titleInvalid")

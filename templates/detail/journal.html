@@ -101,6 +101,13 @@ $def with (myself, query, violations)
           <br>
           <button class="button positive">Moderate Journal</button>
         </form>
+        <br />
+        <form action="/modcontrol/deletespam/journal" method="POST" data-confirm="Are you sure you want to SUBMIT AS SPAM and DELETE this journal?">
+          $:{CSRF()}
+          <input type="hidden" name="journalid" value="${query['journalid']}" />
+
+          <button class="button negative">DELETE Journal Entry and SUBMIT AS SPAM</button>
+        </form>
       </div><!-- /detail-mod -->
 
     <div class="di-tags">

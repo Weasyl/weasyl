@@ -7,7 +7,7 @@ import arrow
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
-from weasyl import define, macro, moderation, note, profile, report, welcome
+from weasyl import define, index, macro, moderation, note, profile, report, spam_filtering, welcome
 from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
 
@@ -222,16 +222,21 @@ def modcontrol_copynotetostaffnotes_post_(request):
 
 
 @moderator_only
-def modcontrol_journalspamqueue_get_(request):
+def modcontrol_spamqueue_journal_get_(request):
+    """
+    A Pyramid route controller for displaying any journal items which the spam filter has tagged as being spam.
+    :param request: The Pyramid request.
+    :return: A rendered page for the journal spam queue.
+    """
     query = define.engine.execute("""
-        SELECT lo.login_name, jo.journalid, jo.content
+        SELECT lo.login_name, jo.journalid, jo.title, jo.content
         FROM login lo
         INNER JOIN journal jo USING (userid)
         WHERE jo.is_spam IS TRUE
     """).fetchall()
     return Response(define.webpage(
         request.userid,
-        "modcontrol/journalspamqueue.html",
+        "modcontrol/spamqueue/journal.html",
         [query],
         title="Journal Spam Queue"
     ))
@@ -239,25 +244,35 @@ def modcontrol_journalspamqueue_get_(request):
 
 @moderator_only
 @token_checked
-def modcontrol_journalspamqueue_post_(request):
+def modcontrol_spamqueue_journal_post_(request):
+    """
+    A Pyramid route controller for approving for display or items which the spam filter has tagged as being spam.
+    :param request: The Pyramid request.
+    :return/raises: HTTPSeeOther for the journal spam queue.
+    """
     directive = request.params.get("directive")
     if directive:
         journalid, action = directive.split(",")
     else:
-        raise HTTPSeeOther("/modcontrol/journalspamqueue")
+        raise HTTPSeeOther("/modcontrol/spamqueue/journal")
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
-        userid, rating, settings = define.engine.execute("""
-            SELECT userid, rating, settings
-            FROM journal
-            WHERE journalid = %(id)s
-        """, id=journalid)
-        define.engine.execute("""
+        userid, rating, settings, content, ua_id, ip_addr = define.engine.execute("""
             UPDATE journal
             SET is_spam = FALSE
             WHERE journalid = %(id)s
+            RETURNING userid, rating, settings, content, submitter_user_agent_id, submitter_ip_address
         """, id=journalid)
+        # Update the spam filtering backend to indicate that this was not spam
+        spam_filtering.submit(
+            is_ham=True,
+            user_ip=ip_addr,
+            user_agent_id=ua_id,
+            user_id=userid,
+            comment_type="journal",
+            comment_content=content,
+        )
         welcome.journal_insert(userid=userid, journalid=journalid, rating=rating, settings=settings)
     elif action == "delete":
         # Delete and purge the journal from the welcome table
@@ -267,6 +282,134 @@ def modcontrol_journalspamqueue_post_(request):
         """, id=journalid)
         welcome.journal_remove(journalid=journalid)
     else:
-        raise HTTPSeeOther("/modcontrol/journalspamqueue")
+        raise HTTPSeeOther("/modcontrol/spamqueue/journal")
 
-    raise HTTPSeeOther("/modcontrol/journalspamqueue")
+    raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+
+
+@moderator_only
+def modcontrol_spamqueue_submission_get_(request):
+    """
+    A Pyramid route controller for displaying any journal items which the spam filter has tagged as being spam.
+    :param request: The Pyramid request.
+    :return: A rendered page for the journal spam queue.
+    """
+    query = define.engine.execute("""
+        SELECT lo.login_name, su.submitid, su.title, su.content
+        FROM login lo
+        INNER JOIN submission su USING (userid)
+        WHERE su.is_spam IS TRUE
+    """).fetchall()
+    return Response(define.webpage(
+        request.userid,
+        "modcontrol/spamqueue/submission.html",
+        [query],
+        title="Submission Spam Queue"
+    ))
+
+
+@moderator_only
+@token_checked
+def modcontrol_spamqueue_submission_post_(request):
+    """
+    A Pyramid route controller for approving for display or items which the spam filter has tagged as being spam.
+    :param request: The Pyramid request.
+    :return/raises: HTTPSeeOther for the journal spam queue.
+    """
+    directive = request.params.get("directive")
+    if directive:
+        submitid, action = directive.split(",")
+    else:
+        raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+
+    if action == "approve":
+        # Approve and insert the journal into the notifications table.
+        userid, rating, settings, content, ua_id, ip_addr = define.engine.execute("""
+            UPDATE submission
+            SET is_spam = FALSE
+            WHERE submitid = %(id)s
+            RETURNING userid, rating, settings, content, submitter_user_agent_id, submitter_ip_address
+        """, id=submitid)
+        # Update the spam filtering backend to indicate that this was not spam
+        spam_filtering.submit(
+            is_ham=True,
+            user_ip=ip_addr,
+            user_agent_id=ua_id,
+            user_id=userid,
+            comment_type="submission",
+            comment_content=content,
+        )
+        welcome.submission_insert(userid=userid, submitid=submitid, rating=rating, settings=settings)
+    elif action == "delete":
+        # Delete and purge the journal from the welcome table
+        define.engine.execute("""
+            DELETE FROM submission
+            WHERE submitid = %(id)s
+        """, id=submitid)
+        welcome.submission_remove(submitid=submitid)
+    else:
+        raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+
+    raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+
+
+@moderator_only
+@token_checked
+def modcontrol_deletespam_journal_post_(request):
+    """
+    Submits a spam journal to the filtering backend, deletes, and removes it from the welcome table.
+    :param request: The Pyramid request.
+    :return/raises: HTTPSeeOther to /modcontrol/suspenduser
+    """
+    journalid = request.params.get("journalid")
+    if journalid:
+        # Delete and get information...
+        userid, content, ua_id, ip_addr = define.engine.execute("""
+            DELETE FROM journal
+            WHERE journalid = %(id)s
+            RETURNING userid, content, submitter_user_agent_id, submitter_ip_address
+        """, id=journalid).first()
+        # Remove from notifications...
+        welcome.journal_remove(journalid=journalid)
+        # Submit to the backend...
+        spam_filtering.submit(
+            is_spam=True,
+            user_ip=ip_addr,
+            user_agent_id=ua_id,
+            user_id=userid,
+            comment_type="journal",
+            comment_content=content,
+        )
+    index.recent_submissions.invalidate()
+    raise HTTPSeeOther("/modcontrol/suspenduser")
+
+
+@moderator_only
+@token_checked
+def modcontrol_deletespam_submission_post_(request):
+    """
+    Submits a spam journal to the filtering backend, deletes, and removes it from the welcome table.
+    :param request: The Pyramid request.
+    :return/raises: HTTPSeeOther to /modcontrol/suspenduser
+    """
+    submitid = request.params.get("journalid")
+    if submitid:
+        # Delete and get information...
+        userid, content, ua_id, ip_addr = define.engine.execute("""
+            DELETE FROM submission
+            WHERE submitid = %(id)s
+            RETURNING userid, content, submitter_user_agent_id, submitter_ip_address
+        """, id=submitid).first()
+        # Remove from notifications...
+        welcome.submission_remove(submitid=submitid)
+        # Submit to the backend...
+        spam_filtering.submit(
+            is_spam=True,
+            user_ip=ip_addr,
+            user_agent_id=ua_id,
+            user_id=userid,
+            comment_type="submission",
+            comment_content=content,
+        )
+    index.recent_submissions.invalidate()
+    raise HTTPSeeOther("/modcontrol/suspenduser")

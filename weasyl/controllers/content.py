@@ -61,6 +61,8 @@ def submit_visual_post_(request):
     s.content = form.content
     s.folderid = define.get_int(form.folderid) or None
     s.subtype = define.get_int(form.subtype)
+    s.submitter_ip_address = request.client_addr
+    s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     submitid = submission.create_visual(
         request.userid, s, friends_only=form.friends, tags=tags,
@@ -106,6 +108,8 @@ def submit_literary_post_(request):
     s.content = form.content
     s.folderid = define.get_int(form.folderid) or None
     s.subtype = define.get_int(form.subtype)
+    s.submitter_ip_address = request.client_addr
+    s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     submitid, thumb = submission.create_literary(
         request.userid, s, embedlink=form.embedlink, friends_only=form.friends, tags=tags,
@@ -150,6 +154,8 @@ def submit_multimedia_post_(request):
     s.content = form.content
     s.folderid = define.get_int(form.folderid) or None
     s.subtype = define.get_int(form.subtype)
+    s.submitter_ip_address = request.client_addr
+    s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     autothumb = ('noautothumb' not in form)
 
@@ -229,7 +235,7 @@ def submit_journal_post_(request):
     j.submitter_ip_address = request.client_addr
     j.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
     journalid = journal.create(request.userid, j, friends_only=form.friends,
-                               tags=tags, user_agent=request.user_agent)
+                               tags=tags)
     raise HTTPSeeOther(location="/journal/%i/%s" % (journalid, slug_for(form.title)))
 
 

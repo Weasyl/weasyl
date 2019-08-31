@@ -1,23 +1,42 @@
+import os
+
 from akismet import Akismet, SpamStatus
 
 from weasyl import config
 from weasyl import define as d
+from weasyl.error import WeasylError
 
 
 FILTERING_ENABLED = config.config_read_bool(setting='enabled', value=False, section='spam_filtering')
 AKISMET_KEY = config.config_read_setting(setting='key', value=None, section='spam_filtering')
+# AKA, the link to the main page of the web application
+AKISMET_BLOG_URL = "http://lo.weasyl.com" if os.environ.get("WEASYL_TESTING_ENV") else "https://www.weasyl.com"
+
 
 if all([FILTERING_ENABLED, AKISMET_KEY]):
     _akismet = Akismet(
         AKISMET_KEY,
-        blog=d.absolutify_url('/'),
-        application_user_agent="weasyl/+({0})".format(d.absolutify_url('/'))
+        blog=AKISMET_BLOG_URL,
+        application_user_agent="weasyl/+({0})".format("https://github.com/weasyl/weasyl")
     )
 else:
     FILTERING_ENABLED = False
 
 
+def _check_if_filtering_enabled(function):
+    def inner(*args, **kwargs):
+        if not FILTERING_ENABLED:
+            raise WeasylError("SpamFilteringDisabled")
+        return function(*args, **kwargs)
+    return inner
+
+
 def _get_user_agent_from_id(id=None):
+    """
+    Converts a user agent ID number to a textual user agent string.
+    :param id: The user agent id number.
+    :return: A string assigned to the specified user agent.
+    """
     return d.engine.scalar("""
         SELECT user_agent
         FROM user_agents
@@ -25,6 +44,7 @@ def _get_user_agent_from_id(id=None):
     """, ua_id=id)
 
 
+@_check_if_filtering_enabled
 def check(
     user_ip=None,
     user_agent_id=None,
@@ -32,7 +52,6 @@ def check(
     comment_type=None,
     comment_content=None,
     is_test=False,
-    recheck_reason=None,
 ):
     """
     Submits a piece of content to Akismet to check if the content is considered as spam.
@@ -44,8 +63,6 @@ def check(
     :param comment_type: A string that describes the content being sent. Optional.
     :param comment_content: The submitted content.
     :param is_test: If set to True, indicates that this request is a test.
-    :param recheck_reason: If the submitted content is being rechecked for some reason, a string that indicates why the
-    content is being rechecked (e.g., "edit").
     :return: akismet.SpamStatus object (Ham, Unknown, ProbableSpam, DefiniteSpam). If the type is DefiniteSpam, the
     submission can be immediately dropped as it is blatant spam.
     """
@@ -53,8 +70,8 @@ def check(
         login_name, email = d.engine.execute("""
             SELECT login_name, email
             FROM login
-            WHERE user_id = %(id)s
-        """, id=user_id)
+            WHERE userid = %(id)s
+        """, id=user_id).first()
     else:
         login_name = email = None
     payload = {
@@ -65,7 +82,6 @@ def check(
         "comment_type": comment_type,
         "comment_content": comment_content,
         "is_test": is_test,
-        "recheck_reason": recheck_reason,
     }
     if FILTERING_ENABLED:
         return _akismet.check(**payload)
@@ -73,6 +89,7 @@ def check(
         return SpamStatus.Ham
 
 
+@_check_if_filtering_enabled
 def submit(
     is_ham=False,
     is_spam=False,
@@ -105,8 +122,8 @@ def submit(
         login_name, email = d.engine.execute("""
             SELECT login_name, email
             FROM login
-            WHERE user_id = %(id)s
-        """, id=user_id)
+            WHERE userid = %(id)s
+        """, id=user_id).first()
     else:
         login_name = email = None
     payload = {

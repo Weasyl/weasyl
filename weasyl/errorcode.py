@@ -132,6 +132,7 @@ error_messages = {
     "replyRecipientIgnoredYou": "The user you're replying to has ignored you.",
     "ReportCommentRequired": "This report type requires a comment",
     "shoutRecordMissing": "This shout doesn't seem to exist in our database.",
+    "SpamFilteringDisabled": "Spam filtering is disabled (is the site configuration file configured correctly?).",
     "SpamFilteringDelayed": "Your post has been successfully received, and is pending moderator approval.",
     "SpamFilteringDropped": "Your post has been rejected due to similarity to spam. If you feel this rejection is "
                             "in error, please contact support, and include the exact content you attempted to post.",

@@ -12,12 +12,18 @@ $:{RENDER("common/stage_title.html", ["Journal Spam Queue", "Moderator Control P
         </tr>
       </thead>
       <tbody>
-        $for user, journal_id, content in query:
+        $for user, journal_id, title, content in query:
           <tr>
             <td>${user} - <a href="/staffnotes/${user}">Staff notes</a></td>
-            <td>${content}</td>
             <td>
-              <form action="/modcontrol/journalspamqueue" method="post">
+              <b>Journal Title</b>: ${title}
+              <br /><br />
+              <b>Journal Body</b>:
+              <br /><br />
+              ${content}
+            </td>
+            <td>
+              <form action="/modcontrol/spamqueue/journal" method="post">
                 $:{CSRF()}
                 <button class="button positive" name="directive" value="${journal_id},approve">Approve</button>
                 <br /><br />

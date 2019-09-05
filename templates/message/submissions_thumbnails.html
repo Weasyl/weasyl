@@ -12,8 +12,11 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
     $if query:
       <ul class="thumbnail-grid">
-        $for i in query:
-          $:{_GRID_ITEM(i, 1)}
+        $for index, item in enumerate(query):
+          $if index < 10:
+            $:{_GRID_ITEM(item, 1, lazy_load=False)}
+          $else:
+            $:{_GRID_ITEM(item, 1)}
       </ul><!-- /.thumbnail-grid -->
 
       <div class="notifs-actions sub-notifs-actions clear">

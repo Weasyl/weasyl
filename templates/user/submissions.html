@@ -31,8 +31,11 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     $if result.query:
       <div class="${div_class}">
         <ul class="${grid_class}">
-          $for i in result.query:
-            $:{_GRID_ITEM(i)}
+          $for index, item in enumerate(result.query):
+            $if index < 10:
+              $:{_GRID_ITEM(item, lazy_load=False)}
+            $else:
+              $:{_GRID_ITEM(item)}
         </ul><!-- /.thumbnail-grid -->
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
           $:{RENDER("common/page_navigation.html", [result])}

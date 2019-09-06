@@ -395,7 +395,7 @@ def comment_remove(commentid, feature):
     d.engine.execute(
         """
         DELETE FROM welcome WHERE (type = %(comment_code)s OR type = %(reply_code)s) AND
-        (targetid = ANY (%(ids)s) OR referid = ANY (%(ids)s)) RETURNING userid
+        (targetid = ANY (%(ids)s) OR referid = ANY (%(ids)s))
         """, comment_code=comment_code, reply_code=reply_code, ids=recursive_ids)
 
 
@@ -448,8 +448,8 @@ def followuser_insert(userid, otherid):
 #   3010 user followed
 
 def followuser_remove(userid, otherid):
-    d.execute("DELETE FROM welcome WHERE (userid, otherid, type) = (%i, %i, 3010) RETURNING userid",
-              [otherid, userid], options="within")
+    d.execute("DELETE FROM welcome WHERE (userid, otherid, type) = (%i, %i, 3010)",
+              [otherid, userid])
 
 
 # notifications
@@ -466,8 +466,8 @@ def frienduserrequest_insert(userid, otherid):
 
 def frienduserrequest_remove(userid, otherid):
     d.execute(
-        "DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3080 RETURNING userid",
-        [userid, otherid, userid, otherid], options="within")
+        "DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3080",
+        [userid, otherid, userid, otherid])
 
 
 # notifications
@@ -483,8 +483,8 @@ def frienduseraccept_insert(userid, otherid):
 #   3085 user accepted friendship
 
 def frienduseraccept_remove(userid, otherid):
-    d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085 RETURNING userid",
-              [userid, otherid, userid, otherid], options="within")
+    d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085",
+              [userid, otherid, userid, otherid])
 
 
 # notifications

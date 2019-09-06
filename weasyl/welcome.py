@@ -277,7 +277,7 @@ def collectrequest_remove(userid, otherid, submitid):
 #   3100 user favorited character
 #   3110 user favorited journal
 
-def favorite_insert(userid, submitid=None, charid=None, journalid=None, otherid=None):
+def favorite_insert(db, userid, submitid=None, charid=None, journalid=None, otherid=None):
     ownerid = d.get_ownerid(submitid, charid, journalid)
     if not otherid:
         otherid = ownerid
@@ -291,10 +291,10 @@ def favorite_insert(userid, submitid=None, charid=None, journalid=None, otherid=
     else:
         raise WeasylError("Unexpected")
 
-    d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, 0, %i, %i)", [
-            otherid, userid, d.get_targetid(submitid, charid, journalid),
-            d.get_time(), notiftype])
+    db.execute(
+        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%s, %s, %s, 0, %s, %s)",
+        (otherid, userid, d.get_targetid(submitid, charid, journalid), d.get_time(), notiftype),
+    )
 
 
 # notifications
@@ -302,11 +302,13 @@ def favorite_insert(userid, submitid=None, charid=None, journalid=None, otherid=
 #   3100 user favorited character
 #   3110 user favorited journal
 
-def favorite_remove(userid, submitid=None, charid=None, journalid=None):
-    d.execute(
-        "DELETE FROM welcome WHERE (otherid, referid, type) = (%i, %i, %i) RETURNING userid",
-        [userid, d.get_targetid(submitid, charid, journalid), 3020 if submitid else 3100 if charid else 3110],
-        options="within")
+def favorite_remove(db, userid, submitid=None, charid=None, journalid=None):
+    db.execute(
+        "DELETE FROM welcome WHERE (otherid, referid, type) = (%(user)s, %(refer)s, %(type)s)",
+        user=userid,
+        refer=d.get_targetid(submitid, charid, journalid),
+        type=3020 if submitid else 3100 if charid else 3110,
+    )
 
 
 # notifications

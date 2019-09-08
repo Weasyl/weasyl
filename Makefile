@@ -42,7 +42,7 @@ config/weasyl-staff.py:
 # Creates python environment
 $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
-               $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
+               $@/bin/pip install -U pip setuptools; }
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt -e .
 	$@/bin/pip install $(USE_WHEEL) pytest==4.6.5 flake8
 	touch $@

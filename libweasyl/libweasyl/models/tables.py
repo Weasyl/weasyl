@@ -782,6 +782,7 @@ submission = Table(
         },
     }), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
+    Column('favorites', Integer()),
     Column('sorttime', WeasylTimestampColumn(), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),

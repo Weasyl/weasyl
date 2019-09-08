@@ -7,6 +7,7 @@ import random
 import urllib
 import hashlib
 import hmac
+import itertools
 import logging
 import numbers
 import datetime
@@ -24,6 +25,7 @@ import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from sqlalchemy.exc import OperationalError
 from web.template import frender
 
 import libweasyl.constants
@@ -187,6 +189,26 @@ def sql_number_list(target):
         target = [target]
 
     return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
+
+
+_PG_SERIALIZATION_FAILURE = u'40001'
+
+
+def serializable_retry(action, limit=16):
+    """
+    Runs an action accepting a `Connection` parameter in a serializable
+    transaction, retrying it up to `limit` times.
+    """
+    with engine.connect() as db:
+        db = db.execution_options(isolation_level='SERIALIZABLE')
+
+        for i in itertools.count(1):
+            try:
+                with db.begin():
+                    return action(db)
+            except OperationalError as e:
+                if i == limit or e.orig.pgcode != _PG_SERIALIZATION_FAILURE:
+                    raise
 
 
 CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()

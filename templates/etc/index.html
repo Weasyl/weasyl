@@ -12,8 +12,9 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   <h3 class="pad-left typeface-a color-b">Latest Uploads</h3>
 
   <ul class="thumbnail-grid large-footprint">
+    $# Items that are front and center on the main page, quite close to the top; skip lazy loading entirely.
     $for i in everything:
-      $:{_GRID_ITEM(i)}
+      $:{_GRID_ITEM(i, lazy_load=False)}
     </li><li class="clear more"><a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
   </ul><!-- /.thumbnail-grid -->
 

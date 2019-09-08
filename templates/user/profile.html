@@ -5,10 +5,11 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
 
+  $# The submissions/favorite grids are above/straddling the fold, so omit lazy load.
   $if(submissions):
     <ul id="user-thumbs" class="thumbnail-grid small-footprint">
       $for i in submissions:
-        $:{_GRID_ITEM(i)}
+        $:{_GRID_ITEM(i, lazy_load=False)}
       </li><li class="clear"><a class="more" href="/${more_submissions}/${LOGIN(profile['username'])}"><span>${profile['username']}'s ${more_submissions.title()}</span></a></li>
     </ul><!-- /.thumbnail-grid -->
 
@@ -18,7 +19,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   $if favorites:
     <ul id="fav-thumbs" class="thumbnail-grid tiny-footprint">
       $for i in favorites:
-        $:{_GRID_ITEM(i)}
+        $:{_GRID_ITEM(i, lazy_load=False)}
       </li><li class="clear"><a class="more" href="/favorites/${LOGIN(profile['username'])}"><span>${profile['username']}'s Favorites</span></a></li>
     </ul><!-- /.thumbnail-grid -->
 

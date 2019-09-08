@@ -228,6 +228,7 @@ def create_visual(userid, submission,
             "subtype": submission.subtype,
             "rating": submission.rating.code,
             "settings": settings,
+            "favorites": 0,
             "sorttime": now,
         }]).returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)

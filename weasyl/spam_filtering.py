@@ -26,7 +26,7 @@ else:
 
 
 def _check_if_filtering_enabled(function):
-    """ Block use of `check()` and `submit()` if filtering is not enabled in site.config.txt """
+    """ Block use of decorated function if filtering is not enabled in site.config.txt """
     def inner(*args, **kwargs):
         if not FILTERING_ENABLED:
             raise WeasylError("SpamFilteringDisabled")
@@ -47,7 +47,6 @@ def _get_user_agent_from_id(id=None):
     """, ua_id=id)
 
 
-@_check_if_filtering_enabled
 def check(
     user_ip=None,
     user_agent_id=None,

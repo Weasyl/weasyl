@@ -273,11 +273,8 @@ routes = (
         "GET": moderation.modcontrol_spamqueue_submission_get_,
         "POST": moderation.modcontrol_spamqueue_submission_post_,
     }),
-    Route("/modcontrol/deletespam/journal", "modcontrol_deletespam_journal", {
-        "POST": moderation.modcontrol_deletespam_journal_post_,
-    }),
-    Route("/modcontrol/deletespam/submission", "modcontrol_deletespam_submission", {
-        "POST": moderation.modcontrol_deletespam_submission_post_,
+    Route("/modcontrol/spam/remove", "modcontrol_spam_remove", {
+        "POST": moderation.modcontrol_spam_remove_post_,
     }),
 
     # Collection routes.

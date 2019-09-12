@@ -323,7 +323,7 @@ def modcontrol_spamqueue_submission_post_(request):
     if directive:
         submitid, action = directive.split(",")
     else:
-        raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+        raise HTTPSeeOther("/modcontrol/spamqueue/submission")
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
@@ -346,9 +346,9 @@ def modcontrol_spamqueue_submission_post_(request):
     elif action == "reject":
         moderation.hidesubmission(submitid=submitid)
     else:
-        raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+        raise HTTPSeeOther("/modcontrol/spamqueue/submission")
 
-    raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+    raise HTTPSeeOther("/modcontrol/spamqueue/submission")
 
 
 @moderator_only
@@ -369,12 +369,12 @@ def modcontrol_spam_remove_post_(request):
     if sum([1 for item in [submitid, journalid] if item is not None]) != 1:
         # Only one parameter should ever be set
         raise WeasylError("Unexpected")
-    
-    # Only pkey_val is untrusted input to this statement.
+
+    # Only pkey_value is untrusted input to this statement.
     statement = """
         SELECT userid, content, submitter_user_agent_id, submitter_ip_address
         FROM {table_name}
-        WHERE {pkey_name} = %(pkey_val)s
+        WHERE {pkey_name} = %(pkey_value)s
     """
 
     if submitid:
@@ -389,14 +389,14 @@ def modcontrol_spam_remove_post_(request):
         record_identifier = journalid
         welcome.journal_remove(journalid=journalid)
 
-    userid, content, user_agent_id, ip_addr = define.engine.execute(statement, pkey_val=record_identifier).first()
+    userid, content, user_agent_id, ip_addr = define.engine.execute(statement, pkey_value=record_identifier).first()
 
     spam_filtering.submit(
         is_spam=True,
         user_ip=ip_addr,
         user_agent_id=user_agent_id,
         user_id=userid,
-        comment_type="submission",
+        comment_type=content_type,
         comment_content=content,
     )
 

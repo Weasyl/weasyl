@@ -1,4 +1,4 @@
-$def with (query, notifications=None)
+$def with (query, notifications=None, lazy_load=True)
 
 <li class="item">
   $if notifications:
@@ -50,21 +50,31 @@ $def with (query, notifications=None)
       $if query['contype'] in (30, 50):
         <img src="${avatar['display_url']}" alt="avatar" />
       $elif webp_thumb is not None:
-        <picture>
-          <source type="image/webp" data-srcset="${webp_thumb['display_url']}" />
-          <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
-        </picture>
-        <noscript>
+        $if lazy_load:
+          <picture>
+            <source type="image/webp" data-srcset="${webp_thumb['display_url']}" />
+            <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
+          </picture>
+          <noscript>
+            <picture>
+              <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+              <img src="${display_url}" alt="" />
+            </picture>
+          </noscript>
+        $else:
           <picture>
             <source type="image/webp" srcset="${webp_thumb['display_url']}" />
             <img src="${display_url}" alt="" />
           </picture>
-        </noscript>
       $else:
-        <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
-        <noscript>
+        $if lazy_load:
+          <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
+          <noscript>
+            <img src="${display_url}" alt="" />
+          </noscript>
+        $else:
           <img src="${display_url}" alt="" />
-        </noscript>
+
     </a>
 
     $if playable and playable[0].get('file_type') == 'mp3':

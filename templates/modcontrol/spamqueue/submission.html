@@ -27,9 +27,10 @@ $:{RENDER("common/stage_title.html", ["Submission Spam Queue", "Moderator Contro
             <td>
               <form action="/modcontrol/spamqueue/submission" method="post">
                 $:{CSRF()}
-                <button class="button positive" name="directive" value="${submission_id},approve">Approve</button>
+                <input type="hidden" name="submitid" value="${submission_id}" />
+                <button class="button positive" name="directive" value="approve">Approve</button>
                 <br /><br />
-                <button class="button negative" name="directive" value="${submission_id},reject">Reject</button>
+                <button class="button negative" name="directive" value="reject">Reject</button>
               </form>
             </td>
           </tr>

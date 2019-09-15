@@ -25,15 +25,6 @@ else:
     FILTERING_ENABLED = False
 
 
-def _check_if_filtering_enabled(function):
-    """ Block use of decorated function if filtering is not enabled in site.config.txt """
-    def inner(*args, **kwargs):
-        if not FILTERING_ENABLED:
-            raise WeasylError("SpamFilteringDisabled")
-        return function(*args, **kwargs)
-    return inner
-
-
 def _get_user_agent_from_id(id=None):
     """
     Converts a user agent ID number to a textual user agent string.
@@ -64,7 +55,8 @@ def check(
     :param comment_type: A string that describes the content being sent. Optional.
     :param comment_content: The submitted content.
     :return: akismet.SpamStatus object (Ham, Unknown, ProbableSpam, DefiniteSpam). If the type is DefiniteSpam, the
-    submission can be immediately dropped as it is blatant spam.
+    submission can be immediately dropped as it is blatant spam. If spam filtering is disabled, SpamStatus.Ham
+    is always returned.
     """
     if user_id:
         login_name, email = d.engine.execute("""
@@ -89,7 +81,6 @@ def check(
         return SpamStatus.Ham
 
 
-@_check_if_filtering_enabled
 def submit(
     is_ham=False,
     is_spam=False,
@@ -112,8 +103,10 @@ def submit(
     additional set of data points, which can increase performance. Optional.
     :param comment_type: A string that describes the content being sent. Optional.
     :param comment_content: The submitted content.
-    :return: akismet.SpamStatus object (Ham, Unknown, ProbableSpam, DefiniteSpam)
     """
+    if not FILTERING_ENABLED:
+        raise WeasylError("SpamFilteringDisabled")
+
     if all([is_spam, is_ham]):
         raise AttributeError("Either is_spam or is_ham must be set, not both.")
     if user_id:

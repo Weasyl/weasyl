@@ -561,21 +561,21 @@ def gallery_blacklisted_tags(userid, otherid):
 
 
 def hidesubmission(submitid):
-    d.engine.execute("UPDATE submission SET settings = settings || 'h' WHERE submitid = %(submitid)s AND settings !~ 'h'", submitid=submitid)
+    d.execute("UPDATE submission SET settings = settings || 'h' WHERE submitid = %i AND settings !~ 'h'", [submitid])
     welcome.submission_remove(submitid)
 
 
 def unhidesubmission(submitid):
-    d.engine.execute("UPDATE submission SET settings = REPLACE(settings, 'h', '') WHERE submitid = %(submitid)s", submitid=submitid)
+    d.execute("UPDATE submission SET settings = REPLACE(settings, 'h', '') WHERE submitid = %i", [submitid])
 
 
 def hidecharacter(charid):
-    d.engine.execute("UPDATE character SET settings = settings || 'h' WHERE charid = %(charid)s AND settings !~ 'h'", charid=charid)
+    d.execute("UPDATE character SET settings = settings || 'h' WHERE charid = %i AND settings !~ 'h'", [charid])
     welcome.character_remove(charid)
 
 
 def unhidecharacter(charid):
-    d.engine.execute("UPDATE character SET settings = REPLACE(settings, 'h', '') WHERE charid = %(charid)s", charid=charid)
+    d.execute("UPDATE character SET settings = REPLACE(settings, 'h', '') WHERE charid = %i", [charid])
 
 
 def hidejournal(journalid):

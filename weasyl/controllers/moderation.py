@@ -235,7 +235,7 @@ def modcontrol_spamqueue_journal_get_(request):
         SELECT lo.login_name, jo.journalid, jo.title, jo.content
         FROM login lo
         INNER JOIN journal jo USING (userid)
-        WHERE jo.is_spam IS TRUE
+        WHERE jo.is_spam
             AND jo.settings !~ 'h'
     """).fetchall()
     return Response(define.webpage(
@@ -254,11 +254,11 @@ def modcontrol_spamqueue_journal_post_(request):
     :param request: The Pyramid request.
     :return/raises: HTTPSeeOther for the journal spam queue.
     """
-    directive = request.params.get("directive")
-    if directive:
-        journalid, action = directive.split(",")
-    else:
-        raise HTTPSeeOther("/modcontrol/spamqueue/journal")
+    action = request.params.get("directive")
+    journalid = request.params.get("journalid")
+
+    if not all([action, journalid]):
+        raise WeasylError("Unexpected")
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
@@ -300,7 +300,7 @@ def modcontrol_spamqueue_submission_get_(request):
         SELECT lo.login_name, su.submitid, su.title, su.content
         FROM login lo
         INNER JOIN submission su USING (userid)
-        WHERE su.is_spam IS TRUE
+        WHERE su.is_spam
             AND su.settings !~ 'h'
     """).fetchall()
     return Response(define.webpage(
@@ -319,11 +319,11 @@ def modcontrol_spamqueue_submission_post_(request):
     :param request: The Pyramid request.
     :return/raises: HTTPSeeOther for the journal spam queue.
     """
-    directive = request.params.get("directive")
-    if directive:
-        submitid, action = directive.split(",")
-    else:
-        raise HTTPSeeOther("/modcontrol/spamqueue/submission")
+    action = request.params.get("directive")
+    submitid = request.params.get("submitid")
+
+    if not all([action, submitid]):
+        raise WeasylError("Unexpected")
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
@@ -344,7 +344,9 @@ def modcontrol_spamqueue_submission_post_(request):
         )
         welcome.submission_insert(userid=userid, submitid=submitid, rating=rating, settings=settings)
     elif action == "reject":
-        moderation.hidesubmission(submitid=submitid)
+        # Note: We need to explicitly convert to int for the moment, otherwise this call fails with:
+        #    TypeError: %d format: a number is required, not str
+        moderation.hidesubmission(submitid=int(submitid))
     else:
         raise HTTPSeeOther("/modcontrol/spamqueue/submission")
 
@@ -366,8 +368,9 @@ def modcontrol_spam_remove_post_(request):
     """
     submitid = request.params.get('submitid')
     journalid = request.params.get('journalid')
-    if sum([1 for item in [submitid, journalid] if item is not None]) != 1:
-        # Only one parameter should ever be set
+
+    # Only one parameter should ever be set
+    if sum(item is not None for item in [submitid, journalid]) != 1:
         raise WeasylError("Unexpected")
 
     # Only pkey_value is untrusted input to this statement.
@@ -383,11 +386,13 @@ def modcontrol_spam_remove_post_(request):
         statement = statement.format(table_name="submission", pkey_name="submitid")
         record_identifier = submitid
         welcome.submission_remove(submitid=submitid)
+        moderation.hidesubmission(submitid=int(submitid))
     elif journalid:
         content_type = "journal"
         statement = statement.format(table_name="journal", pkey_name="journalid")
         record_identifier = journalid
         welcome.journal_remove(journalid=journalid)
+        moderation.hidejournal(journalid=journalid)
 
     userid, content, user_agent_id, ip_addr = define.engine.execute(statement, pkey_value=record_identifier).first()
 

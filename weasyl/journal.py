@@ -279,7 +279,7 @@ def select_latest(userid, rating, otherid=None):
     if otherid:
         statement.append(
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
-    statement.append(" AND is_spam = FALSE ")
+    statement.append(" AND NOT is_spam ")
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
     query = d.execute("".join(statement), options="single")

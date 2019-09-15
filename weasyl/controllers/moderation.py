@@ -255,10 +255,7 @@ def modcontrol_spamqueue_journal_post_(request):
     :return/raises: HTTPSeeOther for the journal spam queue.
     """
     action = request.params.get("directive")
-    journalid = request.params.get("journalid")
-
-    if not all([action, journalid]):
-        raise WeasylError("Unexpected")
+    journalid = int(request.params.get("journalid"))
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
@@ -320,10 +317,7 @@ def modcontrol_spamqueue_submission_post_(request):
     :return/raises: HTTPSeeOther for the journal spam queue.
     """
     action = request.params.get("directive")
-    submitid = request.params.get("submitid")
-
-    if not all([action, submitid]):
-        raise WeasylError("Unexpected")
+    submitid = int(request.params.get("submitid"))
 
     if action == "approve":
         # Approve and insert the journal into the notifications table.
@@ -344,9 +338,7 @@ def modcontrol_spamqueue_submission_post_(request):
         )
         welcome.submission_insert(userid=userid, submitid=submitid, rating=rating, settings=settings)
     elif action == "reject":
-        # Note: We need to explicitly convert to int for the moment, otherwise this call fails with:
-        #    TypeError: %d format: a number is required, not str
-        moderation.hidesubmission(submitid=int(submitid))
+        moderation.hidesubmission(submitid=submitid)
     else:
         raise HTTPSeeOther("/modcontrol/spamqueue/submission")
 
@@ -373,6 +365,9 @@ def modcontrol_spam_remove_post_(request):
     if sum(item is not None for item in [submitid, journalid]) != 1:
         raise WeasylError("Unexpected")
 
+    submitid = int(submitid) if submitid is not None else None
+    journalid = int(journalid) if journalid is not None else None
+
     # Only pkey_value is untrusted input to this statement.
     statement = """
         SELECT userid, content, submitter_user_agent_id, submitter_ip_address
@@ -386,7 +381,7 @@ def modcontrol_spam_remove_post_(request):
         statement = statement.format(table_name="submission", pkey_name="submitid")
         record_identifier = submitid
         welcome.submission_remove(submitid=submitid)
-        moderation.hidesubmission(submitid=int(submitid))
+        moderation.hidesubmission(submitid=submitid)
     elif journalid:
         content_type = "journal"
         statement = statement.format(table_name="journal", pkey_name="journalid")

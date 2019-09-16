@@ -316,7 +316,11 @@ journal = Table(
     Column('submitter_user_agent_id', Integer(), nullable=True),
     Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='journal_userid_fkey'),
-    default_fkey(['submitter_user_agent_id'], ['user_agents.user_agent_id'], name='journal_user_agent_id_fkey'),
+    ForeignKeyConstraint(
+        ['submitter_user_agent_id'],
+        ['user_agents.user_agent_id'],
+        name="journal_user_agent_id_fkey",
+    ),
 )
 
 Index('ind_journal_userid', journal.c.userid)
@@ -794,7 +798,11 @@ submission = Table(
     Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
-    default_fkey(['submitter_user_agent_id'], ['user_agents.user_agent_id'], name="submission_agent_id_fkey"),
+    ForeignKeyConstraint(
+        ['submitter_user_agent_id'],
+        ['user_agents.user_agent_id'],
+        name="submission_agent_id_fkey",
+    ),
 )
 
 Index('ind_submission_folderid', submission.c.folderid)

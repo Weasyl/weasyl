@@ -10,7 +10,7 @@ from pyramid.httpexceptions import (
 from pyramid.response import Response
 
 from weasyl import define, errorcode, index, login, moderation, \
-    premiumpurchase, profile, resetpassword, two_factor_auth
+    profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
@@ -273,16 +273,6 @@ def verify_emailchange_get_(request):
         "**Success!** Your email address was successfully updated to **" + email + "**.",
         [["Return to the Home Page", "/"]]
     ))
-
-
-@login_required
-def verify_premium_(request):
-    premiumpurchase.verify(request.userid, request.web_input(token="").token)
-    return Response(define.errorpage(
-        request.userid,
-        "**Success!** Your purchased premium terms have "
-        "been applied to your account.",
-        [["Go to Premium " "Settings", "/control"], ["Return to the Home Page", "/"]]))
 
 
 @guest_required

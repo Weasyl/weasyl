@@ -55,7 +55,7 @@ _LIMITS = {
 }
 
 
-def _limit(size, extension, premium):
+def _limit(size, extension):
     """
     Return True if the file size exceeds the limit designated to the specified
     file type, else False.
@@ -184,8 +184,6 @@ def _create_submission(expected_type):
 def create_visual(userid, submission,
                   friends_only, tags, imageURL, thumbfile,
                   submitfile, critique, create_notifications):
-    premium = d.get_premium(userid)
-
     if imageURL:
         resp = d.http_get(imageURL, timeout=5)
         submitfile = resp.content
@@ -201,7 +199,7 @@ def create_visual(userid, submission,
 
     im = image.from_string(submitfile)
     submitextension = image.image_extension(im)
-    if _limit(submitsize, submitextension, premium):
+    if _limit(submitsize, submitextension):
         raise WeasylError("submitSizeExceedsLimit")
     elif submitextension not in [".jpg", ".png", ".gif"]:
         raise WeasylError("submitType")
@@ -320,8 +318,6 @@ def check_google_doc_embed_data(embedlink):
 def create_literary(userid, submission, embedlink=None, friends_only=False, tags=None,
                     coverfile=None, thumbfile=None, submitfile=None, critique=False,
                     create_notifications=True):
-    premium = d.get_premium(userid)
-
     if embedlink:
         check_google_doc_embed_data(embedlink)
 
@@ -341,7 +337,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
         submitextension = files.get_extension_for_category(submitfile, m.TEXT_SUBMISSION_CATEGORY)
         if submitextension is None:
             raise WeasylError("submitType")
-        if _limit(submitsize, submitextension, premium):
+        if _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
         submit_media_item = orm.fetch_or_create_media_item(
             submitfile, file_type=submitextension.lstrip('.'))
@@ -419,7 +415,6 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 def create_multimedia(userid, submission, embedlink=None, friends_only=None,
                       tags=None, coverfile=None, thumbfile=None, submitfile=None,
                       critique=False, create_notifications=True, auto_thumb=False):
-    premium = d.get_premium(userid)
     embedlink = embedlink.strip()
 
     # Determine filesizes
@@ -442,7 +437,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             raise WeasylError("submitType")
         elif submitextension not in [".mp3", ".swf"] and not embedlink:
             raise WeasylError("submitType")
-        elif _limit(submitsize, submitextension, premium):
+        elif _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
         submit_media_item = orm.fetch_or_create_media_item(
             submitfile, file_type=submitextension.lstrip('.'))
@@ -553,7 +548,6 @@ def reupload(userid, submitid, submitfile):
     subcat = query[1] / 1000 * 1000
     if subcat not in m.ALL_SUBMISSION_CATEGORIES:
         raise WeasylError("Unexpected")
-    premium = d.get_premium(userid)
 
     # Check invalid file data
     if not submitsize:
@@ -567,7 +561,7 @@ def reupload(userid, submitid, submitfile):
         raise WeasylError("submitType")
     elif subcat == m.MULTIMEDIA_SUBMISSION_CATEGORY and submitextension not in [".mp3", ".swf"]:
         raise WeasylError("submitType")
-    elif _limit(submitsize, submitextension, premium):
+    elif _limit(submitsize, submitextension):
         raise WeasylError("submitSizeExceedsLimit")
 
     submit_file_type = submitextension.lstrip('.')

@@ -25,7 +25,6 @@ login.settings ()
 
 b  Banned account
 s  Suspended account
-d  Premium account
 
 p  Reset password
 i  Reset birthday

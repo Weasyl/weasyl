@@ -27,7 +27,8 @@ from weasyl import (
     login,
     macro,
     media,
-    middleware
+    middleware,
+    spam_filtering,
 )
 from weasyl.wsgi import wsgi_app
 
@@ -163,3 +164,8 @@ def do_not_retrieve_disposable_email_domains(monkeypatch):
 @pytest.fixture
 def app():
     return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})
+
+
+@pytest.fixture(autouse=True)
+def do_not_run_spam_checks(monkeypatch):
+    monkeypatch.setattr(spam_filtering, 'FILTERING_ENABLED', False)

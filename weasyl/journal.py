@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import arrow
+from akismet import SpamStatus
 
 from libweasyl import ratings
 from libweasyl import staff
@@ -19,6 +20,7 @@ from weasyl import moderation
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
+from weasyl import spam_filtering
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -39,6 +41,21 @@ def create(userid, journal, friends_only=False, tags=None):
     # Create journal
     jo = d.meta.tables["journal"]
 
+    # Run the journal through Akismet to check for spam
+    is_spam = False
+    if spam_filtering.FILTERING_ENABLED:
+        result = spam_filtering.check(
+            user_ip=journal.submitter_ip_address,
+            user_agent_id=journal.submitter_user_agent_id,
+            user_id=userid,
+            comment_type="journal",
+            comment_content=journal.content,
+        )
+        if result == SpamStatus.DefiniteSpam:
+            raise WeasylError("SpamFilteringDropped")
+        elif result == SpamStatus.ProbableSpam:
+            is_spam = True
+
     journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
@@ -46,10 +63,17 @@ def create(userid, journal, friends_only=False, tags=None):
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
+        "is_spam": is_spam,
+        "submitter_ip_address": journal.submitter_ip_address,
+        "submitter_user_agent_id": journal.submitter_user_agent_id,
     })
 
     # Assign search tags
     searchtag.associate(userid, tags, journalid=journalid)
+
+    # If the journal was spam, block creation of the notifications, and notify user it is being held.
+    if is_spam:
+        raise WeasylError("SpamFilteringDelayed")
 
     # Create notifications
     if "m" not in settings:
@@ -77,14 +101,17 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     """
 
     query = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config
+        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config, jo.is_spam
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
 
-    if journalid and userid in staff.MODS and anyway:
+    if not query:
+        # If there's no query result, there's no record, so fast-fail.
+        raise WeasylError('journalRecordMissing')
+    elif journalid and userid in staff.MODS and anyway:
         pass
-    elif not query or 'h' in query.settings:
+    elif not query or 'h' in query.settings or query.is_spam:
         raise WeasylError('journalRecordMissing')
     elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or d.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
@@ -252,6 +279,7 @@ def select_latest(userid, rating, otherid=None):
     if otherid:
         statement.append(
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
+    statement.append(" AND NOT is_spam ")
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
     query = d.execute("".join(statement), options="single")

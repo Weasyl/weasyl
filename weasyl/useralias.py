@@ -5,11 +5,8 @@ from weasyl import login
 from weasyl.error import WeasylError
 
 
-def select(userid, premium=True):
-    if premium:
-        return d.execute("SELECT alias_name FROM useralias WHERE userid = %i AND settings ~ 'p'", [userid], ["element"])
-    else:
-        return d.execute("SELECT alias_name FROM useralias WHERE userid = %i", [userid], ["element"])
+def select(userid):
+    return d.execute("SELECT alias_name FROM useralias WHERE userid = %i AND settings ~ 'p'", [userid], ["element"])
 
 
 def set(userid, username):

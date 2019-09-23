@@ -153,9 +153,6 @@ error_messages = {
     "titleExists": "That title is already being used.",
     "titleInvalid": "You did not enter a title.",
     "titleTooLong": "That title is too long.",
-    "tokenInvalid": (
-        "The link you followed does not appear to be valid. You may have already added these premium terms "
-        "to your account, or you may have copied the link incorrectly."),
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
     "TwoFactorAuthenticationAuthenticationAttemptsExceeded": (
         "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),

@@ -51,7 +51,6 @@ routes = (
 
     # Verification and password management views.
     Route("/verify/account", "verify_account", user.verify_account_),
-    Route("/verify/premium", "verify_premium", user.verify_premium_),
     Route("/forgotpassword", "forgot_password",
           {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
     Route("/resetpassword", "reset_password",

@@ -1,6 +1,6 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
-    Integer, String, Text, SMALLINT, text, DateTime, func, Boolean)
+    Integer, String, Text, text, DateTime, func, Boolean)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
 
 
@@ -352,7 +352,6 @@ login = Table(
     Column('login_name', String(length=40), nullable=False, unique=True),
     Column('last_login', WeasylTimestampColumn(), nullable=False),
     Column('settings', CharSettingsColumn({
-        'd': 'premium',
         'p': 'reset-password',
         'i': 'reset-birthday',
         'e': 'reset-email',
@@ -487,14 +486,6 @@ permitted_senders = Table(
     Column('sender', Integer(), primary_key=True),
     default_fkey(['userid'], ['login.userid'], name='permitted_senders_userid_fkey'),
     default_fkey(['sender'], ['login.userid'], name='permitted_senders_sender_fkey'),
-)
-
-
-premiumpurchase = Table(
-    'premiumpurchase', metadata,
-    Column('token', String(), primary_key=True, nullable=False),
-    Column('email', String(length=254), nullable=False),
-    Column('terms', SMALLINT(), nullable=False),
 )
 
 
@@ -922,15 +913,6 @@ userinfo = Table(
     Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),
-)
-
-
-userpremium = Table(
-    'userpremium', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('terms', SMALLINT(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='userpremium_userid_fkey'),
 )
 
 

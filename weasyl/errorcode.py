@@ -132,6 +132,10 @@ error_messages = {
     "replyRecipientIgnoredYou": "The user you're replying to has ignored you.",
     "ReportCommentRequired": "This report type requires a comment",
     "shoutRecordMissing": "This shout doesn't seem to exist in our database.",
+    "SpamFilteringDisabled": "Spam filtering is disabled (is the site configuration file configured correctly?).",
+    "SpamFilteringDelayed": "Your post has been successfully received, and is pending moderator approval.",
+    "SpamFilteringDropped": "Your post has been rejected due to similarity to spam. If you feel this rejection is "
+                            "in error, please contact support, and include the exact content you attempted to post.",
     "streamDurationNotSet": "Please set a stream length.",
     "streamDurationOutOfRange": "Please enter a number up to 360 minutes for stream length.",
     "streamLocationNotSet": "Please set a stream location.",
@@ -149,9 +153,6 @@ error_messages = {
     "titleExists": "That title is already being used.",
     "titleInvalid": "You did not enter a title.",
     "titleTooLong": "That title is too long.",
-    "tokenInvalid": (
-        "The link you followed does not appear to be valid. You may have already added these premium terms "
-        "to your account, or you may have copied the link incorrectly."),
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
     "TwoFactorAuthenticationAuthenticationAttemptsExceeded": (
         "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),

@@ -51,7 +51,6 @@ routes = (
 
     # Verification and password management views.
     Route("/verify/account", "verify_account", user.verify_account_),
-    Route("/verify/premium", "verify_premium", user.verify_premium_),
     Route("/forgotpassword", "forgot_password",
           {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
     Route("/resetpassword", "reset_password",
@@ -265,6 +264,17 @@ routes = (
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
     Route("/modcontrol/edituserconfig", "modcontrol_edituserconfig", {'POST': moderation.modcontrol_edituserconfig_}),
+    Route("/modcontrol/spamqueue/journal", "modcontrol_spamqueue_journal", {
+        "GET": moderation.modcontrol_spamqueue_journal_get_,
+        "POST": moderation.modcontrol_spamqueue_journal_post_,
+    }),
+    Route("/modcontrol/spamqueue/submission", "modcontrol_spamqueue_submission", {
+        "GET": moderation.modcontrol_spamqueue_submission_get_,
+        "POST": moderation.modcontrol_spamqueue_submission_post_,
+    }),
+    Route("/modcontrol/spam/remove", "modcontrol_spam_remove", {
+        "POST": moderation.modcontrol_spam_remove_post_,
+    }),
 
     # Collection routes.
     Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),

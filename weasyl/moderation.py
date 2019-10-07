@@ -578,6 +578,26 @@ def unhidecharacter(charid):
     d.execute("UPDATE character SET settings = REPLACE(settings, 'h', '') WHERE charid = %i", [charid])
 
 
+def hidejournal(journalid):
+    """ Hides a journal item from view, and removes it from the welcome table. """
+    d.engine.execute("""
+        UPDATE journal
+        SET settings = settings || 'h'
+        WHERE journalid = %(journalid)s
+            AND settings !~ 'h'
+    """, journalid=journalid)
+    welcome.journal_remove(journalid=journalid)
+
+
+def unhidejournal(journalid):
+    """ Removes the hidden settings flag from a journal item, restoring it to view if other conditions are met (e.g., not flagged as spam) """
+    d.engine.execute("""
+        UPDATE journal
+        SET settings = REPLACE(settings, 'h', '')
+        WHERE journalid = %(journalid)s
+    """, journalid=journalid)
+
+
 def manageuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")

@@ -1,6 +1,6 @@
 # these are all pinned versions available from https://pypi.weasyldev.com
 Twisted[tls]==19.7.0
-web.py==0.37+weasyl.2       # https://github.com/Weasyl/webpy
+web.py==0.39
 jsonlib2==1.5.2             # optional, but for convenience
 pyOpenSSL==19.0.0           # as above
 raven==6.10.0

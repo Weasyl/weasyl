@@ -31,29 +31,9 @@ def staff_(request):
                                    title="Staff"))
 
 
-def policy_tos_(request):
-    return Response(define.webpage(request.userid, "help/tos.html",
-                                   title="Terms of Service"))
-
-
 def thanks_(request):
     return Response(define.webpage(request.userid, "help/thanks.html",
                                    title="Awesome People"))
-
-
-def policy_privacy_(request):
-    return Response(define.webpage(request.userid, "help/privacy.html",
-                                   title="Privacy Policy"))
-
-
-def policy_copyright_(request):
-    return Response(define.webpage(request.userid, "help/copyright.html",
-                                   title="Copyright Policy"))
-
-
-def policy_scoc_(request):
-    return Response(define.webpage(request.userid, "help/scoc.html",
-                                   title="Staff Code of Conduct"))
 
 
 def policy_community_(request):
@@ -61,9 +41,24 @@ def policy_community_(request):
                                    title="Community Guidelines"))
 
 
-def policy_community_changes_(request):
-    return Response(define.webpage(request.userid, "help/community-changes.html",
-                                   title="Community Guidelines"))
+def policy_copyright_(request):
+    return Response(define.webpage(request.userid, "help/copyright.html",
+                                   title="Copyright Policy"))
+
+
+def policy_privacy_(request):
+    return Response(define.webpage(request.userid, "help/privacy.html",
+                                   title="Privacy Policy"))
+
+
+def policy_scoc_(request):
+    return Response(define.webpage(request.userid, "help/scoc.html",
+                                   title="Staff Code of Conduct"))
+
+
+def policy_tos_(request):
+    return Response(define.webpage(request.userid, "help/tos.html",
+                                   title="Terms of Service"))
 
 
 # Help functions
@@ -77,49 +72,14 @@ def help_about_(request):
                                    title="About Weasyl"))
 
 
-def help_faq_(request):
-    return Response(define.webpage(request.userid, "help/faq.html",
-                                   title="FAQ"))
-
-
 def help_collections_(request):
     return Response(define.webpage(request.userid, "help/collections.html",
                                    title="Collections"))
 
 
-def help_tagging_(request):
-    return Response(define.webpage(request.userid, "help/tagging.html",
-                                   title="Tagging"))
-
-
-def help_searching_(request):
-    return Response(define.webpage(request.userid, "help/searching.html",
-                                   title="Searching"))
-
-
-def help_marketplace_(request):
-    return Response(define.webpage(request.userid, "help/marketplace.html",
-                                   title="Marketplace"))
-
-
-def help_markdown_(request):
-    return Response(define.webpage(request.userid, "help/markdown.html",
-                                   title="Markdown"))
-
-
-def help_ratings_(request):
-    return Response(define.webpage(request.userid, "help/ratings.html",
-                                   title="Content Ratings"))
-
-
-def help_ratings_changes_(request):
-    return Response(define.webpage(request.userid, "help/ratings-changes.html",
-                                   title="Content Ratings"))
-
-
-def help_gdocs_(request):
-    return Response(define.webpage(request.userid, "help/gdocs.html",
-                                   title="Google Drive Embedding"))
+def help_faq_(request):
+    return Response(define.webpage(request.userid, "help/faq.html",
+                                   title="FAQ"))
 
 
 def help_folders_(request):
@@ -127,8 +87,43 @@ def help_folders_(request):
                                    title="Folder Options"))
 
 
+def help_gdocs_(request):
+    return Response(define.webpage(request.userid, "help/gdocs.html",
+                                   title="Google Drive Embedding"))
+
+
+def help_markdown_(request):
+    return Response(define.webpage(request.userid, "help/markdown.html",
+                                   title="Markdown"))
+
+
+def help_marketplace_(request):
+    return Response(define.webpage(request.userid, "help/marketplace.html",
+                                   title="Marketplace"))
+
+
+def help_ratings_(request):
+    return Response(define.webpage(request.userid, "help/ratings.html",
+                                   title="Content Ratings"))
+
+
 @login_required
 def help_reports_(request):
     return Response(define.webpage(request.userid, "help/reports.html", [
         report.select_reported_list(request.userid),
-    ]))
+    ], title="My Reports"))
+
+
+def help_searching_(request):
+    return Response(define.webpage(request.userid, "help/searching.html",
+                                   title="Searching"))
+
+
+def help_tagging_(request):
+    return Response(define.webpage(request.userid, "help/tagging.html",
+                                   title="Tagging"))
+
+
+def help_two_factor_authentication_(request):
+    return Response(define.webpage(request.userid, "help/two_factor_authentication.html",
+                                   title="Two-Factor Authentication"))

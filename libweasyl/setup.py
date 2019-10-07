@@ -1,26 +1,12 @@
 #!/usr/bin/env python
 import os
-import sys
 
 from setuptools import setup
-from pip.download import PipSession
-from pip.req import parse_requirements
 
 # work around the combination of http://bugs.python.org/issue8876 and
 # https://www.virtualbox.org/ticket/818 since it doesn't really have ill
 # effects and there will be a lot of virtualbox users.
 del os.link
-
-# As of pip 6, parse_requirements requires a 'session' argument. This is required
-# for remote files, but not local ones. In prior versions of pip, a blank
-# PipSession object was used if no 'session' object was passed.
-reqs = [str(r.req) for r in parse_requirements('requirements.txt', session=PipSession()) if r.req is not None]
-
-if sys.version_info < (3, 3):
-    reqs.append('backports.lzma')
-
-if sys.version_info < (3, 4):
-    reqs.append('enum34')
 
 
 setup(
@@ -37,22 +23,30 @@ setup(
             'test/data/*',
         ],
     },
-    install_requires=reqs,
+    install_requires=[
+        'alembic==1.2.1',
+        'anyjson==0.3.3',
+        'arrow==0.14.7',
+        'bcrypt==3.1.7',
+        'dogpile.cache==0.8.0',
+        'lxml==4.3.0',
+        'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
+        'oauthlib==2.1.0',
+        'Pillow==6.2.0',
+        'psycopg2cffi==2.7.7',
+        'pytz==2019.1',
+        'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
+        'sqlalchemy==1.3.8',
+        'translationstring==1.3',
+        'backports.lzma==0.0.12;python_version<"3.3"',
+        'enum34==1.1.6;python_version<"3.4"',
+    ],
     extras_require={
         'development': [
-            'coverage',
+            'coverage==4.5.4',
             'flake8',
-            'pytest',
-            'sphinx',
-            'sphinxcontrib-napoleon',
+            'pytest==4.6.5',
             'tox',
-            'vcversioner',
         ],
-    },
-    setup_requires=['vcversioner'],
-    vcversioner={
-        'version_module_paths': ['libweasyl/_version.py'],
-        # The git repo root is one directory above this setup.py.
-        'root': os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     },
 )

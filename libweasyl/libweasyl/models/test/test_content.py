@@ -20,7 +20,6 @@ def test_warn_on_rating_assignment_with_no_owner(recwarn):
 
 @pytest.mark.parametrize(('age', 'rating'), [
     (1, ratings.GENERAL),
-    (14, ratings.MODERATE),
     (19, ratings.MATURE),
     (19, ratings.EXPLICIT),
 ])
@@ -35,7 +34,6 @@ def test_user_of_age_can_use_rating(age, rating):
 
 
 @pytest.mark.parametrize(('age', 'rating'), [
-    (1, ratings.MODERATE),
     (1, ratings.MATURE),
     (1, ratings.EXPLICIT),
     (14, ratings.MATURE),

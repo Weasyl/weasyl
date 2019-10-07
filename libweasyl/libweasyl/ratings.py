@@ -30,7 +30,7 @@ class Rating(object):
 
     @property
     def name_with_age(self):
-        """ e.g. 'Moderate (13+)': Internationalized name plus age restriction """
+        """ e.g. 'Mature (18+)': Internationalized name plus age restriction """
 
         info = [
             self.minimum_age and "%d+" % (self.minimum_age,),
@@ -60,10 +60,9 @@ class Rating(object):
 
 
 GENERAL = Rating(10, "g", "general", "General", 0, "Block general and higher")
-MODERATE = Rating(20, "m", "moderate", "Moderate", 13, "Block moderate and higher")
 MATURE = Rating(30, "a", "mature", "Mature", 18, "Block mature and higher", "non-sexual")
 EXPLICIT = Rating(40, "p", "explicit", "Explicit", 18, "Block explicit only", "sexual")
-ALL_RATINGS = [GENERAL, MODERATE, MATURE, EXPLICIT]
+ALL_RATINGS = [GENERAL, MATURE, EXPLICIT]
 
 
 CODE_MAP = {rating.code: rating for rating in ALL_RATINGS}

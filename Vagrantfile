@@ -5,23 +5,22 @@ VAGRANTFILE_API_VERSION = "2"
 
 $priv_script = <<SCRIPT
 
-apt-get update
-apt-get install -y ca-certificates apt-transport-https
+apt-get -y update
 
-echo >/etc/apt/sources.list.d/weasyl.list \
-    'deb http://apt.weasyldev.com/repos/apt/debian jessie main'
+apt-get -y install apt-transport-https ca-certificates curl \
+     dkms linux-headers-amd64 linux-image-amd64
+
+curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc > \
+     /etc/apt/trusted.gpg.d/apt.postgresql.org.asc
+curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key > \
+     /etc/apt/trusted.gpg.d/deb.nodesource.com.asc
+
 echo >/etc/apt/sources.list.d/postgresql.list \
-    'deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main 9.5'
-
-curl https://deploy.weasyldev.com/weykent-key.asc | apt-key add -
-curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-
+    'deb https://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main 9.6'
 echo >/etc/apt/sources.list.d/nodesource.list \
-    'deb https://deb.nodesource.com/node_6.x jessie main'
+    'deb https://deb.nodesource.com/node_6.x stretch main'
 
-curl https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
-
-apt-get update
+apt-get -y update
 apt-mark hold grub-pc
 apt-get -y dist-upgrade
 
@@ -29,18 +28,30 @@ apt-get -y dist-upgrade
 mkdir -p /etc/dnsmasq.d/
 echo "server=/i.weasyl.com/10.10.10.103" > /etc/dnsmasq.d/i.weasyl.com
 apt-get install -y dnsmasq
-echo "prepend domain-name-servers 127.0.0.1;" >> /etc/dhcp/dhclient.conf
+if ! grep -Fxq "prepend domain-name-servers 127.0.0.1;" /etc/dhcp/dhclient.conf 
+then
+    echo "prepend domain-name-servers 127.0.0.1;" >> /etc/dhcp/dhclient.conf
+fi
 dhclient -x
 dhclient eth0
 
 apt-get -y install \
-    git-core libffi-dev libmagickcore-dev libpam-systemd libpq-dev \
-    libxml2-dev libxslt-dev memcached nginx pkg-config \
-    postgresql-9.5 postgresql-contrib-9.5 \
-    liblzma-dev python-dev python-virtualenv \
-    ruby-sass nodejs
+    git-core libffi-dev libmagickcore-dev libpam-systemd libssl-dev \
+    libxml2-dev libxslt-dev memcached nginx pkg-config liblzma-dev \
+    python-dev python-virtualenv sassc
 
-npm install -g gulp-cli
+# Assure that nginx attempts restart if it can't immediately use its proxy host at startup.
+mkdir -p /etc/systemd/system/nginx.service.d
+echo "[Service]
+Restart=on-failure
+RestartSec=5" > /etc/systemd/system/nginx.service.d/restart.conf
+systemctl daemon-reload
+
+apt-get -y --allow-unauthenticated install \
+    libpq-dev nodejs postgresql-9.6 postgresql-contrib-9.6
+
+# Required to get Pillow >= 5.0.0 to build from source (since we've disabled using wheels from PyPI)
+apt-get -y install build-essential
 
 sudo -u postgres dropdb weasyl
 sudo -u postgres dropuser vagrant
@@ -59,7 +70,7 @@ openssl x509 -req -days 3650 -in /tmp/weasyl.req.pem \
 cat >/etc/nginx/sites-available/weasyl <<NGINX
 
 server {
-    listen 8443 ssl;
+    listen 8443 ssl http2;
 
     ssl_certificate /etc/ssl/private/weasyl.crt.pem;
     ssl_certificate_key /etc/ssl/private/weasyl.key.pem;
@@ -120,10 +131,8 @@ make install-libweasyl upgrade-db
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "weasyl-debian81.box"
-  config.vm.box_url = "http://deploy.weasyldev.com/weasyl-debian81.box"
-  config.vm.box_download_checksum = "34592e65ebd4753d6f74a54b019e36d1ce006010cb4f03ed8ec131824f45ff9b"
-  config.vm.box_download_checksum_type = "sha256"
+  config.vm.box = "debian/stretch64"
+  config.vm.synced_folder '.', '/vagrant', type: "virtualbox"
   config.vm.hostname = "vagrant-weasyl"
   config.vm.provision :shell, :privileged => true, :inline => $priv_script
   config.vm.provision :shell, :privileged => false, :inline => $unpriv_script

@@ -47,7 +47,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Write temporary thumbnail file
     if thumbsize:
-        files.easyupload(tempthumb, thumbfile, "image")
+        files.write(tempthumb, thumbfile)
         thumbextension = files.get_extension_for_category(
             thumbfile, macro.ART_SUBMISSION_CATEGORY)
     else:
@@ -55,7 +55,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Write temporary submission file
     if submitsize:
-        files.easyupload(tempsubmit, submitfile, "image")
+        files.write(tempsubmit, submitfile)
         submitextension = files.get_extension_for_category(
             submitfile, macro.ART_SUBMISSION_CATEGORY)
     else:
@@ -110,7 +110,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     searchtag.associate(userid, tags, charid=charid)
 
     # Make submission file
-    files.make_path(charid, "char")
+    files.make_character_directory(charid)
     files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
 
     # Make cover file
@@ -175,14 +175,6 @@ def reupload(userid, charid, submitdata):
            SET settings = %(settings)s
          WHERE charid = %(character)s
     """, settings=settings, character=charid)
-
-
-def is_hidden(charid):
-    db = define.connect()
-    ch = define.meta.tables['character']
-    q = define.sa.select([ch.c.settings.op('~')('h')]).where(ch.c.charid == charid)
-    results = db.execute(q).fetchall()
-    return bool(results and results[0][0])
 
 
 def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway=False, increment_views=True):
@@ -303,8 +295,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
     }
 
 
-def select_query(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
-
+def select_query(userid, rating, otherid=None, backid=None, nextid=None):
     statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE ch.settings !~ '[h]'"]
 
     # Ignored users and blocked tags
@@ -334,17 +325,15 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None, options
     return statement
 
 
-def select_count(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_count(userid, rating, otherid=None, backid=None, nextid=None):
     statement = ["SELECT count(ch.charid)"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
     return define.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY ch.charid%s LIMIT %i" % ("" if backid else " DESC", limit))
 

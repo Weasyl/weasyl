@@ -1,6 +1,5 @@
-$def with (square=False, aspect="1:1", max_aspect="2")
-<script type="text/javascript">
-<!--
+$def with (square)
+<script>
 function image_select_update(_image, _selection) {
   if(!_selection.width || !_selection.height) { return; }
   $$('#x1').val(_selection.x1);
@@ -12,11 +11,10 @@ $$(function() {
   $$('#imageselect').imgAreaSelect({
     handles: true,
     $if square:
-      aspectRatio: "${aspect}",
+      aspectRatio: "1:1",
     $else:
-      maxAspectRatio: ${max_aspect},
+      maxAspectRatio: 2,
     onSelectChange: image_select_update
   });
 });
-//-->
 </script>

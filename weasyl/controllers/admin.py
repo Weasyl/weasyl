@@ -18,12 +18,12 @@ import weasyl.define as d
 
 @admin_only
 def admincontrol_(request):
-    return Response(d.webpage(request.userid, "admincontrol/admincontrol.html"))
+    return Response(d.webpage(request.userid, "admincontrol/admincontrol.html", title="Admin Control Panel"))
 
 
 @admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),)))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),), title="Submit Site Update"))
 
 
 @admin_only
@@ -31,6 +31,7 @@ def admincontrol_siteupdate_get_(request):
 def admincontrol_siteupdate_post_(request):
     title = request.params["title"].strip()
     content = request.params["content"].strip()
+    wesley = "wesley" in request.params
 
     if not title:
         raise WeasylError("titleInvalid")
@@ -38,7 +39,7 @@ def admincontrol_siteupdate_post_(request):
     if not content:
         raise WeasylError("contentInvalid")
 
-    update = siteupdate.create(request.userid, title, content)
+    update = siteupdate.create(request.userid, title, content, wesley=wesley)
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 
 
@@ -46,7 +47,7 @@ def admincontrol_siteupdate_post_(request):
 def site_update_edit_(request):
     updateid = int(request.matchdict['update_id'])
     update = SiteUpdate.query.get_or_404(updateid)
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,)))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,), title="Edit Site Update"))
 
 
 @admin_only
@@ -55,6 +56,7 @@ def site_update_put_(request):
     updateid = int(request.matchdict['update_id'])
     title = request.params["title"].strip()
     content = request.params["content"].strip()
+    wesley = "wesley" in request.params
 
     if not title:
         raise WeasylError("titleInvalid")
@@ -65,6 +67,7 @@ def site_update_put_(request):
     update = SiteUpdate.query.get_or_404(updateid)
     update.title = title
     update.content = content
+    update.wesley = wesley
     update.dbsession.flush()
 
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
@@ -83,7 +86,7 @@ def admincontrol_manageuser_get_(request):
     return Response(d.webpage(request.userid, "admincontrol/manageuser.html", [
         # Manage user information
         profile.select_manage(otherid),
-    ]))
+    ], title="User Management"))
 
 
 @admin_only
@@ -123,16 +126,65 @@ def admincontrol_acctverifylink_(request):
 
 
 @admin_only
+def admincontrol_pending_accounts_get_(request):
+    """
+    Retrieve a listing of any active pending accounts in the logincreate table.
+
+    :param request: The Pyramid request object.
+    :return: A Pyramid response with a webpage containing the pending accounts.
+    """
+    query = d.engine.execute("""
+        SELECT token, username, email, invalid, invalid_email_addr, unixtime
+        FROM logincreate
+        ORDER BY username
+    """).fetchall()
+
+    return Response(d.webpage(
+        request.userid,
+        "admincontrol/pending_accounts.html",
+        [query],
+        title="Accounts Pending Creation"
+    ))
+
+
+@admin_only
+@token_checked
+def admincontrol_pending_accounts_post_(request):
+    """
+    Purges a specified logincreate record.
+
+    :param request: A Pyramid request.
+    :return: HTTPSeeOther to /admincontrol/pending_accounts
+    """
+    logincreatetoken = request.POST.get("logincreatetoken")
+    if logincreatetoken:
+        d.engine.execute("""
+            DELETE FROM logincreate
+            WHERE token = %(token)s
+        """, token=logincreatetoken)
+
+    raise HTTPSeeOther(location="/admincontrol/pending_accounts")
+
+
+@admin_only
 def admincontrol_finduser_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/finduser.html"))
+    return Response(d.webpage(request.userid, "admincontrol/finduser.html", title="Search Users"))
 
 
 @admin_only
 @token_checked
 def admincontrol_finduser_post_(request):
-    form = request.web_input(userid="", username="", email="")
+    form = request.web_input(userid="", username="", email="", excludebanned="", excludesuspended="", excludeactive="",
+                             dateafter="", datebefore="", row_offset=0, ipaddr="")
+
+    # Redirect negative row offsets (PSQL errors on negative offset values)
+    if int(form.row_offset) < 0:
+        raise HTTPSeeOther("/admincontrol/finduser")
 
     return Response(d.webpage(request.userid, "admincontrol/finduser.html", [
         # Search results
-        moderation.finduser(request.userid, form)
-    ]))
+        moderation.finduser(request.userid, form),
+        # Pass the form and row offset in to enable pagination
+        form,
+        int(form.row_offset)
+    ], title="Search Users: Results"))

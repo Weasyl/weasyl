@@ -65,9 +65,7 @@ $code:
       $if cover:
         <img src="${cover['display_url']}" alt="${query['title']}" />
       <div id="detail-art-text" class="content pdf">
-        <a href="${submission['display_url']}?download" id="pdf-download" class="button">Download PDF</a>
-        <script src="${CDNIFY('/static/pdf/text_layer_builder.js?' + SHA)}"></script>
-        <script src="${CDNIFY('/static/pdf/viewer.js?' + SHA)}"></script>
+        <a href="${submission['display_url']}" id="pdf-download" class="button">View PDF</a>
       </div>
     </div>
 
@@ -119,9 +117,7 @@ $code:
           $ id = 'id="folder-nav-prev"' if e == len(older) else ''
           <a class="nav-link older" $:{id} href="/submission/${i['submitid']}/${SLUG(i['title'])}">
             <span class="text">&#171; Older</span>
-            $if i['rating'] == R.MODERATE.code:
-              <span class="rating moderate">The following submission is rated Moderate:</span>
-            $elif i['rating'] == R.MATURE.code:
+            $if i['rating'] == R.MATURE.code:
               <span class="rating mature">The following submission is rated Mature:</span>
             $elif i['rating'] == R.EXPLICIT.code:
               <span class="rating explicit">The following submission is rated Explicit:</span>
@@ -133,9 +129,7 @@ $code:
           $ thumb = THUMB(i)
           $ id = 'id="folder-nav-next"' if e == 0 else ''
           <a class="nav-link newer" $:{id} href="/submission/${i['submitid']}/${SLUG(i['title'])}">
-            $if i['rating'] == R.MODERATE.code:
-              <span class="rating moderate">The following submission is rated Moderate:</span>
-            $elif i['rating'] == R.MATURE.code:
+            $if i['rating'] == R.MATURE.code:
               <span class="rating mature">The following submission is rated Mature:</span>
             $elif i['rating'] == R.EXPLICIT.code:
               <span class="rating explicit">The following submission is rated Explicit:</span>
@@ -247,7 +241,7 @@ $code:
           </form>
         $else:
           <h3>Request Collection</h3>
-          $if myself['userid'] in query['collectors']:
+          $if query['collected']:
             <p>This submission is already in your collection.</p>
           $elif query['friends_only']:
             <p>This submission is marked friends only, and cannot be collected.</p>
@@ -283,6 +277,13 @@ $code:
           </select>
           <br>
           <button class="button positive">Moderate Submission</button>
+        </form>
+        <br />
+        <form action="/modcontrol/spam/remove" method="POST" data-confirm="Are you sure you want to submit this item as spam and hide it?">
+          $:{CSRF()}
+          <input type="hidden" name="submitid" value="${query['submitid']}" />
+
+          <button class="button negative">Submit as Spam and Hide</button>
         </form>
       </div><!-- /detail-mod -->
 

@@ -72,7 +72,7 @@ def messages_submissions_(request):
         # Feature
         form.feature,
         # Submissions
-        message.select_submissions(request.userid, 66,
+        message.select_submissions(request.userid, 66, include_tags=False,
                                    backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
         request.userid,
     ]))

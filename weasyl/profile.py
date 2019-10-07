@@ -3,12 +3,14 @@ from __future__ import absolute_import
 import pytz
 from translationstring import TranslationString as _
 
+from libweasyl import ratings
+from libweasyl import security
+from libweasyl import staff
 from libweasyl.html import strip_html
 from libweasyl.models import tables
-from libweasyl import ratings
-from libweasyl import staff
 
 from weasyl import define as d
+from weasyl import emailer
 from weasyl import macro as m
 from weasyl import media
 from weasyl import orm
@@ -59,9 +61,8 @@ ALLOWABLE_EXCHANGE_CODES = {
 
 Config = create_configuration([
     BoolOption("twelvehour", "2"),
-    ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "m", "a", "p"]))),
+    ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "a", "p"]))),
     BoolOption("tagging", "k"),
-    BoolOption("edittagging", "r"),
     BoolOption("hideprofile", "h"),
     BoolOption("hidestats", "i"),
     BoolOption("hidefavorites", "v"),
@@ -205,13 +206,11 @@ def twitter_card(userid):
 
 def select_myself(userid):
     if not userid:
-        return
-
-    query = d.execute("SELECT username, config FROM profile WHERE userid = %i", [userid], ["single"])
+        return None
 
     return {
         "userid": userid,
-        "username": query[0],
+        "username": d.get_display_name(userid),
         "is_mod": userid in staff.MODS,
         "user_media": media.get_user_media(userid),
     }
@@ -235,21 +234,21 @@ def check_user_rating_allowed(userid, rating):
 
 def select_userinfo(userid, config=None):
     if config is None:
-        [query] = d.engine.execute("""
+        query = tuple(d.engine.execute("""
             SELECT pr.config, ui.birthday, ui.gender, ui.country
             FROM profile pr
             INNER JOIN userinfo ui USING (userid)
             WHERE pr.userid = %(userid)s
-        """, userid=userid)
+        """, userid=userid).first())
     else:
-        [query] = d.engine.execute("""
-            SELECT %(config)s, birthday, gender, country
+        query = (config,) + tuple(d.engine.execute("""
+            SELECT birthday, gender, country
             FROM userinfo
             WHERE userid = %(userid)s
-        """, userid=userid, config=config)
+        """, userid=userid).first())
 
     user_links = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value)
+        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
@@ -346,9 +345,8 @@ def _select_statistics(userid):
 
 
 def select_statistics(userid):
-    if "i" in d.get_config(userid) and d.get_userid() not in staff.MODS:
-        return
-    return _select_statistics(userid)
+    show = "i" not in d.get_config(userid) or d.get_userid() in staff.MODS
+    return _select_statistics(userid), show
 
 
 def select_streaming(userid, rating, limit, following=True, order_by=None):
@@ -437,16 +435,11 @@ STREAMING_ACTION_MAP = {
 def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_length=0):
 
     if set_stream == 'start':
-        try:
-            stream_length = int(stream_length)
-        except:
-            raise WeasylError("streamDurationOutOfRange")
-
         if stream_length < 1 or stream_length > 360:
             raise WeasylError("streamDurationOutOfRange")
 
-    if set_stream == 'start' and not profile.stream_url:
-        raise WeasylError("streamLocationNotSet")
+        if not profile.stream_url:
+            raise WeasylError("streamLocationNotSet")
 
     # unless we're specifically still streaming, clear the user_streams record
     if set_stream != 'still':
@@ -501,7 +494,6 @@ def edit_userinfo(userid, form):
             'link_type': site_name,
             'link_value': site_value,
         }
-        row['userid'] = userid
         social_rows.append(row)
 
     d.engine.execute("""
@@ -535,19 +527,39 @@ def edit_userinfo(userid, form):
 
 def edit_email_password(userid, username, password, newemail, newemailcheck,
                         newpassword, newpasscheck):
+    """
+    Edit the email address and/or password for a given Weasyl account.
+
+    After verifying the user's current login credentials, edit the user's email address and/or
+    password if validity checks pass. If the email is modified, a confirmation email is sent
+    to the user's target email with a token which, if used, finalizes the email address change.
+
+    Parameters:
+        userid: The `userid` of the Weasyl account to modify.
+        username: User-entered username for password-based authentication.
+        password: The user's current plaintext password.
+        newemail: If changing the email on the account, the new email address. Optional.
+        newemailcheck: A verification field for the above to serve as a typo-check. Optional,
+        but mandatory if `newemail` provided.
+        newpassword: If changing the password, the user's new password. Optional.
+        newpasswordcheck: Verification field for `newpassword`. Optional, but mandatory if
+        `newpassword` provided.
+    """
     from weasyl import login
 
-    # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, session=False)
+    # Track if any changes were made for later display back to the user.
+    changes_made = ""
 
+    # Check that credentials are correct
+    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
+
+    # Run checks prior to modifying anything...
     if userid != logid or logerror is not None:
         raise WeasylError("loginInvalid")
 
     if newemail:
         if newemail != newemailcheck:
             raise WeasylError("emailMismatch")
-        elif login.email_exists(newemail):
-            raise WeasylError("emailExists")
 
     if newpassword:
         if newpassword != newpasscheck:
@@ -555,11 +567,68 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         elif not login.password_secure(newpassword):
             raise WeasylError("passwordInsecure")
 
+    # If we are setting a new email, then write the email into a holding table pending confirmation
+    #   that the email is valid.
     if newemail:
-        d.execute("UPDATE login SET email = '%s' WHERE userid = %i", [newemail, userid])
+        # Only actually attempt to change the email if unused; prevent finding out if an email is already registered
+        if not login.email_exists(newemail):
+            token = security.generate_key(40)
+            # Store the current token & email, updating them to overwrite a previous attempt if needed
+            d.engine.execute("""
+                INSERT INTO emailverify (userid, email, token, createtimestamp)
+                VALUES (%(userid)s, %(newemail)s, %(token)s, NOW())
+                ON CONFLICT (userid) DO
+                  UPDATE SET email = %(newemail)s, token = %(token)s, createtimestamp = NOW()
+            """, userid=userid, newemail=newemail, token=token)
 
+            # Send out the email containing the verification token.
+            emailer.append([newemail], None, "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
+        else:
+            # The target email exists: let the target know this
+            query_username = d.engine.scalar("""
+                SELECT login_name FROM login WHERE email = %(email)s
+            """, email=newemail)
+            emailer.append([newemail], None, "Weasyl Account Information - Duplicate Email on Accounts Rejected", d.render(
+                "email/email_in_use_email_change.html", [query_username])
+            )
+
+        # Then add text to `changes_made` telling that we have completed the email change request, and how to proceed.
+        changes_made += "Your email change request is currently pending. An email has been sent to **" + newemail + "**. Follow the instructions within to finalize your email address change.\n"
+
+    # If the password is being updated, update the hash, and clear other sessions.
     if newpassword:
         d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
+
+        # Invalidate all sessions for `userid` except for the current one
+        invalidate_other_sessions(userid)
+
+        # Then add to `changes_made` detailing that the password change has successfully occurred.
+        changes_made += "Your password has been successfully changed. As a security precaution, you have been logged out of all other active sessions."
+
+    if changes_made != "":
+        return changes_made
+    else:
+        return False
+
+
+def invalidate_other_sessions(userid):
+    """
+    Invalidate all HTTP sessions for `userid` except for the current session.
+
+    Useful as a security precaution, such as if a user changes their password, or enables
+    2FA.
+
+    Parameters:
+        userid: The userid for the account to clear sessions from.
+
+    Returns: Nothing.
+    """
+    sess = d.get_weasyl_session()
+    d.engine.execute("""
+        DELETE FROM sessions
+        WHERE userid = %(userid)s
+          AND sessionid != %(currentsession)s
+    """, userid=userid, currentsession=sess.sessionid)
 
 
 def edit_preferences(userid, timezone=None,
@@ -631,8 +700,9 @@ def select_manage(userid):
     """
     query = d.execute("""
         SELECT
-            lo.userid, lo.last_login, lo.email, pr.unixtime, pr.username, pr.full_name, pr.catchphrase, ui.birthday,
-            ui.gender, ui.country, pr.config
+            lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
+            pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
+            ui.birthday, ui.gender, ui.country, pr.config
         FROM login lo
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
@@ -643,26 +713,37 @@ def select_manage(userid):
         raise WeasylError("Unexpected")
 
     user_link_rows = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value)
+        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
     """, userid=userid)
 
+    active_user_sessions = d.engine.execute("""
+        SELECT sess.created_at, sess.ip_address, ua.user_agent
+        FROM login lo
+            INNER JOIN sessions sess ON lo.userid = sess.userid
+            INNER JOIN user_agents ua ON sess.user_agent_id = ua.user_agent_id
+        WHERE lo.userid = %(userid)s
+        ORDER BY sess.created_at DESC
+    """, userid=userid).fetchall()
+
     return {
         "userid": query[0],
         "last_login": query[1],
         "email": query[2],
-        "unixtime": query[3],
-        "username": query[4],
-        "full_name": query[5],
-        "catchphrase": query[6],
-        "birthday": query[7],
-        "gender": query[8],
-        "country": query[9],
-        "config": query[10],
+        "ip_address_at_signup": query[3],
+        "unixtime": query[4],
+        "username": query[5],
+        "full_name": query[6],
+        "catchphrase": query[7],
+        "birthday": query[8],
+        "gender": query[9],
+        "country": query[10],
+        "config": query[11],
         "staff_notes": shout.count(userid, staffnotes=True),
         "sorted_user_links": sort_user_links(user_link_rows),
+        "user_sessions": active_user_sessions,
     }
 
 
@@ -731,12 +812,9 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
         d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])
 
-        if age < ratings.MODERATE.minimum_age:
+        if age < ratings.EXPLICIT.minimum_age:
             max_rating = ratings.GENERAL.code
             rating_flag = ""
-        elif age < ratings.EXPLICIT.minimum_age:
-            max_rating = ratings.MODERATE.code
-            rating_flag = "m"
         else:
             max_rating = ratings.EXPLICIT.code
 
@@ -744,7 +822,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             d.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[map]', '', 'g') || '%s'
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || '%s'
                 WHERE userid = %i
                 """,
                 [rating_flag, userid]

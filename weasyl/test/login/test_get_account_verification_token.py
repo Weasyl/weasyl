@@ -6,6 +6,7 @@ import web
 
 from weasyl import login
 from weasyl import define as d
+from weasyl.test.utils import Bag
 
 
 user_name = "test"

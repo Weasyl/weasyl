@@ -1,7 +1,8 @@
 from sqlalchemy import (
-    MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, Index,
-    Integer, String, Text, SMALLINT, text)
+    MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
+    Integer, String, Text, text, DateTime, func, Boolean)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
+
 
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn, enum_column)
@@ -18,7 +19,7 @@ def default_fkey(*args, **kwargs):
 ads = Table(
     'ads', metadata,
     Column('id', Integer(), primary_key=True, nullable=False),
-    Column('owner', Text(), nullable=False),
+    Column('owner', String(length=254), nullable=False),
     Column('link_target', Text(), nullable=False),
     Column('file', Integer(), nullable=False),
     Column('start', TIMESTAMP(), nullable=True),
@@ -61,10 +62,10 @@ Index('ind_blocktag_userid', blocktag.c.userid)
 charcomment = Table(
     'charcomment', metadata,
     Column('commentid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
-    Column('targetid', Integer()),
+    Column('userid', Integer(), nullable=False),
+    Column('targetid', Integer(), nullable=False),
     Column('parentid', Integer(), nullable=False, server_default='0'),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=10000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('indent', Integer(), nullable=False, server_default='0'),
     Column('settings', String(length=20), nullable=False, server_default=''),
@@ -74,7 +75,7 @@ charcomment = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='charcomment_hidden_by_fkey'),
 )
 
-Index('ind_charcomment_targetid', charcomment.c.targetid)
+Index('ind_charcomment_targetid_commentid', charcomment.c.targetid, charcomment.c.commentid)
 
 
 collection = Table(
@@ -94,8 +95,8 @@ comments = Table(
     'comments', metadata,
     Column('commentid', Integer(), primary_key=True),
     Column('userid', Integer(), nullable=False),
-    Column('target_user', Integer(), index=True),
-    Column('target_sub', Integer(), index=True),
+    Column('target_user', Integer(), nullable=True),
+    Column('target_sub', Integer(), nullable=True),
     Column('parentid', Integer(), nullable=True),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -113,6 +114,9 @@ comments = Table(
     CheckConstraint('(target_user IS NOT NULL) != (target_sub IS NOT NULL)', name='comments_target_check'),
 )
 
+Index('ind_comments_target_user_commentid', comments.c.target_user, comments.c.commentid, postgresql_where=comments.c.target_user != None)
+Index('ind_comments_target_sub_commentid', comments.c.target_sub, comments.c.commentid, postgresql_where=comments.c.target_sub != None)
+
 
 commishclass = Table(
     'commishclass', metadata,
@@ -129,7 +133,7 @@ Index('ind_commishclass_userid', commishclass.c.userid)
 commishdesc = Table(
     'commishdesc', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('content', String(), nullable=False),
+    Column('content', String(length=20000), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='commishdesc_userid_fkey'),
 )
 
@@ -147,40 +151,6 @@ commishprice = Table(
 )
 
 Index('ind_classid_userid_title', commishprice.c.classid, commishprice.c.userid, commishprice.c.title, unique=True)
-
-
-commission = Table(
-    'commission', metadata,
-    Column('commishid', String(), primary_key=True, nullable=False),
-    Column('userid', Integer(), nullable=False),
-    Column('title', String(), nullable=False),
-    Column('content', String(), nullable=False),
-    Column('min_amount', Integer(), nullable=False),
-    Column('max_amount', Integer()),
-    Column('settings', String(), nullable=False, server_default=''),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='commission_userid_fkey'),
-)
-
-
-composition = Table(
-    'composition', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('workid', Integer(), primary_key=True, nullable=False),
-    Column('title', String(length=100), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='composition_userid_fkey'),
-)
-
-
-contentview = Table(
-    'contentview', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('targetid', Integer(), primary_key=True, nullable=False),
-    Column('type', Integer(), primary_key=True, nullable=False),
-)
-
-Index('ind_contentview_targetid', contentview.c.targetid)
 
 
 cron_runs = Table(
@@ -212,14 +182,18 @@ emailverify = Table(
     'emailverify', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('email', String(length=100), nullable=False, unique=True),
+    Column('createtimestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
+    Column('token', String(length=100), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='emailverify_userid_fkey'),
 )
+
+Index('ind_emailverify_token', emailverify.c.token)
 
 
 favorite = Table(
     'favorite', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('targetid', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
     Column('type', String(length=5), primary_key=True, nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default=''),
@@ -227,14 +201,15 @@ favorite = Table(
 )
 
 Index('ind_favorite_userid', favorite.c.userid)
-Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid, unique=False)
+Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid)
+Index('ind_favorite_userid_type_unixtime', favorite.c.userid, favorite.c.type, favorite.c.unixtime)
 
 
 folder = Table(
     'folder', metadata,
     Column('folderid', Integer(), primary_key=True, nullable=False),
     Column('parentid', Integer(), nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('title', String(length=100), nullable=False),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
@@ -251,7 +226,7 @@ Index('ind_folder_userid', folder.c.userid)
 
 forgotpassword = Table(
     'forgotpassword', metadata,
-    Column('userid', Integer(), unique=True),
+    Column('userid', Integer(), unique=True, nullable=False),
     Column('token', String(length=100), primary_key=True, nullable=False),
     Column('set_time', Integer(), nullable=False),
     Column('link_time', Integer(), nullable=False, server_default='0'),
@@ -280,7 +255,7 @@ Index('ind_frienduser_userid', frienduser.c.userid)
 character = Table(
     'character', metadata,
     Column('charid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('char_name', String(length=100), nullable=False, server_default=''),
     Column('age', String(length=100), nullable=False, server_default=''),
@@ -288,7 +263,7 @@ character = Table(
     Column('height', String(length=100), nullable=False, server_default=''),
     Column('weight', String(length=100), nullable=False, server_default=''),
     Column('species', String(length=100), nullable=False, server_default=''),
-    Column('content', Text(), nullable=False, server_default=text(u"''::text")),
+    Column('content', String(length=100000), nullable=False, server_default=u""),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
@@ -311,17 +286,6 @@ google_doc_embeds = Table(
 )
 
 
-ignorecontent = Table(
-    'ignorecontent', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('otherid', Integer(), primary_key=True, nullable=False),
-    default_fkey(['otherid'], ['login.userid'], name='ignorecontent_otherid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='ignorecontent_userid_fkey'),
-)
-
-Index('ind_ignorecontent_userid', ignorecontent.c.userid)
-
-
 ignoreuser = Table(
     'ignoreuser', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
@@ -336,8 +300,9 @@ Index('ind_ignoreuser_userid', ignoreuser.c.userid)
 journal = Table(
     'journal', metadata,
     Column('journalid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('title', String(length=200), nullable=False),
+    Column('content', String(length=100000), nullable=False),
     Column('rating', RatingColumn, nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', CharSettingsColumn({
@@ -347,19 +312,28 @@ journal = Table(
         'c': 'comment-locked',
     }, length=20), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
+    Column('submitter_ip_address', String(length=45), nullable=True),
+    Column('submitter_user_agent_id', Integer(), nullable=True),
+    Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='journal_userid_fkey'),
+    ForeignKeyConstraint(
+        ['submitter_user_agent_id'],
+        ['user_agents.user_agent_id'],
+        name="journal_user_agent_id_fkey",
+    ),
 )
 
 Index('ind_journal_userid', journal.c.userid)
+Index('ind_journal_is_spam', journal.c.is_spam)
 
 
 journalcomment = Table(
     'journalcomment', metadata,
     Column('commentid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
-    Column('targetid', Integer()),
+    Column('userid', Integer(), nullable=False),
+    Column('targetid', Integer(), nullable=False),
     Column('parentid', Integer(), nullable=False, server_default='0'),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=10000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('indent', Integer(), nullable=False, server_default='0'),
     Column('settings', String(length=20), nullable=False, server_default=''),
@@ -369,9 +343,7 @@ journalcomment = Table(
     default_fkey(['hidden_by'], ['login.userid'], name='journalcomment_hidden_by_fkey'),
 )
 
-Index('ind_journalcomment_settings', journalcomment.c.settings)
-Index('ind_journalcomment_targetid_settings', journalcomment.c.targetid, journalcomment.c.settings)
-Index('ind_journalcomment_targetid', journalcomment.c.targetid)
+Index('ind_journalcomment_targetid_commentid', journalcomment.c.targetid, journalcomment.c.commentid)
 
 
 login = Table(
@@ -380,7 +352,6 @@ login = Table(
     Column('login_name', String(length=40), nullable=False, unique=True),
     Column('last_login', WeasylTimestampColumn(), nullable=False),
     Column('settings', CharSettingsColumn({
-        'd': 'premium',
         'p': 'reset-password',
         'i': 'reset-birthday',
         'e': 'reset-email',
@@ -391,17 +362,22 @@ login = Table(
         },
     }, length=20), nullable=False, server_default=''),
     Column('email', String(length=100), nullable=False, server_default=''),
+    Column('twofa_secret', String(length=420), nullable=True),
+    # Must be nullable, since existing accounts will not have this information
+    Column('ip_address_at_signup', String(length=39), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)
 
 
-loginaddress = Table(
-    'loginaddress', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('address', String(length=40), primary_key=True, nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='loginaddress_userid_fkey'),
+twofa_recovery_codes = Table(
+    'twofa_recovery_codes', metadata,
+    Column('userid', Integer(), nullable=False),
+    Column('recovery_code_hash', String(length=100), nullable=False),
+    default_fkey(['userid'], ['login.userid'], name='twofa_recovery_codes_userid_fkey'),
 )
+
+Index('ind_twofa_recovery_codes_userid', twofa_recovery_codes.c.userid)
 
 
 logincreate = Table(
@@ -413,15 +389,12 @@ logincreate = Table(
     Column('email', String(length=100), nullable=False, unique=True),
     Column('birthday', WeasylTimestampColumn(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-)
-
-
-logininvite = Table(
-    'logininvite', metadata,
-    Column('email', String(length=200), primary_key=True, nullable=False),
-    Column('userid', Integer(), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('settings', String(length=20), nullable=False, server_default=''),
+    # Used to determine if a record is invalid for purposes of plausible deniability of email addresses
+    #   AKA, create a logincreate entry if an in-use email address is provided, thus preserving the effect of
+    #   a pending username triggering a username taken error.
+    Column('invalid', Boolean(), server_default='f', nullable=False),
+    Column('invalid_email_addr', String(length=100), nullable=True, server_default=None),
+    Column('ip_address_signup_request', String(length=39), nullable=True),
 )
 
 
@@ -443,7 +416,6 @@ media_media_links = Table(
     Column('described_with_id', Integer(), nullable=False),
     Column('describee_id', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     default_fkey(['describee_id'], ['media.mediaid'], name='media_media_links_describee_id_fkey'),
     default_fkey(['described_with_id'], ['media.mediaid'], name='media_media_links_described_with_id_fkey'),
 )
@@ -456,12 +428,12 @@ Index('ind_media_media_links_described_with_id', media_media_links.c.described_w
 message = Table(
     'message', metadata,
     Column('noteid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
-    Column('otherid', Integer()),
+    Column('userid', Integer(), nullable=False),
+    Column('otherid', Integer(), nullable=False),
     Column('user_folder', Integer(), nullable=False, server_default='0'),
     Column('other_folder', Integer(), nullable=False, server_default='0'),
     Column('title', String(length=100), nullable=False),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=100000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default='u'),
     default_fkey(['otherid'], ['login.userid'], name='message_otherid_fkey'),
@@ -508,11 +480,12 @@ permaban = Table(
 )
 
 
-premiumpurchase = Table(
-    'premiumpurchase', metadata,
-    Column('token', String(), primary_key=True, nullable=False),
-    Column('email', String(), nullable=False),
-    Column('terms', SMALLINT(), nullable=False),
+permitted_senders = Table(
+    'permitted_senders', metadata,
+    Column('userid', Integer(), primary_key=True),
+    Column('sender', Integer(), primary_key=True),
+    default_fkey(['userid'], ['login.userid'], name='permitted_senders_userid_fkey'),
+    default_fkey(['sender'], ['login.userid'], name='permitted_senders_sender_fkey'),
 )
 
 
@@ -525,7 +498,7 @@ profile = Table(
     Column('artist_type', String(length=100), nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('latest_submission_time', ArrowColumn(), nullable=False, server_default='epoch'),
-    Column('profile_text', Text(), nullable=False, server_default=''),
+    Column('profile_text', String(length=100000), nullable=False, server_default=''),
     Column('settings', String(length=20), nullable=False, server_default='ccci'),
     Column('stream_url', String(length=500), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
@@ -547,7 +520,6 @@ profile = Table(
         'h': 'hide-profile-from-guests',
         'i': 'hide-profile-stats',
         'k': 'disallow-others-tag-removal',
-        'r': 'disallow-others-tag-editing',
 
         's': 'watch-user-submissions',
         'c': 'watch-user-collections',
@@ -556,7 +528,6 @@ profile = Table(
         'j': 'watch-user-journals',
     }, {
         'tagging-level': {
-            'm': 'max-rating-moderate',
             'a': 'max-rating-mature',
             'p': 'max-rating-explicit',
         },
@@ -567,7 +538,7 @@ profile = Table(
     }, length=50), nullable=False, server_default=''),
     Column('jsonb_settings', JSONB()),
     Column('stream_time', Integer()),
-    Column('stream_text', String()),
+    Column('stream_text', String(length=2000)),
     default_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
 )
 
@@ -718,7 +689,7 @@ Index('ind_user_restricted_tags_userid', user_restricted_tags.c.userid)
 searchtag = Table(
     'searchtag', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('title', Text(), nullable=False, unique=True),
+    Column('title', String(length=162), nullable=False, unique=True),
 )
 
 Index('ind_searchtag_tagid', searchtag.c.tagid)
@@ -731,16 +702,29 @@ sessions = Table(
     Column('userid', Integer()),
     Column('csrf_token', String(length=64)),
     Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
+    Column('ip_address', String(length=39), nullable=True),
+    Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
+    default_fkey(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
+    CheckConstraint("userid IS NOT NULL OR additional_data != ''", name='sessions_no_guest_check'),
 )
 
 Index('ind_sessions_created_at', sessions.c.created_at)
+Index('ind_sessions_userid', sessions.c.userid)
+
+
+user_agents = Table(
+    'user_agents', metadata,
+    Column('user_agent_id', Integer(), primary_key=True, nullable=False),
+    Column('user_agent', String(length=1024), nullable=False, unique=True),
+)
 
 
 siteupdate = Table(
     'siteupdate', metadata,
     Column('updateid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
+    Column('wesley', Boolean(), nullable=False, server_default='f'),
     Column('title', String(length=100), nullable=False),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
@@ -748,14 +732,36 @@ siteupdate = Table(
 )
 
 
+siteupdatecomment = Table(
+    'siteupdatecomment', metadata,
+    Column('commentid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), nullable=False),
+    Column('targetid', Integer(), nullable=False),
+    Column('parentid', Integer(), nullable=True),
+    Column('content', String(length=10000), nullable=False),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+    Column('hidden_at', TIMESTAMP(timezone=True), nullable=True),
+    Column('hidden_by', Integer(), nullable=True),
+    ForeignKeyConstraint(['targetid'], ['siteupdate.updateid'], name='siteupdatecomment_targetid_fkey'),
+    ForeignKeyConstraint(
+        ['targetid', 'parentid'],
+        ['siteupdatecomment.targetid', 'siteupdatecomment.commentid'],
+        name='siteupdatecomment_parentid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdatecomment_userid_fkey'),
+    ForeignKeyConstraint(['hidden_by'], ['login.userid'], name='siteupdatecomment_hidden_by_fkey', ondelete='SET NULL'),
+    CheckConstraint("hidden_by IS NULL OR hidden_at IS NOT NULL", name='siteupdatecomment_hidden_check'),
+    UniqueConstraint('targetid', 'commentid'),
+)
+
+
 submission = Table(
     'submission', metadata,
     Column('submitid', Integer(), primary_key=True, nullable=False),
     Column('folderid', Integer(), nullable=True),
-    Column('userid', Integer()),
+    Column('userid', Integer(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('title', String(length=200), nullable=False),
-    Column('content', Text(), nullable=False),
+    Column('content', String(length=300000), nullable=False),
     Column('subtype', Integer(), nullable=False),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({
@@ -776,16 +782,25 @@ submission = Table(
         },
     }), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
+    Column('favorites', Integer()),
     Column('sorttime', WeasylTimestampColumn(), nullable=False),
-    Column('fave_count', Integer(), nullable=False, server_default='0'),
+    Column('submitter_ip_address', String(length=45), nullable=True),
+    Column('submitter_user_agent_id', Integer(), nullable=True),
+    Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
+    ForeignKeyConstraint(
+        ['submitter_user_agent_id'],
+        ['user_agents.user_agent_id'],
+        name="submission_agent_id_fkey",
+    ),
 )
 
 Index('ind_submission_folderid', submission.c.folderid)
 Index('ind_submission_userid_unixtime', submission.c.userid, submission.c.unixtime.desc())
 Index('ind_submission_userid', submission.c.userid)
 Index('ind_submission_userid_folderid', submission.c.userid, submission.c.folderid)
+Index('ind_submission_is_spam', submission.c.is_spam)
 
 
 submission_media_links = Table(
@@ -794,7 +809,6 @@ submission_media_links = Table(
     Column('mediaid', Integer(), nullable=False),
     Column('submitid', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     default_fkey(['submitid'], ['submission.submitid'], name='submission_media_links_submitid_fkey'),
     default_fkey(['mediaid'], ['media.mediaid'], name='submission_media_links_mediaid_fkey'),
 )
@@ -842,7 +856,6 @@ user_media_links = Table(
     Column('mediaid', Integer(), nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     default_fkey(['userid'], ['login.userid'], name='user_media_links_userid_fkey'),
     default_fkey(['mediaid'], ['media.mediaid'], name='user_media_links_mediaid_fkey'),
 )
@@ -857,7 +870,7 @@ user_links = Table(
     Column('linkid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('link_type', String(length=64), nullable=False),
-    Column('link_value', String(), nullable=False),
+    Column('link_value', String(length=2000), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='user_links_userid_fkey'),
 )
 
@@ -897,18 +910,9 @@ userinfo = Table(
     'userinfo', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('birthday', WeasylTimestampColumn(), nullable=False),
-    Column('gender', String(length=25), nullable=False, server_default=''),
+    Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),
-)
-
-
-userpremium = Table(
-    'userpremium', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('terms', SMALLINT(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='userpremium_userid_fkey'),
 )
 
 
@@ -931,8 +935,8 @@ userstats = Table(
 views = Table(
     'views', metadata,
     Column('viewer', String(length=127), primary_key=True, nullable=False),
-    Column('targetid', Integer(), primary_key=True, nullable=False),
-    Column('type', Integer(), primary_key=True, nullable=False),
+    Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
+    Column('type', Integer(), primary_key=True, nullable=False, autoincrement=False),
 )
 
 

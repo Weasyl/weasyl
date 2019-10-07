@@ -10,10 +10,7 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
     statement = [
         " FROM favorite fa INNER JOIN"
         " submission su ON fa.targetid = su.submitid"
@@ -48,15 +45,15 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None, 
     return statement
 
 
-def select_submit_count(userid, rating, otherid=None, backid=None, nextid=None, config=None):
+def select_submit_count(userid, rating, otherid=None, backid=None, nextid=None):
     statement = ["SELECT COUNT(submitid) "]
-    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid, config))
+    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
     return d.execute("".join(statement))[0][0]
 
 
-def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
+def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT su.submitid, su.title, su.rating, fa.unixtime, su.userid, pr.username, su.subtype"]
-    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid, config))
+    statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY fa.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
 
@@ -75,10 +72,7 @@ def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None,
     return query[::-1] if backid else query
 
 
-def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-    query = []
+def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["""
         SELECT ch.charid, ch.char_name, ch.rating, fa.unixtime, ch.userid, pr.username, ch.settings
         FROM favorite fa
@@ -129,10 +123,7 @@ def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None, c
     return query[::-1] if backid else query
 
 
-def select_journal(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-    query = []
+def select_journal(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["""
         SELECT jo.journalid, jo.title, jo.rating, fa.unixtime, jo.userid, pr.username, pr.config
         FROM favorite fa
@@ -204,40 +195,78 @@ def insert(userid, submitid=None, charid=None, journalid=None):
     elif ignoreuser.check(query[0], userid):
         raise WeasylError("contentOwnerIgnoredYou")
 
-    insert_result = d.engine.execute(
-        'INSERT INTO favorite (userid, targetid, type, unixtime) '
-        'VALUES (%(user)s, %(target)s, %(type)s, %(now)s) '
-        'ON CONFLICT DO NOTHING',
-        user=userid,
-        target=d.get_targetid(submitid, charid, journalid),
-        type='s' if submitid else 'f' if charid else 'j',
-        now=d.get_time())
+    notified = []
 
-    if insert_result.rowcount == 0:
-        return
+    def insert_transaction(db):
+        insert_result = db.execute(
+            'INSERT INTO favorite (userid, targetid, type, unixtime) '
+            'VALUES (%(user)s, %(target)s, %(type)s, %(now)s) '
+            'ON CONFLICT DO NOTHING',
+            user=userid,
+            target=d.get_targetid(submitid, charid, journalid),
+            type='s' if submitid else 'f' if charid else 'j',
+            now=d.get_time())
 
-    # create a list of users to notify
-    notified = set(collection.find_owners(submitid))
+        if insert_result.rowcount == 0:
+            return
 
-    # conditions under which "other" should be notified
-    def can_notify(other):
-        other_jsonb = d.get_profile_settings(other)
-        allow_notify = other_jsonb.allow_collection_notifs
-        not_ignored = not ignoreuser.check(other, userid)
-        return allow_notify and not_ignored
-    notified = set(filter(can_notify, notified))
-    # always notify for own content
-    notified.add(query[0])
+        if submitid:
+            db.execute(
+                """
+                UPDATE submission SET
+                    favorites = (
+                        CASE
+                            WHEN favorites IS NULL THEN
+                                (SELECT count(*) FROM favorite WHERE type = 's' AND targetid = %(target)s)
+                            ELSE
+                                favorites + 1
+                        END
+                    )
+                    WHERE submitid = %(target)s
+                """,
+                target=submitid,
+            )
 
-    for other in notified:
-        welcome.favorite_insert(userid, submitid=submitid, charid=charid, journalid=journalid, otherid=other)
+        if not notified:
+            # create a list of users to notify
+            notified_ = collection.find_owners(submitid)
+
+            # conditions under which "other" should be notified
+            def can_notify(other):
+                other_jsonb = d.get_profile_settings(other)
+                allow_notify = other_jsonb.allow_collection_notifs
+                return allow_notify and not ignoreuser.check(other, userid)
+            notified.extend(u for u in notified_ if can_notify(u))
+            # always notify for own content
+            notified.append(query[0])
+
+        for other in notified:
+            welcome.favorite_insert(db, userid, submitid=submitid, charid=charid, journalid=journalid, otherid=other)
+
+    d.serializable_retry(insert_transaction)
 
 
 def remove(userid, submitid=None, charid=None, journalid=None):
-    d.execute("DELETE FROM favorite WHERE (userid, targetid, type) = (%i, %i, '%s')",
-              [userid, d.get_targetid(submitid, charid, journalid), "s" if submitid else "f" if charid else "j"])
+    def remove_transaction(db):
+        delete_result = db.execute(
+            "DELETE FROM favorite WHERE (userid, targetid, type) = (%(user)s, %(target)s, %(type)s)",
+            user=userid,
+            target=d.get_targetid(submitid, charid, journalid),
+            type="s" if submitid else "f" if charid else "j",
+        )
 
-    welcome.favorite_remove(userid, submitid=submitid, charid=charid, journalid=journalid)
+        if delete_result.rowcount == 0:
+            return
+
+        if submitid:
+            db.execute(
+                "UPDATE submission SET favorites = favorites - 1 WHERE submitid = %(target)s",
+                target=submitid,
+            )
+
+        welcome.favorite_remove(db, userid, submitid=submitid, charid=charid, journalid=journalid)
+
+    d.serializable_retry(remove_transaction)
 
 
 def check(userid, submitid=None, charid=None, journalid=None):

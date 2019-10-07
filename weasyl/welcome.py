@@ -73,8 +73,6 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''
         statement.append(" AND pr.config ~ 'p'")
     elif rating == ratings.MATURE.code:
         statement.append(" AND pr.config ~ '[ap]'")
-    elif rating == ratings.MODERATE.code:
-        statement.append(" AND pr.config ~ '[map]'")
 
     statement.append(
         " AND NOT EXISTS (SELECT 0 FROM searchmapsubmit WHERE "
@@ -182,7 +180,6 @@ def collection_insert(userid, submitid):
                 CASE (SELECT rating FROM submission WHERE submitid = %(submission)s)
                     WHEN {explicit} THEN 'p'
                     WHEN {mature} THEN '[ap]'
-                    WHEN {moderate} THEN '[map]'
                     ELSE ''
                 END
             )
@@ -198,7 +195,6 @@ def collection_insert(userid, submitid):
     """.format(
         explicit=ratings.EXPLICIT.code,
         mature=ratings.MATURE.code,
-        moderate=ratings.MODERATE.code,
     )
 
     d.engine.execute(
@@ -281,7 +277,7 @@ def collectrequest_remove(userid, otherid, submitid):
 #   3100 user favorited character
 #   3110 user favorited journal
 
-def favorite_insert(userid, submitid=None, charid=None, journalid=None, otherid=None):
+def favorite_insert(db, userid, submitid=None, charid=None, journalid=None, otherid=None):
     ownerid = d.get_ownerid(submitid, charid, journalid)
     if not otherid:
         otherid = ownerid
@@ -295,10 +291,10 @@ def favorite_insert(userid, submitid=None, charid=None, journalid=None, otherid=
     else:
         raise WeasylError("Unexpected")
 
-    d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, 0, %i, %i)", [
-            otherid, userid, d.get_targetid(submitid, charid, journalid),
-            d.get_time(), notiftype])
+    db.execute(
+        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%s, %s, %s, 0, %s, %s)",
+        (otherid, userid, d.get_targetid(submitid, charid, journalid), d.get_time(), notiftype),
+    )
 
 
 # notifications
@@ -306,11 +302,13 @@ def favorite_insert(userid, submitid=None, charid=None, journalid=None, otherid=
 #   3100 user favorited character
 #   3110 user favorited journal
 
-def favorite_remove(userid, submitid=None, charid=None, journalid=None):
-    d.execute(
-        "DELETE FROM welcome WHERE (otherid, referid, type) = (%i, %i, %i) RETURNING userid",
-        [userid, d.get_targetid(submitid, charid, journalid), 3020 if submitid else 3100 if charid else 3110],
-        options="within")
+def favorite_remove(db, userid, submitid=None, charid=None, journalid=None):
+    db.execute(
+        "DELETE FROM welcome WHERE (otherid, referid, type) = (%(user)s, %(refer)s, %(type)s)",
+        user=userid,
+        refer=d.get_targetid(submitid, charid, journalid),
+        type=3020 if submitid else 3100 if charid else 3110,
+    )
 
 
 # notifications
@@ -336,24 +334,26 @@ def shoutreply_insert(userid, commentid, otherid, parentid, staffnote=False):
 #   4030 journal comment
 #   4040 character comment
 #   4050 collection comment
+#   4060 site update comment
 
-def comment_insert(userid, commentid, otherid, submitid, charid, journalid):
-    ownerid = d.get_ownerid(submitid, charid, journalid)
-    if not otherid:
-        otherid = ownerid
+def comment_insert(userid, commentid, otherid, submitid, charid, journalid, updateid):
+    assert otherid
 
     if submitid:
+        ownerid = d.get_ownerid(submitid, charid, journalid)
         notiftype = 4020 if ownerid == otherid else 4050
     elif charid:
         notiftype = 4040
     elif journalid:
         notiftype = 4030
+    elif updateid:
+        notiftype = 4060
     else:
         raise WeasylError("Unexpected")
 
     d.execute(
         "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, %i, %i, %i)",
-        [otherid, userid, d.get_targetid(submitid, charid, journalid), commentid, d.get_time(), notiftype])
+        [otherid, userid, d.get_targetid(submitid, charid, journalid, updateid), commentid, d.get_time(), notiftype])
 
 
 # notifications
@@ -365,6 +365,8 @@ def comment_insert(userid, commentid, otherid, submitid, charid, journalid):
 #   4035 journal comment reply
 #   4040 character comment
 #   4045 character comment reply
+#   4060 site update comment
+#   4065 site update comment reply
 
 def comment_remove(commentid, feature):
     comment_code = {
@@ -372,6 +374,7 @@ def comment_remove(commentid, feature):
         'submit': 4020,
         'char': 4040,
         'journal': 4030,
+        'siteupdate': 4060,
     }[feature]
     reply_code = comment_code + 5
 
@@ -394,7 +397,7 @@ def comment_remove(commentid, feature):
     d.engine.execute(
         """
         DELETE FROM welcome WHERE (type = %(comment_code)s OR type = %(reply_code)s) AND
-        (targetid = ANY (%(ids)s) OR referid = ANY (%(ids)s)) RETURNING userid
+        (targetid = ANY (%(ids)s) OR referid = ANY (%(ids)s))
         """, comment_code=comment_code, reply_code=reply_code, ids=recursive_ids)
 
 
@@ -402,11 +405,23 @@ def comment_remove(commentid, feature):
 #   4025 submission comment reply
 #   4035 journal comment reply
 #   4045 character comment reply
+#   4065 site update comment reply
 
-def commentreply_insert(userid, commentid, otherid, parentid, submitid, charid, journalid):
+def commentreply_insert(userid, commentid, otherid, parentid, submitid, charid, journalid, updateid):
+    if submitid:
+        notiftype = 4025
+    elif charid:
+        notiftype = 4045
+    elif journalid:
+        notiftype = 4035
+    elif updateid:
+        notiftype = 4065
+    else:
+        raise WeasylError("Unexpected")
+
     d.execute(
         "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, %i, %i, %i)",
-        [otherid, userid, parentid, commentid, d.get_time(), 4025 if submitid else 4045 if charid else 4035])
+        [otherid, userid, parentid, commentid, d.get_time(), notiftype])
 
 
 # notifications
@@ -435,8 +450,8 @@ def followuser_insert(userid, otherid):
 #   3010 user followed
 
 def followuser_remove(userid, otherid):
-    d.execute("DELETE FROM welcome WHERE (userid, otherid, type) = (%i, %i, 3010) RETURNING userid",
-              [otherid, userid], options="within")
+    d.execute("DELETE FROM welcome WHERE (userid, otherid, type) = (%i, %i, 3010)",
+              [otherid, userid])
 
 
 # notifications
@@ -453,8 +468,8 @@ def frienduserrequest_insert(userid, otherid):
 
 def frienduserrequest_remove(userid, otherid):
     d.execute(
-        "DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3080 RETURNING userid",
-        [userid, otherid, userid, otherid], options="within")
+        "DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3080",
+        [userid, otherid, userid, otherid])
 
 
 # notifications
@@ -470,8 +485,8 @@ def frienduseraccept_insert(userid, otherid):
 #   3085 user accepted friendship
 
 def frienduseraccept_remove(userid, otherid):
-    d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085 RETURNING userid",
-              [userid, otherid, userid, otherid], options="within")
+    d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085",
+              [userid, otherid, userid, otherid])
 
 
 # notifications

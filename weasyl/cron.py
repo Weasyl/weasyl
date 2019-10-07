@@ -8,7 +8,10 @@ from weasyl import index, submission
 
 
 def run_periodic_tasks():
+    # An arrow object representing the current UTC time
     now = arrow.utcnow()
+
+    # An integer representing the current unixtime (with an offset applied sourced from libweasyl.legacy)
     time_now = get_time()
 
     db = engine.connect()
@@ -17,7 +20,7 @@ def run_periodic_tasks():
         if not locked:
             return
         last_run = arrow.get(db.scalar("SELECT last_run FROM cron_runs"))
-        if not last_run or now < last_run.replace(seconds=59):
+        if not last_run or now < last_run.replace(second=59):
             return
 
         # Recache the latest submissions
@@ -38,16 +41,30 @@ def run_periodic_tasks():
             submission.select_recently_popular.refresh()
             log.msg('refreshed recently popular submissions')
 
-        # Delete all records from contentview table
+        # Delete all records from views table
         # Every 15 minutes
         if now.minute % 15 == 0:
             db.execute("DELETE FROM views")
             log.msg('cleared views')
 
-        # Delete password resets older than one day
         # Daily at 0:00
         if now.hour == 0 and now.minute == 0:
+            # Delete password resets older than one day
             db.execute("DELETE FROM forgotpassword WHERE set_time < %(expiry)s", expiry=time_now - 86400)
             log.msg('cleared old forgotten password requests')
+
+            # Delete email reset requests older than two days
+            db.execute("""
+                DELETE FROM emailverify
+                WHERE createtimestamp < (NOW() - INTERVAL '2 days')
+            """)
+            log.msg('cleared stale email change records')
+
+            # Purge stale logincreate records older than two days
+            db.execute("""
+                DELETE FROM logincreate
+                WHERE unixtime < %(time)s
+            """, time=time_now - (86400 * 2))
+            log.msg('cleared stale account creation records')
 
         db.execute("UPDATE cron_runs SET last_run = %(now)s", now=now.naive)

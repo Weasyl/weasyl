@@ -1,4 +1,4 @@
-/* global confirm, marked, Bloodhound, socialSiteList */
+/* global marked, Bloodhound, socialSiteList */
 
 (function () {
     'use strict';
@@ -9,34 +9,6 @@
     ];
 
     var csrfToken = document.documentElement.getAttribute('data-csrf-token');
-
-
-    // lazy load visible images
-    function loadLazyStuff() {
-        $('img.lazy').filter(':visible').each(function () {
-            this.src = this.getAttribute('data-src');
-        }).removeClass('lazy');
-    }
-
-    function debounce(func, threshold) {
-        var timeout;
-
-        return function debounced() {
-            var obj = this;
-            var args = arguments;
-
-            function delayed() {
-                func.apply(obj, args);
-                timeout = null;
-            }
-
-            if (timeout) {
-                clearTimeout(timeout);
-            }
-
-            timeout = setTimeout(delayed, threshold || 100);
-        };
-    }
 
     function forEach(list, callback) {
         for (var i = 0, l = list.length; i < l; i++) {
@@ -180,9 +152,6 @@
 
 
     $(document).ready(function () {
-        // yes, we have js support
-        $('html').removeClass('no-js').addClass('js');
-
         // thumbnails
         // give enhanced layout to modern browsers
         if ('classList' in document.createElement('_') && typeof window.matchMedia === 'function') {
@@ -194,8 +163,6 @@
         }
 
         // call appropriate functions and plugins
-        loadLazyStuff();
-
         $('textarea.expanding').autosize();
 
         $('.tags-textarea')
@@ -524,8 +491,6 @@
         setTimeout(reportInputChanged);
     });
 
-    $(window).on('resize', debounce(loadLazyStuff));
-
     // all below plugins are under MIT licenses
 
     // expanding textareas
@@ -753,6 +718,7 @@
             'abbr', 'time', 'code', 'var', 'samp', 'kbd',
             'sub', 'sup', 'i', 'b', 'u', 'mark',
             'ruby', 'rt', 'rp', 'bdi', 'bdo', 'span', 'br', 'wbr',
+            'del',
             'table', 'caption',
             'tbody', 'thead', 'tfoot', 'tr', 'td', 'th',
             'a', 'img'
@@ -771,7 +737,7 @@
             'user-icon'
         ];
 
-        var ALLOWED_STYLE = /^\s*color:\s*(?:\#[0-9a-f]{3}|\#[0-9a-f]{6})(?:\s*;)?\s*$/i;
+        var ALLOWED_STYLE = /^\s*color:\s*(?:#[0-9a-f]{3}|#[0-9a-f]{6})(?:\s*;)?\s*$/i;
 
         function isAllowedClass(class_) {
             return allowedClasses.indexOf(class_) !== -1;
@@ -1574,6 +1540,12 @@
 
     // Home tabs
     (function () {
+        function logStorageError(error) {
+            try {
+                console.warn(error);
+            } catch (consoleError) {}
+        }
+
         var homePaneLinks = $('.home-pane-link');
         var homePanes = $('#home-panes .pane');
         var homePaneGrids = homePanes.find('.thumbnail-grid');
@@ -1601,12 +1573,23 @@
                 .children('.thumbnail-grid').addClass('current loaded');
 
             calculateThumbnailLayout();
-            loadLazyStuff();
 
-            localStorage['home-tab'] = paneId;
+            try {
+                localStorage['home-tab'] = paneId;
+            } catch (error) {
+                logStorageError(error);
+            }
         });
 
-        var savedTab = window.localStorage && document.getElementById(localStorage['home-tab']);
+        var savedTabId = null;
+
+        try {
+            savedTabId = localStorage['home-tab'];
+        } catch (error) {
+            logStorageError(error);
+        }
+
+        var savedTab = savedTabId && document.getElementById(savedTabId);
 
         if (savedTab) {
             savedTab.children[0].click();

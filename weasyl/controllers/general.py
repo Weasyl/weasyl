@@ -10,12 +10,12 @@ from libweasyl import staff
 from libweasyl.media import get_multi_user_media
 from libweasyl.models.site import SiteUpdate
 
-from weasyl import define, index, macro, search, profile, submission
+from weasyl import comment, define, index, macro, search, profile, submission
 
 
 # General browsing functions
 def index_(request):
-    page = define.common_page_start(request.userid, options=["homepage"], title="Home")
+    page = define.common_page_start(request.userid, title="Home")
     page.append(define.render("etc/index.html", index.template_fields(request.userid) + [request.userid]))
     return Response(define.common_page_end(request.userid, page))
 
@@ -40,7 +40,7 @@ def search_(request):
             "q": q,
             "find": search_query.find,
             "within": form.within,
-            "rated": set('gmap') & set(form.rated),
+            "rated": set('gap') & set(form.rated),
             "cat": int(form.cat) if form.cat else None,
             "subcat": int(form.subcat) if form.subcat else None,
             "backid": int(form.backid) if form.backid else None,
@@ -130,18 +130,20 @@ def site_update_list_(request):
 
     can_edit = request.userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (updates, can_edit)))
+    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (updates, can_edit), title="Site Updates"))
 
 
 def site_update_(request):
     updateid = int(request.matchdict['update_id'])
     update = SiteUpdate.query.get_or_404(updateid)
+    myself = profile.select_myself(request.userid)
+    comments = comment.select(request.userid, updateid=updateid)
 
-    return Response(define.webpage(request.userid, 'etc/site_update.html', (update,)))
+    return Response(define.webpage(request.userid, 'etc/site_update.html', (myself, update, comments), title="Site Update"))
 
 
 def popular_(request):
     return Response(define.webpage(request.userid, 'etc/popular.html', [
         list(itertools.islice(
             index.filter_submissions(request.userid, submission.select_recently_popular(), incidence_limit=1), 66))
-    ]))
+    ], title="Recently Popular"))

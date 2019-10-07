@@ -178,7 +178,6 @@ class Profile(Base):
     _tagging_level_to_rating = {
         'max-rating-explicit': ratings.EXPLICIT,
         'max-rating-mature': ratings.MATURE,
-        'max-rating-moderate': ratings.MODERATE,
         None: ratings.GENERAL,
     }
 
@@ -207,6 +206,18 @@ class Session(Base):
             return _server_time
         else:
             return UserTimezone.load_from_memcached_or_database(self.userid) or _server_time
+
+
+class GuestSession(object):
+    __slots__ = ('sessionid', 'csrf_token', 'create')
+
+    userid = None
+    additional_data = None
+
+    def __init__(self, sessionid):
+        self.sessionid = sessionid
+        self.csrf_token = sessionid
+        self.create = False
 
 
 class UserTimezone(Base):
@@ -284,4 +295,4 @@ class Follow(Base):
     __table__ = tables.watchuser
 
 
-_server_time = UserTimezone(timezone='America/Denver')
+_server_time = GuestSession.timezone = UserTimezone(timezone='America/Denver')

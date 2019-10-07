@@ -2,16 +2,20 @@ from __future__ import absolute_import
 
 import arrow
 import bcrypt
+from publicsuffixlist import PublicSuffixList
 from sqlalchemy.sql.expression import select
 
 from libweasyl import security
 from libweasyl import staff
+from libweasyl.cache import region
+from libweasyl.models.users import GuestSession
 
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
 from weasyl import moderation
 from weasyl.error import WeasylError
+from weasyl.sessions import create_session, create_guest_session
 
 
 _EMAIL = 100
@@ -19,29 +23,65 @@ _PASSWORD = 10
 _USERNAME = 25
 
 
-def signin(userid):
+def signin(request, userid, ip_address=None, user_agent=None):
     # Update the last login record for the user
     d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
 
+    # Log the successful login and increment the login count
+    d.append_to_log('login.success', userid=userid, ip=d.get_address())
+    d.metric('increment', 'logins')
+
     # set the userid on the session
-    sess = d.get_weasyl_session()
-    sess.userid = userid
-    sess.save = True
+    sess = create_session(userid)
+    sess.ip_address = ip_address
+    sess.user_agent_id = get_user_agent_id(user_agent)
+    sess.create = True
+
+    if not isinstance(request.weasyl_session, GuestSession):
+        request.pg_connection.delete(request.weasyl_session)
+        request.pg_connection.flush()
+
+    request.weasyl_session = sess
+
+
+def get_user_agent_id(ua_string=None):
+    """
+    Retrieves and/or stores a user agent string, and returns the ID number for the DB record.
+    :param ua_string: The user agent of a web browser or other web client
+    :return: An integer representing the identifier for the record in the table corresponding to ua_string.
+    """
+    if not ua_string:
+        return None
+    else:
+        # Store/Retrieve the UA
+        return d.engine.scalar("""
+            INSERT INTO user_agents (user_agent)
+            VALUES (%(ua_string)s)
+            ON CONFLICT (user_agent) DO
+                UPDATE SET user_agent = %(ua_string)s
+            RETURNING user_agent_id
+        """, ua_string=ua_string[0:1024])
 
 
 def signout(request):
-    sess = request.weasyl_session
+    request.pg_connection.delete(request.weasyl_session)
+    request.pg_connection.flush()
+    request.weasyl_session = create_guest_session()
+
     # unset SFW-mode cookie on logout
     request.delete_cookie_on_response("sfwmode")
-    sess.userid = None
-    sess.save = True
 
 
-def authenticate_bcrypt(username, password, session=True):
+def authenticate_bcrypt(username, password, request, ip_address=None, user_agent=None):
     """
     Return a result tuple of the form (userid, error); `error` is None if the
-    login was successful. Pass `session` as False to authenticate a user without
-    creating a new session.
+    login was successful. Pass None as the `request` to authenticate a user
+    without creating a new session.
+
+    :param username: The username of the user attempting authentication.
+    :param password: The user's claimed password to check against the stored hash.
+    :param ip_address: The address requesting authentication.
+    :param user_agent: The user agent string of the submitting client.
 
     Possible errors are:
     - "invalid"
@@ -49,6 +89,7 @@ def authenticate_bcrypt(username, password, session=True):
     - "address"
     - "banned"
     - "suspended"
+    - "2fa" - Indicates the user has opted-in to 2FA. Additional authentication required.
     """
     # Check that the user entered potentially valid values for `username` and
     # `password` before attempting to authenticate them
@@ -57,14 +98,14 @@ def authenticate_bcrypt(username, password, session=True):
 
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
-    query = d.execute("SELECT ab.userid, ab.hashsum, lo.settings FROM authbcrypt ab"
+    query = d.execute("SELECT ab.userid, ab.hashsum, lo.settings, lo.twofa_secret FROM authbcrypt ab"
                       " RIGHT JOIN login lo USING (userid)"
                       " WHERE lo.login_name = '%s'", [d.get_sysname(username)], ["single"])
 
     if not query:
         return 0, "invalid"
 
-    USERID, HASHSUM, SETTINGS = query
+    USERID, HASHSUM, SETTINGS, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
 
     d.metric('increment', 'attemptedlogins')
@@ -96,12 +137,19 @@ def authenticate_bcrypt(username, password, session=True):
             # account has been temporarily suspended)
             return USERID, "suspended"
 
-    # Attempt to create a new session if `session` is True, then log the signin
+    # Attempt to create a new session if this is a request to log in, then log the signin
     # if it succeeded.
-    if session:
-        signin(USERID)
-        d.append_to_log('login.success', userid=USERID, ip=d.get_address())
-        d.metric('increment', 'logins')
+    if request is not None:
+        # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
+        if TWOFA:
+            if not isinstance(request.weasyl_session, GuestSession):
+                request.pg_connection.delete(request.weasyl_session)
+                request.pg_connection.flush()
+            request.weasyl_session = create_session(None)
+            request.weasyl_session.additional_data = {}
+            return USERID, "2fa"
+        else:
+            signin(request, USERID, ip_address=ip_address, user_agent=user_agent)
 
     status = None
     if not unicode_success:
@@ -137,7 +185,6 @@ def create(form):
 
     password = form.password
     passcheck = form.passcheck
-
     if form.day and form.month and form.year:
         try:
             birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
@@ -166,36 +213,63 @@ def create(form):
     if sysname in ["admin", "administrator", "mod", "moderator", "weasyl",
                    "weasyladmin", "weasylmod", "staff", "security"]:
         raise WeasylError("usernameInvalid")
-    if email_exists(email):
-        raise WeasylError("emailExists")
     if username_exists(sysname):
         raise WeasylError("usernameExists")
 
-    # Create pending account
+    # Account verification token
     token = security.generate_key(40)
 
-    d.engine.execute(d.meta.tables["logincreate"].insert(), {
-        "token": token,
-        "username": username,
-        "login_name": sysname,
-        "hashpass": passhash(password),
-        "email": email,
-        "birthday": birthday,
-        "unixtime": arrow.now(),
-    })
+    # Only attempt to create the account if the email is unused (as defined by the function)
+    if not email_exists(email):
+        # Create pending account
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+            "token": token,
+            "username": username,
+            "login_name": sysname,
+            "hashpass": passhash(password),
+            "email": email,
+            "birthday": birthday,
+            "unixtime": arrow.now(),
+        })
 
-    # Queue verification email
-    emailer.append([email], None, "Weasyl Account Creation", d.render(
-        "email/verify_account.html", [token, sysname]))
-    d.metric('increment', 'createdusers')
+        # Queue verification email
+        emailer.append([email], None, "Weasyl Account Creation", d.render(
+            "email/verify_account.html", [token, sysname]))
+        d.metric('increment', 'createdusers')
+    else:
+        # Store a dummy record to support plausible deniability of email addresses
+        # So "reserve" the username, but mark the record invalid, and use the token to satisfy the uniqueness
+        #  constraint for the email field (e.g., if there is already a valid, pending row in the table).
+        d.engine.execute(d.meta.tables["logincreate"].insert(), {
+            "token": token,
+            "username": username,
+            "login_name": sysname,
+            "hashpass": passhash(password),
+            "email": token,
+            "birthday": arrow.now(),
+            "unixtime": arrow.now(),
+            "invalid": True,
+            # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
+            "invalid_email_addr": email,
+        })
+        # The email address in question is already in use in either `login` or `logincreate`;
+        #   let the already registered user know this via email (perhaps they forgot their username/password)
+        query_username_login = d.engine.scalar("SELECT login_name FROM login WHERE email = %(email)s", email=email)
+        query_username_logincreate = d.engine.scalar("SELECT login_name FROM logincreate WHERE email = %(email)s", email=email)
+        emailer.append([email], None, "Weasyl Account Creation - Account Already Exists", d.render(
+            "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 
-def verify(token):
+def verify(token, ip_address=None):
     lo = d.meta.tables["login"]
     lc = d.meta.tables["logincreate"]
     query = d.engine.execute(lc.select().where(lc.c.token == token)).first()
 
+    # Did the token match a pending login create record?
     if not query:
+        raise WeasylError("logincreateRecordMissing")
+    elif query.invalid:
+        # If the record is explicitly marked as invalid, treat the record as if it doesn't exist.
         raise WeasylError("logincreateRecordMissing")
 
     db = d.connect()
@@ -205,6 +279,7 @@ def verify(token):
             "login_name": d.get_sysname(query.username),
             "last_login": arrow.now(),
             "email": query.email,
+            "ip_address_at_signup": ip_address,
         })
 
         # Create profile records
@@ -297,9 +372,71 @@ def is_email_blacklisted(address):
     Returns:
         Boolean True if present on the blacklist, or False otherwise.
     """
-    local, domain = address.rsplit("@", 1)
+    _, domain = address.rsplit("@", 1)
+    psl = PublicSuffixList()
+    private_suffix = psl.privatesuffix(domain=domain)
 
-    return d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM emailblacklist WHERE domain_name = %(domain_name)s)",
-        domain_name=domain,
-    )
+    # Check the disposable email address list
+    disposable_domains = _retrieve_disposable_email_domains()
+    if private_suffix in disposable_domains:
+        return True
+
+    # Check the explicitly defined/blacklisted domains.
+    blacklisted_domains = d.engine.execute("""
+        SELECT domain_name
+        FROM emailblacklist
+    """).fetchall()
+    for site in blacklisted_domains:
+        if private_suffix == site['domain_name']:
+            return True
+
+    # If we get here, the domain (or subdomain) is not blacklisted
+    return False
+
+
+@region.cache_on_arguments(expiration_time=12*60*60)
+def _retrieve_disposable_email_domains():
+    """
+    Retrieves a periodically updated list of disposable email address domains from the 'url' variable, below.
+
+    :return: A [list] of disposable email address domains. Results are cached for 12 hours.
+    """
+    url = "https://raw.githubusercontent.com/ivolo/disposable-email-domains/master/index.json"
+    resp = d.http_get(url=url)
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        return []
+
+
+def verify_email_change(userid, token):
+    """
+    Verify a user's email change request, updating the `login` record if it validates.
+
+    Compare a supplied token against the record within the `emailverify` table, and provided
+    a match exists, copy the email within into the user's account record.
+
+    Parameters:
+        userid: The userid of the account to attempt to update.
+        token: The security token to search for.
+
+    Returns: The newly set email address when verification of the `token` was successful; raises
+    a WeasylError upon unsuccessful verification.
+    """
+    # Sanity checks: Must have userid and token
+    if not userid or not token:
+        raise WeasylError("Unexpected")
+    query_result = d.engine.scalar("""
+        DELETE FROM emailverify
+        WHERE userid = %(userid)s AND token = %(token)s
+        RETURNING email
+    """, userid=userid, token=token)
+    if not query_result:
+        raise WeasylError("ChangeEmailVerificationTokenIncorrect")
+    else:
+        d.engine.execute("""
+            UPDATE login
+            SET email = %(email)s
+            WHERE userid = %(userid)s
+        """, userid=userid, email=query_result)
+        return query_result

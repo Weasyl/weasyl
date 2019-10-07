@@ -21,15 +21,11 @@ def check(userid, otherid):
                      [userid, otherid], options="bool")
 
 
-def list_ignoring(userid, within=False):
-    return d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i",
-                     [userid], options=["within"] if within else [])
-
-
 @region.cache_on_arguments()
 @d.record_timing
 def cached_list_ignoring(userid):
-    return list_ignoring(userid, within=True)
+    return d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i",
+                     [userid], options=["within"])
 
 
 def select(userid, limit, backid=None, nextid=None):
@@ -66,8 +62,7 @@ def insert(userid, ignore):
             db.execute("""
                 INSERT INTO ignoreuser
                 SELECT %(user)s, ignore FROM UNNEST (%(ignore)s) AS ignore
-                    LEFT JOIN ignoreuser ON ignoreuser.otherid = ignore AND ignoreuser.userid = %(user)s
-                    WHERE ignoreuser.otherid IS NULL
+                ON CONFLICT DO NOTHING
             """, user=userid, ignore=ignore)
 
             db.execute("""
@@ -90,10 +85,13 @@ def insert(userid, ignore):
                        user=userid, ignore=ignore)
             db.execute("DELETE FROM watchuser WHERE userid = %(user)s AND otherid = %(ignore)s",
                        user=userid, ignore=ignore)
-            db.execute("INSERT INTO ignoreuser VALUES (%(user)s, %(ignore)s)",
+            db.execute("INSERT INTO ignoreuser VALUES (%(user)s, %(ignore)s) ON CONFLICT DO NOTHING",
                        user=userid, ignore=ignore)
 
     cached_list_ignoring.invalidate(userid)
+
+    from weasyl import index
+    index.template_fields.invalidate(userid)
 
 
 def remove(userid, ignore):
@@ -109,3 +107,6 @@ def remove(userid, ignore):
 
     if result.rowcount:
         cached_list_ignoring.invalidate(userid)
+
+        from weasyl import index
+        index.template_fields.invalidate(userid)

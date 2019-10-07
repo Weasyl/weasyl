@@ -1214,6 +1214,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+
+    html.no-js & {
+        position: static;
+        transform: none;
+    }
 }
 .thumbnail-grid .rating {
     width: 60px;
@@ -1227,9 +1232,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     overflow: hidden;
     text-indent: 150%;
     z-index: 3;
-}
-.rating.moderate {
-    border-color: #20abe6;
 }
 .rating.mature {
     border-color: #ab2;
@@ -3100,6 +3102,11 @@ img + #detail-art-text {
     margin-top: 2rem;
 }
 
+#detail-art-text.pdf {
+    display: inline-block;
+    max-width: none;
+}
+
 #detail-flash {
     text-align: center;
     }
@@ -3224,6 +3231,12 @@ img + #detail-art-text {
 
 #detail-comments {
     clear: both;
+}
+
+#site-update-comments {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 66em;
 }
 
 #detail-report {

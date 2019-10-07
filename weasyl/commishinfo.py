@@ -1,11 +1,15 @@
 # encoding: utf-8
 from __future__ import absolute_import, division
 
+import logging
 import re
 import urllib
 from collections import namedtuple
 from decimal import Decimal
 
+from pyramid.threadlocal import get_current_request
+
+from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl.cache import region
@@ -55,21 +59,44 @@ def parse_currency(target):
     return int(Decimal(digits) * (10 ** CURRENCY_PRECISION))
 
 
-@region.cache_on_arguments(expiration_time=60 * 60 * 24)
-def _fetch_rates():
+@region.cache_on_arguments(expiration_time=60 * 60 * 24, should_cache_fn=bool)
+def _fetch_rates_no_cache_failure():
     """
-    Retrieves most recent currency exchange rates from fixer.io, which uses
-    the European Central Bank as its upstream source.
+    Retrieve most recent currency exchange rates from the European Central Bank.
 
-    This value is cached with a 24h expiry period
-
-    :return: see http://fixer.io/
+    This value is cached with a 24h expiry period. Failures are cached for one hour.
     """
-    try:
-        return d.http_get("http://api.fixer.io/latest?base=USD").json()
-    except WeasylError:
-        # There was an HTTP error while fetching from the API
+    if not config.config_read_bool('convert_currency'):
         return None
+
+    try:
+        response = d.http_get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+    except WeasylError:
+        # http_get already logged the exception
+        return None
+    else:
+        request = get_current_request()
+        request.environ['raven.captureMessage']("Fetched exchange rates", level=logging.INFO)
+
+    rates = {'EUR': 1.0}
+
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.content):
+        code, rate = match.groups()
+
+        try:
+            rate = float(rate)
+        except ValueError:
+            pass
+        else:
+            if 0.0 < rate < float('inf'):
+                rates[code] = rate
+
+    return rates
+
+
+@region.cache_on_arguments(expiration_time=60 * 60)
+def _fetch_rates():
+    return _fetch_rates_no_cache_failure()
 
 
 def _charmap_to_currency_code(charmap):
@@ -115,22 +142,16 @@ def currency_ratio(valuecode, targetcode):
     valuecode = _charmap_to_currency_code(valuecode)
     targetcode = _charmap_to_currency_code(targetcode)
     rates = _fetch_rates()
-    if not rates:
-        # in the unlikely event of an error, invalidate our rates
-        # (to try fetching again) and return value unaltered
-        _fetch_rates.invalidate()
+
+    if rates is None:
         return None
-    rates = rates["rates"]
-    rates["USD"] = 1.0
-    try:
-        r1 = float(rates.get(valuecode))
-        r2 = float(rates.get(targetcode))
-    except ValueError:
-        # something is very wrong with our data source
-        _fetch_rates.invalidate()
+
+    r1 = rates.get(valuecode)
+    r2 = rates.get(targetcode)
+
+    if r1 is None or r2 is None:
         return None
-    if not (r1 and r2):
-        raise WeasylError("Unexpected")
+
     return r2 / r1
 
 
@@ -154,13 +175,13 @@ def select_list(userid):
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_preferred_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     optout_tags = d.engine.execute("""
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_optout_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     return {
         "userid": userid,
@@ -184,7 +205,7 @@ def select_list(userid):
 
 def select_commissionable(userid, q, commishclass, min_price, max_price, currency, offset, limit):
     """
-    Select a list of artists whom are open for commissions
+    Select a list of artists who are open for commissions
     and have defined at least one commission class.
 
     This query sorts primarily by how many matching tags in the "content" field match
@@ -296,7 +317,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if tags:
             terms = ["user:" + d.get_sysname(info.username)] + ["|" + tag for tag in tags]
-            dinfo['searchquery'] = "q=" + urllib.quote(" ".join(terms))
+            dinfo['searchquery'] = "q=" + urllib.quote(u" ".join(terms).encode("utf-8"))
         else:
             dinfo['searchquery'] = ""
         return dinfo

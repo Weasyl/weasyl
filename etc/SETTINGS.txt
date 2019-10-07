@@ -25,7 +25,6 @@ login.settings ()
 
 b  Banned account
 s  Suspended account
-d  Premium account
 
 p  Reset password
 i  Reset birthday
@@ -52,7 +51,6 @@ profile.config (lkscftjone)
 b  Show birthday in profile
 
 l  Use only tag blocklist
-m  View max rating moderate
 a  View max rating mature
 p  View max rating explicit
 
@@ -66,7 +64,6 @@ z  Friend notes only
 h  Hide profile from guests
 i  Hide profile statistics
 k  Disallow content tag removal
-r  Disallow content tag editing
 
 s  Watch user submissions
 c  Watch user collections

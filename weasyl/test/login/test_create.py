@@ -4,12 +4,10 @@ import arrow
 import pytest
 import web
 
-from weasyl.test import db_utils
-from weasyl.test.utils import Bag
-
 from weasyl import define as d
 from weasyl import login
 from weasyl.error import WeasylError
+from weasyl.test import db_utils
 
 
 user_name = "test"
@@ -169,33 +167,14 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
     address.
     """
     db_utils.create_user(username=user_name, email_addr=email_addr)
-    form = web.Storage(username=user_name, password='0123456789', passcheck='0123456789',
+    form = web.Storage(username="user", password='0123456789', passcheck='0123456789',
                        email=email_addr, emailcheck=email_addr,
                        day='12', month='12', year=arrow.now().year - 19)
-    with pytest.raises(WeasylError) as err:
-        login.create(form)
-    assert 'emailExists' == err.value.value
-
-
-@pytest.mark.usefixtures('db')
-def test_create_fails_if_email_domain_is_blacklisted():
-    """
-    Test verifies that login.create() will properly fail to register new accounts
-    when the domain portion of the email address is contained in the emailblacklist
-    table.
-    """
-    d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
-        "domain_name": "blacklisted.com",
-        "reason": "test case for login.create()",
-        "added_by": db_utils.create_user(),
-    })
-    blacklisted_email = "test@blacklisted.com"
-    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
-               email=blacklisted_email, emailcheck=blacklisted_email,
-               day='12', month='12', year=arrow.now().year - 19)
-    with pytest.raises(WeasylError) as err:
-        login.create(form)
-    assert 'emailBlacklisted' == err.value.value
+    login.create(form)
+    query = d.engine.scalar("""
+        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS TRUE
+    """, username=form.username)
+    assert query == "user"
 
 
 @pytest.mark.usefixtures('db')
@@ -217,9 +196,11 @@ def test_create_fails_if_pending_account_has_same_email():
     form = web.Storage(username="test", password='0123456789', passcheck='0123456789',
                        email=email_addr, emailcheck=email_addr,
                        day='12', month='12', year=arrow.now().year - 19)
-    with pytest.raises(WeasylError) as err:
-        login.create(form)
-    assert 'emailExists' == err.value.value
+    login.create(form)
+    query = d.engine.scalar("""
+        SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS TRUE
+    """, username=form.username)
+    assert query == "test"
 
 
 @pytest.mark.usefixtures('db')
@@ -302,3 +283,94 @@ def test_verify_correct_information_creates_account():
     assert d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)",
         name=form.username)
+
+
+class TestAccountCreationBlacklist(object):
+    @pytest.mark.usefixtures('db')
+    def test_create_fails_if_email_domain_is_blacklisted(self):
+        """
+        Test verifies that login.create() will properly fail to register new accounts
+        when the domain portion of the email address is contained in the emailblacklist
+        table.
+        """
+        d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
+            "domain_name": "blacklisted.com",
+            "reason": "test case for login.create()",
+            "added_by": db_utils.create_user(),
+        })
+        blacklisted_email = "test@blacklisted.com"
+        form = web.Storage(username=user_name, password='0123456789', passcheck='0123456789',
+                           email=blacklisted_email, emailcheck=blacklisted_email,
+                           day='12', month='12', year=arrow.now().year - 19)
+        with pytest.raises(WeasylError) as err:
+            login.create(form)
+        assert 'emailBlacklisted' == err.value.value
+
+    @pytest.mark.usefixtures('db')
+    def test_verify_subdomains_of_blocked_sites_blocked(self):
+        """
+        Blacklisted: badsite.net
+        Blocked: badsite.net
+        Also blocked: subdomain.badsite.net
+        """
+        d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
+            "domain_name": "blacklisted.com",
+            "reason": "test case for login.create()",
+            "added_by": db_utils.create_user(),
+        })
+        # Test the domains from the emailblacklist table
+        blacklisted_email = "test@subdomain.blacklisted.com"
+        form = web.Storage(username=user_name, password='0123456789', passcheck='0123456789',
+                           email=blacklisted_email, emailcheck=blacklisted_email,
+                           day='12', month='12', year=arrow.now().year - 19)
+        with pytest.raises(WeasylError) as err:
+            login.create(form)
+        assert 'emailBlacklisted' == err.value.value
+
+        # Test the domains from the code that would download the list of disposable domains
+        blacklisted_email = "test@mail.sub.test-domain-0001.co.nz"
+        form = web.Storage(username=user_name, password='0123456789', passcheck='0123456789',
+                           email=blacklisted_email, emailcheck=blacklisted_email,
+                           day='12', month='12', year=arrow.now().year - 19)
+        with pytest.raises(WeasylError) as err:
+            login.create(form)
+        assert 'emailBlacklisted' == err.value.value
+
+        # Ensure address in the form of <domain.domain> is blocked
+        blacklisted_email = "test@test-domain-0001.co.nz.test-domain-0001.co.nz"
+        form = web.Storage(username=user_name, password='0123456789', passcheck='0123456789',
+                           email=blacklisted_email, emailcheck=blacklisted_email,
+                           day='12', month='12', year=arrow.now().year - 19)
+        with pytest.raises(WeasylError) as err:
+            login.create(form)
+        assert 'emailBlacklisted' == err.value.value
+
+    @pytest.mark.usefixtures('db')
+    def test_similarly_named_domains_are_not_blocked(self):
+        """
+        Blacklisted: badsite.net
+        /Not/ Blocked: notabadsite.net
+        Also /Not/ blocked: subdomain.notabadsite.net
+        """
+        d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
+            "domain_name": "blacklisted.com",
+            "reason": "test case for login.create()",
+            "added_by": db_utils.create_user(),
+        })
+        mail = "test@notblacklisted.com"
+        form = web.Storage(username=user_name, password='0123456789', passcheck='0123456789',
+                           email=mail, emailcheck=mail,
+                           day='12', month='12', year=arrow.now().year - 19)
+        login.create(form)
+
+        mail = "test@also.notblacklisted.com"
+        form = web.Storage(username=user_name + "1", password='0123456789', passcheck='0123456789',
+                           email=mail, emailcheck=mail,
+                           day='12', month='12', year=arrow.now().year - 19)
+        login.create(form)
+
+        mail = "test@blacklisted.com.notblacklisted.com"
+        form = web.Storage(username=user_name + "2", password='0123456789', passcheck='0123456789',
+                           email=mail, emailcheck=mail,
+                           day='12', month='12', year=arrow.now().year - 19)
+        login.create(form)

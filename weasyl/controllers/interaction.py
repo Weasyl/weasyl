@@ -86,8 +86,7 @@ def ignoreuser_(request):
     otherid = define.get_int(form.userid)
 
     if form.action == "ignore":
-        if not ignoreuser.check(request.userid, otherid):
-            ignoreuser.insert(request.userid, otherid)
+        ignoreuser.insert(request.userid, otherid)
     elif form.action == "unignore":
         ignoreuser.remove(request.userid, otherid)
 

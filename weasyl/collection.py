@@ -9,7 +9,7 @@ from weasyl import welcome
 from weasyl.error import PostgresError, WeasylError
 
 
-def select_query(userid, rating, otherid=None, pending=False, backid=None, nextid=None, config=None, options=[]):
+def select_query(userid, rating, otherid=None, pending=False, backid=None, nextid=None):
     """
     Build a query to select a list of collections, joined on submission table
     and profile of the submitter
@@ -19,8 +19,6 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
     :param pending: TRUE to give only pending collections, otherwise give accepted ones.
     :param backid: will not return submissions older than the one with this ID
     :param nextid: will not return submissions newer than the one with this ID
-    :param config: unused
-    :param options: unused
     :return: a statement created based on options given
     """
     statement = [
@@ -65,21 +63,18 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
     return statement
 
 
-def select_count(userid, rating, otherid=None, pending=False, backid=None, nextid=None, config=None, options=[]):
+def select_count(userid, rating, otherid=None, pending=False, backid=None, nextid=None):
     statement = ["SELECT count(su.submitid) "]
     statement.extend(select_query(userid, rating, otherid, pending,
-                                  backid, nextid, config))
+                                  backid, nextid))
     return d.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, pending=False, backid=None, nextid=None, config=None, options=[]):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_list(userid, rating, limit, otherid=None, pending=False, backid=None, nextid=None):
     statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, "
                  "su.userid, pr.username, cpr.username, cpr.userid "]
     statement.extend(select_query(userid, rating, otherid, pending,
-                                  backid, nextid, config))
+                                  backid, nextid))
     statement.append(" ORDER BY co.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = []
@@ -102,19 +97,25 @@ def select_list(userid, rating, limit, otherid=None, pending=False, backid=None,
     return query[::-1] if backid else query
 
 
-def find_owners(submitid, pending=False):
+def find_owners(submitid):
     """
     Retrieve a list of users who have collected the given submission.
     does NOT include the original submitter.
     :param submitid: any submission ID
-    :param pending: TRUE to include pending submissions, FALSE to exclude them
     :return: a list of userids of all users who have collected this submission
     """
-    statement = "SELECT userid FROM collection WHERE submitid = %(sub)s"
-    if not pending:
-        statement += " AND settings !~ '[pr]'"
-    result = d.engine.execute(statement, sub=submitid)
+    result = d.engine.execute(
+        "SELECT userid FROM collection WHERE submitid = %(sub)s AND settings !~ '[pr]'",
+        sub=submitid)
     return [r[0] for r in result]
+
+
+def owns(userid, submitid):
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT FROM collection WHERE userid = %(user)s AND submitid = %(sub)s)",
+        user=userid,
+        sub=submitid,
+    )
 
 
 def offer(userid, submitid, otherid):

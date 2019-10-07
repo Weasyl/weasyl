@@ -3,17 +3,34 @@
 
 from __future__ import absolute_import
 
+import errno
+import json
+import os
+import shutil
+
 import pytest
 import pyramid.testing
 from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import psycopg2
+from webtest import TestApp
 
 from weasyl import config
 config._in_test = True  # noqa
 
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
-from weasyl import cache, define, emailer, macro, media, middleware
+from weasyl import (
+    cache,
+    commishinfo,
+    define,
+    emailer,
+    login,
+    macro,
+    media,
+    middleware,
+    spam_filtering,
+)
+from weasyl.wsgi import wsgi_app
 
 
 cache.region.configure('dogpile.cache.memory')
@@ -23,7 +40,7 @@ define.metric = lambda *a, **kw: None
 configure_libweasyl(
     dbsession=define.sessionmaker,
     not_found_exception=HTTPNotFound,
-    base_file_path='testing',
+    base_file_path=macro.MACRO_STORAGE_ROOT,
     staff_config_dict={},
     media_link_formatter_callback=media.format_media_link,
 )
@@ -41,6 +58,24 @@ def setupdb(request):
     define.engine.dispose()
 
     define.meta.create_all(define.engine)
+
+
+@pytest.yield_fixture(autouse=True)
+def empty_storage():
+    try:
+        os.mkdir(macro.MACRO_STORAGE_ROOT)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            raise Exception("Storage directory should not exist when running tests")
+
+        raise
+
+    os.mkdir(macro.MACRO_SYS_LOG_PATH)
+
+    try:
+        yield
+    finally:
+        shutil.rmtree(macro.MACRO_STORAGE_ROOT)
 
 
 @pytest.fixture(autouse=True)
@@ -97,6 +132,40 @@ def cache_(request):
     cache.region.configure('dogpile.cache.memory', replace_existing_backend=True)
 
 
+@pytest.fixture(autouse=True)
+def template_cache():
+    define._template_cache.clear()
+
+
 @pytest.fixture
 def no_csrf(monkeypatch):
-    monkeypatch.setattr(define, 'get_token', lambda: '')
+    monkeypatch.setattr(define, 'is_csrf_valid', lambda request, token: True)
+
+
+@pytest.fixture(autouse=True)
+def deterministic_marketplace_tests(monkeypatch):
+    rates = """{"base":"USD","date":"2017-04-03","rates":{"AUD":1.3143,"BGN":1.8345,"BRL":3.1248,"CAD":1.3347,"CHF":1.002,"CNY":6.8871,"CZK":25.367,"DKK":6.9763,"GBP":0.79974,"HKD":7.7721,"HRK":6.9698,"HUF":289.54,"IDR":13322.0,"ILS":3.6291,"INR":64.985,"JPY":111.28,"KRW":1117.2,"MXN":18.74,"MYR":4.4275,"NOK":8.5797,"NZD":1.4282,"PHP":50.142,"PLN":3.9658,"RON":4.2674,"RUB":56.355,"SEK":8.9246,"SGD":1.3975,"THB":34.385,"TRY":3.6423,"ZAR":13.555,"EUR":0.938}}"""
+
+    def _fetch_rates():
+        return json.loads(rates)
+
+    monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
+
+
+@pytest.fixture(autouse=True)
+def do_not_retrieve_disposable_email_domains(monkeypatch):
+    """ Don't hammer GitHub's server with testing requests. """
+    def _retrieve_disposable_email_domains():
+        return ['test-domain-0001.co.nz', 'test-domain-0001.com']
+
+    monkeypatch.setattr(login, '_retrieve_disposable_email_domains', _retrieve_disposable_email_domains)
+
+
+@pytest.fixture
+def app():
+    return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})
+
+
+@pytest.fixture(autouse=True)
+def do_not_run_spam_checks(monkeypatch):
+    monkeypatch.setattr(spam_filtering, 'FILTERING_ENABLED', False)

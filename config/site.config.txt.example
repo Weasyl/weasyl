@@ -8,6 +8,8 @@ captcha_disable_verification = false
 # In production, this should be set low, but giving it a high value (or 0) can
 # be useful for dev on an database.
 popular_max_age_days = 21
+# Whether currency exchange rates should be fetched for /marketplace
+convert_currency = false
 
 [backend]
 run_periodic_tasks = false
@@ -25,3 +27,13 @@ url = postgresql+psycopg2cffi:///weasyl
 [recaptcha-lo.weasyl.com]
 public_key = 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
 private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+
+[two_factor_auth]
+# This key MUST be changed when in production;
+# See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
+secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
+
+[spam_filtering]
+enabled = false
+# Akismet.com API key -- For spam filtering
+key = None

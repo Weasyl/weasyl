@@ -6,6 +6,8 @@ import time
 import random
 import urllib
 import hashlib
+import hmac
+import itertools
 import logging
 import numbers
 import datetime
@@ -23,6 +25,7 @@ import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from sqlalchemy.exc import OperationalError
 from web.template import frender
 
 import libweasyl.constants
@@ -49,7 +52,7 @@ reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
 def _load_resources():
     global resource_paths
 
-    with open(os.path.join(macro.MACRO_SYS_BASE_PATH, 'build/rev-manifest.json'), 'r') as f:
+    with open(os.path.join(macro.MACRO_APP_ROOT, 'build/rev-manifest.json'), 'r') as f:
         resource_paths = json.loads(f.read())
 
 
@@ -188,6 +191,26 @@ def sql_number_list(target):
     return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
 
 
+_PG_SERIALIZATION_FAILURE = u'40001'
+
+
+def serializable_retry(action, limit=16):
+    """
+    Runs an action accepting a `Connection` parameter in a serializable
+    transaction, retrying it up to `limit` times.
+    """
+    with engine.connect() as db:
+        db = db.execution_options(isolation_level='SERIALIZABLE')
+
+        for i in itertools.count(1):
+            try:
+                with db.begin():
+                    return action(db)
+            except OperationalError as e:
+                if i == limit or e.orig.pgcode != _PG_SERIALIZATION_FAILURE:
+                    raise
+
+
 CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
 the_fake_request = FakePyramidRequest()
 
@@ -206,13 +229,10 @@ def _compile(template_name):
     if template is None or reload_templates:
         from weasyl import ads
 
-        template_path = os.path.join(macro.MACRO_SYS_BASE_PATH, 'templates', template_name)
         _template_cache[template_name] = template = frender(
             template_path,
             globals={
-                "INT": int,
                 "STR": str,
-                "SUM": sum,
                 "LOGIN": get_sysname,
                 "TOKEN": get_token,
                 "CSRF": _get_csrf_input,
@@ -229,10 +249,10 @@ def _compile(template_name):
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
-                "CONFIG": config_read_setting,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
                 "THUMB": thumb_for_sub,
+                "WEBP_THUMB": webp_thumb_for_sub,
                 "M": macro,
                 "R": ratings,
                 "SLUG": text.slug_for,
@@ -267,17 +287,12 @@ def titlebar(title, backtext=None, backlink=None):
     return render("common/stage_title.html", [title, backtext, backlink])
 
 
-def errorpage(userid, code=None, links=None,
-              unexpected=None, request_id=None, **extras):
+def errorpage(userid, code=None, links=None, request_id=None, **extras):
     if links is None:
         links = []
 
     if code is None:
         code = errorcode.unexpected
-
-        if unexpected:
-            code = "".join([code, " The error code associated with this condition "
-                                  "is '", unexpected, "'."])
     code = text.markdown(code)
 
     return webpage(userid, "error/error.html", [code, links, request_id], **extras)
@@ -356,13 +371,25 @@ def get_userid():
     return get_current_request().userid
 
 
+def is_csrf_valid(request, token):
+    expected = request.weasyl_session.csrf_token
+    return expected is not None and hmac.compare_digest(str(token), str(expected))
+
+
 def get_token():
     from weasyl import api
 
-    if api.is_api_user():
+    request = get_current_request()
+
+    if api.is_api_user(request):
         return ''
 
-    sess = get_current_request().weasyl_session
+    # allow error pages with $:{TOKEN()} in the template to be rendered even
+    # when the error occurred before the session middleware set a session
+    if not hasattr(request, 'weasyl_session'):
+        return security.generate_key(20)
+
+    sess = request.weasyl_session
     if sess.csrf_token is None:
         sess.csrf_token = security.generate_key(64)
         sess.save = True
@@ -446,8 +473,6 @@ def get_rating(userid):
         return ratings.EXPLICIT.code
     elif 'a' in config:
         return ratings.MATURE.code
-    elif 'm' in config:
-        return ratings.MODERATE.code
     else:
         return ratings.GENERAL.code
 
@@ -462,13 +487,12 @@ def get_config_rating(userid):
     """
     config = get_config(userid)
 
-    max_rating = ratings.GENERAL.code
     if 'p' in config:
         max_rating = ratings.EXPLICIT.code
     elif 'a' in config:
         max_rating = ratings.MATURE.code
-    elif 'm' in config:
-        max_rating = ratings.MODERATE.code
+    else:
+        max_rating = ratings.GENERAL.code
 
     profile_settings = get_profile_settings(userid)
     sfw_rating = profile_settings.max_sfw_rating
@@ -547,23 +571,13 @@ def get_timestamp():
     return time.strftime("%Y-%m", time.localtime(get_time()))
 
 
-_hash_path_roots = {
-    "user": [macro.MACRO_SYS_USER_PATH],
-    "save": [macro.MACRO_SYS_SAVE_PATH],
-    "submit": [macro.MACRO_SYS_SUBMIT_PATH],
-    "char": [macro.MACRO_SYS_CHAR_PATH],
-    "journal": [macro.MACRO_SYS_JOURNAL_PATH],
-    None: [],
-}
+def _get_hash_path(charid):
+    id_hash = hashlib.sha1(str(charid)).hexdigest()
+    return "/".join([id_hash[i:i + 2] for i in range(0, 11, 2)]) + "/"
 
 
-def get_hash_path(target_id, content_type=None):
-    path_hash = hashlib.sha1(str(target_id)).hexdigest()
-    path_hash = "/".join([path_hash[i:i + 2] for i in range(0, 11, 2)])
-
-    root = _hash_path_roots[content_type]
-
-    return "".join(root + [path_hash, "/"])
+def get_character_directory(charid):
+    return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
 def get_userid_list(target):
@@ -574,15 +588,13 @@ def get_userid_list(target):
     return [userid for (userid,) in query]
 
 
-def get_ownerid(submitid=None, charid=None, journalid=None, commishid=None):
+def get_ownerid(submitid=None, charid=None, journalid=None):
     if submitid:
         return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
         return engine.scalar("SELECT userid FROM character WHERE charid = %(id)s", id=charid)
     if journalid:
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
-    if commishid:
-        return engine.scalar("SELECT userid FROM commission WHERE commishid = %(id)s", id=commishid)
 
 
 def get_random_set(target, count=None):
@@ -679,13 +691,12 @@ def _convert_time(target=None):
         return dt.strftime("%H:%M:%S %Z")
 
 
-def convert_unixdate(day, month, year, escape=True):
+def convert_unixdate(day, month, year):
     """
     Returns the unixtime corresponding to the beginning of the specified date; if
     the date is not valid, None is returned.
     """
-    if escape:
-        day, month, year = (get_int(i) for i in [day, month, year])
+    day, month, year = (get_int(i) for i in [day, month, year])
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
@@ -934,7 +945,7 @@ _content_types = {
 
 def common_view_content(userid, targetid, feature):
     """
-    Return True if a record was successfully inserted into the contentview table
+    Return True if a record was successfully inserted into the views table
     and the page view statistic incremented, else False.
     """
     if feature == "profile" and targetid == userid:
@@ -1009,10 +1020,10 @@ def url_make(targetid, feature, query=None, root=False, file_prefix=None):
     result = [] if root else ["/"]
 
     if root:
-        result.append(macro.MACRO_SYS_BASE_PATH)
+        result.append(macro.MACRO_STORAGE_ROOT)
 
     if "char/" in feature:
-        result.extend([macro.MACRO_URL_CHAR_PATH, get_hash_path(targetid)])
+        result.extend([macro.MACRO_URL_CHAR_PATH, _get_hash_path(targetid)])
 
     if file_prefix is not None:
         result.append("%s-" % (file_prefix,))
@@ -1063,7 +1074,7 @@ def get_resource_path(resource):
     if reload_assets:
         _load_resources()
 
-    return cdnify_url('/' + resource_paths[resource])
+    return '/' + resource_paths[resource]
 
 
 def absolutify_url(url):
@@ -1209,3 +1220,29 @@ def thumb_for_sub(submission):
         thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
 
     return submission['sub_media'][thumb_key][0]
+
+
+def webp_thumb_for_sub(submission):
+    """
+    Given a submission dict containing sub_media, sub_type and userid,
+    returns the appropriate WebP media item to use as a thumbnail.
+
+    Params:
+        submission: The submission.
+
+    Returns:
+        The sub media to use as a thumb, or None.
+    """
+    user_id = get_userid()
+    profile_settings = get_profile_settings(user_id)
+    disable_custom_thumb = (
+        profile_settings.disable_custom_thumbs and
+        submission.get('subtype', 9999) < 2000 and
+        submission['userid'] != user_id
+    )
+
+    if not disable_custom_thumb and 'thumbnail-custom' in submission['sub_media']:
+        return None
+
+    thumbnail_generated_webp = submission['sub_media'].get('thumbnail-generated-webp')
+    return thumbnail_generated_webp and thumbnail_generated_webp[0]

@@ -7,8 +7,6 @@ from libweasyl import ratings
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
 
-MACRO_COOKIE_EXPIRE = 31536000
-
 MACRO_BCRYPT_ROUNDS = 13
 
 # Example input (userid, "su")
@@ -162,25 +160,17 @@ MACRO_REPORT_VIOLATION = [
     (4999, 20, "Other (please comment)", True),
 ]
 
-MACRO_SYS_BASE_PATH = os.environ['WEASYL_ROOT'] + '/'
+MACRO_APP_ROOT = os.environ['WEASYL_APP_ROOT'] + "/"
+MACRO_STORAGE_ROOT = os.environ['WEASYL_STORAGE_ROOT'] + "/"
 
-MACRO_URL_AD_PATH = "static/submission/"
 MACRO_URL_CHAR_PATH = "static/character/"
-MACRO_URL_USER_PATH = "static/user/"
-MACRO_URL_SUBMIT_PATH = "static/submission/"
 
-MACRO_SYS_AD_PATH = MACRO_SYS_BASE_PATH + MACRO_URL_AD_PATH
-MACRO_SYS_CHAR_PATH = MACRO_SYS_BASE_PATH + MACRO_URL_CHAR_PATH
-MACRO_SYS_USER_PATH = MACRO_SYS_BASE_PATH + MACRO_URL_USER_PATH
-MACRO_SYS_SUBMIT_PATH = MACRO_SYS_BASE_PATH + MACRO_URL_SUBMIT_PATH
+MACRO_SYS_CHAR_PATH = os.path.join(MACRO_STORAGE_ROOT, MACRO_URL_CHAR_PATH)
 
-MACRO_SYS_LOG_PATH = MACRO_SYS_BASE_PATH + "log/"
-MACRO_SYS_SAVE_PATH = MACRO_SYS_BASE_PATH + "save/"
-MACRO_SYS_TEMP_PATH = MACRO_SYS_BASE_PATH + "temp/"
-MACRO_SYS_CONFIG_PATH = MACRO_SYS_BASE_PATH + "config/"
-MACRO_SYS_STAFF_CONFIG_PATH = MACRO_SYS_CONFIG_PATH + "weasyl-staff.yaml"
-MACRO_SYS_JOURNAL_PATH = MACRO_SYS_BASE_PATH + "static/journal/"
-MACRO_SYS_BEAKER_PATH = MACRO_SYS_BASE_PATH + "beaker/"
+MACRO_SYS_LOG_PATH = os.path.join(MACRO_STORAGE_ROOT, "log/")
+MACRO_SYS_TEMP_PATH = os.path.join(MACRO_STORAGE_ROOT, "temp/")
+MACRO_SYS_CONFIG_PATH = os.path.join(MACRO_APP_ROOT, "config/")
+MACRO_SYS_STAFF_CONFIG_PATH = os.path.join(MACRO_SYS_CONFIG_PATH, "weasyl-staff.py")
 
 MACRO_BLANK_THUMB = "/static/images/default-thumbs/visual.png"
 MACRO_DEFAULT_SUBMISSION_THUMBNAIL = [
@@ -198,7 +188,6 @@ MACRO_DEFAULT_AVATAR = [
 ]
 
 MACRO_CFG_SITE_CONFIG = MACRO_SYS_CONFIG_PATH + "site.config.txt"
-MACRO_CFG_LOCAL_ADDRS = MACRO_SYS_CONFIG_PATH + "local.addrs.txt"
 
 SOCIAL_SITES = {
     "deviantart": {
@@ -239,7 +228,7 @@ SOCIAL_SITES = {
     },
     "tumblr": {
         "name": "Tumblr",
-        "url": "http://%s.tumblr.com/",
+        "url": "https://%s.tumblr.com/",
     },
     "twitter": {
         "name": "Twitter",

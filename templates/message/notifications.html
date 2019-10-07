@@ -13,7 +13,8 @@ $code:
     elif x in [4010, 4015]:       return [4010, 4015]
     elif x == 4016:               return [4016]
     elif x in [4020, 4025, 4050]: return [4020, 4025, 4050]
-    elif x in [4030, 4035]:       return [4030, 4035]
+    elif x in [4030, 4035, 4060, 4065]:
+      return [4030, 4035, 4060, 4065]
     elif x in [4040, 4045]:       return [4040, 4045]
     else:                         return []
 
@@ -30,7 +31,8 @@ $code:
     elif x in [4010, 4015]:       return "Shouts"
     elif x == 4016:               return "Staff Notes"
     elif x in [4020, 4025, 4050]: return "Submission Comments"
-    elif x in [4030, 4035]:       return "Journal Comments"
+    elif x in [4030, 4035, 4060, 4065]:
+      return "Journal Comments"
     elif x in [4040, 4045]:       return "Character Comments"
     else:                         return "Miscellaneous"
 
@@ -89,7 +91,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               if 'username' in i:
                 item_user = '<a href="/~' + LOGIN(i['username']) + '" class="username">' + escape_(i['username']) + '</a>'
 
-              if 'submitid' in i or 'journalid' in i or 'charid' in i:
+              if 'submitid' in i or 'journalid' in i or 'charid' in i or 'updateid' in i:
                 if 'submitid' in i:
                   folder = 'submission'
                   id = i['submitid']
@@ -99,8 +101,12 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
                 elif 'charid' in i:
                   folder = 'character'
                   id = i['charid']
+                elif 'updateid' in i:
+                  folder = 'site-updates'
+                  id = i['updateid']
                 if 'title' in i:
-                  item_base_url = '/%s/%i/%s' % (folder, id, SLUG(i['title']))
+                  slug = '' if 'updateid' in i else '/%s' % (SLUG(i['title']),)
+                  item_base_url = '/%s/%i%s' % (folder, id, slug)
                   item_link = '<a href="' + item_base_url + '">' + escape_(i['title']) + '</a>'
                   if 'commentid' in i:
                     comment_url = lambda id: item_base_url + '#cid' + STR(id)
@@ -163,7 +169,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               <a href="/site-updates/${i['updateid']}">${i['title']}</a>
             $elif i['type'] == 4010:
               $# shout
-              $:{item_user} left a <a href="/shouts#cid${i['commentid']}">comment</a> on your shout page.
+              $:{item_user} left a <a href="/shouts/${i['ownername']}#cid${i['commentid']}">comment</a> on your shout page.
             $elif i['type'] == 4015:
               $# shout reply
               $:{item_user} left a $:{shout_reply('shouts')} to $:{your_comment('shouts')} on $:{item_ownername}</a>'s shout page.
@@ -191,6 +197,12 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
             $elif i['type'] == 4050:
               $# comment on collected item
               $:{item_user} left a $:{item_comment} on your collected submission $:{item_link}.
+            $elif i['type'] == 4060:
+              $# site update comment
+              $:{item_user} left a $:{item_comment} on your site update $:{item_link}.
+            $elif i['type'] == 4065:
+              $# site update comment reply
+              $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the site update $:{item_link}.
             $else:
               ${i}
             <span class="date color-lighter">${DATE(i['unixtime'])} <em>at</em> ${TIME(i['unixtime'])}</span>

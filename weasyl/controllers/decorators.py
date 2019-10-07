@@ -6,7 +6,7 @@ from pyramid.response import Response
 
 from libweasyl import staff
 
-from weasyl import define, errorcode
+from weasyl import define, errorcode, two_factor_auth
 import weasyl.api
 from weasyl.error import WeasylError
 
@@ -34,7 +34,7 @@ def guest_required(view_callable):
 def moderator_only(view_callable):
     """Implies login_required."""
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
         if request.userid not in staff.MODS:
             return Response(define.errorpage(request.userid, errorcode.permission))
@@ -45,7 +45,7 @@ def moderator_only(view_callable):
 def admin_only(view_callable):
     """Implies login_required."""
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
         if request.userid not in staff.ADMINS:
             return Response(define.errorpage(request.userid, errorcode.permission))
@@ -56,7 +56,7 @@ def admin_only(view_callable):
 def director_only(view_callable):
     """Implies login_required."""
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
         if request.userid not in staff.DIRECTORS:
             return Response(define.errorpage(request.userid, errorcode.permission))
@@ -66,16 +66,40 @@ def director_only(view_callable):
 
 def disallow_api(view_callable):
     def inner(request):
-        if weasyl.api.is_api_user():
+        if weasyl.api.is_api_user(request):
             raise HTTPForbidden
+        return view_callable(request)
+    return inner
+
+
+def twofactorauth_enabled_required(view_callable):
+    """
+    This decorator requires that 2FA be enabled for a given Weasyl account as identified
+    by ``request.userid``.
+    """
+    def inner(request):
+        if not two_factor_auth.is_2fa_enabled(request.userid):
+            raise WeasylError("TwoFactorAuthenticationRequireEnabled")
+        return view_callable(request)
+    return inner
+
+
+def twofactorauth_disabled_required(view_callable):
+    """
+    This decorator requires that 2FA be disabled for a given Weasyl account as identified
+    by ``request.userid``.
+    """
+    def inner(request):
+        if two_factor_auth.is_2fa_enabled(request.userid):
+            raise WeasylError("TwoFactorAuthenticationRequireDisbled")
         return view_callable(request)
     return inner
 
 
 def token_checked(view_callable):
     def inner(request):
-        if not weasyl.api.is_api_user() and request.params.get('token', "") != define.get_token():
-            return Response(define.errorpage(request.userid, errorcode.token))
+        if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request, request.params.get('token')):
+            return Response(define.errorpage(request.userid, errorcode.token), status=403)
         return view_callable(request)
     return inner
 

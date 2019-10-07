@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import pytest
 import web
 
-from weasyl.test import db_utils
 from weasyl import resetpassword, login
 from weasyl.error import WeasylError
+from weasyl.test import db_utils
 
 
 @pytest.mark.usefixtures('db')
@@ -36,5 +36,5 @@ def test_verify_success_if_correct_information_provided():
     password = '01234567890123'
     form = web.Storage(password=password, passcheck=password)
     resetpassword.force(user_id, form)
-    result = login.authenticate_bcrypt(username=user_name, password=password, session=False)
+    result = login.authenticate_bcrypt(username=user_name, password=password, request=None)
     assert result == (user_id, None)

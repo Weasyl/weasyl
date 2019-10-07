@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
-from weasyl.test import db_utils
+import pytest
+
 from weasyl import resetpassword
 from weasyl import define as d
+from weasyl.test import db_utils
 
 
 def test_false_returned_if_token_does_not_exist():
@@ -10,6 +12,7 @@ def test_false_returned_if_token_does_not_exist():
     assert not resetpassword.checktoken(token)
 
 
+@pytest.mark.usefixtures('db')
 def test_true_returned_if_token_exists():
     user_id = db_utils.create_user(username='checktoken0002')
     token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000001"

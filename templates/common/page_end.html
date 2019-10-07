@@ -74,10 +74,19 @@ $def with (options=None, active_users_string='')
 
 </div><!-- /page-container -->
 
-<script src="${CDNIFY('/static/jquery-2.2.4.min.js')}"></script>
-<script src="${CDNIFY('/static/typeahead.bundle.min.js')}"></script>
-<script src="${CDNIFY('/static/marked.js?' + SHA)}"></script>
-<script src="${CDNIFY('/static/scripts.js?' + SHA)}"></script>
+<script src="/static/jquery-2.2.4.min.js"></script>
+<script src="/static/typeahead.bundle.min.js"></script>
+<script src="/static/marked.js?${SHA}"></script>
+<script src="/static/scripts.js?${SHA}"></script>
+
+<script src="${CDNIFY('/static/scripts/yall.min.js')}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    yall({
+      threshold: 100
+    });
+  });
+</script>
 
 $if options and "imageselect" in options:
   <script src="${CDNIFY('/static/scripts/imageselect/imageselect.js?' + SHA)}"></script>

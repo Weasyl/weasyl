@@ -1,3 +1,4 @@
+# encoding: utf-8
 from __future__ import absolute_import
 
 import os
@@ -10,6 +11,7 @@ import raven
 import raven.processors
 import traceback
 
+import pyramid.compat
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
@@ -18,13 +20,15 @@ from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
 from web.utils import storify
 
-from libweasyl import security
+from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy
+from libweasyl.models.users import GuestSession
 from weasyl import define as d
 from weasyl import errorcode
 from weasyl import http
 from weasyl import orm
 from weasyl.error import WeasylError
+from weasyl.sessions import create_guest_session, is_guest_token
 
 
 class ClientGoneAway(Exception):
@@ -81,48 +85,87 @@ def session_tween_factory(handler, registry):
     """
     A tween that sets a weasyl_session on a request.
     """
+    def callback(request, response):
+        sess_obj = request.weasyl_session
+
+        if isinstance(sess_obj, GuestSession):
+            if sess_obj.create:
+                response.set_cookie('WZL', sess_obj.sessionid, max_age=None,
+                                    secure=request.scheme == 'https', httponly=True)
+        elif sess_obj.save:
+            session = request.pg_connection
+
+            if sess_obj.create:
+                session.add(sess_obj)
+                response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
+                                    secure=request.scheme == 'https', httponly=True)
+            session.flush()
+
     # TODO(hyena): Investigate a pyramid session_factory implementation instead.
     def session_tween(request):
-        cookies_to_clear = set()
-        if 'beaker.session.id' in request.cookies:
-            cookies_to_clear.add('beaker.session.id')
-
-        session = d.connect()
         sess_obj = None
-        if 'WZL' in request.cookies:
-            sess_obj = session.query(orm.Session).get(request.cookies['WZL'])
-            if sess_obj is None:
-                # clear an invalid session cookie if nothing ends up trying to create a
-                # new one
-                cookies_to_clear.add('WZL')
+        cookie = request.cookies.get('WZL')
+
+        if cookie is not None:
+            if is_guest_token(cookie):
+                sess_obj = GuestSession(cookie)
+            else:
+                sess_obj = request.pg_connection.query(orm.Session).get(cookie)
 
         if sess_obj is None:
-            sess_obj = orm.Session()
-            sess_obj.create = True
-            sess_obj.sessionid = security.generate_key(64)
+            sess_obj = create_guest_session()
+
         # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
         # thrown before this part will not be handled correctly.
         request.weasyl_session = sess_obj
 
-        # Register a response callback to clear and set the session cookies before returning.
+        # Register a response callback to set the session cookies before returning.
         # Note that this requires that exceptions are handled properly by our exception view.
-        def callback(request, response):
-            if sess_obj.save:
-                session.begin()
-                if sess_obj.create:
-                    session.add(sess_obj)
-                    response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
-                                        secure=request.scheme == 'https', httponly=True)
-                    # don't try to clear the cookie if we're saving it
-                    cookies_to_clear.discard('WZL')
-                session.commit()
-            for name in cookies_to_clear:
-                response.delete_cookie(name)
-
         request.add_response_callback(callback)
         return handler(request)
 
     return session_tween
+
+
+def sql_debug_tween_factory(handler, registry):
+    """
+    A tween that allows developers to view SQL timing per query.
+    """
+    def callback(request, response):
+        class ParameterCounter(object):
+            def __init__(self):
+                self.next = 1
+                self.ids = {}
+
+            def __getitem__(self, name):
+                id = self.ids.get(name)
+
+                if id is None:
+                    id = self.ids[name] = self.next
+                    self.next += 1
+
+                return u'$%i' % (id,)
+
+        debug_rows = []
+
+        for statement, t in request.sql_debug:
+            statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
+            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
+
+        response.text += u''.join(
+            [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
+            + debug_rows
+            + [u'</table>']
+        )
+
+    def sql_debug_tween(request):
+        if 'sql_debug' in request.params and request.weasyl_session.userid in staff.DEVELOPERS:
+            request.sql_debug = []
+            request.add_response_callback(callback)
+
+        return handler(request)
+
+    return sql_debug_tween
 
 
 def status_check_tween_factory(handler, registry):
@@ -151,6 +194,51 @@ def database_session_cleanup_tween_factory(handler, registry):
         return handler(request)
 
     return database_session_cleanup_tween
+
+
+def _generate_http2_server_push_headers():
+    """
+    Generates the Link headers to load HTTP/2 Server Push resources which are needed on each pageload. Written
+    as a separate function to only execute this code a single time, since we just need to generate this each
+    time the code is relaunched (e.g., each time the web workers are kicked to a new version of the code).
+
+    A component of ``http2_server_push_tween_factory``
+    :return: An ASCII encoded string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
+    """
+    css_preload = [
+        '<' + item + '>; rel=preload; as=style' for item in [
+            d.get_resource_path('css/site.css'),
+            '/static/fonts/museo500.css',
+        ]
+    ]
+
+    js_preload = [
+        '<' + item + '>; rel=preload; as=script' for item in [
+            '/static/jquery-2.2.4.min.js',
+            '/static/typeahead.bundle.min.js',
+            '/static/marked.js?' + d.CURRENT_SHA,
+            '/static/scripts.js?' + d.CURRENT_SHA,
+        ]
+    ]
+
+    return ", ".join(css_preload + js_preload).encode('ascii')
+
+
+# Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below
+HTTP2_LINK_HEADER_PRELOADS = _generate_http2_server_push_headers()
+
+
+def http2_server_push_tween_factory(handler, registry):
+    """
+    Add the 'Link' header to outgoing responses to HTTP/2 Server Push render-blocking resources
+    """
+    def http2_server_push(request):
+        resp = handler(request)
+
+        # Combined HTTP/2 headers indicating which resources to server push
+        resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
+        return resp
+    return http2_server_push
 
 
 # Properties and methods to enhance the pyramid `request`.
@@ -214,15 +302,14 @@ def web_input_request_method(request, *required, **kwargs):
 # were registered. Note that these will not run if an exception is thrown that isn't handled by
 # our exception view.
 def set_cookie_on_response(request, name=None, value='', max_age=None, path='/', domain=None,
-                           secure=False, httponly=False, comment=None, expires=None,
-                           overwrite=False, key=None):
+                           secure=False, httponly=False, comment=None, overwrite=False):
     """
     Registers a callback on the request to set a cookie in the response.
     Parameters have the same meaning as ``pyramid.response.Response.set_cookie``.
     """
     def callback(request, response):
         response.set_cookie(name, value, max_age, path, domain, secure, httponly, comment,
-                            expires, overwrite, key)
+                            overwrite)
     request.add_response_callback(callback)
 
 
@@ -416,3 +503,5 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)
+    if hasattr(request, 'sql_debug'):
+        request.sql_debug.append((statement, total))

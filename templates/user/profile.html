@@ -1,14 +1,15 @@
-$def with (profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, commishinfo, friends, following, followed)
+$def with (profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <section><div id="user-header" class="stage clear">
 
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
 
+  $# The submissions/favorite grids are above/straddling the fold, so omit lazy load.
   $if(submissions):
     <ul id="user-thumbs" class="thumbnail-grid small-footprint">
       $for i in submissions:
-        $:{_GRID_ITEM(i)}
+        $:{_GRID_ITEM(i, lazy_load=False)}
       </li><li class="clear"><a class="more" href="/${more_submissions}/${LOGIN(profile['username'])}"><span>${profile['username']}'s ${more_submissions.title()}</span></a></li>
     </ul><!-- /.thumbnail-grid -->
 
@@ -18,7 +19,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   $if favorites:
     <ul id="fav-thumbs" class="thumbnail-grid tiny-footprint">
       $for i in favorites:
-        $:{_GRID_ITEM(i)}
+        $:{_GRID_ITEM(i, lazy_load=False)}
       </li><li class="clear"><a class="more" href="/favorites/${LOGIN(profile['username'])}"><span>${profile['username']}'s Favorites</span></a></li>
     </ul><!-- /.thumbnail-grid -->
 
@@ -114,7 +115,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     </div><!-- /user-commissions -->
 
 
-  $if(statistics):
+  $if show_statistics:
     <div id="user-stats" class="clear on-side">
       <h3>Statistics</h3>
       <p>Joined ${DATE(profile['unixtime'])}</p>
@@ -134,7 +135,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       </dl>
     </div><!-- /user_stats -->
 
-  $if(friends or following or followed):
+  $if statistics['following'] != 0 or statistics['followed'] != 0 or has_friends():
     <div id="user-connections" class="clear on-side">
       <h3>Connections</h3>
       <a class="more more-block" href="/friends/${LOGIN(profile['username'])}"><i>View</i> <span>Friends of</span> <i>${profile['username']}</i></a>

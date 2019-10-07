@@ -1,4 +1,4 @@
-$def with (query, notifications=None)
+$def with (query, notifications=None, lazy_load=True)
 
 <li class="item">
   $if notifications:
@@ -13,6 +13,7 @@ $def with (query, notifications=None)
         avatar = query['user_media']['avatar'][0]
       else:
         thumb = THUMB(query)
+        webp_thumb = WEBP_THUMB(query)
         width = thumb['attributes']['width'] if 'attributes' in thumb else ""
 
         display_url = thumb['display_url']
@@ -41,17 +42,39 @@ $def with (query, notifications=None)
       $else:
         data-id="${query['submitid']}" href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">
 
-      $if query['rating'] == R.MODERATE.code:
-        <span class="rating moderate">The following submission is rated Moderate:</span>
-      $elif query['rating'] == R.MATURE.code:
+      $if query['rating'] == R.MATURE.code:
         <span class="rating mature">The following submission is rated Mature:</span>
       $elif query['rating'] == R.EXPLICIT.code:
         <span class="rating explicit">The following submission is rated Explicit:</span>
 
       $if query['contype'] in (30, 50):
         <img src="${avatar['display_url']}" alt="avatar" />
+      $elif webp_thumb is not None:
+        $if lazy_load:
+          <picture>
+            <source type="image/webp" data-srcset="${webp_thumb['display_url']}" />
+            <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
+          </picture>
+          <noscript>
+            <picture>
+              <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+              <img src="${display_url}" alt="" />
+            </picture>
+          </noscript>
+        $else:
+          <picture>
+            <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+            <img src="${display_url}" alt="" />
+          </picture>
       $else:
-        <img src="${display_url}" alt="" />
+        $if lazy_load:
+          <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
+          <noscript>
+            <img src="${display_url}" alt="" />
+          </noscript>
+        $else:
+          <img src="${display_url}" alt="" />
+
     </a>
 
     $if playable and playable[0].get('file_type') == 'mp3':

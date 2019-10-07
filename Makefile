@@ -8,7 +8,8 @@
 VE ?= weasyl-env
 
 # Whether to install from wheels
-USE_WHEEL := --no-binary :all:
+# Build specific binaries from source, where binaries have been problematic in the past
+USE_WHEEL := --no-binary sanpera,lxml,psycopg2cffi
 
 # Static directories
 STATIC_DIRS := character fonts journal submission tile user media
@@ -35,15 +36,15 @@ config/site.config.txt:
 	cp -n config/site.config.txt.example $@
 
 # Staff
-config/weasyl-staff.yaml:
-	cp -n config/weasyl-staff.yaml.example $@
+config/weasyl-staff.py:
+	cp -n config/weasyl-staff.example.py $@
 
 # Creates python environment
 $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
                $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
-	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
-	$@/bin/pip install $(USE_WHEEL) pytest flake8
+	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt -e .
+	$@/bin/pip install $(USE_WHEEL) pytest==4.6.5 flake8
 	touch $@
 
 .PHONY: install-libweasyl
@@ -55,6 +56,7 @@ guest-install-libweasyl: .vagrant
 	vagrant ssh -c 'cd weasyl && make install-libweasyl'
 
 .vagrant:
+	vagrant plugin install vagrant-vbguest
 	vagrant up
 
 .PHONY: setup-vagrant
@@ -78,13 +80,14 @@ $(TEMP_DIRS):
 
 node_modules: package.json
 	npm install
+	touch node_modules
 
 build/rev-manifest.json: node_modules
-	gulp
+	node build.js
 
 # Phony setup target
 .PHONY: setup
-setup: $(VE) config/site.config.txt config/weasyl-staff.yaml build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
+setup: $(VE) config/site.config.txt config/weasyl-staff.py build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker
@@ -94,7 +97,9 @@ deploy-web-worker: setup
 # Phony target to run a local server
 .PHONY: run
 run: setup
-	WEASYL_ROOT=$(shell pwd) \
+	WEASYL_APP_ROOT=. \
+		WEASYL_TESTING_ENV=y \
+		WEASYL_STORAGE_ROOT=. \
 		WEASYL_SERVE_STATIC_FILES=y \
 		WEASYL_RELOAD_TEMPLATES=y \
 		WEASYL_RELOAD_ASSETS=y \
@@ -111,12 +116,12 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
-	WEASYL_ROOT=$(shell pwd) $(VE)/bin/py.test weasyl/test
+	WEASYL_APP_ROOT=. WEASYL_TESTING_ENV=y WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell
 .PHONY: shell
 shell: setup
-	WEASYL_ROOT=$(shell pwd) $(VE)/bin/python
+	WEASYL_APP_ROOT=. WEASYL_STORAGE_ROOT=. $(VE)/bin/python
 
 # Phony target to clean directory
 .PHONY: clean

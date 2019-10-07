@@ -18,7 +18,6 @@ def profile_(request):
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, form.userid, form.name)
 
@@ -30,9 +29,20 @@ def profile_(request):
         "canonical_url": "/~" + define.get_sysname(form.name)
     }
 
-    if define.user_is_twitterbot():
-        extras['twitter_card'] = profile.twitter_card(otherid)
-        extras['options'] = ['nocache']
+    if not request.userid:
+        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
+        twit_card = profile.twitter_card(otherid)
+        if define.user_is_twitterbot():
+            extras['twitter_card'] = twit_card
+        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+        extras['ogp'] = {
+            'title': twit_card['title'],
+            'site_name': "Weasyl",
+            'type': "website",
+            'url': twit_card['url'],
+            'description': twit_card['description'],
+            'image': twit_card['image:src'] if 'image:src' in twit_card else define.cdnify_url('/static/images/logo-mark-light.svg'),
+        }
 
     if not request.userid and "h" in userprofile['config']:
         return Response(define.errorpage(
@@ -47,26 +57,26 @@ def profile_(request):
     define.common_view_content(request.userid, otherid, "profile")
 
     if 'O' in userprofile['config']:
-        submissions = collection.select_list(
-            request.userid, rating, 11, otherid=otherid, options=["cover"], config=config)
+        submissions = collection.select_list(request.userid, rating, 11, otherid=otherid)
         more_submissions = 'collections'
         featured = None
     elif 'A' in userprofile['config']:
-        submissions = character.select_list(
-            request.userid, rating, 11, otherid=otherid, options=["cover"], config=config)
+        submissions = character.select_list(request.userid, rating, 11, otherid=otherid)
         more_submissions = 'characters'
         featured = None
     else:
         submissions = submission.select_list(
-            request.userid, rating, 11, otherid=otherid, options=["cover"], config=config,
+            request.userid, rating, 11, otherid=otherid,
             profile_page_filter=True)
         more_submissions = 'submissions'
         featured = submission.select_featured(request.userid, otherid, rating)
 
     if userprofile['show_favorites_bar']:
-        favorites = favorite.select_submit(request.userid, rating, 11, otherid=otherid, config=config)
+        favorites = favorite.select_submit(request.userid, rating, 11, otherid=otherid)
     else:
         favorites = None
+
+    statistics, show_statistics = profile.select_statistics(otherid)
 
     page.append(define.render('user/profile.html', [
         # Profile information
@@ -85,19 +95,16 @@ def profile_(request):
         # Folders preview
         folder.select_preview(request.userid, otherid, rating, 3),
         # Latest journal
-        journal.select_latest(request.userid, rating, otherid=otherid, config=config),
+        journal.select_latest(request.userid, rating, otherid=otherid),
         # Recent shouts
         shout.select(request.userid, ownerid=otherid, limit=8),
         # Statistics information
-        profile.select_statistics(otherid),
+        statistics,
+        show_statistics,
         # Commission information
         commishinfo.select_list(otherid),
         # Friends
-        frienduser.select(request.userid, otherid, 5, choose=None),
-        # Following
-        followuser.select_following(request.userid, otherid, choose=5),
-        # Followed
-        followuser.select_followed(request.userid, otherid, choose=5),
+        lambda: frienduser.has_friends(otherid),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -121,7 +128,6 @@ def submissions_(request):
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, form.userid, form.name)
     folderid = define.get_int(form.folderid) or None
@@ -142,7 +148,7 @@ def submissions_(request):
     result = pagination.PaginatedResult(
         submission.select_list, submission.select_count, 'submitid', url_format, request.userid, rating,
         60, otherid=otherid, folderid=folderid, backid=define.get_int(form.backid),
-        nextid=define.get_int(form.nextid), config=config, profile_page_filter=not folderid)
+        nextid=define.get_int(form.nextid), profile_page_filter=not folderid)
 
     page.append(define.render('user/submissions.html', [
         # Profile information
@@ -168,7 +174,6 @@ def collections_(request):
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, form.userid, form.name)
 
@@ -185,7 +190,7 @@ def collections_(request):
     url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
         collection.select_list, collection.select_count, 'submitid', url_format, request.userid, rating, 66,
-        otherid=otherid, backid=define.get_int(form.backid), nextid=define.get_int(form.nextid), config=config)
+        otherid=otherid, backid=define.get_int(form.backid), nextid=define.get_int(form.nextid))
 
     page.append(define.render('user/collections.html', [
         # Profile information
@@ -206,7 +211,6 @@ def journals_(request):
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, form.userid, form.name)
 
@@ -229,7 +233,7 @@ def journals_(request):
         profile.select_relation(request.userid, otherid),
         # Journals list
         # TODO(weykent): use select_user_list
-        journal.select_list(request.userid, rating, 250, otherid=otherid, config=config),
+        journal.select_list(request.userid, rating, 250, otherid=otherid),
         # Latest journal
         journal.select_latest(request.userid, rating, otherid=otherid),
     ]))
@@ -242,7 +246,6 @@ def characters_(request):
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, form.userid, form.name)
 
@@ -261,7 +264,7 @@ def characters_(request):
         character.select_list, character.select_count,
         'charid', url_format, request.userid, rating, 60,
         otherid=otherid, backid=define.get_int(form.backid),
-        nextid=define.get_int(form.nextid), config=config)
+        nextid=define.get_int(form.nextid))
 
     page.append(define.render('user/characters.html', [
         # Profile information
@@ -348,21 +351,10 @@ def staffnotes_(request):
 
 
 def favorites_(request):
-    def _FEATURE(target):
-        if target == "submit":
-            return 10
-        elif target == "char":
-            return 20
-        elif target == "journal":
-            return 30
-        else:
-            return 0
-
     form = request.web_input(userid="", name="", feature="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, form.userid, form.name)
 
@@ -396,16 +388,18 @@ def favorites_(request):
             select_function = favorite.select_char
         elif form.feature == "journal":
             select_function = favorite.select_journal
+        else:
+            raise httpexceptions.HTTPNotFound()
 
         faves = pagination.PaginatedResult(
             select_function, count_function,
             id_field, url_format, request.userid, rating, 60,
-            otherid=otherid, backid=backid, nextid=nextid, config=config)
+            otherid=otherid, backid=backid, nextid=nextid)
     else:
         faves = {
-            "submit": favorite.select_submit(request.userid, rating, 22, otherid=otherid, config=config),
-            "char": favorite.select_char(request.userid, rating, 22, otherid=otherid, config=config),
-            "journal": favorite.select_journal(request.userid, rating, 22, otherid=otherid, config=config),
+            "submit": favorite.select_submit(request.userid, rating, 22, otherid=otherid),
+            "char": favorite.select_char(request.userid, rating, 22, otherid=otherid),
+            "journal": favorite.select_journal(request.userid, rating, 22, otherid=otherid),
         }
 
     page.append(define.render('user/favorites.html', [
@@ -425,32 +419,32 @@ def favorites_(request):
 
 
 def friends_(request):
-        cachename = "user/friends.html"
+    cachename = "user/friends.html"
 
-        form = request.web_input(userid="", name="", backid=None, nextid=None)
-        form.name = request.matchdict.get('name', form.name)
-        form.userid = define.get_int(form.userid)
+    form = request.web_input(userid="", name="", backid=None, nextid=None)
+    form.name = request.matchdict.get('name', form.name)
+    form.userid = define.get_int(form.userid)
 
-        otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, form.userid, form.name)
 
-        if not otherid:
-            raise WeasylError("userRecordMissing")
-        elif not request.userid and "h" in define.get_config(otherid):
-            return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+    if not otherid:
+        raise WeasylError("userRecordMissing")
+    elif not request.userid and "h" in define.get_config(otherid):
+        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
 
-        userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-        return Response(define.webpage(request.userid, cachename, [
-            # Profile information
-            userprofile,
-            # User information
-            profile.select_userinfo(otherid, config=userprofile['config']),
-            # Relationship
-            profile.select_relation(request.userid, otherid),
-            # Friends
-            frienduser.select_friends(request.userid, otherid, limit=44,
-                                      backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
-        ]))
+    return Response(define.webpage(request.userid, cachename, [
+        # Profile information
+        userprofile,
+        # User information
+        profile.select_userinfo(otherid, config=userprofile['config']),
+        # Relationship
+        profile.select_relation(request.userid, otherid),
+        # Friends
+        frienduser.select_friends(request.userid, otherid, limit=44,
+                                  backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
+    ]))
 
 
 def following_(request):

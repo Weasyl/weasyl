@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import re
 
-from libweasyl.ratings import GENERAL, MODERATE, MATURE, EXPLICIT
+from libweasyl.ratings import GENERAL, MATURE, EXPLICIT
 
 from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
@@ -19,7 +19,6 @@ _QUERY_FIND_MODIFIERS = {
 
 _QUERY_RATING_MODIFIERS = {
     "#general": GENERAL.code,
-    "#moderate": MODERATE.code,
     "#mature": MATURE.code,
     "#explicit": EXPLICIT.code,
 }
@@ -402,7 +401,7 @@ def select(**kwargs):
 #   find    backid
 #   cat     nextid
 
-def browse(userid, rating, limit, form, find=None, config=None):
+def browse(userid, rating, limit, form, find=None):
     backid = d.get_int(form.backid)
     nextid = d.get_int(form.nextid)
 
@@ -410,17 +409,9 @@ def browse(userid, rating, limit, form, find=None, config=None):
         form.find = find
 
     if form.find == "char":
-        query = character.select_list(userid, rating, limit, backid=backid, nextid=nextid, config=config)
+        return character.select_list(userid, rating, limit, backid=backid, nextid=nextid)
     elif form.find == "journal":
-        query = journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid, config=config)
+        return journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid)
     else:
-        query = submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
-                                       subcat=d.get_int(form.cat) if d.get_int(form.cat) in [1000, 2000, 3000] else None,
-                                       config=config)
-
-    if query and not backid:
-        backid = query[0][form.find + "id"]
-    if query and not nextid:
-        nextid = query[-1][form.find + "id"]
-
-    return query
+        return submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
+                                      subcat=d.get_int(form.cat) if d.get_int(form.cat) in [1000, 2000, 3000] else None)

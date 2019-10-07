@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os
 from sanpera import geometry
 
 from libweasyl import images
@@ -42,12 +43,12 @@ def _upload_char(userid, filedata, charid):
 
     filename = d.url_make(charid, "char/.thumb", root=True)
 
-    files.write(filename, filedata, encoding=None)
+    files.write(filename, filedata)
 
     if image.check_type(filename):
         image.make_cover(filename)
     else:
-        files.remove(filename)
+        os.remove(filename)
         raise WeasylError("FileType")
 
 
@@ -105,7 +106,7 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
         SET settings = REGEXP_REPLACE(settings, '-.', '') || '-%s'
         WHERE charid = %i
     """, [image.image_setting(im), charid])
-    dest = '%s%i.thumb%s' % (d.get_hash_path(charid, "char"), charid, images.image_extension(im))
+    dest = os.path.join(d.get_character_directory(charid), '%i.thumb%s' % (charid, images.image_extension(im)))
 
     bounds = None
     if image.check_crop(size, x1, y1, x2, y2):
@@ -113,7 +114,7 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
     thumb = images.make_thumbnail(im, bounds)
     thumb.write(dest, format=images.image_file_type(thumb))
     if remove:
-        m.os.remove(filename)
+        os.remove(filename)
 
 
 def create(userid, x1, y1, x2, y2, submitid=None, charid=None,
@@ -135,8 +136,3 @@ def create(userid, x1, y1, x2, y2, submitid=None, charid=None,
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
     orm.SubmissionMediaLink.make_or_replace_link(
         submitid, 'thumbnail-custom', media_item)
-
-
-def unhide(userid, submitid=None, charid=None):
-    d.execute("UPDATE %s SET settings = REPLACE(settings, 'hu', '') WHERE %s = %i",
-              ["submission", "submitid", submitid] if submitid else ["character", "charid", charid])

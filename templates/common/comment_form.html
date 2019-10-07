@@ -9,6 +9,8 @@ $code:
     feature = "charid"
   elif feature == "journal":
     feature = "journalid"
+  elif feature == "siteupdate":
+    feature = "updateid"
 
 <form class="comment-form" action="/submit/${'shout' if feature in ['userid', 'staffnotes'] else 'comment'}" method="post">
   $:{CSRF()}

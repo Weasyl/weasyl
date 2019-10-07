@@ -65,10 +65,6 @@ $code:
             General
           </label>
           <label class="input-checkbox">
-            <input type="checkbox" name="rated" value="m"$:{' checked' if 'm' in meta['rated'] else ''} />
-            Moderate (13+)
-          </label>
-          <label class="input-checkbox">
             <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
             Mature (18+)
           </label>
@@ -93,8 +89,11 @@ $code:
             Your search terms are too broad. Only the first 100 results will be displayed.
           </p>
         <ul class="thumbnail-grid sectioned">
-          $for i in results:
-            $:{_GRID_ITEM(i)}
+          $for index, result in enumerate(results):
+            $if index < 10:
+              $:{_GRID_ITEM(result, lazy_load=False)}
+            $else:
+              $:{_GRID_ITEM(result)}
         </ul><!-- /.thumbnail-grid -->
 
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
@@ -120,8 +119,11 @@ $code:
 
     $if results:
       <ul class="thumbnail-grid">
-        $for i in results:
-          $:{_GRID_ITEM(i)}
+        $for index, result in enumerate(results):
+          $if index < 10:
+            $:{_GRID_ITEM(result, lazy_load=False)}
+          $else:
+            $:{_GRID_ITEM(result)}
       </ul><!-- /.thumbnail-grid -->
 
       <div style="padding-top: 1.4em;" class="pad-left pad-right">
@@ -146,7 +148,7 @@ $code:
       <h3 class="pad-left">Submissions</h3>
       <ul class="thumbnail-grid medium-footprint">
         $for i in results['submit']:
-          $:{_GRID_ITEM(i)}
+          $:{_GRID_ITEM(i, lazy_load=False)}
         </li><li class="clear more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
       </ul><!-- /.thumbnail-grid -->
     $else:

@@ -5,10 +5,10 @@ import bcrypt
 import pytest
 import web
 
-from weasyl.test import db_utils
 from weasyl import resetpassword, login
 from weasyl import define as d
 from weasyl.error import WeasylError
+from weasyl.test import db_utils
 
 
 user_name = "test"

@@ -17,6 +17,7 @@ from weasyl.controllers import (
     moderation,
     profile,
     settings,
+    two_factor_auth,
     user,
     weasyl_collections,
 )
@@ -42,6 +43,7 @@ routes = (
 
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),
+    Route("/signin/2fa-auth", "signin_2fa_auth", {'GET': user.signin_2fa_auth_get_, 'POST': user.signin_2fa_auth_post_}),
     Route("/signin/unicode-failure", "signin-unicode-failure", {
         'GET': user.signin_unicode_failure_get_, 'POST': user.signin_unicode_failure_post_
     }),
@@ -50,13 +52,28 @@ routes = (
 
     # Verification and password management views.
     Route("/verify/account", "verify_account", user.verify_account_),
-    Route("/verify/premium", "verify_premium", user.verify_premium_),
     Route("/forgotpassword", "forgot_password",
           {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
     Route("/resetpassword", "reset_password",
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
     Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
+    Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
+
+    # Two-Factor Authentication views.
+    Route("/control/2fa/status", "control_2fa_status", {'GET': two_factor_auth.tfa_status_get_}),
+    Route("/control/2fa/init", "control_2fa_init",
+          {'GET': two_factor_auth.tfa_init_get_, 'POST': two_factor_auth.tfa_init_post_}),
+    Route("/control/2fa/init_qrcode", "control_2fa_init_qrcode",
+          {'GET': two_factor_auth.tfa_init_qrcode_get_, 'POST': two_factor_auth.tfa_init_qrcode_post_}),
+    Route("/control/2fa/init_verify", "control_2fa_init_verify",
+          {'GET': two_factor_auth.tfa_init_verify_get_, 'POST': two_factor_auth.tfa_init_verify_post_}),
+    Route("/control/2fa/disable", "control_2fa_disable",
+          {'GET': two_factor_auth.tfa_disable_get_, 'POST': two_factor_auth.tfa_disable_post_}),
+    Route("/control/2fa/generate_recovery_codes_verify_password", "control_2fa_generate_recovery_codes_verify_password",
+          {'GET': two_factor_auth.tfa_generate_recovery_codes_verify_password_get_, 'POST': two_factor_auth.tfa_generate_recovery_codes_verify_password_post_}),
+    Route("/control/2fa/generate_recovery_codes", "control_2fa_generate_recovery_codes",
+          {'GET': two_factor_auth.tfa_generate_recovery_codes_get_, 'POST': two_factor_auth.tfa_generate_recovery_codes_post_}),
 
     # Profile views.
     Route("/~", "profile_tilde_unnamed", profile.profile_),
@@ -248,6 +265,17 @@ routes = (
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
     Route("/modcontrol/edituserconfig", "modcontrol_edituserconfig", {'POST': moderation.modcontrol_edituserconfig_}),
+    Route("/modcontrol/spamqueue/journal", "modcontrol_spamqueue_journal", {
+        "GET": moderation.modcontrol_spamqueue_journal_get_,
+        "POST": moderation.modcontrol_spamqueue_journal_post_,
+    }),
+    Route("/modcontrol/spamqueue/submission", "modcontrol_spamqueue_submission", {
+        "GET": moderation.modcontrol_spamqueue_submission_get_,
+        "POST": moderation.modcontrol_spamqueue_submission_post_,
+    }),
+    Route("/modcontrol/spam/remove", "modcontrol_spam_remove", {
+        "POST": moderation.modcontrol_spam_remove_post_,
+    }),
 
     # Collection routes.
     Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),
@@ -270,6 +298,10 @@ routes = (
         'GET': admin.admincontrol_finduser_get_,
         'POST': admin.admincontrol_finduser_post_,
     }),
+    Route("/admincontrol/pending_accounts", "admincontrol_pending_accounts", {
+        'GET': admin.admincontrol_pending_accounts_get_,
+        'POST': admin.admincontrol_pending_accounts_post_,
+    }),
 
     # Director control routes.
     Route("/directorcontrol", "directorcontrol", director.directorcontrol_),
@@ -289,28 +321,29 @@ routes = (
     }),
     Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
 
-    Route("/policy/tos", "policy_tos", info.policy_tos_),
-    Route("/policy/privacy", "policy_privacy", info.policy_privacy_),
-    Route("/policy/copyright", "policy_copyright", info.policy_copyright_),
-    Route("/policy/scoc", "policy_scoc", info.policy_scoc_),
     Route("/policy/community", "policy_community", info.policy_community_),
-    Route("/policy/community/changes", "policy_community_changes", info.policy_community_changes_),
+    Route("/policy/copyright", "policy_copyright", info.policy_copyright_),
+    Route("/policy/privacy", "policy_privacy", info.policy_privacy_),
+    Route("/policy/scoc", "policy_scoc", info.policy_scoc_),
+    Route("/policy/tos", "policy_tos", info.policy_tos_),
 
     Route("/staff", "staff", info.staff_),
     Route("/thanks", "thanks", info.thanks_),
+
+    # Help page routes
     Route("/help", "help", info.help_),
     Route("/help/about", "help_about", info.help_about_),
-    Route("/help/faq", "help_faq", info.help_faq_),
     Route("/help/collections", "help_collections", info.help_collections_),
-    Route("/help/tagging", "help_tagging", info.help_tagging_),
-    Route("/help/markdown", "help_markdown", info.help_markdown_),
-    Route("/help/searching", "help_searching", info.help_searching_),
-    Route("/help/marketplace", "help_marketplace", info.help_marketplace_),
-    Route("/help/ratings", "help_ratings", info.help_ratings_),
-    Route("/help/ratings/changes", "help_ratings_changes", info.help_ratings_changes_),
+    Route("/help/faq", "help_faq", info.help_faq_),
     Route("/help/folders", "help_folders", info.help_folders_),
     Route("/help/google-drive-embed", "help_gdocs", info.help_gdocs_),
+    Route("/help/markdown", "help_markdown", info.help_markdown_),
+    Route("/help/marketplace", "help_marketplace", info.help_marketplace_),
+    Route("/help/ratings", "help_ratings", info.help_ratings_),
     Route("/help/reports", "help_reports", info.help_reports_),
+    Route("/help/searching", "help_searching", info.help_searching_),
+    Route("/help/tagging", "help_tagging", info.help_tagging_),
+    Route("/help/two_factor_authentication", "help_two_factor_authentication", info.help_two_factor_authentication_),
 
     # OAuth2 routes.
     Route("/api/oauth2/authorize", "oauth2_authorize",
@@ -344,7 +377,7 @@ def setup_routes_and_views(config):
     # API routes.
     config.add_route("useravatar", "/api/useravatar")
     config.add_route("whoami", "/api/whoami")
-    config.add_route("version", "/api/version{format:(\.[^.]+)?}")
+    config.add_route("version", r"/api/version{format:(\.[^.]+)?}")
     config.add_route("api_frontpage", "/api/submissions/frontpage")
     config.add_route("api_submission_view", "/api/submissions/{submitid:[0-9]+}/view")
     config.add_route("api_journal_view", "/api/journals/{journalid:[0-9]+}/view")

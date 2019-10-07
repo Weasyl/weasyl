@@ -10,16 +10,18 @@ import weasyl.define as d
 import weasyl.macro as m
 from weasyl.media import format_media_link
 import weasyl.middleware as mw
-from weasyl import read_staff_yaml
+from weasyl import staff_config
 
 
 # Get a configurator and register some tweens to handle cleanup, etc.
 config = Configurator()
 config.add_tween("weasyl.middleware.status_check_tween_factory")
+config.add_tween("weasyl.middleware.sql_debug_tween_factory")
 config.add_tween("weasyl.middleware.session_tween_factory")
 config.add_tween("weasyl.middleware.db_timer_tween_factory")
 config.add_tween("weasyl.middleware.cache_clear_tween_factory")
 config.add_tween("weasyl.middleware.database_session_cleanup_tween_factory")
+config.add_tween("weasyl.middleware.http2_server_push_tween_factory")
 config.add_tween("pyramid.tweens.excview_tween_factory")  # Required to catch exceptions thrown in tweens.
 
 
@@ -51,7 +53,7 @@ wsgi_app = mw.URLSchemeFixingMiddleware(wsgi_app)
 if d.config_read_bool('profile_responses', section='backend'):
     from werkzeug.contrib.profiler import ProfilerMiddleware
     wsgi_app = ProfilerMiddleware(
-        wsgi_app, profile_dir=m.MACRO_SYS_BASE_PATH + 'profile-stats')
+        wsgi_app, profile_dir=m.MACRO_STORAGE_ROOT + 'profile-stats')
 if d.config_obj.has_option('sentry', 'dsn'):
     wsgi_app = mw.SentryEnvironmentMiddleware(wsgi_app, d.config_obj.get('sentry', 'dsn'))
 
@@ -59,7 +61,7 @@ if d.config_obj.has_option('sentry', 'dsn'):
 configure_libweasyl(
     dbsession=d.sessionmaker,
     not_found_exception=HTTPNotFound,
-    base_file_path=m.MACRO_SYS_BASE_PATH,
-    staff_config_dict=read_staff_yaml.load_staff_dict(),
+    base_file_path=m.MACRO_STORAGE_ROOT,
+    staff_config_dict=staff_config.load(),
     media_link_formatter_callback=format_media_link,
 )

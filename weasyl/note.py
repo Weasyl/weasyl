@@ -147,11 +147,18 @@ def send(userid, form):
         [d.sql_number_list(list(users))])
 
     if userid not in staff.MODS:
-        # Staff notes only
-        users.difference_update(j[0] for j in configs if "y" in j[1])
+        ignore_global_restrictions = {i for (i,) in d.engine.execute(
+            "SELECT userid FROM permitted_senders WHERE sender = %(user)s",
+            user=userid)}
 
-        # Friend notes only
-        users.difference_update(j[0] for j in configs if "z" in j[1] and not frienduser.check(userid, j[0]))
+        remove = (
+            # Staff notes only
+            {j[0] for j in configs if "y" in j[1]} |
+            # Friend notes only
+            {j[0] for j in configs if "z" in j[1] and not frienduser.check(userid, j[0])}
+        )
+
+        users.difference_update(remove - ignore_global_restrictions)
 
     if not users:
         raise WeasylError("recipientInvalid")
@@ -169,6 +176,16 @@ def send(userid, form):
 
     statement[-1] = statement[-1][:-1]
     d.execute("".join(statement), argv)
+
+    d.engine.execute(
+        """
+        INSERT INTO permitted_senders (userid, sender)
+            SELECT %(user)s, sender FROM UNNEST (%(recipients)s) AS sender
+            ON CONFLICT (userid, sender) DO NOTHING
+        """,
+        user=userid,
+        recipients=list(users),
+    )
 
     if form.mod_copy and userid in staff.MODS:
         mod_content = (

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import arrow
+from akismet import SpamStatus
 
 from libweasyl import ratings
 from libweasyl import staff
@@ -11,14 +12,15 @@ from weasyl import blocktag
 from weasyl import comment
 from weasyl import define as d
 from weasyl import favorite
-from weasyl import files
 from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
+from weasyl import moderation
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
+from weasyl import spam_filtering
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -39,21 +41,39 @@ def create(userid, journal, friends_only=False, tags=None):
     # Create journal
     jo = d.meta.tables["journal"]
 
+    # Run the journal through Akismet to check for spam
+    is_spam = False
+    if spam_filtering.FILTERING_ENABLED:
+        result = spam_filtering.check(
+            user_ip=journal.submitter_ip_address,
+            user_agent_id=journal.submitter_user_agent_id,
+            user_id=userid,
+            comment_type="journal",
+            comment_content=journal.content,
+        )
+        if result == SpamStatus.DefiniteSpam:
+            raise WeasylError("SpamFilteringDropped")
+        elif result == SpamStatus.ProbableSpam:
+            is_spam = True
+
     journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
+        "content": journal.content,
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
+        "is_spam": is_spam,
+        "submitter_ip_address": journal.submitter_ip_address,
+        "submitter_user_agent_id": journal.submitter_user_agent_id,
     })
-
-    # Write journal file
-    files.make_path(journalid, "journal")
-    files.write(files.make_resource(userid, journalid, "journal/submit"),
-                journal.content)
 
     # Assign search tags
     searchtag.associate(userid, tags, journalid=journalid)
+
+    # If the journal was spam, block creation of the notifications, and notify user it is being held.
+    if is_spam:
+        raise WeasylError("SpamFilteringDelayed")
 
     # Create notifications
     if "m" not in settings:
@@ -81,14 +101,17 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     """
 
     query = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
+        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config, jo.is_spam
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
 
-    if journalid and userid in staff.MODS and anyway:
+    if not query:
+        # If there's no query result, there's no record, so fast-fail.
+        raise WeasylError('journalRecordMissing')
+    elif journalid and userid in staff.MODS and anyway:
         pass
-    elif not query or 'h' in query.settings:
+    elif not query or 'h' in query.settings or query.is_spam:
         raise WeasylError('journalRecordMissing')
     elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or d.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
@@ -119,7 +142,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'mine': userid == journal['userid'],
         'unixtime': journal['unixtime'],
         'title': journal['title'],
-        'content': files.read(files.make_resource(userid, journalid, 'journal/submit')),
+        'content': journal['content'],
         'rating': journal['rating'],
         'settings': journal['settings'],
         'page_views': journal['page_views'],
@@ -140,8 +163,6 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         userid, journalid,
         rating=rating, ignore=anyway, anyway=anyway, increment_views=increment_views)
 
-    content = files.read(files.make_resource(userid, journalid, 'journal/submit'))
-
     return {
         'journalid': journalid,
         'title': journal['title'],
@@ -149,7 +170,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'owner_login': d.get_sysname(journal['username']),
         'owner_media': api.tidy_all_media(
             media.get_user_media(journal['userid'])),
-        'content': text.markdown(content),
+        'content': text.markdown(journal['content']),
         'tags': searchtag.select(journalid=journalid),
         'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal['title']))),
         'type': 'journal',
@@ -163,10 +184,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     }
 
 
-def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = [
         "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
         " FROM journal jo"
@@ -212,10 +230,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
     return query[::-1] if backid else query
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
 
     if userid:
@@ -247,11 +262,8 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, c
     return query[::-1] if backid else query
 
 
-def select_latest(userid, rating, otherid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
+def select_latest(userid, rating, otherid=None):
+    statement = ["SELECT jo.journalid, jo.title, jo.content, jo.unixtime FROM journal jo WHERE"]
 
     if userid:
         if d.is_sfw_mode():
@@ -267,6 +279,7 @@ def select_latest(userid, rating, otherid=None, config=None):
     if otherid:
         statement.append(
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
+    statement.append(" AND NOT is_spam ")
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
     query = d.execute("".join(statement), options="single")
@@ -275,8 +288,8 @@ def select_latest(userid, rating, otherid=None, config=None):
         return {
             "journalid": query[0],
             "title": query[1],
-            "unixtime": query[2],
-            "content": files.read("%s%s%i.txt" % (m.MACRO_SYS_JOURNAL_PATH, d.get_hash_path(query[0]), query[0])),
+            "content": query[2],
+            "unixtime": query[3],
             "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
                                   [query[0]], ["element"]),
         }
@@ -305,16 +318,10 @@ def edit(userid, journal, friends_only=False):
     if "f" in settings:
         welcome.journal_remove(journal.journalid)
 
-    # TODO(kailys): use ORM
-    d.execute("UPDATE journal SET (title, rating, settings) = ('%s', %i, '%s') WHERE journalid = %i",
-              [journal.title, journal.rating.code, settings, journal.journalid])
-
-    # Write journal file
-    files.write(files.make_resource(userid, journal.journalid, "journal/submit"),
-                journal.content)
+    d.execute("UPDATE journal SET (title, content, rating, settings) = ('%s', '%s', %i, '%s') WHERE journalid = %i",
+              [journal.title, journal.content, journal.rating.code, settings, journal.journalid])
 
     if userid != query[0]:
-        from weasyl import moderation
         moderation.note_about(
             userid, query[0], 'The following journal was edited:',
             '- ' + text.markdown_link(journal.title, '/journal/%s?anyway=true' % (journal.journalid,)))

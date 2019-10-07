@@ -103,7 +103,6 @@ def partition_submissions(submissions):
 @region.cache_on_arguments(expiration_time=60)
 @d.record_timing
 def template_fields(userid):
-    config = d.get_config(userid)
     rating = d.get_rating(userid)
     submissions = list(filter_submissions(userid, recent_submissions()))
     ret = partition_submissions(submissions)
@@ -112,7 +111,7 @@ def template_fields(userid):
         # Recent site news update
         siteupdate.select_last(),
         # Recent critique submissions
-        submission.select_list(userid, rating, 4, options=["critique"], config=config),
+        submission.select_list(userid, rating, 4, options=["critique"]),
         # Currently streaming users
         profile.select_streaming(userid, rating, 4),
         # Recently popular submissions

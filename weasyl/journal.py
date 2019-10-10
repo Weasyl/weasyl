@@ -71,10 +71,6 @@ def create(userid, journal, friends_only=False, tags=None):
     # Assign search tags
     searchtag.associate(userid, tags, journalid=journalid)
 
-    # If the journal was spam, block creation of the notifications, and notify user it is being held.
-    if is_spam:
-        raise WeasylError("SpamFilteringDelayed")
-
     # Create notifications
     if "m" not in settings:
         welcome.journal_insert(userid, journalid, rating=journal.rating.code,
@@ -101,7 +97,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     """
 
     query = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config, jo.is_spam
+        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
@@ -111,7 +107,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
         raise WeasylError('journalRecordMissing')
     elif journalid and userid in staff.MODS and anyway:
         pass
-    elif not query or 'h' in query.settings or query.is_spam:
+    elif not query or 'h' in query.settings:
         raise WeasylError('journalRecordMissing')
     elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or d.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
@@ -279,7 +275,6 @@ def select_latest(userid, rating, otherid=None):
     if otherid:
         statement.append(
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
-    statement.append(" AND NOT is_spam ")
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
     query = d.execute("".join(statement), options="single")

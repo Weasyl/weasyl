@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import arrow
 import sqlalchemy as sa
+from pyramid.threadlocal import get_current_request
 
 from libweasyl.models import content, site, users
 from libweasyl import ratings
@@ -47,8 +48,9 @@ def _insert(template, query):
 
     try:
         d.execute("".join(statement))
-    except:
-        pass
+    except Exception:
+        request = get_current_request()
+        request.log_exc()
 
 
 # notifications

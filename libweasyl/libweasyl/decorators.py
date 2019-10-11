@@ -2,6 +2,8 @@
 Common function or class decorators.
 """
 
+from functools import update_wrapper
+
 
 # lovingly stolen from pyramid
 class reify(object):
@@ -32,10 +34,7 @@ class reify(object):
     """
     def __init__(self, wrapped):
         self.wrapped = wrapped
-        try:
-            self.__doc__ = wrapped.__doc__
-        except:  # pragma: no cover
-            pass
+        update_wrapper(self, wrapped)
 
     def __get__(self, inst, objtype=None):
         if inst is None:

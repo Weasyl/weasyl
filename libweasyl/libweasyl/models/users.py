@@ -5,11 +5,11 @@ import arrow
 import bcrypt
 from dateutil.relativedelta import relativedelta
 import pytz
+from pyramid.decorator import reify
 from sqlalchemy import orm
 import sqlalchemy as sa
 
 from libweasyl.common import minimize_media
-from libweasyl.decorators import reify
 from libweasyl.legacy import plaintext
 from libweasyl.models.helpers import clauses_for
 from libweasyl.models.meta import Base

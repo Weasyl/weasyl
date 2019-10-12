@@ -3,8 +3,8 @@ from __future__ import unicode_literals
 import contextlib
 
 import pytest
+from pyramid.decorator import reify
 
-from libweasyl.decorators import reify
 from libweasyl.test.common import Bag, datadir
 from libweasyl import images, media
 

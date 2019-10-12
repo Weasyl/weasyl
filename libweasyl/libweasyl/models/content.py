@@ -3,6 +3,7 @@ from __future__ import division
 import warnings
 
 import arrow
+from pyramid.decorator import reify
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, contains_eager, relationship
@@ -10,7 +11,6 @@ import sqlalchemy as sa
 
 from libweasyl.common import minimize_media
 from libweasyl.constants import Category, DEFAULT_LIMITS, MEBIBYTE
-from libweasyl.decorators import reify
 from libweasyl.exceptions import InvalidData, RatingExceeded, SubmissionFileTooLarge
 from libweasyl.files import file_type_for_category
 from libweasyl.models.helpers import CharSettings, apply_validators, clauses_for, validator

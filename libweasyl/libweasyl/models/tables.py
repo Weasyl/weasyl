@@ -354,7 +354,6 @@ login = Table(
     Column('settings', CharSettingsColumn({
         'p': 'reset-password',
         'i': 'reset-birthday',
-        'e': 'reset-email',
     }, {
         'account-state': {
             'b': 'banned',

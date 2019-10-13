@@ -881,8 +881,6 @@ def common_status_check(userid):
         return "resetpassword"
     if "i" in settings:
         return "resetbirthday"
-    if "e" in settings:
-        return "resetemail"
     if "b" in settings:
         return "banned"
     if "s" in settings:
@@ -900,8 +898,6 @@ def common_status_page(userid, status):
         return webpage(userid, "force/resetpassword.html")
     elif status == "resetbirthday":
         return webpage(userid, "force/resetbirthday.html")
-    elif status == "resetemail":
-        return "reset email"  # todo
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 

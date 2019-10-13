@@ -902,8 +902,6 @@ def common_status_page(userid, status):
         return errorpage(0, errorcode.local_mode)
     elif status == "offline":
         return errorpage(0, errorcode.offline_mode)
-    elif status == "address":
-        return "IP ADDRESS TEMPORARILY REJECTED"
     elif status == "resetpassword":
         return webpage(userid, "force/resetpassword.html")
     elif status == "resetbirthday":

@@ -86,7 +86,6 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     Possible errors are:
     - "invalid"
     - "unexpected"
-    - "address"
     - "banned"
     - "suspended"
     - "2fa" - Indicates the user has opted-in to 2FA. Additional authentication required.

@@ -881,8 +881,6 @@ def common_status_check(userid):
         return "resetpassword"
     if "i" in settings:
         return "resetbirthday"
-    if "e" in settings:
-        return "resetemail"
     if "b" in settings:
         return "banned"
     if "s" in settings:
@@ -896,20 +894,10 @@ def common_status_page(userid, status):
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
-    if status == "admin":
-        return errorpage(0, errorcode.admin_mode)
-    elif status == "local":
-        return errorpage(0, errorcode.local_mode)
-    elif status == "offline":
-        return errorpage(0, errorcode.offline_mode)
-    elif status == "address":
-        return "IP ADDRESS TEMPORARILY REJECTED"
-    elif status == "resetpassword":
+    if status == "resetpassword":
         return webpage(userid, "force/resetpassword.html")
     elif status == "resetbirthday":
         return webpage(userid, "force/resetbirthday.html")
-    elif status == "resetemail":
-        return "reset email"  # todo
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 

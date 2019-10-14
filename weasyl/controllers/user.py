@@ -89,9 +89,8 @@ def signin_post_(request):
             "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
             "%s.\n\nIf you believe this suspension is in error, please contact "
             "support@weasyl.com for assistance." % (suspension.reason, define.convert_date(suspension.release))))
-    elif logerror == "address":
-        return Response("IP ADDRESS TEMPORARILY BLOCKED")
 
+    assert logerror is None
     return Response(define.errorpage(request.userid))
 
 

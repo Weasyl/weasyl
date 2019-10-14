@@ -29,16 +29,6 @@ unexpected = (
     "An unexpected error occurred and your request could not be "
     "fully processed.")
 
-admin_mode = (
-    "An administrator has placed the site in administrative mode "
-    "and this page cannot be accessed at this time.")
-local_mode = (
-    "An administrator has placed the site in local access mode and "
-    "this page cannot be accessed at this time.")
-offline_mode = (
-    "An administrator has placed the site in offline mode and "
-    "this page cannot be accessed at this time.")
-
 error_messages = {
     "addressInvalid": "Your IP address does not match the location from which this request was made.",
     "AdminLocked": "This content has been locked from any editing by an admin.",

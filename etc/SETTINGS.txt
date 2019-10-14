@@ -28,7 +28,6 @@ s  Suspended account
 
 p  Reset password
 i  Reset birthday
-e  Reset email address
 
 -----------------------
 profile.settings (ccci)

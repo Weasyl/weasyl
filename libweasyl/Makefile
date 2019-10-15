@@ -8,7 +8,7 @@
 VE ?= ve
 
 # virtualenv command
-PYVENV ?= virtualenv
+PYVENV ?= virtualenv --python=python3
 
 # Whether to install from wheels
 # Build specific binaries from source, where binaries have been problematic in the past

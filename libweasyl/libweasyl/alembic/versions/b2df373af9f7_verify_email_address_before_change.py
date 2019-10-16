@@ -23,7 +23,7 @@ def upgrade():
     index for fast searches for the token.
     """
     op.add_column('emailverify',
-        sa.Column('createtimestamp', sa.DateTime(timezone=True), server_default=sa.text(u'now()'), nullable=False)
+        sa.Column('createtimestamp', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False)
     )
     op.add_column('emailverify',
         sa.Column('token', sa.String(length=100), nullable=False)

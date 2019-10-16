@@ -1,7 +1,6 @@
 """
 File manipulation and detection.
 """
-
 import errno
 import os
 
@@ -98,9 +97,9 @@ def file_type_for_category(data, category):
         except SanperaError:
             raise UnknownFileFormat('The image data provided could not be decoded.')
         fmt = im.original_format.decode()
-        if fmt == u'JPEG':
-            fmt = u'JPG'
-        if fmt not in {u'GIF', u'JPG', u'PNG'}:
+        if fmt == 'JPEG':
+            fmt = 'JPG'
+        if fmt not in {'GIF', 'JPG', 'PNG'}:
             raise InvalidFileFormat('Image files must be in the GIF, JPG, or PNG formats.')
         return im, str(fmt.lower())
     elif category == Category.literary:

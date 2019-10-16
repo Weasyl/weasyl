@@ -6,7 +6,6 @@ project.
 
 .. _dogpile.cache: http://dogpilecache.readthedocs.org/en/latest/
 """
-
 import os
 import re
 import threading
@@ -146,7 +145,7 @@ class ThreadCacheProxy(ProxyBackend):
                 to_fetch.append((key, len(ret) - 1))
         if not to_fetch:
             return ret
-        keys_to_fetch, indices = zip(*to_fetch)
+        keys_to_fetch, indices = list(zip(*to_fetch))
         for key, index, value in zip(keys_to_fetch, indices, self.proxied.get_multi(keys_to_fetch)):
             if value is NO_VALUE:
                 continue
@@ -271,7 +270,7 @@ class JSONProxy(ProxyBackend):
         Returns:
             list: See :py:meth:`.load` for the contents of the list.
         """
-        return map(self.load, self.proxied.get_multi(keys))
+        return list(map(self.load, self.proxied.get_multi(keys)))
 
     def save(self, value):
         """
@@ -322,7 +321,7 @@ class JSONProxy(ProxyBackend):
             pairs (dict): A mapping from :term:`native string` objects to
                 :py:class:`~dogpile.cache.api.CachedValue` objects.
         """
-        self.proxied.set_multi({k: self.save(v) for k, v in pairs.items()})
+        self.proxied.set_multi({k: self.save(v) for k, v in list(pairs.items())})
 
 
 def includeme(config):

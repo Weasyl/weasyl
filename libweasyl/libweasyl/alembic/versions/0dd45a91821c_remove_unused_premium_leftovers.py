@@ -25,13 +25,13 @@ def downgrade():
     sa.Column('token', sa.VARCHAR(), autoincrement=False, nullable=False),
     sa.Column('email', sa.VARCHAR(length=254), autoincrement=False, nullable=False),
     sa.Column('terms', sa.SMALLINT(), autoincrement=False, nullable=False),
-    sa.PrimaryKeyConstraint('token', name=u'premiumpurchase_pkey')
+    sa.PrimaryKeyConstraint('token', name='premiumpurchase_pkey')
     )
     op.create_table('userpremium',
     sa.Column('userid', sa.INTEGER(), autoincrement=False, nullable=False),
     sa.Column('unixtime', sa.INTEGER(), autoincrement=False, nullable=False),
     sa.Column('terms', sa.SMALLINT(), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['userid'], [u'login.userid'], name=u'userpremium_userid_fkey', onupdate=u'CASCADE', ondelete=u'CASCADE'),
-    sa.PrimaryKeyConstraint('userid', name=u'userpremium_pkey')
+    sa.ForeignKeyConstraint(['userid'], ['login.userid'], name='userpremium_userid_fkey', onupdate='CASCADE', ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('userid', name='userpremium_pkey')
     )
     op.execute("UPDATE login SET settings = login.settings || 'd' FROM profile WHERE login.settings !~ 'd' AND login.userid = profile.userid AND profile.config ~ 'd'")

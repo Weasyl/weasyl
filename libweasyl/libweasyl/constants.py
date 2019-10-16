@@ -6,8 +6,6 @@ useful to have these values centralized instead of scattered throughout
 libweasyl.
 """
 
-from __future__ import unicode_literals
-
 from collections import namedtuple
 import enum
 
@@ -57,7 +55,7 @@ SUBCATEGORIES_RAW = {
     3999: 'other multimedia',
 }
 
-SUBCATEGORIES = {k: Subcategory(k, v) for k, v in SUBCATEGORIES_RAW.items()}
+SUBCATEGORIES = {k: Subcategory(k, v) for k, v in list(SUBCATEGORIES_RAW.items())}
 """
 All of the valid subcategories, as a dict mapping from ordinal value to
 :py:class:`.Subcategory`.

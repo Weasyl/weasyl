@@ -7,9 +7,6 @@ module are supporting old, crufty code, and newly-written code should not need
 to use them.
 """
 
-from __future__ import unicode_literals
-
-
 UNIXTIME_OFFSET = -18000
 """
 The offset added to UNIX timestamps before storing them in the database.

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import contextlib
 import logging
 
@@ -19,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 def reverse_dict(d):
-    return {v: k for k, v in d.items()}
+    return {v: k for k, v in list(d.items())}
 
 
 class CharSettings(Mutable):
@@ -114,10 +112,10 @@ class CharSettingsColumn(types.TypeDecorator):
 
     def __init__(self, settings_map, enums=(), **kw):
         super(CharSettingsColumn, self).__init__(**kw)
-        self.settings_map = dict((k, (None, v)) for k, v in settings_map.items())
+        self.settings_map = dict((k, (None, v)) for k, v in list(settings_map.items()))
         self.enums = dict(enums)
-        for name, enum_settings in self.enums.items():
-            for char, setting in enum_settings.items():
+        for name, enum_settings in list(self.enums.items()):
+            for char, setting in list(enum_settings.items()):
                 self.settings_map[char] = name, setting
         self.reverse_settings_map = reverse_dict(self.settings_map)
 
@@ -125,10 +123,10 @@ class CharSettingsColumn(types.TypeDecorator):
         if not isinstance(value, CharSettings):
             return value
         ret = []
-        for thing, kind in value._file_types.items():
+        for thing, kind in list(value._file_types.items()):
             ret.append(self.reverse_file_type_things[thing] + self.reverse_file_type_kinds[kind])
         ret.extend(self.reverse_settings_map[None, s] for s in value._settings)
-        ret.extend(self.reverse_settings_map[ev] for ev in value._enum_values.items())
+        ret.extend(self.reverse_settings_map[ev] for ev in list(value._enum_values.items()))
         ret.sort()
         return ''.join(ret)
 
@@ -234,13 +232,13 @@ class JSONValuesColumn(types.TypeDecorator):
     def process_bind_param(self, value, dialect):
         if not isinstance(value, dict):
             return value
-        ret = {k: json.dumps(v) for k, v in value.items()}
+        ret = {k: json.dumps(v) for k, v in list(value.items())}
         return ret
 
     def process_result_value(self, value, dialect):
         if not value:
             return MutableDict()
-        ret = MutableDict({k: json.loads(v) for k, v in value.items()})
+        ret = MutableDict({k: json.loads(v) for k, v in list(value.items())})
         return ret
 
 
@@ -305,7 +303,7 @@ def validator(**kwargs):
 
 
 def apply_validators(cls):
-    for name, value in vars(cls).items():
+    for name, value in list(vars(cls).items()):
         _, _, validate_attr = name.partition('validate_')
         if not validate_attr:
             continue

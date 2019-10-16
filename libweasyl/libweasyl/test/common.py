@@ -36,7 +36,7 @@ class Bag(object):
     """
 
     def __init__(self, **kwargs):
-        for kv in kwargs.items():
+        for kv in list(kwargs.items()):
             setattr(self, *kv)
 
 

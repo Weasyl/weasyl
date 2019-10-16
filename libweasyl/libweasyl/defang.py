@@ -3,15 +3,9 @@ HTML defanging.
 
 :py:func:`.defang` is the primary export of this module.
 """
-
-from __future__ import unicode_literals
-
 import re
+from urllib.parse import urlparse
 
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
 
 allowed_tags = {
     "section", "nav", "article", "aside",
@@ -133,7 +127,7 @@ def defang(fragment):
 
         extend_attributes = []
 
-        for key, value in child.attrib.items():
+        for key, value in list(child.attrib.items()):
             if key == "href" and child.tag == "a" and get_scheme(value) in allowed_schemes:
                 url = urlparse(value)
 

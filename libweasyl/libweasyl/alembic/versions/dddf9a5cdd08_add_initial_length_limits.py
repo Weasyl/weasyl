@@ -26,7 +26,7 @@ def upgrade():
                existing_type=sa.TEXT(),
                type_=sa.String(length=100000),
                existing_nullable=False,
-               existing_server_default=sa.text(u"''::text"))
+               existing_server_default=sa.text("''::text"))
     op.alter_column('charcomment', 'content',
                existing_type=sa.TEXT(),
                type_=sa.String(length=10000),
@@ -55,7 +55,7 @@ def upgrade():
                existing_type=sa.TEXT(),
                type_=sa.String(length=100000),
                existing_nullable=False,
-               existing_server_default=sa.text(u"''::text"))
+               existing_server_default=sa.text("''::text"))
     op.alter_column('profile', 'stream_text',
                existing_type=sa.VARCHAR(),
                type_=sa.String(length=2000),
@@ -95,7 +95,7 @@ def downgrade():
                existing_type=sa.String(length=100000),
                type_=sa.TEXT(),
                existing_nullable=False,
-               existing_server_default=sa.text(u"''::text"))
+               existing_server_default=sa.text("''::text"))
     op.alter_column('premiumpurchase', 'email',
                existing_type=sa.String(length=254),
                type_=sa.VARCHAR(),
@@ -124,7 +124,7 @@ def downgrade():
                existing_type=sa.String(length=100000),
                type_=sa.TEXT(),
                existing_nullable=False,
-               existing_server_default=sa.text(u"''::text"))
+               existing_server_default=sa.text("''::text"))
     op.alter_column('ads', 'owner',
                existing_type=sa.String(length=254),
                type_=sa.TEXT(),

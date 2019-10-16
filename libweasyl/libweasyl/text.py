@@ -1,22 +1,13 @@
 # encoding: utf-8
-from __future__ import unicode_literals
-
+from html.parser import locatestarttagend_tolerant as locatestarttagend
 import re
 
 from lxml import etree, html
 import misaka
 
-from .compat import unicode
+from .compat import str
 from .defang import defang
 from .legacy import login_name
-
-try:
-    from html.parser import locatestarttagend
-except ImportError:
-    try:
-        from html.parser import locatestarttagend_tolerant as locatestarttagend
-    except ImportError:
-        from HTMLParser import locatestarttagend
 
 
 def slug_for(title):
@@ -78,7 +69,7 @@ MISAKA_FORMAT = (
 def strip_outer_tag(html):
     match = locatestarttagend.match(html)
     start_tag_end = match.end()
-    end_tag_start = html.rindex(u'<')
+    end_tag_start = html.rindex('<')
     return html[:start_tag_end + 1], html[start_tag_end + 1:end_tag_start], html[end_tag_start:]
 
 
@@ -88,7 +79,7 @@ class WeasylRenderer(misaka.HtmlRenderer):
         if raw_html.startswith('<!--'):
             return raw_html
         start, stripped, end = strip_outer_tag(raw_html)
-        return u''.join([start, _markdown(stripped).rstrip(), end])
+        return ''.join([start, _markdown(stripped).rstrip(), end])
 
     # Respect start of ordered lists
     def list(self, text, ordered, prefix):
@@ -110,22 +101,22 @@ def _markdown(target):
 
 
 def create_link(t, username):
-    link = etree.Element(u"a")
-    link.set(u"href", u"/~" + login_name(username))
+    link = etree.Element("a")
+    link.set("href", "/~" + login_name(username))
 
     if t == "~":
         link.text = username
     else:
-        link.set(u"class", u"user-icon")
+        link.set("class", "user-icon")
 
-        image = etree.SubElement(link, u"img")
-        image.set(u"src", u"/~{username}/avatar".format(username=login_name(username)))
-        image.set(u"alt", username)
+        image = etree.SubElement(link, "img")
+        image.set("src", "/~{username}/avatar".format(username=login_name(username)))
+        image.set("alt", username)
 
         if t != "!":
-            label = etree.SubElement(link, u"span")
+            label = etree.SubElement(link, "span")
             label.text = username
-            image.tail = u" "
+            image.tail = " "
 
     return link
 
@@ -217,15 +208,15 @@ def _markdown_fragment(target, image):
             t, _, user = href.partition(":")
 
             if t == "user":
-                link.attrib["href"] = u"/~{user}".format(user=login_name(user))
+                link.attrib["href"] = "/~{user}".format(user=login_name(user))
             elif t == "da":
-                link.attrib["href"] = u"https://{user}.deviantart.com/".format(user=_deviantart(user))
+                link.attrib["href"] = "https://{user}.deviantart.com/".format(user=_deviantart(user))
             elif t == "ib":
-                link.attrib["href"] = u"https://inkbunny.net/{user}".format(user=_inkbunny(user))
+                link.attrib["href"] = "https://inkbunny.net/{user}".format(user=_inkbunny(user))
             elif t == "fa":
-                link.attrib["href"] = u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user))
+                link.attrib["href"] = "https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user))
             elif t == "sf":
-                link.attrib["href"] = u"https://{user}.sofurry.com/".format(user=_sofurry(user))
+                link.attrib["href"] = "https://{user}.sofurry.com/".format(user=_sofurry(user))
             else:
                 continue
 
@@ -247,36 +238,36 @@ def _markdown_fragment(target, image):
                         images_left -= 1
                     else:
                         i = list(parent).index(image)
-                        link = etree.Element(u"a")
+                        link = etree.Element("a")
                         link.tail = image.tail
                         src = image.get("src")
 
                         if src:
-                            link.set(u"href", src)
+                            link.set("href", src)
                             link.text = image.attrib.get("alt", src)
 
                         parent[i] = link
 
                     continue
 
-                image.set(u"src", u"/~{user}/avatar".format(user=login_name(user)))
+                image.set("src", "/~{user}/avatar".format(user=login_name(user)))
 
-                link = etree.Element(u"a")
-                link.set(u"href", u"/~{user}".format(user=login_name(user)))
-                link.set(u"class", u"user-icon")
+                link = etree.Element("a")
+                link.set("href", "/~{user}".format(user=login_name(user)))
+                link.set("class", "user-icon")
                 parent.insert(list(parent).index(image), link)
                 parent.remove(image)
                 link.append(image)
                 link.tail = image.tail
 
                 if "alt" in image.attrib and image.attrib["alt"]:
-                    image.tail = u" "
-                    label = etree.SubElement(link, u"span")
+                    image.tail = " "
+                    label = etree.SubElement(link, "span")
                     label.text = image.attrib["alt"]
                     del image.attrib["alt"]
                 else:
                     image.tail = None
-                    image.set(u"alt", user)
+                    image.set("alt", user)
 
     add_user_links(fragment, None, True)
 
@@ -287,7 +278,7 @@ def _markdown_fragment(target, image):
 
 def markdown(target, image=False):
     fragment = _markdown_fragment(target, image)
-    return html.tostring(fragment, encoding=unicode)[5:-6]  # <div>...</div>
+    return html.tostring(fragment, encoding=str)[5:-6]  # <div>...</div>
 
 
 def _itertext_spaced(element):

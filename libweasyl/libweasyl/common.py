@@ -4,11 +4,7 @@ libweasyl common code.
 The contents of this module should not depend on any other libweasyl module; it
 is intended to be the base-most module that every other module can depend on.
 """
-
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    from urlparse import urljoin
+from urllib.parse import urljoin
 
 
 def minimize_media(request, obj):
@@ -83,4 +79,4 @@ def minimize_media(request, obj):
                 'url': urljoin(base_url, v['display_url']),
                 'links': minimize_media(request, v['described']),
             } for v in vs]
-        for k, vs in obj.items()}
+        for k, vs in list(obj.items())}

@@ -50,7 +50,7 @@ def db(request):
 
     def tear_down():
         "Clears all rows from the test database."
-        for k, cls in registry.items():
+        for k, cls in list(registry.items()):
             if not k[0].isupper():
                 continue
             db.query(cls).delete()

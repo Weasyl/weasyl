@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+
 
 import errno
 
@@ -119,4 +119,4 @@ def test_file_type_for_category_literary_results():
     """
     Non-PDF UTF-8 documents are returned decoded.
     """
-    assert files.file_type_for_category(b'hello\xc3\xbfworld', Category.literary) == (u'hello\xffworld', 'txt')
+    assert files.file_type_for_category(b'hello\xc3\xbfworld', Category.literary) == ('hello\xffworld', 'txt')

@@ -243,7 +243,7 @@ frienduser = Table(
         'p': 'pending',
     }, length=20), nullable=False, server_default='p'),
     Column('unixtime', WeasylTimestampColumn(), nullable=False,
-           server_default=text(u"(date_part('epoch'::text, now()) - (18000)::double precision)")),
+           server_default=text("(date_part('epoch'::text, now()) - (18000)::double precision)")),
     default_fkey(['otherid'], ['login.userid'], name='frienduser_otherid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='frienduser_userid_fkey'),
 )
@@ -263,7 +263,7 @@ character = Table(
     Column('height', String(length=100), nullable=False, server_default=''),
     Column('weight', String(length=100), nullable=False, server_default=''),
     Column('species', String(length=100), nullable=False, server_default=''),
-    Column('content', String(length=100000), nullable=False, server_default=u""),
+    Column('content', String(length=100000), nullable=False, server_default=""),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
@@ -402,7 +402,7 @@ media = Table(
     Column('mediaid', Integer(), primary_key=True, nullable=False),
     Column('media_type', String(length=32), nullable=False),
     Column('file_type', String(length=8), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
+    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text("''::hstore")),
     Column('sha256', String(length=64)),
 )
 
@@ -700,7 +700,7 @@ sessions = Table(
     Column('created_at', ArrowColumn(), nullable=False, server_default=text('now()')),
     Column('userid', Integer()),
     Column('csrf_token', String(length=64)),
-    Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
+    Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text("''::hstore")),
     Column('ip_address', String(length=39), nullable=True),
     Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
@@ -843,7 +843,7 @@ tag_updates = Table(
     Column('added', ARRAY(Text())),
     Column('removed', ARRAY(Text())),
     Column('updated_at', Integer(), nullable=False,
-           server_default=text(u"(date_part('epoch'::text, now()) - (18000)::double precision)")),
+           server_default=text("(date_part('epoch'::text, now()) - (18000)::double precision)")),
     default_fkey(['submitid'], ['submission.submitid'], name='tag_updates_submitid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='tag_updates_userid_fkey'),
 )
@@ -945,7 +945,7 @@ watchuser = Table(
     Column('otherid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(length=20), nullable=False),
     Column('unixtime', Integer(), nullable=False,
-           server_default=text(u"(date_part('epoch'::text, now()) - (18000)::double precision)")),
+           server_default=text("(date_part('epoch'::text, now()) - (18000)::double precision)")),
     default_fkey(['otherid'], ['login.userid'], name='watchuser_otherid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='watchuser_userid_fkey'),
 )

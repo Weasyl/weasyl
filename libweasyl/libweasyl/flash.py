@@ -1,16 +1,10 @@
-from __future__ import division, unicode_literals
-
 import itertools
+import lzma
 import struct
 import os
 import zlib
 
 from libweasyl.compat import iterbytes
-
-try:
-    import lzma
-except ImportError:
-    from backports import lzma
 
 
 def iter_decompressed_zlib(fobj, chunksize=1024):

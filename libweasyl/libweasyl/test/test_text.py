@@ -1,5 +1,5 @@
 # encoding: utf-8
-from __future__ import absolute_import
+
 
 from lxml.etree import LIBXML_VERSION
 import pytest
@@ -114,17 +114,17 @@ def test_markdown_respect_ordered_list_start():
 
 
 def test_markdown_strikethrough():
-    assert markdown(u"~~test~~") == u"<p><del>test</del></p>"
+    assert markdown("~~test~~") == "<p><del>test</del></p>"
 
 
 @pytest.mark.parametrize(('target', 'expected'), [
-    (u"[external](http://example.com/)", u'<a href="http://example.com/" rel="nofollow">external</a>'),
-    (u'<a href="http://example.com/">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
-    (u'<a href="http://example.com/" rel="noreferrer">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
-    (u"[external](//example.com/)", u'<a href="//example.com/" rel="nofollow">external</a>'),
+    ("[external](http://example.com/)", '<a href="http://example.com/" rel="nofollow">external</a>'),
+    ('<a href="http://example.com/">external</a>', '<a href="http://example.com/" rel="nofollow">external</a>'),
+    ('<a href="http://example.com/" rel="noreferrer">external</a>', '<a href="http://example.com/" rel="nofollow">external</a>'),
+    ("[external](//example.com/)", '<a href="//example.com/" rel="nofollow">external</a>'),
 ])
 def test_markdown_external_link_noreferrer(target, expected):
-    assert markdown(target) == u"<p>%s</p>" % (expected,)
+    assert markdown(target) == "<p>%s</p>" % (expected,)
 
 
 markdown_link_tests = [
@@ -140,28 +140,28 @@ def test_markdown_link(target, expected):
 
 
 def test_tag_stripping():
-    assert markdown(u"<button>text</button>") == u"<p>text</p>"
-    assert markdown(u"<button><button>text</button></button>") == u"<p>text</p>"
-    assert markdown(u"<!--[if IE]><script>alert(1)</script><![endif]-->") == u""
+    assert markdown("<button>text</button>") == "<p>text</p>"
+    assert markdown("<button><button>text</button></button>") == "<p>text</p>"
+    assert markdown("<!--[if IE]><script>alert(1)</script><![endif]-->") == ""
 
 
 markdown_excerpt_tests = [
-    (u'', u''),
-    (u'short', u'short'),
-    (u'just short enoughAAAAAAAAAAAAA', u'just short enoughAAAAAAAAAAAAA'),
-    (u'not short enoughAAAAAAAAAAAAAAA', u'not short enoughAAAAAAAAAAAAA…'),
-    (u'*leading* inline formatting', u'leading inline formatting'),
-    (u'middle *inline* formatting', u'middle inline formatting'),
-    (u'trailing inline *formatting*', u'trailing inline formatting'),
-    (u'*nested **inline** formatting*', u'nested inline formatting'),
-    (u'   unnecessary  whitespace\t', u'unnecessary whitespace'),
-    (u'multiple\nlines', u'multiple lines'),
-    (u'multiple  \nlines', u'multiple lines'),
-    (u'multiple\n\nparagraphs', u'multiple paragraphs'),
-    (u'Üñíçôđe\N{COMBINING ACUTE ACCENT}', u'Üñíçôđe\N{COMBINING ACUTE ACCENT}'),
-    (u'single-codepoint graphemes😊😊😊😊', u'single-codepoint graphemes😊😊😊😊'),
-    (u'single-codepoint graphemes😊😊😊😊😊', u'single-codepoint graphemes😊😊😊…'),
-    (u'test\n - lists\n - of\n - items\n\ntest', u'test lists of items test'),
+    ('', ''),
+    ('short', 'short'),
+    ('just short enoughAAAAAAAAAAAAA', 'just short enoughAAAAAAAAAAAAA'),
+    ('not short enoughAAAAAAAAAAAAAAA', 'not short enoughAAAAAAAAAAAAA…'),
+    ('*leading* inline formatting', 'leading inline formatting'),
+    ('middle *inline* formatting', 'middle inline formatting'),
+    ('trailing inline *formatting*', 'trailing inline formatting'),
+    ('*nested **inline** formatting*', 'nested inline formatting'),
+    ('   unnecessary  whitespace\t', 'unnecessary whitespace'),
+    ('multiple\nlines', 'multiple lines'),
+    ('multiple  \nlines', 'multiple lines'),
+    ('multiple\n\nparagraphs', 'multiple paragraphs'),
+    ('Üñíçôđe\N{COMBINING ACUTE ACCENT}', 'Üñíçôđe\N{COMBINING ACUTE ACCENT}'),
+    ('single-codepoint graphemes😊😊😊😊', 'single-codepoint graphemes😊😊😊😊'),
+    ('single-codepoint graphemes😊😊😊😊😊', 'single-codepoint graphemes😊😊😊…'),
+    ('test\n - lists\n - of\n - items\n\ntest', 'test lists of items test'),
 ]
 
 
@@ -171,5 +171,5 @@ def test_excerpt(target, expected):
 
 
 def test_excerpt_default_length():
-    assert markdown_excerpt(u'a' * 300) == u'a' * 300
-    assert markdown_excerpt(u'a' * 301) == u'a' * 299 + u'…'
+    assert markdown_excerpt('a' * 300) == 'a' * 300
+    assert markdown_excerpt('a' * 301) == 'a' * 299 + '…'

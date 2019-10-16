@@ -1,5 +1,3 @@
-from __future__ import division
-
 import warnings
 
 import arrow
@@ -326,7 +324,7 @@ class Comment(Base):
         from libweasyl.media import populate_with_user_media
         populate_with_user_media(users)
         ret.reverse()
-        for comment in comment_map.values():
+        for comment in list(comment_map.values()):
             comment.subcomments.reverse()
         return len(comment_map), ret
 

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
@@ -330,7 +330,7 @@ def api_user_view_(request):
         featured = submission.select_featured(userid, otherid, rating)
 
     if submissions:
-        submissions = map(tidy_submission, submissions)
+        submissions = list(map(tidy_submission, submissions))
 
     user['recent_submissions'] = submissions
     user['recent_type'] = more_submissions

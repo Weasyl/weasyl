@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from libweasyl import media as libweasylmedia
 from libweasyl.text import slug_for
@@ -60,7 +60,7 @@ def build_populator(identity, media_key, multi_get):
             to_fetch.append((d[identity], e))
         if not to_fetch:
             return dicts
-        keys_to_fetch, indices = zip(*to_fetch)
+        keys_to_fetch, indices = list(zip(*to_fetch))
         for index, value in zip(indices, multi_get(*keys_to_fetch)):
             dicts[index][media_key] = value
         return dicts

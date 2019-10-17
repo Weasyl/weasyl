@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import pytz
 from translationstring import TranslationString as _
@@ -61,7 +61,7 @@ ALLOWABLE_EXCHANGE_CODES = {
 
 Config = create_configuration([
     BoolOption("twelvehour", "2"),
-    ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "a", "p"]))),
+    ConfigOption("rating", dict(list(zip(ratings.ALL_RATINGS, ["", "a", "p"])))),
     BoolOption("tagging", "k"),
     BoolOption("hideprofile", "h"),
     BoolOption("hidestats", "i"),

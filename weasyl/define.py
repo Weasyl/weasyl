@@ -1,17 +1,17 @@
-from __future__ import absolute_import
+
 
 import os
 import re
 import time
 import random
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import hashlib
 import hmac
 import itertools
 import logging
 import numbers
 import datetime
-import urlparse
+import urllib.parse
 import functools
 import string
 import subprocess
@@ -167,7 +167,7 @@ def _sql_escape(target):
     if isinstance(target, str):
         # Escape ASCII string
         return _quote_string(target)
-    elif isinstance(target, unicode):
+    elif isinstance(target, str):
         # Escape Unicode string
         return _quote_string(target.encode("utf-8"))
     else:
@@ -191,7 +191,7 @@ def sql_number_list(target):
     return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
 
 
-_PG_SERIALIZATION_FAILURE = u'40001'
+_PG_SERIALIZATION_FAILURE = '40001'
 
 
 def serializable_retry(action, limit=16):
@@ -211,7 +211,7 @@ def serializable_retry(action, limit=16):
                     raise
 
 
-CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
+CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip().decode("ascii")
 the_fake_request = FakePyramidRequest()
 
 
@@ -277,7 +277,7 @@ def render(template_name, argv=()):
     Renders a template and returns the resulting HTML.
     """
     template = _compile(template_name)
-    return unicode(template(*argv))
+    return str(template(*argv))
 
 
 def titlebar(title, backtext=None, backlink=None):
@@ -398,17 +398,17 @@ def _get_csrf_input():
 
 
 _SYSNAME_CHARACTERS = (
-    set(unicode(string.ascii_lowercase)) |
-    set(unicode(string.digits)))
+    set(str(string.ascii_lowercase)) |
+    set(str(string.digits)))
 
 
 def get_sysname(target):
     """
     Return `target` stripped of all non-alphanumeric characters and lowercased.
     """
-    if isinstance(target, unicode):
+    if isinstance(target, str):
         normalized = unicodedata.normalize("NFD", target.lower())
-        return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS).encode("ascii")
+        return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS)
     else:
         return "".join(i for i in target if i.isalnum()).lower()
 
@@ -1052,7 +1052,7 @@ def cdnify_url(url):
     if not cdn_root:
         return url
 
-    return urlparse.urljoin(cdn_root, url)
+    return urllib.parse.urljoin(cdn_root, url)
 
 
 def get_resource_path(resource):
@@ -1067,7 +1067,7 @@ def absolutify_url(url):
     if cdn_root and url.startswith(cdn_root):
         return url
 
-    return urlparse.urljoin(get_current_request().application_url, url)
+    return urllib.parse.urljoin(get_current_request().application_url, url)
 
 
 def user_is_twitterbot():
@@ -1076,7 +1076,7 @@ def user_is_twitterbot():
 
 def summarize(s, max_length=200):
     if len(s) > max_length:
-        return s[:max_length - 1].rstrip() + u'\N{HORIZONTAL ELLIPSIS}'
+        return s[:max_length - 1].rstrip() + '\N{HORIZONTAL ELLIPSIS}'
     return s
 
 
@@ -1091,7 +1091,7 @@ def timezones():
             (int(ct.astimezone(pytz.timezone(tzname)).strftime("%z")), tzname)
             for tzname in timezones
         ])
-        for cc, timezones in pytz.country_timezones.iteritems()]
+        for cc, timezones in pytz.country_timezones.items()]
     timezones_by_country.sort()
     ret = []
     for country, timezones in timezones_by_country:
@@ -1105,19 +1105,19 @@ def timezones():
 def query_string(query):
     pairs = []
 
-    for key, value in query.items():
+    for key, value in list(query.items()):
         if isinstance(value, (tuple, list, set)):
             for subvalue in value:
-                if isinstance(subvalue, unicode):
+                if isinstance(subvalue, str):
                     pairs.append((key, subvalue.encode("utf-8")))
                 else:
                     pairs.append((key, subvalue))
-        elif isinstance(value, unicode):
+        elif isinstance(value, str):
             pairs.append((key, value.encode("utf-8")))
         elif value:
             pairs.append((key, value))
 
-    return urllib.urlencode(pairs)
+    return urllib.parse.urlencode(pairs)
 
 
 def _requests_wrapper(func_name):

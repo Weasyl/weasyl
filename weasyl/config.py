@@ -1,6 +1,6 @@
-from __future__ import absolute_import
 
-import ConfigParser
+
+import configparser
 
 from weasyl import macro
 
@@ -8,7 +8,7 @@ from weasyl import macro
 _in_test = False
 
 
-config_obj = ConfigParser.ConfigParser()
+config_obj = configparser.ConfigParser()
 config_obj.read([macro.MACRO_CFG_SITE_CONFIG])
 
 
@@ -20,7 +20,7 @@ def config_read_setting(setting, value=None, section='general'):
     """
     try:
         return config_obj.get(section, setting)
-    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+    except (configparser.NoOptionError, configparser.NoSectionError):
         return value
 
 
@@ -32,5 +32,5 @@ def config_read_bool(setting, value=False, section='general'):
     """
     try:
         return config_obj.getboolean(section, setting)
-    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError, ValueError):
+    except (configparser.NoOptionError, configparser.NoSectionError, ValueError):
         return value

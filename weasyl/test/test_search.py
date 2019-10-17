@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import mock
 import pytest
@@ -26,18 +26,18 @@ def test_query_parsing():
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [
-    (u'nothing', 0),
-    (u'more nothing', 0),
-    (u'walrus', 2),
-    (u'penguin', 3),
-    (u'walrus penguin', 1),
-    (u'walrus -penguin', 1),
-    (u'walrus -penguin #general #explicit', 1),
-    (u'walrus -penguin #general #mature', 0),
-    (u'-walrus +penguin', 2),
-    (u'|walrus |penguin', 4),
-    (u'+nothing |walrus |penguin', 0),
-    (u'-nothing', 4),
+    ('nothing', 0),
+    ('more nothing', 0),
+    ('walrus', 2),
+    ('penguin', 3),
+    ('walrus penguin', 1),
+    ('walrus -penguin', 1),
+    ('walrus -penguin #general #explicit', 1),
+    ('walrus -penguin #general #mature', 0),
+    ('-walrus +penguin', 2),
+    ('|walrus |penguin', 4),
+    ('+nothing |walrus |penguin', 0),
+    ('-nothing', 4),
 ])
 def test_submission_search(db, term, n_results):
     user = db_utils.create_user()
@@ -95,11 +95,11 @@ def test_search_blocked_tags(db, rating, block_rating):
         assert len(results) == n_results
 
     if rating < block_rating:
-        check(u'walrus', 2)
-        check(u'penguin', 2)
+        check('walrus', 2)
+        check('penguin', 2)
     else:
-        check(u'walrus', 1)
-        check(u'penguin', 0)
+        check('walrus', 1)
+        check('penguin', 0)
 
 
 _page_limit = 6
@@ -110,7 +110,7 @@ def test_search_pagination(db):
     owner = db_utils.create_user()
     submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
     tag = db_utils.create_tag('penguin')
-    search_query = search.Query.parse(u'penguin', 'submit')
+    search_query = search.Query.parse('penguin', 'submit')
 
     for submission in submissions:
         db_utils.create_submission_tag(tag, submission)
@@ -144,16 +144,16 @@ def test_search_pagination(db):
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [
-    (u"shouldmatchnothing\\k", 0),
-    (u"nobodyatall", 0),
-    (u"JasonAG", 1),
-    (u"Jason", 1),
-    (u"rob", 1),
-    (u"twisted", 2),
-    (u"sam", 2),
-    (u"jason otherkin", 2),
-    (u"ryan wildlife calvin", 3),
-    (u"Marth", 1),
+    ("shouldmatchnothing\\k", 0),
+    ("nobodyatall", 0),
+    ("JasonAG", 1),
+    ("Jason", 1),
+    ("rob", 1),
+    ("twisted", 2),
+    ("sam", 2),
+    ("jason otherkin", 2),
+    ("ryan wildlife calvin", 3),
+    ("Marth", 1),
 ])
 def test_user_search(db, term, n_results):
     config = CharSettings({'use-only-tag-blacklist'}, {}, {})
@@ -178,5 +178,5 @@ def test_user_search_ordering(db):
     db_utils.create_user("user_Ab", username="userab", config=config)
     db_utils.create_user("user_Bb", username="userbb", config=config)
 
-    results = search.select_users(u"user")
+    results = search.select_users("user")
     assert [user["title"] for user in results] == ["user_aa", "user_Ab", "user_ba", "user_Bb"]

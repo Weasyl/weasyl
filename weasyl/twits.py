@@ -2,7 +2,7 @@
 # See COPYING for details.
 
 "I HATE TWITTER"
-from __future__ import absolute_import
+
 
 from twisted.web.http_headers import Headers
 from twisted.internet.error import ConnectionDone, ConnectionLost
@@ -11,8 +11,8 @@ from twisted.web.http import PotentialDataLoss
 from twisted.internet import defer, protocol
 import oauth2
 
-import urlparse
-import urllib
+import urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import json
 
 from weasyl import define
@@ -85,11 +85,11 @@ class OAuthAgent(object):
                 self.consumer, token=self.token,
                 http_method=method, http_url=uri, parameters=parameters)
             req.sign_request(self.signatureMethod, self.consumer, self.token)
-            for header, value in req.to_header().iteritems():
+            for header, value in req.to_header().items():
                 # oauth2, for some bozotic reason, gives unicode header values
                 headers.addRawHeader(header, value.encode())
-        parsed = urlparse.urlparse(uri)
-        uri = urlparse.urlunparse(parsed._replace(query=urllib.urlencode(parameters)))
+        parsed = urllib.parse.urlparse(uri)
+        uri = urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(parameters)))
         return self.agent.request(method, uri, headers, bodyProducer)
 
 
@@ -100,7 +100,7 @@ class Twitter(object):
         self.twitterAPI = twitterAPI
 
     def _makeRequest(self, whichAPI, method, resource, parameters):
-        d = self.agent.request(method, urlparse.urljoin(whichAPI, resource), parameters=parameters)
+        d = self.agent.request(method, urllib.parse.urljoin(whichAPI, resource), parameters=parameters)
         d.addCallback(trapBadStatuses)
         return d
 
@@ -143,4 +143,4 @@ if define.config_obj.has_option('twitter', 'consumer_key'):
 
 else:
     def post(account, message):
-        print "%s would've tweeted: %r" % (account, message)
+        print("%s would've tweeted: %r" % (account, message))

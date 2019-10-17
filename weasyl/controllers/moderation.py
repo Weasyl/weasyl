@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-from __future__ import absolute_import
+
 
 import arrow
 
@@ -112,9 +112,9 @@ def modcontrol_massaction_(request):
         body=moderation.bulk_edit(
             request.userid,
             form.action,
-            map(int, form.submissions),
-            map(int, form.characters),
-            map(int, form.journals),
+            list(map(int, form.submissions)),
+            list(map(int, form.characters)),
+            list(map(int, form.journals)),
         ),
     )
 
@@ -206,7 +206,7 @@ def modcontrol_copynotetostaffnotes_post_(request):
 
     notedata = note.select_view(request.userid, int(form.noteid))
 
-    staff_note_title = u"Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
+    staff_note_title = "Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
         sender=notedata['sendername'],
         date=arrow.get(notedata['unixtime']).format('YYYY-MM-DD HH:mm:ss ZZ'),
         subj=notedata['title'],

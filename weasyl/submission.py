@@ -1,6 +1,6 @@
-from __future__ import absolute_import
 
-import urlparse
+
+import urllib.parse
 from io import BytesIO
 
 from akismet import SpamStatus
@@ -101,7 +101,7 @@ def _post_to_twitter_about(submitid, title, rating, tags):
         selected_tags.append('#' + tag)
         length += len(tag) + 2
 
-    twits.post(account, u'%s %s' % (url, ' '.join(selected_tags)))
+    twits.post(account, '%s %s' % (url, ' '.join(selected_tags)))
 
 
 def _check_for_spam(submission, userid):
@@ -306,7 +306,7 @@ def check_google_doc_embed_data(embedlink):
     if not m:
         raise WeasylError('googleDocsEmbedLinkInvalid')
     embedlink = m.group()
-    parsed = urlparse.urlparse(embedlink)
+    parsed = urllib.parse.urlparse(embedlink)
     if parsed.scheme != 'https' or parsed.netloc != 'docs.google.com':
         raise WeasylError('googleDocsEmbedLinkInvalid')
 

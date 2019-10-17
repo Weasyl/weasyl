@@ -1,5 +1,5 @@
 # encoding: utf-8
-from __future__ import absolute_import
+
 
 import os
 import re
@@ -141,21 +141,21 @@ def sql_debug_tween_factory(handler, registry):
                 id = self.ids.get(name)
 
                 if id is None:
-                    id = self.ids[name] = self.next
+                    id = self.ids[name] = self.__next__
                     self.next += 1
 
-                return u'$%i' % (id,)
+                return '$%i' % (id,)
 
         debug_rows = []
 
         for statement, t in request.sql_debug:
-            statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
-            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
+            statement = ' '.join(statement.split()).replace('( ', '(').replace(' )', ')') % ParameterCounter()
+            debug_rows.append('<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
 
-        response.text += u''.join(
-            [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
+        response.text += ''.join(
+            ['<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
             + debug_rows
-            + [u'</table>']
+            + ['</table>']
         )
 
     def sql_debug_tween(request):
@@ -357,7 +357,7 @@ def weasyl_exception_view(exc, request):
             request_id = base64.b64encode(os.urandom(6), '+-')
             event_id = request.environ['raven.captureException'](request_id=request_id)
             request_id = '%s-%s' % (event_id, request_id)
-        print "unhandled error (request id %s) in %r" % (request_id, request.environ)
+        print("unhandled error (request id %s) in %r" % (request_id, request.environ))
         traceback.print_exc()
         if getattr(exc, "__render_as_json", False):
             return Response(json={'error': {}}, status_code=500)

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import anyjson as json
 from pyramid.httpexceptions import HTTPForbidden

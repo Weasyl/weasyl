@@ -1,8 +1,8 @@
-from __future__ import absolute_import
+
 
 import re
 import string
-import urlparse
+import urllib.parse
 
 from weasyl import define as d
 from weasyl.cache import region
@@ -24,7 +24,7 @@ def _service(link):
     """
     Returns the content service name based on the URL provided.
     """
-    url = urlparse.urlsplit(link)
+    url = urllib.parse.urlsplit(link)
     domain = "." + url.netloc.lower()
 
     if domain.endswith((".youtube.com", ".youtu.be")):

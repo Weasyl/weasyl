@@ -1,5 +1,5 @@
 # encoding: utf-8
-from __future__ import absolute_import
+
 
 import os
 import pytest
@@ -12,15 +12,15 @@ from weasyl.test import db_utils
 
 
 _BASE_FORM = {
-    'title': u'Test name',
-    'age': u'64021610030',
-    'gender': u'🦊',
-    'height': u'Test height',
-    'weight': u'Test weight',
-    'species': u'Test species',
+    'title': 'Test name',
+    'age': '64021610030',
+    'gender': '🦊',
+    'height': 'Test height',
+    'weight': 'Test weight',
+    'species': 'Test species',
     'rating': '10',
-    'content': u'Description',
-    'tags': u'',
+    'content': 'Description',
+    'tags': '',
 }
 
 
@@ -71,14 +71,14 @@ def _character(app, db, character_user, no_csrf):
 @pytest.mark.usefixtures('db', 'character_user')
 def test_list_empty(app):
     resp = app.get('/characters/character_test')
-    assert list(resp.html.find(class_='user-characters').stripped_strings) == [u'Characters', u'There are no characters to display.']
+    assert list(resp.html.find(class_='user-characters').stripped_strings) == ['Characters', 'There are no characters to display.']
 
 
 @pytest.mark.usefixtures('db', 'character')
 def test_create_default_thumbnail(app, character):
     resp = app.get('/character/%d/test-name' % (character,))
-    assert resp.html.find(id='detail-bar-title').string == u'Test name'
-    assert resp.html.find(id='char-stats').find('dt', text=u'Gender:').findNext('dd').string == u'🦊'
+    assert resp.html.find(id='detail-bar-title').string == 'Test name'
+    assert resp.html.find(id='char-stats').find('dt', text='Gender:').findNext('dd').string == '🦊'
 
     image_url = resp.html.find(id='detail-art').a['href']
     assert _read_character_image(image_url).tobytes() == _read_static_image('images/wesley1.png').tobytes()
@@ -91,11 +91,11 @@ def test_owner_edit_details(app, character_user, character):
     form = dict(
         _BASE_FORM,
         charid=str(character),
-        title=u'Edited name',
+        title='Edited name',
     )
 
     resp = app.post('/edit/character', form, headers={'Cookie': cookie}).follow()
-    assert resp.html.find(id='detail-bar-title').string == u'Edited name'
+    assert resp.html.find(id='detail-bar-title').string == 'Edited name'
 
 
 @pytest.mark.usefixtures('db', 'character_user', 'character', 'no_csrf')

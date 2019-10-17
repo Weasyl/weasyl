@@ -3,7 +3,7 @@
 Just bear with me here.
 """
 
-from __future__ import absolute_import, division
+
 
 import os
 import time
@@ -259,7 +259,7 @@ class WeasylSiteStats(amp.AMP):
     def fetchRequestBreakdownStats(self, percentiles):
         if not self.factory.timings:
             return {}
-        queued, sql, memcached, python, queries, memcached_queries = zip(*self.factory.timings)
+        queued, sql, memcached, python, queries, memcached_queries = list(zip(*self.factory.timings))
         self.factory.timings = []
         queries = sorted(queries)
         return dict(

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from libweasyl.models.meta import Base
 from libweasyl.models.api import APIToken
@@ -43,7 +43,7 @@ def tidy_media(item):
 def tidy_all_media(d):
     # We suppress thumbnail-legacy currently.
     hidden_keys = ['thumbnail-legacy']
-    ret = {k: map(tidy_media, v) for k, v in d.iteritems() if k not in hidden_keys}
+    ret = {k: list(map(tidy_media, v)) for k, v in d.items() if k not in hidden_keys}
     thumbnail_value = ret.get('thumbnail-custom') or ret.get('thumbnail-generated')
     if thumbnail_value:
         ret['thumbnail'] = thumbnail_value

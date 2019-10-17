@@ -1,4 +1,4 @@
-from __future__ import absolute_import, unicode_literals
+
 
 import pytest
 
@@ -11,8 +11,8 @@ from weasyl.test import db_utils
 
 
 _FORM = {
-    u'title': u'Title',
-    u'content': u'Content',
+    'title': 'Title',
+    'content': 'Content',
 }
 
 
@@ -22,9 +22,9 @@ def _site_updates():
     user = db_utils.create_user(username='test_username')
 
     updates = [
-        siteupdate.create(user, u'foo', u'content one'),
-        siteupdate.create(user, u'bar', u'content two'),
-        siteupdate.create(user, u'baz', u'content three'),
+        siteupdate.create(user, 'foo', 'content one'),
+        siteupdate.create(user, 'bar', 'content two'),
+        siteupdate.create(user, 'baz', 'content three'),
     ]
 
     for update in updates:
@@ -70,13 +70,13 @@ def test_index(app, site_updates):
     update = resp.html.find(id='hc-update')
     assert update is not None
     assert update.h3.string == updates[-1].title
-    assert update.figure.img['alt'] == u'avatar of test_username'
+    assert update.figure.img['alt'] == 'avatar of test_username'
 
 
 @pytest.mark.usefixtures('db')
 def test_list_empty(app):
     resp = app.get('/site-updates/')
-    assert resp.html.find(None, 'content').p.string == u'No site updates to show.'
+    assert resp.html.find(None, 'content').p.string == 'No site updates to show.'
 
 
 @pytest.mark.usefixtures('db')
@@ -116,7 +116,7 @@ def test_create_strip(app, monkeypatch):
         dict(_FORM, title=' test title \t '),
         headers={'Cookie': cookie},
     ).follow()
-    assert resp.html.find(None, 'content').h3.string == u'test title'
+    assert resp.html.find(None, 'content').h3.string == 'test title'
 
 
 @pytest.mark.usefixtures('db')
@@ -164,10 +164,10 @@ def test_create_validation(app, monkeypatch):
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
-    resp = app.post('/admincontrol/siteupdate', {'title': u'', 'content': u'Content'}, headers={'Cookie': cookie}, status=422)
+    resp = app.post('/admincontrol/siteupdate', {'title': '', 'content': 'Content'}, headers={'Cookie': cookie}, status=422)
     assert resp.html.find(id='error_content').p.string == errorcode.error_messages['titleInvalid']
 
-    resp = app.post('/admincontrol/siteupdate', {'title': u'Title', 'content': u''}, headers={'Cookie': cookie}, status=422)
+    resp = app.post('/admincontrol/siteupdate', {'title': 'Title', 'content': ''}, headers={'Cookie': cookie}, status=422)
     assert resp.html.find(id='error_content').p.string == errorcode.error_messages['contentInvalid']
 
 
@@ -212,7 +212,7 @@ def test_edit_strip(app, monkeypatch, site_updates):
         dict(_FORM, title=' test title \t '),
         headers={'Cookie': cookie},
     ).follow()
-    assert resp.html.find(None, 'content').h3.string == u'test title'
+    assert resp.html.find(None, 'content').h3.string == 'test title'
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
@@ -277,10 +277,10 @@ def test_edit_validation(app, monkeypatch, site_updates):
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
-    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), {'title': u'', 'content': u'Content'}, headers={'Cookie': cookie}, status=422)
+    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), {'title': '', 'content': 'Content'}, headers={'Cookie': cookie}, status=422)
     assert resp.html.find(id='error_content').p.string == errorcode.error_messages['titleInvalid']
 
-    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), {'title': u'Title', 'content': u''}, headers={'Cookie': cookie}, status=422)
+    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), {'title': 'Title', 'content': ''}, headers={'Cookie': cookie}, status=422)
     assert resp.html.find(id='error_content').p.string == errorcode.error_messages['contentInvalid']
 
 
@@ -301,11 +301,11 @@ def test_edit_notifications(app, monkeypatch):
 
     resp = app.post(
         '/site-updates/%d' % (siteupdate.select_last()['updateid'],),
-        dict(_FORM, title=u'New title'),
+        dict(_FORM, title='New title'),
         headers={'Cookie': admin_cookie},
     ).follow()
-    assert resp.html.find(None, 'content').h3.string == u'New title'
+    assert resp.html.find(None, 'content').h3.string == 'New title'
 
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == u'New title'
+    assert resp.html.find(id='site_updates').find(None, 'item').a.string == 'New title'

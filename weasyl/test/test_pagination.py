@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import unittest
 import weasyl.pagination as pagination
@@ -24,7 +24,7 @@ class PaginationTestCase(unittest.TestCase):
         def select_list(a, b, c, limit, backid=None, nextid=None, extra=None):
             self.assertEqual(extra_value, extra)
             self.assertEqual(check_limit, limit)
-            return fake_results(range(result_size))
+            return fake_results(list(range(result_size)))
 
         def select_count(a, b, c, backid=None, nextid=None, extra=None):
             self.assertEqual(extra_value, extra)

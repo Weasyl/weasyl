@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
@@ -24,7 +24,7 @@ def directorcontrol_emailblacklist_get_(request):
         INNER JOIN login AS lo ON added_by = lo.userid
         ORDER BY domain_name
     """)
-    blacklist_information = map(dict, query)
+    blacklist_information = list(map(dict, query))
     return Response(d.webpage(request.userid, "directorcontrol/emailblacklist.html", [blacklist_information],
                               title="Edit Account Creation Email Blacklist"))
 
@@ -36,7 +36,7 @@ def directorcontrol_emailblacklist_post_(request):
     # Remove entr(y|ies) from blacklist
     if form.action == "remove":
         d.engine.execute("DELETE FROM emailblacklist WHERE id = ANY (%(selected_ids)s)",
-                         selected_ids=map(int, form.remove_selection))
+                         selected_ids=list(map(int, form.remove_selection)))
 
     # Add any entries to blacklist, if any in form.domain_name; duplicate entries are silently discarded.
     elif form.action == "add" and form.domain_name:

@@ -1,7 +1,7 @@
-from __future__ import absolute_import, unicode_literals
+
 
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import bcrypt
 import pyotp
@@ -137,7 +137,7 @@ def test_init():
     qr_xml = qr.to_svg_str(4)
     # We only care about the content in the <svg> tags; strip '\n' to permit re.search to work
     qr_svg_only = re.search(r"<svg.*<\/svg>", qr_xml.replace('\n', '')).group(0)
-    computed_qrcode = urllib.quote(qr_svg_only)
+    computed_qrcode = urllib.parse.quote(qr_svg_only)
     # The QRcode we make locally should match that from init()
     assert tfa_qrcode == computed_qrcode
     # The tfa_secret from init() should be 16 characters, and work if passed in to pyotp.TOTP.now()

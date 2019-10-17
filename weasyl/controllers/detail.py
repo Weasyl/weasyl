@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from pyramid import httpexceptions
 from pyramid.response import Response

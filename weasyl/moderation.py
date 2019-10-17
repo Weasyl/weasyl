@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import collections
 import datetime
@@ -528,7 +528,7 @@ def journalsbyuser(userid, form):
          WHERE login_name = %(sysname)s
     """, sysname=d.get_sysname(form.name)).fetchall()
 
-    return map(dict, results)
+    return list(map(dict, results))
 
 
 def gallery_blacklisted_tags(userid, otherid):
@@ -717,7 +717,7 @@ def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals
 
         now = arrow.utcnow()
         values = []
-        for target, target_affected in affected.iteritems():
+        for target, target_affected in affected.items():
             staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
             values.append({
                 'userid': userid,
@@ -806,7 +806,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
 
     now = arrow.utcnow()
     values = []
-    for target, target_affected in affected.iteritems():
+    for target, target_affected in affected.items():
         staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
         values.append({
             'userid': userid,

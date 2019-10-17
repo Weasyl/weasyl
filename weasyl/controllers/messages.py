@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import itertools
 
@@ -22,7 +22,7 @@ def messages_remove_(request):
     elif form.get('remove-all-submissions'):
         message.remove_all_submissions(request.userid, define.get_int(form['remove-all-submissions']))
     else:
-        message.remove(request.userid, map(int, form.remove))
+        message.remove(request.userid, list(map(int, form.remove)))
 
     if form.recall:
         raise HTTPSeeOther(location="/messages/submissions")

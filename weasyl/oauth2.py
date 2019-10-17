@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import anyjson as json
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
@@ -16,7 +16,7 @@ class OAuthResponse(Response):
         super(OAuthResponse, self).__init__(
             body=body,
             status_code=status,
-            headers={k.encode('utf-8'): v.encode('utf-8') for k, v in headers.iteritems()},
+            headers={k.encode('utf-8'): v.encode('utf-8') for k, v in headers.items()},
         )
 
 

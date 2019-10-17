@@ -1,7 +1,7 @@
 # pytest configuration for weasyl db test fixture.
 # The filename conftest.py is magical, do not change.
 
-from __future__ import absolute_import
+
 
 import errno
 import json
@@ -116,7 +116,7 @@ def db(request):
     def tear_down():
         """ Clears all rows from the test database. """
         db.flush()
-        for table in metadata.tables.values():
+        for table in list(metadata.tables.values()):
             db.execute(table.delete())
 
     request.addfinalizer(tear_down)

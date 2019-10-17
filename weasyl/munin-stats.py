@@ -2,7 +2,7 @@
 #%# family=auto
 #%# capabilities=autoconf suggest
 
-from __future__ import absolute_import
+
 
 import os
 
@@ -46,7 +46,7 @@ class weasyl_request(object):
 
     @defer.inlineCallbacks
     def command_fetch(self, ignored):
-        names, endpoints = zip(*self.endpoints.iteritems())
+        names, endpoints = list(zip(*iter(self.endpoints.items())))
         results = yield defer.DeferredList(
             [self.fetchStats(endpoint) for endpoint in endpoints],
             consumeErrors=True)
@@ -54,73 +54,73 @@ class weasyl_request(object):
         for name, (success, stats) in zip(names, results):
             if not success:
                 continue
-            for k, v in stats.iteritems():
+            for k, v in stats.items():
                 resultsByParameter.setdefault(k, {})[name] = v
 
-        print 'multigraph weasyl_request'
-        for name, v in resultsByParameter['requestCount'].iteritems():
-            print 'requestCount_%s.value %s' % (name, v)
+        print('multigraph weasyl_request')
+        for name, v in resultsByParameter['requestCount'].items():
+            print('requestCount_%s.value %s' % (name, v))
 
-        print 'multigraph weasyl_error_percentage'
-        for name, v in resultsByParameter['errorPercentage'].iteritems():
-            print 'errorPercentage_%s.value %s' % (name, v)
+        print('multigraph weasyl_error_percentage')
+        for name, v in resultsByParameter['errorPercentage'].items():
+            print('errorPercentage_%s.value %s' % (name, v))
 
-        print 'multigraph weasyl_max_active_clients'
-        for name, v in resultsByParameter['mostActiveClients'].iteritems():
-            print 'mostActiveClients_%s.value %s' % (name, v)
+        print('multigraph weasyl_max_active_clients')
+        for name, v in resultsByParameter['mostActiveClients'].items():
+            print('mostActiveClients_%s.value %s' % (name, v))
 
     def command_config(self, ignored):
-        print """
+        print("""
 multigraph weasyl_request
 graph_title Weasyl requests
 graph_category weasyl
 graph_args --base 1000
 graph_vlabel Requests per second
-"""
+""")
 
         for name in sorted(self.endpoints):
-            print """
+            print("""
 requestCount_{0}.type ABSOLUTE
 requestCount_{0}.min 0
 requestCount_{0}.draw LINESTACK2
 requestCount_{0}.label {0} requests
 requestCount_{0}.info The number of requests to the weasyl backend
-""".format(name)
+""".format(name))
 
-        print """
+        print("""
 multigraph weasyl_error_percentage
 graph_title Weasyl request error percentage
 graph_category weasyl
 graph_args --base 1000
 graph_vlabel request error %
-"""
+""")
 
         for name in sorted(self.endpoints):
-            print """
+            print("""
 errorPercentage_{0}.type ABSOLUTE
 errorPercentage_{0}.min 0
 errorPercentage_{0}.max 100
 errorPercentage_{0}.draw LINE2
 errorPercentage_{0}.label {0} request error percentage
 errorPercentage_{0}.info What percentage of requests resulted in an error
-""".format(name)
+""".format(name))
 
-        print """
+        print("""
 multigraph weasyl_max_active_clients
 graph_title Weasyl maximum simultaneous clients
 graph_category weasyl
 graph_args --base 1000
 graph_vlabel simultaneous clients
-"""
+""")
 
         for name in sorted(self.endpoints):
-            print """
+            print("""
 mostActiveClients_{0}.type GAUGE
 mostActiveClients_{0}.min 0
 mostActiveClients_{0}.draw LINE2
 mostActiveClients_{0}.label {0} simultaneous clients
 mostActiveClients_{0}.info The most simultaneous clients over the last period
-""".format(name)
+""".format(name))
 
 
 class PerEndpointPluginBase(object):
@@ -148,10 +148,10 @@ class PerEndpointPluginBase(object):
         return amp.callRemote(self.command)
 
     def formatStats(self, stats, endpointName):
-        for k, v in stats.iteritems():
+        for k, v in stats.items():
             if v is None:
                 v = 'U'
-            print '%s.value %s' % (k, v)
+            print('%s.value %s' % (k, v))
 
 
 @addPlugin
@@ -164,49 +164,49 @@ class weasyl_request_length_(PerEndpointPluginBase):
 
     def formatStats(self, stats, endpointName):
         if stats['lengths'] is not None:
-            print 'multigraph weasyl_request_length_%s' % endpointName
+            print('multigraph weasyl_request_length_%s' % endpointName)
             for p, v in zip(PERCENTILES, stats['lengths']):
-                print 'percentile_%s.value %s' % (p, v)
+                print('percentile_%s.value %s' % (p, v))
 
         if stats['percentiles'] is not None:
-            print 'multigraph weasyl_request_percentile_%s' % endpointName
+            print('multigraph weasyl_request_percentile_%s' % endpointName)
             for l, v in zip(LENGTHS, stats['percentiles']):
-                print 'length_%s.value %s' % (labelify(l), v)
+                print('length_%s.value %s' % (labelify(l), v))
 
     def command_config(self, endpointName):
         self._ensureEndpoint(endpointName)
-        print """
+        print("""
 multigraph weasyl_request_length_{0}
 graph_title {0} request processing length
 graph_category weasyl
 graph_args --base 1000 -l 0
 graph_vlabel s
-""".format(endpointName)
+""".format(endpointName))
 
         for p in PERCENTILES:
-            print """
+            print("""
 percentile_{0}.type GAUGE
 percentile_{0}.min 0
 percentile_{0}.label {0}th percentile request length
 percentile_{0}.info The {0}th percentile of time taken processing the request since the last poll
-""".format(p)
+""".format(p))
 
-        print """
+        print("""
 multigraph weasyl_request_percentile_{0}
 graph_title {0} percentile of request processing length
 graph_category weasyl
 graph_args --base 1000 -u 100 --rigid
 graph_vlabel percentile
-""".format(endpointName)
+""".format(endpointName))
 
         for l in LENGTHS:
-            print """
+            print("""
 length_{0}.type GAUGE
 length_{0}.min 0
 length_{0}.max 100
 length_{0}.label percentile of {1}s request
 length_{0}.info The percentile of a {1}s request during the last poll interval
-""".format(labelify(l), l)
+""".format(labelify(l), l))
 
 
 @addPlugin
@@ -215,7 +215,7 @@ class weasyl_threadpool_(PerEndpointPluginBase):
 
     def command_config(self, endpointName):
         self._ensureEndpoint(endpointName)
-        print """
+        print("""
 graph_title {0} thread pool
 graph_category weasyl
 graph_args --base 1000 -l 0
@@ -236,7 +236,7 @@ workerQueueSize.min 0
 workerQueueSize.draw AREASTACK
 workerQueueSize.label jobs pending
 workerQueueSize.info The number of jobs waiting for a free thread
-""".format(endpointName)
+""".format(endpointName))
 
 
 @addPlugin
@@ -247,24 +247,24 @@ class weasyl_request_breakdown_(PerEndpointPluginBase):
         return amp.callRemote(self.command, percentiles=PERCENTILES)
 
     def formatStats(self, stats, endpointName):
-        print 'multigraph weasyl_request_breakdown_queries_%s' % endpointName
+        print('multigraph weasyl_request_breakdown_queries_%s' % endpointName)
         queries = stats.pop('queries', None)
         if queries is not None:
             for p, v in zip(PERCENTILES, queries):
-                print 'percentile_%s.value %s' % (labelify(p), v)
+                print('percentile_%s.value %s' % (labelify(p), v))
 
-        print 'multigraph weasyl_request_breakdown_length_averages_%s' % endpointName
+        print('multigraph weasyl_request_breakdown_length_averages_%s' % endpointName)
         super(weasyl_request_breakdown_, self).formatStats(
-            {k: v for k, v in stats.iteritems() if k.startswith('average')}, endpointName)
+            {k: v for k, v in stats.items() if k.startswith('average')}, endpointName)
 
-        print 'multigraph weasyl_request_breakdown_length_totals_%s' % endpointName
+        print('multigraph weasyl_request_breakdown_length_totals_%s' % endpointName)
         super(weasyl_request_breakdown_, self).formatStats(
-            {k: v for k, v in stats.iteritems() if k.startswith('total')}, endpointName)
+            {k: v for k, v in stats.items() if k.startswith('total')}, endpointName)
 
     def command_config(self, endpointName):
         self._ensureEndpoint(endpointName)
 
-        print """
+        print("""
 multigraph weasyl_request_breakdown_length_averages_{0}
 graph_title {0} request processing length average breakdown
 graph_category weasyl
@@ -290,9 +290,9 @@ averageTimeInPython.min 0
 averageTimeInPython.draw AREASTACK
 averageTimeInPython.label average time in python
 averageTimeInPython.info The average time spent running python code since the last poll
-""".format(endpointName)
+""".format(endpointName))
 
-        print """
+        print("""
 multigraph weasyl_request_breakdown_length_totals_{0}
 graph_title {0} request processing length total breakdown
 graph_category weasyl
@@ -318,23 +318,23 @@ totalTimeInPython.min 0
 totalTimeInPython.draw AREASTACK
 totalTimeInPython.label total time in python
 totalTimeInPython.info The total time spent running python code since the last poll
-""".format(endpointName)
+""".format(endpointName))
 
-        print """
+        print("""
 multigraph weasyl_request_breakdown_queries_{0}
 graph_title {0} number of queries
 graph_category weasyl
 graph_args --base 1000 -l 0
 graph_vlabel queries
-""".format(endpointName)
+""".format(endpointName))
 
         for p in PERCENTILES:
-            print """
+            print("""
 percentile_{0}.type GAUGE
 percentile_{0}.min 0
 percentile_{0}.label {0}th percentile number of queries
 percentile_{0}.info The {0}th percentile of number of queries executed per request since the last poll
-""".format(p)
+""".format(p))
 
 
 class AMPFactory(protocol.ClientFactory):
@@ -349,7 +349,7 @@ def main(reactor, procName, *args):
     procName = os.path.basename(procName)
 
     clientEndpoints = {}
-    for k, v in os.environ.iteritems():
+    for k, v in os.environ.items():
         _, _, clientName = k.partition('client_endpoint_')
         if clientName:
             clientEndpoints[clientName] = clientFromString(reactor, v)
@@ -360,7 +360,7 @@ def main(reactor, procName, *args):
                for pluginClass in sorted(pluginClasses, key=nameLength, reverse=True)]
 
     if args == ('autoconf',):
-        print 'yes'
+        print('yes')
         return defer.succeed(None)
 
     if args == ('suggest',):
@@ -368,7 +368,7 @@ def main(reactor, procName, *args):
         for plugin in plugins:
             suggestions.extend((plugin.name + arg).partition(procName)[2]
                                for arg in plugin.suggest())
-        print '\n'.join(suggestion for suggestion in suggestions if suggestion)
+        print('\n'.join(suggestion for suggestion in suggestions if suggestion))
         return defer.succeed(None)
 
     for plugin in plugins:

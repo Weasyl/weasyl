@@ -1,5 +1,5 @@
 # encoding: utf-8
-from __future__ import absolute_import
+
 
 import pytest
 import json
@@ -114,7 +114,7 @@ def test_logins_with_unicode_failures_succeed_with_corresponding_status():
     old_2a_bcrypt_hash = '$2a$04$uOBx2JziJoxjq/F88NjQZ.8mRGE8FgLi3q0Rm3QUlBZnhhInXCb9K'
     d.engine.execute("UPDATE authbcrypt SET hashsum = %(hash)s WHERE userid = %(id)s",
                      hash=old_2a_bcrypt_hash, id=user_id)
-    result = login.authenticate_bcrypt(user_name, u"passwordé", request=None)
+    result = login.authenticate_bcrypt(user_name, "passwordé", request=None)
     assert result == (user_id, 'unicode-failure')
 
 

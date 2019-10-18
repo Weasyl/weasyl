@@ -2,9 +2,6 @@
 
 Just bear with me here.
 """
-
-
-
 import os
 import time
 
@@ -186,39 +183,39 @@ class FetchRequestStats(amp.Command):
     "A command to request request statistics from a running weasyl backend."
     arguments = []
     response = [
-        ('requestCount', amp.Integer()),
-        ('errorPercentage', amp.Float()),
-        ('mostActiveClients', amp.Integer()),
+        (b'requestCount', amp.Integer()),
+        (b'errorPercentage', amp.Float()),
+        (b'mostActiveClients', amp.Integer()),
     ]
 
 
 class FetchRequestLengthStats(amp.Command):
     "A command to request request length statistics from a running weasyl backend."
     arguments = [
-        ('percentiles', amp.ListOf(amp.Integer())),
-        ('lengths', amp.ListOf(amp.Float())),
+        (b'percentiles', amp.ListOf(amp.Integer())),
+        (b'lengths', amp.ListOf(amp.Float())),
     ]
     response = [
-        ('lengths', amp.ListOf(amp.Float(), optional=True)),
-        ('percentiles', amp.ListOf(amp.Float(), optional=True)),
+        (b'lengths', amp.ListOf(amp.Float(), optional=True)),
+        (b'percentiles', amp.ListOf(amp.Float(), optional=True)),
     ]
 
 
 class FetchRequestBreakdownStats(amp.Command):
     "A command to request request breakdown statistics from a running weasyl backend."
     arguments = [
-        ('percentiles', amp.ListOf(amp.Integer())),
+        (b'percentiles', amp.ListOf(amp.Integer())),
     ]
     response = [
-        ('averageTimeQueued', amp.Float(optional=True)),
-        ('averageTimeInSQL', amp.Float(optional=True)),
-        ('averageTimeInMemcached', amp.Float(optional=True)),
-        ('averageTimeInPython', amp.Float(optional=True)),
-        ('totalTimeQueued', amp.Float(optional=True)),
-        ('totalTimeInSQL', amp.Float(optional=True)),
-        ('totalTimeInMemcached', amp.Float(optional=True)),
-        ('totalTimeInPython', amp.Float(optional=True)),
-        ('queries', amp.ListOf(amp.Float(), optional=True)),
+        (b'averageTimeQueued', amp.Float(optional=True)),
+        (b'averageTimeInSQL', amp.Float(optional=True)),
+        (b'averageTimeInMemcached', amp.Float(optional=True)),
+        (b'averageTimeInPython', amp.Float(optional=True)),
+        (b'totalTimeQueued', amp.Float(optional=True)),
+        (b'totalTimeInSQL', amp.Float(optional=True)),
+        (b'totalTimeInMemcached', amp.Float(optional=True)),
+        (b'totalTimeInPython', amp.Float(optional=True)),
+        (b'queries', amp.ListOf(amp.Float(), optional=True)),
     ]
 
 
@@ -226,9 +223,9 @@ class FetchThreadPoolStats(amp.Command):
     "A command to request thread pool statistics from a running weasyl backend."
     arguments = []
     response = [
-        ('threadsWaiting', amp.Integer()),
-        ('threadsWorking', amp.Integer()),
-        ('workerQueueSize', amp.Integer()),
+        (b'threadsWaiting', amp.Integer()),
+        (b'threadsWorking', amp.Integer()),
+        (b'workerQueueSize', amp.Integer()),
     ]
 
 

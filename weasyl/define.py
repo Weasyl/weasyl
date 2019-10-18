@@ -154,7 +154,9 @@ def execute(statement, argv=None, options=None):
 
 
 def _quote_string(s):
-    quoted = QuotedString(s).getquoted()
+    # NB: psycopg2/psycopg2cffi would otherwise return `quoted` as a bytes object. Decode it back to a string.
+    # There's probably a Very Good Reason(TM) why, but I am not seeing it.
+    quoted = QuotedString(s).getquoted().decode("utf-8")
     assert quoted[0] == quoted[-1] == "'"
     return quoted[1:-1].replace('%', '%%')
 
@@ -165,11 +167,8 @@ def _sql_escape(target):
     unicode object, else the integer equivalent is returned.
     """
     if isinstance(target, str):
-        # Escape ASCII string
+        # Escape string (unicode)
         return _quote_string(target)
-    elif isinstance(target, str):
-        # Escape Unicode string
-        return _quote_string(target.encode("utf-8"))
     else:
         # Escape integer
         try:
@@ -568,8 +567,8 @@ def get_timestamp():
     return time.strftime("%Y-%m", time.localtime(get_time()))
 
 
-def _get_hash_path(charid):
-    id_hash = hashlib.sha1(str(charid)).hexdigest()
+def _get_hash_path(charid: int):
+    id_hash = hashlib.sha1(str(charid).encode("utf-8")).hexdigest()
     return "/".join([id_hash[i:i + 2] for i in range(0, 11, 2)]) + "/"
 
 

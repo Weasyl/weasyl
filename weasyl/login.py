@@ -158,8 +158,14 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     return USERID, status
 
 
-def passhash(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS))
+def passhash(password: str):
+    """
+    Returns a bcrypt password hash based on the provided password.
+    :param password: The password to hash.
+    :return: A bcrypt hash.
+    """
+    # Note: .decode("utf-8") here, otherwise it will return as a byte-string.
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS)).decode("utf-8")
 
 
 def password_secure(password):

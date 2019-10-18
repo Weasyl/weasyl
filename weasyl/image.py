@@ -17,7 +17,7 @@ COVER_SIZE = 1024, 3000
 
 def read(filename):
     try:
-        return Image.read(filename)
+        return Image.read(bytes(filename, "utf-8"))
     except SanperaError:
         log_exc(level=logging.DEBUG)
         raise WeasylError('imageDecodeError')
@@ -32,20 +32,20 @@ def from_string(filedata):
 
 
 def image_extension(im):
-    if im.original_format in ('JPG', 'JPEG'):
+    if im.original_format in (b'JPG', b'JPEG'):
         return '.jpg'
-    if im.original_format == 'PNG':
+    if im.original_format == b'PNG':
         return '.png'
-    if im.original_format == 'GIF':
+    if im.original_format == b'GIF':
         return '.gif'
 
 
 def image_setting(im):
-    if im.original_format in ('JPG', 'JPEG'):
+    if im.original_format in (b'JPG', b'JPEG'):
         return 'J'
-    if im.original_format == 'PNG':
+    if im.original_format == b'PNG':
         return 'P'
-    if im.original_format == 'GIF':
+    if im.original_format == b'GIF':
         return 'G'
 
 
@@ -74,7 +74,7 @@ def check_type(filename):
     except SanperaError:
         return False
     else:
-        return im.original_format in ['JPEG', 'PNG', 'GIF']
+        return im.original_format in [b'JPEG', b'PNG', b'GIF']
 
 
 def _resize(im, width, height):

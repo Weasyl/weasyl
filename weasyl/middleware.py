@@ -203,17 +203,17 @@ def _generate_http2_server_push_headers():
     time the code is relaunched (e.g., each time the web workers are kicked to a new version of the code).
 
     A component of ``http2_server_push_tween_factory``
-    :return: An ASCII encoded string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
+    :return: A string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
     """
     css_preload = [
-        '<' + item + '>; rel=preload; as=style' for item in [
+        "<{item}>; rel=preload; as=style".format(item=item) for item in [
             d.get_resource_path('css/site.css'),
             '/static/fonts/museo500.css',
         ]
     ]
 
     js_preload = [
-        '<' + item + '>; rel=preload; as=script' for item in [
+        "<{item}>; rel=preload; as=script".format(item=item) for item in [
             '/static/jquery-2.2.4.min.js',
             '/static/typeahead.bundle.min.js',
             '/static/marked.js?' + d.CURRENT_SHA,
@@ -221,7 +221,7 @@ def _generate_http2_server_push_headers():
         ]
     ]
 
-    return ", ".join(css_preload + js_preload).encode('ascii')
+    return ", ".join(css_preload + js_preload)
 
 
 # Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below

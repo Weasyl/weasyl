@@ -160,7 +160,8 @@ def reupload(userid, charid, submitdata):
     # Make submission file
     submitfile = files.make_resource(userid, charid, "char/submit", submitextension)
     files.ensure_file_directory(submitfile)
-    im.write(submitfile)
+    # Sanpera demands bytes, not a string.
+    im.write(filename=bytes(submitfile, "utf-8"))
 
     # Make cover file
     image.make_cover(
@@ -375,15 +376,19 @@ def edit(userid, character, friends_only):
     if "f" in settings:
         welcome.character_remove(character.charid)
 
-    define.execute(
-        """
-            UPDATE character
-            SET (char_name, age, gender, height, weight, species, content, rating, settings) =
-                ('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s')
-            WHERE charid = %i
-        """,
-        [character.char_name, character.age, character.gender, character.height, character.weight, character.species,
-         character.content, character.rating.code, settings, character.charid])
+    define.engine.execute("""
+        UPDATE character
+          SET (char_name, age, gender,
+               height, weight, species,
+               content, rating, settings) =
+            (%(char_name)s, %(age)s, %(gender)s,
+            %(height)s, %(weight)s, %(species)s,
+            %(content)s, %(rating)s, %(settings)s)
+        WHERE charid = %(charid)s
+    """, char_name=character.char_name, age=character.age, gender=character.gender, height=character.height,
+                          weight=character.weight, species=character.species, content=character.content,
+                          rating=character.rating.code, settings=settings, charid=character.charid,
+                          )
 
     if userid != query[0]:
         from weasyl import moderation

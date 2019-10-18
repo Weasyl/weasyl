@@ -14,7 +14,7 @@ from weasyl.test import db_utils
 
 
 recovery_code = "A" * tfa.LENGTH_RECOVERY_CODE
-recovery_code_hashed = bcrypt.hashpw(recovery_code.encode('utf-8'), bcrypt.gensalt(tfa.BCRYPT_WORK_FACTOR))
+recovery_code_hashed = bcrypt.hashpw(recovery_code.encode('utf-8'), bcrypt.gensalt(tfa.BCRYPT_WORK_FACTOR)).decode("utf-8")
 
 
 @pytest.mark.usefixtures('db')

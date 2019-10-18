@@ -112,7 +112,8 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
     if image.check_crop(size, x1, y1, x2, y2):
         bounds = geometry.Rectangle(x1, y1, x2, y2)
     thumb = images.make_thumbnail(im, bounds)
-    thumb.write(dest, format=images.image_file_type(thumb))
+    # Sanpera demands bytes, not strings.
+    thumb.write(filename=bytes(dest, "utf-8"), format=bytes(images.image_file_type(thumb), "utf-8"))
     if remove:
         os.remove(filename)
 

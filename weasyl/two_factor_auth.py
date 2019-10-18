@@ -26,21 +26,22 @@ LENGTH_RECOVERY_CODE = 20
 LENGTH_TOTP_CODE = 6
 
 
-def _encrypt_totp_secret(totp_secret):
+def _encrypt_totp_secret(totp_secret: str) -> str:
     """
     Symmetrically encrypt a 2FA TOTP secret.
 
     Parameters:
         - totp_secret: A 2FA TOTP secret key to encrypt prior to storing in the DB.
 
-    Returns: An encrypted Fernet token.
+    Returns: An encrypted Fernet token (encoded as a base64 utf-8 string).
     """
     key = config.config_read_setting(setting='secret_key', section='two_factor_auth')
     f = Fernet(key)
-    return f.encrypt(bytes(totp_secret))
+    # Must be converted to UTF-8; would otherwise be a byte-string
+    return str(f.encrypt(bytes(totp_secret, "utf-8")), "utf-8")
 
 
-def _decrypt_totp_secret(totp_secret):
+def _decrypt_totp_secret(totp_secret: str) -> str:
     """
     Decrypt a symmetrically encrypted 2FA TOTP secret.
 
@@ -51,7 +52,8 @@ def _decrypt_totp_secret(totp_secret):
     """
     key = config.config_read_setting(setting='secret_key', section='two_factor_auth')
     f = Fernet(key)
-    return f.decrypt(bytes(totp_secret))
+    # Must be converted to UTF-8; would otherwise be a byte-string
+    return str(f.decrypt(bytes(totp_secret, "utf-8")), "utf-8")
 
 
 def init(userid):
@@ -256,7 +258,7 @@ def store_recovery_codes(userid, recovery_codes):
             return False
 
     # Store the recovery codes securely by hashing them with bcrypt
-    hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)) for code in codes]
+    hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)).decode("utf-8") for code in codes]
 
     # If above checks have passed, clear current recovery codes for `userid` and store new ones
     d.engine.execute("""

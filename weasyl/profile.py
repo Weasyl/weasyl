@@ -132,21 +132,22 @@ def resolve_by_login(login):
 
 
 def select_profile(userid, avatar=False, banner=False, propic=False, images=False, commish=True, viewer=None):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
-            pr.settings, pr.stream_url, pr.config, pr.stream_text, lo.settings, us.end_time
+            pr.settings AS profile_settings, pr.stream_url, pr.config, pr.stream_text, 
+            lo.settings AS login_settings, us.end_time
         FROM profile pr
             INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
-        WHERE userid = %i
-    """, [userid], ["single"])
+        WHERE userid = %(userid)s
+    """, userid=userid).first()
 
     if not query:
         raise WeasylError('RecordMissing')
 
     streaming_status = "stopped"
-    if query[6]:  # profile.stream_url
-        if query[10] > d.get_time():  # user_streams.end_time
+    if query.stream_url and query.end_time is not None:  # profile.stream_url
+        if query.end_time > d.get_time():  # user_streams.end_time
             streaming_status = "started"
         elif 'l' in query[5]:
             streaming_status = "later"
@@ -154,20 +155,20 @@ def select_profile(userid, avatar=False, banner=False, propic=False, images=Fals
     return {
         "userid": userid,
         "user_media": media.get_user_media(userid),
-        "username": query[0],
-        "full_name": query[1],
-        "catchphrase": query[2],
-        "unixtime": query[3],
-        "profile_text": query[4],
-        "settings": query[5],
-        "stream_url": query[6],
-        "stream_text": query[8],
-        "config": query[7],
-        "show_favorites_bar": "u" not in query[7] and "v" not in query[7],
-        "show_favorites_tab": userid == viewer or "v" not in query[7],
+        "username": query.username,
+        "full_name": query.full_name,
+        "catchphrase": query.catchphrase,
+        "unixtime": query.unixtime,
+        "profile_text": query.profile_text,
+        "settings": query.profile_settings,
+        "stream_url": query.stream_url,
+        "stream_text": query.stream_text,
+        "config": query.config,
+        "show_favorites_bar": "u" not in query.config and "v" not in query.config,
+        "show_favorites_tab": userid == viewer or "v" not in query.config,
         "commish_slots": 0,
-        "banned": "b" in query[9],
-        "suspended": "s" in query[9],
+        "banned": "b" in query.login_settings,
+        "suspended": "s" in query.login_settings,
         "streaming_status": streaming_status,
     }
 

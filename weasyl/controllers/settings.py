@@ -511,18 +511,15 @@ def manage_following_post_(request):
 
 @login_required
 def manage_friends_(request):
-    form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
+    form = request.web_input(feature="")
 
     if form.feature == "pending":
         return Response(define.webpage(request.userid, "manage/friends_pending.html", [
-            frienduser.select_requests(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_requests(request.userid),
         ], title="Pending Friend Requests"))
     else:
         return Response(define.webpage(request.userid, "manage/friends_accepted.html", [
-            # Friends
-            frienduser.select_accepted(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_accepted(request.userid),
         ], title="Friends"))
 
 

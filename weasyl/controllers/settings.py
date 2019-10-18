@@ -511,9 +511,9 @@ def manage_following_post_(request):
 
 @login_required
 def manage_friends_(request):
-    form = request.web_input(feature="")
+    feature = request.params.get("feature")
 
-    if form.feature == "pending":
+    if feature == "pending":
         return Response(define.webpage(request.userid, "manage/friends_pending.html", [
             frienduser.select_requests(request.userid),
         ], title="Pending Friend Requests"))

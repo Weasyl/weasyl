@@ -6,6 +6,8 @@ This module defines functions which work on sanpera_ ``Image`` objects.
 .. _sanpera: https://pypi.python.org/pypi/sanpera
 """
 
+from __future__ import division
+
 from sanpera.image import Image
 from sanpera import geometry
 

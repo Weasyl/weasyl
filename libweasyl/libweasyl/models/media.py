@@ -1,3 +1,5 @@
+from __future__ import division
+
 import collections
 import hashlib
 from io import BytesIO

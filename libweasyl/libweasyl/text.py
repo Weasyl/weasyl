@@ -7,7 +7,7 @@ import misaka
 
 from .compat import str
 from .defang import defang
-from .legacy import login_name
+from .legacy import get_sysname
 
 
 def slug_for(title):
@@ -102,7 +102,7 @@ def _markdown(target):
 
 def create_link(t, username):
     link = etree.Element("a")
-    link.set("href", "/~" + login_name(username))
+    link.set("href", "/~" + get_sysname(username))
 
     if t == "~":
         link.text = username
@@ -110,7 +110,7 @@ def create_link(t, username):
         link.set("class", "user-icon")
 
         image = etree.SubElement(link, "img")
-        image.set("src", "/~{username}/avatar".format(username=login_name(username)))
+        image.set("src", "/~{username}/avatar".format(username=get_sysname(username)))
         image.set("alt", username)
 
         if t != "!":
@@ -208,7 +208,7 @@ def _markdown_fragment(target, image):
             t, _, user = href.partition(":")
 
             if t == "user":
-                link.attrib["href"] = "/~{user}".format(user=login_name(user))
+                link.attrib["href"] = "/~{user}".format(user=get_sysname(user))
             elif t == "da":
                 link.attrib["href"] = "https://www.deviantart.com/{user}".format(user=_deviantart(user))
             elif t == "ib":
@@ -250,10 +250,10 @@ def _markdown_fragment(target, image):
 
                     continue
 
-                image.set("src", "/~{user}/avatar".format(user=login_name(user)))
+                image.set("src", "/~{user}/avatar".format(user=get_sysname(user)))
 
                 link = etree.Element("a")
-                link.set("href", "/~{user}".format(user=login_name(user)))
+                link.set("href", "/~{user}".format(user=get_sysname(user)))
                 link.set("class", "user-icon")
                 parent.insert(list(parent).index(image), link)
                 parent.remove(image)

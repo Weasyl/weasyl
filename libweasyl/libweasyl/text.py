@@ -8,7 +8,7 @@ import misaka
 
 from .compat import unicode
 from .defang import defang
-from .legacy import login_name
+from .legacy import get_sysname
 
 try:
     from html.parser import locatestarttagend
@@ -111,7 +111,7 @@ def _markdown(target):
 
 def create_link(t, username):
     link = etree.Element(u"a")
-    link.set(u"href", u"/~" + login_name(username))
+    link.set(u"href", u"/~" + get_sysname(username))
 
     if t == "~":
         link.text = username
@@ -119,7 +119,7 @@ def create_link(t, username):
         link.set(u"class", u"user-icon")
 
         image = etree.SubElement(link, u"img")
-        image.set(u"src", u"/~{username}/avatar".format(username=login_name(username)))
+        image.set(u"src", u"/~{username}/avatar".format(username=get_sysname(username)))
         image.set(u"alt", username)
 
         if t != "!":
@@ -217,7 +217,7 @@ def _markdown_fragment(target, image):
             t, _, user = href.partition(":")
 
             if t == "user":
-                link.attrib["href"] = u"/~{user}".format(user=login_name(user))
+                link.attrib["href"] = u"/~{user}".format(user=get_sysname(user))
             elif t == "da":
                 link.attrib["href"] = u"https://www.deviantart.com/{user}".format(user=_deviantart(user))
             elif t == "ib":
@@ -259,10 +259,10 @@ def _markdown_fragment(target, image):
 
                     continue
 
-                image.set(u"src", u"/~{user}/avatar".format(user=login_name(user)))
+                image.set(u"src", u"/~{user}/avatar".format(user=get_sysname(user)))
 
                 link = etree.Element(u"a")
-                link.set(u"href", u"/~{user}".format(user=login_name(user)))
+                link.set(u"href", u"/~{user}".format(user=get_sysname(user)))
                 link.set(u"class", u"user-icon")
                 parent.insert(list(parent).index(image), link)
                 parent.remove(image)

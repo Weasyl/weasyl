@@ -13,9 +13,7 @@ import numbers
 import datetime
 import urlparse
 import functools
-import string
 import subprocess
-import unicodedata
 
 import anyjson as json
 import arrow
@@ -29,7 +27,7 @@ from sqlalchemy.exc import OperationalError
 from web.template import frender
 
 import libweasyl.constants
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
+from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
@@ -395,22 +393,6 @@ def get_token():
 
 def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
-
-
-_SYSNAME_CHARACTERS = (
-    set(unicode(string.ascii_lowercase)) |
-    set(unicode(string.digits)))
-
-
-def get_sysname(target):
-    """
-    Return `target` stripped of all non-alphanumeric characters and lowercased.
-    """
-    if isinstance(target, unicode):
-        normalized = unicodedata.normalize("NFD", target.lower())
-        return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS).encode("ascii")
-    else:
-        return "".join(i for i in target if i.isalnum()).lower()
 
 
 @region.cache_on_arguments()

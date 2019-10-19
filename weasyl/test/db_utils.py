@@ -4,9 +4,9 @@ import itertools
 
 import arrow
 
-from libweasyl import legacy
 from libweasyl import ratings
 from libweasyl import staff
+from libweasyl.legacy import get_sysname
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
@@ -43,7 +43,7 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
         username = "User-" + str(next(_user_index))
 
     while True:
-        user = add_entity(users.Login(login_name=legacy.login_name(username),
+        user = add_entity(users.Login(login_name=get_sysname(username),
                                       last_login=arrow.get(0)))
 
         if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:

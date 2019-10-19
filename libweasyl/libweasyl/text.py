@@ -219,7 +219,7 @@ def _markdown_fragment(target, image):
             if t == "user":
                 link.attrib["href"] = u"/~{user}".format(user=login_name(user))
             elif t == "da":
-                link.attrib["href"] = u"https://{user}.deviantart.com/".format(user=_deviantart(user))
+                link.attrib["href"] = u"https://www.deviantart.com/{user}".format(user=_deviantart(user))
             elif t == "ib":
                 link.attrib["href"] = u"https://inkbunny.net/{user}".format(user=_inkbunny(user))
             elif t == "fa":

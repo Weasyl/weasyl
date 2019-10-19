@@ -191,8 +191,8 @@ MACRO_CFG_SITE_CONFIG = MACRO_SYS_CONFIG_PATH + "site.config.txt"
 
 SOCIAL_SITES = {
     "deviantart": {
-        "name": "deviantArt",
-        "url": "https://%s.deviantart.com/",
+        "name": "DeviantArt",
+        "url": "https://www.deviantart.com/%s",
     },
     "facebook": {
         "name": "Facebook",

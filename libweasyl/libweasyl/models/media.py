@@ -92,19 +92,6 @@ class MediaItem(Base):
                 thumbnail.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
                 im=thumbnail)
 
-    def make_popup(self, source_image=None):
-        if self.file_type not in {'jpg', 'png', 'gif'}:
-            raise ValueError('can only auto-popup image media items')
-        if source_image is None:
-            source_image = self.as_image()
-        thumbnail = images.make_popup(source_image)
-        if thumbnail is source_image:
-            return self
-        else:
-            return fetch_or_create_media_item(
-                thumbnail.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
-                im=thumbnail)
-
 
 class DiskMediaItem(MediaItem):
     __table__ = tables.disk_media

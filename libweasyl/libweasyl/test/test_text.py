@@ -18,7 +18,7 @@ user_linking_markdown_tests = [
     ('<!~spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"> <span>spam</span></a>'),
     ('<user:spam>', '<a href="/~spam">spam</a>'),
     ('<fa:spam>', '<a href="https://www.furaffinity.net/user/spam" rel="nofollow">spam</a>'),
-    ('<da:spam>', '<a href="https://spam.deviantart.com/" rel="nofollow">spam</a>'),
+    ('<da:spam>', '<a href="https://www.deviantart.com/spam" rel="nofollow">spam</a>'),
     ('<ib:spam>', '<a href="https://inkbunny.net/spam" rel="nofollow">spam</a>'),
     ('<sf:spam>', '<a href="https://spam.sofurry.com/" rel="nofollow">spam</a>'),
 ]

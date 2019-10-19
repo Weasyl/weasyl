@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import os
 import re
@@ -749,7 +749,7 @@ def convert_inputdate(target):
 
 
 def convert_age(target):
-    return (get_time() - target) / 31556926
+    return (get_time() - target) // 31556926
 
 
 def age_in_years(birthdate):

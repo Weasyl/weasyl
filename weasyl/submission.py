@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import urlparse
 from io import BytesIO
@@ -536,7 +536,7 @@ def reupload(userid, submitid, submitfile):
     elif "v" in query[2] or "D" in query[2]:
         raise WeasylError("Unexpected")
 
-    subcat = query[1] / 1000 * 1000
+    subcat = query[1] // 1000 * 1000
     if subcat not in m.ALL_SUBMISSION_CATEGORIES:
         raise WeasylError("Unexpected")
 
@@ -769,7 +769,7 @@ def twitter_card(submitid):
 
     ret['description'] = content
 
-    subcat = subtype / 1000 * 1000
+    subcat = subtype // 1000 * 1000
     media_items = media.get_submission_media(submitid)
     if subcat == m.ART_SUBMISSION_CATEGORY and media_items.get('submission'):
         ret['card'] = 'photo'
@@ -983,7 +983,7 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("Unexpected")
     elif not folder.check(query[0], submission.folderid):
         raise WeasylError("Unexpected")
-    elif submission.subtype / 1000 != query[1] / 1000:
+    elif submission.subtype // 1000 != query[1] // 1000:
         raise WeasylError("Unexpected")
     elif 'v' in query[2] and not embed.check_valid(embedlink):
         raise WeasylError("embedlinkInvalid")

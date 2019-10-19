@@ -74,9 +74,7 @@ def select_ids(userid):
 
 
 def insert(userid, title, rating):
-    if rating not in ratings.CODE_MAP:
-        rating = ratings.GENERAL.code
-
+    rating = ratings.CODE_MAP.get(rating, ratings.GENERAL)
     profile.check_user_rating_allowed(userid, rating)
 
     d.engine.execute(

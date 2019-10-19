@@ -89,7 +89,6 @@ class CharSettingsColumn(types.TypeDecorator):
     file_type_things = {
         '~': 'cover',
         '-': 'thumb',
-        '+': 'popup',
         '=': 'submit',
         '>': 'avatar',
         '<': 'banner',

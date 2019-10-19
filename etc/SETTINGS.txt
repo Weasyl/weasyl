@@ -4,7 +4,6 @@ File type indicators
 
 ~  cover
 -  thumb
-+  popup
 =  submit
 >  avatar
 <  banner

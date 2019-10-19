@@ -7,31 +7,41 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-def check(userid, otherid, pending=False, myself=True):
+def check(userid, otherid):
+    """
+    Check whether two users are confirmed friends.
+
+    A user is considered their own friend.
+    """
     if not userid or not otherid:
         return False
-    elif userid == otherid:
-        return myself
 
-    if pending:
-        return d.execute(
-            "SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%i, %i) OR (userid, otherid) = (%i, %i))",
-            [userid, otherid, otherid, userid], options="bool")
-    else:
-        return d.execute(
-            "SELECT EXISTS (SELECT 0 FROM frienduser WHERE ((userid, otherid) = (%i, %i) OR (userid, otherid) = (%i, %i))"
-            " AND settings !~ 'p')", [userid, otherid, otherid, userid], options="bool")
-
-
-def already_pending(userid, otherid, myself=True):
-    if not userid or not otherid:
-        return False
     if userid == otherid:
-        return myself
+        return True
 
-    return d.execute(
-        "SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%i, %i) AND settings ~ 'p')",
-        [userid, otherid], options="bool")
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT FROM frienduser"
+        " WHERE ((userid, otherid) = (%(user)s, %(other)s) OR (userid, otherid) = (%(other)s, %(user)s))"
+        " AND settings !~ 'p')",
+        user=userid,
+        other=otherid,
+    )
+
+
+def already_pending(userid, otherid):
+    """
+    Check whether a pending friend request exists from userid to otherid.
+
+    Does not find friend requests in the other direction. Returns False if the
+    two users are already confirmed friends.
+    """
+    assert userid and otherid and userid != otherid
+
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%(user)s, %(other)s) AND settings ~ 'p')",
+        user=userid,
+        other=otherid,
+    )
 
 
 def has_friends(otherid):
@@ -41,10 +51,9 @@ def has_friends(otherid):
     )
 
 
-def select_friends(userid, otherid, limit=None, backid=None, nextid=None, choose=False):
+def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
     """
-    Return accepted friends. If `choose` is an integer, results will be ordered
-    randomly.
+    Return accepted friends.
     """
     fr = d.meta.tables['frienduser']
     pr = d.meta.tables['profile']
@@ -73,12 +82,9 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None, choose
         query = query.where(
             friends.c.username > d.sa.select([pr.c.username]).where(pr.c.userid == nextid))
 
-    if choose:
-        query = query.order_by('RANDOM()')
-    else:
-        query = query.order_by(
-            friends.c.username.desc() if backid else friends.c.username.asc())
-        query = query.limit(limit)
+    query = query.order_by(
+        friends.c.username.desc() if backid else friends.c.username.asc())
+    query = query.limit(limit)
 
     db = d.connect()
     query = [{
@@ -86,15 +92,15 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None, choose
         "username": r.username,
     } for r in db.execute(query)]
 
-    ret = (d.get_random_set(query, choose) if choose else query[::-1] if backid else query)
+    ret = query[::-1] if backid else query
     media.populate_with_user_media(ret)
     return ret
 
 
-def select_accepted(userid, limit=None, backid=None, nextid=None):
+def select_accepted(userid):
     result = []
     query = d.execute(
-        "SELECT fr.userid, p1.username, p1.config, fr.otherid, p2.username, p2.config, fr.settings FROM frienduser fr"
+        "SELECT fr.userid, p1.username, fr.otherid, p2.username FROM frienduser fr"
         " INNER JOIN profile p1 ON fr.userid = p1.userid"
         " INNER JOIN profile p2 ON fr.otherid = p2.userid"
         " WHERE %i IN (fr.userid, fr.otherid) AND fr.settings !~ 'p'"
@@ -105,28 +111,26 @@ def select_accepted(userid, limit=None, backid=None, nextid=None):
             result.append({
                 "userid": i[0],
                 "username": i[1],
-                "settings": i[6],
             })
         else:
             result.append({
-                "userid": i[3],
-                "username": i[4],
-                "settings": i[6],
+                "userid": i[2],
+                "username": i[3],
             })
 
     media.populate_with_user_media(result)
     return result
 
 
-def select_requests(userid, limit=None, backid=None, nextid=None):
-    query = d.execute("SELECT fr.userid, pr.username, pr.config, fr.settings FROM frienduser fr"
+def select_requests(userid):
+    query = d.execute("SELECT fr.userid, pr.username, fr.settings FROM frienduser fr"
                       " INNER JOIN profile pr ON fr.userid = pr.userid"
                       " WHERE fr.otherid = %i AND fr.settings ~ 'p'", [userid])
 
     ret = [{
         "userid": i[0],
         "username": i[1],
-        "settings": i[3],
+        "settings": i[2],
     } for i in query]
 
     media.populate_with_user_media(ret)
@@ -139,15 +143,13 @@ def request(userid, otherid):
     elif ignoreuser.check(userid, otherid):
         raise WeasylError("YouIgnored")
 
-    if d.execute("SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%i, %i) AND settings ~ 'p')",
-                 [otherid, userid], options="bool"):
+    if already_pending(otherid, userid):
         d.execute("UPDATE frienduser SET settings = REPLACE(settings, 'p', '') WHERE (userid, otherid) = (%i, %i)",
                   [otherid, userid])
 
         welcome.frienduseraccept_insert(userid, otherid)
         welcome.frienduserrequest_remove(userid, otherid)
-    elif not d.execute("SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%i, %i) AND settings ~ 'p')",
-                       [userid, otherid], options="bool"):
+    elif not already_pending(userid, otherid):
         d.execute("INSERT INTO frienduser VALUES (%i, %i)", [userid, otherid])
 
         welcome.frienduserrequest_remove(userid, otherid)

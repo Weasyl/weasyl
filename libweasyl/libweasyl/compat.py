@@ -15,4 +15,4 @@ else:
     iterbytes = iter
 
 
-__all__ = ['_PY3', 'iterbytes', 'unicode']
+__all__ = ['_PY3', 'iterbytes', 'str']

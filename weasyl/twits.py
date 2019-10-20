@@ -11,7 +11,6 @@ from twisted.web.http import PotentialDataLoss
 from twisted.internet import defer, protocol
 import oauth2
 
-import urllib.parse
 import urllib.request, urllib.parse, urllib.error
 import json
 

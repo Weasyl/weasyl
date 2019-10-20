@@ -9,7 +9,6 @@ import itertools
 import logging
 import numbers
 import datetime
-import urllib.parse
 import functools
 import subprocess
 

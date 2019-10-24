@@ -793,6 +793,15 @@ submission = Table(
         ['user_agents.user_agent_id'],
         name="submission_agent_id_fkey",
     ),
+    Index(
+        'ind_submission_score',
+        text("""(
+            log(favorites + 1)
+                + log(page_views + 1) / 2
+                + unixtime / 180000.0
+        )"""),
+        postgresql_where=text("favorites IS NOT NULL"),
+    ),
 )
 
 Index('ind_submission_folderid', submission.c.folderid)

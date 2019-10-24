@@ -1070,8 +1070,7 @@ def reupload_cover(userid, submitid, coverfile):
 @d.record_timing
 def select_recently_popular():
     """
-    Get a list of recent, popular submissions. This operation is non-trivial and should
-    not be used frequently without caching.
+    Get a list of recent, popular submissions.
 
     To calculate scores, this method performs the following evaluation:
 
@@ -1084,11 +1083,9 @@ def select_recently_popular():
 
     :return: A list of submission dictionaries, in score-rank order.
     """
-    max_days = int(d.config_read_setting("popular_max_age_days", "21"))
-
     query = d.engine.execute("""
         SELECT
-            log(count(favorite.*) + 1) +
+            log(submission.favorites + 1) +
                 log(submission.page_views + 1) / 2 +
                 submission.unixtime / 180000.0 AS score,
             submission.submitid,
@@ -1102,14 +1099,12 @@ def select_recently_popular():
         FROM submission
             INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
             INNER JOIN profile ON submission.userid = profile.userid
-            LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
         WHERE
-            submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
             submission.settings !~ '[hf]'
-        GROUP BY submission.submitid, submission_tags.submitid, profile.userid
+            AND submission.favorites IS NOT NULL
         ORDER BY score DESC
         LIMIT 128
-    """, max_days=max_days)
+    """)
 
     submissions = [dict(row, contype=10) for row in query]
     media.populate_with_submission_media(submissions)

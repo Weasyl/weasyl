@@ -60,12 +60,8 @@ def _limit(size, extension):
     Return True if the file size exceeds the limit designated to the specified
     file type, else False.
     """
-    limit = _LIMITS.get(extension)
-
-    if limit is None:
-        return None
-    else:
-        return size > limit
+    limit = _LIMITS[extension]
+    return size > limit
 
 
 def _create_notifications(userid, submitid, rating, settings, title, tags):
@@ -199,10 +195,10 @@ def create_visual(userid, submission,
 
     im = image.from_string(submitfile)
     submitextension = image.image_extension(im)
+    if submitextension not in [".jpg", ".png", ".gif"]:
+        raise WeasylError("submitType")
     if _limit(submitsize, submitextension):
         raise WeasylError("submitSizeExceedsLimit")
-    elif submitextension not in [".jpg", ".png", ".gif"]:
-        raise WeasylError("submitType")
 
     # Check if the submission is spam
     is_spam = _check_for_spam(submission=submission, userid=userid)

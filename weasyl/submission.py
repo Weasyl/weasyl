@@ -577,7 +577,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, su.sorttime, pr.config, fd.title
+            su.page_views, su.sorttime, pr.config, fd.title, su.favorites
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
@@ -623,6 +623,13 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     tags, artist_tags = searchtag.select_with_artist_tags(submitid)
     settings = d.get_profile_settings(query[0])
 
+    fave_count = query[13]
+
+    if fave_count is None:
+        fave_count = d.execute(
+            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
+            [submitid], ["element"])
+
     return {
         "submitid": submitid,
         "userid": query[0],
@@ -636,9 +643,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "settings": query[8],
         "page_views": (
             query[9] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[9]),
-        "fave_count": d.execute(
-            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
-            [submitid], ["element"]),
+        "fave_count": fave_count,
 
 
         "mine": userid == query[0],

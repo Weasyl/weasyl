@@ -6,14 +6,11 @@ from twisted.application.internet import StreamServerEndpointService
 from twisted.application import service
 from twisted.internet import reactor, endpoints
 from twisted.web.wsgi import WSGIResource
-from dozer import Dozer
 
 import weasyl.polecat
 import weasyl.wsgi
 import weasyl.define as d
 from libweasyl import cache
-
-weasyl.wsgi.wsgi_app = Dozer(weasyl.wsgi.wsgi_app)
 
 threadPool = reactor.getThreadPool()
 threadPool.adjustPoolsize(minthreads=6, maxthreads=12)

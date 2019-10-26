@@ -218,7 +218,7 @@ class FetchRequestBreakdownStats(amp.Command):
         ('totalTimeInSQL', amp.Float(optional=True)),
         ('totalTimeInMemcached', amp.Float(optional=True)),
         ('totalTimeInPython', amp.Float(optional=True)),
-        ('queries', amp.ListOf(amp.Float(), optional=True)),
+        ('queries', amp.ListOf(amp.Integer(), optional=True)),
     ]
 
 

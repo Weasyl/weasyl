@@ -382,8 +382,23 @@ class RemoveSessionCookieProcessor(raven.processors.Processor):
         if 'headers' in data and 'Cookie' in data['headers']:
             data['headers']['Cookie'] = self._filter_header(data['headers']['Cookie'])
 
-        if 'env' in data and 'HTTP_COOKIE' in data['env']:
-            data['env']['HTTP_COOKIE'] = self._filter_header(data['env']['HTTP_COOKIE'])
+        env = data.get('env')
+
+        if env is not None:
+            if 'HTTP_COOKIE' in env:
+                env['HTTP_COOKIE'] = self._filter_header(env['HTTP_COOKIE'])
+
+            # WebOb cache, like:
+            #  - webob._parsed_query_vars
+            #  - webob._body_file
+            #  - webob._parsed_post_vars
+            #  - webob._parsed_cookies
+            # These mostly just repeat information that can be found elsewhere,
+            # so they’re removed rather than filtered.
+            remove_keys = [key for key in env if key.startswith('webob._')]
+            for key in remove_keys:
+                del env[key]
+
 
 
 class URLSchemeFixingMiddleware(object):

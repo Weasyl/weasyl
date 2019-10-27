@@ -151,14 +151,6 @@ s  Submission
 f  Character
 j  Journal entry
 
---------------------
-favorite.settings ()
---------------------
-
-p  Private
-f  Friends-only
-m  Members-only
-
 ---------------------
 character.settings ()
 ---------------------

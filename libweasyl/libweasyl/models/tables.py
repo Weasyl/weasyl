@@ -196,7 +196,6 @@ favorite = Table(
     Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
     Column('type', String(length=5), primary_key=True, nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('settings', String(length=20), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='favorite_userid_fkey'),
 )
 

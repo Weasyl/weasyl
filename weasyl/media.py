@@ -49,21 +49,12 @@ def get_user_media(userid):
 
 
 def build_populator(identity, media_key, multi_get):
-    def populator(dicts, strict=True):
-        to_fetch = []
-        for e, d in enumerate(dicts):
-            if identity not in d:
-                if strict:
-                    raise KeyError(identity, d)
-                else:
-                    continue
-            to_fetch.append((d[identity], e))
-        if not to_fetch:
-            return dicts
-        keys_to_fetch, indices = zip(*to_fetch)
-        for index, value in zip(indices, multi_get(*keys_to_fetch)):
-            dicts[index][media_key] = value
-        return dicts
+    def populator(dicts):
+        if not dicts:
+            return
+        keys_to_fetch = [d[identity] for d in dicts]
+        for d, value in zip(dicts, multi_get(*keys_to_fetch)):
+            d[media_key] = value
     return populator
 
 

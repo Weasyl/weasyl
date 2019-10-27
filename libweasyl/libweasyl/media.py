@@ -31,11 +31,10 @@ def build_populator(identity, multi_get):
         # and fetching the attribute will fetch the media.
         needy_objects = list({o for o in objects if 'media' not in vars(o)})
         if not needy_objects:
-            return objects
+            return
         keys_to_fetch = [getattr(o, identity) for o in needy_objects]
         for o, value in zip(needy_objects, multi_get(*keys_to_fetch)):
             o.media = value
-        return objects
     return populator
 
 

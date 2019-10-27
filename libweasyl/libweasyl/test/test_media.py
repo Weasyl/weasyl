@@ -159,9 +159,10 @@ def test_populator_dedup():
     objects.
     """
     o1, o2 = MediaBag(id=1), MediaBag(id=2)
+    objs = [o1, o2, o1, o2]
     with build_multi_get(2) as multi_get:
-        results = media.build_populator('id', multi_get)([o1, o2, o1, o2])
-    assert results == [o1, o2, o1, o2]
+        media.build_populator('id', multi_get)(objs)
+    assert objs == [o1, o2, o1, o2]
 
 
 def test_populator_only_fetches_needy():
@@ -184,5 +185,6 @@ def test_populator_aborts_early():
     def multi_get(*keys):
         raise AssertionError('tried calling multi_get')
 
-    results = media.build_populator('id', multi_get)([o1, o2])
-    assert results == [o1, o2]
+    objs = [o1, o2]
+    media.build_populator('id', multi_get)(objs)
+    assert objs == [o1, o2]

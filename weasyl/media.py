@@ -52,12 +52,9 @@ def build_populator(identity, media_key, multi_get):
     def populator(dicts):
         if not dicts:
             return
-        to_fetch = []
-        for e, d in enumerate(dicts):
-            to_fetch.append((d[identity], e))
-        keys_to_fetch, indices = zip(*to_fetch)
-        for index, value in zip(indices, multi_get(*keys_to_fetch)):
-            dicts[index][media_key] = value
+        keys_to_fetch = [d[identity] for d in dicts]
+        for d, value in zip(dicts, multi_get(*keys_to_fetch)):
+            d[media_key] = value
     return populator
 
 

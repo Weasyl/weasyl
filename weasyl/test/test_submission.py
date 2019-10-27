@@ -260,7 +260,7 @@ class SelectListTestCase(unittest.TestCase):
 
         for i in range(100):
             favoriter = db_utils.create_user()
-            db_utils.create_favorite(favoriter, sub2, 's', unixtime=now)
+            db_utils.create_favorite(favoriter, submitid=sub2, unixtime=now)
 
         recently_popular = submission.select_recently_popular()
 

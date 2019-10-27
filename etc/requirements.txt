@@ -11,13 +11,12 @@ txstatsd==1.0.0+weasyl.2    # https://github.com/Weasyl/txstatsd
 crochet==1.10.0
 txyam2==0.5.1+weasyl.2      # https://github.com/Weasyl/txyam2
 mock==2.0.0
-Dozer==0.7                  # For WSGI memory profiling
-Pillow==6.2.0               # For WSGI memory profiling
+Pillow==6.2.1
 pyramid==1.10.4
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
 WebTest==2.0.33
 pyotp==2.3.0                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
-cryptography==2.7         # For Two-Factor Authentication
+cryptography==2.8         # For Two-Factor Authentication
 publicsuffixlist==0.6.11     # For extracting the base domain for the email blacklist
 python-akismet==0.4.1       # For spam filtering

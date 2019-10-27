@@ -10,6 +10,7 @@ from libweasyl.legacy import get_sysname
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
+from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
@@ -95,7 +96,7 @@ def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=ar
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(
         userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
-        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings))
+        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings, favorites=0))
     update_last_submission_time(userid, unixtime)
     return submission.submitid
 
@@ -253,8 +254,20 @@ def create_blocktag(userid, tagid, rating):
     db.flush()
 
 
-def create_favorite(userid, targetid, type, unixtime=arrow.get(1), settings=None):
-    db = d.connect()
-    db.add(content.Favorite(userid=userid, targetid=targetid, type=type,
-                            unixtime=unixtime, settings=settings))
-    db.flush()
+def create_favorite(userid, **kwargs):
+    unixtime = kwargs.pop('unixtime', None)
+    favorite.insert(userid, **kwargs)
+
+    if unixtime is not None:
+        if 'submitid' in kwargs:
+            type_ = 's'
+        elif 'charid' in kwargs:
+            type_ = 'c'
+        elif 'journalid' in kwargs:
+            type_ = 'j'
+
+        targetid = d.get_targetid(*kwargs.values())
+
+        fav = content.Favorite.query.filter_by(userid=userid, type=type_, targetid=targetid).one()
+        fav.unixtime = unixtime
+        content.Favorite.dbsession.flush()

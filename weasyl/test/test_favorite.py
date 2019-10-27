@@ -24,7 +24,7 @@ class SelectSubmissionCountTestCase(unittest.TestCase):
         time = 100
         for submitid in s:
             time = time + 1
-            f.append(db_utils.create_favorite(self.user2, submitid, 's', unixtime=arrow.get(time)))
+            f.append(db_utils.create_favorite(self.user2, submitid=submitid, unixtime=arrow.get(time)))
 
     def test_count_backid(self):
         self.assertEqual(

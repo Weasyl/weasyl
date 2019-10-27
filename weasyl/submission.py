@@ -58,12 +58,8 @@ def _limit(size, extension):
     Return True if the file size exceeds the limit designated to the specified
     file type, else False.
     """
-    limit = _LIMITS.get(extension)
-
-    if limit is None:
-        return None
-    else:
-        return size > limit
+    limit = _LIMITS[extension]
+    return size > limit
 
 
 def _create_notifications(userid, submitid, rating, settings, title, tags):
@@ -197,10 +193,10 @@ def create_visual(userid, submission,
 
     im = image.from_string(submitfile)
     submitextension = image.image_extension(im)
+    if submitextension not in [".jpg", ".png", ".gif"]:
+        raise WeasylError("submitType")
     if _limit(submitsize, submitextension):
         raise WeasylError("submitSizeExceedsLimit")
-    elif submitextension not in [".jpg", ".png", ".gif"]:
-        raise WeasylError("submitType")
 
     # Check if the submission is spam
     is_spam = _check_for_spam(submission=submission, userid=userid)
@@ -370,6 +366,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
             "subtype": submission.subtype,
             "rating": submission.rating.code,
             "settings": settings,
+            "favorites": 0,
             "sorttime": now,
             "is_spam": is_spam,
             "submitter_ip_address": submission.submitter_ip_address,
@@ -488,6 +485,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             "subtype": submission.subtype,
             "rating": submission.rating,
             "settings": settings,
+            "favorites": 0,
             "sorttime": now,
             "is_spam": is_spam,
             "submitter_ip_address": submission.submitter_ip_address,
@@ -577,7 +575,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, su.sorttime, pr.config, fd.title
+            su.page_views, su.sorttime, pr.config, fd.title, su.favorites
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
@@ -623,6 +621,13 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     tags, artist_tags = searchtag.select_with_artist_tags(submitid)
     settings = d.get_profile_settings(query[0])
 
+    fave_count = query[13]
+
+    if fave_count is None:
+        fave_count = d.execute(
+            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
+            [submitid], ["element"])
+
     return {
         "submitid": submitid,
         "userid": query[0],
@@ -636,9 +641,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "settings": query[8],
         "page_views": (
             query[9] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[9]),
-        "fave_count": d.execute(
-            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
-            [submitid], ["element"]),
+        "fave_count": fave_count,
 
 
         "mine": userid == query[0],
@@ -1070,8 +1073,7 @@ def reupload_cover(userid, submitid, coverfile):
 @d.record_timing
 def select_recently_popular():
     """
-    Get a list of recent, popular submissions. This operation is non-trivial and should
-    not be used frequently without caching.
+    Get a list of recent, popular submissions.
 
     To calculate scores, this method performs the following evaluation:
 
@@ -1084,11 +1086,9 @@ def select_recently_popular():
 
     :return: A list of submission dictionaries, in score-rank order.
     """
-    max_days = int(d.config_read_setting("popular_max_age_days", "21"))
-
     query = d.engine.execute("""
         SELECT
-            log(count(favorite.*) + 1) +
+            log(submission.favorites + 1) +
                 log(submission.page_views + 1) / 2 +
                 submission.unixtime / 180000.0 AS score,
             submission.submitid,
@@ -1102,14 +1102,12 @@ def select_recently_popular():
         FROM submission
             INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
             INNER JOIN profile ON submission.userid = profile.userid
-            LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
         WHERE
-            submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
             submission.settings !~ '[hf]'
-        GROUP BY submission.submitid, submission_tags.submitid, profile.userid
+            AND submission.favorites IS NOT NULL
         ORDER BY score DESC
         LIMIT 128
-    """, max_days=max_days)
+    """)
 
     submissions = [dict(row, contype=10) for row in query]
     media.populate_with_submission_media(submissions)

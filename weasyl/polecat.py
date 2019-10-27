@@ -81,7 +81,7 @@ class WeasylSite(Site):
 
     def readRequestCount(self):
         "Return and reset the request count, request error percentage, and maximum active client count."
-        errorPercentage = 0
+        errorPercentage = 0.0
         if self.requestCount:
             errorPercentage = self.errorCount / self.requestCount * 100
         ret = self.requestCount, errorPercentage, self.mostActiveClients
@@ -215,7 +215,7 @@ class FetchRequestBreakdownStats(amp.Command):
         (b'totalTimeInSQL', amp.Float(optional=True)),
         (b'totalTimeInMemcached', amp.Float(optional=True)),
         (b'totalTimeInPython', amp.Float(optional=True)),
-        (b'queries', amp.ListOf(amp.Float(), optional=True)),
+        (b'queries', amp.ListOf(amp.Integer(), optional=True)),
     ]
 
 

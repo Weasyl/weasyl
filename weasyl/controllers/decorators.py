@@ -116,9 +116,3 @@ def supports_json(view_callable):
             return Response(json.dumps(result), headerlist=[("Content-Type", "application/json")])
         return view_callable(request)
     return inner
-
-
-class controller_base(object):
-    """Temporary class to make incremental re-implementation easier."""
-    # TODO: Delete this.
-    pass

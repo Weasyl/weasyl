@@ -168,12 +168,11 @@ def _sql_escape(target):
     elif isinstance(target, unicode):
         # Escape Unicode string
         return _quote_string(target.encode("utf-8"))
-    else:
+    elif type(target) is int:
         # Escape integer
-        try:
-            return int(target)
-        except:
-            return 0
+        return target
+    else:
+        raise TypeError("Can't escape %r" % (target,))
 
 
 def sql_number_list(target):
@@ -511,12 +510,15 @@ def get_display_name(userid):
 
 
 def get_int(target):
+    if target is None:
+        return 0
+
     if isinstance(target, numbers.Number):
         return int(target)
 
     try:
         return int("".join(i for i in target if i.isdigit()))
-    except:
+    except ValueError:
         return 0
 
 
@@ -679,8 +681,8 @@ def convert_unixdate(day, month, year):
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except:
-        return
+    except ValueError:
+        return None
     # range of a postgres integer
     if ret > 2147483647 or ret < -2147483648:
         return None

@@ -115,8 +115,6 @@ def session_tween_factory(handler, registry):
         if sess_obj is None:
             sess_obj = create_guest_session()
 
-        # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
-        # thrown before this part will not be handled correctly.
         request.weasyl_session = sess_obj
 
         # Register a response callback to set the session cookies before returning.

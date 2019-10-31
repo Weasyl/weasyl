@@ -19,6 +19,7 @@ $def with (profile, userinfo, relationship)
     <div id="user-image">
       <img class="lazy" data-src="${banner['display_url']}" src="${CDNIFY('/static/images/user-image-blank.png')}" alt="" />
       <noscript><img src="${banner['display_url']}" alt="" /></noscript>
+      <svg class="img-space" width="${banner['attributes']['width']}" height="${banner['attributes']['height']}"></svg>
     </div><!-- /user-image -->
 
   $ avatar = profile['user_media']['avatar'][0]

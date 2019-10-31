@@ -1,6 +1,8 @@
+import logging
 import os
 
 from akismet import Akismet, SpamStatus
+from pyramid.threadlocal import get_current_request
 
 from weasyl import config
 from weasyl import define as d
@@ -76,7 +78,16 @@ def check(
         "is_test": _IS_ENVIRONMENT_TESTING,
     }
     if FILTERING_ENABLED:
-        return _akismet.check(**payload)
+        try:
+            return _akismet.check(**payload)
+        except ConnectionError as errmsg:
+            # Don't fail just because of a connection issue to the Akismet backend.
+            request = get_current_request()
+            request.environ['raven.captureMessage']("""
+                Failed to connect to Akismet; Content from user [{user}] was not checked. Error was:
+                {errmsg}
+            """.format(user=login_name, errmsg=repr(errmsg)), level=logging.WARNING)
+            return SpamStatus.Ham
     else:
         return SpamStatus.Ham
 

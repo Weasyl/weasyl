@@ -1,3 +1,4 @@
+import logging
 import os
 
 from akismet import Akismet, SpamStatus
@@ -76,7 +77,12 @@ def check(
         "is_test": _IS_ENVIRONMENT_TESTING,
     }
     if FILTERING_ENABLED:
-        return _akismet.check(**payload)
+        try:
+            return _akismet.check(**payload)
+        except ConnectionError:
+            # Don't fail just because of a connection issue to the Akismet backend; but log that we failed.
+            d.log_exc(level=logging.WARNING)
+            return SpamStatus.Ham
     else:
         return SpamStatus.Ham
 

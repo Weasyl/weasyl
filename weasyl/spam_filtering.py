@@ -2,6 +2,8 @@ import logging
 import os
 
 from akismet import Akismet, SpamStatus
+# Imported as RequestsConnectionError to not conflict with Python 3's built-in ConnectionError exception
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weasyl import config
 from weasyl import define as d
@@ -79,7 +81,7 @@ def check(
     if FILTERING_ENABLED:
         try:
             return _akismet.check(**payload)
-        except ConnectionError:
+        except RequestsConnectionError:
             # Don't fail just because of a connection issue to the Akismet backend; but log that we failed.
             d.log_exc(level=logging.WARNING)
             return SpamStatus.Ham

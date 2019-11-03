@@ -40,4 +40,4 @@ def test_verify_success_if_valid_information_provided():
     resetpassword.request(form)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     assert 100 == len(pw_reset_token)
-    assert resetpassword.checktoken(pw_reset_token)
+    assert resetpassword.prepare(pw_reset_token)

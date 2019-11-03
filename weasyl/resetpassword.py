@@ -8,10 +8,6 @@ from weasyl import emailer
 from weasyl.error import WeasylError
 
 
-def checktoken(token):
-    return d.execute("SELECT EXISTS (SELECT 0 FROM forgotpassword WHERE token = '%s')", [token], option="bool")
-
-
 # form
 #   email
 
@@ -57,8 +53,13 @@ def prepare(token):
 
     # Set the unixtime record for which the link associated with `token` was
     # visited by the user
-    d.execute("UPDATE forgotpassword SET link_time = %i WHERE token = '%s'",
-              [d.get_time(), token])
+    result = d.engine.execute(
+        "UPDATE forgotpassword SET link_time = %(now)s WHERE token = %(token)s",
+        now=d.get_time(),
+        token=token,
+    )
+
+    return result.rowcount == 1
 
 
 # form

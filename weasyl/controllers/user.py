@@ -297,12 +297,10 @@ def forgetpassword_post_(request):
 def resetpassword_get_(request):
     form = request.web_input(token="")
 
-    if not resetpassword.checktoken(form.token):
+    if not resetpassword.prepare(form.token):
         return Response(define.errorpage(
             request.userid,
             "This link does not appear to be valid. If you followed this link from your email, it may have expired."))
-
-    resetpassword.prepare(form.token)
 
     return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token], title="Reset Forgotten Password"))
 

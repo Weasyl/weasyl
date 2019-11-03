@@ -10,6 +10,26 @@ from weasyl.test.utils import Bag
 
 
 @pytest.mark.usefixtures('db')
+def test_false_returned_if_token_does_not_exist():
+    token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000000"
+    assert not resetpassword.prepare(token)
+
+
+@pytest.mark.usefixtures('db')
+def test_true_returned_if_token_exists():
+    user_id = db_utils.create_user(username='checktoken0002')
+    token = "testtokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentesttokentest000001"
+    d.engine.execute(d.meta.tables["forgotpassword"].insert(), {
+        "userid": user_id,
+        "token": token,
+        "set_time": d.get_time(),
+        "link_time": 0,
+        "address": d.get_address(),
+    })
+    assert resetpassword.prepare(token)
+
+
+@pytest.mark.usefixtures('db')
 def test_stale_records_get_deleted_when_function_is_called():
     token_store = []
     for i in range(20):
@@ -21,9 +41,6 @@ def test_stale_records_get_deleted_when_function_is_called():
         resetpassword.request(form_for_request)
         pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
         token_store.append(pw_reset_token)
-    # All tokens should exist at this point
-    for i in range(20):
-        assert resetpassword.checktoken(token_store[i])
     # Set 5 tokens to be two hours old (0,5) (7200)
     for i in range(0, 5):
         d.engine.execute("UPDATE forgotpassword SET set_time = %(time)s WHERE token = %(token)s",
@@ -40,20 +57,18 @@ def test_stale_records_get_deleted_when_function_is_called():
     for i in range(15, 20):
         d.engine.execute("UPDATE forgotpassword SET link_time = %(time)s WHERE token = %(token)s",
                          time=d.get_time() - 120, token=token_store[i])
-    # This should clear all tokens >1hr old, and all tokens >5 minutes from last visit (10 total)
-    resetpassword.prepare('foo')
-    # This range should be cleared (set_time > 3600)
+    # This range should be invalid (set_time > 3600)
     for i in range(0, 5):
-        assert not resetpassword.checktoken(token_store[i])
-    # This range should still be present (set_time < 3600)
+        assert not resetpassword.prepare(token_store[i])
+    # This range should still be valid (set_time < 3600)
     for i in range(5, 10):
-        assert resetpassword.checktoken(token_store[i])
-    # This range should be cleared (link_time > 300)
+        assert resetpassword.prepare(token_store[i])
+    # This range should be invalid (link_time > 300)
     for i in range(10, 15):
-        assert not resetpassword.checktoken(token_store[i])
-    # This range should still be present (link_time < 300)
+        assert not resetpassword.prepare(token_store[i])
+    # This range should still be valid (link_time < 300)
     for i in range(15, 20):
-        assert resetpassword.checktoken(token_store[i])
+        assert resetpassword.prepare(token_store[i])
 
 
 @pytest.mark.usefixtures('db')

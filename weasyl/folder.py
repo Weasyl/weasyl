@@ -156,11 +156,6 @@ def select_preview(userid, otherid, rating, limit=3):
     return query
 
 
-# feature
-#   "drop/parents"
-#   "drop/all"
-#   "sidebar/all"
-
 def select_list(userid, feature):
     result = []
 

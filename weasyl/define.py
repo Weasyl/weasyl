@@ -128,14 +128,8 @@ def execute(statement, argv=None, options=None):
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
         query = query.fetchall()
 
-        if "list" in options or "zero" in options:
+        if "list" in options:
             query = [list(i) for i in query]
-
-        if "zero" in options:
-            for i in range(len(query)):
-                for j in range(len(query[i])):
-                    if query[i][j] is None:
-                        query[i][j] = 0
 
         if "bool" in options:
             return query and query[0][0]

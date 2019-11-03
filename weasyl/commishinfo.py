@@ -438,14 +438,14 @@ def edit_content(userid, content):
 
 def remove_class(userid, classid):
     if not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                     [d.get_int(classid), userid], option="bool"):
+                     [classid, userid], option="bool"):
         raise WeasylError("classidInvalid")
-    d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
-    d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
+    d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [classid, userid])
+    d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [classid, userid])
 
 
 def remove_price(userid, priceid):
     if not d.execute("SELECT EXISTS (SELECT 0 FROM commishprice WHERE (priceid, userid) = (%i, %i))",
-                     [d.get_int(priceid), userid], option="bool"):
+                     [priceid, userid], option="bool"):
         raise WeasylError("priceidInvalid")
-    d.execute("DELETE FROM commishprice WHERE (priceid, userid) = (%i, %i)", [d.get_int(priceid), userid])
+    d.execute("DELETE FROM commishprice WHERE (priceid, userid) = (%i, %i)", [priceid, userid])

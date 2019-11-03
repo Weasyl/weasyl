@@ -109,9 +109,6 @@ def execute(statement, argv=None, options=None):
     """
     db = connect()
 
-    if argv is None:
-        argv = list()
-
     if options is None:
         options = list()
 

@@ -18,16 +18,6 @@ WatchSettings = create_configuration([
 ])
 
 
-def check(userid, otherid, myself=False):
-    if not userid or not otherid:
-        return False
-    if userid == otherid:
-        return myself
-
-    return d.execute("SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%i, %i))",
-                     [userid, otherid], option="bool")
-
-
 def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
     """
     Returns a list of users who are following the specified user.

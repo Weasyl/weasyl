@@ -104,13 +104,9 @@ def log_exc(**kwargs):
 def execute(statement, argv=None, option=None):
     """
     Executes an SQL statement; if `statement` represents a SELECT or RETURNING
-    statement, the query results will be returned. Note that 'argv' need not be
-    a list if it would have contained only one element.
+    statement, the query results will be returned.
     """
     db = connect()
-
-    if argv and not isinstance(argv, list):
-        argv = [argv]
 
     if argv:
         statement %= tuple([_sql_escape(i) for i in argv])

@@ -577,7 +577,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, su.sorttime, pr.config, fd.title, su.favorites
+            su.page_views, fd.title, su.favorites
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
@@ -623,7 +623,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     tags, artist_tags = searchtag.select_with_artist_tags(submitid)
     settings = d.get_profile_settings(query[0])
 
-    fave_count = query[13]
+    fave_count = query[11]
 
     if fave_count is None:
         fave_count = d.engine.scalar(
@@ -668,7 +668,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "removable_tags": searchtag.removable_tags(userid, query[0], tags, artist_tags),
         "can_remove_tags": searchtag.can_remove_tags(userid, query[0]),
         "folder_more": select_near(userid, rating, 1, query[0], query[2], submitid),
-        "folder_title": query[12] if query[12] else "Root",
+        "folder_title": query[10] if query[10] else "Root",
 
 
         "comments": comment.select(userid, submitid=submitid),

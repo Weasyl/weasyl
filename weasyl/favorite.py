@@ -181,8 +181,9 @@ def insert(userid, submitid=None, charid=None, journalid=None):
     else:
         content_table, id_field, target = "journal", "journalid", journalid
 
-    query = d.execute("SELECT userid, settings FROM %s WHERE %s = %i",
-                      [content_table, id_field, target], option="single")
+    query = d.engine.execute(
+        "SELECT userid, settings FROM %s WHERE %s = %i" % (content_table, id_field, target),
+    ).first()
 
     if not query:
         raise WeasylError("TargetRecordMissing")

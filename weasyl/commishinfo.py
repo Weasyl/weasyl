@@ -390,8 +390,12 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False):
     currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
     settings = "".join(i for i in settings if i in "a")
 
-    query = d.execute("SELECT amount_min, amount_max, settings, classid FROM commishprice"
-                      " WHERE (priceid, userid) = (%i, %i)", [price.priceid, userid], option="single")
+    query = d.engine.execute(
+        "SELECT amount_min, amount_max, settings, classid FROM commishprice"
+        " WHERE (priceid, userid) = (%(priceid)s, %(userid)s)",
+        priceid=price.priceid,
+        userid=userid,
+    ).first()
 
     if not query:
         raise WeasylError("priceidInvalid")

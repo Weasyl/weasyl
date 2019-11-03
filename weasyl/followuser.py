@@ -45,12 +45,16 @@ def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
 
 
 def select_settings(userid, otherid):
-    query = d.execute("SELECT settings FROM watchuser WHERE (userid, otherid) = (%i, %i)", [userid, otherid], option="single")
+    settings = d.engine.scalar(
+        "SELECT settings FROM watchuser WHERE (userid, otherid) = (%(user)s, %(other)s)",
+        user=userid,
+        other=otherid,
+    )
 
-    if not query:
+    if settings is None:
         raise WeasylError("watchuserRecordMissing")
 
-    return query[0]
+    return settings
 
 
 def select_followed(userid, otherid, limit=None, backid=None, nextid=None, following=False):

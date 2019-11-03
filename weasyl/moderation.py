@@ -602,10 +602,11 @@ def manageuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute(
+    query = d.engine.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
-        " WHERE userid = (SELECT userid FROM login WHERE login_name = '%s')",
-        [d.get_sysname(form.name)], option="single")
+        " WHERE userid = (SELECT userid FROM login WHERE login_name = %(name)s)",
+        name=d.get_sysname(form.name),
+    ).first()
 
     if not query:
         raise WeasylError("noUser")

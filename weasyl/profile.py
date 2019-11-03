@@ -132,14 +132,14 @@ def resolve_by_login(login):
 
 
 def select_profile(userid, avatar=False, banner=False, propic=False, images=False, commish=True, viewer=None):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, lo.settings, us.end_time
         FROM profile pr
             INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
-        WHERE userid = %i
-    """, [userid], option="single")
+        WHERE userid = %(user)s
+    """, user=userid).first()
 
     if not query:
         raise WeasylError('RecordMissing')
@@ -173,13 +173,12 @@ def select_profile(userid, avatar=False, banner=False, propic=False, images=Fals
 
 
 def twitter_card(userid):
-    username, full_name, catchphrase, profile_text, config, twitter = d.execute(
+    username, full_name, catchphrase, profile_text, config, twitter = d.engine.execute(
         "SELECT pr.username, pr.full_name, pr.catchphrase, pr.profile_text, pr.config, ul.link_value "
         "FROM profile pr "
         "LEFT JOIN user_links ul ON pr.userid = ul.userid AND ul.link_type = 'twitter' "
-        "WHERE pr.userid = %i",
-        [userid],
-        option="single")
+        "WHERE pr.userid = %(user)s",
+        user=userid).first()
 
     ret = {
         'card': 'summary',
@@ -312,35 +311,34 @@ def select_relation(userid, otherid):
 @region.cache_on_arguments(expiration_time=600)
 @d.record_timing
 def _select_statistics(userid):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
-            (SELECT page_views FROM profile WHERE userid = %i),
-            0,
-            (SELECT COUNT(*) FROM favorite WHERE userid = %i),
+            (SELECT page_views FROM profile WHERE userid = %(user)s),
+            (SELECT COUNT(*) FROM favorite WHERE userid = %(user)s),
             (SELECT
                 (SELECT COUNT(*) FROM favorite fa JOIN submission su ON fa.targetid = su.submitid
-                    WHERE su.userid = %i AND fa.type = 's') +
+                    WHERE su.userid = %(user)s AND fa.type = 's') +
                 (SELECT COUNT(*) FROM favorite fa JOIN character ch ON fa.targetid = ch.charid
-                    WHERE ch.userid = %i AND fa.type = 'f') +
+                    WHERE ch.userid = %(user)s AND fa.type = 'f') +
                 (SELECT COUNT(*) FROM favorite fa JOIN journal jo ON fa.targetid = jo.journalid
-                    WHERE jo.userid = %i AND fa.type = 'j')),
-            (SELECT COUNT(*) FROM watchuser WHERE otherid = %i),
-            (SELECT COUNT(*) FROM watchuser WHERE userid = %i),
-            (SELECT COUNT(*) FROM submission WHERE userid = %i AND settings !~ 'h'),
-            (SELECT COUNT(*) FROM journal WHERE userid = %i AND settings !~ 'h'),
-            (SELECT COUNT(*) FROM comments WHERE target_user = %i AND settings !~ 'h' AND settings ~ 's')
-    """, [userid, userid, userid, userid, userid, userid, userid, userid, userid, userid], option="single")
+                    WHERE jo.userid = %(user)s AND fa.type = 'j')),
+            (SELECT COUNT(*) FROM watchuser WHERE otherid = %(user)s),
+            (SELECT COUNT(*) FROM watchuser WHERE userid = %(user)s),
+            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM journal WHERE userid = %(user)s AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM comments WHERE target_user = %(user)s AND settings !~ 'h' AND settings ~ 's')
+    """, user=userid).first()
 
     return {
         "page_views": query[0],
-        "submit_views": query[1],
-        "faves_sent": query[2],
-        "faves_received": query[3],
-        "followed": query[4],
-        "following": query[5],
-        "submissions": query[6],
-        "journals": query[7],
-        "staff_notes": query[8],
+        "submit_views": 0,
+        "faves_sent": query[1],
+        "faves_received": query[2],
+        "followed": query[3],
+        "following": query[4],
+        "submissions": query[5],
+        "journals": query[6],
+        "staff_notes": query[7],
     }
 
 
@@ -698,7 +696,7 @@ def select_manage(userid):
     Returns:
         Relevant user information as a dict.
     """
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
             pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
@@ -706,8 +704,8 @@ def select_manage(userid):
         FROM login lo
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
-        WHERE lo.userid = %i
-    """, [userid], option="single")
+        WHERE lo.userid = %(user)s
+    """, user=userid).first()
 
     if not query:
         raise WeasylError("Unexpected")

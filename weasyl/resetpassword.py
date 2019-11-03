@@ -82,13 +82,13 @@ def reset(form):
     # pertaining to `token`, requiring that the link associated with the record
     # be visited no more than five minutes prior; if the forgotpassword record is
     # not found or does not meet this requirement, raise an exception
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT lo.userid, lo.login_name, lo.email, fp.link_time, fp.address
         FROM login lo
             INNER JOIN userinfo ui USING (userid)
             INNER JOIN forgotpassword fp USING (userid)
-        WHERE fp.token = '%s' AND fp.link_time > %i
-    """, [form.token, d.get_time() - 300], option="single")
+        WHERE fp.token = %(token)s AND fp.link_time > %(cutoff)s
+    """, token=form.token, cutoff=d.get_time() - 300).first()
 
     if not query:
         raise WeasylError("forgotpasswordRecordMissing")

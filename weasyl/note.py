@@ -85,12 +85,13 @@ def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
 
 
 def select_view(userid, noteid):
-    query = d.execute(
+    query = d.engine.execute(
         "SELECT ps.userid, ps.username, pr.userid, pr.username, "
         "ms.title, ms.content, ms.unixtime, ms.settings FROM message ms INNER "
         "JOIN profile ps ON ms.userid = ps.userid INNER JOIN profile pr ON "
-        "ms.otherid = pr.userid WHERE ms.noteid = %i", [noteid],
-        option="single")
+        "ms.otherid = pr.userid WHERE ms.noteid = %(id)s",
+        id=noteid,
+    ).first()
 
     if not query:
         raise WeasylError("noteRecordMissing")
@@ -215,7 +216,7 @@ def send(userid, form):
 def move(userid, form):
     noteid = d.get_int(form.noteid)
     folderid = d.get_int(form.folderid)
-    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], option="single")
+    query = d.engine.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %(id)s", id=noteid).first()
 
     if not query:
         raise WeasylError("Unexpected")
@@ -258,7 +259,7 @@ def remove_list(userid, noteids):
 
 
 def remove(userid, noteid):
-    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], option="single")
+    query = d.engine.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %(id)s", id=noteid).first()
 
     if not query:
         raise WeasylError("Unexpected")

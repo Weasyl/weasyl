@@ -524,8 +524,10 @@ def reupload(userid, submitid, submitfile):
     submitsize = len(submitfile)
 
     # Select submission data
-    query = d.execute("SELECT userid, subtype, settings FROM submission WHERE submitid = %i AND settings !~ 'h'",
-                      [submitid], option="single")
+    query = d.engine.execute(
+        "SELECT userid, subtype, settings FROM submission WHERE submitid = %(id)s AND settings !~ 'h'",
+        id=submitid,
+    ).first()
 
     if not query:
         raise WeasylError("Unexpected")
@@ -574,15 +576,15 @@ def reupload(userid, submitid, submitfile):
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
             su.page_views, fd.title, su.favorites
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
-        WHERE su.submitid = %i
-    """, [submitid], option="single")
+        WHERE su.submitid = %(id)s
+    """, id=submitid).first()
 
     # Sanity check
     if query and userid in staff.MODS and anyway == "true":
@@ -730,15 +732,15 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
 
 
 def twitter_card(submitid):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value, su.rating
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
-        WHERE submitid = %i
+        WHERE submitid = %(id)s
         LIMIT 1
-    """, [submitid], option="single")
+    """, id=submitid).first()
 
     if not query:
         raise WeasylError("submissionRecordMissing")
@@ -970,9 +972,9 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
 
 
 def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
-    query = d.execute(
-        "SELECT userid, subtype, settings FROM submission WHERE submitid = %i",
-        [submission.submitid], option="single")
+    query = d.engine.execute(
+        "SELECT userid, subtype, settings FROM submission WHERE submitid = %(id)s",
+        id=submission.submitid).first()
 
     if not query or "h" in query[2]:
         raise WeasylError("Unexpected")
@@ -1053,9 +1055,9 @@ def remove(userid, submitid):
 
 
 def reupload_cover(userid, submitid, coverfile):
-    query = d.execute(
-        "SELECT userid, subtype FROM submission WHERE submitid = %i",
-        [submitid], option="single")
+    query = d.engine.execute(
+        "SELECT userid, subtype FROM submission WHERE submitid = %(id)s",
+        id=submitid).first()
 
     if not query:
         raise WeasylError("Unexpected")

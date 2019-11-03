@@ -277,7 +277,7 @@ def select_latest(userid, rating, otherid=None):
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
-    query = d.execute("".join(statement), option="single")
+    query = d.engine.execute("".join(statement)).first()
 
     if query:
         return {
@@ -301,7 +301,10 @@ def edit(userid, journal, friends_only=False):
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, journal.rating)
 
-    query = d.execute("SELECT userid, settings FROM journal WHERE journalid = %i", [journal.journalid], option="single")
+    query = d.engine.execute(
+        "SELECT userid, settings FROM journal WHERE journalid = %(id)s",
+        id=journal.journalid,
+    ).first()
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")

@@ -117,8 +117,6 @@ def execute(statement, argv=None, option=None):
 
         if option == "within":
             return [x[0] for x in query]
-        elif option == "single":
-            return query[0] if query else list()
         else:
             assert option is None
             return query

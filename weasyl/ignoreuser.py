@@ -9,10 +9,7 @@ from weasyl.error import WeasylError
 
 def check(userid, otherid):
     """
-    check to see if a user is ignored by another
-    :param userid: the viewing user
-    :param otherid: the user being viewed
-    :return: TRUE if userid is ignored by otherid
+    Return True if otherid is ignored by userid, False otherwise.
     """
     if not userid or not otherid:
         return False

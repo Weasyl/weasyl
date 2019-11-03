@@ -80,7 +80,7 @@ def upload(filedata, submitid=None, charid=None):
     orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', media_item)
 
 
-def _create_char(x1, y1, x2, y2, charid, config=None, remove=True):
+def _create_char(x1, y1, x2, y2, charid, remove=True):
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     filename = d.url_make(charid, "char/.thumb", root=True)
     if not m.os.path.exists(filename):
@@ -109,9 +109,9 @@ def _create_char(x1, y1, x2, y2, charid, config=None, remove=True):
 
 
 def create(x1, y1, x2, y2, submitid=None, charid=None,
-           config=None, remove=True):
+           remove=True):
     if charid:
-        return _create_char(x1, y1, x2, y2, charid, config, remove)
+        return _create_char(x1, y1, x2, y2, charid, remove)
 
     db = d.connect()
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)

@@ -163,8 +163,7 @@ def select_list(userid, feature):
     if feature == "sidebar/all":
         query = d.execute("""
             SELECT
-                fd.folderid, fd.title, fd.parentid,
-                (SELECT COUNT(*) FROM submission WHERE folderid = fd.folderid AND settings !~ 'h')
+                fd.folderid, fd.title, fd.parentid
             FROM folder fd
             WHERE fd.userid = %i
                 AND fd.settings !~ 'h'
@@ -179,8 +178,6 @@ def select_list(userid, feature):
                 "folderid": query[i][0],
                 "title": query[i][1],
                 "subfolder": False,
-                "count": query[i][3],
-                "thumb": "",
             })
 
             for j in range(i + 1, len(query)):
@@ -189,8 +186,6 @@ def select_list(userid, feature):
                         "folderid": query[j][0],
                         "title": query[j][1],
                         "subfolder": True,
-                        "count": query[j][3],
-                        "thumb": "",
                     })
     # Select for dropdown
     else:

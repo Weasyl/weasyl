@@ -161,7 +161,7 @@ def select_preview(userid, otherid, rating, limit=3):
 #   "drop/all"
 #   "sidebar/all"
 
-def select_list(userid, feature, root=False, limit=None):
+def select_list(userid, feature, root=False):
     result = []
 
     if root and "drop/" in feature:
@@ -244,7 +244,7 @@ def select_list(userid, feature, root=False, limit=None):
                 for m in (f for f in result if f["folderid"] in has_children):
                     m["haschildren"] = True
 
-    return d.get_random_set(result, limit) if limit else result
+    return result
 
 
 # form

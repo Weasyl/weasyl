@@ -121,7 +121,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
         image.make_cover(
             tempthumb, files.make_resource(userid, charid, "char/.thumb"))
 
-    thumbnail.create(userid, 0, 0, 0, 0, charid=charid, remove=False)
+    thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,

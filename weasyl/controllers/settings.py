@@ -630,13 +630,13 @@ def manage_thumbnail_post_(request):
         return Response(define.errorpage(request.userid))
 
     if form.thumbfile:
-        thumbnail.upload(request.userid, form.thumbfile, submitid=submitid, charid=charid)
+        thumbnail.upload(form.thumbfile, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
         else:
             raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
     else:
-        thumbnail.create(request.userid, form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
+        thumbnail.create(form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/submission/%i" % (submitid,))
         else:

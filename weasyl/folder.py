@@ -161,14 +161,8 @@ def select_preview(userid, otherid, rating, limit=3):
 #   "drop/all"
 #   "sidebar/all"
 
-def select_list(userid, feature, root=False):
+def select_list(userid, feature):
     result = []
-
-    if root and "drop/" in feature:
-        result.append({
-            "folderid": 0,
-            "title": "Root Folder",
-        })
 
     # Select for sidebar
     if feature == "sidebar/all":

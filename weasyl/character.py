@@ -368,11 +368,10 @@ def edit(userid, character, friends_only):
     profile.check_user_rating_allowed(userid, character.rating)
 
     # Assign settings
-    settings = [query[1].replace("f", "")]
-    settings.append("f" if friends_only else "")
-    settings = "".join(settings)
+    settings = query[1].replace("f", "")
 
-    if "f" in settings:
+    if friends_only:
+        settings += "f"
         welcome.character_remove(character.charid)
 
     define.execute(

@@ -151,11 +151,14 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         if not otherid:
             raise WeasylError("submissionRecordMissing")
     else:
-        # Determine otherid
-        otherid = d.execute("SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'",
-                            ["submission", "submitid", submitid] if submitid else
-                            ["character", "charid", charid] if charid else
-                            ["journal", "journalid", journalid], option="element")
+        # Determine the owner of the target
+        otherid = d.engine.scalar(
+            "SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'" % (
+                ("submission", "submitid", submitid) if submitid else
+                ("character", "charid", charid) if charid else
+                ("journal", "journalid", journalid)
+            )
+        )
 
         # Check permissions
         if not otherid:
@@ -190,14 +193,17 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             content=content,
         )
     else:
-        commentid = d.execute(
-            "INSERT INTO %s (userid, targetid, parentid, "
-            "content, unixtime, indent) VALUES (%i, %i, %i, '%s', %i, %i) RETURNING "
-            "commentid", [
-                "charcomment" if charid else "journalcomment", userid,
-                d.get_targetid(submitid, charid, journalid),
-                parentid or 0, content, d.get_time(), indent
-            ], option="element")
+        commentid = d.engine.scalar(
+            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime, indent)"
+            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s, %(indent)s)"
+            " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
+            user=userid,
+            target=d.get_targetid(charid, journalid),
+            parent=parentid or 0,
+            content=content,
+            now=d.get_time(),
+            indent=indent,
+        )
 
     # Create notification
     if parentid and (userid != parentuserid):

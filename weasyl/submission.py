@@ -626,9 +626,9 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     fave_count = query[13]
 
     if fave_count is None:
-        fave_count = d.execute(
-            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
-            [submitid], option="element")
+        fave_count = d.engine.scalar(
+            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%(target)s, 's')",
+            target=submitid)
 
     return {
         "submitid": submitid,

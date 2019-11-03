@@ -166,10 +166,10 @@ def select_list(userid):
         WHERE userid = %(id)s ORDER BY title
     """, id=userid)
 
-    content = d.engine.execute("""
+    content = d.engine.scalar("""
         SELECT content FROM commishdesc
         WHERE userid = %(id)s
-    """, id=userid).scalar()
+    """, id=userid)
 
     preference_tags = d.engine.execute("""
         SELECT DISTINCT tag.title FROM searchtag tag
@@ -333,7 +333,7 @@ def create_commission_class(userid, title):
     if not title:
         raise WeasylError("titleInvalid")
 
-    classid = d.execute("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %i", [userid], option="element")
+    classid = d.engine.scalar("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %(user)s", user=userid)
     if not classid:
         classid = 1
     try:
@@ -364,7 +364,7 @@ def create_price(userid, price, currency="", settings=""):
                          "a" if "a" in settings else "")
 
     # TODO: should have an auto-increment ID
-    priceid = d.execute("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %i", [userid], option="element")
+    priceid = d.engine.scalar("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %(user)s", user=userid)
 
     try:
         d.execute(

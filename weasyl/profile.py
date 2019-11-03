@@ -105,17 +105,17 @@ def resolve(userid, otherid, othername, myself=True):
     result = None
 
     if otherid:
-        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int(otherid)], option="element")
+        result = d.engine.scalar("SELECT userid FROM login WHERE userid = %(id)s", id=d.get_int(otherid))
 
         if result:
             return result
     elif othername:
-        result = d.execute("SELECT userid FROM login WHERE login_name = '%s'", [d.get_sysname(othername)], option="element")
+        result = d.engine.scalar("SELECT userid FROM login WHERE login_name = %(name)s", name=d.get_sysname(othername))
 
         if result:
             return result
 
-        result = d.execute("SELECT userid FROM useralias WHERE alias_name = '%s'", [d.get_sysname(othername)], option="element")
+        result = d.engine.scalar("SELECT userid FROM useralias WHERE alias_name = %(name)s", name=d.get_sysname(othername))
 
         if result:
             return result
@@ -218,7 +218,7 @@ def select_myself(userid):
 
 def get_user_age(userid):
     assert userid
-    return d.convert_age(d.execute("SELECT birthday FROM userinfo WHERE userid = %i", [userid], option="element"))
+    return d.convert_age(d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid))
 
 
 def get_user_ratings(userid):

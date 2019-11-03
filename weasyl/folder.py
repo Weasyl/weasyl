@@ -239,8 +239,8 @@ def rename(userid, form):
     form.title = form.title.strip()[:_TITLE]
     form.folderid = d.get_int(form.folderid)
 
-    query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [form.folderid], option="element")
+    query = d.engine.scalar("SELECT userid FROM folder WHERE folderid = %(folder)s",
+                            folder=form.folderid)
 
     if not query:
         raise WeasylError("folderRecordMissing")
@@ -307,8 +307,8 @@ def move(userid, form):
 
 def remove(userid, folderid):
     # Check folder exists and user owns it
-    query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [folderid], option="element")
+    query = d.engine.scalar("SELECT userid FROM folder WHERE folderid = %(folder)s",
+                            folder=folderid)
 
     if not query:
         raise WeasylError("folderRecordMissing")

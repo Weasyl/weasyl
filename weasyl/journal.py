@@ -285,8 +285,10 @@ def select_latest(userid, rating, otherid=None):
             "title": query[1],
             "content": query[2],
             "unixtime": query[3],
-            "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
-                                  [query[0]], option="element"),
+            "comments": d.engine.scalar(
+                "SELECT count(*) FROM journalcomment WHERE targetid = %(journal)s AND settings !~ 'h'",
+                journal=query[0],
+            ),
         }
 
 

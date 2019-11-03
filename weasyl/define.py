@@ -119,8 +119,6 @@ def execute(statement, argv=None, option=None):
             return [x[0] for x in query]
         elif option == "single":
             return query[0] if query else list()
-        elif option == "element":
-            return query[0][0] if query else list()
         else:
             assert option is None
             return query

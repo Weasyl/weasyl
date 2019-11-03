@@ -431,9 +431,13 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False):
 
 
 def edit_content(userid, content):
-    if not d.execute("UPDATE commishdesc SET content = '%s' WHERE userid = %i RETURNING userid",
-                     [content, userid], option="element"):
-        d.execute("INSERT INTO commishdesc VALUES (%i, '%s')", [userid, content])
+    d.engine.execute(
+        "INSERT INTO commishdesc (userid, content)"
+        " VALUES (%(user)s, %(content)s)"
+        " ON CONFLICT (userid) DO UPDATE SET content = %(content)s",
+        user=userid,
+        content=content,
+    )
 
 
 def remove_class(userid, classid):

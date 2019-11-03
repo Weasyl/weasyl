@@ -582,7 +582,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
         WHERE su.submitid = %i
-    """, [submitid], options=["single", "list"])
+    """, [submitid], options=["single"])
 
     # Sanity check
     if query and userid in staff.MODS and anyway == "true":
@@ -1055,7 +1055,7 @@ def remove(userid, submitid):
 def reupload_cover(userid, submitid, coverfile):
     query = d.execute(
         "SELECT userid, subtype FROM submission WHERE submitid = %i",
-        [submitid], ["single", "list"])
+        [submitid], ["single"])
 
     if not query:
         raise WeasylError("Unexpected")

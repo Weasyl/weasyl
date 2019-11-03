@@ -308,11 +308,10 @@ def edit(userid, journal, friends_only=False):
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    settings = [query[1].replace("f", "")]
-    settings.append("f" if friends_only else "")
-    settings = "".join(settings)
+    settings = query[1].replace("f", "")
 
-    if "f" in settings:
+    if friends_only:
+        settings += "f"
         welcome.journal_remove(journal.journalid)
 
     d.execute("UPDATE journal SET (title, content, rating, settings) = ('%s', '%s', %i, '%s') WHERE journalid = %i",

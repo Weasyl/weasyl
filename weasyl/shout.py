@@ -67,7 +67,7 @@ def insert(userid, shout, staffnotes=False):
     # Determine indent and parentuserid
     if shout.parentid:
         query = d.execute("SELECT userid, indent FROM comments WHERE commentid = %i",
-                          [shout.parentid], options="single")
+                          [shout.parentid], option="single")
 
         if not query:
             raise WeasylError("shoutRecordMissing")
@@ -89,7 +89,7 @@ def insert(userid, shout, staffnotes=False):
 
         settings = d.execute("SELECT lo.settings, pr.config FROM login lo"
                              " INNER JOIN profile pr ON lo.userid = pr.userid"
-                             " WHERE lo.userid = %i", [shout.userid], options="single")
+                             " WHERE lo.userid = %i", [shout.userid], option="single")
 
         if "b" in settings[0] or "w" in settings[1] or "x" in settings[1] and not frienduser.check(userid, shout.userid):
             raise WeasylError("insufficientActionPermissions")
@@ -119,7 +119,7 @@ def insert(userid, shout, staffnotes=False):
 def remove(userid, commentid=None):
     query = d.execute(
         "SELECT userid, target_user, settings FROM comments WHERE commentid = %i AND settings !~ 'h'",
-        [commentid], ["single"])
+        [commentid], option="single")
 
     if not query or ('s' in query[2] and userid not in staff.MODS):
         raise WeasylError("shoutRecordMissing")

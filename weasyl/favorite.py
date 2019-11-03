@@ -182,7 +182,7 @@ def insert(userid, submitid=None, charid=None, journalid=None):
         content_table, id_field, target = "journal", "journalid", journalid
 
     query = d.execute("SELECT userid, settings FROM %s WHERE %s = %i",
-                      [content_table, id_field, target], options="single")
+                      [content_table, id_field, target], option="single")
 
     if not query:
         raise WeasylError("TargetRecordMissing")
@@ -282,7 +282,7 @@ def check(userid, submitid=None, charid=None, journalid=None):
         """, [
             userid, d.get_targetid(submitid, charid, journalid),
             "s" if submitid else "f" if charid else "j"
-        ], options="bool")
+        ], option="bool")
 
 
 def count(id, contenttype='submission'):

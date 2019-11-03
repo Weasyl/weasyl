@@ -90,7 +90,7 @@ def select_view(userid, noteid):
         "ms.title, ms.content, ms.unixtime, ms.settings FROM message ms INNER "
         "JOIN profile ps ON ms.userid = ps.userid INNER JOIN profile pr ON "
         "ms.otherid = pr.userid WHERE ms.noteid = %i", [noteid],
-        options=["single"])
+        option="single")
 
     if not query:
         raise WeasylError("noteRecordMissing")
@@ -136,9 +136,9 @@ def send(userid, form):
 
     users = set(i for i in d.get_userid_list(form.recipient) if i != userid)
     users.difference_update(
-        d.execute("SELECT userid FROM ignoreuser WHERE otherid = %i", [userid], options="within"))
+        d.execute("SELECT userid FROM ignoreuser WHERE otherid = %i", [userid], option="within"))
     users.difference_update(
-        d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i", [userid], options="within"))
+        d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i", [userid], option="within"))
     if not users:
         raise WeasylError("recipientInvalid")
 
@@ -215,7 +215,7 @@ def send(userid, form):
 def move(userid, form):
     noteid = d.get_int(form.noteid)
     folderid = d.get_int(form.folderid)
-    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], options="single")
+    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], option="single")
 
     if not query:
         raise WeasylError("Unexpected")
@@ -226,7 +226,7 @@ def move(userid, form):
     elif userid == query[1] and "r" in query[2]:
         raise WeasylError("Unexpected")
     elif not d.execute("SELECT EXISTS (SELECT 0 FROM messagefolder WHERE (folderid, userid) = (%i, %i))",
-                       [folderid, userid], options="bool"):
+                       [folderid, userid], option="bool"):
         raise WeasylError("Unexpected")
 
     d.execute("UPDATE message SET %s_folder = %i WHERE noteid = %i",
@@ -258,7 +258,7 @@ def remove_list(userid, noteids):
 
 
 def remove(userid, noteid):
-    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], options="single")
+    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], option="single")
 
     if not query:
         raise WeasylError("Unexpected")

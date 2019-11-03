@@ -525,7 +525,7 @@ def reupload(userid, submitid, submitfile):
 
     # Select submission data
     query = d.execute("SELECT userid, subtype, settings FROM submission WHERE submitid = %i AND settings !~ 'h'",
-                      [submitid], ["single"])
+                      [submitid], option="single")
 
     if not query:
         raise WeasylError("Unexpected")
@@ -582,7 +582,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
         WHERE su.submitid = %i
-    """, [submitid], options=["single"])
+    """, [submitid], option="single")
 
     # Sanity check
     if query and userid in staff.MODS and anyway == "true":
@@ -628,7 +628,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     if fave_count is None:
         fave_count = d.execute(
             "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
-            [submitid], ["element"])
+            [submitid], option="element")
 
     return {
         "submitid": submitid,
@@ -738,7 +738,7 @@ def twitter_card(submitid):
             LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
         WHERE submitid = %i
         LIMIT 1
-    """, [submitid], ["single"])
+    """, [submitid], option="single")
 
     if not query:
         raise WeasylError("submissionRecordMissing")
@@ -972,7 +972,7 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
 def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
     query = d.execute(
         "SELECT userid, subtype, settings FROM submission WHERE submitid = %i",
-        [submission.submitid], ["single"])
+        [submission.submitid], option="single")
 
     if not query or "h" in query[2]:
         raise WeasylError("Unexpected")
@@ -1055,7 +1055,7 @@ def remove(userid, submitid):
 def reupload_cover(userid, submitid, coverfile):
     query = d.execute(
         "SELECT userid, subtype FROM submission WHERE submitid = %i",
-        [submitid], ["single"])
+        [submitid], option="single")
 
     if not query:
         raise WeasylError("Unexpected")

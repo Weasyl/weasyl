@@ -605,7 +605,7 @@ def manageuser(userid, form):
     query = d.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
         " WHERE userid = (SELECT userid FROM login WHERE login_name = '%s')",
-        [d.get_sysname(form.name)], ["single"])
+        [d.get_sysname(form.name)], option="single")
 
     if not query:
         raise WeasylError("noUser")

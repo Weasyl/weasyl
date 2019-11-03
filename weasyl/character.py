@@ -355,7 +355,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
 
 def edit(userid, character, friends_only):
     query = define.execute("SELECT userid, settings FROM character WHERE charid = %i",
-                           [character.charid], options="single")
+                           [character.charid], option="single")
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")

@@ -131,7 +131,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         else:
             query = d.execute("SELECT userid, indent FROM %s WHERE commentid = %i",
                               ["comments" if submitid else "charcomment" if charid else "journalcomment", parentid],
-                              options="single")
+                              option="single")
 
             if not query:
                 raise WeasylError("Unexpected")
@@ -155,7 +155,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         otherid = d.execute("SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'",
                             ["submission", "submitid", submitid] if submitid else
                             ["character", "charid", charid] if charid else
-                            ["journal", "journalid", journalid], options="element")
+                            ["journal", "journalid", journalid], option="element")
 
         # Check permissions
         if not otherid:
@@ -197,7 +197,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
                 "charcomment" if charid else "journalcomment", userid,
                 d.get_targetid(submitid, charid, journalid),
                 parentid or 0, content, d.get_time(), indent
-            ], options="element")
+            ], option="element")
 
     # Create notification
     if parentid and (userid != parentuserid):
@@ -235,7 +235,7 @@ def remove(userid, feature=None, commentid=None):
     if feature == 'submit':
         query = d.execute(
             "SELECT userid, target_sub FROM comments WHERE commentid = %i AND target_sub IS NOT NULL AND settings !~ 'h'",
-            [commentid], ["single"])
+            [commentid], option="single")
     elif feature == 'siteupdate':
         query = d.engine.execute(
             "SELECT userid, targetid FROM siteupdatecomment WHERE commentid = %(comment)s AND hidden_at IS NULL",
@@ -244,7 +244,7 @@ def remove(userid, feature=None, commentid=None):
     else:
         query = d.execute(
             "SELECT userid, targetid FROM %scomment WHERE commentid = %i AND settings !~ 'h'",
-            [feature, commentid], ["single"])
+            [feature, commentid], option="single")
 
     if not query:
         raise WeasylError("RecordMissing")
@@ -260,7 +260,7 @@ def remove(userid, feature=None, commentid=None):
     else:
         owner = d.execute(
             "SELECT userid FROM %s WHERE %sid = %i",
-            [target_table[feature], feature, query[1]], ["single"])
+            [target_table[feature], feature, query[1]], option="single")
         is_owner = userid == owner[0]
 
     if not is_owner and userid not in staff.MODS:

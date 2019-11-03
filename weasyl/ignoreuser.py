@@ -18,14 +18,14 @@ def check(userid, otherid):
         return False
 
     return d.execute("SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%i, %i))",
-                     [userid, otherid], options="bool")
+                     [userid, otherid], option="bool")
 
 
 @region.cache_on_arguments()
 @d.record_timing
 def cached_list_ignoring(userid):
     return d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i",
-                     [userid], options=["within"])
+                     [userid], option="within")
 
 
 def select(userid):

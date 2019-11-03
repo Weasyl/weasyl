@@ -34,7 +34,7 @@ def _upload_char(userid, filedata, charid):
     """
     query = d.execute(
         "SELECT userid, settings FROM character WHERE charid = %i",
-        [charid], options="single")
+        [charid], option="single")
 
     if not query:
         raise WeasylError("Unexpected")

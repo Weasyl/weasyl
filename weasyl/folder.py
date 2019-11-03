@@ -25,20 +25,20 @@ def check(userid, folderid=None, title=None, parentid=None, root=True):
         if parentid is None:
             return d.execute(
                 "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid) = (%i, %i) AND settings !~ 'h')",
-                [folderid, userid], options="bool")
+                [folderid, userid], option="bool")
         else:
             return d.execute(
                 "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid, parentid) = (%i, %i, %i) AND settings !~ 'h')",
-                [folderid, userid, parentid], options="bool")
+                [folderid, userid, parentid], option="bool")
     elif title:
         if parentid is None:
             return d.execute(
                 "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, title) = (%i, '%s') AND settings !~ 'h')",
-                [userid, title], options="bool")
+                [userid, title], option="bool")
         else:
             return d.execute(
                 "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, parentid, title) = (%i, %i, '%s') AND settings !~ 'h')",
-                [userid, parentid, title], options="bool")
+                [userid, parentid, title], option="bool")
 
 
 # form
@@ -256,7 +256,7 @@ def rename(userid, form):
     form.folderid = d.get_int(form.folderid)
 
     query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [form.folderid], options="element")
+                      [form.folderid], option="element")
 
     if not query:
         raise WeasylError("folderRecordMissing")
@@ -292,7 +292,7 @@ def move(userid, form):
     # folder with subfolders cannot become a subfolder
     elif (form.folderid and
           d.execute("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %i)",
-                    [form.folderid], options="bool")):
+                    [form.folderid], option="bool")):
         raise WeasylError("parentidInvalid")
 
     if form.parentid > 0:
@@ -324,7 +324,7 @@ def move(userid, form):
 def remove(userid, folderid):
     # Check folder exists and user owns it
     query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [folderid], ["element"])
+                      [folderid], option="element")
 
     if not query:
         raise WeasylError("folderRecordMissing")
@@ -334,7 +334,7 @@ def remove(userid, folderid):
     # Select relevant unhidden folders
     folders = d.sql_number_list(
         [folderid] +
-        d.execute("SELECT folderid FROM folder WHERE parentid = %i AND settings !~ 'h'", [folderid], ["within"]))
+        d.execute("SELECT folderid FROM folder WHERE parentid = %i AND settings !~ 'h'", [folderid], option="within"))
 
     # Hide folders
     d.execute("UPDATE folder SET settings = settings || 'h' WHERE folderid IN %s AND settings !~ 'h'", [folders])

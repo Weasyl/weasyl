@@ -277,7 +277,7 @@ def select_latest(userid, rating, otherid=None):
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
-    query = d.execute("".join(statement), options="single")
+    query = d.execute("".join(statement), option="single")
 
     if query:
         return {
@@ -286,7 +286,7 @@ def select_latest(userid, rating, otherid=None):
             "content": query[2],
             "unixtime": query[3],
             "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
-                                  [query[0]], ["element"]),
+                                  [query[0]], option="element"),
         }
 
 
@@ -299,7 +299,7 @@ def edit(userid, journal, friends_only=False):
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, journal.rating)
 
-    query = d.execute("SELECT userid, settings FROM journal WHERE journalid = %i", [journal.journalid], options="single")
+    query = d.execute("SELECT userid, settings FROM journal WHERE journalid = %i", [journal.journalid], option="single")
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")

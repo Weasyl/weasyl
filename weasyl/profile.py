@@ -105,17 +105,17 @@ def resolve(userid, otherid, othername, myself=True):
     result = None
 
     if otherid:
-        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int(otherid)], ["element"])
+        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int(otherid)], option="element")
 
         if result:
             return result
     elif othername:
-        result = d.execute("SELECT userid FROM login WHERE login_name = '%s'", [d.get_sysname(othername)], ["element"])
+        result = d.execute("SELECT userid FROM login WHERE login_name = '%s'", [d.get_sysname(othername)], option="element")
 
         if result:
             return result
 
-        result = d.execute("SELECT userid FROM useralias WHERE alias_name = '%s'", [d.get_sysname(othername)], ["element"])
+        result = d.execute("SELECT userid FROM useralias WHERE alias_name = '%s'", [d.get_sysname(othername)], option="element")
 
         if result:
             return result
@@ -139,7 +139,7 @@ def select_profile(userid, avatar=False, banner=False, propic=False, images=Fals
             INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
         WHERE userid = %i
-    """, [userid], ["single"])
+    """, [userid], option="single")
 
     if not query:
         raise WeasylError('RecordMissing')
@@ -179,7 +179,7 @@ def twitter_card(userid):
         "LEFT JOIN user_links ul ON pr.userid = ul.userid AND ul.link_type = 'twitter' "
         "WHERE pr.userid = %i",
         [userid],
-        ["single"])
+        option="single")
 
     ret = {
         'card': 'summary',
@@ -218,7 +218,7 @@ def select_myself(userid):
 
 def get_user_age(userid):
     assert userid
-    return d.convert_age(d.execute("SELECT birthday FROM userinfo WHERE userid = %i", [userid], ["element"]))
+    return d.convert_age(d.execute("SELECT birthday FROM userinfo WHERE userid = %i", [userid], option="element"))
 
 
 def get_user_ratings(userid):
@@ -329,7 +329,7 @@ def _select_statistics(userid):
             (SELECT COUNT(*) FROM submission WHERE userid = %i AND settings !~ 'h'),
             (SELECT COUNT(*) FROM journal WHERE userid = %i AND settings !~ 'h'),
             (SELECT COUNT(*) FROM comments WHERE target_user = %i AND settings !~ 'h' AND settings ~ 's')
-    """, [userid, userid, userid, userid, userid, userid, userid, userid, userid, userid], options="single")
+    """, [userid, userid, userid, userid, userid, userid, userid, userid, userid, userid], option="single")
 
     return {
         "page_views": query[0],
@@ -707,7 +707,7 @@ def select_manage(userid):
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
         WHERE lo.userid = %i
-    """, [userid], ["single"])
+    """, [userid], option="single")
 
     if not query:
         raise WeasylError("Unexpected")
@@ -777,13 +777,13 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         if not d.get_sysname(username):
             raise WeasylError("usernameInvalid")
         elif d.execute("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = '%s')",
-                       [d.get_sysname(username)], ["bool"]):
+                       [d.get_sysname(username)], option="bool"):
             raise WeasylError("usernameExists")
         elif d.execute("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = '%s')",
-                       [d.get_sysname(username)], ["bool"]):
+                       [d.get_sysname(username)], option="bool"):
             raise WeasylError("usernameExists")
         elif d.execute("SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = '%s')",
-                       [d.get_sysname(username)], ["bool"]):
+                       [d.get_sysname(username)], option="bool"):
             raise WeasylError("usernameExists")
 
         d.execute("UPDATE login SET login_name = '%s' WHERE userid = %i",

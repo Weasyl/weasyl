@@ -120,7 +120,7 @@ def owns(userid, submitid):
 
 def offer(userid, submitid, otherid):
     query = d.execute("SELECT userid, rating, settings FROM submission WHERE submitid = %i",
-                      [submitid], options="single")
+                      [submitid], option="single")
 
     if not query or "h" in query[2]:
         raise WeasylError("Unexpected")

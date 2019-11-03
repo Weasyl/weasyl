@@ -72,7 +72,7 @@ def create(userid, form):
         ["submission", "submitid", form.submitid] if form.submitid else
         ["character", "charid", form.charid] if form.charid else
         ["journal", "journalid", form.journalid],
-        options="single")
+        option="single")
 
     if not query or (form.violation != 0 and 'h' in query[1]):
         raise WeasylError("TargetRecordMissing")

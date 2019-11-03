@@ -101,22 +101,16 @@ def log_exc(**kwargs):
     return get_current_request().log_exc(**kwargs)
 
 
-def execute(statement, argv=None, options=None):
+def execute(statement, argv=None, option=None):
     """
     Executes an SQL statement; if `statement` represents a SELECT or RETURNING
-    statement, the query results will be returned. Note that 'argv' and `options`
-    need not be lists if they would have contained only one element.
+    statement, the query results will be returned. Note that 'argv' need not be
+    a list if it would have contained only one element.
     """
     db = connect()
 
-    if options is None:
-        options = list()
-
     if argv and not isinstance(argv, list):
         argv = [argv]
-
-    if options and not isinstance(options, list):
-        options = [options]
 
     if argv:
         statement %= tuple([_sql_escape(i) for i in argv])
@@ -125,16 +119,17 @@ def execute(statement, argv=None, options=None):
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
         query = query.fetchall()
 
-        if "bool" in options:
+        if option == "bool":
             return query and query[0][0]
-        elif "within" in options:
+        elif option == "within":
             return [x[0] for x in query]
-        elif "single" in options:
+        elif option == "single":
             return query[0] if query else list()
-        elif "element" in options:
+        elif option == "element":
             return query[0][0] if query else list()
-
-        return query
+        else:
+            assert option is None
+            return query
     else:
         query.close()
 

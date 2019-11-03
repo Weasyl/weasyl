@@ -333,7 +333,7 @@ def create_commission_class(userid, title):
     if not title:
         raise WeasylError("titleInvalid")
 
-    classid = d.execute("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %i", [userid], ["element"])
+    classid = d.execute("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %i", [userid], option="element")
     if not classid:
         classid = 1
     try:
@@ -353,7 +353,7 @@ def create_price(userid, price, currency="", settings=""):
     elif price.amount_max and price.amount_max < price.amount_min:
         raise WeasylError("maxamountInvalid")
     elif not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                       [price.classid, userid], ["bool"]):
+                       [price.classid, userid], option="bool"):
         raise WeasylError("classidInvalid")
     elif not price.classid:
         raise WeasylError("classidInvalid")
@@ -364,7 +364,7 @@ def create_price(userid, price, currency="", settings=""):
                          "a" if "a" in settings else "")
 
     # TODO: should have an auto-increment ID
-    priceid = d.execute("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %i", [userid], ["element"])
+    priceid = d.execute("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %i", [userid], option="element")
 
     try:
         d.execute(
@@ -391,7 +391,7 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False):
     settings = "".join(i for i in settings if i in "a")
 
     query = d.execute("SELECT amount_min, amount_max, settings, classid FROM commishprice"
-                      " WHERE (priceid, userid) = (%i, %i)", [price.priceid, userid], options="single")
+                      " WHERE (priceid, userid) = (%i, %i)", [price.priceid, userid], option="single")
 
     if not query:
         raise WeasylError("priceidInvalid")
@@ -432,13 +432,13 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False):
 
 def edit_content(userid, content):
     if not d.execute("UPDATE commishdesc SET content = '%s' WHERE userid = %i RETURNING userid",
-                     [content, userid], ["element"]):
+                     [content, userid], option="element"):
         d.execute("INSERT INTO commishdesc VALUES (%i, '%s')", [userid, content])
 
 
 def remove_class(userid, classid):
     if not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                     [d.get_int(classid), userid], ["bool"]):
+                     [d.get_int(classid), userid], option="bool"):
         raise WeasylError("classidInvalid")
     d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
     d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
@@ -446,6 +446,6 @@ def remove_class(userid, classid):
 
 def remove_price(userid, priceid):
     if not d.execute("SELECT EXISTS (SELECT 0 FROM commishprice WHERE (priceid, userid) = (%i, %i))",
-                     [d.get_int(priceid), userid], ["bool"]):
+                     [d.get_int(priceid), userid], option="bool"):
         raise WeasylError("priceidInvalid")
     d.execute("DELETE FROM commishprice WHERE (priceid, userid) = (%i, %i)", [d.get_int(priceid), userid])

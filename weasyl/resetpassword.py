@@ -9,7 +9,7 @@ from weasyl.error import WeasylError
 
 
 def checktoken(token):
-    return d.execute("SELECT EXISTS (SELECT 0 FROM forgotpassword WHERE token = '%s')", [token], ["bool"])
+    return d.execute("SELECT EXISTS (SELECT 0 FROM forgotpassword WHERE token = '%s')", [token], option="bool")
 
 
 # form
@@ -87,7 +87,7 @@ def reset(form):
             INNER JOIN userinfo ui USING (userid)
             INNER JOIN forgotpassword fp USING (userid)
         WHERE fp.token = '%s' AND fp.link_time > %i
-    """, [form.token, d.get_time() - 300], options="single")
+    """, [form.token, d.get_time() - 300], option="single")
 
     if not query:
         raise WeasylError("forgotpasswordRecordMissing")

@@ -29,7 +29,7 @@ def select(submitid=None, charid=None, journalid=None):
                      [
                          "submit" if submitid else "char" if charid else "journal",
                          submitid if submitid else charid if charid else journalid
-                     ], options="within")
+                     ], option="within")
 
 
 def select_with_artist_tags(submitid):

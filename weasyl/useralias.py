@@ -6,7 +6,7 @@ from weasyl.error import WeasylError
 
 
 def select(userid):
-    return d.execute("SELECT alias_name FROM useralias WHERE userid = %i AND settings ~ 'p'", [userid], ["element"])
+    return d.execute("SELECT alias_name FROM useralias WHERE userid = %i AND settings ~ 'p'", [userid], option="element")
 
 
 def set(userid, username):

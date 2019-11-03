@@ -25,7 +25,7 @@ def check(userid, otherid, myself=False):
         return myself
 
     return d.execute("SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%i, %i))",
-                     [userid, otherid], options="bool")
+                     [userid, otherid], option="bool")
 
 
 def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
@@ -55,7 +55,7 @@ def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
 
 
 def select_settings(userid, otherid):
-    query = d.execute("SELECT settings FROM watchuser WHERE (userid, otherid) = (%i, %i)", [userid, otherid], ["single"])
+    query = d.execute("SELECT settings FROM watchuser WHERE (userid, otherid) = (%i, %i)", [userid, otherid], option="single")
 
     if not query:
         raise WeasylError("watchuserRecordMissing")

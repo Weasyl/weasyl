@@ -774,20 +774,22 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Username
     if username is not None:
-        if not d.get_sysname(username):
+        sysname = d.get_sysname(username)
+
+        if not sysname:
             raise WeasylError("usernameInvalid")
-        elif d.execute("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = '%s')",
-                       [d.get_sysname(username)], option="bool"):
+        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s)",
+                             name=sysname):
             raise WeasylError("usernameExists")
-        elif d.execute("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = '%s')",
-                       [d.get_sysname(username)], option="bool"):
+        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s)",
+                             name=sysname):
             raise WeasylError("usernameExists")
-        elif d.execute("SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = '%s')",
-                       [d.get_sysname(username)], option="bool"):
+        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)",
+                             name=sysname):
             raise WeasylError("usernameExists")
 
         d.execute("UPDATE login SET login_name = '%s' WHERE userid = %i",
-                  [d.get_sysname(username), userid])
+                  [sysname, userid])
         d._get_display_name.invalidate(userid)
         d.execute("UPDATE profile SET username = '%s' WHERE userid = %i",
                   [username, userid])

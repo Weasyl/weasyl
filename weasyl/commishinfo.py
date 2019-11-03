@@ -352,10 +352,10 @@ def create_price(userid, price, currency="", settings=""):
         raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
         raise WeasylError("maxamountInvalid")
-    elif not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                       [price.classid, userid], option="bool"):
-        raise WeasylError("classidInvalid")
     elif not price.classid:
+        raise WeasylError("classidInvalid")
+    elif not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%(class_)s, %(user)s))",
+                             class_=price.classid, user=userid):
         raise WeasylError("classidInvalid")
 
     # Settings are at most one currency class, and optionally an 'a' to indicate an add-on price.

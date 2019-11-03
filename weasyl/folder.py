@@ -23,22 +23,22 @@ def check(userid, folderid=None, title=None, parentid=None, root=True):
 
     if folderid:
         if parentid is None:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid) = (%i, %i) AND settings !~ 'h')",
-                [folderid, userid], option="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid) = (%(folder)s, %(user)s) AND settings !~ 'h')",
+                folder=folderid, user=userid)
         else:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid, parentid) = (%i, %i, %i) AND settings !~ 'h')",
-                [folderid, userid, parentid], option="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid, parentid) = (%(folder)s, %(user)s, %(parent)s) AND settings !~ 'h')",
+                folder=folderid, user=userid, parent=parentid)
     elif title:
         if parentid is None:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, title) = (%i, '%s') AND settings !~ 'h')",
-                [userid, title], option="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, title) = (%(user)s, %(title)s) AND settings !~ 'h')",
+                user=userid, title=title)
         else:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, parentid, title) = (%i, %i, '%s') AND settings !~ 'h')",
-                [userid, parentid, title], option="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, parentid, title) = (%(user)s, %(parent)s, %(title)s) AND settings !~ 'h')",
+                user=userid, parent=parentid, title=title)
 
 
 # form
@@ -275,8 +275,8 @@ def move(userid, form):
         raise WeasylError("InsufficientPermissions")
     # folder with subfolders cannot become a subfolder
     elif (form.folderid and
-          d.execute("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %i)",
-                    [form.folderid], option="bool")):
+          d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s)",
+                          parent=form.folderid)):
         raise WeasylError("parentidInvalid")
 
     if form.parentid > 0:

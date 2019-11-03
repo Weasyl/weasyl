@@ -273,16 +273,17 @@ def check(userid, submitid=None, charid=None, journalid=None):
     if not userid:
         return False
 
-    return d.execute(
+    return d.engine.scalar(
         """
             SELECT EXISTS (
                 SELECT 0 FROM favorite
-                    WHERE (userid, targetid, type) = (%i, %i, '%s')
+                    WHERE (userid, targetid, type) = (%(user)s, %(target)s, %(type)s)
             )
-        """, [
-            userid, d.get_targetid(submitid, charid, journalid),
-            "s" if submitid else "f" if charid else "j"
-        ], option="bool")
+        """,
+        user=userid,
+        target=d.get_targetid(submitid, charid, journalid),
+        type="s" if submitid else "f" if charid else "j",
+    )
 
 
 def count(id, contenttype='submission'):

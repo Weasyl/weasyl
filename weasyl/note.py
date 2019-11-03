@@ -225,8 +225,8 @@ def move(userid, form):
         raise WeasylError("Unexpected")
     elif userid == query[1] and "r" in query[2]:
         raise WeasylError("Unexpected")
-    elif not d.execute("SELECT EXISTS (SELECT 0 FROM messagefolder WHERE (folderid, userid) = (%i, %i))",
-                       [folderid, userid], option="bool"):
+    elif not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM messagefolder WHERE (folderid, userid) = (%(folder)s, %(user)s))",
+                             folder=folderid, user=userid):
         raise WeasylError("Unexpected")
 
     d.execute("UPDATE message SET %s_folder = %i WHERE noteid = %i",

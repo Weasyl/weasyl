@@ -14,8 +14,11 @@ def check(userid, otherid):
     if not userid or not otherid:
         return False
 
-    return d.execute("SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%i, %i))",
-                     [userid, otherid], option="bool")
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%(user)s, %(other)s))",
+        user=userid,
+        other=otherid,
+    )
 
 
 @region.cache_on_arguments()

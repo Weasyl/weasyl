@@ -115,9 +115,7 @@ def execute(statement, argv=None, option=None):
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
         query = query.fetchall()
 
-        if option == "bool":
-            return query and query[0][0]
-        elif option == "within":
+        if option == "within":
             return [x[0] for x in query]
         elif option == "single":
             return query[0] if query else list()

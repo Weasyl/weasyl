@@ -525,12 +525,8 @@ def manage_friends_(request):
 
 @login_required
 def manage_ignore_(request):
-    form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
-
     return Response(define.webpage(request.userid, "manage/ignore.html", [
-        ignoreuser.select(request.userid, 20, backid=form.backid, nextid=form.nextid),
+        ignoreuser.select(request.userid),
     ], title="Ignored Users"))
 
 

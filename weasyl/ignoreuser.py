@@ -29,7 +29,7 @@ def cached_list_ignoring(userid):
 
 
 def select(userid, limit, backid=None, nextid=None):
-    statement = ["SELECT iu.otherid, pr.username, pr.config FROM ignoreuser iu"
+    statement = ["SELECT iu.otherid, pr.username FROM ignoreuser iu"
                  " INNER JOIN profile pr ON iu.otherid = pr.userid"
                  " WHERE iu.userid = %i" % (userid,)]
 

@@ -315,13 +315,9 @@ def remove(userid, folderid):
     elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
-    # Select relevant unhidden folders
-    folders = d.sql_number_list(
-        [folderid] +
-        d.execute("SELECT folderid FROM folder WHERE parentid = %i AND settings !~ 'h'", [folderid], option="within"))
+    with d.engine.begin() as db:
+        # Hide folders
+        db.execute("UPDATE folder SET settings = settings || 'h' WHERE (folderid = %(id)s OR parentid = %(id)s) AND settings !~ 'h'", id=folderid)
 
-    # Hide folders
-    d.execute("UPDATE folder SET settings = settings || 'h' WHERE folderid IN %s AND settings !~ 'h'", [folders])
-
-    # Move submissions to root
-    d.execute("UPDATE submission SET folderid = NULL WHERE folderid IN %s", [folders])
+        # Move submissions to root
+        db.execute("UPDATE submission SET folderid = NULL FROM folder WHERE submission.folderid = folder.folderid AND (folder.folderid = %(id)s OR folder.parentid = %(id)s)", id=folderid)

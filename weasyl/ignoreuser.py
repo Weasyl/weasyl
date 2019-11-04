@@ -33,7 +33,7 @@ def select(userid):
         "SELECT iu.otherid, pr.username FROM ignoreuser iu"
         " INNER JOIN profile pr ON iu.otherid = pr.userid"
         " WHERE iu.userid = %(user)s"
-        " ORDER BY pr.username",
+        " ORDER BY lower(pr.username)",
         user=userid
     )
 

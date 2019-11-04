@@ -171,7 +171,7 @@ def send(userid, form):
     statement = ["INSERT INTO message (userid, otherid, title, content, unixtime) VALUES"]
 
     for i in users:
-        argv.extend([form.title if form.title else "None", form.content])
+        argv.extend([form.title, form.content])
         statement.append(" (%i, %i, '%%s', '%%s', %i)," % (userid, i, unixtime))
         d._page_header_info.invalidate(i)
 

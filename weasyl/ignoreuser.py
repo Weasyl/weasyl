@@ -48,11 +48,9 @@ def insert(userid, ignore):
         return
 
     with d.engine.begin() as db:
-        ignore_set = set(ignore)
-
-        if userid in ignore_set:
+        if userid in ignore:
             raise WeasylError("cannotIgnoreSelf")
-        elif ignore_set & staff.MODS:
+        elif not staff.MODS.isdisjoint(ignore):
             raise WeasylError("cannotIgnoreStaff")
 
         db.execute("""

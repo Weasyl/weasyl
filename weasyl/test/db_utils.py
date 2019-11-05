@@ -197,24 +197,27 @@ def create_ignoreuser(ignorer, ignoree):
 
 # TODO: do these two in a less bad way
 def create_banuser(userid, reason):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-        " RETURNING userid", [userid])
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO permaban VALUES (%i, '%s')", [userid, reason])
+    query = d.engine.execute(
+        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %(target)s",
+        target=userid)
+
+    assert query.rowcount == 1
+
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=userid, reason=reason)
 
 
 def create_suspenduser(userid, reason, release):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-        " RETURNING userid", [userid])
+    query = d.engine.execute(
+        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %(target)s",
+        target=userid)
 
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [userid, reason, release])
+    assert query.rowcount == 1
+
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=userid, reason=reason, release=release)
 
 
 def create_tag(title):

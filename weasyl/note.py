@@ -261,22 +261,3 @@ def remove_list(userid, noteids):
         user=userid,
         ids=noteids,
     )
-
-
-def remove(userid, noteid):
-    query = d.engine.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %(id)s", id=noteid).first()
-
-    if not query:
-        raise WeasylError("Unexpected")
-    elif userid not in query:
-        raise WeasylError("Unexpected")
-    elif userid == query[0] and "s" in query[2]:
-        raise WeasylError("Unexpected")
-    elif userid == query[1] and "r" in query[2]:
-        raise WeasylError("Unexpected")
-
-    if userid == query[1] and "u" in query[2]:
-        d.execute("UPDATE message SET settings = REPLACE(settings, 'u', '') || 'r' WHERE noteid = %i", [noteid])
-    else:
-        d.execute("UPDATE message SET settings = settings || '%s' WHERE noteid = %i",
-                  ["s" if userid == query[0] else "r", noteid])

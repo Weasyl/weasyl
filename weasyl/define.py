@@ -604,10 +604,6 @@ def text_fix_url(target):
     return "http://" + target
 
 
-def text_bool(target, default=False):
-    return target.lower().strip() == "true" or default and target == ""
-
-
 def local_arrow(dt):
     tz = get_current_request().weasyl_session.timezone
     return arrow.Arrow.fromdatetime(tz.localtime(dt))

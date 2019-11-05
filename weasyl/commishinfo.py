@@ -425,9 +425,6 @@ def edit_price(userid, price, currency="", settings="", edit_prices=False):
     statement.append("%s settings = '%%s'" % ("," if argv else ""))
     argv.append("%s%s" % (currency, settings))
 
-    if not argv:
-        return
-
     statement.append(" WHERE (priceid, userid) = (%i, %i)")
     argv.extend([price.priceid, userid])
 

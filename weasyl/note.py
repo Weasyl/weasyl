@@ -6,6 +6,7 @@ from libweasyl import staff
 
 from weasyl import define as d
 from weasyl import frienduser
+from weasyl import ignoreuser
 from weasyl.error import WeasylError
 
 
@@ -135,17 +136,24 @@ def send(userid, form):
     elif len(form.title) > 100:
         raise WeasylError("titleTooLong")
 
-    users = set(i for i in d.get_userid_list(form.recipient) if i != userid)
+    users = set(d.get_userid_list(form.recipient))
+
+    # can't send a note to yourself
+    users.discard(userid)
+
+    # can't send a note to a user who ignores you
     users.difference_update(
-        d.execute("SELECT userid FROM ignoreuser WHERE otherid = %i", [userid], option="within"))
-    users.difference_update(
-        d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i", [userid], option="within"))
+        d.column(d.engine.execute("SELECT userid FROM ignoreuser WHERE otherid = %(user)s", user=userid)))
+
+    # can't send a note to a user you're ignoring
+    users.difference_update(ignoreuser.cached_list_ignoring(userid))
+
     if not users:
         raise WeasylError("recipientInvalid")
 
-    configs = d.execute(
-        "SELECT userid, config FROM profile WHERE userid IN %s",
-        [d.sql_number_list(list(users))])
+    configs = d.engine.execute(
+        "SELECT userid, config FROM profile WHERE userid = ANY (%(recipients)s)",
+        recipients=list(users)).fetchall()
 
     if userid not in staff.MODS:
         ignore_global_restrictions = {i for (i,) in d.engine.execute(
@@ -166,17 +174,19 @@ def send(userid, form):
     elif len(users) > 10:
         raise WeasylError("recipientExcessive")
 
-    argv = []
-    unixtime = d.get_time()
-    statement = ["INSERT INTO message (userid, otherid, title, content, unixtime) VALUES"]
+    d.engine.execute(
+        "INSERT INTO message (userid, otherid, title, content, unixtime)"
+        " SELECT %(sender)s, recipient, %(title)s, %(content)s, %(now)s"
+        " FROM UNNEST (%(recipients)s) AS recipient",
+        sender=userid,
+        title=form.title,
+        content=form.content,
+        now=d.get_time(),
+        recipients=list(users),
+    )
 
-    for i in users:
-        argv.extend([form.title, form.content])
-        statement.append(" (%i, %i, '%%s', '%%s', %i)," % (userid, i, unixtime))
-        d._page_header_info.invalidate(i)
-
-    statement[-1] = statement[-1][:-1]
-    d.execute("".join(statement), argv)
+    for u in users:
+        d._page_header_info.invalidate(u)
 
     d.engine.execute(
         """

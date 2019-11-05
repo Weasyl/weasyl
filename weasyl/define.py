@@ -124,6 +124,13 @@ def execute(statement, argv=None, option=None):
         query.close()
 
 
+def column(results):
+    """
+    Get a list of values from a single-column ResultProxy.
+    """
+    return [x for x, in results]
+
+
 def _quote_string(s):
     quoted = QuotedString(s).getquoted()
     assert quoted[0] == quoted[-1] == "'"

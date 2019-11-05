@@ -248,24 +248,19 @@ def remove_list(userid, noteids):
     if not noteids:
         return
 
-    rem_sent = []
-    rem_received = []
+    # Add "sender trashed" (s) to requested notes that the user sent
+    d.engine.execute(
+        "UPDATE message SET settings = settings || 's' WHERE noteid = ANY (%(ids)s) AND userid = %(user)s AND settings !~ 's'",
+        user=userid,
+        ids=noteids,
+    )
 
-    query = d.execute("SELECT userid, otherid, settings, noteid FROM message WHERE noteid IN %s",
-                      [d.sql_number_list(noteids)])
-
-    for i in query:
-        if i[0] == userid and "s" not in i[2]:
-            rem_sent.append(i[3])
-        if i[1] == userid and "r" not in i[2]:
-            rem_received.append(i[3])
-
-    if rem_sent:
-        d.execute("UPDATE message SET settings = settings || 's' WHERE noteid IN %s", [d.sql_number_list(rem_sent)])
-
-    if rem_received:
-        d.execute("UPDATE message SET settings = REPLACE(settings, 'u', '') || 'r' WHERE noteid IN %s",
-                  [d.sql_number_list(rem_received)])
+    # Remove "unread" (u) from and add "recipient trashed" (r) to requested notes that the user received
+    d.engine.execute(
+        "UPDATE message SET settings = REPLACE(settings, 'u', '') || 'r' WHERE noteid = ANY (%(ids)s) AND otherid = %(user)s AND settings !~ 'r'",
+        user=userid,
+        ids=noteids,
+    )
 
 
 def remove(userid, noteid):

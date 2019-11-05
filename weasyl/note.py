@@ -219,31 +219,6 @@ def send(userid, form):
             .values(mod_copies))
 
 
-# form
-#   noteid
-#   folderid
-
-def move(userid, form):
-    noteid = d.get_int(form.noteid)
-    folderid = d.get_int(form.folderid)
-    query = d.engine.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %(id)s", id=noteid).first()
-
-    if not query:
-        raise WeasylError("Unexpected")
-    elif userid not in query:
-        raise WeasylError("Unexpected")
-    elif userid == query[0] and "s" in query[2]:
-        raise WeasylError("Unexpected")
-    elif userid == query[1] and "r" in query[2]:
-        raise WeasylError("Unexpected")
-    elif not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM messagefolder WHERE (folderid, userid) = (%(folder)s, %(user)s))",
-                             folder=folderid, user=userid):
-        raise WeasylError("Unexpected")
-
-    d.execute("UPDATE message SET %s_folder = %i WHERE noteid = %i",
-              ["user" if userid == query[0] else "other", folderid, noteid])
-
-
 def remove_list(userid, noteids):
     if not noteids:
         return

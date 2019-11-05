@@ -23,8 +23,8 @@ def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
     Returns a list of users who are following the specified user.
     """
     statement = [
-        "SELECT wu.userid FROM watchuser wu JOIN profile pr ON wu.userid = pr.userid WHERE wu.otherid = %i"
-        " AND wu.settings ~ '%s'"
+        "SELECT wu.userid FROM watchuser wu JOIN profile pr ON wu.userid = pr.userid WHERE wu.otherid = %(user)s"
+        " AND wu.settings ~ %(setting)s"
     ]
 
     if friends:
@@ -41,7 +41,7 @@ def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
         # Only notify users who view mature or explicit
         statement.append(" AND pr.config ~ '[ap]'")
 
-    return d.execute("".join(statement), [userid, settings])
+    return d.column(d.engine.execute("".join(statement), user=userid, setting=settings))
 
 
 def select_settings(userid, otherid):

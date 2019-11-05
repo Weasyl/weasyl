@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import arrow
 import sqlalchemy as sa
-from pyramid.threadlocal import get_current_request
 
 from libweasyl.models import content, site, users
 from libweasyl import ratings
@@ -16,41 +15,24 @@ In this module, `userid` is typically the user performing the action, whereas
 """
 
 
-def _insert(template, query):
+def _insert(sender, referid, targetid, type, notify_users):
     """
-    Creates message notifications. template is a list of the form [userid,
-    otherid, referid, targetid, type], and query is of the form [[a, b], [c, d]]
-    with one to five elements per sublist; if an element of template is None,
-    for each iteration it is replaced with an element of a sublist of query.
+    Creates message notifications.
     """
-    if not query:
+    if not notify_users:
         return
 
-    template = [None if i is None else str(i) for i in template]
-    unixtime = "%i, " % (d.get_time())
-    statement = ["INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES "]
-
-    for i in range(len(query)):
-        index = 0
-        statement.append("(")
-
-        for j in template[:-1]:
-            if j is None:
-                statement.extend([str(query[i][index]), ", "])
-                index += 1
-            else:
-                statement.extend([j, ", "])
-
-        statement.extend([unixtime, template[4], "), "])
-
-    statement = statement[:-1]
-    statement.append(")")
-
-    try:
-        d.execute("".join(statement))
-    except Exception:
-        request = get_current_request()
-        request.log_exc()
+    d.engine.execute(
+        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type)"
+        " SELECT notify, %(sender)s, %(referid)s, %(targetid)s, %(now)s, %(type)s"
+        " FROM UNNEST (%(notify)s) AS notify",
+        sender=sender,
+        referid=referid,
+        targetid=targetid,
+        now=d.get_time(),
+        type=type,
+        notify=notify_users,
+    )
 
 
 # notifications
@@ -81,7 +63,7 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''
         "targetid = %i AND tagid IN (SELECT tagid FROM blocktag WHERE userid = "
         "wu.userid AND rating <= %i))")
 
-    _insert([None, userid, 0, submitid, 2010], d.execute("".join(statement), [userid, submitid, rating]))
+    _insert(userid, 0, submitid, 2010, d.column(d.execute("".join(statement), [userid, submitid, rating])))
 
 
 # notifications
@@ -146,7 +128,7 @@ def submission_became_friends_only(submitid, ownerid):
 #   2050 user posted character
 
 def character_insert(userid, charid, rating=ratings.GENERAL.code, settings=''):
-    _insert([None, userid, 0, charid, 2050],
+    _insert(userid, 0, charid, 2050,
             followuser.list_followed(userid, "f", rating=rating, friends='f' in settings))
 
 
@@ -221,7 +203,7 @@ def collection_remove(userid, remove):
 
 def journal_insert(userid, journalid, rating=ratings.GENERAL.code, settings=''):
     _insert(
-        [None, userid, 0, journalid, 1010],
+        userid, 0, journalid, 1010,
         followuser.list_followed(userid, "j", rating=rating, friends='f' in settings))
 
 
@@ -434,9 +416,9 @@ def stream_insert(userid, status):
     d.execute("DELETE FROM welcome WHERE otherid = %i AND type IN (3070, 3075)", [userid])
 
     if status == "n":
-        _insert([None, userid, 0, 0, 3075], followuser.list_followed(userid, "t"))
+        _insert(userid, 0, 0, 3075, followuser.list_followed(userid, "t"))
     elif status == "l":
-        _insert([None, userid, 0, 0, 3070], followuser.list_followed(userid, "t"))
+        _insert(userid, 0, 0, 3070, followuser.list_followed(userid, "t"))
 
 
 # notifications

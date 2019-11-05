@@ -101,7 +101,7 @@ def log_exc(**kwargs):
     return get_current_request().log_exc(**kwargs)
 
 
-def execute(statement, argv=None, option=None):
+def execute(statement, argv=None):
     """
     Executes an SQL statement; if `statement` represents a SELECT or RETURNING
     statement, the query results will be returned.
@@ -113,13 +113,7 @@ def execute(statement, argv=None, option=None):
     query = db.connection().execute(statement)
 
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
-        query = query.fetchall()
-
-        if option == "within":
-            return [x[0] for x in query]
-        else:
-            assert option is None
-            return query
+        return query.fetchall()
     else:
         query.close()
 

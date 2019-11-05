@@ -24,8 +24,9 @@ def check(userid, otherid):
 @region.cache_on_arguments()
 @d.record_timing
 def cached_list_ignoring(userid):
-    return d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i",
-                     [userid], option="within")
+    return d.column(d.engine.execute(
+        "SELECT otherid FROM ignoreuser WHERE userid = %(user)s",
+        user=userid))
 
 
 def select(userid):

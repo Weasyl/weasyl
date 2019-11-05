@@ -91,12 +91,9 @@ def insert(userid, title, rating):
     index.template_fields.invalidate(userid)
 
 
-def remove(userid, tagid=None, title=None):
-    if tagid:
-        d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, %i)", [userid, tagid])
-    elif title:
-        d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, (SELECT tagid FROM searchtag WHERE title = '%s'))",
-                  [userid, d.get_search_tag(title)])
+def remove(userid, title):
+    d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, (SELECT tagid FROM searchtag WHERE title = '%s'))",
+              [userid, d.get_search_tag(title)])
 
     select_ids.invalidate(userid)
 

@@ -284,9 +284,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, preferre
 
         # preference/optout tags can only be set by the artist, so this settings column does not apply
         if userid == ownerid and not (preferred_tags_userid or optout_tags_userid):
-            d.execute(
-                "UPDATE %s SET settings = settings || 'a' WHERE targetid = %i AND tagid IN %s",
-                [table, targetid, d.sql_number_list(list(added))])
+            d.engine.execute(
+                "UPDATE {} SET settings = settings || 'a' WHERE targetid = %(target)s AND tagid = ANY (%(added)s)".format(table),
+                target=targetid, added=list(added))
 
     if submitid:
         d.engine.execute(

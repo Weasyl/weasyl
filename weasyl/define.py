@@ -149,17 +149,6 @@ def _sql_escape(target):
         raise TypeError("Can't escape %r" % (target,))
 
 
-def sql_number_list(target):
-    """
-    Returns a list of numbers suitable for placement after the SQL IN operator in
-    a query statement, as in "(1, 2, 3)".
-    """
-    if not target:
-        raise ValueError
-
-    return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
-
-
 _PG_SERIALIZATION_FAILURE = u'40001'
 
 

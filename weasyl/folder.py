@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import sqlalchemy as sa
 
-from libweasyl import staff
-
 from weasyl import define as d
 from weasyl import media
 from weasyl.error import WeasylError
@@ -246,7 +244,7 @@ def rename(userid, form):
         raise WeasylError("folderRecordMissing")
     elif not form.title:
         raise WeasylError("titleInvalid")
-    elif userid != query and userid not in staff.ADMINS:
+    elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
     d.execute("UPDATE folder SET title = '%s' WHERE folderid = %i",

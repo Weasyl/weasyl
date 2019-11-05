@@ -28,10 +28,14 @@ $:{RENDER("common/stage_title.html", ["Ignored Users", "Settings"])}
       <button type="submit" class="button positive">Un-Ignore User(s)</button>
     </form>
 
-    $if(query):
-      <h3>Users You Already Ignore</h3>
+    <h3>Users You Already Ignore</h3>
 
+    $if query:
+      <ul>
       $for i in query:
-        <p><a href="/~${LOGIN(i['username'])}">${i['username']}</a></p>
+        <li><a href="/~${LOGIN(i['username'])}">${i['username']}</a></li>
+      </ul>
+    $else:
+      <p>(nobody!)</p>
   </div><!-- /form -->
 </div>

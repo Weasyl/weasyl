@@ -28,22 +28,19 @@ def cached_list_ignoring(userid):
                      [userid], options=["within"])
 
 
-def select(userid, limit, backid=None, nextid=None):
-    statement = ["SELECT iu.otherid, pr.username, pr.config FROM ignoreuser iu"
-                 " INNER JOIN profile pr ON iu.otherid = pr.userid"
-                 " WHERE iu.userid = %i" % (userid,)]
-
-    if backid:
-        statement.append(" AND pr.username < (SELECT username FROM profile WHERE userid = %i)" % (backid,))
-    elif nextid:
-        statement.append(" AND pr.username > (SELECT username FROM profile WHERE userid = %i)" % (nextid,))
-
-    statement.append(" ORDER BY pr.username%s LIMIT %i" % (" DESC" if nextid else "", limit))
+def select(userid):
+    results = d.engine.execute(
+        "SELECT iu.otherid, pr.username FROM ignoreuser iu"
+        " INNER JOIN profile pr ON iu.otherid = pr.userid"
+        " WHERE iu.userid = %(user)s"
+        " ORDER BY lower(pr.username)",
+        user=userid
+    )
 
     return [{
-        "userid": i[0],
-        "username": i[1],
-    } for i in d.execute("".join(statement))]
+        "userid": ignored,
+        "username": username,
+    } for ignored, username in results]
 
 
 def insert(userid, ignore):

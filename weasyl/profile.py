@@ -786,11 +786,14 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
                              name=sysname):
             raise WeasylError("usernameExists")
 
-        d.execute("UPDATE login SET login_name = '%s' WHERE userid = %i",
-                  [sysname, userid])
+        with d.engine.begin() as db:
+            db.execute(
+                "UPDATE login SET login_name = %(sysname)s WHERE userid = %(user)s",
+                sysname=sysname, user=userid)
+            db.execute(
+                "UPDATE profile SET username = %(username)s WHERE userid = %(user)s",
+                username=username, user=userid)
         d._get_display_name.invalidate(userid)
-        d.execute("UPDATE profile SET username = '%s' WHERE userid = %i",
-                  [username, userid])
         updates.append('- Username: %s' % (username,))
 
     # Full name

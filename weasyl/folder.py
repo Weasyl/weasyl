@@ -54,8 +54,13 @@ def create(userid, form):
     elif check(userid, title=form.title, parentid=form.parentid):
         raise WeasylError("folderRecordExists")
 
-    return d.execute("INSERT INTO folder (parentid, userid, title) VALUES (%i, %i, '%s') RETURNING folderid",
-                     [form.parentid, userid, form.title])
+    d.engine.execute(
+        "INSERT INTO folder (parentid, userid, title)"
+        " VALUES (%(parent)s, %(user)s, %(title)s)",
+        parent=form.parentid,
+        user=userid,
+        title=form.title,
+    )
 
 
 def select_info(folderid):
@@ -247,8 +252,9 @@ def rename(userid, form):
     elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
-    d.execute("UPDATE folder SET title = '%s' WHERE folderid = %i",
-              [form.title, form.folderid])
+    d.engine.execute(
+        "UPDATE folder SET title = %(title)s WHERE folderid = %(folder)s",
+        title=form.title, folder=form.folderid)
 
 
 # form

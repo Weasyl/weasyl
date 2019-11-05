@@ -317,8 +317,17 @@ def edit(userid, journal, friends_only=False):
         settings += "f"
         welcome.journal_remove(journal.journalid)
 
-    d.execute("UPDATE journal SET (title, content, rating, settings) = ('%s', '%s', %i, '%s') WHERE journalid = %i",
-              [journal.title, journal.content, journal.rating.code, settings, journal.journalid])
+    jo = d.meta.tables['journal']
+    d.engine.execute(
+        jo.update()
+        .where(jo.c.journalid == journal.journalid)
+        .values({
+            'title': journal.title,
+            'content': journal.content,
+            'rating': journal.rating,
+            'settings': settings,
+        })
+    )
 
     if userid != query[0]:
         moderation.note_about(

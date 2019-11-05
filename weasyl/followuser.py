@@ -141,8 +141,12 @@ def insert(userid, otherid):
 
 
 def update(userid, otherid, watch_settings):
-    d.execute("UPDATE watchuser SET settings = '%s' WHERE (userid, otherid) = (%i, %i)",
-              [watch_settings.to_code(), userid, otherid])
+    d.engine.execute(
+        "UPDATE watchuser SET settings = %(settings)s WHERE (userid, otherid) = (%(user)s, %(other)s)",
+        settings=watch_settings.to_code(),
+        user=userid,
+        other=otherid,
+    )
 
 
 def remove(userid, otherid):

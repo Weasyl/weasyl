@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pytz
+import sqlalchemy as sa
 from translationstring import TranslationString as _
 
 from libweasyl import ratings
@@ -394,11 +395,9 @@ def edit_profile_settings(userid,
                           set_request=EXCHANGE_SETTING_NOT_ACCEPTING,
                           set_commission=EXCHANGE_SETTING_NOT_ACCEPTING):
     settings = "".join([set_commission.code, set_trade.code, set_request.code])
-    d.execute(
-        "UPDATE profile "
-        "SET settings = '%s' "
-        "WHERE userid = %i",
-        [settings, userid])
+    d.engine.execute(
+        "UPDATE profile SET settings = %(settings)s WHERE userid = %(user)s",
+        settings=settings, user=userid)
     d._get_config.invalidate(userid)
 
 
@@ -413,12 +412,18 @@ def edit_profile(userid, profile,
     if profile_display not in ('O', 'A'):
         profile_display = ''
 
-    d.execute(
-        "UPDATE profile "
-        "SET (full_name, catchphrase, profile_text, settings) = ('%s', '%s', '%s', '%s'), "
-        "config = REGEXP_REPLACE(config, '[OA]', '') || '%s'"
-        "WHERE userid = %i",
-        [profile.full_name, profile.catchphrase, profile.profile_text, settings, profile_display, userid])
+    pr = d.meta.tables['profile']
+    d.engine.execute(
+        pr.update()
+        .where(pr.c.userid == userid)
+        .values({
+            'full_name': profile.full_name,
+            'catchphrase': profile.catchphrase,
+            'profile_text': profile.profile_text,
+            'settings': settings,
+            'config': sa.func.regexp_replace(pr.c.config, "[OA]", "").concat(profile_display),
+        })
+    )
     d._get_config.invalidate(userid)
 
 
@@ -461,11 +466,16 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
     if set_stream != 'still':
         welcome.stream_insert(userid, stream_status)
 
-    d.execute(
-        "UPDATE profile "
-        "SET (stream_text, stream_url, settings) = ('%s', '%s', REGEXP_REPLACE(settings, '[nli]', '') || '%s') "
-        "WHERE userid = %i",
-        [profile.stream_text, profile.stream_url, settings_flag, userid])
+    pr = d.meta.tables['profile']
+    d.engine.execute(
+        pr.update()
+        .where(pr.c.userid == userid)
+        .values({
+            'stream_text': profile.stream_text,
+            'stream_url': profile.stream_url,
+            'settings': sa.func.regexp_replace(pr.c.settings, "[nli]", "").concat(settings_flag),
+        })
+    )
 
     if my_userid != userid:
         from weasyl import moderation
@@ -595,7 +605,9 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
 
     # If the password is being updated, update the hash, and clear other sessions.
     if newpassword:
-        d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
+        d.engine.execute(
+            "UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s",
+            new_hash=login.passhash(newpassword), user=userid)
 
         # Invalidate all sessions for `userid` except for the current one
         invalidate_other_sessions(userid)
@@ -798,14 +810,16 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Full name
     if full_name is not None:
-        d.execute("UPDATE profile SET full_name = '%s' WHERE userid = %i",
-                  [full_name, userid])
+        d.engine.execute(
+            "UPDATE profile SET full_name = %(full_name)s WHERE userid = %(user)s",
+            full_name=full_name, user=userid)
         updates.append('- Full name: %s' % (full_name,))
 
     # Catchphrase
     if catchphrase is not None:
-        d.execute("UPDATE profile SET catchphrase = '%s' WHERE userid = %i",
-                  [catchphrase, userid])
+        d.engine.execute(
+            "UPDATE profile SET catchphrase = %(catchphrase)s WHERE userid = %(user)s",
+            catchphrase=catchphrase, user=userid)
         updates.append('- Catchphrase: %s' % (catchphrase,))
 
     # Birthday
@@ -822,27 +836,30 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             max_rating = ratings.EXPLICIT.code
 
         if d.get_rating(userid) > max_rating:
-            d.execute(
+            d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || '%s'
-                WHERE userid = %i
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || %(rating_flag)s
+                WHERE userid = %(user)s
                 """,
-                [rating_flag, userid]
+                rating_flag=rating_flag,
+                user=userid,
             )
             d._get_config.invalidate(userid)
         updates.append('- Birthday: %s' % (birthday,))
 
     # Gender
     if gender is not None:
-        d.execute("UPDATE userinfo SET gender = '%s' WHERE userid = %i",
-                  [gender, userid])
+        d.engine.execute(
+            "UPDATE userinfo SET gender = %(gender)s WHERE userid = %(user)s",
+            gender=gender, user=userid)
         updates.append('- Gender: %s' % (gender,))
 
     # Location
     if country is not None:
-        d.execute("UPDATE userinfo SET country = '%s' WHERE userid = %i",
-                  [country, userid])
+        d.engine.execute(
+            "UPDATE userinfo SET country = %(country)s WHERE userid = %(user)s",
+            country=country, user=userid)
         updates.append('- Country: %s' % (country,))
 
     # Social and contact links

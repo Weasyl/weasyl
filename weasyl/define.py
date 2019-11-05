@@ -17,7 +17,6 @@ import subprocess
 
 import anyjson as json
 import arrow
-from psycopg2cffi.extensions import QuotedString
 from pyramid.threadlocal import get_current_request
 import pytz
 import requests
@@ -109,7 +108,14 @@ def execute(statement, argv=None):
     db = connect()
 
     if argv:
-        statement %= tuple([_sql_escape(i) for i in argv])
+        argv = tuple(argv)
+
+        for x in argv:
+            if type(x) not in (int, long):
+                raise TypeError("can't use %r as define.execute() parameter" % (x,))
+
+        statement %= argv
+
     query = db.connection().execute(statement)
 
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
@@ -123,30 +129,6 @@ def column(results):
     Get a list of values from a single-column ResultProxy.
     """
     return [x for x, in results]
-
-
-def _quote_string(s):
-    quoted = QuotedString(s).getquoted()
-    assert quoted[0] == quoted[-1] == "'"
-    return quoted[1:-1].replace('%', '%%')
-
-
-def _sql_escape(target):
-    """
-    SQL-escapes `target`; pg_escape_string is used if `target` is a string or
-    unicode object, else the integer equivalent is returned.
-    """
-    if isinstance(target, str):
-        # Escape ASCII string
-        return _quote_string(target)
-    elif isinstance(target, unicode):
-        # Escape Unicode string
-        return _quote_string(target.encode("utf-8"))
-    elif type(target) is int:
-        # Escape integer
-        return target
-    else:
-        raise TypeError("Can't escape %r" % (target,))
 
 
 _PG_SERIALIZATION_FAILURE = u'40001'

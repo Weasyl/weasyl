@@ -474,13 +474,13 @@ def submissionsbyuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.settings
         FROM submission su
             INNER JOIN profile pr USING (userid)
-        WHERE su.userid = (SELECT userid FROM login WHERE login_name = '%s')
+        WHERE su.userid = (SELECT userid FROM login WHERE login_name = %(sysname)s)
         ORDER BY su.submitid DESC
-    """, [d.get_sysname(form.name)])
+    """, sysname=d.get_sysname(form.name))
 
     ret = [{
         "contype": 10,
@@ -500,7 +500,7 @@ def charactersbyuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             ch.charid, pr.username, ch.unixtime,
             ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
@@ -508,8 +508,8 @@ def charactersbyuser(userid, form):
         FROM character ch
         INNER JOIN profile pr ON ch.userid = pr.userid
         INNER JOIN login ON ch.userid = login.userid
-        WHERE login.login_name = '%s'
-    """, [d.get_sysname(form.name)])
+        WHERE login.login_name = %(sysname)s
+    """, sysname=d.get_sysname(form.name))
 
     return [{
         "contype": 20,

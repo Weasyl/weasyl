@@ -337,7 +337,12 @@ def create_commission_class(userid, title):
     if not classid:
         classid = 1
     try:
-        d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid, userid, title])
+        d.engine.execute(
+            "INSERT INTO commishclass VALUES (%(class_)s, %(user)s, %(title)s)",
+            class_=classid,
+            user=userid,
+            title=title,
+        )
         return classid
     except PostgresError:
         raise WeasylError("commishclassExists")
@@ -367,21 +372,31 @@ def create_price(userid, price, currency="", settings=""):
     priceid = d.engine.scalar("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %(user)s", user=userid)
 
     try:
-        d.execute(
-            "INSERT INTO commishprice VALUES (%i, %i, %i, '%s', %i, %i, '%s')",
-            [priceid if priceid else 1, price.classid, userid, price.title, price.amount_min, price.amount_max, settings])
+        d.engine.execute(
+            "INSERT INTO commishprice VALUES (%(newid)s, %(class_)s, %(user)s, %(title)s, %(amount_min)s, %(amount_max)s, %(settings)s)",
+            newid=priceid if priceid else 1,
+            class_=price.classid,
+            user=userid,
+            title=price.title,
+            amount_min=price.amount_min,
+            amount_max=price.amount_max,
+            settings=settings,
+        )
     except PostgresError:
         return WeasylError("titleExists")
 
 
 def edit_class(userid, commishclass):
-
     if not commishclass.title:
         raise WeasylError("titleInvalid")
 
     try:
-        d.execute("UPDATE commishclass SET title = '%s' WHERE (classid, userid) = (%i, %i)",
-                  [commishclass.title, commishclass.classid, userid])
+        d.engine.execute(
+            "UPDATE commishclass SET title = %(title)s WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            title=commishclass.title,
+            class_=commishclass.classid,
+            user=userid,
+        )
     except PostgresError:
         raise WeasylError("titleExists")
 

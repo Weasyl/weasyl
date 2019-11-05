@@ -282,10 +282,10 @@ def remove(userid, feature=None, commentid=None):
         # user is commenter
         comment_table = (
             "comments" if feature == 'submit' else feature + "comment")
-        replies = d.execute(
-            "SELECT commentid FROM %s WHERE parentid = %d",
-            [comment_table, commentid])
-        if replies:
+        has_replies = d.engine.scalar(
+            "SELECT EXISTS (SELECT FROM {table} WHERE parentid = %(comment)s)".format(table=comment_table),
+            comment=commentid)
+        if has_replies:
             # a commenter cannot remove their comment if it has replies
             raise WeasylError("InsufficientPermissions")
 
@@ -295,9 +295,11 @@ def remove(userid, feature=None, commentid=None):
 
     # mark comments as hidden
     if feature == 'submit':
-        d.execute(
-            "UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i",
-            [userid, commentid])
+        d.engine.execute(
+            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            comment=commentid,
+            hidden_by=userid,
+        )
     elif feature == 'siteupdate':
         d.engine.execute(
             "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
@@ -305,9 +307,11 @@ def remove(userid, feature=None, commentid=None):
             hidden_by=userid,
         )
     else:
-        d.execute(
-            "UPDATE %scomment SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i",
-            [feature, userid, commentid])
+        d.engine.execute(
+            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),
+            comment=commentid,
+            hidden_by=userid,
+        )
 
     return query[1]
 

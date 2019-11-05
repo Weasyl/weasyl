@@ -15,5 +15,5 @@ def set(userid, username):
     elif not d.get_premium(userid):
         raise WeasylError("InsufficientPermissions")
 
-    d.execute("DELETE FROM useralias WHERE userid = %i AND settings ~ 'p'", [userid])
-    d.execute("INSERT INTO useralias VALUES (%i, '%s', 'p')", [userid, username])
+    d.engine.execute("DELETE FROM useralias WHERE userid = %(user)s AND settings ~ 'p'", user=userid)
+    d.engine.execute("INSERT INTO useralias VALUES (%(user)s, %(name)s, 'p')", user=userid, name=username)

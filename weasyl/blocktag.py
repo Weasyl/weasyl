@@ -92,8 +92,11 @@ def insert(userid, title, rating):
 
 
 def remove(userid, title):
-    d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, (SELECT tagid FROM searchtag WHERE title = '%s'))",
-              [userid, d.get_search_tag(title)])
+    d.engine.execute(
+        "DELETE FROM blocktag WHERE (userid, tagid) = (%(user)s, (SELECT tagid FROM searchtag WHERE title = %(tag)s))",
+        user=userid,
+        tag=d.get_search_tag(title),
+    )
 
     select_ids.invalidate(userid)
 

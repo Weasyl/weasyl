@@ -92,11 +92,11 @@ def _create_char(x1, y1, x2, y2, charid, remove=True):
     im = image.read(filename)
     size = im.size.width, im.size.height
 
-    d.execute("""
+    d.engine.execute("""
         UPDATE character
-        SET settings = REGEXP_REPLACE(settings, '-.', '') || '-%s'
-        WHERE charid = %i
-    """, [image.image_setting(im), charid])
+        SET settings = REGEXP_REPLACE(settings, '-.', '') || '-' || %(image_setting)s
+        WHERE charid = %(char)s
+    """, image_setting=image.image_setting(im), char=charid)
     dest = os.path.join(d.get_character_directory(charid), '%i.thumb%s' % (charid, images.image_extension(im)))
 
     bounds = None

@@ -44,7 +44,7 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''
 
     statement = ["SELECT wu.userid FROM watchuser wu"
                  " INNER JOIN profile pr USING (userid)"
-                 " WHERE wu.otherid = %i AND wu.settings ~ 's'"]
+                 " WHERE wu.otherid = %(sender)s AND wu.settings ~ 's'"]
 
     if 'f' in settings:
         statement.append(
@@ -60,10 +60,10 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''
 
     statement.append(
         " AND NOT EXISTS (SELECT 0 FROM searchmapsubmit WHERE "
-        "targetid = %i AND tagid IN (SELECT tagid FROM blocktag WHERE userid = "
-        "wu.userid AND rating <= %i))")
+        "targetid = %(sub)s AND tagid IN (SELECT tagid FROM blocktag WHERE userid = "
+        "wu.userid AND rating <= %(rating)s))")
 
-    _insert(userid, 0, submitid, 2010, d.column(d.execute("".join(statement), [userid, submitid, rating])))
+    _insert(userid, 0, submitid, 2010, d.column(d.engine.execute("".join(statement), sender=userid, sub=submitid, rating=rating)))
 
 
 # notifications

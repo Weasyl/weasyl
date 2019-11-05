@@ -374,15 +374,22 @@ def edit(userid, character, friends_only):
         settings += "f"
         welcome.character_remove(character.charid)
 
-    define.execute(
-        """
-            UPDATE character
-            SET (char_name, age, gender, height, weight, species, content, rating, settings) =
-                ('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s')
-            WHERE charid = %i
-        """,
-        [character.char_name, character.age, character.gender, character.height, character.weight, character.species,
-         character.content, character.rating.code, settings, character.charid])
+    ch = define.meta.tables["character"]
+    define.engine.execute(
+        ch.update()
+        .where(ch.c.charid == character.charid)
+        .values({
+            'char_name': character.char_name,
+            'age': character.age,
+            'gender': character.gender,
+            'height': character.height,
+            'weight': character.weight,
+            'species': character.species,
+            'content': character.content,
+            'rating': character.rating,
+            'settings': settings,
+        })
+    )
 
     if userid != query[0]:
         from weasyl import moderation

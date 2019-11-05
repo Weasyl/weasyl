@@ -386,49 +386,38 @@ def edit_class(userid, commishclass):
         raise WeasylError("titleExists")
 
 
-def edit_price(userid, price, currency="", settings="", edit_prices=False):
-    currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
-    settings = "".join(i for i in settings if i in "a")
-
-    query = d.engine.execute(
-        "SELECT amount_min, amount_max, settings, classid FROM commishprice"
-        " WHERE (priceid, userid) = (%(priceid)s, %(userid)s)",
-        priceid=price.priceid,
-        userid=userid,
-    ).first()
-
-    if not query:
-        raise WeasylError("priceidInvalid")
-    elif price.amount_min > _MAX_PRICE:
+def edit_price(userid, price, currency, settings, edit_prices):
+    if price.amount_min > _MAX_PRICE:
         raise WeasylError("minamountInvalid")
     elif price.amount_max > _MAX_PRICE:
         raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
         raise WeasylError("maxamountInvalid")
 
-    argv = []
-    statement = ["UPDATE commishprice SET "]
+    currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
+    settings = "".join(i for i in settings if i in "a")
+
+    updates = {
+        'settings': currency + settings,
+    }
 
     if price.title:
-        statement.append("%s title = '%%s'" % ("," if argv else ""))
-        argv.append(price.title)
+        updates['title'] = price.title
 
     if edit_prices:
-        if price.amount_min != query[0]:
-            statement.append("%s amount_min = %%i" % ("," if argv else ""))
-            argv.append(price.amount_min)
+        updates['amount_min'] = price.amount_min
+        updates['amount_max'] = price.amount_max
 
-        if price.amount_max != query[1]:
-            statement.append("%s amount_max = %%i" % ("," if argv else ""))
-            argv.append(price.amount_max)
+    cpt = d.meta.tables['commishprice']
+    result = d.engine.execute(
+        cpt.update()
+        .where(cpt.c.priceid == price.priceid)
+        .where(cpt.c.userid == userid)
+        .values(updates)
+    )
 
-    statement.append("%s settings = '%%s'" % ("," if argv else ""))
-    argv.append("%s%s" % (currency, settings))
-
-    statement.append(" WHERE (priceid, userid) = (%i, %i)")
-    argv.extend([price.priceid, userid])
-
-    d.execute("".join(statement), argv)
+    if result.rowcount != 1:
+        raise WeasylError("priceidInvalid")
 
 
 def edit_content(userid, content):

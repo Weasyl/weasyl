@@ -156,8 +156,6 @@ def sql_number_list(target):
     """
     if not target:
         raise ValueError
-    elif not isinstance(target, list):
-        target = [target]
 
     return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
 

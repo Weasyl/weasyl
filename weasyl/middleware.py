@@ -398,7 +398,6 @@ class RemoveSessionCookieProcessor(raven.processors.Processor):
                 del env[key]
 
 
-
 class URLSchemeFixingMiddleware(object):
     def __init__(self, app):
         self.app = app

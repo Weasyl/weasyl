@@ -48,42 +48,27 @@ def insert(userid, ignore):
         return
 
     with d.engine.begin() as db:
-        if isinstance(ignore, list):
-            ignore_set = set(ignore)
+        if userid in ignore:
+            raise WeasylError("cannotIgnoreSelf")
+        elif not staff.MODS.isdisjoint(ignore):
+            raise WeasylError("cannotIgnoreStaff")
 
-            if userid in ignore_set:
-                raise WeasylError("cannotIgnoreSelf")
-            elif ignore_set & staff.MODS:
-                raise WeasylError("cannotIgnoreStaff")
+        db.execute("""
+            INSERT INTO ignoreuser
+            SELECT %(user)s, ignore FROM UNNEST (%(ignore)s) AS ignore
+            ON CONFLICT DO NOTHING
+        """, user=userid, ignore=ignore)
 
-            db.execute("""
-                INSERT INTO ignoreuser
-                SELECT %(user)s, ignore FROM UNNEST (%(ignore)s) AS ignore
-                ON CONFLICT DO NOTHING
-            """, user=userid, ignore=ignore)
+        db.execute("""
+            DELETE FROM frienduser
+            WHERE (userid = %(user)s AND otherid = ANY (%(ignore)s))
+                OR (otherid = %(user)s AND userid = ANY (%(ignore)s))
+        """, user=userid, ignore=ignore)
 
-            db.execute("""
-                DELETE FROM frienduser
-                WHERE (userid = %(user)s AND otherid = ANY (%(ignore)s))
-                    OR (otherid = %(user)s AND userid = ANY (%(ignore)s))
-            """, user=userid, ignore=ignore)
-
-            db.execute("""
-                DELETE FROM watchuser
-                WHERE userid = %(user)s AND otherid = ANY (%(ignore)s)
-            """, user=userid, ignore=ignore)
-        else:
-            if userid == ignore:
-                raise WeasylError("cannotIgnoreSelf")
-            elif ignore in staff.MODS:
-                raise WeasylError("cannotIgnoreStaff")
-
-            db.execute("DELETE FROM frienduser WHERE %(user)s IN (userid, otherid) AND %(ignore)s IN (userid, otherid)",
-                       user=userid, ignore=ignore)
-            db.execute("DELETE FROM watchuser WHERE userid = %(user)s AND otherid = %(ignore)s",
-                       user=userid, ignore=ignore)
-            db.execute("INSERT INTO ignoreuser VALUES (%(user)s, %(ignore)s) ON CONFLICT DO NOTHING",
-                       user=userid, ignore=ignore)
+        db.execute("""
+            DELETE FROM watchuser
+            WHERE userid = %(user)s AND otherid = ANY (%(ignore)s)
+        """, user=userid, ignore=ignore)
 
     cached_list_ignoring.invalidate(userid)
 
@@ -95,12 +80,8 @@ def remove(userid, ignore):
     if not ignore:
         return
 
-    if isinstance(ignore, list):
-        result = d.engine.execute("DELETE FROM ignoreuser WHERE userid = %(user)s AND otherid = ANY (%(ignore)s)",
-                                  user=userid, ignore=ignore)
-    else:
-        result = d.engine.execute("DELETE FROM ignoreuser WHERE userid = %(user)s AND otherid = %(ignore)s",
-                                  user=userid, ignore=ignore)
+    result = d.engine.execute("DELETE FROM ignoreuser WHERE userid = %(user)s AND otherid = ANY (%(ignore)s)",
+                              user=userid, ignore=ignore)
 
     if result.rowcount:
         cached_list_ignoring.invalidate(userid)

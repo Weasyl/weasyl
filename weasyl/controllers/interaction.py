@@ -86,9 +86,9 @@ def ignoreuser_(request):
     otherid = define.get_int(form.userid)
 
     if form.action == "ignore":
-        ignoreuser.insert(request.userid, otherid)
+        ignoreuser.insert(request.userid, [otherid])
     elif form.action == "unignore":
-        ignoreuser.remove(request.userid, otherid)
+        ignoreuser.remove(request.userid, [otherid])
 
     raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
 

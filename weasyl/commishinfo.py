@@ -446,20 +446,21 @@ def edit_content(userid, content):
 
 
 def remove_class(userid, classid):
-    result = d.engine.execute(
-        "DELETE FROM commishclass WHERE (classid, userid) = (%(class_)s, %(user)s)",
-        class_=classid,
-        user=userid,
-    )
+    with d.engine.begin() as db:
+        result = db.execute(
+            "DELETE FROM commishclass WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            class_=classid,
+            user=userid,
+        )
 
-    if result.rowcount != 1:
-        raise WeasylError("classidInvalid")
+        if result.rowcount != 1:
+            raise WeasylError("classidInvalid")
 
-    d.engine.execute(
-        "DELETE FROM commishprice WHERE (classid, userid) = (%(class_)s, %(user)s)",
-        class_=classid,
-        user=userid,
-    )
+        db.execute(
+            "DELETE FROM commishprice WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            class_=classid,
+            user=userid,
+        )
 
 
 def remove_price(userid, priceid):

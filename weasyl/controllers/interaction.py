@@ -20,8 +20,7 @@ def followuser_(request):
         return Response(define.errorpage(request.userid, "You cannot follow yourself."))
 
     if form.action == "follow":
-        if not followuser.check(request.userid, otherid):
-            followuser.insert(request.userid, otherid)
+        followuser.insert(request.userid, otherid)
     elif form.action == "unfollow":
         followuser.remove(request.userid, otherid)
 

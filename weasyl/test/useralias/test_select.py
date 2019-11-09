@@ -24,5 +24,5 @@ def test_selecting_alias_succeeds():
 def test_selecting_alias_when_user_has_no_alias_returns_zero_length_array():
     user_id = db_utils.create_user()
     queried_user_alias = useralias.select(userid=user_id)
-    # Result when user has no alias set: should be a list, and be zero-length
-    assert queried_user_alias == []
+    # Result when user has no alias set: should be None
+    assert queried_user_alias is None

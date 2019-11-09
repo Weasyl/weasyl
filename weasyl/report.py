@@ -67,14 +67,15 @@ def create(userid, form):
     elif vtype[3] and not form.content:
         raise WeasylError("ReportCommentRequired")
 
-    query = d.execute(
-        "SELECT userid, settings FROM %s WHERE %s = %i",
-        ["submission", "submitid", form.submitid] if form.submitid else
-        ["character", "charid", form.charid] if form.charid else
-        ["journal", "journalid", form.journalid],
-        options="single")
+    is_hidden = d.engine.scalar(
+        "SELECT settings ~ 'h' FROM %s WHERE %s = %i" % (
+            ("submission", "submitid", form.submitid) if form.submitid else
+            ("character", "charid", form.charid) if form.charid else
+            ("journal", "journalid", form.journalid)
+        )
+    )
 
-    if not query or (form.violation != 0 and 'h' in query[1]):
+    if is_hidden is None or (form.violation != 0 and is_hidden):
         raise WeasylError("TargetRecordMissing")
 
     now = arrow.get()

@@ -119,8 +119,10 @@ def owns(userid, submitid):
 
 
 def offer(userid, submitid, otherid):
-    query = d.execute("SELECT userid, rating, settings FROM submission WHERE submitid = %i",
-                      [submitid], options="single")
+    query = d.engine.execute(
+        "SELECT userid, rating, settings FROM submission WHERE submitid = %(id)s",
+        id=submitid,
+    ).first()
 
     if not query or "h" in query[2]:
         raise WeasylError("Unexpected")

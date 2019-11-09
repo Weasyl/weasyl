@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import sqlalchemy as sa
 
-from libweasyl import staff
-
 from weasyl import define as d
 from weasyl import media
 from weasyl.error import WeasylError
@@ -23,22 +21,22 @@ def check(userid, folderid=None, title=None, parentid=None, root=True):
 
     if folderid:
         if parentid is None:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid) = (%i, %i) AND settings !~ 'h')",
-                [folderid, userid], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid) = (%(folder)s, %(user)s) AND settings !~ 'h')",
+                folder=folderid, user=userid)
         else:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid, parentid) = (%i, %i, %i) AND settings !~ 'h')",
-                [folderid, userid, parentid], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid, parentid) = (%(folder)s, %(user)s, %(parent)s) AND settings !~ 'h')",
+                folder=folderid, user=userid, parent=parentid)
     elif title:
         if parentid is None:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, title) = (%i, '%s') AND settings !~ 'h')",
-                [userid, title], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, title) = (%(user)s, %(title)s) AND settings !~ 'h')",
+                user=userid, title=title)
         else:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, parentid, title) = (%i, %i, '%s') AND settings !~ 'h')",
-                [userid, parentid, title], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, parentid, title) = (%(user)s, %(parent)s, %(title)s) AND settings !~ 'h')",
+                user=userid, parent=parentid, title=title)
 
 
 # form
@@ -56,8 +54,13 @@ def create(userid, form):
     elif check(userid, title=form.title, parentid=form.parentid):
         raise WeasylError("folderRecordExists")
 
-    return d.execute("INSERT INTO folder (parentid, userid, title) VALUES (%i, %i, '%s') RETURNING folderid",
-                     [form.parentid, userid, form.title])
+    d.engine.execute(
+        "INSERT INTO folder (parentid, userid, title)"
+        " VALUES (%(parent)s, %(user)s, %(title)s)",
+        parent=form.parentid,
+        user=userid,
+        title=form.title,
+    )
 
 
 def select_info(folderid):
@@ -156,26 +159,14 @@ def select_preview(userid, otherid, rating, limit=3):
     return query
 
 
-# feature
-#   "drop/parents"
-#   "drop/all"
-#   "sidebar/all"
-
-def select_list(userid, feature, root=False, limit=None):
+def select_list(userid, feature):
     result = []
-
-    if root and "drop/" in feature:
-        result.append({
-            "folderid": 0,
-            "title": "Root Folder",
-        })
 
     # Select for sidebar
     if feature == "sidebar/all":
         query = d.execute("""
             SELECT
-                fd.folderid, fd.title, fd.parentid,
-                (SELECT COUNT(*) FROM submission WHERE folderid = fd.folderid AND settings !~ 'h')
+                fd.folderid, fd.title, fd.parentid
             FROM folder fd
             WHERE fd.userid = %i
                 AND fd.settings !~ 'h'
@@ -190,8 +181,6 @@ def select_list(userid, feature, root=False, limit=None):
                 "folderid": query[i][0],
                 "title": query[i][1],
                 "subfolder": False,
-                "count": query[i][3],
-                "thumb": "",
             })
 
             for j in range(i + 1, len(query)):
@@ -200,8 +189,6 @@ def select_list(userid, feature, root=False, limit=None):
                         "folderid": query[j][0],
                         "title": query[j][1],
                         "subfolder": True,
-                        "count": query[j][3],
-                        "thumb": "",
                     })
     # Select for dropdown
     else:
@@ -244,7 +231,7 @@ def select_list(userid, feature, root=False, limit=None):
                 for m in (f for f in result if f["folderid"] in has_children):
                     m["haschildren"] = True
 
-    return d.get_random_set(result, limit) if limit else result
+    return result
 
 
 # form
@@ -255,18 +242,19 @@ def rename(userid, form):
     form.title = form.title.strip()[:_TITLE]
     form.folderid = d.get_int(form.folderid)
 
-    query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [form.folderid], options="element")
+    query = d.engine.scalar("SELECT userid FROM folder WHERE folderid = %(folder)s",
+                            folder=form.folderid)
 
     if not query:
         raise WeasylError("folderRecordMissing")
     elif not form.title:
         raise WeasylError("titleInvalid")
-    elif userid != query and userid not in staff.ADMINS:
+    elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
-    d.execute("UPDATE folder SET title = '%s' WHERE folderid = %i",
-              [form.title, form.folderid])
+    d.engine.execute(
+        "UPDATE folder SET title = %(title)s WHERE folderid = %(folder)s",
+        title=form.title, folder=form.folderid)
 
 
 # form
@@ -291,8 +279,8 @@ def move(userid, form):
         raise WeasylError("InsufficientPermissions")
     # folder with subfolders cannot become a subfolder
     elif (form.folderid and
-          d.execute("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %i)",
-                    [form.folderid], options="bool")):
+          d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s)",
+                          parent=form.folderid)):
         raise WeasylError("parentidInvalid")
 
     if form.parentid > 0:
@@ -323,21 +311,17 @@ def move(userid, form):
 
 def remove(userid, folderid):
     # Check folder exists and user owns it
-    query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [folderid], ["element"])
+    query = d.engine.scalar("SELECT userid FROM folder WHERE folderid = %(folder)s",
+                            folder=folderid)
 
     if not query:
         raise WeasylError("folderRecordMissing")
     elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
-    # Select relevant unhidden folders
-    folders = d.sql_number_list(
-        [folderid] +
-        d.execute("SELECT folderid FROM folder WHERE parentid = %i AND settings !~ 'h'", [folderid], ["within"]))
+    with d.engine.begin() as db:
+        # Hide folders
+        db.execute("UPDATE folder SET settings = settings || 'h' WHERE (folderid = %(id)s OR parentid = %(id)s) AND settings !~ 'h'", id=folderid)
 
-    # Hide folders
-    d.execute("UPDATE folder SET settings = settings || 'h' WHERE folderid IN %s AND settings !~ 'h'", [folders])
-
-    # Move submissions to root
-    d.execute("UPDATE submission SET folderid = NULL WHERE folderid IN %s", [folders])
+        # Move submissions to root
+        db.execute("UPDATE submission SET folderid = NULL FROM folder WHERE submission.folderid = folder.folderid AND (folder.folderid = %(id)s OR folder.parentid = %(id)s)", id=folderid)

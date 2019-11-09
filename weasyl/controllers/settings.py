@@ -143,9 +143,12 @@ def control_editcommishclass_(request):
 @login_required
 @token_checked
 def control_removecommishclass_(request):
-    form = request.web_input(classid="")
+    classid = define.get_int(request.params.get('classid', ""))
 
-    commishinfo.remove_class(request.userid, form.classid)
+    if not classid:
+        raise WeasylError("classidInvalid")
+
+    commishinfo.remove_class(request.userid, classid)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
@@ -185,9 +188,12 @@ def control_editcommishprice_(request):
 @login_required
 @token_checked
 def control_removecommishprice_(request):
-    form = request.web_input(priceid="")
+    priceid = define.get_int(request.params.get('priceid', ""))
 
-    commishinfo.remove_price(request.userid, form.priceid)
+    if not priceid:
+        raise WeasylError("priceidInvalid")
+
+    commishinfo.remove_price(request.userid, priceid)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
@@ -624,13 +630,13 @@ def manage_thumbnail_post_(request):
         return Response(define.errorpage(request.userid))
 
     if form.thumbfile:
-        thumbnail.upload(request.userid, form.thumbfile, submitid=submitid, charid=charid)
+        thumbnail.upload(form.thumbfile, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
         else:
             raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
     else:
-        thumbnail.create(request.userid, form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
+        thumbnail.create(form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/submission/%i" % (submitid,))
         else:

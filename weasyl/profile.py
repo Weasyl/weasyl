@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pytz
+import sqlalchemy as sa
 from translationstring import TranslationString as _
 
 from libweasyl import ratings
@@ -105,17 +106,17 @@ def resolve(userid, otherid, othername, myself=True):
     result = None
 
     if otherid:
-        result = d.execute("SELECT userid FROM login WHERE userid = %i", [d.get_int(otherid)], ["element"])
+        result = d.engine.scalar("SELECT userid FROM login WHERE userid = %(id)s", id=d.get_int(otherid))
 
         if result:
             return result
     elif othername:
-        result = d.execute("SELECT userid FROM login WHERE login_name = '%s'", [d.get_sysname(othername)], ["element"])
+        result = d.engine.scalar("SELECT userid FROM login WHERE login_name = %(name)s", name=d.get_sysname(othername))
 
         if result:
             return result
 
-        result = d.execute("SELECT userid FROM useralias WHERE alias_name = '%s'", [d.get_sysname(othername)], ["element"])
+        result = d.engine.scalar("SELECT userid FROM useralias WHERE alias_name = %(name)s", name=d.get_sysname(othername))
 
         if result:
             return result
@@ -132,14 +133,14 @@ def resolve_by_login(login):
 
 
 def select_profile(userid, avatar=False, banner=False, propic=False, images=False, commish=True, viewer=None):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, lo.settings, us.end_time
         FROM profile pr
             INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
-        WHERE userid = %i
-    """, [userid], ["single"])
+        WHERE userid = %(user)s
+    """, user=userid).first()
 
     if not query:
         raise WeasylError('RecordMissing')
@@ -173,13 +174,12 @@ def select_profile(userid, avatar=False, banner=False, propic=False, images=Fals
 
 
 def twitter_card(userid):
-    username, full_name, catchphrase, profile_text, config, twitter = d.execute(
+    username, full_name, catchphrase, profile_text, config, twitter = d.engine.execute(
         "SELECT pr.username, pr.full_name, pr.catchphrase, pr.profile_text, pr.config, ul.link_value "
         "FROM profile pr "
         "LEFT JOIN user_links ul ON pr.userid = ul.userid AND ul.link_type = 'twitter' "
-        "WHERE pr.userid = %i",
-        [userid],
-        ["single"])
+        "WHERE pr.userid = %(user)s",
+        user=userid).first()
 
     ret = {
         'card': 'summary',
@@ -218,7 +218,7 @@ def select_myself(userid):
 
 def get_user_age(userid):
     assert userid
-    return d.convert_age(d.execute("SELECT birthday FROM userinfo WHERE userid = %i", [userid], ["element"]))
+    return d.convert_age(d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid))
 
 
 def get_user_ratings(userid):
@@ -312,35 +312,34 @@ def select_relation(userid, otherid):
 @region.cache_on_arguments(expiration_time=600)
 @d.record_timing
 def _select_statistics(userid):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
-            (SELECT page_views FROM profile WHERE userid = %i),
-            0,
-            (SELECT COUNT(*) FROM favorite WHERE userid = %i),
+            (SELECT page_views FROM profile WHERE userid = %(user)s),
+            (SELECT COUNT(*) FROM favorite WHERE userid = %(user)s),
             (SELECT
                 (SELECT COUNT(*) FROM favorite fa JOIN submission su ON fa.targetid = su.submitid
-                    WHERE su.userid = %i AND fa.type = 's') +
+                    WHERE su.userid = %(user)s AND fa.type = 's') +
                 (SELECT COUNT(*) FROM favorite fa JOIN character ch ON fa.targetid = ch.charid
-                    WHERE ch.userid = %i AND fa.type = 'f') +
+                    WHERE ch.userid = %(user)s AND fa.type = 'f') +
                 (SELECT COUNT(*) FROM favorite fa JOIN journal jo ON fa.targetid = jo.journalid
-                    WHERE jo.userid = %i AND fa.type = 'j')),
-            (SELECT COUNT(*) FROM watchuser WHERE otherid = %i),
-            (SELECT COUNT(*) FROM watchuser WHERE userid = %i),
-            (SELECT COUNT(*) FROM submission WHERE userid = %i AND settings !~ 'h'),
-            (SELECT COUNT(*) FROM journal WHERE userid = %i AND settings !~ 'h'),
-            (SELECT COUNT(*) FROM comments WHERE target_user = %i AND settings !~ 'h' AND settings ~ 's')
-    """, [userid, userid, userid, userid, userid, userid, userid, userid, userid, userid], options="single")
+                    WHERE jo.userid = %(user)s AND fa.type = 'j')),
+            (SELECT COUNT(*) FROM watchuser WHERE otherid = %(user)s),
+            (SELECT COUNT(*) FROM watchuser WHERE userid = %(user)s),
+            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM journal WHERE userid = %(user)s AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM comments WHERE target_user = %(user)s AND settings !~ 'h' AND settings ~ 's')
+    """, user=userid).first()
 
     return {
         "page_views": query[0],
-        "submit_views": query[1],
-        "faves_sent": query[2],
-        "faves_received": query[3],
-        "followed": query[4],
-        "following": query[5],
-        "submissions": query[6],
-        "journals": query[7],
-        "staff_notes": query[8],
+        "submit_views": 0,
+        "faves_sent": query[1],
+        "faves_received": query[2],
+        "followed": query[3],
+        "following": query[4],
+        "submissions": query[5],
+        "journals": query[6],
+        "staff_notes": query[7],
     }
 
 
@@ -396,11 +395,9 @@ def edit_profile_settings(userid,
                           set_request=EXCHANGE_SETTING_NOT_ACCEPTING,
                           set_commission=EXCHANGE_SETTING_NOT_ACCEPTING):
     settings = "".join([set_commission.code, set_trade.code, set_request.code])
-    d.execute(
-        "UPDATE profile "
-        "SET settings = '%s' "
-        "WHERE userid = %i",
-        [settings, userid])
+    d.engine.execute(
+        "UPDATE profile SET settings = %(settings)s WHERE userid = %(user)s",
+        settings=settings, user=userid)
     d._get_config.invalidate(userid)
 
 
@@ -415,12 +412,18 @@ def edit_profile(userid, profile,
     if profile_display not in ('O', 'A'):
         profile_display = ''
 
-    d.execute(
-        "UPDATE profile "
-        "SET (full_name, catchphrase, profile_text, settings) = ('%s', '%s', '%s', '%s'), "
-        "config = REGEXP_REPLACE(config, '[OA]', '') || '%s'"
-        "WHERE userid = %i",
-        [profile.full_name, profile.catchphrase, profile.profile_text, settings, profile_display, userid])
+    pr = d.meta.tables['profile']
+    d.engine.execute(
+        pr.update()
+        .where(pr.c.userid == userid)
+        .values({
+            'full_name': profile.full_name,
+            'catchphrase': profile.catchphrase,
+            'profile_text': profile.profile_text,
+            'settings': settings,
+            'config': sa.func.regexp_replace(pr.c.config, "[OA]", "").concat(profile_display),
+        })
+    )
     d._get_config.invalidate(userid)
 
 
@@ -463,11 +466,16 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
     if set_stream != 'still':
         welcome.stream_insert(userid, stream_status)
 
-    d.execute(
-        "UPDATE profile "
-        "SET (stream_text, stream_url, settings) = ('%s', '%s', REGEXP_REPLACE(settings, '[nli]', '') || '%s') "
-        "WHERE userid = %i",
-        [profile.stream_text, profile.stream_url, settings_flag, userid])
+    pr = d.meta.tables['profile']
+    d.engine.execute(
+        pr.update()
+        .where(pr.c.userid == userid)
+        .values({
+            'stream_text': profile.stream_text,
+            'stream_url': profile.stream_url,
+            'settings': sa.func.regexp_replace(pr.c.settings, "[nli]", "").concat(settings_flag),
+        })
+    )
 
     if my_userid != userid:
         from weasyl import moderation
@@ -597,7 +605,9 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
 
     # If the password is being updated, update the hash, and clear other sessions.
     if newpassword:
-        d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(newpassword), userid])
+        d.engine.execute(
+            "UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s",
+            new_hash=login.passhash(newpassword), user=userid)
 
         # Invalidate all sessions for `userid` except for the current one
         invalidate_other_sessions(userid)
@@ -698,7 +708,7 @@ def select_manage(userid):
     Returns:
         Relevant user information as a dict.
     """
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
             pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
@@ -706,8 +716,8 @@ def select_manage(userid):
         FROM login lo
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
-        WHERE lo.userid = %i
-    """, [userid], ["single"])
+        WHERE lo.userid = %(user)s
+    """, user=userid).first()
 
     if not query:
         raise WeasylError("Unexpected")
@@ -774,35 +784,42 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Username
     if username is not None:
-        if not d.get_sysname(username):
+        sysname = d.get_sysname(username)
+
+        if not sysname:
             raise WeasylError("usernameInvalid")
-        elif d.execute("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = '%s')",
-                       [d.get_sysname(username)], ["bool"]):
+        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s)",
+                             name=sysname):
             raise WeasylError("usernameExists")
-        elif d.execute("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = '%s')",
-                       [d.get_sysname(username)], ["bool"]):
+        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s)",
+                             name=sysname):
             raise WeasylError("usernameExists")
-        elif d.execute("SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = '%s')",
-                       [d.get_sysname(username)], ["bool"]):
+        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)",
+                             name=sysname):
             raise WeasylError("usernameExists")
 
-        d.execute("UPDATE login SET login_name = '%s' WHERE userid = %i",
-                  [d.get_sysname(username), userid])
+        with d.engine.begin() as db:
+            db.execute(
+                "UPDATE login SET login_name = %(sysname)s WHERE userid = %(user)s",
+                sysname=sysname, user=userid)
+            db.execute(
+                "UPDATE profile SET username = %(username)s WHERE userid = %(user)s",
+                username=username, user=userid)
         d._get_display_name.invalidate(userid)
-        d.execute("UPDATE profile SET username = '%s' WHERE userid = %i",
-                  [username, userid])
         updates.append('- Username: %s' % (username,))
 
     # Full name
     if full_name is not None:
-        d.execute("UPDATE profile SET full_name = '%s' WHERE userid = %i",
-                  [full_name, userid])
+        d.engine.execute(
+            "UPDATE profile SET full_name = %(full_name)s WHERE userid = %(user)s",
+            full_name=full_name, user=userid)
         updates.append('- Full name: %s' % (full_name,))
 
     # Catchphrase
     if catchphrase is not None:
-        d.execute("UPDATE profile SET catchphrase = '%s' WHERE userid = %i",
-                  [catchphrase, userid])
+        d.engine.execute(
+            "UPDATE profile SET catchphrase = %(catchphrase)s WHERE userid = %(user)s",
+            catchphrase=catchphrase, user=userid)
         updates.append('- Catchphrase: %s' % (catchphrase,))
 
     # Birthday
@@ -819,27 +836,30 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             max_rating = ratings.EXPLICIT.code
 
         if d.get_rating(userid) > max_rating:
-            d.execute(
+            d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || '%s'
-                WHERE userid = %i
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || %(rating_flag)s
+                WHERE userid = %(user)s
                 """,
-                [rating_flag, userid]
+                rating_flag=rating_flag,
+                user=userid,
             )
             d._get_config.invalidate(userid)
         updates.append('- Birthday: %s' % (birthday,))
 
     # Gender
     if gender is not None:
-        d.execute("UPDATE userinfo SET gender = '%s' WHERE userid = %i",
-                  [gender, userid])
+        d.engine.execute(
+            "UPDATE userinfo SET gender = %(gender)s WHERE userid = %(user)s",
+            gender=gender, user=userid)
         updates.append('- Gender: %s' % (gender,))
 
     # Location
     if country is not None:
-        d.execute("UPDATE userinfo SET country = '%s' WHERE userid = %i",
-                  [country, userid])
+        d.engine.execute(
+            "UPDATE userinfo SET country = %(country)s WHERE userid = %(user)s",
+            country=country, user=userid)
         updates.append('- Country: %s' % (country,))
 
     # Social and contact links

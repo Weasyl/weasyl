@@ -66,13 +66,14 @@ def insert(userid, shout, staffnotes=False):
 
     # Determine indent and parentuserid
     if shout.parentid:
-        query = d.execute("SELECT userid, indent FROM comments WHERE commentid = %i",
-                          [shout.parentid], options="single")
+        parent = d.engine.execute("SELECT userid, indent FROM comments WHERE commentid = %(parentid)s",
+                                  parentid=shout.parentid).first()
 
-        if not query:
+        if not parent:
             raise WeasylError("shoutRecordMissing")
 
-        indent, parentuserid = query[1] + 1, query[0]
+        indent = parent.indent + 1
+        parentuserid = parent.userid
     else:
         indent, parentuserid = 0, None
 
@@ -87,9 +88,12 @@ def insert(userid, shout, staffnotes=False):
         elif ignoreuser.check(userid, parentuserid):
             raise WeasylError("youIgnoredReplyRecipient")
 
-        settings = d.execute("SELECT lo.settings, pr.config FROM login lo"
-                             " INNER JOIN profile pr ON lo.userid = pr.userid"
-                             " WHERE lo.userid = %i", [shout.userid], options="single")
+        settings = d.engine.execute(
+            "SELECT lo.settings, pr.config FROM login lo"
+            " INNER JOIN profile pr ON lo.userid = pr.userid"
+            " WHERE lo.userid = %(target_user)s",
+            target_user=shout.userid,
+        ).first()
 
         if "b" in settings[0] or "w" in settings[1] or "x" in settings[1] and not frienduser.check(userid, shout.userid):
             raise WeasylError("insufficientActionPermissions")
@@ -117,9 +121,10 @@ def insert(userid, shout, staffnotes=False):
 
 
 def remove(userid, commentid=None):
-    query = d.execute(
-        "SELECT userid, target_user, settings FROM comments WHERE commentid = %i AND settings !~ 'h'",
-        [commentid], ["single"])
+    query = d.engine.execute(
+        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND settings !~ 'h'",
+        id=commentid,
+    ).first()
 
     if not query or ('s' in query[2] and userid not in staff.MODS):
         raise WeasylError("shoutRecordMissing")

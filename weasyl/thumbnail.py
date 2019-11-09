@@ -27,20 +27,11 @@ def thumbnail_source(submitid):
     return source
 
 
-def _upload_char(userid, filedata, charid):
+def _upload_char(filedata, charid):
     """
     Creates a preview-size copy of an uploaded image file for a new thumbnail
     selection file.
     """
-    query = d.execute(
-        "SELECT userid, settings FROM character WHERE charid = %i",
-        [charid], options="single")
-
-    if not query:
-        raise WeasylError("Unexpected")
-    elif userid != query[0] and userid not in staff.MODS:
-        raise WeasylError("InsufficientPermissions")
-
     filename = d.url_make(charid, "char/.thumb", root=True)
 
     files.write(filename, filedata)
@@ -81,15 +72,15 @@ def clear_thumbnail(userid, submitid):
         orm.SubmissionMediaLink.clear_link(submitid, 'thumbnail-generated')
 
 
-def upload(userid, filedata, submitid=None, charid=None):
+def upload(filedata, submitid=None, charid=None):
     if charid:
-        return _upload_char(userid, filedata, charid)
+        return _upload_char(filedata, charid)
 
     media_item = media.make_cover_media_item(filedata, error_type='FileType')
     orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', media_item)
 
 
-def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
+def _create_char(x1, y1, x2, y2, charid, remove=True):
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     filename = d.url_make(charid, "char/.thumb", root=True)
     if not m.os.path.exists(filename):
@@ -101,11 +92,11 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
     im = image.read(filename)
     size = im.size.width, im.size.height
 
-    d.execute("""
+    d.engine.execute("""
         UPDATE character
-        SET settings = REGEXP_REPLACE(settings, '-.', '') || '-%s'
-        WHERE charid = %i
-    """, [image.image_setting(im), charid])
+        SET settings = REGEXP_REPLACE(settings, '-.', '') || '-' || %(image_setting)s
+        WHERE charid = %(char)s
+    """, image_setting=image.image_setting(im), char=charid)
     dest = os.path.join(d.get_character_directory(charid), '%i.thumb%s' % (charid, images.image_extension(im)))
 
     bounds = None
@@ -117,10 +108,10 @@ def _create_char(userid, x1, y1, x2, y2, charid, config=None, remove=True):
         os.remove(filename)
 
 
-def create(userid, x1, y1, x2, y2, submitid=None, charid=None,
-           config=None, remove=True):
+def create(x1, y1, x2, y2, submitid=None, charid=None,
+           remove=True):
     if charid:
-        return _create_char(userid, x1, y1, x2, y2, charid, config, remove)
+        return _create_char(x1, y1, x2, y2, charid, remove)
 
     db = d.connect()
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)

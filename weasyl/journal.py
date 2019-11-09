@@ -277,7 +277,7 @@ def select_latest(userid, rating, otherid=None):
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
-    query = d.execute("".join(statement), options="single")
+    query = d.engine.execute("".join(statement)).first()
 
     if query:
         return {
@@ -285,8 +285,10 @@ def select_latest(userid, rating, otherid=None):
             "title": query[1],
             "content": query[2],
             "unixtime": query[3],
-            "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
-                                  [query[0]], ["element"]),
+            "comments": d.engine.scalar(
+                "SELECT count(*) FROM journalcomment WHERE targetid = %(journal)s AND settings !~ 'h'",
+                journal=query[0],
+            ),
         }
 
 
@@ -299,22 +301,33 @@ def edit(userid, journal, friends_only=False):
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, journal.rating)
 
-    query = d.execute("SELECT userid, settings FROM journal WHERE journalid = %i", [journal.journalid], options="single")
+    query = d.engine.execute(
+        "SELECT userid, settings FROM journal WHERE journalid = %(id)s",
+        id=journal.journalid,
+    ).first()
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    settings = [query[1].replace("f", "")]
-    settings.append("f" if friends_only else "")
-    settings = "".join(settings)
+    settings = query[1].replace("f", "")
 
-    if "f" in settings:
+    if friends_only:
+        settings += "f"
         welcome.journal_remove(journal.journalid)
 
-    d.execute("UPDATE journal SET (title, content, rating, settings) = ('%s', '%s', %i, '%s') WHERE journalid = %i",
-              [journal.title, journal.content, journal.rating.code, settings, journal.journalid])
+    jo = d.meta.tables['journal']
+    d.engine.execute(
+        jo.update()
+        .where(jo.c.journalid == journal.journalid)
+        .values({
+            'title': journal.title,
+            'content': journal.content,
+            'rating': journal.rating,
+            'settings': settings,
+        })
+    )
 
     if userid != query[0]:
         moderation.note_about(

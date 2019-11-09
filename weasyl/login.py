@@ -97,9 +97,12 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
-    query = d.execute("SELECT ab.userid, ab.hashsum, lo.settings, lo.twofa_secret FROM authbcrypt ab"
-                      " RIGHT JOIN login lo USING (userid)"
-                      " WHERE lo.login_name = '%s'", [d.get_sysname(username)], ["single"])
+    query = d.engine.execute(
+        "SELECT ab.userid, ab.hashsum, lo.settings, lo.twofa_secret FROM authbcrypt ab"
+        " RIGHT JOIN login lo USING (userid)"
+        " WHERE lo.login_name = %(name)s",
+        name=d.get_sysname(username),
+    ).first()
 
     if not query:
         return 0, "invalid"

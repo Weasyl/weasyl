@@ -181,8 +181,9 @@ def insert(userid, submitid=None, charid=None, journalid=None):
     else:
         content_table, id_field, target = "journal", "journalid", journalid
 
-    query = d.execute("SELECT userid, settings FROM %s WHERE %s = %i",
-                      [content_table, id_field, target], options="single")
+    query = d.engine.execute(
+        "SELECT userid, settings FROM %s WHERE %s = %i" % (content_table, id_field, target),
+    ).first()
 
     if not query:
         raise WeasylError("TargetRecordMissing")
@@ -273,16 +274,17 @@ def check(userid, submitid=None, charid=None, journalid=None):
     if not userid:
         return False
 
-    return d.execute(
+    return d.engine.scalar(
         """
             SELECT EXISTS (
                 SELECT 0 FROM favorite
-                    WHERE (userid, targetid, type) = (%i, %i, '%s')
+                    WHERE (userid, targetid, type) = (%(user)s, %(target)s, %(type)s)
             )
-        """, [
-            userid, d.get_targetid(submitid, charid, journalid),
-            "s" if submitid else "f" if charid else "j"
-        ], options="bool")
+        """,
+        user=userid,
+        target=d.get_targetid(submitid, charid, journalid),
+        type="s" if submitid else "f" if charid else "j",
+    )
 
 
 def count(id, contenttype='submission'):

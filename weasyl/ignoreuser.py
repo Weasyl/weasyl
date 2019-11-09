@@ -9,23 +9,24 @@ from weasyl.error import WeasylError
 
 def check(userid, otherid):
     """
-    check to see if a user is ignored by another
-    :param userid: the viewing user
-    :param otherid: the user being viewed
-    :return: TRUE if userid is ignored by otherid
+    Return True if otherid is ignored by userid, False otherwise.
     """
     if not userid or not otherid:
         return False
 
-    return d.execute("SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%i, %i))",
-                     [userid, otherid], options="bool")
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%(user)s, %(other)s))",
+        user=userid,
+        other=otherid,
+    )
 
 
 @region.cache_on_arguments()
 @d.record_timing
 def cached_list_ignoring(userid):
-    return d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i",
-                     [userid], options=["within"])
+    return d.column(d.engine.execute(
+        "SELECT otherid FROM ignoreuser WHERE userid = %(user)s",
+        user=userid))
 
 
 def select(userid):

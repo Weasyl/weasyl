@@ -420,31 +420,40 @@ def setusermode(userid, form):
     elif form.userid in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     if form.mode == "b":
-        query = d.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-            " RETURNING userid", [form.userid])
+        query = d.engine.execute(
+            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %(target)s",
+            target=form.userid)
 
-        if query:
-            d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-            d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
-            d.execute("INSERT INTO permaban VALUES (%i, '%s')", [form.userid, form.reason])
+        if query.rowcount != 1:
+            raise WeasylError("Unexpected")
+
+        d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+        d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
+        d.engine.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=form.userid, reason=form.reason)
     elif form.mode == "s":
         if not form.release:
             raise WeasylError("releaseInvalid")
 
-        query = d.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-            " RETURNING userid", [form.userid])
+        query = d.engine.execute(
+            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %(target)s",
+            target=form.userid)
 
-        if query:
-            d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-            d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
-            d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [form.userid, form.reason, form.release])
+        if query.rowcount != 1:
+            raise WeasylError("Unexpected")
+
+        d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+        d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
+        d.engine.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=form.userid, reason=form.reason, release=form.release)
     elif form.mode == "x":
-        query = d.execute("UPDATE login SET settings = REPLACE(REPLACE(settings, 's', ''), 'b', '') WHERE userid = %i",
-                          [form.userid])
-        d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
+        query = d.engine.execute(
+            "UPDATE login SET settings = REPLACE(REPLACE(settings, 's', ''), 'b', '') WHERE userid = %(target)s",
+            target=form.userid)
+
+        if query.rowcount != 1:
+            raise WeasylError("Unexpected")
+
+        d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+        d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
 
     action = _mode_to_action_map.get(form.mode)
     if action is not None:
@@ -465,13 +474,13 @@ def submissionsbyuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.settings
         FROM submission su
             INNER JOIN profile pr USING (userid)
-        WHERE su.userid = (SELECT userid FROM login WHERE login_name = '%s')
+        WHERE su.userid = (SELECT userid FROM login WHERE login_name = %(sysname)s)
         ORDER BY su.submitid DESC
-    """, [d.get_sysname(form.name)])
+    """, sysname=d.get_sysname(form.name))
 
     ret = [{
         "contype": 10,
@@ -491,7 +500,7 @@ def charactersbyuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             ch.charid, pr.username, ch.unixtime,
             ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
@@ -499,8 +508,8 @@ def charactersbyuser(userid, form):
         FROM character ch
         INNER JOIN profile pr ON ch.userid = pr.userid
         INNER JOIN login ON ch.userid = login.userid
-        WHERE login.login_name = '%s'
-    """, [d.get_sysname(form.name)])
+        WHERE login.login_name = %(sysname)s
+    """, sysname=d.get_sysname(form.name))
 
     return [{
         "contype": 20,
@@ -602,10 +611,11 @@ def manageuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute(
+    query = d.engine.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
-        " WHERE userid = (SELECT userid FROM login WHERE login_name = '%s')",
-        [d.get_sysname(form.name)], ["single"])
+        " WHERE userid = (SELECT userid FROM login WHERE login_name = %(name)s)",
+        name=d.get_sysname(form.name),
+    ).first()
 
     if not query:
         raise WeasylError("noUser")

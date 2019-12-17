@@ -26,7 +26,7 @@ setup(
     install_requires=[
         'alembic==1.3.2',
         'anyjson==0.3.3',
-        'arrow==0.15.2',
+        'arrow==0.15.4',
         'bcrypt==3.1.7',
         'dogpile.cache==0.9.0',
         'lxml==4.4.2',

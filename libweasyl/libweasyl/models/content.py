@@ -3,6 +3,7 @@ from __future__ import division
 import warnings
 
 import arrow
+from pyramid.decorator import reify
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, contains_eager, relationship
@@ -10,7 +11,6 @@ import sqlalchemy as sa
 
 from libweasyl.common import minimize_media
 from libweasyl.constants import Category, DEFAULT_LIMITS, MEBIBYTE
-from libweasyl.decorators import reify
 from libweasyl.exceptions import InvalidData, RatingExceeded, SubmissionFileTooLarge
 from libweasyl.files import file_type_for_category
 from libweasyl.models.helpers import CharSettings, apply_validators, clauses_for, validator
@@ -133,15 +133,6 @@ class Submission(Base):
             return ret[0]
         return None
 
-    @reify
-    def popup_media(self):
-        ret = self.media.get('popup')
-        if not ret and self.thumbnail_media:
-            return self.thumbnail_media
-        elif ret:
-            return ret[0]
-        return None
-
     @validator()
     def validate_rating(self, value, old_value, initiator):
         if self.owner is None:
@@ -254,9 +245,6 @@ class Submission(Base):
 
         if submission_media_item is not None:
             SubmissionMediaLink.make_or_replace_link(inst.submitid, 'submission', submission_media_item)
-            if category == Category.visual:
-                popup_media_item = submission_media_item.make_popup(submission_image)
-                SubmissionMediaLink.make_or_replace_link(inst.submitid, 'popup', popup_media_item)
         if cover_media_item is not None:
             SubmissionMediaLink.make_or_replace_link(inst.submitid, 'cover', cover_media_item)
         if thumbnail_media_item is not None:

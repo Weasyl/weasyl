@@ -6,6 +6,7 @@ from libweasyl import staff
 
 from weasyl import define as d
 from weasyl import frienduser
+from weasyl import ignoreuser
 from weasyl.error import WeasylError
 
 
@@ -85,12 +86,13 @@ def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
 
 
 def select_view(userid, noteid):
-    query = d.execute(
+    query = d.engine.execute(
         "SELECT ps.userid, ps.username, pr.userid, pr.username, "
         "ms.title, ms.content, ms.unixtime, ms.settings FROM message ms INNER "
         "JOIN profile ps ON ms.userid = ps.userid INNER JOIN profile pr ON "
-        "ms.otherid = pr.userid WHERE ms.noteid = %i", [noteid],
-        options=["single"])
+        "ms.otherid = pr.userid WHERE ms.noteid = %(id)s",
+        id=noteid,
+    ).first()
 
     if not query:
         raise WeasylError("noteRecordMissing")
@@ -134,17 +136,24 @@ def send(userid, form):
     elif len(form.title) > 100:
         raise WeasylError("titleTooLong")
 
-    users = set(i for i in d.get_userid_list(form.recipient) if i != userid)
+    users = set(d.get_userid_list(form.recipient))
+
+    # can't send a note to yourself
+    users.discard(userid)
+
+    # can't send a note to a user who ignores you
     users.difference_update(
-        d.execute("SELECT userid FROM ignoreuser WHERE otherid = %i", [userid], options="within"))
-    users.difference_update(
-        d.execute("SELECT otherid FROM ignoreuser WHERE userid = %i", [userid], options="within"))
+        d.column(d.engine.execute("SELECT userid FROM ignoreuser WHERE otherid = %(user)s", user=userid)))
+
+    # can't send a note to a user you're ignoring
+    users.difference_update(ignoreuser.cached_list_ignoring(userid))
+
     if not users:
         raise WeasylError("recipientInvalid")
 
-    configs = d.execute(
-        "SELECT userid, config FROM profile WHERE userid IN %s",
-        [d.sql_number_list(list(users))])
+    configs = d.engine.execute(
+        "SELECT userid, config FROM profile WHERE userid = ANY (%(recipients)s)",
+        recipients=list(users)).fetchall()
 
     if userid not in staff.MODS:
         ignore_global_restrictions = {i for (i,) in d.engine.execute(
@@ -165,17 +174,19 @@ def send(userid, form):
     elif len(users) > 10:
         raise WeasylError("recipientExcessive")
 
-    argv = []
-    unixtime = d.get_time()
-    statement = ["INSERT INTO message (userid, otherid, title, content, unixtime) VALUES"]
+    d.engine.execute(
+        "INSERT INTO message (userid, otherid, title, content, unixtime)"
+        " SELECT %(sender)s, recipient, %(title)s, %(content)s, %(now)s"
+        " FROM UNNEST (%(recipients)s) AS recipient",
+        sender=userid,
+        title=form.title,
+        content=form.content,
+        now=d.get_time(),
+        recipients=list(users),
+    )
 
-    for i in users:
-        argv.extend([form.title if form.title else "None", form.content])
-        statement.append(" (%i, %i, '%%s', '%%s', %i)," % (userid, i, unixtime))
-        d._page_header_info.invalidate(i)
-
-    statement[-1] = statement[-1][:-1]
-    d.execute("".join(statement), argv)
+    for u in users:
+        d._page_header_info.invalidate(u)
 
     d.engine.execute(
         """
@@ -208,69 +219,20 @@ def send(userid, form):
             .values(mod_copies))
 
 
-# form
-#   noteid
-#   folderid
-
-def move(userid, form):
-    noteid = d.get_int(form.noteid)
-    folderid = d.get_int(form.folderid)
-    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], options="single")
-
-    if not query:
-        raise WeasylError("Unexpected")
-    elif userid not in query:
-        raise WeasylError("Unexpected")
-    elif userid == query[0] and "s" in query[2]:
-        raise WeasylError("Unexpected")
-    elif userid == query[1] and "r" in query[2]:
-        raise WeasylError("Unexpected")
-    elif not d.execute("SELECT EXISTS (SELECT 0 FROM messagefolder WHERE (folderid, userid) = (%i, %i))",
-                       [folderid, userid], options="bool"):
-        raise WeasylError("Unexpected")
-
-    d.execute("UPDATE message SET %s_folder = %i WHERE noteid = %i",
-              ["user" if userid == query[0] else "other", folderid, noteid])
-
-
 def remove_list(userid, noteids):
     if not noteids:
         return
 
-    rem_sent = []
-    rem_received = []
+    # Add "sender trashed" (s) to requested notes that the user sent
+    d.engine.execute(
+        "UPDATE message SET settings = settings || 's' WHERE noteid = ANY (%(ids)s) AND userid = %(user)s AND settings !~ 's'",
+        user=userid,
+        ids=noteids,
+    )
 
-    query = d.execute("SELECT userid, otherid, settings, noteid FROM message WHERE noteid IN %s",
-                      [d.sql_number_list(noteids)])
-
-    for i in query:
-        if i[0] == userid and "s" not in i[2]:
-            rem_sent.append(i[3])
-        if i[1] == userid and "r" not in i[2]:
-            rem_received.append(i[3])
-
-    if rem_sent:
-        d.execute("UPDATE message SET settings = settings || 's' WHERE noteid IN %s", [d.sql_number_list(rem_sent)])
-
-    if rem_received:
-        d.execute("UPDATE message SET settings = REPLACE(settings, 'u', '') || 'r' WHERE noteid IN %s",
-                  [d.sql_number_list(rem_received)])
-
-
-def remove(userid, noteid):
-    query = d.execute("SELECT userid, otherid, settings FROM message WHERE noteid = %i", [noteid], options="single")
-
-    if not query:
-        raise WeasylError("Unexpected")
-    elif userid not in query:
-        raise WeasylError("Unexpected")
-    elif userid == query[0] and "s" in query[2]:
-        raise WeasylError("Unexpected")
-    elif userid == query[1] and "r" in query[2]:
-        raise WeasylError("Unexpected")
-
-    if userid == query[1] and "u" in query[2]:
-        d.execute("UPDATE message SET settings = REPLACE(settings, 'u', '') || 'r' WHERE noteid = %i", [noteid])
-    else:
-        d.execute("UPDATE message SET settings = settings || '%s' WHERE noteid = %i",
-                  ["s" if userid == query[0] else "r", noteid])
+    # Remove "unread" (u) from and add "recipient trashed" (r) to requested notes that the user received
+    d.engine.execute(
+        "UPDATE message SET settings = REPLACE(settings, 'u', '') || 'r' WHERE noteid = ANY (%(ids)s) AND otherid = %(user)s AND settings !~ 'r'",
+        user=userid,
+        ids=noteids,
+    )

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import arrow
+from akismet import SpamStatus
 
 from libweasyl import ratings
 from libweasyl import staff
@@ -19,6 +20,7 @@ from weasyl import moderation
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
+from weasyl import spam_filtering
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -39,6 +41,21 @@ def create(userid, journal, friends_only=False, tags=None):
     # Create journal
     jo = d.meta.tables["journal"]
 
+    # Run the journal through Akismet to check for spam
+    is_spam = False
+    if spam_filtering.FILTERING_ENABLED:
+        result = spam_filtering.check(
+            user_ip=journal.submitter_ip_address,
+            user_agent_id=journal.submitter_user_agent_id,
+            user_id=userid,
+            comment_type="journal",
+            comment_content=journal.content,
+        )
+        if result == SpamStatus.DefiniteSpam:
+            raise WeasylError("SpamFilteringDropped")
+        elif result == SpamStatus.ProbableSpam:
+            is_spam = True
+
     journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
@@ -46,6 +63,9 @@ def create(userid, journal, friends_only=False, tags=None):
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
+        "is_spam": is_spam,
+        "submitter_ip_address": journal.submitter_ip_address,
+        "submitter_user_agent_id": journal.submitter_user_agent_id,
     })
 
     # Assign search tags
@@ -82,7 +102,10 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
 
-    if journalid and userid in staff.MODS and anyway:
+    if not query:
+        # If there's no query result, there's no record, so fast-fail.
+        raise WeasylError('journalRecordMissing')
+    elif journalid and userid in staff.MODS and anyway:
         pass
     elif not query or 'h' in query.settings:
         raise WeasylError('journalRecordMissing')
@@ -254,7 +277,7 @@ def select_latest(userid, rating, otherid=None):
             " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
-    query = d.execute("".join(statement), options="single")
+    query = d.engine.execute("".join(statement)).first()
 
     if query:
         return {
@@ -262,8 +285,10 @@ def select_latest(userid, rating, otherid=None):
             "title": query[1],
             "content": query[2],
             "unixtime": query[3],
-            "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
-                                  [query[0]], ["element"]),
+            "comments": d.engine.scalar(
+                "SELECT count(*) FROM journalcomment WHERE targetid = %(journal)s AND settings !~ 'h'",
+                journal=query[0],
+            ),
         }
 
 
@@ -276,22 +301,33 @@ def edit(userid, journal, friends_only=False):
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, journal.rating)
 
-    query = d.execute("SELECT userid, settings FROM journal WHERE journalid = %i", [journal.journalid], options="single")
+    query = d.engine.execute(
+        "SELECT userid, settings FROM journal WHERE journalid = %(id)s",
+        id=journal.journalid,
+    ).first()
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    settings = [query[1].replace("f", "")]
-    settings.append("f" if friends_only else "")
-    settings = "".join(settings)
+    settings = query[1].replace("f", "")
 
-    if "f" in settings:
+    if friends_only:
+        settings += "f"
         welcome.journal_remove(journal.journalid)
 
-    d.execute("UPDATE journal SET (title, content, rating, settings) = ('%s', '%s', %i, '%s') WHERE journalid = %i",
-              [journal.title, journal.content, journal.rating.code, settings, journal.journalid])
+    jo = d.meta.tables['journal']
+    d.engine.execute(
+        jo.update()
+        .where(jo.c.journalid == journal.journalid)
+        .values({
+            'title': journal.title,
+            'content': journal.content,
+            'rating': journal.rating,
+            'settings': settings,
+        })
+    )
 
     if userid != query[0]:
         moderation.note_about(

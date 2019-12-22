@@ -166,10 +166,10 @@ def select_list(userid):
         WHERE userid = %(id)s ORDER BY title
     """, id=userid)
 
-    content = d.engine.execute("""
+    content = d.engine.scalar("""
         SELECT content FROM commishdesc
         WHERE userid = %(id)s
-    """, id=userid).scalar()
+    """, id=userid)
 
     preference_tags = d.engine.execute("""
         SELECT DISTINCT tag.title FROM searchtag tag
@@ -333,11 +333,16 @@ def create_commission_class(userid, title):
     if not title:
         raise WeasylError("titleInvalid")
 
-    classid = d.execute("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %i", [userid], ["element"])
+    classid = d.engine.scalar("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %(user)s", user=userid)
     if not classid:
         classid = 1
     try:
-        d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid, userid, title])
+        d.engine.execute(
+            "INSERT INTO commishclass VALUES (%(class_)s, %(user)s, %(title)s)",
+            class_=classid,
+            user=userid,
+            title=title,
+        )
         return classid
     except PostgresError:
         raise WeasylError("commishclassExists")
@@ -352,10 +357,10 @@ def create_price(userid, price, currency="", settings=""):
         raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
         raise WeasylError("maxamountInvalid")
-    elif not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                       [price.classid, userid], ["bool"]):
-        raise WeasylError("classidInvalid")
     elif not price.classid:
+        raise WeasylError("classidInvalid")
+    elif not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%(class_)s, %(user)s))",
+                             class_=price.classid, user=userid):
         raise WeasylError("classidInvalid")
 
     # Settings are at most one currency class, and optionally an 'a' to indicate an add-on price.
@@ -364,88 +369,106 @@ def create_price(userid, price, currency="", settings=""):
                          "a" if "a" in settings else "")
 
     # TODO: should have an auto-increment ID
-    priceid = d.execute("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %i", [userid], ["element"])
+    priceid = d.engine.scalar("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %(user)s", user=userid)
 
     try:
-        d.execute(
-            "INSERT INTO commishprice VALUES (%i, %i, %i, '%s', %i, %i, '%s')",
-            [priceid if priceid else 1, price.classid, userid, price.title, price.amount_min, price.amount_max, settings])
+        d.engine.execute(
+            "INSERT INTO commishprice VALUES (%(newid)s, %(class_)s, %(user)s, %(title)s, %(amount_min)s, %(amount_max)s, %(settings)s)",
+            newid=priceid if priceid else 1,
+            class_=price.classid,
+            user=userid,
+            title=price.title,
+            amount_min=price.amount_min,
+            amount_max=price.amount_max,
+            settings=settings,
+        )
     except PostgresError:
         return WeasylError("titleExists")
 
 
 def edit_class(userid, commishclass):
-
     if not commishclass.title:
         raise WeasylError("titleInvalid")
 
     try:
-        d.execute("UPDATE commishclass SET title = '%s' WHERE (classid, userid) = (%i, %i)",
-                  [commishclass.title, commishclass.classid, userid])
+        d.engine.execute(
+            "UPDATE commishclass SET title = %(title)s WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            title=commishclass.title,
+            class_=commishclass.classid,
+            user=userid,
+        )
     except PostgresError:
         raise WeasylError("titleExists")
 
 
-def edit_price(userid, price, currency="", settings="", edit_prices=False):
-    currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
-    settings = "".join(i for i in settings if i in "a")
-
-    query = d.execute("SELECT amount_min, amount_max, settings, classid FROM commishprice"
-                      " WHERE (priceid, userid) = (%i, %i)", [price.priceid, userid], options="single")
-
-    if not query:
-        raise WeasylError("priceidInvalid")
-    elif price.amount_min > _MAX_PRICE:
+def edit_price(userid, price, currency, settings, edit_prices):
+    if price.amount_min > _MAX_PRICE:
         raise WeasylError("minamountInvalid")
     elif price.amount_max > _MAX_PRICE:
         raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
         raise WeasylError("maxamountInvalid")
 
-    argv = []
-    statement = ["UPDATE commishprice SET "]
+    currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
+    settings = "".join(i for i in settings if i in "a")
+
+    updates = {
+        'settings': currency + settings,
+    }
 
     if price.title:
-        statement.append("%s title = '%%s'" % ("," if argv else ""))
-        argv.append(price.title)
+        updates['title'] = price.title
 
     if edit_prices:
-        if price.amount_min != query[0]:
-            statement.append("%s amount_min = %%i" % ("," if argv else ""))
-            argv.append(price.amount_min)
+        updates['amount_min'] = price.amount_min
+        updates['amount_max'] = price.amount_max
 
-        if price.amount_max != query[1]:
-            statement.append("%s amount_max = %%i" % ("," if argv else ""))
-            argv.append(price.amount_max)
+    cpt = d.meta.tables['commishprice']
+    result = d.engine.execute(
+        cpt.update()
+        .where(cpt.c.priceid == price.priceid)
+        .where(cpt.c.userid == userid)
+        .values(updates)
+    )
 
-    statement.append("%s settings = '%%s'" % ("," if argv else ""))
-    argv.append("%s%s" % (currency, settings))
-
-    if not argv:
-        return
-
-    statement.append(" WHERE (priceid, userid) = (%i, %i)")
-    argv.extend([price.priceid, userid])
-
-    d.execute("".join(statement), argv)
+    if result.rowcount != 1:
+        raise WeasylError("priceidInvalid")
 
 
 def edit_content(userid, content):
-    if not d.execute("UPDATE commishdesc SET content = '%s' WHERE userid = %i RETURNING userid",
-                     [content, userid], ["element"]):
-        d.execute("INSERT INTO commishdesc VALUES (%i, '%s')", [userid, content])
+    d.engine.execute(
+        "INSERT INTO commishdesc (userid, content)"
+        " VALUES (%(user)s, %(content)s)"
+        " ON CONFLICT (userid) DO UPDATE SET content = %(content)s",
+        user=userid,
+        content=content,
+    )
 
 
 def remove_class(userid, classid):
-    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                     [d.get_int(classid), userid], ["bool"]):
-        raise WeasylError("classidInvalid")
-    d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
-    d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
+    with d.engine.begin() as db:
+        result = db.execute(
+            "DELETE FROM commishclass WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            class_=classid,
+            user=userid,
+        )
+
+        if result.rowcount != 1:
+            raise WeasylError("classidInvalid")
+
+        db.execute(
+            "DELETE FROM commishprice WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            class_=classid,
+            user=userid,
+        )
 
 
 def remove_price(userid, priceid):
-    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishprice WHERE (priceid, userid) = (%i, %i))",
-                     [d.get_int(priceid), userid], ["bool"]):
+    result = d.engine.execute(
+        "DELETE FROM commishprice WHERE (priceid, userid) = (%(price)s, %(user)s)",
+        price=priceid,
+        user=userid,
+    )
+
+    if result.rowcount != 1:
         raise WeasylError("priceidInvalid")
-    d.execute("DELETE FROM commishprice WHERE (priceid, userid) = (%i, %i)", [d.get_int(priceid), userid])

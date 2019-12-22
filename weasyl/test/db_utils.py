@@ -4,12 +4,13 @@ import itertools
 
 import arrow
 
-from libweasyl import legacy
 from libweasyl import ratings
 from libweasyl import staff
+from libweasyl.legacy import get_sysname
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
+from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
@@ -43,7 +44,7 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
         username = "User-" + str(next(_user_index))
 
     while True:
-        user = add_entity(users.Login(login_name=legacy.login_name(username),
+        user = add_entity(users.Login(login_name=get_sysname(username),
                                       last_login=arrow.get(0)))
 
         if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:
@@ -95,7 +96,7 @@ def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=ar
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(
         userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
-        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings))
+        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings, favorites=0))
     update_last_submission_time(userid, unixtime)
     return submission.submitid
 
@@ -196,24 +197,27 @@ def create_ignoreuser(ignorer, ignoree):
 
 # TODO: do these two in a less bad way
 def create_banuser(userid, reason):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-        " RETURNING userid", [userid])
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO permaban VALUES (%i, '%s')", [userid, reason])
+    query = d.engine.execute(
+        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %(target)s",
+        target=userid)
+
+    assert query.rowcount == 1
+
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=userid, reason=reason)
 
 
 def create_suspenduser(userid, reason, release):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-        " RETURNING userid", [userid])
+    query = d.engine.execute(
+        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %(target)s",
+        target=userid)
 
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [userid, reason, release])
+    assert query.rowcount == 1
+
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=userid, reason=reason, release=release)
 
 
 def create_tag(title):
@@ -253,8 +257,20 @@ def create_blocktag(userid, tagid, rating):
     db.flush()
 
 
-def create_favorite(userid, targetid, type, unixtime=arrow.get(1), settings=None):
-    db = d.connect()
-    db.add(content.Favorite(userid=userid, targetid=targetid, type=type,
-                            unixtime=unixtime, settings=settings))
-    db.flush()
+def create_favorite(userid, **kwargs):
+    unixtime = kwargs.pop('unixtime', None)
+    favorite.insert(userid, **kwargs)
+
+    if unixtime is not None:
+        if 'submitid' in kwargs:
+            type_ = 's'
+        elif 'charid' in kwargs:
+            type_ = 'c'
+        elif 'journalid' in kwargs:
+            type_ = 'j'
+
+        targetid = d.get_targetid(*kwargs.values())
+
+        fav = content.Favorite.query.filter_by(userid=userid, type=type_, targetid=targetid).one()
+        fav.unixtime = unixtime
+        content.Favorite.dbsession.flush()

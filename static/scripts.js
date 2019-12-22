@@ -888,7 +888,7 @@
                         break;
 
                     case 'da':
-                        link.href = 'https://' + user + '.deviantart.com/';
+                        link.href = 'https://www.deviantart.com/' + user;
                         break;
 
                     case 'sf':

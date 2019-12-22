@@ -5,12 +5,11 @@ import arrow
 import bcrypt
 from dateutil.relativedelta import relativedelta
 import pytz
+from pyramid.decorator import reify
 from sqlalchemy import orm
 import sqlalchemy as sa
 
 from libweasyl.common import minimize_media
-from libweasyl.decorators import reify
-from libweasyl.legacy import plaintext
 from libweasyl.models.helpers import clauses_for
 from libweasyl.models.meta import Base
 from libweasyl.models import tables
@@ -139,25 +138,6 @@ class AuthBCrypt(Base):
     __table__ = tables.authbcrypt
 
     user = orm.relationship(Login, backref=orm.backref('bcrypt', uselist=False))
-
-    def does_authenticate(self, password):
-        """
-        If the given password matches the hashed password in the database,
-        returns True. Otherwise, returns False.
-
-        If the hashed password isn't stored as utf-8, it will be updated to the
-        newer utf-8 format while the plaintext password is available.
-        """
-        expected_hash = self.hashsum.encode('ascii')
-
-        if bcrypt.checkpw(password.encode('utf-8'), expected_hash):
-            return True
-        elif bcrypt.checkpw(plaintext(password).encode('utf-8'), expected_hash):
-            log.debug('updated old non-ASCII password for userid %d', self.userid)
-            self.set_password(password)
-            return True
-        else:
-            return False
 
     def set_password(self, password):
         """

@@ -21,7 +21,6 @@ admins = [
 ]
 
 mods = [
-    2161,   # poila
     2252,   # SuburbanFox
 ]
 

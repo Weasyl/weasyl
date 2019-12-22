@@ -4,7 +4,6 @@ File type indicators
 
 ~  cover
 -  thumb
-+  popup
 =  submit
 >  avatar
 <  banner
@@ -25,11 +24,9 @@ login.settings ()
 
 b  Banned account
 s  Suspended account
-d  Premium account
 
 p  Reset password
 i  Reset birthday
-e  Reset email address
 
 -----------------------
 profile.settings (ccci)
@@ -153,14 +150,6 @@ favorite.type ()
 s  Submission
 f  Character
 j  Journal entry
-
---------------------
-favorite.settings ()
---------------------
-
-p  Private
-f  Friends-only
-m  Members-only
 
 ---------------------
 character.settings ()

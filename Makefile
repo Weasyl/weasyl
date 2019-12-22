@@ -42,7 +42,7 @@ config/weasyl-staff.py:
 # Creates python environment
 $(VE): etc/requirements.txt
 	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
-               $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
+               $@/bin/pip install -U pip setuptools; }
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt -e .
 	$@/bin/pip install $(USE_WHEEL) pytest==4.6.5 flake8
 	touch $@
@@ -98,6 +98,7 @@ deploy-web-worker: setup
 .PHONY: run
 run: setup
 	WEASYL_APP_ROOT=. \
+		WEASYL_TESTING_ENV=y \
 		WEASYL_STORAGE_ROOT=. \
 		WEASYL_SERVE_STATIC_FILES=y \
 		WEASYL_RELOAD_TEMPLATES=y \
@@ -115,7 +116,7 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
-	WEASYL_APP_ROOT=. WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
+	WEASYL_APP_ROOT=. WEASYL_TESTING_ENV=y WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell
 .PHONY: shell

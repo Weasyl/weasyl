@@ -10,7 +10,7 @@ from pyramid.httpexceptions import (
 from pyramid.response import Response
 
 from weasyl import define, errorcode, index, login, moderation, \
-    premiumpurchase, profile, resetpassword, two_factor_auth
+    profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
@@ -89,9 +89,8 @@ def signin_post_(request):
             "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
             "%s.\n\nIf you believe this suspension is in error, please contact "
             "support@weasyl.com for assistance." % (suspension.reason, define.convert_date(suspension.release))))
-    elif logerror == "address":
-        return Response("IP ADDRESS TEMPORARILY BLOCKED")
 
+    assert logerror is None
     return Response(define.errorpage(request.userid))
 
 
@@ -275,16 +274,6 @@ def verify_emailchange_get_(request):
     ))
 
 
-@login_required
-def verify_premium_(request):
-    premiumpurchase.verify(request.userid, request.web_input(token="").token)
-    return Response(define.errorpage(
-        request.userid,
-        "**Success!** Your purchased premium terms have "
-        "been applied to your account.",
-        [["Go to Premium " "Settings", "/control"], ["Return to the Home Page", "/"]]))
-
-
 @guest_required
 def forgotpassword_get_(request):
     return Response(define.webpage(request.userid, "etc/forgotpassword.html", title="Reset Forgotten Password"))
@@ -308,12 +297,10 @@ def forgetpassword_post_(request):
 def resetpassword_get_(request):
     form = request.web_input(token="")
 
-    if not resetpassword.checktoken(form.token):
+    if not resetpassword.prepare(form.token):
         return Response(define.errorpage(
             request.userid,
             "This link does not appear to be valid. If you followed this link from your email, it may have expired."))
-
-    resetpassword.prepare(form.token)
 
     return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token], title="Reset Forgotten Password"))
 

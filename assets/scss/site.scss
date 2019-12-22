@@ -2769,6 +2769,13 @@ blockquote + blockquote {
     #user-image img {
         display: block;
         max-width: 100%;
+        position: absolute;
+    }
+
+    #user-image .img-space {
+        display: block;
+        height: auto;
+        max-width: 100%;
     }
 
     #user-info {

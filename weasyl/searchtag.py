@@ -22,14 +22,15 @@ MAX_PREFERRED_TAGS = 50
 
 
 def select(submitid=None, charid=None, journalid=None):
-    return d.execute("SELECT st.title FROM searchtag st"
-                     " INNER JOIN searchmap%s sm USING (tagid)"
-                     " WHERE sm.targetid = %i"
-                     " ORDER BY st.title",
-                     [
-                         "submit" if submitid else "char" if charid else "journal",
-                         submitid if submitid else charid if charid else journalid
-                     ], options="within")
+    return d.column(d.engine.execute(
+        "SELECT st.title FROM searchtag st"
+        " INNER JOIN searchmap{suffix} sm USING (tagid)"
+        " WHERE sm.targetid = %(target)s"
+        " ORDER BY st.title".format(
+            suffix="submit" if submitid else "char" if charid else "journal",
+        ),
+        target=submitid if submitid else charid if charid else journalid,
+    ))
 
 
 def select_with_artist_tags(submitid):
@@ -283,9 +284,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, preferre
 
         # preference/optout tags can only be set by the artist, so this settings column does not apply
         if userid == ownerid and not (preferred_tags_userid or optout_tags_userid):
-            d.execute(
-                "UPDATE %s SET settings = settings || 'a' WHERE targetid = %i AND tagid IN %s",
-                [table, targetid, d.sql_number_list(list(added))])
+            d.engine.execute(
+                "UPDATE {} SET settings = settings || 'a' WHERE targetid = %(target)s AND tagid = ANY (%(added)s)".format(table),
+                target=targetid, added=list(added))
 
     if submitid:
         d.engine.execute(

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import os
 import re
@@ -14,13 +14,10 @@ import datetime
 import urlparse
 import functools
 import pkgutil
-import string
 import subprocess
-import unicodedata
 
 import anyjson as json
 import arrow
-from psycopg2cffi.extensions import QuotedString
 from pyramid.threadlocal import get_current_request
 import pytz
 import requests
@@ -30,7 +27,7 @@ from sqlalchemy.exc import OperationalError
 from web.template import Template
 
 import libweasyl.constants
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
+from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
@@ -104,92 +101,35 @@ def log_exc(**kwargs):
     return get_current_request().log_exc(**kwargs)
 
 
-def execute(statement, argv=None, options=None):
+def execute(statement, argv=None):
     """
     Executes an SQL statement; if `statement` represents a SELECT or RETURNING
-    statement, the query results will be returned. Note that 'argv' and `options`
-    need not be lists if they would have contained only one element.
+    statement, the query results will be returned.
     """
     db = connect()
 
-    if argv is None:
-        argv = list()
-
-    if options is None:
-        options = list()
-
-    if argv and not isinstance(argv, list):
-        argv = [argv]
-
-    if options and not isinstance(options, list):
-        options = [options]
-
     if argv:
-        statement %= tuple([_sql_escape(i) for i in argv])
+        argv = tuple(argv)
+
+        for x in argv:
+            if type(x) not in (int, long):
+                raise TypeError("can't use %r as define.execute() parameter" % (x,))
+
+        statement %= argv
+
     query = db.connection().execute(statement)
 
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
-        query = query.fetchall()
-
-        if "list" in options or "zero" in options:
-            query = [list(i) for i in query]
-
-        if "zero" in options:
-            for i in range(len(query)):
-                for j in range(len(query[i])):
-                    if query[i][j] is None:
-                        query[i][j] = 0
-
-        if "bool" in options:
-            return query and query[0][0]
-        elif "within" in options:
-            return [x[0] for x in query]
-        elif "single" in options:
-            return query[0] if query else list()
-        elif "element" in options:
-            return query[0][0] if query else list()
-
-        return query
+        return query.fetchall()
     else:
         query.close()
 
 
-def _quote_string(s):
-    quoted = QuotedString(s).getquoted()
-    assert quoted[0] == quoted[-1] == "'"
-    return quoted[1:-1].replace('%', '%%')
-
-
-def _sql_escape(target):
+def column(results):
     """
-    SQL-escapes `target`; pg_escape_string is used if `target` is a string or
-    unicode object, else the integer equivalent is returned.
+    Get a list of values from a single-column ResultProxy.
     """
-    if isinstance(target, str):
-        # Escape ASCII string
-        return _quote_string(target)
-    elif isinstance(target, unicode):
-        # Escape Unicode string
-        return _quote_string(target.encode("utf-8"))
-    else:
-        # Escape integer
-        try:
-            return int(target)
-        except:
-            return 0
-
-
-def sql_number_list(target):
-    """
-    Returns a list of numbers suitable for placement after the SQL IN operator in
-    a query statement, as in "(1, 2, 3)".
-    """
-    if not target:
-        raise ValueError
-    elif not isinstance(target, list):
-        target = [target]
-
-    return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
+    return [x for x, in results]
 
 
 _PG_SERIALIZATION_FAILURE = u'40001'
@@ -398,22 +338,6 @@ def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
 
 
-_SYSNAME_CHARACTERS = (
-    set(unicode(string.ascii_lowercase)) |
-    set(unicode(string.digits)))
-
-
-def get_sysname(target):
-    """
-    Return `target` stripped of all non-alphanumeric characters and lowercased.
-    """
-    if isinstance(target, unicode):
-        normalized = unicodedata.normalize("NFD", target.lower())
-        return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS).encode("ascii")
-    else:
-        return "".join(i for i in target if i.isalnum()).lower()
-
-
 @region.cache_on_arguments()
 @record_timing
 def _get_config(userid):
@@ -530,12 +454,15 @@ def get_display_name(userid):
 
 
 def get_int(target):
+    if target is None:
+        return 0
+
     if isinstance(target, numbers.Number):
         return int(target)
 
     try:
         return int("".join(i for i in target if i.isdigit()))
-    except:
+    except ValueError:
         return 0
 
 
@@ -648,10 +575,6 @@ def text_fix_url(target):
     return "http://" + target
 
 
-def text_bool(target, default=False):
-    return target.lower().strip() == "true" or default and target == ""
-
-
 def local_arrow(dt):
     tz = get_current_request().weasyl_session.timezone
     return arrow.Arrow.fromdatetime(tz.localtime(dt))
@@ -698,8 +621,8 @@ def convert_unixdate(day, month, year):
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except:
-        return
+    except ValueError:
+        return None
     # range of a postgres integer
     if ret > 2147483647 or ret < -2147483648:
         return None
@@ -750,7 +673,7 @@ def convert_inputdate(target):
 
 
 def convert_age(target):
-    return (get_time() - target) / 31556926
+    return (get_time() - target) // 31556926
 
 
 def age_in_years(birthdate):
@@ -882,8 +805,6 @@ def common_status_check(userid):
         return "resetpassword"
     if "i" in settings:
         return "resetbirthday"
-    if "e" in settings:
-        return "resetemail"
     if "b" in settings:
         return "banned"
     if "s" in settings:
@@ -897,20 +818,10 @@ def common_status_page(userid, status):
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
-    if status == "admin":
-        return errorpage(0, errorcode.admin_mode)
-    elif status == "local":
-        return errorpage(0, errorcode.local_mode)
-    elif status == "offline":
-        return errorpage(0, errorcode.offline_mode)
-    elif status == "address":
-        return "IP ADDRESS TEMPORARILY REJECTED"
-    elif status == "resetpassword":
+    if status == "resetpassword":
         return webpage(userid, "force/resetpassword.html")
     elif status == "resetbirthday":
         return webpage(userid, "force/resetbirthday.html")
-    elif status == "resetemail":
-        return "reset email"  # todo
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 

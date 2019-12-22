@@ -23,3 +23,5 @@ __pycache__/
 /weasyl-env
 /twistd.pid
 /version.txt
+
+/.pytest_cache/

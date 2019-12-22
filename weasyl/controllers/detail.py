@@ -43,7 +43,7 @@ def submission_(request):
     try:
         item = submission.select_view(
             request.userid, submitid, rating,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=form.ignore != 'false', anyway=form.anyway
         )
     except WeasylError as we:
         we.errorpage_kwargs = extras
@@ -122,7 +122,7 @@ def character_(request):
     try:
         item = character.select_view(
             request.userid, charid, rating,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=form.ignore != 'false', anyway=form.anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
@@ -156,7 +156,7 @@ def journal_(request):
     try:
         item = journal.select_view(
             request.userid, rating, journalid,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=form.ignore != 'false', anyway=form.anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):

@@ -8,10 +8,6 @@ from weasyl import emailer
 from weasyl.error import WeasylError
 
 
-def checktoken(token):
-    return d.execute("SELECT EXISTS (SELECT 0 FROM forgotpassword WHERE token = '%s')", [token], ["bool"])
-
-
 # form
 #   email
 
@@ -52,13 +48,21 @@ def prepare(token):
     # associated link provided to them in the password reset request email, or
     # which have been visited but have not been removed by the password reset
     # script within five minutes of being visited
-    d.execute("DELETE FROM forgotpassword WHERE set_time < %i OR link_time > 0 AND link_time < %i",
-              [d.get_time() - 3600, d.get_time() - 300])
+    d.engine.execute(
+        "DELETE FROM forgotpassword WHERE set_time < %(set_cutoff)s OR link_time > 0 AND link_time < %(link_cutoff)s",
+        set_cutoff=d.get_time() - 3600,
+        link_cutoff=d.get_time() - 300,
+    )
 
     # Set the unixtime record for which the link associated with `token` was
     # visited by the user
-    d.execute("UPDATE forgotpassword SET link_time = %i WHERE token = '%s'",
-              [d.get_time(), token])
+    result = d.engine.execute(
+        "UPDATE forgotpassword SET link_time = %(now)s WHERE token = %(token)s",
+        now=d.get_time(),
+        token=token,
+    )
+
+    return result.rowcount == 1
 
 
 # form
@@ -81,13 +85,13 @@ def reset(form):
     # pertaining to `token`, requiring that the link associated with the record
     # be visited no more than five minutes prior; if the forgotpassword record is
     # not found or does not meet this requirement, raise an exception
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT lo.userid, lo.login_name, lo.email, fp.link_time, fp.address
         FROM login lo
             INNER JOIN userinfo ui USING (userid)
             INNER JOIN forgotpassword fp USING (userid)
-        WHERE fp.token = '%s' AND fp.link_time > %i
-    """, [form.token, d.get_time() - 300], options="single")
+        WHERE fp.token = %(token)s AND fp.link_time > %(cutoff)s
+    """, token=form.token, cutoff=d.get_time() - 300).first()
 
     if not query:
         raise WeasylError("forgotpasswordRecordMissing")
@@ -109,7 +113,9 @@ def reset(form):
         'ON CONFLICT (userid) DO UPDATE SET hashsum = %(hash)s',
         user=USERID, hash=login.passhash(form.password))
 
-    d.execute("DELETE FROM forgotpassword WHERE token = '%s'", [form.token])
+    d.engine.execute(
+        "DELETE FROM forgotpassword WHERE token = %(token)s",
+        token=form.token)
 
 
 # form
@@ -124,6 +130,6 @@ def force(userid, form):
     elif not login.password_secure(form.password):
         raise WeasylError("passwordInsecure")
 
-    d.execute("UPDATE login SET settings = REPLACE(settings, 'p', '') WHERE userid = %i", [userid])
-    d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(form.password), userid])
+    d.engine.execute("UPDATE login SET settings = REPLACE(settings, 'p', '') WHERE userid = %(user)s", user=userid)
+    d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(form.password), user=userid)
     d.get_login_settings.invalidate(userid)

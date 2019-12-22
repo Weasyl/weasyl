@@ -143,9 +143,12 @@ def control_editcommishclass_(request):
 @login_required
 @token_checked
 def control_removecommishclass_(request):
-    form = request.web_input(classid="")
+    classid = define.get_int(request.params.get('classid', ""))
 
-    commishinfo.remove_class(request.userid, form.classid)
+    if not classid:
+        raise WeasylError("classidInvalid")
+
+    commishinfo.remove_class(request.userid, classid)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
@@ -185,9 +188,12 @@ def control_editcommishprice_(request):
 @login_required
 @token_checked
 def control_removecommishprice_(request):
-    form = request.web_input(priceid="")
+    priceid = define.get_int(request.params.get('priceid', ""))
 
-    commishinfo.remove_price(request.userid, form.priceid)
+    if not priceid:
+        raise WeasylError("priceidInvalid")
+
+    commishinfo.remove_price(request.userid, priceid)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
@@ -511,29 +517,22 @@ def manage_following_post_(request):
 
 @login_required
 def manage_friends_(request):
-    form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
+    feature = request.params.get("feature")
 
-    if form.feature == "pending":
+    if feature == "pending":
         return Response(define.webpage(request.userid, "manage/friends_pending.html", [
-            frienduser.select_requests(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_requests(request.userid),
         ], title="Pending Friend Requests"))
     else:
         return Response(define.webpage(request.userid, "manage/friends_accepted.html", [
-            # Friends
-            frienduser.select_accepted(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_accepted(request.userid),
         ], title="Friends"))
 
 
 @login_required
 def manage_ignore_(request):
-    form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
-
     return Response(define.webpage(request.userid, "manage/ignore.html", [
-        ignoreuser.select(request.userid, 20, backid=form.backid, nextid=form.nextid),
+        ignoreuser.select(request.userid),
     ], title="Ignored Users"))
 
 
@@ -631,13 +630,13 @@ def manage_thumbnail_post_(request):
         return Response(define.errorpage(request.userid))
 
     if form.thumbfile:
-        thumbnail.upload(request.userid, form.thumbfile, submitid=submitid, charid=charid)
+        thumbnail.upload(form.thumbfile, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
         else:
             raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
     else:
-        thumbnail.create(request.userid, form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
+        thumbnail.create(form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/submission/%i" % (submitid,))
         else:
@@ -716,13 +715,6 @@ def manage_banner_post_(request):
 
 @login_required
 def manage_alias_get_(request):
-    status = define.common_status_check(request.userid)
-
-    if status:
-        return Response(define.common_status_page(request.userid, status))
-    elif not request.userid:
-        return Response(define.webpage(request.userid))
-
     return Response(define.webpage(request.userid, "manage/alias.html", [
         # Alias
         useralias.select(request.userid),

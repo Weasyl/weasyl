@@ -1,6 +1,6 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
-    Integer, String, Text, SMALLINT, text, DateTime, func, Boolean)
+    Integer, String, Text, text, DateTime, func, Boolean)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
 
 
@@ -196,7 +196,6 @@ favorite = Table(
     Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
     Column('type', String(length=5), primary_key=True, nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('settings', String(length=20), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='favorite_userid_fkey'),
 )
 
@@ -312,10 +311,19 @@ journal = Table(
         'c': 'comment-locked',
     }, length=20), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
+    Column('submitter_ip_address', String(length=45), nullable=True),
+    Column('submitter_user_agent_id', Integer(), nullable=True),
+    Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='journal_userid_fkey'),
+    ForeignKeyConstraint(
+        ['submitter_user_agent_id'],
+        ['user_agents.user_agent_id'],
+        name="journal_user_agent_id_fkey",
+    ),
 )
 
 Index('ind_journal_userid', journal.c.userid)
+Index('ind_journal_is_spam', journal.c.is_spam)
 
 
 journalcomment = Table(
@@ -343,10 +351,8 @@ login = Table(
     Column('login_name', String(length=40), nullable=False, unique=True),
     Column('last_login', WeasylTimestampColumn(), nullable=False),
     Column('settings', CharSettingsColumn({
-        'd': 'premium',
         'p': 'reset-password',
         'i': 'reset-birthday',
-        'e': 'reset-email',
     }, {
         'account-state': {
             'b': 'banned',
@@ -478,14 +484,6 @@ permitted_senders = Table(
     Column('sender', Integer(), primary_key=True),
     default_fkey(['userid'], ['login.userid'], name='permitted_senders_userid_fkey'),
     default_fkey(['sender'], ['login.userid'], name='permitted_senders_sender_fkey'),
-)
-
-
-premiumpurchase = Table(
-    'premiumpurchase', metadata,
-    Column('token', String(), primary_key=True, nullable=False),
-    Column('email', String(length=254), nullable=False),
-    Column('terms', SMALLINT(), nullable=False),
 )
 
 
@@ -784,14 +782,32 @@ submission = Table(
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('favorites', Integer()),
     Column('sorttime', WeasylTimestampColumn(), nullable=False),
+    Column('submitter_ip_address', String(length=45), nullable=True),
+    Column('submitter_user_agent_id', Integer(), nullable=True),
+    Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
+    ForeignKeyConstraint(
+        ['submitter_user_agent_id'],
+        ['user_agents.user_agent_id'],
+        name="submission_agent_id_fkey",
+    ),
+    Index(
+        'ind_submission_score',
+        text("""(
+            log(favorites + 1)
+                + log(page_views + 1) / 2
+                + unixtime / 180000.0
+        )"""),
+        postgresql_where=text("favorites IS NOT NULL"),
+    ),
 )
 
 Index('ind_submission_folderid', submission.c.folderid)
 Index('ind_submission_userid_unixtime', submission.c.userid, submission.c.unixtime.desc())
 Index('ind_submission_userid', submission.c.userid)
 Index('ind_submission_userid_folderid', submission.c.userid, submission.c.folderid)
+Index('ind_submission_is_spam', submission.c.is_spam)
 
 
 submission_media_links = Table(
@@ -904,15 +920,6 @@ userinfo = Table(
     Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),
-)
-
-
-userpremium = Table(
-    'userpremium', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('terms', SMALLINT(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='userpremium_userid_fkey'),
 )
 
 

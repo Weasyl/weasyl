@@ -20,7 +20,7 @@ def run_periodic_tasks():
         if not locked:
             return
         last_run = arrow.get(db.scalar("SELECT last_run FROM cron_runs"))
-        if not last_run or now < last_run.replace(seconds=59):
+        if not last_run or now < last_run.replace(second=59):
             return
 
         # Recache the latest submissions

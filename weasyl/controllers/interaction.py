@@ -20,8 +20,7 @@ def followuser_(request):
         return Response(define.errorpage(request.userid, "You cannot follow yourself."))
 
     if form.action == "follow":
-        if not followuser.check(request.userid, otherid):
-            followuser.insert(request.userid, otherid)
+        followuser.insert(request.userid, otherid)
     elif form.action == "unfollow":
         followuser.remove(request.userid, otherid)
 
@@ -86,9 +85,9 @@ def ignoreuser_(request):
     otherid = define.get_int(form.userid)
 
     if form.action == "ignore":
-        ignoreuser.insert(request.userid, otherid)
+        ignoreuser.insert(request.userid, [otherid])
     elif form.action == "unignore":
-        ignoreuser.remove(request.userid, otherid)
+        ignoreuser.remove(request.userid, [otherid])
 
     raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
 

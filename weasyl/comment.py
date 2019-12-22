@@ -129,15 +129,18 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             if parentuserid is None:
                 raise WeasylError("Unexpected")
         else:
-            query = d.execute("SELECT userid, indent FROM %s WHERE commentid = %i",
-                              ["comments" if submitid else "charcomment" if charid else "journalcomment", parentid],
-                              options="single")
+            parent = d.engine.execute(
+                "SELECT userid, indent FROM {table} WHERE commentid = %(parentid)s".format(
+                    table="comments" if submitid else "charcomment" if charid else "journalcomment",
+                ),
+                parentid=parentid,
+            ).first()
 
-            if not query:
+            if not parent:
                 raise WeasylError("Unexpected")
 
-            indent = query[1] + 1
-            parentuserid = query[0]
+            indent = parent.indent + 1
+            parentuserid = parent.userid
     elif updateid:
         parentid = None  # parentid == 0
         parentuserid = None
@@ -151,11 +154,14 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         if not otherid:
             raise WeasylError("submissionRecordMissing")
     else:
-        # Determine otherid
-        otherid = d.execute("SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'",
-                            ["submission", "submitid", submitid] if submitid else
-                            ["character", "charid", charid] if charid else
-                            ["journal", "journalid", journalid], options="element")
+        # Determine the owner of the target
+        otherid = d.engine.scalar(
+            "SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'" % (
+                ("submission", "submitid", submitid) if submitid else
+                ("character", "charid", charid) if charid else
+                ("journal", "journalid", journalid)
+            )
+        )
 
         # Check permissions
         if not otherid:
@@ -190,14 +196,17 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             content=content,
         )
     else:
-        commentid = d.execute(
-            "INSERT INTO %s (userid, targetid, parentid, "
-            "content, unixtime, indent) VALUES (%i, %i, %i, '%s', %i, %i) RETURNING "
-            "commentid", [
-                "charcomment" if charid else "journalcomment", userid,
-                d.get_targetid(submitid, charid, journalid),
-                parentid, content, d.get_time(), indent
-            ], options="element")
+        commentid = d.engine.scalar(
+            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime, indent)"
+            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s, %(indent)s)"
+            " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
+            user=userid,
+            target=d.get_targetid(charid, journalid),
+            parent=parentid or 0,
+            content=content,
+            now=d.get_time(),
+            indent=indent,
+        )
 
     # Create notification
     if parentid and (userid != parentuserid):
@@ -233,18 +242,20 @@ def remove(userid, feature=None, commentid=None):
         raise WeasylError("Unexpected")
 
     if feature == 'submit':
-        query = d.execute(
-            "SELECT userid, target_sub FROM comments WHERE commentid = %i AND target_sub IS NOT NULL AND settings !~ 'h'",
-            [commentid], ["single"])
+        query = d.engine.execute(
+            "SELECT userid, target_sub FROM comments WHERE commentid = %(comment)s AND target_sub IS NOT NULL AND settings !~ 'h'",
+            comment=commentid,
+        ).first()
     elif feature == 'siteupdate':
         query = d.engine.execute(
             "SELECT userid, targetid FROM siteupdatecomment WHERE commentid = %(comment)s AND hidden_at IS NULL",
             comment=commentid,
         ).first()
     else:
-        query = d.execute(
-            "SELECT userid, targetid FROM %scomment WHERE commentid = %i AND settings !~ 'h'",
-            [feature, commentid], ["single"])
+        query = d.engine.execute(
+            "SELECT userid, targetid FROM {feature}comment WHERE commentid = %(comment)s AND settings !~ 'h'".format(feature=feature),
+            comment=commentid,
+        ).first()
 
     if not query:
         raise WeasylError("RecordMissing")
@@ -258,10 +269,11 @@ def remove(userid, feature=None, commentid=None):
     if feature == 'siteupdate':
         is_owner = False
     else:
-        owner = d.execute(
-            "SELECT userid FROM %s WHERE %sid = %i",
-            [target_table[feature], feature, query[1]], ["single"])
-        is_owner = userid == owner[0]
+        owner = d.engine.scalar(
+            "SELECT userid FROM {table} WHERE {feature}id = %(target)s".format(table=target_table[feature], feature=feature),
+            target=query[1],
+        )
+        is_owner = userid == owner
 
     if not is_owner and userid not in staff.MODS:
         if userid != query[0]:
@@ -270,10 +282,10 @@ def remove(userid, feature=None, commentid=None):
         # user is commenter
         comment_table = (
             "comments" if feature == 'submit' else feature + "comment")
-        replies = d.execute(
-            "SELECT commentid FROM %s WHERE parentid = %d",
-            [comment_table, commentid])
-        if replies:
+        has_replies = d.engine.scalar(
+            "SELECT EXISTS (SELECT FROM {table} WHERE parentid = %(comment)s)".format(table=comment_table),
+            comment=commentid)
+        if has_replies:
             # a commenter cannot remove their comment if it has replies
             raise WeasylError("InsufficientPermissions")
 
@@ -283,9 +295,11 @@ def remove(userid, feature=None, commentid=None):
 
     # mark comments as hidden
     if feature == 'submit':
-        d.execute(
-            "UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i",
-            [userid, commentid])
+        d.engine.execute(
+            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            comment=commentid,
+            hidden_by=userid,
+        )
     elif feature == 'siteupdate':
         d.engine.execute(
             "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
@@ -293,9 +307,11 @@ def remove(userid, feature=None, commentid=None):
             hidden_by=userid,
         )
     else:
-        d.execute(
-            "UPDATE %scomment SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i",
-            [feature, userid, commentid])
+        d.engine.execute(
+            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),
+            comment=commentid,
+            hidden_by=userid,
+        )
 
     return query[1]
 

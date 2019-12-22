@@ -1,8 +1,9 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import urlparse
 from io import BytesIO
 
+from akismet import SpamStatus
 import arrow
 import sqlalchemy as sa
 
@@ -34,6 +35,7 @@ from weasyl import orm
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
+from weasyl import spam_filtering
 from weasyl import twits
 from weasyl import welcome
 from weasyl.error import WeasylError
@@ -53,17 +55,13 @@ _LIMITS = {
 }
 
 
-def _limit(size, extension, premium):
+def _limit(size, extension):
     """
     Return True if the file size exceeds the limit designated to the specified
     file type, else False.
     """
-    limit = _LIMITS.get(extension)
-
-    if limit is None:
-        return None
-    else:
-        return size > limit
+    limit = _LIMITS[extension]
+    return size > limit
 
 
 def _create_notifications(userid, submitid, rating, settings, title, tags):
@@ -100,6 +98,36 @@ def _post_to_twitter_about(submitid, title, rating, tags):
         length += len(tag) + 2
 
     twits.post(account, u'%s %s' % (url, ' '.join(selected_tags)))
+
+
+def _check_for_spam(submission, userid):
+    """
+    Queries the spam filtering backend to determine if the submitted content is spam.
+
+    Implementation note: Since this raises WeasylError if it is blatantly spam, call this _before_ writing out to the
+    database or making any saves to disk.
+
+    :param submission:
+    :param userid:
+    :return: Boolean False if the textual content submitted is not considered spam (or if an unknown Akismet response
+    is returned), or Boolean True if it the item is probably spam.
+    :raises WeasylError("SpamFilteringDropped"): If the submitted textual content is blatantly spam.
+    """
+    # Run the journal through Akismet to check for spam
+    is_spam = False
+    if spam_filtering.FILTERING_ENABLED:
+        result = spam_filtering.check(
+            user_ip=submission.submitter_ip_address,
+            user_agent_id=submission.submitter_user_agent_id,
+            user_id=userid,
+            comment_type="journal",
+            comment_content=submission.content,
+        )
+        if result == SpamStatus.DefiniteSpam:
+            raise WeasylError("SpamFilteringDropped")
+        elif result == SpamStatus.ProbableSpam:
+            is_spam = True
+    return is_spam
 
 
 def check_for_duplicate_media(userid, mediaid):
@@ -152,8 +180,6 @@ def _create_submission(expected_type):
 def create_visual(userid, submission,
                   friends_only, tags, imageURL, thumbfile,
                   submitfile, critique, create_notifications):
-    premium = d.get_premium(userid)
-
     if imageURL:
         resp = d.http_get(imageURL, timeout=5)
         submitfile = resp.content
@@ -169,10 +195,14 @@ def create_visual(userid, submission,
 
     im = image.from_string(submitfile)
     submitextension = image.image_extension(im)
-    if _limit(submitsize, submitextension, premium):
-        raise WeasylError("submitSizeExceedsLimit")
-    elif submitextension not in [".jpg", ".png", ".gif"]:
+    if submitextension not in [".jpg", ".png", ".gif"]:
         raise WeasylError("submitType")
+    if _limit(submitsize, submitextension):
+        raise WeasylError("submitSizeExceedsLimit")
+
+    # Check if the submission is spam
+    is_spam = _check_for_spam(submission=submission, userid=userid)
+
     submit_file_type = submitextension.lstrip('.')
     submit_media_item = orm.fetch_or_create_media_item(
         submitfile, file_type=submit_file_type, im=im)
@@ -230,6 +260,9 @@ def create_visual(userid, submission,
             "settings": settings,
             "favorites": 0,
             "sorttime": now,
+            "is_spam": is_spam,
+            "submitter_ip_address": submission.submitter_ip_address,
+            "submitter_user_agent_id": submission.submitter_user_agent_id,
         }]).returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)
 
@@ -278,8 +311,6 @@ def check_google_doc_embed_data(embedlink):
 def create_literary(userid, submission, embedlink=None, friends_only=False, tags=None,
                     coverfile=None, thumbfile=None, submitfile=None, critique=False,
                     create_notifications=True):
-    premium = d.get_premium(userid)
-
     if embedlink:
         check_google_doc_embed_data(embedlink)
 
@@ -299,13 +330,16 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
         submitextension = files.get_extension_for_category(submitfile, m.TEXT_SUBMISSION_CATEGORY)
         if submitextension is None:
             raise WeasylError("submitType")
-        if _limit(submitsize, submitextension, premium):
+        if _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
         submit_media_item = orm.fetch_or_create_media_item(
             submitfile, file_type=submitextension.lstrip('.'))
         check_for_duplicate_media(userid, submit_media_item.mediaid)
     else:
         submit_media_item = None
+
+    # Check if the submission is spam
+    is_spam = _check_for_spam(submission=submission, userid=userid)
 
     thumb_media_item = media.make_cover_media_item(thumbfile)
     cover_media_item = media.make_cover_media_item(coverfile)
@@ -334,7 +368,11 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
             "subtype": submission.subtype,
             "rating": submission.rating.code,
             "settings": settings,
+            "favorites": 0,
             "sorttime": now,
+            "is_spam": is_spam,
+            "submitter_ip_address": submission.submitter_ip_address,
+            "submitter_user_agent_id": submission.submitter_user_agent_id,
         }])
         .returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)
@@ -368,7 +406,6 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 def create_multimedia(userid, submission, embedlink=None, friends_only=None,
                       tags=None, coverfile=None, thumbfile=None, submitfile=None,
                       critique=False, create_notifications=True, auto_thumb=False):
-    premium = d.get_premium(userid)
     embedlink = embedlink.strip()
 
     # Determine filesizes
@@ -391,13 +428,16 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             raise WeasylError("submitType")
         elif submitextension not in [".mp3", ".swf"] and not embedlink:
             raise WeasylError("submitType")
-        elif _limit(submitsize, submitextension, premium):
+        elif _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
         submit_media_item = orm.fetch_or_create_media_item(
             submitfile, file_type=submitextension.lstrip('.'))
         check_for_duplicate_media(userid, submit_media_item.mediaid)
     else:
         submit_media_item = None
+
+    # Check if the submission is spam
+    is_spam = _check_for_spam(submission=submission, userid=userid)
 
     thumb_media_item = media.make_cover_media_item(thumbfile)
     cover_media_item = media.make_cover_media_item(coverfile)
@@ -447,7 +487,11 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             "subtype": submission.subtype,
             "rating": submission.rating,
             "settings": settings,
+            "favorites": 0,
             "sorttime": now,
+            "is_spam": is_spam,
+            "submitter_ip_address": submission.submitter_ip_address,
+            "submitter_user_agent_id": submission.submitter_user_agent_id,
         }])
         .returning(d.meta.tables['submission'].c.submitid))
     submitid = db.scalar(q)
@@ -480,8 +524,10 @@ def reupload(userid, submitid, submitfile):
     submitsize = len(submitfile)
 
     # Select submission data
-    query = d.execute("SELECT userid, subtype, settings FROM submission WHERE submitid = %i AND settings !~ 'h'",
-                      [submitid], ["single"])
+    query = d.engine.execute(
+        "SELECT userid, subtype, settings FROM submission WHERE submitid = %(id)s AND settings !~ 'h'",
+        id=submitid,
+    ).first()
 
     if not query:
         raise WeasylError("Unexpected")
@@ -490,10 +536,9 @@ def reupload(userid, submitid, submitfile):
     elif "v" in query[2] or "D" in query[2]:
         raise WeasylError("Unexpected")
 
-    subcat = query[1] / 1000 * 1000
+    subcat = query[1] // 1000 * 1000
     if subcat not in m.ALL_SUBMISSION_CATEGORIES:
         raise WeasylError("Unexpected")
-    premium = d.get_premium(userid)
 
     # Check invalid file data
     if not submitsize:
@@ -507,7 +552,7 @@ def reupload(userid, submitid, submitfile):
         raise WeasylError("submitType")
     elif subcat == m.MULTIMEDIA_SUBMISSION_CATEGORY and submitextension not in [".mp3", ".swf"]:
         raise WeasylError("submitType")
-    elif _limit(submitsize, submitextension, premium):
+    elif _limit(submitsize, submitextension):
         raise WeasylError("submitSizeExceedsLimit")
 
     submit_file_type = submitextension.lstrip('.')
@@ -531,15 +576,15 @@ def reupload(userid, submitid, submitfile):
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, su.sorttime, pr.config, fd.title
+            su.page_views, fd.title, su.favorites
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
-        WHERE su.submitid = %i
-    """, [submitid], options=["single", "list"])
+        WHERE su.submitid = %(id)s
+    """, id=submitid).first()
 
     # Sanity check
     if query and userid in staff.MODS and anyway == "true":
@@ -580,6 +625,13 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     tags, artist_tags = searchtag.select_with_artist_tags(submitid)
     settings = d.get_profile_settings(query[0])
 
+    fave_count = query[11]
+
+    if fave_count is None:
+        fave_count = d.engine.scalar(
+            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%(target)s, 's')",
+            target=submitid)
+
     return {
         "submitid": submitid,
         "userid": query[0],
@@ -593,9 +645,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "settings": query[8],
         "page_views": (
             query[9] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[9]),
-        "fave_count": d.execute(
-            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%i, 's')",
-            [submitid], ["element"]),
+        "fave_count": fave_count,
 
 
         "mine": userid == query[0],
@@ -620,7 +670,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "removable_tags": searchtag.removable_tags(userid, query[0], tags, artist_tags),
         "can_remove_tags": searchtag.can_remove_tags(userid, query[0]),
         "folder_more": select_near(userid, rating, 1, query[0], query[2], submitid),
-        "folder_title": query[12] if query[12] else "Root",
+        "folder_title": query[10] if query[10] else "Root",
 
 
         "comments": comment.select(userid, submitid=submitid),
@@ -682,15 +732,15 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
 
 
 def twitter_card(submitid):
-    query = d.execute("""
+    query = d.engine.execute("""
         SELECT
             su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value, su.rating
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
-        WHERE submitid = %i
+        WHERE submitid = %(id)s
         LIMIT 1
-    """, [submitid], ["single"])
+    """, id=submitid).first()
 
     if not query:
         raise WeasylError("submissionRecordMissing")
@@ -724,7 +774,7 @@ def twitter_card(submitid):
 
     ret['description'] = content
 
-    subcat = subtype / 1000 * 1000
+    subcat = subtype // 1000 * 1000
     media_items = media.get_submission_media(submitid)
     if subcat == m.ART_SUBMISSION_CATEGORY and media_items.get('submission'):
         ret['card'] = 'photo'
@@ -922,9 +972,9 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
 
 
 def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
-    query = d.execute(
-        "SELECT userid, subtype, settings FROM submission WHERE submitid = %i",
-        [submission.submitid], ["single"])
+    query = d.engine.execute(
+        "SELECT userid, subtype, settings FROM submission WHERE submitid = %(id)s",
+        id=submission.submitid).first()
 
     if not query or "h" in query[2]:
         raise WeasylError("Unexpected")
@@ -938,7 +988,7 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("Unexpected")
     elif not folder.check(query[0], submission.folderid):
         raise WeasylError("Unexpected")
-    elif submission.subtype / 1000 != query[1] / 1000:
+    elif submission.subtype // 1000 != query[1] // 1000:
         raise WeasylError("Unexpected")
     elif 'v' in query[2] and not embed.check_valid(embedlink):
         raise WeasylError("embedlinkInvalid")
@@ -1005,9 +1055,9 @@ def remove(userid, submitid):
 
 
 def reupload_cover(userid, submitid, coverfile):
-    query = d.execute(
-        "SELECT userid, subtype FROM submission WHERE submitid = %i",
-        [submitid], ["single", "list"])
+    query = d.engine.execute(
+        "SELECT userid, subtype FROM submission WHERE submitid = %(id)s",
+        id=submitid).first()
 
     if not query:
         raise WeasylError("Unexpected")
@@ -1027,8 +1077,7 @@ def reupload_cover(userid, submitid, coverfile):
 @d.record_timing
 def select_recently_popular():
     """
-    Get a list of recent, popular submissions. This operation is non-trivial and should
-    not be used frequently without caching.
+    Get a list of recent, popular submissions.
 
     To calculate scores, this method performs the following evaluation:
 
@@ -1041,11 +1090,9 @@ def select_recently_popular():
 
     :return: A list of submission dictionaries, in score-rank order.
     """
-    max_days = int(d.config_read_setting("popular_max_age_days", "21"))
-
     query = d.engine.execute("""
         SELECT
-            log(count(favorite.*) + 1) +
+            log(submission.favorites + 1) +
                 log(submission.page_views + 1) / 2 +
                 submission.unixtime / 180000.0 AS score,
             submission.submitid,
@@ -1059,14 +1106,12 @@ def select_recently_popular():
         FROM submission
             INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
             INNER JOIN profile ON submission.userid = profile.userid
-            LEFT JOIN favorite ON favorite.type = 's' AND submission.submitid = favorite.targetid
         WHERE
-            submission.unixtime > EXTRACT(EPOCH FROM now() - %(max_days)s * INTERVAL '1 day')::INTEGER AND
             submission.settings !~ '[hf]'
-        GROUP BY submission.submitid, submission_tags.submitid, profile.userid
+            AND submission.favorites IS NOT NULL
         ORDER BY score DESC
         LIMIT 128
-    """, max_days=max_days)
+    """)
 
     submissions = [dict(row, contype=10) for row in query]
     media.populate_with_submission_media(submissions)

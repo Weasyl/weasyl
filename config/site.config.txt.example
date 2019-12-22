@@ -4,10 +4,6 @@ warning = 12345
 adpath = ui/it/il/tx/
 allow_submit = true
 captcha_disable_verification = false
-# The max age in days for a submission to be considered for 'recently popular'.
-# In production, this should be set low, but giving it a high value (or 0) can
-# be useful for dev on an database.
-popular_max_age_days = 21
 # Whether currency exchange rates should be fetched for /marketplace
 convert_currency = false
 
@@ -32,3 +28,8 @@ private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
 secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
+
+[spam_filtering]
+enabled = false
+# Akismet.com API key -- For spam filtering
+key = None

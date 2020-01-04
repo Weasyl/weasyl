@@ -98,15 +98,20 @@ $def with (query, notifications=None, lazy_load=True)
           href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
       </a></h6>
       <p class="byline"
-        $if query['contype'] == 40:
-          title="collected by $query['username']"
-        $elif query['contype'] == 20:
-          title="character of $query['username']"
-        $else:
-          title="by $query['username']"
+        $if query['contype'] != 50:
+          $if query['contype'] == 40:
+            title="collected by $query['username']"
+          $elif query['contype'] == 20:
+            title="character of $query['username']"
+          $else:
+            title="by $query['username']"
       >
-        <i>${'collected by' if query['contype'] == 40 else 'character of' if query['contype'] == 20 else 'by'}</i>
-        <a href="/~${LOGIN(query['username'])}" class="username">${query['username']}</a>
+        $if query['contype'] != 50:
+          <i>${'collected by' if query['contype'] == 40 else 'character of' if query['contype'] == 20 else 'by'}</i>
+          <a href="/~${LOGIN(query['username'])}" class="username">${query['username']}</a>
+        $else:
+          <!-- Keeps formatting consistent -->
+          &nbsp;
       </p>
     </figcaption>
 

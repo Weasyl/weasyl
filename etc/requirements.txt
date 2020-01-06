@@ -11,7 +11,7 @@ txstatsd==1.0.0+weasyl.2    # https://github.com/Weasyl/txstatsd
 crochet==1.11.0
 txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
-Pillow==6.2.1
+Pillow==6.2.2
 pyramid==1.10.4
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
 WebTest==2.0.33

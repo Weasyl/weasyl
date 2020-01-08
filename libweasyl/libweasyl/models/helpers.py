@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import contextlib
 import logging
 
-import anyjson as json
+import json
 import arrow
 import six
 from sqlalchemy.dialects.postgresql import ENUM, HSTORE

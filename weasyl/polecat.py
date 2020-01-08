@@ -8,7 +8,7 @@ from __future__ import absolute_import, division
 import os
 import time
 
-import anyjson as json
+import json
 
 from bisect import bisect_left
 from twisted.application.internet import TimerService

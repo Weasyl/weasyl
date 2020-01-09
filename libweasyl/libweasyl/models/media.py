@@ -18,19 +18,15 @@ class MediaItem(Base):
     __table__ = tables.media
 
     @classmethod
-    def fetch_or_create(cls, data, file_type=None, im=None, attributes=()):
+    def fetch_or_create(cls, data, file_type=None, attributes=()):
         sha256 = hashlib.sha256(data).hexdigest()
         obj = (cls.query
                .filter(cls.sha256 == sha256)
                .first())
         if obj is None:
             attributes = dict(attributes)
-            if file_type is None and im is not None:
-                file_type = images.image_file_type(im)
             if file_type is None:
                 raise ValueError('a file type is required')
-            if im is not None:
-                attributes.update({'width': im.size.width, 'height': im.size.height})
             elif file_type == 'swf':
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
@@ -81,13 +77,16 @@ class MediaItem(Base):
         if cover_link is not None:
             return cover_link.media_item
 
-        cover = images.make_cover_image(source_image)
-        if cover is source_image:
+        if source_image is None:
+            source_image = self.as_image()
+        cover = source_image.copy()
+        cover.resize(images.COVER_SIZE)
+        if source_image.size == cover.size:
             cover_media_item = self
         else:
             cover_media_item = self.fetch_or_create(
-                cover.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
-                im=cover)
+                cover.to_buffer(), file_type=cover.file_format,
+                attributes=cover.attributes)
         self.dbsession.flush()
         MediaMediaLink.make_or_replace_link(self.mediaid, 'cover', cover_media_item)
         return cover_media_item
@@ -102,7 +101,7 @@ class MediaItem(Base):
         return os.path.join(self._base_file_path, *self._file_path_components)
 
     def as_image(self):
-        return images.read(self.full_file_path.encode())
+        return images.WeasylImage(fp=self.full_file_path.encode())
 
     @property
     def _file_path_components(self):

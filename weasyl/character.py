@@ -6,6 +6,7 @@ import re
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
+from libweasyl import images
 
 from weasyl import api
 from weasyl import blocktag
@@ -151,8 +152,8 @@ def reupload(userid, charid, submitdata):
     if userid != query.userid:
         raise WeasylError("Unexpected")
 
-    im = image.from_string(submitdata)
-    submitextension = image.image_extension(im)
+    im = images.WeasylImage(string=submitdata)
+    submitextension = im.image_extension
 
     # Check invalid file data
     if not submitextension:
@@ -161,7 +162,7 @@ def reupload(userid, charid, submitdata):
     # Make submission file
     submitfile = files.make_resource(userid, charid, "char/submit", submitextension)
     files.ensure_file_directory(submitfile)
-    im.write(submitfile)
+    im.save(submitfile)
 
     # Make cover file
     image.make_cover(

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-from sanpera import geometry
 
 from libweasyl import images
 from libweasyl import staff
@@ -90,21 +89,21 @@ def _create_char(x1, y1, x2, y2, charid, remove=True):
             return
         remove = False
 
-    im = image.read(filename)
-    size = im.size.width, im.size.height
+    im = images.WeasylImage(fp=filename)
+    size = im.size
 
     d.engine.execute("""
         UPDATE character
         SET settings = REGEXP_REPLACE(settings, '-.', '') || '-' || %(image_setting)s
         WHERE charid = %(char)s
     """, image_setting=image.image_setting(im), char=charid)
-    dest = os.path.join(d.get_character_directory(charid), '%i.thumb%s' % (charid, images.image_extension(im)))
+    dest = os.path.join(d.get_character_directory(charid), '%i.thumb%s' % (charid, im.image_extension))
 
     bounds = None
-    if image.check_crop(size, x1, y1, x2, y2):
-        bounds = geometry.Rectangle(x1, y1, x2, y2)
-    thumb = images.make_thumbnail(im, bounds)
-    thumb.write(dest, format=images.image_file_type(thumb))
+    if images.check_crop(size, x1, y1, x2, y2):
+        bounds = (x1, y1, x2, y2)
+    im.get_thumbnail(bounds)
+    im.save(dest)
     if remove:
         os.remove(filename)
 
@@ -118,13 +117,12 @@ def create(x1, y1, x2, y2, submitid=None, charid=None,
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     source = thumbnail_source(submitid)
     im = db.query(orm.MediaItem).get(source['mediaid']).as_image()
-    size = im.size.width, im.size.height
+    size = im.size[0], im.size[1]
     bounds = None
-    if image.check_crop(size, x1, y1, x2, y2):
-        bounds = geometry.Rectangle(x1, y1, x2, y2)
-    thumb = images.make_thumbnail(im, bounds)
-    file_type = images.image_file_type(im)
+    if images.check_crop(size, x1, y1, x2, y2):
+        bounds = (x1, y1, x2, y2)
+    im.get_thumbnail(bounds)
     media_item = orm.MediaItem.fetch_or_create(
-        thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
+        im.to_buffer(), file_type=im.image_file_type(), attributes=im.attributes)
     orm.SubmissionMediaLink.make_or_replace_link(
         submitid, 'thumbnail-custom', media_item)

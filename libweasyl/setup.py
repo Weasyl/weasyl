@@ -44,7 +44,7 @@ setup(
     ],
     extras_require={
         'development': [
-            'coverage==5.0.2',
+            'coverage==5.0.3',
             'flake8',
             'pytest==4.6.9',
             'tox',

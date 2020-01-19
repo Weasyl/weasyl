@@ -80,7 +80,7 @@ class MediaItem(Base):
         if source_image is None:
             source_image = self.as_image()
         cover = source_image.copy()
-        cover.resize(images.COVER_SIZE)
+        cover.shrink(images.COVER_SIZE)
         if source_image.size == cover.size:
             cover_media_item = self
         else:

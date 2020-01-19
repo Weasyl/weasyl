@@ -46,7 +46,7 @@ def make_cover(filename, destination=None):
         raise WeasylError("FileType")
 
     files.ensure_file_directory(filename)
-    im.resize(images.COVER_SIZE)
+    im.shrink(images.COVER_SIZE)
     if im is not None:
         im.save(destination)
         if in_place:

@@ -19,7 +19,7 @@ def make_resized_media_item(filedata, size, error_type='FileType'):
     if im.file_format not in ["jpg", "png", "gif"]:
         raise WeasylError(error_type)
     old_size = im.size
-    im.resize(size)
+    im.shrink(size)
     if im.size is not old_size:
         filedata = im.to_buffer()
     return orm.MediaItem.fetch_or_create(filedata, file_type=im.file_format, attributes=im.attributes)

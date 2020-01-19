@@ -121,6 +121,8 @@ class WeasylImage(object):
     def _write(self, out, *args, **kwargs):
         if 'format' not in kwargs:
             kwargs['format'] = self._file_format
+        if kwargs['format'].lower() == 'jpg':
+            kwargs['format'] = 'jpeg'
         if self.is_animated:
             kwargs['save_all'] = True
             kwargs['append_images'] = self._frames[1:]

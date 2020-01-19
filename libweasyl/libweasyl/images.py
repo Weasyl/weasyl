@@ -162,6 +162,17 @@ class WeasylImage(object):
             self._frames[i] = self._frames[i].crop(bounds)
         self._size = self._frames[0].size
 
+    def shrink(self, size):
+        """
+
+        :param size:
+        :return:
+        """
+        ratio = min(size[0] / float(self._size[0]), size[1] / float(self._size[1]))
+        shrunk_size = (int(ceil(self._size[0] * ratio)), int(ceil(self._size[1] * ratio)))
+        if self._size != shrunk_size:
+            self.resize(shrunk_size)
+
     def shrinkcrop(self, size, bounds=None):
         """
 
@@ -191,10 +202,7 @@ class WeasylImage(object):
             resize = (0, offset, self._size[0], self._size[1] - offset)
         self.crop(resize)
 
-        ratio = min(size[0]/float(self._size[0]), size[1]/float(self._size[1]))
-        shrunk_size = (int(ceil(self._size[0]*ratio)), int(ceil(self._size[1]*ratio)))
-        if self._size != shrunk_size:
-            self.resize(shrunk_size)
+        self.shrink(size)
 
     def get_thumbnail(self, bounds=None):
         image = self._frames[0]

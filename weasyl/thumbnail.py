@@ -123,6 +123,6 @@ def create(x1, y1, x2, y2, submitid=None, charid=None,
         bounds = (x1, y1, x2, y2)
     im.get_thumbnail(bounds)
     media_item = orm.MediaItem.fetch_or_create(
-        im.to_buffer(), file_type=im.image_file_type(), attributes=im.attributes)
+        im.to_buffer(), file_type=im.file_format, attributes=im.attributes)
     orm.SubmissionMediaLink.make_or_replace_link(
         submitid, 'thumbnail-custom', media_item)

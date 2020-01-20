@@ -158,9 +158,10 @@ class WeasylImage(object):
 
     def shrink(self, size):
         """
+        Resizes the image, while maintaining aspect ratio
 
-        :param size:
-        :return:
+        :param size: tuple of (width, height)
+        :return: None
         """
         ratio = min(size[0] / float(self._size[0]), size[1] / float(self._size[1]))
         shrunk_size = (int(ceil(self._size[0] * ratio)), int(ceil(self._size[1] * ratio)))
@@ -169,6 +170,7 @@ class WeasylImage(object):
 
     def shrinkcrop(self, size, bounds=None):
         """
+        Crops image to aspect ratio or bounds and resizes image
 
         :param size: tuple of (width, height)
         :param bounds: tuple of (left, upper, right, lower)

@@ -3,23 +3,17 @@
 """
 Image manipulation with Pillow.
 """
+from copy import deepcopy
 from io import BytesIO, IOBase
 from math import ceil
-from PIL import Image, ImageSequence
 
-from copy import deepcopy
+from PIL import Image
 
 COVER_SIZE = 1024, 3000
 "The maximum size of a cover image, in pixels."
 
 THUMB_HEIGHT = 250
 "The maximum height of a thumbnail, in pixels."
-
-
-def gif_to_frames(image):
-    frames = ImageSequence.Iterator(image)
-    for frame in frames:
-        yield frame.copy()
 
 
 class WeasylImage(object):
@@ -85,7 +79,7 @@ class WeasylImage(object):
                     new_frame.paste(image)
                     self._frames.append(new_frame)
                     self.duration.append(image.info['duration'])
-                    image.seek(image.tell()+1)
+                    image.seek(image.tell() + 1)
                 except EOFError:
                     break
         else:
@@ -189,7 +183,7 @@ class WeasylImage(object):
         elif self._size == size:
             return
 
-        actual_aspect = self._size[0]/float(self._size[1])
+        actual_aspect = self._size[0] / float(self._size[1])
         ideal_aspect = size[0] / float(size[1])
         print(actual_aspect, ideal_aspect)
         if actual_aspect > ideal_aspect:
@@ -254,6 +248,7 @@ class WeasylImage(object):
 
     def __str__(self):
         return "WeasylImage: Size {}, File Type: {}, Animated: {}".format(self.size, self.file_format, self.is_animated)
+
 
 def get_thumbnail_spec(size, height):
     """

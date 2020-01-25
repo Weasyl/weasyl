@@ -14,7 +14,6 @@ import datetime
 import urlparse
 import functools
 import pkgutil
-import subprocess
 
 import anyjson as json
 import arrow
@@ -151,7 +150,8 @@ def serializable_retry(action, limit=16):
                     raise
 
 
-CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
+with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
+    CURRENT_SHA = f.read().strip()
 
 
 # Caching all templates. Parsing templates is slow; we don't need to do it all

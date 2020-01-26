@@ -240,7 +240,6 @@ class JSONProxy(ProxyBackend):
         if value.startswith('\0'):
             value = zlib.decompress(value[1:])
         payload, metadata = json.loads(value)
-        metadata['ct'] = float(metadata['ct'])
         return CachedValue(payload, metadata)
 
     def get(self, key):
@@ -288,9 +287,6 @@ class JSONProxy(ProxyBackend):
             :term:`bytes`.
         """
         ret = [value.payload, value.metadata.copy()]
-        # turn this into a string because yajl will try to represent this in
-        # scientific notation, losing precision.
-        ret[1]['ct'] = '%0.6f' % ret[1]['ct']
         ret = json.dumps(ret)
         if len(ret) > _GZIP_THRESHOLD:
             ret = '\0' + zlib.compress(ret)

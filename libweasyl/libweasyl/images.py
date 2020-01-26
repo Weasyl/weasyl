@@ -143,7 +143,7 @@ class WeasylImage(object):
         """
         if self._size[0] > size[0] or self._size[1] > size[1]:
             for i in range(0, len(self._frames)):
-                self._frames[i] = self._frames[i].resize(size)
+                self._frames[i] = self._frames[i].resize(size, Image.LANCZOS)
             self._size = self._frames[0].size
 
     def crop(self, bounds):

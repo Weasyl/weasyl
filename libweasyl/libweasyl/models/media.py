@@ -32,7 +32,7 @@ class MediaItem(Base):
                 attributes.update({'width': im.size.width, 'height': im.size.height})
             elif file_type == 'swf':
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
-            obj = cls(sha256=sha256, file_type=file_type, attributes=attributes, media_type=u'disk')
+            obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
 
             # Write our file to disk
             real_path = obj.full_file_path

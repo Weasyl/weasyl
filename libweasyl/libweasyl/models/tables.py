@@ -159,15 +159,6 @@ cron_runs = Table(
 )
 
 
-disk_media = Table(
-    'disk_media', metadata,
-    Column('mediaid', Integer(), primary_key=True, nullable=False),
-    Column('file_path', String(length=255), nullable=False),
-    Column('file_url', String(length=255), nullable=False),
-    default_fkey(['mediaid'], ['media.mediaid'], name='disk_media_mediaid_fkey'),
-)
-
-
 emailblacklist = Table(
     'emailblacklist', metadata,
     Column('id', Integer(), primary_key=True, nullable=False),
@@ -399,7 +390,6 @@ logincreate = Table(
 media = Table(
     'media', metadata,
     Column('mediaid', Integer(), primary_key=True, nullable=False),
-    Column('media_type', String(length=32), nullable=False),
     Column('file_type', String(length=8), nullable=False),
     Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     Column('sha256', String(length=64)),

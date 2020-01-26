@@ -1,6 +1,6 @@
 [general]
 allow_submit = true
-captcha_disable_verification = false
+captcha_disable_verification = true
 # Whether currency exchange rates should be fetched for /marketplace
 convert_currency = false
 
@@ -11,7 +11,10 @@ profile_responses = false
 rough_shutdowns = true
 
 [sqlalchemy]
-url = postgresql+psycopg2cffi:///weasyl
+url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl
+
+[memcached]
+servers = tcp:weasyl-memcached:11211
 
 [sentry]
 # dsn = twisted+http://...

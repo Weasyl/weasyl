@@ -1,0 +1,10 @@
+#!/bin/sh
+set -euo pipefail
+
+exec docker run --rm -it \
+    `#--runtime=runsc` \
+    --security-opt=no-new-privileges \
+    --user="$UID:$(id -g)" \
+    --read-only \
+    --init \
+    "$@"

@@ -3,6 +3,8 @@
 *.py[co]
 __pycache__/
 
+/containers/data/
+
 /build
 /temp
 /backup

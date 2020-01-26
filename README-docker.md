@@ -1,0 +1,128 @@
+## Dependencies
+
+### A network
+
+```shell
+docker network create --internal wzlnet
+```
+
+
+### Memcached
+
+```shell
+containers/run \
+    --rm=false \
+    --restart=on-failure \
+    --detach \
+    --network=wzlnet \
+    --name=weasyl-memcached \
+    memcached:1.5.20-alpine --memory-limit=64
+```
+
+
+### PostgreSQL
+
+```shell
+mkdir containers/data
+containers/run \
+    --rm=false \
+    --restart=on-failure \
+    --detach \
+    --network=wzlnet \
+    --name=weasyl-database \
+    "$(containers/mount --writable containers/data /var/lib/postgresql/data)" \
+    --tmpfs=/run/postgresql \
+    --env=POSTGRES_USER=weasyl \
+    --env=POSTGRES_DB=weasyl \
+    postgres:12
+containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE EXTENSION hstore'
+wget https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz
+< weasyl-latest-staff.sql.xz | unxz | containers/run --tty=false --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl
+```
+
+
+## Weasyl
+
+### Build
+
+```shell
+DOCKER_BUILDKIT=1 docker build -t weasyl --build-arg "version=$(git rev-parse --short HEAD)" .
+```
+
+Tag the cached build stages to avoid having them pruned (bdist-lxml is currently very expensive):
+
+```shell
+for stage in assets bdist-lxml bdist; do
+    DOCKER_BUILDKIT=1 docker build --target=$stage -t weasyl-$stage .
+done
+```
+
+
+### Configure
+
+```shell
+cp -i config/site.config.txt.example config/site.config.txt
+cp -i config/weasyl-staff.example.py config/weasyl-staff.py
+cp -i libweasyl/libweasyl/alembic/alembic.ini.example alembic.ini
+mkdir -p storage/log
+```
+
+
+### Migrate
+
+```shell
+containers/run --network=wzlnet "$(containers/mount alembic.ini)" weasyl env WEASYL_STORAGE_ROOT=/tmp .venv/bin/alembic upgrade head
+```
+
+
+### Run
+
+```shell
+containers/run \
+    --network=wzlnet \
+    --name=weasyl-web \
+    --env=WEASYL_STORAGE_ROOT=storage \
+    "$(containers/mount --writable storage)" \
+    "$(containers/mount config)" \
+    weasyl
+```
+
+
+## Nginx
+
+```shell
+containers/run \
+    --rm=false \
+    --restart=on-failure \
+    --detach \
+    --network=wzlnet \
+    --name=weasyl-nginx \
+    "$(containers/mount containers/nginx.conf /etc/nginx/nginx.conf)" \
+    --tmpfs=/var/cache/nginx \
+    --tmpfs=/run \
+    --publish=127.0.0.1:80:8080/tcp \
+    nginx:mainline-alpine
+docker stop weasyl-nginx
+docker network connect bridge weasyl-nginx
+docker start weasyl-nginx
+```
+
+
+# TODO
+
+Merging the existing Docker branch should help with some of these.
+
+- [ ] caching for apk and pip with `RUN --mount`
+- [ ] separate build stages for each expensive wheel
+- [X] parallel builds
+- [ ] elimination of pypi.weasyl.dev
+- [ ] requirements.txt as constraints file
+- [ ] editable install with bind mount for faster development
+- [ ] single configuration file
+- [ ] scripts for common commands
+- [ ] windows compatibility
+- [ ] separate networks for memcached and postgresql?
+- [ ] compose, stack, kubernetes, or something. aaaa
+- [ ] dns with gvisor if not kubernetes previously
+- [ ] build reproduction with github actions
+- [ ] rootless

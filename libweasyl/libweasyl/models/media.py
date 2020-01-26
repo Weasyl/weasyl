@@ -17,14 +17,11 @@ from libweasyl import flash, images
 
 class MediaItem(Base):
     __table__ = tables.media
-    __mapper_args__ = dict(polymorphic_on=__table__.c.media_type)
 
     @classmethod
     def fetch_or_create(cls, data, file_type=None, im=None, attributes=()):
         sha256 = hashlib.sha256(data).hexdigest()
-        obj = (cls.query
-               .filter(cls.sha256 == sha256)
-               .first())
+        obj = (cls.query.filter(cls.sha256 == sha256).first())
         if obj is None:
             attributes = dict(attributes)
             if file_type is None and im is not None:
@@ -35,13 +32,20 @@ class MediaItem(Base):
                 attributes.update({'width': im.size.width, 'height': im.size.height})
             elif file_type == 'swf':
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
-            obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
-            obj.init_from_data(data)
+            obj = cls(sha256=sha256, file_type=file_type, attributes=attributes, media_type=u'disk')
+
+            # Write our file to disk
+            real_path = obj.full_file_path
+            makedirs_exist_ok(os.path.dirname(real_path))
+            with open(real_path, 'wb') as outfile:
+                outfile.write(data)
+
             cls.dbsession.add(obj)
         return obj
 
     # set by configure_libweasyl
     _media_link_formatter_callback = None
+    _base_file_path = None
 
     def serialize(self, recursive=1, link=None):
         ret = self.to_dict()
@@ -50,13 +54,13 @@ class MediaItem(Base):
             buckets = collections.defaultdict(list)
             for described_link in self.described:
                 buckets[described_link.link_type].append(
-                    described_link.media_item.serialize(
-                        recursive=recursive - 1, link=described_link))
+                    described_link.media_item.serialize(recursive=recursive - 1, link=described_link))
             ret['described'] = dict(buckets)
         else:
             ret['described'] = {}
         if 'width' in self.attributes and 'height' in self.attributes:
             ret['aspect_ratio'] = self.attributes['width'] / self.attributes['height']
+        ret['full_file_path'] = self.full_file_path
         return ret
 
     def ensure_cover_image(self, source_image=None):
@@ -72,9 +76,8 @@ class MediaItem(Base):
         if cover is source_image:
             cover_media_item = self
         else:
-            cover_media_item = fetch_or_create_media_item(
-                cover.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
-                im=cover)
+            cover_media_item = self.fetch_or_create(
+                cover.to_buffer(format=self.file_type.encode()), file_type=self.file_type, im=cover)
         self.dbsession.flush()
         MediaMediaLink.make_or_replace_link(self.mediaid, 'cover', cover_media_item)
         return cover_media_item
@@ -88,47 +91,30 @@ class MediaItem(Base):
         if thumbnail is source_image:
             return self
         else:
-            return fetch_or_create_media_item(
+            return self.fetch_or_create(
                 thumbnail.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
                 im=thumbnail)
-
-
-class DiskMediaItem(MediaItem):
-    __table__ = tables.disk_media
-    __mapper_args__ = dict(polymorphic_identity='disk')
-
-    def init_from_data(self, data):
-        path = ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
-        self.file_path = os.path.join(*path)
-        self.file_url = '/' + self.file_path
-        real_path = self.full_file_path
-        makedirs_exist_ok(os.path.dirname(real_path))
-        with open(real_path, 'wb') as outfile:
-            outfile.write(data)
 
     @property
     def display_url(self):
         # Dodge a silly AdBlock rule
         return self.file_url.replace('media/ad', 'media/ax')
 
-    # set by configure_libweasyl
-    _base_file_path = None
-
     @property
     def full_file_path(self):
         return os.path.join(self._base_file_path, self.file_path)
 
-    def serialize(self, recursive=1, link=None):
-        ret = super(DiskMediaItem, self).serialize(recursive=recursive, link=link)
-        ret['full_file_path'] = self.full_file_path
-        return ret
-
     def as_image(self):
         return images.read(self.full_file_path.encode())
 
+    @property
+    def file_path(self):
+        path = ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
+        return os.path.join(*path)
 
-def fetch_or_create_media_item(*a, **kw):
-    return DiskMediaItem.fetch_or_create(*a, **kw)
+    @property
+    def file_url(self):
+        return '/' + self.file_path
 
 
 class _LinkMixin(object):
@@ -168,7 +154,6 @@ class _LinkMixin(object):
             return []
         q = (
             cls.dbsession.query(MediaItem, cls)
-            .with_polymorphic([DiskMediaItem])
             .join(cls, *cls._linkjoin)
             .options(joinedload('described'))
             .options(joinedload(cls._linkname))

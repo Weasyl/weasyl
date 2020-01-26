@@ -7,7 +7,7 @@ parameterizing modules, but we can't, so this is what we have. It does mean
 that only one libweasyl configuration can exist in a running python process.
 """
 
-from libweasyl.models.media import DiskMediaItem, MediaItem
+from libweasyl.models.media import MediaItem
 from libweasyl.models.meta import BaseQuery, _configure_dbsession
 from libweasyl.staff import _init_staff
 
@@ -35,6 +35,6 @@ def configure_libweasyl(
     """
     _configure_dbsession(dbsession)
     BaseQuery._not_found_exception = staticmethod(not_found_exception)
-    DiskMediaItem._base_file_path = staticmethod(base_file_path)
+    MediaItem._base_file_path = staticmethod(base_file_path)
     _init_staff(**staff_config_dict)
     MediaItem._media_link_formatter_callback = staticmethod(media_link_formatter_callback)

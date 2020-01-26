@@ -1,6 +1,6 @@
 from libweasyl.cache import region
 from libweasyl.constants import Category
-from libweasyl.models.media import SubmissionMediaLink, UserMediaLink, fetch_or_create_media_item
+from libweasyl.models.media import SubmissionMediaLink, UserMediaLink, MediaItem
 from libweasyl import files, images
 
 
@@ -58,7 +58,7 @@ def make_resized_media_item(data, size):
     resized = images.resize_image(im, *size)
     if resized is not im:
         data = resized.to_buffer(format=im_format)
-    return fetch_or_create_media_item(data, file_type=im_format, im=resized)
+    return MediaItem.fetch_or_create(data, file_type=im_format, im=resized)
 
 
 def make_cover_media_item(coverfile):
@@ -66,6 +66,6 @@ def make_cover_media_item(coverfile):
 
 
 __all__ = [
-    'fetch_or_create_media_item', 'populate_with_submission_media', 'populate_with_user_media',
+    'populate_with_submission_media', 'populate_with_user_media',
     'make_resized_media_item', 'make_cover_media_item',
 ]

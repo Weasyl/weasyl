@@ -189,7 +189,7 @@ class Submission(Base):
     def create(cls, owner, title, rating, description, category, subtype, folder, tags, friends_only=False,
                critique_requested=False, submission_data=None, cover_data=None, thumbnail_data=None, embed_link=None,
                submission_size_limit=None):
-        from libweasyl.media import fetch_or_create_media_item, make_cover_media_item
+        from libweasyl.media import MediaItem, make_cover_media_item
         from libweasyl.models.media import SubmissionMediaLink
 
         now = cls.now()
@@ -214,7 +214,7 @@ class Submission(Base):
             submission_image = None
             if category == Category.visual:
                 submission_image = submission_decoded
-            submission_media_item = fetch_or_create_media_item(
+            submission_media_item = MediaItem.fetch_or_create(
                 submission_data, file_type=submission_format, im=submission_image)
         elif category == Category.visual:
             raise ValueError('embedded visual submissions are not supported')

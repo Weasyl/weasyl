@@ -8,7 +8,6 @@ import os
 from sqlalchemy.orm import relationship, foreign, remote, joinedload
 
 from libweasyl.files import fanout, makedirs_exist_ok
-from libweasyl.models.content import Submission
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
@@ -181,7 +180,7 @@ class SubmissionMediaLink(Base, _LinkMixin):
     _linkname = 'submission_links'
     _load = ('submission_links.submission', 'submission_links.submission.owner')
 
-    submission = relationship(Submission, backref='media_links')
+    submission = relationship("Submission", backref='media_links')
     media_item = relationship(MediaItem, backref='submission_links')
 
 

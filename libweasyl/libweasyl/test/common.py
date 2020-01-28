@@ -66,7 +66,7 @@ def media_item(db, filename, file_type=None):
     The media item created is added to the session.
 
     Returns:
-        Probably a MediaItem.
+        A MediaItem.
     """
     if file_type is None:
         _, _, file_type = filename.rpartition('.')
@@ -140,7 +140,7 @@ def make_media(db):
     The file used for the media item is fixed: the data file '2x233.gif'.
 
     Returns:
-        Probably a MediaItem.
+        A MediaItem.
     """
     return media_item(db, '2x233.gif')
 

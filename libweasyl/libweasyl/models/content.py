@@ -4,19 +4,21 @@ import warnings
 
 import arrow
 from pyramid.decorator import reify
+import sqlalchemy as sa
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, contains_eager, relationship
-import sqlalchemy as sa
 
 from libweasyl.common import minimize_media
 from libweasyl.constants import Category, DEFAULT_LIMITS, MEBIBYTE
 from libweasyl.exceptions import InvalidData, RatingExceeded, SubmissionFileTooLarge
 from libweasyl.files import file_type_for_category
+from libweasyl.media import make_cover_media_item, get_submission_media, populate_with_user_media
+from libweasyl.models import tables
 from libweasyl.models.helpers import CharSettings, apply_validators, clauses_for, validator
+from libweasyl.models.media import MediaItem, SubmissionMediaLink
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Login
-from libweasyl.models import tables
 from libweasyl.text import markdown, slug_for
 
 
@@ -106,7 +108,6 @@ class Submission(Base):
 
     @reify
     def media(self):
-        from libweasyl.media import get_submission_media
         return get_submission_media(self.submitid)
 
     @reify
@@ -189,8 +190,6 @@ class Submission(Base):
     def create(cls, owner, title, rating, description, category, subtype, folder, tags, friends_only=False,
                critique_requested=False, submission_data=None, cover_data=None, thumbnail_data=None, embed_link=None,
                submission_size_limit=None):
-        from libweasyl.media import MediaItem, make_cover_media_item
-        from libweasyl.models.media import SubmissionMediaLink
 
         now = cls.now()
         inst = cls(owner=owner, title=title, content=description, subtype=subtype, folder=folder, settings=None,
@@ -311,7 +310,6 @@ class Comment(Base):
                 ret.append(c)
             users.add(c.poster)
 
-        from libweasyl.media import populate_with_user_media
         populate_with_user_media(users)
         ret.reverse()
         for comment in comment_map.values():

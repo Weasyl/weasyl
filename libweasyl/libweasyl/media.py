@@ -67,5 +67,5 @@ def make_cover_media_item(coverfile):
 
 __all__ = [
     'populate_with_submission_media', 'populate_with_user_media',
-    'make_resized_media_item', 'make_cover_media_item',
+    'make_resized_media_item', 'make_cover_media_item', 'get_submission_media',
 ]

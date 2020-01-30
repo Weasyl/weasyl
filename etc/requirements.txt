@@ -13,7 +13,7 @@ txyam2==0.5.1+weasyl.1      # https://github.com/Weasyl/txyam2
 mock==2.0.0
 pyramid==1.10.4
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
-WebTest==2.0.33
+WebTest==2.0.34
 pyotp==2.3.0                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
 cryptography==2.8         # For Two-Factor Authentication

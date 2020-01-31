@@ -2,7 +2,7 @@ $def with (profile, userinfo, relationship, myself, shouts, feature)
 <div id="shouts-stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
   $:{RENDER("common/user_tabs.html", [profile['username'], feature, profile['show_favorites_tab']])}
-</div><!-- /stage -->
+</div>
 <div id="shouts-content" class="content">
   $if feature == "staffnotes":
     <div class="report-stats">
@@ -27,4 +27,4 @@ $def with (profile, userinfo, relationship, myself, shouts, feature)
     There are no ${'staff notes' if feature == "staffnotes" else 'comments'} to display.
   $if(myself):
     $:{RENDER("common/comment_form.html", [myself, profile['userid'], feature])}
-</div><!-- /shouts-content -->
+</div>

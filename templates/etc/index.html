@@ -16,7 +16,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     $for i in everything:
       $:{_GRID_ITEM(i, lazy_load=False)}
     </li><li class="clear more"><a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
-  </ul><!-- /.thumbnail-grid -->
+  </ul>
 
   <ul id="home-tabs" class="bar clear">
     $if popular:
@@ -25,7 +25,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-literature">Literature</a></li>
     <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-multimedia">Multimedia</a></li>
     <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-characters">Characters</a></li>
-  </ul><!-- /home-tabs -->
+  </ul>
 
   <div id="home-panes">
 
@@ -36,8 +36,8 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
           $for i in popular:
             $:{_GRID_ITEM(i)}
           </li><li class="clear more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
-        </ul><!-- /.thumbnail-grid -->
-      </div><!-- /pane -->
+        </ul>
+      </div>
 
     <div id="home-random-art" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-random-art">Random Art <span class="icon icon-20 icon-disclosure"></span></a>
@@ -45,8 +45,8 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
         $for i in randomized:
           $:{_GRID_ITEM(i)}
         </li><li class="clear more"><a class="more" href="/search"><i>More</i> <span>Random Art</span></a></li>
-      </ul><!-- /.thumbnail-grid -->
-    </div><!-- /pane -->
+      </ul>
+    </div>
 
     <div id="home-literature" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-literature">Literature <span class="icon icon-20 icon-disclosure"></span></a>
@@ -54,8 +54,8 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
         $for i in literary:
           $:{_GRID_ITEM(i)}
         </li><li class="clear more"><a class="more" href="/search?find=submit&amp;cat=2000"><i>More</i> <span>Literature</span></a></li>
-      </ul><!-- /.thumbnail-grid -->
-    </div><!-- /pane -->
+      </ul>
+    </div>
 
     <div id="home-multimedia" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-multimedia">Multimedia <span class="icon icon-20 icon-disclosure"></span></a>
@@ -63,8 +63,8 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
         $for i in media:
           $:{_GRID_ITEM(i)}
         </li><li class="clear more"><a class="more" href="/search?find=submit&amp;cat=3000"><i>More</i> <span>Multimedia</span></a></li>
-      </ul><!-- /.thumbnail-grid -->
-    </div><!-- /pane -->
+      </ul>
+    </div>
 
     <div id="home-characters" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-characters">Characters <span class="icon icon-20 icon-disclosure"></span></a>
@@ -72,11 +72,11 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
         $for i in characters:
           $:{_GRID_ITEM(i)}
         </li><li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
-      </ul><!-- /.thumbnail-grid -->
-    </div><!-- /pane -->
+      </ul>
+    </div>
 
-  </div><!-- /home-tabs-panes -->
-</div><!-- /home-art -->
+  </div>
+</div>
 
 <div id="home-content" class="content">
 
@@ -127,7 +127,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       </ul>
     $else:
       <div class="color-lighter">There are no submissions to display.</div>
-  </div><!-- /hc-critique -->
+  </div>
 
   <div id="hc-streams" class="clear">
     <h3>Streaming Now <a id="view-streams-link" href="/streaming">View All</a></h3>
@@ -152,6 +152,6 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       </ul>
     $else:
       <div class="color-lighter">There are no streams to display.</div>
-  </div><!-- /hc-stream -->
+  </div>
 
-</div><!-- /home-content -->
+</div>

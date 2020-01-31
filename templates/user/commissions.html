@@ -3,7 +3,7 @@ $def with (profile, userinfo, relationship, query)
 <div id="commissions_stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
   $:{RENDER("common/user_tabs.html", [profile['username'], None, profile['show_favorites_tab']])}
-</div><!-- /stage -->
+</div>
 
 <div id="commissions-content" class="content">
   <div class="wrapper">
@@ -22,8 +22,8 @@ $def with (profile, userinfo, relationship, query)
 
           <p><strong>Available Slots:</strong> ${i['available']}</p>
           <p class="description formatted-content">$:{MARKDOWN(i['content'])}</p>
-        </div><!-- /item -->
+        </div>
     $else:
       <p class="color-lighter" style="padding-bottom: 2em;">There are no available commissions to display.</p>
-  </div><!-- /wrapper -->
+  </div>
 </div>

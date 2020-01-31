@@ -17,18 +17,18 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
         $for rating in ratings:
           <option value="${rating.code}">${rating.name_with_age}</option>
       </select>
-    </div><!-- /journal-info -->
+    </div>
 
     <div class="column description">
       <h3>Content</h3>
       <label for="journaldesc">Content</label>
       <textarea name="content" class="markdown input expanding" rows="9" id="journaldesc" required></textarea>
-    </div><!-- /description -->
+    </div>
 
     <div class="column tagging">
       <h3>Tags</h3>
       <textarea name="tags" class="input tags-textarea" rows="3"></textarea>
-    </div><!-- /tagging -->
+    </div>
 
     <div class="column options">
       <h3>Additional Options</h3>
@@ -37,12 +37,12 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
         <input type="checkbox" name="friends" id="submit-friends" />
         Make this journal visible only to my friends
       </label>
-    </div><!-- /options -->
+    </div>
 
     <div class="buttons clear">
       <button type="submit" class="button positive" style="float: right;">Continue</button>
       <a class="button" href="/index">Return Home</a>
-    </div><!-- /buttons -->
+    </div>
 
   </form>
-</div><!-- /content -->
+</div>

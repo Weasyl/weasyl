@@ -26,7 +26,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
             <p style="margin-left:15px;"><a href="/submissions/${username}?folderid=${i['folderid']}"$:{' class="current"' if i['folderid'] == currentfolder else ''}>${i['title']}</a></p>
           $else:
             <p><a href="/submissions/${username}?folderid=${i['folderid']}"$:{' class="current"' if i['folderid'] == currentfolder else ''}>${i['title']}</a></p>
-      </div><!-- /sectioned-sidebar -->
+      </div>
 
     $if result.query:
       <div class="${div_class}">
@@ -36,14 +36,14 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
               $:{_GRID_ITEM(item, lazy_load=False)}
             $else:
               $:{_GRID_ITEM(item)}
-        </ul><!-- /.thumbnail-grid -->
+        </ul>
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
           $:{RENDER("common/page_navigation.html", [result])}
         </div>
-      </div><!-- /sectioned-main -->
+      </div>
     $else:
       <div class="${div_class}">
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no submissions to display</p>
-      </div><!-- /sectioned-main -->
+      </div>
   </div>
-</div><!-- /submissions-stage -->
+</div>

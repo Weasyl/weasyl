@@ -54,10 +54,10 @@ $code:
     <div id="login-top">
       <div id="lt-modal">
         <iframe src="javascript:false;"></iframe>
-      </div><!-- /lt-modal -->
+      </div>
       <div id="login-box-container">
-      </div><!-- /login-box-container -->
-    </div><!-- /login-top -->
+      </div>
+    </div>
 
   <header><div id="header" class="clear">
 
@@ -92,8 +92,8 @@ $code:
             <a href="/modcontrol">mod</a> <span>|</span>
 
           <a href="/signout?token=${TOKEN()[:8]}">log&#160;out</a>
-        </div><!-- /header-utility -->
-      </div><!-- /header-user -->
+        </div>
+      </div>
 
       <ul id="header-messages">
         $if query['welcome'][3]:
@@ -106,7 +106,7 @@ $code:
           <li><a href="/messages/notifications#journals" title="Journals"><span class="icon icon-20 icon-journals">Journals:</span> ${query['welcome'][4]}</a></li>
         $if query['welcome'][0]:
           <li><a href="/notes" title="Private Messages"><span class="icon icon-20 icon-messages">Private Messages:</span> ${query['welcome'][0]}</a></li>
-      </ul><!-- /header-messages -->
+      </ul>
 
     <a id="nav-toggle" href="#footer-nav"><span class="icon icon-20 icon-nav"></span> <i>Menu</i></a>
 
@@ -121,6 +121,6 @@ $code:
       <form id="header-search" action="/search" method="GET">
         <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="1" />
       </form>
-    </div><!-- /header-navigation --></nav>
+    </div></nav>
 
-  </div><!-- /header --></header>
+  </div></header>

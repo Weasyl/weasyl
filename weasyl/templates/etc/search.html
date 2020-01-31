@@ -47,7 +47,7 @@ $code:
                 <option value="${i[0]}"$:{' selected' if meta['subcat'] == i[0] else ''}>${i[1]}</option>
           </select>
 
-        </div><!-- /search_cat_container -->
+        </div>
 
         <div id="search-specs-container" style="display:${'block' if meta['find'] != 'user' else 'none'};">
 
@@ -78,7 +78,7 @@ $code:
         <button class="button">Search</button>
 
       </form>
-    </div><!-- /search-parameters -->
+    </div>
 
     <div class="sectioned-main clear">
       <!-- SEARCH RESULTS (user performed a search) -->
@@ -94,7 +94,7 @@ $code:
               $:{_GRID_ITEM(result, lazy_load=False)}
             $else:
               $:{_GRID_ITEM(result)}
-        </ul><!-- /.thumbnail-grid -->
+        </ul>
 
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
           $if back_count:
@@ -104,7 +104,7 @@ $code:
         </div>
       $else:
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>
-    </div><!-- /sectioned-main -->
+    </div>
 
   $elif method['method'] == "browse":
     <h2 class="page-title">Browse Content</h2>
@@ -124,7 +124,7 @@ $code:
             $:{_GRID_ITEM(result, lazy_load=False)}
           $else:
             $:{_GRID_ITEM(result)}
-      </ul><!-- /.thumbnail-grid -->
+      </ul>
 
       <div style="padding-top: 1.4em;" class="pad-left pad-right">
         <a class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]]))}" rel="prev">Back</a>
@@ -150,7 +150,7 @@ $code:
         $for i in results['submit']:
           $:{_GRID_ITEM(i, lazy_load=False)}
         </li><li class="clear more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
-      </ul><!-- /.thumbnail-grid -->
+      </ul>
     $else:
       There are no submissions to display.
 
@@ -160,7 +160,7 @@ $code:
         $for i in results['char']:
           $:{_GRID_ITEM(i)}
         </li><li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
-      </ul><!-- /.thumbnail-grid -->
+      </ul>
     $else:
       There are no characters to display.
 
@@ -170,9 +170,9 @@ $code:
         $for i in results['journal']:
           $:{_GRID_ITEM(i)}
         </li><li class="clear more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></li>
-      </ul><!-- /.thumbnail-grid -->
+      </ul>
     $else:
       There are no journals to display.
 
 
-</div><!-- /#search-stage -->
+</div>

@@ -67,7 +67,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <h3 class="edit">Edit Tags</h3>
           $:{RENDER("common/detail_tag_form.html", [query['userid'], "preferred_tags_user", query['tags']])}
 
-        </div><!-- /di-tags -->
+        </div>
         <div class="di-tags">
           <h3>Opt-Out Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
           <p>
@@ -84,7 +84,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
 
           <h3 class="edit">Edit Tags</h3>
           $:{RENDER("common/detail_tag_form.html", [query['userid'], "optout_tags_user", query['opt_out']])}
-        </div><!-- /di-tags2 -->
+        </div>
         <div id="user-commissions" class="clear on-side">
           <h3>Preview</h3>
           $for i in query['class']:
@@ -103,8 +103,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
                 $if(j['amount_max']):
                   <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
             </dl>
-        </div><!-- /user-commissions -->
-      </div><!-- /commish-tags -->
+        </div>
+      </div>
     </div>
   </div>
   <hr />
@@ -271,4 +271,4 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
         </div>
       </div>
     </div>
-</div><!-- /content -->
+</div>

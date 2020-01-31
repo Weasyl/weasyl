@@ -48,7 +48,7 @@ $code:
       <a href="${submission['display_url']}">
       <img src="${cover['display_url']}" alt="${query['title']}" />
       </a>
-    </div><!-- /detail-art -->
+    </div>
 
   $elif submission['file_type'] == "txt":
     <!-- TEXTUAL -->
@@ -58,7 +58,7 @@ $code:
       <div id="detail-art-text" class="content formatted-content">
         $:{MARKDOWN(query['text'])}
       </div>
-    </div><!-- /detail-art -->
+    </div>
 
   $elif submission['file_type'] == "pdf":
     <div id="detail-art">
@@ -77,7 +77,7 @@ $code:
       <div id="detail-art-text" class="content formatted-content">
         $:{query['text']}
       </div>
-    </div><!-- /detail-art -->
+    </div>
 
   $elif submission['file_type'] == "mp3":
     <!-- MULTIMEDIA -->
@@ -89,7 +89,7 @@ $code:
           <p>Your browser doesn’t support audio playback.</p>
         </audio>
       </div>
-    </div><!-- /detail_submission -->
+    </div>
 
   $elif submission['file_type'] == "swf":
     <!-- SHOCKWAVE FLASH -->
@@ -103,7 +103,7 @@ $code:
           View Shockwave Flash Animation
         </p>
       </a>
-    </div><!-- /detail-art -->
+    </div>
 
   $if query['folder_more']['older'] or query['folder_more']['newer']:
     <div class="detail-folder-nav clear">
@@ -139,7 +139,7 @@ $code:
 
     </div>
 
-</div><!-- /detail-stage -->
+</div>
 
 <div id="detail-bar" class="bar pad-left pad-right clear">
 
@@ -162,23 +162,23 @@ $code:
       <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
     $elif 'h' not in query['settings']:
       <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
-    </ul><!-- /detail-actions -->
+    </ul>
 
     <h2 id="detail-bar-title">${query['title']}
     $if 'q' in query['settings']:
       <em style="font-size: 65%">(critique requested)</em>
     </h2>
 
-  </div><!-- /db-main -->
+  </div>
 
   <div id="db-user">
     $ avatar = query['user_media']['avatar'][0]
     <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
     <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
     <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
-  </div><!-- /db-user -->
+  </div>
 
-</div><!-- /detail-bar -->
+</div>
 
 
 <div id="detail-content" class="content clear">
@@ -188,7 +188,7 @@ $code:
     <div class="formatted-content">
       $:{MARKDOWN(query['content'])}
     </div>
-  </div><!-- /detail-description -->
+  </div>
 
   <div id="detail-info">
 
@@ -203,7 +203,7 @@ $code:
         <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
         <dt>Category:</dt> <dd>${_CAT(query['subtype'])} / ${_SUBCAT(query['subtype'])}</dd>
       </dl>
-    </div><!-- /di-info -->
+    </div>
 
     $if query['mine']:
       <div id="detail-manage">
@@ -222,7 +222,7 @@ $code:
 
           <input type="submit" value="Remove Submission from Gallery" class="link-button">
         </form>
-      </div><!-- /detail-manage -->
+      </div>
 
     $if myself:
       <div id="detail-collection-offer">
@@ -256,7 +256,7 @@ $code:
 
               <button type="submit" class="button" style="display:block">Request This Submission</button>
             </form>
-      </div><!-- /detail-collection-offer -->
+      </div>
 
     $if not query['mine'] and myself and myself['userid'] in staff.MODS:
       <div id="detail-mod">
@@ -285,7 +285,7 @@ $code:
 
           <button class="button negative">Submit as Spam and Hide</button>
         </form>
-      </div><!-- /detail-mod -->
+      </div>
 
 
     <div class="di-tags">
@@ -310,9 +310,9 @@ $code:
       <h3 class="edit">Edit Tags</h3>
 
       $:{RENDER("common/detail_tag_form.html", [query['submitid'], "submit", query['removable_tags']])}
-    </div><!-- /di-tags -->
+    </div>
 
-  </div><!-- /detail-info -->
+  </div>
 
 
   <div id="detail-comments">
@@ -322,6 +322,6 @@ $code:
     $if myself:
       <h3>Leave a Comment</h3>
       $:{RENDER("common/comment_form.html", [myself, query['submitid'], "submit"])}
-  </div><!-- /detail-comments -->
+  </div>
 
-</div><!-- /detail-content -->
+</div>

@@ -11,9 +11,9 @@ $def with (myself, query, violations)
     <a href="${submission['display_url']}">
       <img src="${cover['display_url']}" alt="" />
     </a>
-  </div><!-- /detail-art -->
+  </div>
 
-</div><!-- /detail-stage -->
+</div>
 
 
 <div id="detail-bar" class="bar pad-left pad-right clear">
@@ -36,18 +36,18 @@ $def with (myself, query, violations)
         <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
       $elif 'h' not in query['settings']:
         <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
-    </ul><!-- /detail-actions -->
+    </ul>
     <h2 id="detail-bar-title">${query['title']}</h2>
-  </div><!-- /db-main -->
+  </div>
 
   <div id="db-user">
     $ avatar = query['user_media']['avatar'][0]
     <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
     <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
     <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
-  </div><!-- /db-user -->
+  </div>
 
-</div><!-- /detail-bar -->
+</div>
 
 
 <div id="detail-content" class="content clear">
@@ -71,7 +71,7 @@ $def with (myself, query, violations)
 
       <div class="formatted-content">$:{MARKDOWN(query['content'])}</div>
     </div>
-  </div><!-- /detail-description -->
+  </div>
 
 
   <div id="detail-info">
@@ -86,7 +86,7 @@ $def with (myself, query, violations)
         <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
         <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
       </dl>
-    </div><!-- /di-info -->
+    </div>
 
     $if query['mine']:
       <div id="detail-manage">
@@ -102,7 +102,7 @@ $def with (myself, query, violations)
 
           <button class="link-button">Remove Character from Gallery</button>
         </form>
-      </div><!-- /detail-manage -->
+      </div>
 
     $if myself and myself['userid'] in staff.MODS:
       <div id="detail-mod">
@@ -120,7 +120,7 @@ $def with (myself, query, violations)
           <br>
           <button class="button positive">Moderate Character</button>
         </form>
-      </div><!-- /detail-mod -->
+      </div>
 
 
     <div class="di-tags">
@@ -137,9 +137,9 @@ $def with (myself, query, violations)
       <h3 class="edit">Edit Tags</h3>
 
       $:{RENDER("common/detail_tag_form.html", [query['charid'], "char", query['tags']])}
-    </div><!-- /di-tags -->
+    </div>
 
-  </div><!-- /detail-info -->
+  </div>
 
 
   <div id="detail-comments">
@@ -149,6 +149,6 @@ $def with (myself, query, violations)
     $if myself:
       <h3>Leave a Comment</h3>
       $:{RENDER("common/comment_form.html", [myself, query['charid'], "char"])}
-  </div><!-- /detail-comments -->
+  </div>
 
-</div><!-- /detail-content -->
+</div>

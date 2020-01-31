@@ -11,7 +11,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       $for i in submissions:
         $:{_GRID_ITEM(i, lazy_load=False)}
       </li><li class="clear"><a class="more" href="/${more_submissions}/${LOGIN(profile['username'])}"><span>${profile['username']}'s ${more_submissions.title()}</span></a></li>
-    </ul><!-- /.thumbnail-grid -->
+    </ul>
 
   $if submissions and favorites:
     <hr class="more" />
@@ -21,9 +21,9 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       $for i in favorites:
         $:{_GRID_ITEM(i, lazy_load=False)}
       </li><li class="clear"><a class="more" href="/favorites/${LOGIN(profile['username'])}"><span>${profile['username']}'s Favorites</span></a></li>
-    </ul><!-- /.thumbnail-grid -->
+    </ul>
 
-</div><!-- /user-header --></section>
+</div></section>
 
 $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['show_favorites_tab']])}
 
@@ -35,7 +35,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       <div class="formatted-content">
         $:{MARKDOWN(profile['profile_text'])}
       </div>
-    </div><!-- /user-profile -->
+    </div>
 
   $if featured is None and submissions:
     $ featured = submissions[0]
@@ -53,8 +53,8 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
           <h3>Most Recent: <a class="color-c" href="/character/${featured['charid']}/${SLUG(featured['title'])}">${featured['title']}</a></h3>
           <div id="uf-image">
             <a href="/character/${featured['charid']}/${SLUG(featured['title'])}"><img src="${cover['display_url']}" alt="${blurb} character: ${featured['title']}" /></a>
-        </div><!-- /uf-image -->
-      </div><!-- /user-featured -->
+        </div>
+      </div>
 
   $if userinfo['user_links']:
     <div id="user-contact" class="clear on-side">
@@ -86,7 +86,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       </div>
 
       <a class="more more-block" href="/journal/${journal['journalid']}/${SLUG(journal['title'])}"><i>View</i> <span>This Journal</span> <i>and</i> <span>${journal['comments']} Comments</span></a>
-    </div><!-- /user-journal -->
+    </div>
 
 
   $if(commishinfo['class'] and commishinfo['price']):
@@ -112,7 +112,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
 
       $if(commishinfo['content']):
         <div class="formatted-content">$:{MARKDOWN(commishinfo['content'])}</div>
-    </div><!-- /user-commissions -->
+    </div>
 
 
   $if show_statistics:
@@ -133,7 +133,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
           <dt>${statistics['staff_notes']}</dt>
           <dd><a href="/staffnotes/${LOGIN(profile['username'])}">Staff Notes</a></dd>
       </dl>
-    </div><!-- /user_stats -->
+    </div>
 
   $if statistics['following'] != 0 or statistics['followed'] != 0 or has_friends():
     <div id="user-connections" class="clear on-side">
@@ -154,8 +154,8 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
             <h5 class="color-c">${i['title']}</h5>
             <h6><b>${i['count']}</b> Item${'' if i['count'] == 1 else 's'}</h6>
           </a>
-      </div><!-- /uf-folders -->
-    </div><!-- /user-folders -->
+      </div>
+    </div>
 
   <div id="user-shouts">
     <h3>Shouts</h3>
@@ -163,6 +163,6 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       $:{RENDER("common/comment_thread.html", ["user_comments", shouts, "userid", myself, None, profile['userid']])}
     $if(myself):
       $:{RENDER("common/comment_form.html", [myself, profile['userid'], "shouts"])}
-  </div><!-- /user-shouts -->
+  </div>
 
-</div><!-- /user-content -->
+</div>

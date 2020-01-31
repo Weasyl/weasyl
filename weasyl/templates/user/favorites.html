@@ -4,7 +4,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 <div id="favorites-stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
   $:{RENDER("common/user_tabs.html", [profile['username'], "favorites", profile['show_favorites_tab']])}
-</div><!-- /stage -->
+</div>
 
 <div id="favorites-content" class="content user-favorites">
   $if(feature in ["submit", "char", "journal"]):
@@ -22,7 +22,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
             $:{_GRID_ITEM(item, lazy_load=False)}
           $else:
             $:{_GRID_ITEM(item)}
-      </ul><!-- /.thumbnail-grid -->
+      </ul>
 
       $:{RENDER("common/page_navigation.html", [result])}
     $else:
@@ -36,7 +36,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
           $for i in result['char']:
             $:{_GRID_ITEM(i, lazy_load=False)}
           </li><li class="clear more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=char"><i>More</i> <span>Characters</span></a></li>
-        </ul><!-- /.thumbnail-grid -->
+        </ul>
 
       $if(result['submit']):
         <h3>Favorite Submissions</h3>
@@ -45,7 +45,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
           $for i in result['submit']:
             $:{_GRID_ITEM(i, lazy_load=False)}
           </li><li class="clear more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=submit"><i>More</i> <span>Submissions</span></a></li>
-        </ul><!-- /.thumbnail-grid -->
+        </ul>
 
       $if(result['journal']):
         <h3>Favorite Journals</h3>
@@ -54,7 +54,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
           $for i in result['journal']:
             $:{_GRID_ITEM(i, lazy_load=False)}
           </li><li class="clear more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></li>
-        </ul><!-- /.thumbnail-grid -->
+        </ul>
 
     $else:
       <h3>Favorites</h3>

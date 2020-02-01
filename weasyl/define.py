@@ -13,6 +13,7 @@ import numbers
 import datetime
 import urlparse
 import functools
+import pkgutil
 import subprocess
 
 import anyjson as json
@@ -23,7 +24,7 @@ import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
 from sqlalchemy.exc import OperationalError
-from web.template import frender
+from web.template import Template
 
 import libweasyl.constants
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
@@ -167,9 +168,9 @@ def _compile(template_name):
     template = _template_cache.get(template_name)
 
     if template is None or reload_templates:
-        template_path = os.path.join(macro.MACRO_APP_ROOT, 'templates', template_name)
-        _template_cache[template_name] = template = frender(
-            template_path,
+        _template_cache[template_name] = template = Template(
+            pkgutil.get_data(__name__, 'templates/' + template_name),
+            filename=template_name,
             globals={
                 "STR": str,
                 "LOGIN": get_sysname,

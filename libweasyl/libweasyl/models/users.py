@@ -74,7 +74,7 @@ class Login(Base):
             'login': self.login_name,
             'username': self.profile.username,
             'full_name': self.profile.full_name,
-            'media': minimize_media(request, getattr(self, 'media', None)),
+            'media': minimize_media(request, self.media),
         }
 
 

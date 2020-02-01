@@ -72,7 +72,7 @@ class Submission(Base):
         return {
             'title': self.title,
             'rating': self.rating.name,
-            'media': minimize_media(request, getattr(self, 'media', None)),
+            'media': minimize_media(request, self.media),
         }
 
     def legacy_path(self, mod=False):

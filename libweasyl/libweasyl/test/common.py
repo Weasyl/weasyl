@@ -20,12 +20,8 @@ class NotFound(Exception):
     """
 
 
-class DummyMediaLinkFormatter(object):
-    def format_media_link(self, media, link):
-        return None
-
-
-media_link_formatter = DummyMediaLinkFormatter()
+def dummy_format_media_link(media, link):
+    return None
 
 
 class Bag(object):

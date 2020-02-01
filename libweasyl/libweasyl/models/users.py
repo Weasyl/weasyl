@@ -34,16 +34,11 @@ class Login(Base):
         'file_url': _BLANK_AVATAR,
     }
 
-    def _comment_criteria(self):
-        return {'target_user': self.userid}
-
-    def canonical_path(self, request, operation=None):
+    def canonical_path(self, request):
         """
         Returns the canonical URL for this user's profile.
         """
         parts = ['~' + self.login_name]
-        if operation is not None:
-            parts.append(operation)
         return request.resource_path(None, *parts)
 
     @reify
@@ -64,59 +59,12 @@ class Login(Base):
             return None
         return self.media['banner'][0]
 
-    @reify
-    def is_staff(self):
-        return self.userid in staff.MODS
-
-    def is_friends_with(self, other):
-        """
-        Returns True if this user is in a friendship with the other user, or
-        False otherwise.
-        """
-        return bool(
-            Friendship.query
-            .filter(sa.or_(
-                (Friendship.userid == self.userid) & (Friendship.otherid == other),
-                (Friendship.otherid == self.userid) & (Friendship.userid == other)))
-            .count())
-
-    def is_ignoring(self, other):
-        """
-        Returns True if this user is ignoring the other user, or False
-        otherwise.
-        """
-        return bool(
-            Ignorama.query
-            .filter(
-                (Ignorama.userid == self.userid) & (Ignorama.otherid == other))
-            .count())
-
-    def is_ignored_by(self, other):
-        """
-        Returns True if the other user is ignoring this user, or False
-        otherwise.
-        """
-        return bool(
-            Ignorama.query
-            .filter(
-                (Ignorama.userid == other) & (Ignorama.otherid == self.userid))
-            .count())
-
     def is_permitted_rating(self, rating):
         """
         Returns True if this user's is old enough to view content with the
         given rating. Otherwise, returns False.
         """
         return self.info.age >= rating.minimum_age
-
-    def can_view_rating(self, rating):
-        """
-        Return True if this user is permitted to and has opted to view content
-        with the given rating. Otherwise, returns False.
-        """
-        if not self.is_permitted_rating(rating):
-            return False
-        return self.profile.maximum_content_rating >= rating
 
     def __json__(self, request):
         """

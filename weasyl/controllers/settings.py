@@ -580,7 +580,7 @@ def manage_collections_post_(request):
 
 @login_required
 def manage_thumbnail_get_(request):
-    form = request.web_input(submitid="", charid="", auto="")
+    form = request.web_input(submitid="", charid="")
     submitid = define.get_int(form.submitid)
     charid = define.get_int(form.charid)
 

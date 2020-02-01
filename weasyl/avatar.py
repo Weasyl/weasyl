@@ -30,14 +30,14 @@ def upload(userid, filedata):
 
 
 # TODO: Make this function respect new geometry.
-def create(userid, x1, y1, x2, y2, auto=False, config=None):
+def create(userid, x1, y1, x2, y2):
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     db = d.connect()
     im = db.query(orm.MediaItem).get(avatar_source(userid)['mediaid']).as_image()
     file_type = image.image_file_type(im)
     bounds = None
     size = im.size.width, im.size.height
-    if not auto and image.check_crop(size, x1, y1, x2, y2):
+    if image.check_crop(size, x1, y1, x2, y2):
         bounds = geometry.Rectangle(x1, y1, x2, y2)
     thumb = image.shrinkcrop(im, geometry.Size(100, 100), bounds)
     media_item = orm.fetch_or_create_media_item(

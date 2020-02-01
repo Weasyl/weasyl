@@ -187,9 +187,8 @@ class Submission(Base):
 
     @classmethod
     def create(cls, owner, title, rating, description, category, subtype, folder, tags, friends_only=False,
-               critique_requested=False, submission_data=None, cover_data=None, thumbnail_data=None, embed_link=None,
-               submission_size_limit=None):
-        from libweasyl.media import fetch_or_create_media_item, make_cover_media_item
+               critique_requested=False, submission_data=None, embed_link=None, submission_size_limit=None):
+        from libweasyl.media import fetch_or_create_media_item
         from libweasyl.models.media import SubmissionMediaLink
 
         now = cls.now()
@@ -200,7 +199,7 @@ class Submission(Base):
         inst.is_friends_only = friends_only
         inst.is_critique = critique_requested
 
-        submission_media_item = cover_media_item = thumbnail_media_item = thumbnail_source_media_item = None
+        submission_media_item = cover_media_item = thumbnail_media_item = None
         if embed_link is None:
             if submission_data is None:
                 raise InvalidData("A submission file or an embed link is required.")
@@ -232,10 +231,6 @@ class Submission(Base):
         if category == Category.visual:
             cover_media_item = submission_media_item.ensure_cover_image(submission_image)
             thumbnail_media_item = submission_media_item.make_thumbnail(submission_image)
-        elif cover_data is not None:
-            cover_media_item = make_cover_media_item(cover_data)
-        if thumbnail_data is not None:
-            thumbnail_source_media_item = make_cover_media_item(thumbnail_data)
 
         cls.dbsession.add(inst)
         cls.dbsession.flush()
@@ -249,8 +244,6 @@ class Submission(Base):
             SubmissionMediaLink.make_or_replace_link(inst.submitid, 'cover', cover_media_item)
         if thumbnail_media_item is not None:
             SubmissionMediaLink.make_or_replace_link(inst.submitid, 'thumbnail', thumbnail_media_item)
-        if thumbnail_source_media_item is not None:
-            SubmissionMediaLink.make_or_replace_link(inst.submitid, 'thumbnail-source', thumbnail_source_media_item)
 
         return inst
 

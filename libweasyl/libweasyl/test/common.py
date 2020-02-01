@@ -138,23 +138,3 @@ def make_media(db):
         Probably a DiskMediaItem.
     """
     return media_item(db, '2x233.gif')
-
-
-def make_oauth_consumer(db, clientid='client_id'):
-    """
-    Create an OAuth consumer.
-
-    A new user is also created to be the owner of the consumer. Both the user
-    objects and the OAuth consumer object are added to the session.
-
-    Returns:
-        OAuthConsumer: The OAuthConsumer object created.
-    """
-    user = make_user(db)
-    consumer = api.OAuthConsumer(
-        owner=user, clientid=clientid, client_secret='secret', description='description',
-        grant_type='authorization_code', response_type='code', scopes=['wholesite'],
-        redirect_uris=['urn:ietf:wg:oauth:2.0:oob'])
-    db.add(consumer)
-    db.flush()
-    return consumer

@@ -40,7 +40,7 @@ class Bag(object):
             setattr(self, *kv)
 
 
-def user_with_age(age, login_name=None):
+def user_with_age(age):
     """
     Create a Login, UserInfo, and Profile with the provided age.
 
@@ -50,8 +50,7 @@ def user_with_age(age, login_name=None):
         Login: The user Login object created.
     """
     birthday = arrow.get(datetime.datetime.utcnow() - relativedelta(years=age))
-    if login_name is None:
-        login_name = 'user%d' % next(_user_counter)
+    login_name = 'user%d' % next(_user_counter)
     return users.Login(
         info=users.UserInfo(birthday=birthday),
         profile=users.Profile(username=login_name, full_name=login_name, unixtime=arrow.get(0)),

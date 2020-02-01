@@ -225,12 +225,15 @@ def titlebar(title, backtext=None, backlink=None):
     return render("common/stage_title.html", [title, backtext, backlink])
 
 
+def errorpage_html(userid, message_html, links=None, request_id=None, **extras):
+    return webpage(userid, "error/error.html", [message_html, links, request_id], **extras)
+
+
 def errorpage(userid, code=None, links=None, request_id=None, **extras):
     if code is None:
         code = errorcode.unexpected
-    code = text.markdown(code)
 
-    return webpage(userid, "error/error.html", [code, links, request_id], **extras)
+    return errorpage_html(userid, text.markdown(code), links, request_id, **extras)
 
 
 def webpage(userid, template, argv=None, options=None, **extras):

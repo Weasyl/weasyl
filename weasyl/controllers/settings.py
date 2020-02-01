@@ -585,11 +585,11 @@ def manage_thumbnail_get_(request):
     charid = define.get_int(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
-        return Response(define.errorpage(request.userid, errorcode.permissions))
-    elif charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
-        return Response(define.errorpage(request.userid, errorcode.permissions))
-    elif not submitid and not charid:
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
+    if charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
+        raise WeasylError("InsufficientPermissions")
+    if not submitid and not charid:
+        raise WeasylError("Unexpected")
 
     if charid:
         source_path = define.url_make(charid, "char/.thumb", root=True)
@@ -623,11 +623,11 @@ def manage_thumbnail_post_(request):
     charid = define.get_int(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
     if charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
     if not submitid and not charid:
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("Unexpected")
 
     if form.thumbfile:
         thumbnail.upload(form.thumbfile, submitid=submitid, charid=charid)

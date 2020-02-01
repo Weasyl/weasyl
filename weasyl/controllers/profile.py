@@ -419,8 +419,6 @@ def favorites_(request):
 
 
 def friends_(request):
-    cachename = "user/friends.html"
-
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
@@ -434,7 +432,7 @@ def friends_(request):
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, cachename, [
+    return Response(define.webpage(request.userid, "user/friends.html", [
         # Profile information
         userprofile,
         # User information
@@ -448,8 +446,6 @@ def friends_(request):
 
 
 def following_(request):
-    cachename = "user/following.html"
-
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
@@ -463,7 +459,7 @@ def following_(request):
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, cachename, [
+    return Response(define.webpage(request.userid, "user/following.html", [
         # Profile information
         userprofile,
         # User information
@@ -477,8 +473,6 @@ def following_(request):
 
 
 def followed_(request):
-    cachename = "user/followed.html"
-
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
@@ -492,7 +486,7 @@ def followed_(request):
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, cachename, [
+    return Response(define.webpage(request.userid, "user/followed.html", [
         # Profile information
         userprofile,
         # User information

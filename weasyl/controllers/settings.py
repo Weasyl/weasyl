@@ -668,7 +668,6 @@ def manage_tagfilters_post_(request):
 
 @login_required
 def manage_avatar_get_(request):
-    form = request.web_input(style="")
     try:
         avatar_source = avatar.avatar_source(request.userid)
     except WeasylError:
@@ -678,7 +677,7 @@ def manage_avatar_get_(request):
 
     return Response(define.webpage(
         request.userid,
-        "manage/avatar_nostyle.html" if form.style == "false" else "manage/avatar.html",
+        "manage/avatar.html",
         [
             # Avatar selection
             avatar_source_url,

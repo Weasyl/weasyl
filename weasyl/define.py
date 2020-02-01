@@ -35,7 +35,6 @@ from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
 from weasyl.cache import region
-from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
 
@@ -153,7 +152,6 @@ def serializable_retry(action, limit=16):
 
 
 CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
-the_fake_request = FakePyramidRequest()
 
 
 # Caching all templates. Parsing templates is slow; we don't need to do it all
@@ -206,7 +204,6 @@ def _compile(template_name):
                 "json": json,
                 "sorted": sorted,
                 "staff": staff,
-                "request": the_fake_request,
                 "resource_path": get_resource_path,
             })
 

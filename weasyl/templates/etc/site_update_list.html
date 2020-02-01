@@ -1,4 +1,4 @@
-$def with (updates, can_edit)
+$def with (request, updates, can_edit)
 $:{TITLE("Site Updates")}
 
 <div class="content">
@@ -19,10 +19,10 @@ $:{TITLE("Site Updates")}
 
                 <div class="text-post-text">
                     <h4 class="text-post-title">
-                        <a href="${request.path_for(update)}">${update.title}</a>
+                        <a href="${request.route_path('site_update', update_id=update.updateid)}">${update.title}</a>
                         $if can_edit:
                             <span class="text-post-actions">
-                                <a href="${request.path_for(update, operation='edit')}">Edit</a>
+                                <a href="${request.route_path('site_update_edit', update_id=update.updateid)}">Edit</a>
                             </span>
                     </h4>
 

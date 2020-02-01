@@ -34,13 +34,6 @@ class Login(Base):
         'file_url': _BLANK_AVATAR,
     }
 
-    def canonical_path(self, request):
-        """
-        Returns the canonical URL for this user's profile.
-        """
-        parts = ['~' + self.login_name]
-        return request.resource_path(None, *parts)
-
     @reify
     def media(self):
         from libweasyl.media import get_user_media

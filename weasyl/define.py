@@ -236,18 +236,12 @@ def errorpage(userid, code=None, links=None, request_id=None, **extras):
     return webpage(userid, "error/error.html", [code, links, request_id], **extras)
 
 
-def webpage(userid=0, template=None, argv=None, options=None, **extras):
+def webpage(userid, template, argv=None, options=None, **extras):
     if argv is None:
         argv = []
 
     if options is None:
         options = []
-
-    if template is None:
-        if userid:
-            template, argv = "error/error.html", [errorcode.signed]
-        else:
-            template, argv = "error/error.html", [errorcode.unsigned]
 
     page = common_page_start(userid, options=options, **extras)
     page.append(render(template, argv))

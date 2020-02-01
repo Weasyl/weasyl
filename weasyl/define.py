@@ -226,9 +226,6 @@ def titlebar(title, backtext=None, backlink=None):
 
 
 def errorpage(userid, code=None, links=None, request_id=None, **extras):
-    if links is None:
-        links = []
-
     if code is None:
         code = errorcode.unexpected
     code = text.markdown(code)

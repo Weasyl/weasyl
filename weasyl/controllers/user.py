@@ -17,6 +17,7 @@ from weasyl.controllers.decorators import (
     login_required,
     token_checked,
 )
+from weasyl.error import WeasylError
 
 
 # Session management functions
@@ -90,8 +91,7 @@ def signin_post_(request):
             "%s.\n\nIf you believe this suspension is in error, please contact "
             "support@weasyl.com for assistance." % (suspension.reason, define.convert_date(suspension.release))))
 
-    assert logerror is None
-    return Response(define.errorpage(request.userid))
+    raise WeasylError("Unexpected")  # pragma: no cover
 
 
 def _cleanup_2fa_session():

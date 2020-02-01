@@ -1,0 +1,126 @@
+$def with (query, options, extended_options={})
+
+$code:
+  def _SFWTOGGLE(mode):
+    return 'on' if mode == 'sfw' else 'off'
+
+<!DOCTYPE html>
+<html class="no-js" data-csrf-token="${TOKEN()}">
+<head>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="google-site-verification" content="2BHBQHl4B1zhVRT4jj6IZ1fIn0YMXGkv8kEpuoMf81k" />
+
+  $if 'title' in extended_options:
+    <title>${extended_options['title']} — Weasyl</title>
+  $else:
+    <title>Weasyl</title>
+
+  $# If we have JavaScript enabled, remove the no-js class; keep before any link/style elements
+  <script>
+    document.documentElement.classList.remove("no-js");
+    document.documentElement.classList.add("js");
+  </script>
+
+  <link rel="stylesheet" href="/static/fonts/museo500.css" />
+  <link rel="stylesheet" href="${resource_path('css/site.css')}" />
+
+  <link type="image/png" rel="icon" href="${CDNIFY('/static/images/favicon.png')}" />
+  <link rel="mask-icon" color="#850002" href="${CDNIFY('/static/images/favicon.svg')}" />
+
+  $if "imageselect" in options:
+    <link type="text/css" rel="stylesheet" href="${CDNIFY('/static/scripts/imageselect/imageselect.css?' + SHA)}" />
+
+  $if 'twitter_card' in extended_options:
+    <meta name="twitter:site" content="@weasyl" />
+    <meta name="twitter:domain" content="weasyl.com" />
+    $for k, v in extended_options['twitter_card'].iteritems():
+      <meta name="twitter:${k}" content="$v" />
+  $if 'ogp' in extended_options:
+    $for k, v in extended_options['ogp'].iteritems():
+      <meta property="og:${k}" content="${v}" />
+
+  $if 'canonical_url' in extended_options:
+    <link rel="canonical" href="https://www.weasyl.com/${extended_options['canonical_url'].lstrip('/')}" />
+
+</head>
+
+<body>
+
+<div id="page-container">
+  $if query is None:
+    <div id="login-top">
+      <div id="lt-modal">
+        <iframe src="javascript:false;"></iframe>
+      </div>
+      <div id="login-box-container">
+      </div>
+    </div>
+
+  <header><div id="header" class="clear">
+
+    <h1 id="logo"><a href="/"><img src="${CDNIFY('/static/images/logo.png')}" alt="Weasyl" /></a></h1>
+
+    $if query is None:
+      <h3 id="header-guest">
+        Welcome!
+        <a id="hg-login" href="/signin" class="typeface-a color-a">Sign in</a>,
+        <a id="hg-register" href="/signup" class="typeface-a color-a">register</a>,
+        or learn more <a href="/help/about" class="typeface-a color-a">about Weasyl</a>.
+      </h3>
+    $else:
+      <div id="header-user" data-user-type="${USER_TYPE(query['userid']) or ''}">
+        $ avatar = query['user_media']['avatar'][0]
+        <a class="avatar" href="/~${LOGIN(query['username'])}"><img id="avatar" src="${avatar['display_url']}" alt="${query['username']}"></a>
+        <h2><i>Welcome,</i> <a id="username" class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h2>
+        <div id="header-utility">
+          <form class="sfw-toggle" action="/control/sfwtoggle" method="POST">
+            $:{CSRF()}
+            <input type="hidden" name="redirect" value="${PATH()}">
+            <button class="link-button ${query['sfw']}">sfw ${_SFWTOGGLE(query['sfw'])}</button>
+          </form> <span>|</span>
+          <a href="/notes">inbox</a> <span>|</span>
+          <a href="/control">settings</a> <span>|</span>
+
+          $if query['userid'] in staff.DIRECTORS:
+            <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span> <a href="/directorcontrol">director</a> <span>|</span>
+          $elif query['userid'] in staff.ADMINS:
+            <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span>
+          $elif query['userid'] in staff.MODS:
+            <a href="/modcontrol">mod</a> <span>|</span>
+
+          <a href="/signout?token=${TOKEN()[:8]}">log&#160;out</a>
+        </div>
+      </div>
+
+      <ul id="header-messages">
+        $if query['welcome'][3]:
+          <li><a href="/messages/submissions" title="Art"><span class="icon icon-20 icon-art">Art:</span> ${query['welcome'][3]}</a></li>
+        $if query['welcome'][1]:
+          <li><a href="/messages/notifications#comments" title="Comments"><span class="icon icon-20 icon-comments">Comments:</span> ${query['welcome'][1]}</a></li>
+        $if query['welcome'][2]:
+          <li><a href="/messages/notifications#notifications" title="Notifications"><span class="icon icon-20 icon-notes">Notifications:</span> ${query['welcome'][2]}</a></li>
+        $if query['welcome'][4]:
+          <li><a href="/messages/notifications#journals" title="Journals"><span class="icon icon-20 icon-journals">Journals:</span> ${query['welcome'][4]}</a></li>
+        $if query['welcome'][0]:
+          <li><a href="/notes" title="Private Messages"><span class="icon icon-20 icon-messages">Private Messages:</span> ${query['welcome'][0]}</a></li>
+      </ul>
+
+    <a id="nav-toggle" href="#footer-nav"><span class="icon icon-20 icon-nav"></span> <i>Menu</i></a>
+
+    <nav><div id="header-nav">
+      <ul>
+        <li><a href="/submit">Submit</a></li>
+        <li><a href="/search">Browse</a></li>
+        <li><a href="/marketplace">Marketplace</a></li>
+        <li id="header-search-nav"><a href="/search">Search</a></li>
+      </ul>
+
+      <form id="header-search" action="/search" method="GET">
+        <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="1" />
+      </form>
+    </div></nav>
+
+  </div></header>

@@ -1,7 +1,5 @@
 from libweasyl.cache import region
-from libweasyl.constants import Category
 from libweasyl.models.media import SubmissionMediaLink, UserMediaLink, fetch_or_create_media_item
-from libweasyl import files, images
 
 
 @SubmissionMediaLink.register_cache

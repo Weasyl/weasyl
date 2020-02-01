@@ -5,7 +5,7 @@ import arrow
 from dateutil.relativedelta import relativedelta
 import py.path
 
-from libweasyl.models import api, content, users
+from libweasyl.models import content, users
 from libweasyl import media, ratings
 
 

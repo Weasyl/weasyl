@@ -6,7 +6,7 @@ import arrow
 from pyramid.decorator import reify
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import backref, contains_eager, relationship
+from sqlalchemy.orm import backref, relationship
 import sqlalchemy as sa
 
 from libweasyl.common import minimize_media

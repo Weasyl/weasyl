@@ -7,13 +7,12 @@ from dateutil.relativedelta import relativedelta
 import pytz
 from pyramid.decorator import reify
 from sqlalchemy import orm
-import sqlalchemy as sa
 
 from libweasyl.common import minimize_media
 from libweasyl.models.helpers import clauses_for
 from libweasyl.models.meta import Base
 from libweasyl.models import tables
-from libweasyl import cache, ratings, staff
+from libweasyl import cache, ratings
 
 
 log = logging.getLogger(__name__)

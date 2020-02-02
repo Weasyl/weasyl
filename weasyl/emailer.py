@@ -25,14 +25,13 @@ def normalize_address(address):
     return "%s@%s" % (local, domain.lower())
 
 
-def append(mailto, mailfrom, subject, content, displayto=None):
+def append(mailto, mailfrom, subject, content):
     """Send an e-mail.
 
     `mailto` must be a list of e-mail addresses to send this e-mail to. If
     `mailfrom` is None, the system email will be designated as the sender.
     Otherwise, `mailfrom` must be a single e-mail address. The 'To' header of the
-    e-mail will be a comma-separated list of the `mailto` addresses unless
-    `displayto` is not None (in which case it will be set to `displayto`.)
+    e-mail will be a comma-separated list of the `mailto` addresses.
     """
 
     if not mailfrom:
@@ -53,10 +52,7 @@ def append(mailto, mailfrom, subject, content, displayto=None):
         subject = "None"
 
     message = email.mime.text.MIMEText(content.strip())
-    if displayto is not None:
-        message["To"] = displayto
-    else:
-        message["To"] = ', '.join(mailto)
+    message["To"] = ', '.join(mailto)
     message["From"] = mailfrom
     message["Subject"] = subject
 

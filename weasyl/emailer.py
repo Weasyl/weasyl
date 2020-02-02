@@ -25,26 +25,18 @@ def normalize_address(address):
     return "%s@%s" % (local, domain.lower())
 
 
-def append(mailto, mailfrom, subject, content):
+def append(mailto, subject, content):
     """Send an e-mail.
 
-    `mailto` must be a list of e-mail addresses to send this e-mail to. If
-    `mailfrom` is None, the system email will be designated as the sender.
-    Otherwise, `mailfrom` must be a single e-mail address. The 'To' header of the
+    `mailto` must be a list of e-mail addresses to send this e-mail to. The
+    system email will be designated as the sender. The 'To' header of the
     e-mail will be a comma-separated list of the `mailto` addresses.
     """
-
-    if not mailfrom:
-        mailfrom = macro.MACRO_EMAIL_ADDRESS
-
-    mailfrom = normalize_address(mailfrom)
     subject = subject.strip()
     content = content.strip()
 
     if not mailto:
         raise error.WeasylError("mailtoInvalid")
-    elif not mailfrom:
-        raise error.WeasylError("mailfromInvalid")
     elif not content:
         raise error.WeasylError("contentInvalid")
 
@@ -53,7 +45,7 @@ def append(mailto, mailfrom, subject, content):
 
     message = email.mime.text.MIMEText(content.strip())
     message["To"] = ', '.join(mailto)
-    message["From"] = mailfrom
+    message["From"] = macro.MACRO_EMAIL_ADDRESS
     message["Subject"] = subject
 
     sendmail_args = ['sendmail'] + list(mailto)

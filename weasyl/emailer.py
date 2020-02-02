@@ -32,17 +32,6 @@ def append(mailto, subject, content):
     system email will be designated as the sender. The 'To' header of the
     e-mail will be a comma-separated list of the `mailto` addresses.
     """
-    subject = subject.strip()
-    content = content.strip()
-
-    if not mailto:
-        raise error.WeasylError("mailtoInvalid")
-    elif not content:
-        raise error.WeasylError("contentInvalid")
-
-    if not subject:
-        subject = "None"
-
     message = email.mime.text.MIMEText(content.strip())
     message["To"] = ', '.join(mailto)
     message["From"] = macro.MACRO_EMAIL_ADDRESS

@@ -4,7 +4,7 @@ import re
 import subprocess
 import email.mime.text
 
-from weasyl import define, error, macro
+from weasyl import define, macro
 
 
 EMAIL_ADDRESS = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
@@ -28,16 +28,15 @@ def normalize_address(address):
 def append(mailto, subject, content):
     """Send an e-mail.
 
-    `mailto` must be a list of e-mail addresses to send this e-mail to. The
-    system email will be designated as the sender. The 'To' header of the
-    e-mail will be a comma-separated list of the `mailto` addresses.
+    `mailto` must be a normalized e-mail address to send this e-mail to. The
+    system email will be designated as the sender.
     """
     message = email.mime.text.MIMEText(content.strip())
-    message["To"] = ', '.join(mailto)
+    message["To"] = mailto
     message["From"] = macro.MACRO_EMAIL_ADDRESS
     message["Subject"] = subject
 
-    sendmail_args = ['sendmail'] + list(mailto)
+    sendmail_args = ['sendmail', '-t']
     proc = subprocess.Popen(sendmail_args, stdin=subprocess.PIPE)
     proc.communicate(message.as_string())
     if proc.returncode:

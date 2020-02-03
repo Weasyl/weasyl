@@ -590,13 +590,13 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
             """, userid=userid, newemail=newemail, token=token)
 
             # Send out the email containing the verification token.
-            emailer.append([newemail], "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
+            emailer.append(newemail, "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
         else:
             # The target email exists: let the target know this
             query_username = d.engine.scalar("""
                 SELECT login_name FROM login WHERE email = %(email)s
             """, email=newemail)
-            emailer.append([newemail], "Weasyl Account Information - Duplicate Email on Accounts Rejected", d.render(
+            emailer.append(newemail, "Weasyl Account Information - Duplicate Email on Accounts Rejected", d.render(
                 "email/email_in_use_email_change.html", [query_username])
             )
 

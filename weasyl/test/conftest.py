@@ -103,10 +103,10 @@ def lower_bcrypt_rounds(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def drop_email(monkeypatch):
-    def drop_append(mailto, mailfrom, subject, content, displayto=None):
+    def drop_send(mailto, subject, content):
         pass
 
-    monkeypatch.setattr(emailer, 'append', drop_append)
+    monkeypatch.setattr(emailer, 'send', drop_send)
 
 
 @pytest.fixture

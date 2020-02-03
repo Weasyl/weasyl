@@ -20,6 +20,9 @@ url = postgresql+psycopg2cffi:///weasyl
 [sentry]
 # dsn = twisted+http://...
 
+[smtp]
+host = localhost
+
 [recaptcha-lo.weasyl.com]
 public_key = 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
 private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe

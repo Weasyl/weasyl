@@ -234,8 +234,8 @@ def create(form):
             "unixtime": arrow.now(),
         })
 
-        # Queue verification email
-        emailer.append(email, "Weasyl Account Creation", d.render(
+        # Send verification email
+        emailer.send(email, "Weasyl Account Creation", d.render(
             "email/verify_account.html", [token, sysname]))
         d.metric('increment', 'createdusers')
     else:
@@ -258,7 +258,7 @@ def create(form):
         #   let the already registered user know this via email (perhaps they forgot their username/password)
         query_username_login = d.engine.scalar("SELECT login_name FROM login WHERE email = %(email)s", email=email)
         query_username_logincreate = d.engine.scalar("SELECT login_name FROM logincreate WHERE email = %(email)s", email=email)
-        emailer.append(email, "Weasyl Account Creation - Account Already Exists", d.render(
+        emailer.send(email, "Weasyl Account Creation - Account Already Exists", d.render(
             "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 

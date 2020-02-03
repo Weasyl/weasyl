@@ -39,7 +39,7 @@ def request(form):
         """, id=user_id, token=token, time=now, address=address)
 
         # Generate and send an email to the user containing a password reset link
-        emailer.append(email, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
+        emailer.send(email, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
 
 
 def prepare(token):

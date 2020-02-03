@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 import re
-import subprocess
-import email.mime.text
+from email.mime.text import MIMEText
+from smtplib import SMTP
 
 from weasyl import define, macro
 
@@ -25,20 +25,29 @@ def normalize_address(address):
     return "%s@%s" % (local, domain.lower())
 
 
-def append(mailto, subject, content):
+def send(mailto, subject, content):
     """Send an e-mail.
 
     `mailto` must be a normalized e-mail address to send this e-mail to. The
     system email will be designated as the sender.
     """
-    message = email.mime.text.MIMEText(content.strip())
+    message = MIMEText(content.strip())
     message["To"] = mailto
     message["From"] = macro.MACRO_EMAIL_ADDRESS
     message["Subject"] = subject
 
-    sendmail_args = ['sendmail', '-t']
-    proc = subprocess.Popen(sendmail_args, stdin=subprocess.PIPE)
-    proc.communicate(message.as_string())
-    if proc.returncode:
-        raise subprocess.CalledProcessError(proc.returncode, sendmail_args)
+    # smtp.sendmail() only converts CR and LF (produced by MIMEText and our templates) to CRLF in Python 3. In Python 2, we need this:
+    msg_crlf = re.sub(r"\r\n|[\r\n]", "\r\n", message.as_string())
+
+    smtp = SMTP(define.config_read_setting('host', "localhost", section='smtp'))
+
+    try:
+        smtp.sendmail(
+            from_addr=macro.MACRO_EMAIL_ADDRESS,
+            to_addrs=[mailto],
+            msg=msg_crlf,
+        )
+    finally:
+        smtp.quit()
+
     define.metric('increment', 'emails')

@@ -10,13 +10,7 @@ docker network create --internal wzlnet
 ### Memcached
 
 ```shell
-containers/run \
-    --rm=false \
-    --restart=on-failure \
-    --detach \
-    --network=wzlnet \
-    --name=weasyl-memcached \
-    memcached:1.5.20-alpine --memory-limit=64
+containers/run-memcached
 ```
 
 
@@ -24,17 +18,7 @@ containers/run \
 
 ```shell
 mkdir containers/data
-containers/run \
-    --rm=false \
-    --restart=on-failure \
-    --detach \
-    --network=wzlnet \
-    --name=weasyl-database \
-    "$(containers/mount --writable containers/data /var/lib/postgresql/data)" \
-    --tmpfs=/run/postgresql \
-    --env=POSTGRES_USER=weasyl \
-    --env=POSTGRES_DB=weasyl \
-    postgres:12
+containers/run-postgres
 containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE EXTENSION hstore'
 wget https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz
 < weasyl-latest-staff.sql.xz | unxz | containers/run --tty=false --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl
@@ -112,7 +96,9 @@ docker start weasyl-nginx
 
 Merging the existing Docker branch should help with some of these.
 
-- [ ] caching for apk and pip with `RUN --mount`
+- [ ] caching for apk
+- [ ] caching for npm
+- [X] caching for pip
 - [ ] separate build stages for each expensive wheel
 - [X] parallel builds
 - [ ] elimination of pypi.weasyl.dev

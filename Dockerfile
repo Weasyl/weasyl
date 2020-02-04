@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:experimental
 FROM node:13-alpine AS assets
 RUN apk add --update sassc
 WORKDIR /weasyl-build
@@ -15,10 +16,10 @@ FROM python:2.7-alpine3.11 AS bdist-lxml
 RUN apk add --update \
     musl-dev gcc make \
     libxml2-dev libxslt-dev
-RUN adduser -S build -h /weasyl-build
+RUN adduser -S build -h /weasyl-build -u 100
 WORKDIR /weasyl-build
 USER build
-RUN pip2 wheel -w dist lxml==4.4.2
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist lxml==4.4.2
 
 
 FROM python:2.7-alpine3.11 AS bdist
@@ -37,17 +38,11 @@ RUN apk add --update \
     postgresql-dev \
     xz-dev \
     zlib-dev
-RUN adduser -S build -h /weasyl-build
+RUN adduser -S build -h /weasyl-build -u 100
 WORKDIR /weasyl-build
 USER build
-RUN pip2 wheel -w dist Pillow==6.2.2
-RUN pip2 wheel -w dist --index-url https://pypi.weasyl.dev/ sanpera==0.1.1+weasyl.6
-RUN pip2 wheel -w dist cryptography==2.8
-RUN pip2 wheel -w dist psycopg2cffi==2.7.7
-RUN pip2 wheel -w dist Twisted[tls]==19.10.0
-RUN pip2 wheel -w dist bcrypt==3.1.7
-RUN pip2 wheel -w dist --index-url https://pypi.weasyl.dev/ misaka==1.0.3+weasyl.6
-RUN pip2 wheel -w dist backports.lzma==0.0.12
+COPY etc/requirements.txt requirements.txt
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist -r requirements.txt
 COPY --chown=build:nobody libweasyl libweasyl
 RUN cd libweasyl && python2 setup.py bdist_wheel -d ../dist2
 COPY setup.py setup.py
@@ -70,19 +65,12 @@ USER weasyl
 RUN virtualenv -p python2 .venv
 COPY etc/requirements.txt etc/requirements.txt
 
-COPY --from=bdist-lxml /weasyl-build/dist install-wheels/
-COPY --from=bdist /weasyl-build/dist install-wheels/
-RUN .venv/bin/pip install --no-deps install-wheels/*
+RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-lxml .venv/bin/pip install --no-deps install-wheels/*
+RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist .venv/bin/pip install --no-deps install-wheels/*
 
-RUN .venv/bin/pip install -r etc/requirements.txt --index-url https://pypi.weasyl.dev/ --extra-index-url https://pypi.org/simple/
-
-COPY --from=bdist \
-    /weasyl-build/dist2/libweasyl-0.0.0-py2-none-any.whl \
-    /weasyl-build/dist2/weasyl-0.0.0-py2-none-any.whl \
-    install-wheels/
-RUN .venv/bin/pip install --no-deps \
-    install-wheels/libweasyl-0.0.0-py2-none-any.whl \
-    install-wheels/weasyl-0.0.0-py2-none-any.whl
+RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist2,from=bdist [".venv/bin/pip", "install", "--no-deps", \
+    "install-wheels/libweasyl-0.0.0-py2-none-any.whl", \
+    "install-wheels/weasyl-0.0.0-py2-none-any.whl"]
 
 COPY --from=assets /weasyl-build/build build
 COPY static static

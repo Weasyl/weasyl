@@ -240,7 +240,6 @@ class JSONProxy(ProxyBackend):
         if value.startswith('\0'):
             value = zlib.decompress(value[1:])
         payload, metadata = json.loads(value)
-        metadata['ct'] = float(metadata['ct'])
         return CachedValue(payload, metadata)
 
     def get(self, key):

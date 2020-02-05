@@ -11,10 +11,11 @@ profile_responses = false
 rough_shutdowns = true
 
 [sqlalchemy]
-url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl
+# url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl
+url = postgresql+psycopg2cffi:///weasyl
 
 [memcached]
-servers = tcp:weasyl-memcached:11211
+# servers = tcp:weasyl-memcached:11211
 
 [sentry]
 # dsn = twisted+http://...

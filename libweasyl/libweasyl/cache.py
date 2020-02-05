@@ -12,7 +12,7 @@ import re
 import threading
 import zlib
 
-import anyjson
+import json
 from dogpile.cache.api import CachedValue, NO_VALUE
 from dogpile.cache.proxy import ProxyBackend
 from dogpile.cache import make_region
@@ -239,7 +239,7 @@ class JSONProxy(ProxyBackend):
             return NO_VALUE
         if value.startswith('\0'):
             value = zlib.decompress(value[1:])
-        payload, metadata = anyjson.loads(value)
+        payload, metadata = json.loads(value)
         metadata['ct'] = float(metadata['ct'])
         return CachedValue(payload, metadata)
 
@@ -287,11 +287,8 @@ class JSONProxy(ProxyBackend):
         Returns:
             :term:`bytes`.
         """
-        ret = [value.payload, value.metadata.copy()]
-        # turn this into a string because yajl will try to represent this in
-        # scientific notation, losing precision.
-        ret[1]['ct'] = '%0.6f' % ret[1]['ct']
-        ret = anyjson.dumps(ret)
+        ret = [value.payload, value.metadata]
+        ret = json.dumps(ret)
         if len(ret) > _GZIP_THRESHOLD:
             ret = '\0' + zlib.compress(ret)
             if len(ret) > _GZIP_THRESHOLD:

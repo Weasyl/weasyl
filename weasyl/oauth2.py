@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import anyjson as json
+import json
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
 from pyramid.response import Response
 from oauthlib.oauth2 import FatalClientError, OAuth2Error

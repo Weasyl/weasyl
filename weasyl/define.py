@@ -15,7 +15,7 @@ import urlparse
 import functools
 import pkgutil
 
-import anyjson as json
+import json
 import arrow
 from pyramid.threadlocal import get_current_request
 import pytz

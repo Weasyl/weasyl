@@ -15,7 +15,13 @@ import weasyl.macro as m
 from libweasyl import cache
 
 threadPool = reactor.getThreadPool()
-threadPool.adjustPoolsize(minthreads=6, maxthreads=12)
+
+configuredMaxThreads = os.environ.get('WEASYL_MAX_THREAD_POOL_SIZE')
+if configuredMaxThreads is not None:
+    threadPool.adjustPoolsize(
+        maxthreads=int(configuredMaxThreads),
+    )
+
 weasylResource = WSGIResource(reactor, threadPool, weasyl.wsgi.wsgi_app)
 if os.environ.get('WEASYL_SERVE_STATIC_FILES'):
     weasylResource = weasyl.polecat.TryChildrenBeforeLeaf(weasylResource)

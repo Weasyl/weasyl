@@ -75,20 +75,7 @@ containers/run \
 ## Nginx
 
 ```shell
-containers/run \
-    --rm=false \
-    --restart=on-failure \
-    --detach \
-    --network=wzlnet \
-    --name=weasyl-nginx \
-    "$(containers/mount containers/nginx.conf /etc/nginx/nginx.conf)" \
-    --tmpfs=/var/cache/nginx \
-    --tmpfs=/run \
-    --publish=127.0.0.1:80:8080/tcp \
-    nginx:mainline-alpine
-docker stop weasyl-nginx
-docker network connect bridge weasyl-nginx
-docker start weasyl-nginx
+containers/run-nginx
 ```
 
 

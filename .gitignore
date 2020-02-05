@@ -11,12 +11,7 @@ __pycache__/
 /save
 /static/character
 /static/fonts
-/static/journal
-/static/submission
-/static/tile
-/static/user
 /static/media
-/static/SHARE
 /config/site.config.txt
 /config/weasyl-staff.py
 /.vagrant

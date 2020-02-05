@@ -2,12 +2,15 @@
 
 !assets
 !libweasyl
-!static
 !weasyl
 
 !etc
 etc/*
 !etc/requirements.txt
+
+!static
+static/character
+static/media
 
 !build.js
 !package.json

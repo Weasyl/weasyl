@@ -20,6 +20,7 @@ containers/run-memcached
 mkdir containers/data
 containers/run-postgres
 containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE EXTENSION hstore'
+containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE DATABASE weasyl_test'
 wget https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz
 < weasyl-latest-staff.sql.xz | unxz | containers/run --tty=false --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl
 ```
@@ -72,6 +73,20 @@ containers/run \
 ```
 
 
+### Test
+
+```shell
+DOCKER_BUILDKIT=1 docker build --target=test -t weasyl-test .
+containers/run \
+    --network=wzlnet \
+    --name=weasyl-test \
+    --tmpfs=/weasyl/testing \
+    "$(containers/mount config)" \
+    --env=WEASYL_TEST_SQLALCHEMY_URL=postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl_test \
+    weasyl-test
+```
+
+
 ## Nginx
 
 ```shell
@@ -99,3 +114,4 @@ Merging the existing Docker branch should help with some of these.
 - [ ] dns with gvisor if not kubernetes previously
 - [ ] build reproduction with github actions
 - [ ] rootless
+- [ ] allow `pytest libweasyl.test weasyl.test`

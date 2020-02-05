@@ -17,6 +17,8 @@ static/media
 !package-lock.json
 !setup.py
 
+!pytest.ini
+
 **/*.egg-info
 **/*.py[co]
 **/__pycache__

@@ -50,7 +50,14 @@ COPY weasyl weasyl
 RUN python2 setup.py bdist_wheel -d dist2
 
 
-FROM python:2.7-alpine3.11
+FROM python:2.7-alpine3.11 AS bdist-pytest
+RUN adduser -S build -h /weasyl-build -u 100
+WORKDIR /weasyl-build
+USER build
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist pytest==4.6.5
+
+
+FROM python:2.7-alpine3.11 AS package
 RUN apk add --update \
     py3-virtualenv \
     imagemagick6 \
@@ -80,6 +87,15 @@ COPY weasyl/weasyl.tac ./
 ARG version
 RUN test -n "$version" && printf '%s\n' "$version" > version.txt
 
+FROM package AS test
+RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-pytest .venv/bin/pip install --no-deps install-wheels/*
+ENV WEASYL_APP_ROOT=.
+ENV WEASYL_STORAGE_ROOT=testing/storage
+ENV PATH="/weasyl/.venv/bin:${PATH}"
+COPY pytest.ini ./
+CMD pytest -x libweasyl.test && pytest -x weasyl.test
+
+FROM package
 ENV WEASYL_APP_ROOT=/weasyl
 ENV WEASYL_WEB_ENDPOINT=tcp:8080
 ENV WEASYL_SERVE_STATIC_FILES=y

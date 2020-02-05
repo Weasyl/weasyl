@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
-from pyramid.response import Response
-
-from weasyl import define
+from pyramid.httpexceptions import HTTPMovedPermanently
 
 
 def halloweasyl2014_(request):
-    return Response(define.webpage(userid=request.userid, template='events/halloweasyl.html'))
+    raise HTTPMovedPermanently(location="/search?q=halloweasyl2014")

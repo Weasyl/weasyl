@@ -17,6 +17,7 @@ from webtest import TestApp
 from weasyl import config
 config._in_test = True  # noqa
 
+from libweasyl.cache import JSONProxy, ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from weasyl import (
@@ -33,7 +34,10 @@ from weasyl import (
 from weasyl.wsgi import wsgi_app
 
 
-cache.region.configure('dogpile.cache.memory')
+cache.region.configure(
+    'dogpile.cache.memory',
+    wrap=[ThreadCacheProxy, JSONProxy],
+)
 define.metric = lambda *a, **kw: None
 
 
@@ -103,10 +107,10 @@ def lower_bcrypt_rounds(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def drop_email(monkeypatch):
-    def drop_append(mailto, mailfrom, subject, content, displayto=None):
+    def drop_send(mailto, subject, content):
         pass
 
-    monkeypatch.setattr(emailer, 'append', drop_append)
+    monkeypatch.setattr(emailer, 'send', drop_send)
 
 
 @pytest.fixture
@@ -129,7 +133,11 @@ def db(request):
 
 @pytest.fixture(name='cache')
 def cache_(request):
-    cache.region.configure('dogpile.cache.memory', replace_existing_backend=True)
+    cache.region.configure(
+        'dogpile.cache.memory',
+        wrap=[ThreadCacheProxy, JSONProxy],
+        replace_existing_backend=True,
+    )
 
 
 @pytest.fixture(autouse=True)

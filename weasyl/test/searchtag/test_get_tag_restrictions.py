@@ -15,15 +15,6 @@ combined_tags = valid_tags | invalid_tags
 
 
 @pytest.mark.usefixtures('db')
-def test_get_user_tag_restrictions():
-    user_id = db_utils.create_user()
-    tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
-    searchtag.edit_user_tag_restrictions(user_id, tags)
-    resultant_tags = searchtag.query_user_restricted_tags(user_id)
-    assert resultant_tags == valid_tags
-
-
-@pytest.mark.usefixtures('db')
 def test_get_global_searchtag_restrictions(monkeypatch):
     director_user_id = db_utils.create_user(username="testdirector")
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))

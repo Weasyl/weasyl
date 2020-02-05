@@ -14,12 +14,6 @@ class BaseQuery(Query):
             raise self._not_found_exception()
         return ret
 
-    def first_or_404(self):
-        ret = self.first()
-        if ret is None:
-            raise self._not_found_exception()
-        return ret
-
 
 class _BaseObject(object):
     def to_dict(self):

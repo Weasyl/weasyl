@@ -5,8 +5,8 @@ Just bear with me here.
 
 from __future__ import absolute_import, division
 
-import os
 import time
+import urllib
 
 import json
 
@@ -19,12 +19,12 @@ from twisted.internet.threads import deferToThread
 from twisted.internet import defer
 from twisted.protocols import amp
 from twisted.python import log
+from twisted.python.components import proxyForInterface
 from twisted.web.http import HTTPChannel, INTERNAL_SERVER_ERROR
-from twisted.web.resource import ForbiddenResource, Resource
+from twisted.web.resource import IResource, ForbiddenResource, Resource
 from twisted.web.server import Request, Site
 from twisted.web.static import File
-
-from weasyl import macro as m
+from twisted.web.util import Redirect
 
 
 def percentile(sorted_data, percentile):
@@ -149,37 +149,22 @@ class TryChildrenBeforeLeaf(Resource):
         return self.leaf.render(request)
 
 
-def rewriteSubmissionUploads(request):
-    """Rewrite submission uploads to remove the artist name from the URL.
+def rewriteCharacterUploads(request):
+    """Rewrite character uploads to remove the artist name from the URL.
 
     This is for symmetry with the nginx config, which does mostly the same
     thing. The equivalent nginx rewrite rule is:
 
-    rewrite "^(/static/(submission|character)/../../../../../../)(.+)-(.+)$" $1$4 break;
+    rewrite "^(/static/character/../../../../../../)(.+)-(.+)$" $1$4 break;
     """
-
-    if (request.postpath[0] == 'static' and
-            request.postpath[1] in ('submission', 'character') and
-            '-' in request.postpath[-1]):
-        _, _, request.postpath[-1] = request.postpath[-1].rpartition('-')
+    if (
+        len(request.postpath) == 9
+        and request.postpath[0] == 'static'
+        and request.postpath[1] == 'character'
+        and '-' in request.postpath[8]
+    ):
+        _, _, request.postpath[8] = request.postpath[8].rpartition('-')
         request.path = '/' + '/'.join(request.prepath + request.postpath)
-
-
-def rewriteNonlocalImages(request):
-    """Rewrite static files to be fetched from the live site if they don't exist
-    locally.
-
-    This is convenient for people working off of database dumps of the live
-    site, so the images aren't all hella broken.
-    """
-
-    if request.postpath[0] != 'static':
-        return
-    localPath = os.path.join(m.MACRO_STORAGE_ROOT, request.path.lstrip('/'))
-    if os.path.exists(localPath):
-        return
-    request.postpath[0] = '_weasyl_static'
-    request.path = '/' + '/'.join(request.prepath + request.postpath)
 
 
 class FetchRequestStats(amp.Command):
@@ -398,3 +383,38 @@ class PeriodicTasksService(Service):
 class NoDirectoryListingFile(File):
     def directoryListing(self):
         return ForbiddenResource()
+
+
+class RedirectIfNotFound(proxyForInterface(IResource)):
+    """
+    Redirects not-found responses from any descendant resources to some
+    different URL prefix.
+
+    The prefix is joined to the remaining path with simple string
+    concatenation; it should end with a trailing slash.
+
+    `isNotFound` is called to determine whether a resource is considered a
+    not-found response.
+    """
+
+    def __init__(self, original, targetPrefix, isNotFound):
+        super(RedirectIfNotFound, self).__init__(original)
+        self.targetPrefix = targetPrefix
+        self.isNotFound = isNotFound
+
+    def getChildWithDefault(self, child, request):
+        ret = self.original.getChildWithDefault(child, request)
+        quotedChild = urllib.quote(child, safe="")
+
+        if self.isNotFound(ret):
+            # https://github.com/twisted/twisted/blob/twisted-19.10.0/src/twisted/web/server.py#L222
+            encoded_postpath = [quotedChild]
+            encoded_postpath.extend(urllib.quote(segment, safe="") for segment in request.postpath)
+
+            return Redirect(self.targetPrefix + "/".join(encoded_postpath))
+
+        return RedirectIfNotFound(
+            ret,
+            targetPrefix=self.targetPrefix + quotedChild + "/",
+            isNotFound=self.isNotFound,
+        )

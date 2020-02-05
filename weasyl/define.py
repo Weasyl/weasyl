@@ -13,7 +13,7 @@ import numbers
 import datetime
 import urlparse
 import functools
-import subprocess
+import pkgutil
 
 import json
 import arrow
@@ -23,7 +23,7 @@ import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
 from sqlalchemy.exc import OperationalError
-from web.template import frender
+from web.template import Template
 
 import libweasyl.constants
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
@@ -34,7 +34,6 @@ from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
 from weasyl.cache import region
-from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
 
@@ -151,8 +150,8 @@ def serializable_retry(action, limit=16):
                     raise
 
 
-CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
-the_fake_request = FakePyramidRequest()
+with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
+    CURRENT_SHA = f.read().strip()
 
 
 # Caching all templates. Parsing templates is slow; we don't need to do it all
@@ -167,9 +166,9 @@ def _compile(template_name):
     template = _template_cache.get(template_name)
 
     if template is None or reload_templates:
-        template_path = os.path.join(macro.MACRO_APP_ROOT, 'templates', template_name)
-        _template_cache[template_name] = template = frender(
-            template_path,
+        _template_cache[template_name] = template = Template(
+            pkgutil.get_data(__name__, 'templates/' + template_name),
+            filename=template_name,
             globals={
                 "STR": str,
                 "LOGIN": get_sysname,
@@ -205,7 +204,6 @@ def _compile(template_name):
                 "json": json,
                 "sorted": sorted,
                 "staff": staff,
-                "request": the_fake_request,
                 "resource_path": get_resource_path,
             })
 
@@ -224,29 +222,23 @@ def titlebar(title, backtext=None, backlink=None):
     return render("common/stage_title.html", [title, backtext, backlink])
 
 
-def errorpage(userid, code=None, links=None, request_id=None, **extras):
-    if links is None:
-        links = []
+def errorpage_html(userid, message_html, links=None, request_id=None, **extras):
+    return webpage(userid, "error/error.html", [message_html, links, request_id], **extras)
 
+
+def errorpage(userid, code=None, links=None, request_id=None, **extras):
     if code is None:
         code = errorcode.unexpected
-    code = text.markdown(code)
 
-    return webpage(userid, "error/error.html", [code, links, request_id], **extras)
+    return errorpage_html(userid, text.markdown(code), links, request_id, **extras)
 
 
-def webpage(userid=0, template=None, argv=None, options=None, **extras):
+def webpage(userid, template, argv=None, options=None, **extras):
     if argv is None:
         argv = []
 
     if options is None:
         options = []
-
-    if template is None:
-        if userid:
-            template, argv = "error/error.html", [errorcode.signed]
-        else:
-            template, argv = "error/error.html", [errorcode.unsigned]
 
     page = common_page_start(userid, options=options, **extras)
     page.append(render(template, argv))

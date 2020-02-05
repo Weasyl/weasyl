@@ -41,7 +41,7 @@ config/weasyl-staff.py:
 
 # Creates python environment
 $(VE): etc/requirements.txt
-	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
+	test -e $@ || { virtualenv $@; \
                $@/bin/pip install -U pip setuptools; }
 	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt -e .
 	$@/bin/pip install $(USE_WHEEL) pytest==4.6.5 flake8
@@ -88,6 +88,7 @@ build/rev-manifest.json: node_modules
 # Phony setup target
 .PHONY: setup
 setup: $(VE) config/site.config.txt config/weasyl-staff.py build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
+	git rev-parse --short HEAD > version.txt
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker
@@ -103,7 +104,7 @@ run: setup
 		WEASYL_SERVE_STATIC_FILES=y \
 		WEASYL_RELOAD_TEMPLATES=y \
 		WEASYL_RELOAD_ASSETS=y \
-		WEASYL_REVERSE_PROXY_STATIC=y \
+		WEASYL_REDIRECT_MISSING_STATIC=y \
 		WEASYL_WEB_ENDPOINT=$(WEB_ENDPOINT) \
 		WEASYL_WEB_STATS_ENDPOINT="" \
 		$(VE)/bin/twistd -ny weasyl/weasyl.tac

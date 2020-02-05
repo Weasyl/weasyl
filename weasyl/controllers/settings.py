@@ -456,7 +456,7 @@ def control_apikeys_post_(request):
 @login_required
 def control_tagrestrictions_get_(request):
     return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.query_user_restricted_tags(request.userid),
+        sorted(searchtag.query_user_restricted_tags(request.userid)),
     ), title="Edit Community Tagging Restrictions"))
 
 
@@ -465,9 +465,8 @@ def control_tagrestrictions_get_(request):
 def control_tagrestrictions_post_(request):
     tags = searchtag.parse_restricted_tags(request.params["tags"])
     searchtag.edit_user_tag_restrictions(request.userid, tags)
-    return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.query_user_restricted_tags(request.userid),
-    ), title="Edit Community Tagging Restrictions"))
+
+    raise HTTPSeeOther(location=request.route_path('control_tagrestrictions'))
 
 
 @login_required
@@ -580,16 +579,16 @@ def manage_collections_post_(request):
 
 @login_required
 def manage_thumbnail_get_(request):
-    form = request.web_input(submitid="", charid="", auto="")
+    form = request.web_input(submitid="", charid="")
     submitid = define.get_int(form.submitid)
     charid = define.get_int(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
-        return Response(define.errorpage(request.userid, errorcode.permissions))
-    elif charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
-        return Response(define.errorpage(request.userid, errorcode.permissions))
-    elif not submitid and not charid:
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
+    if charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
+        raise WeasylError("InsufficientPermissions")
+    if not submitid and not charid:
+        raise WeasylError("Unexpected")
 
     if charid:
         source_path = define.url_make(charid, "char/.thumb", root=True)
@@ -623,11 +622,11 @@ def manage_thumbnail_post_(request):
     charid = define.get_int(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
     if charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
     if not submitid and not charid:
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("Unexpected")
 
     if form.thumbfile:
         thumbnail.upload(form.thumbfile, submitid=submitid, charid=charid)
@@ -668,7 +667,6 @@ def manage_tagfilters_post_(request):
 
 @login_required
 def manage_avatar_get_(request):
-    form = request.web_input(style="")
     try:
         avatar_source = avatar.avatar_source(request.userid)
     except WeasylError:
@@ -678,7 +676,7 @@ def manage_avatar_get_(request):
 
     return Response(define.webpage(
         request.userid,
-        "manage/avatar_nostyle.html" if form.style == "false" else "manage/avatar.html",
+        "manage/avatar.html",
         [
             # Avatar selection
             avatar_source_url,

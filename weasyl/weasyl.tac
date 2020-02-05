@@ -5,31 +5,47 @@ import crochet
 from twisted.application.internet import StreamServerEndpointService
 from twisted.application import service
 from twisted.internet import reactor, endpoints
+from twisted.web.resource import NoResource
 from twisted.web.wsgi import WSGIResource
 
 import weasyl.polecat
 import weasyl.wsgi
 import weasyl.define as d
+import weasyl.macro as m
 from libweasyl import cache
 
 threadPool = reactor.getThreadPool()
-threadPool.adjustPoolsize(minthreads=6, maxthreads=12)
+
+configuredMaxThreads = os.environ.get('WEASYL_MAX_THREAD_POOL_SIZE')
+if configuredMaxThreads is not None:
+    threadPool.adjustPoolsize(
+        maxthreads=int(configuredMaxThreads),
+    )
+
 weasylResource = WSGIResource(reactor, threadPool, weasyl.wsgi.wsgi_app)
 if os.environ.get('WEASYL_SERVE_STATIC_FILES'):
     weasylResource = weasyl.polecat.TryChildrenBeforeLeaf(weasylResource)
     staticResource = weasyl.polecat.NoDirectoryListingFile(
-        os.path.join(os.environ['WEASYL_APP_ROOT'], 'static'))
+        os.path.join(m.MACRO_APP_ROOT, 'static'))
+
+    for childName in ["character", "media"]:
+        childResource = weasyl.polecat.NoDirectoryListingFile(
+            os.path.join(m.MACRO_STORAGE_ROOT, "static", childName))
+
+        if os.environ.get('WEASYL_REDIRECT_MISSING_STATIC'):
+            childResource = weasyl.polecat.RedirectIfNotFound(
+                childResource,
+                targetPrefix="https://cdn.weasyl.com/static/" + childName + "/",
+                isNotFound=lambda r: isinstance(r, NoResource),
+            )
+
+        staticResource.putChild(childName, childResource)
+
     cssResource = weasyl.polecat.NoDirectoryListingFile(
-        os.path.join(os.environ['WEASYL_APP_ROOT'], 'build/css'))
+        os.path.join(m.MACRO_APP_ROOT, 'build/css'))
     weasylResource.putChild('static', staticResource)
     weasylResource.putChild('css', cssResource)
-    rewriters = [weasyl.polecat.rewriteSubmissionUploads]
-
-    if os.environ.get('WEASYL_REVERSE_PROXY_STATIC'):
-        from twisted.web import proxy
-        weasylResource.putChild(
-            '_weasyl_static', proxy.ReverseProxyResource('www.weasyl.com', 80, '/static'))
-        rewriters.append(weasyl.polecat.rewriteNonlocalImages)
+    rewriters = [weasyl.polecat.rewriteCharacterUploads]
 
     from twisted.web.rewrite import RewriterResource
     weasylResource = RewriterResource(weasylResource, *rewriters)

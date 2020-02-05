@@ -88,6 +88,7 @@ build/rev-manifest.json: node_modules
 # Phony setup target
 .PHONY: setup
 setup: $(VE) config/site.config.txt config/weasyl-staff.py build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
+	git rev-parse --short HEAD > version.txt
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker

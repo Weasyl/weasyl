@@ -1,0 +1,33 @@
+#!/bin/sh
+set -euo pipefail
+
+# The working directory, pre-escaped for use in a quoted CSV field.
+csv_pwd=$(printf '%s' "$PWD" | sed 's/"/""/g')
+
+# Expands a normal-looking path relative to the working directory into a src= CSV field.
+expand_src() {
+    printf '"src=%s/%s"' "$csv_pwd" "$1"
+}
+
+read_only='ro,'
+dst="/weasyl/$1"
+
+if test "$1" = '--writable'; then
+    shift
+    read_only=''
+fi
+
+case $# in
+1)
+    ;;
+2)
+    dst="$2"
+    ;;
+*)
+    printf "$0: too many arguments" >&2
+    exit 1
+esac
+
+# Mounts a normal-looking (no quotes) path relative to the working directory at
+# the same path in /weasyl, read-only unless --writable is specified.
+printf -- '--mount=type=bind,%s%s,dst=%s\n' "$read_only" "$(expand_src "$1")" "$dst"

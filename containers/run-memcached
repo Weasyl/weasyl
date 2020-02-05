@@ -1,0 +1,9 @@
+#!/bin/sh
+set -euo pipefail
+exec containers/run \
+    --rm=false \
+    --restart=on-failure \
+    --detach \
+    --network=wzlnet \
+    --name=weasyl-memcached \
+    memcached:1.5-alpine --memory-limit=64

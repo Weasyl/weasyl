@@ -24,9 +24,9 @@ all: .stamp-ve .stamp-egg-info alembic.ini
 
 # Creates python environment
 .stamp-ve:
-	test -e $(VE) || { $(PYVENV) $(VE); cp pip.conf $(VE) ; \
-                $(VE)/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; \
-                $(VE)/bin/pip install -U pip requests[security] -i https://pypi.python.org/simple; }
+	test -e $(VE) || { $(PYVENV) $(VE); \
+                $(VE)/bin/pip install -U pip setuptools; \
+                $(VE)/bin/pip install -U pip requests[security]; }
 	touch $@
 
 # Installs libweasyl package in development mode

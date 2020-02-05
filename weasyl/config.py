@@ -9,7 +9,9 @@ _in_test = False
 
 
 config_obj = ConfigParser.ConfigParser()
-config_obj.read([macro.MACRO_CFG_SITE_CONFIG])
+
+with open(macro.MACRO_CFG_SITE_CONFIG, 'r') as f:
+    config_obj.readfp(f)
 
 
 def config_read_setting(setting, value=None, section='general'):

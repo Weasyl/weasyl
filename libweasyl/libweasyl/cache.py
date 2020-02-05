@@ -286,7 +286,7 @@ class JSONProxy(ProxyBackend):
         Returns:
             :term:`bytes`.
         """
-        ret = [value.payload, value.metadata.copy()]
+        ret = [value.payload, value.metadata]
         ret = json.dumps(ret)
         if len(ret) > _GZIP_THRESHOLD:
             ret = '\0' + zlib.compress(ret)

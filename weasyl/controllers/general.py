@@ -130,7 +130,7 @@ def site_update_list_(request):
 
     can_edit = request.userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (updates, can_edit), title="Site Updates"))
+    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_edit), title="Site Updates"))
 
 
 def site_update_(request):

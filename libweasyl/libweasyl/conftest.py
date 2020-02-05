@@ -7,7 +7,7 @@ from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
 from libweasyl.models.tables import metadata
 from libweasyl.test.common import NotFound
-from libweasyl.test.common import media_link_formatter
+from libweasyl.test.common import dummy_format_media_link
 from libweasyl import cache
 
 
@@ -35,7 +35,7 @@ def staticdir(tmpdir):
         not_found_exception=NotFound,
         base_file_path=tmpdir.strpath,
         staff_config_dict={},
-        media_link_formatter_callback=media_link_formatter.format_media_link,
+        media_link_formatter_callback=dummy_format_media_link,
     )
     return tmpdir
 

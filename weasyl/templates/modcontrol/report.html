@@ -67,7 +67,6 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
       <button class="button positive">Comment</button>
     </form>
 
-  $if not report.is_closed:
     <h2>Close this report</h2>
     <form name="closereport" class="form" action="/modcontrol/closereport" method="post">
       $:{CSRF()}
@@ -104,7 +103,7 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
           <button class="button negative" name="unassign">Unassign from me</button>
         $else:
           <button class="button positive" name="assign">Assign to me</button>
-        <button class="button enableable" $:{'disabled' if not report.is_closed else ''}>Close</button>
+        <button class="button enableable" disabled>Close</button>
       </div>
     </form>
 </div>

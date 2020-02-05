@@ -35,7 +35,6 @@ from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
 from weasyl.cache import region
-from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
 
@@ -153,7 +152,6 @@ def serializable_retry(action, limit=16):
 
 
 CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
-the_fake_request = FakePyramidRequest()
 
 
 # Caching all templates. Parsing templates is slow; we don't need to do it all
@@ -206,7 +204,6 @@ def _compile(template_name):
                 "json": json,
                 "sorted": sorted,
                 "staff": staff,
-                "request": the_fake_request,
                 "resource_path": get_resource_path,
             })
 
@@ -225,29 +222,23 @@ def titlebar(title, backtext=None, backlink=None):
     return render("common/stage_title.html", [title, backtext, backlink])
 
 
-def errorpage(userid, code=None, links=None, request_id=None, **extras):
-    if links is None:
-        links = []
+def errorpage_html(userid, message_html, links=None, request_id=None, **extras):
+    return webpage(userid, "error/error.html", [message_html, links, request_id], **extras)
 
+
+def errorpage(userid, code=None, links=None, request_id=None, **extras):
     if code is None:
         code = errorcode.unexpected
-    code = text.markdown(code)
 
-    return webpage(userid, "error/error.html", [code, links, request_id], **extras)
+    return errorpage_html(userid, text.markdown(code), links, request_id, **extras)
 
 
-def webpage(userid=0, template=None, argv=None, options=None, **extras):
+def webpage(userid, template, argv=None, options=None, **extras):
     if argv is None:
         argv = []
 
     if options is None:
         options = []
-
-    if template is None:
-        if userid:
-            template, argv = "error/error.html", [errorcode.signed]
-        else:
-            template, argv = "error/error.html", [errorcode.unsigned]
 
     page = common_page_start(userid, options=options, **extras)
     page.append(render(template, argv))

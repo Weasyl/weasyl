@@ -9,9 +9,6 @@ signed = "You cannot perform this operation while signed in."
 unsigned = "You must be signed in to perform this operation."
 permission = "You do not have permission to access this page."
 
-"""DEPRECATED"""
-permissions = "You do not have permission to access this page."
-
 token = (
     "This action appears to have been performed illegitimately; for your "
     "security, this request was not fully processed. If you believe you are "

@@ -209,7 +209,7 @@ $code:
       <div id="detail-manage">
         <h3>Submission Management</h3>
 
-        <p><a href="/manage/thumbnail?submitid=${query['submitid']}&amp;auto=true">Edit Submission Thumbnail</a></p>
+        <p><a href="/manage/thumbnail?submitid=${query['submitid']}">Edit Submission Thumbnail</a></p>
         $if query['subtype'] > 1999:
           <p><a href="/reupload/cover?submitid=${query['submitid']}">Edit Cover Artwork</a></p>
         $if 'v' not in query['settings'] and 'D' not in query['settings']:

@@ -456,7 +456,7 @@ def control_apikeys_post_(request):
 @login_required
 def control_tagrestrictions_get_(request):
     return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.query_user_restricted_tags(request.userid),
+        sorted(searchtag.query_user_restricted_tags(request.userid)),
     ), title="Edit Community Tagging Restrictions"))
 
 

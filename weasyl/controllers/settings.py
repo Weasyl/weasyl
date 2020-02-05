@@ -465,9 +465,8 @@ def control_tagrestrictions_get_(request):
 def control_tagrestrictions_post_(request):
     tags = searchtag.parse_restricted_tags(request.params["tags"])
     searchtag.edit_user_tag_restrictions(request.userid, tags)
-    return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.query_user_restricted_tags(request.userid),
-    ), title="Edit Community Tagging Restrictions"))
+
+    raise HTTPSeeOther(location=request.route_path('control_tagrestrictions'))
 
 
 @login_required

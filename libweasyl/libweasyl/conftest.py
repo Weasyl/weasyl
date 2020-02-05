@@ -24,7 +24,10 @@ def setup(request):
     db.commit()
     metadata.create_all(engine)
 
-    cache.region.configure('dogpile.cache.memory')
+    cache.region.configure(
+        'dogpile.cache.memory',
+        wrap=[cache.ThreadCacheProxy, cache.JSONProxy],
+    )
 
 
 @pytest.fixture(autouse=True)

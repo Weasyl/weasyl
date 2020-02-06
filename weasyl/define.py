@@ -376,9 +376,9 @@ def get_rating(userid):
     if not userid:
         return ratings.GENERAL.code
 
-    profile_settings = get_profile_settings(userid)
-
     if is_sfw_mode():
+        profile_settings = get_profile_settings(userid)
+
         # if no explicit max SFW rating picked assume general as a safe default
         return profile_settings.max_sfw_rating
 

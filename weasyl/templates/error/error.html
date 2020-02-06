@@ -7,8 +7,7 @@ $:{RENDER("common/stage_title.html", ["System Message"])}
   $if request_id is not None:
     <p>
       If you wish to contact support
-      (<a href="https://forums.weasyl.com/vbulletin/forumdisplay.php?15-Site-amp-Forum-Support">on
-      the forums</a> or <a href="mailto:support@weasyl.com">by e-mail</a>)
+      <a href="mailto:${M.MACRO_SUPPORT_ADDRESS}">by e-mail</a>
       about this error, please include the following information: <br>
       <tt>request-id: ${request_id}</tt>
     </p>

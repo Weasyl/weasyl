@@ -36,6 +36,7 @@ from weasyl import macro
 from weasyl.cache import region
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -823,7 +824,7 @@ def common_status_page(userid, status):
                 userid,
                 "Your account has been permanently banned and you are no longer allowed "
                 "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-                "contact support@weasyl.com for assistance." % (reason,))
+                "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
 
         elif status == 'suspended':
             suspension = moderation.get_suspension(userid)
@@ -832,7 +833,7 @@ def common_status_page(userid, status):
                 "Your account has been temporarily suspended and you are not allowed to "
                 "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
                 "%s.\n\nIf you believe this suspension is in error, please contact "
-                "support@weasyl.com for assistance." % (suspension.reason, convert_date(suspension.release)))
+                "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
 
 
 _content_types = {

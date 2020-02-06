@@ -18,6 +18,7 @@ from weasyl.controllers.decorators import (
     token_checked,
 )
 from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 # Session management functions
@@ -81,7 +82,7 @@ def signin_post_(request):
             request.userid,
             "Your account has been permanently banned and you are no longer allowed "
             "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-            "contact support@weasyl.com for assistance." % (reason,)))
+            "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS)))
     elif logerror == "suspended":
         suspension = moderation.get_suspension(logid)
         return Response(define.errorpage(
@@ -89,7 +90,7 @@ def signin_post_(request):
             "Your account has been temporarily suspended and you are not allowed to "
             "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
             "%s.\n\nIf you believe this suspension is in error, please contact "
-            "support@weasyl.com for assistance." % (suspension.reason, define.convert_date(suspension.release))))
+            "%s for assistance." % (suspension.reason, define.convert_date(suspension.release), MACRO_SUPPORT_ADDRESS)))
 
     raise WeasylError("Unexpected")  # pragma: no cover
 

@@ -3,9 +3,8 @@ web.py==0.40
 raven==6.10.0
 requests[security]==2.22.0
 oauth2==1.9.0.post1
-python-memcached==1.59
-crochet==1.12.0
 mock==2.0.0
+pylibmc==1.6.1
 pyramid==1.10.4
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
 WebTest==2.0.34
@@ -14,9 +13,6 @@ qrcodegen==1.2.0            # For Two-Factor Authentication
 cryptography==2.8           # For Two-Factor Authentication
 publicsuffixlist==0.6.12    # For extracting the base domain for the email blacklist
 python-akismet==0.4.1       # For spam filtering
-
-# https://github.com/Weasyl/txyam2
-txyam2 @ https://pypi.weasyl.dev/txyam2/txyam2-0.5.1%2Bweasyl.1.tar.gz#sha224=fd2aa8ce875496ef37018a56c4251773ce734fe8e0e7c5b99ee956a9
 
 
 # libweasyl

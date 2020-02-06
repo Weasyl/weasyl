@@ -26,6 +26,7 @@ FROM python:2.7-alpine3.11 AS bdist
 # imagemagick6-dev: sanpera
 # libjpeg-turbo-dev, libwebp-dev, zlib-dev: Pillow
 # libffi-dev, openssl-dev: cryptography
+# libmemcached-dev: pylibmc
 # postgresql-dev: psycopg2cffi
 # xz-dev: backports.lzma
 RUN apk add --update \
@@ -33,6 +34,7 @@ RUN apk add --update \
     imagemagick6-dev \
     libffi-dev \
     libjpeg-turbo-dev \
+    libmemcached-dev \
     libwebp-dev \
     openssl-dev \
     postgresql-dev \
@@ -60,9 +62,10 @@ RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,ui
 FROM python:2.7-alpine3.11 AS package
 RUN apk add --update \
     py3-virtualenv \
-    imagemagick6 \
+    imagemagick6-libs \
     libffi \
     libjpeg-turbo \
+    libmemcached-libs \
     libwebp \
     libxslt \
     postgresql-dev

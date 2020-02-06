@@ -17,11 +17,11 @@ from webtest import TestApp
 from weasyl import config
 config._in_test = True  # noqa
 
+from libweasyl import cache
 from libweasyl.cache import JSONProxy, ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from weasyl import (
-    cache,
     commishinfo,
     define,
     emailer,
@@ -158,15 +158,6 @@ def deterministic_marketplace_tests(monkeypatch):
         return json.loads(rates)
 
     monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
-
-
-@pytest.fixture(autouse=True)
-def do_not_retrieve_disposable_email_domains(monkeypatch):
-    """ Don't hammer GitHub's server with testing requests. """
-    def _retrieve_disposable_email_domains():
-        return ['test-domain-0001.co.nz', 'test-domain-0001.com']
-
-    monkeypatch.setattr(login, '_retrieve_disposable_email_domains', _retrieve_disposable_email_domains)
 
 
 @pytest.fixture

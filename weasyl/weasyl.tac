@@ -1,7 +1,6 @@
 # -*- python -*-
 import os
 
-import crochet
 from twisted.application.internet import StreamServerEndpointService
 from twisted.application import service
 from twisted.internet import reactor, endpoints
@@ -66,18 +65,12 @@ if d.config_read_bool('run_periodic_tasks', section='backend'):
     weasyl.polecat.PeriodicTasksService(reactor, run_periodic_tasks).setServiceParent(application)
 
 
-crochet.no_setup()
-
-
 cache.region.configure(
-    'txyam',
-    arguments=dict(
-        reactor=reactor,
-        url=d.config_read_setting(
-            'servers', 'tcp:127.0.0.1:11211', 'memcached').split(),
-        retryDelay=10,
-        timeOut=0.4,
-    ),
+    'dogpile.cache.pylibmc',
+    arguments={
+        'url': d.config_read_setting('servers', "127.0.0.1", section='memcached').split(),
+        'binary': True,
+    },
     wrap=[cache.ThreadCacheProxy, cache.JSONProxy],
     replace_existing_backend=True
 )

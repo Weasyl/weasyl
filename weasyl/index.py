@@ -5,6 +5,7 @@ import itertools
 import operator
 
 from libweasyl import ratings
+from libweasyl.cache import region
 
 from weasyl import blocktag
 from weasyl import character
@@ -15,7 +16,6 @@ from weasyl import profile
 from weasyl import searchtag
 from weasyl import siteupdate
 from weasyl import submission
-from weasyl.cache import region
 
 
 @region.cache_on_arguments()

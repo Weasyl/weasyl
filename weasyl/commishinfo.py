@@ -9,10 +9,11 @@ from decimal import Decimal
 
 from pyramid.threadlocal import get_current_request
 
+from libweasyl.cache import region
+
 from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
-from weasyl.cache import region
 from weasyl.error import PostgresError, WeasylError
 
 _MAX_PRICE = 99999999

@@ -4,8 +4,9 @@ import re
 import string
 import urlparse
 
+from libweasyl.cache import region
+
 from weasyl import define as d
-from weasyl.cache import region
 
 
 _BANDCAMP_EMBED = re.compile(r"(album|track)=(\d+)")

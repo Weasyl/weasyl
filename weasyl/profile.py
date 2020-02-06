@@ -7,6 +7,7 @@ from translationstring import TranslationString as _
 from libweasyl import ratings
 from libweasyl import security
 from libweasyl import staff
+from libweasyl.cache import region
 from libweasyl.html import strip_html
 from libweasyl.models import tables
 
@@ -17,7 +18,6 @@ from weasyl import media
 from weasyl import orm
 from weasyl import shout
 from weasyl import welcome
-from weasyl.cache import region
 from weasyl.configuration_builder import create_configuration, BoolOption, ConfigOption
 from weasyl.error import WeasylError
 

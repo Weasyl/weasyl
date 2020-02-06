@@ -25,6 +25,7 @@ from sqlalchemy.exc import OperationalError
 from web.template import Template
 
 import libweasyl.constants
+from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
@@ -32,7 +33,6 @@ from libweasyl import html, text, ratings, security, staff
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
-from weasyl.cache import region
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
 from weasyl.macro import MACRO_SUPPORT_ADDRESS

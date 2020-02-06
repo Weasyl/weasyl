@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import os
+from io import open
+
 import arrow
 import bcrypt
 from publicsuffixlist import PublicSuffixList
@@ -7,7 +10,6 @@ from sqlalchemy.sql.expression import select
 
 from libweasyl import security
 from libweasyl import staff
-from libweasyl.cache import region
 from libweasyl.models.users import GuestSession
 
 from weasyl import define as d
@@ -366,6 +368,10 @@ def get_account_verification_token(email=None, username=None):
     return d.engine.scalar(statement)
 
 
+with open(os.path.join(m.MACRO_SYS_CONFIG_PATH, "disposable-domains.txt"), encoding='ascii') as f:
+    DISPOSABLE_DOMAINS = frozenset([line.rstrip() for line in f])
+
+
 def is_email_blacklisted(address):
     """
     Determines if a supplied email address is present in the 'emailblacklist' table.
@@ -379,36 +385,14 @@ def is_email_blacklisted(address):
     private_suffix = psl.privatesuffix(domain=domain)
 
     # Check the disposable email address list
-    disposable_domains = _retrieve_disposable_email_domains()
-    if private_suffix in disposable_domains:
+    if private_suffix in DISPOSABLE_DOMAINS:
         return True
 
     # Check the explicitly defined/blacklisted domains.
-    blacklisted_domains = d.engine.execute("""
-        SELECT domain_name
-        FROM emailblacklist
-    """).fetchall()
-    for site in blacklisted_domains:
-        if private_suffix == site['domain_name']:
-            return True
-
-    # If we get here, the domain (or subdomain) is not blacklisted
-    return False
-
-
-@region.cache_on_arguments(expiration_time=12*60*60)
-def _retrieve_disposable_email_domains():
-    """
-    Retrieves a periodically updated list of disposable email address domains from the 'url' variable, below.
-
-    :return: A [list] of disposable email address domains. Results are cached for 12 hours.
-    """
-    url = "https://raw.githubusercontent.com/ivolo/disposable-email-domains/master/index.json"
-    resp = d.http_get(url=url)
-    if resp.status_code == 200:
-        return resp.json()
-    else:
-        return []
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT FROM emailblacklist WHERE domain_name = %(domain)s)",
+        domain=private_suffix,
+    )
 
 
 def verify_email_change(userid, token):

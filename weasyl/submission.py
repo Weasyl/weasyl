@@ -36,7 +36,6 @@ from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
 from weasyl import spam_filtering
-from weasyl import twits
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -66,38 +65,9 @@ def _limit(size, extension):
 
 def _create_notifications(userid, submitid, rating, settings, title, tags):
     """
-    Creates notifications to welcome page, watchers, Twitter.
+    Creates notifications to watchers.
     """
     welcome.submission_insert(userid, submitid, rating=rating.code, settings=settings)
-
-    if 'q' in settings and 'f' not in settings:
-        _post_to_twitter_about(submitid, title, rating.code, tags)
-
-
-def _post_to_twitter_about(submitid, title, rating, tags):
-    url = d.absolutify_url('/submission/%s/%s' % (submitid, text.slug_for(title)))
-
-    st = d.meta.tables['searchtag']
-    sms = d.meta.tables['searchmapsubmit']
-    q = (sa.select([st.c.title])
-         .select_from(st.join(sms, st.c.tagid == sms.c.tagid))
-         .where(st.c.title.in_(t.lower() for t in tags))
-         .group_by(st.c.title)
-         .order_by(sa.func.count().desc()))
-
-    account = 'WeasylCritique'
-    if rating in (ratings.MATURE.code, ratings.EXPLICIT.code):
-        account = 'WZLCritiqueNSFW'
-    length = 26
-    selected_tags = []
-    db = d.connect()
-    for tag, in db.execute(q):
-        if len(tag) + 2 + length > 140:
-            break
-        selected_tags.append('#' + tag)
-        length += len(tag) + 2
-
-    twits.post(account, u'%s %s' % (url, ' '.join(selected_tags)))
 
 
 def _check_for_spam(submission, userid):

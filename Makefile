@@ -106,7 +106,6 @@ run: setup
 		WEASYL_RELOAD_ASSETS=y \
 		WEASYL_REDIRECT_MISSING_STATIC=y \
 		WEASYL_WEB_ENDPOINT=$(WEB_ENDPOINT) \
-		WEASYL_WEB_STATS_ENDPOINT="" \
 		$(VE)/bin/twistd -ny weasyl/weasyl.tac
 
 # Phony target to run a local server inside of vagrant

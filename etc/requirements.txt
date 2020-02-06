@@ -15,9 +15,6 @@ cryptography==2.8           # For Two-Factor Authentication
 publicsuffixlist==0.6.11    # For extracting the base domain for the email blacklist
 python-akismet==0.4.1       # For spam filtering
 
-# https://github.com/Weasyl/txstatsd
-txstatsd @ https://pypi.weasyl.dev/txstatsd/txStatsD-1.0.0%2Bweasyl.2.tar.gz#sha224=fb4f9b152d98f0baf544bb1671d5e0aaaefa044656ac90017ecbdd41
-
 # https://github.com/Weasyl/txyam2
 txyam2 @ https://pypi.weasyl.dev/txyam2/txyam2-0.5.1%2Bweasyl.1.tar.gz#sha224=fd2aa8ce875496ef37018a56c4251773ce734fe8e0e7c5b99ee956a9
 

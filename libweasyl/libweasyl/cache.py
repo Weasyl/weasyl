@@ -319,38 +319,3 @@ class JSONProxy(ProxyBackend):
                 :py:class:`~dogpile.cache.api.CachedValue` objects.
         """
         self.proxied.set_multi({k: self.save(v) for k, v in pairs.items()})
-
-
-def includeme(config):
-    """
-    Configure caching for a pyramid application.
-
-    Specifically, configure :py:data:`.region` with the configuration from the
-    *config* :term:`application registry`. Settings starting with ``cache.``
-    will be interpreted as configuration for dogpile.cache.
-
-    The region is then wrapped in a :py:class:`.JSONProxy`, which is wrapped in
-    turn with a :py:class:`.ThreadCacheProxy`. The result of this is that the
-    :py:class:`.ThreadCacheProxy` will be consulted before JSON serialization;
-    that is, it won't be storing serialized JSON.
-
-    Finally, by using a :term:`finished callback`,
-    :py:meth:`.ThreadCacheProxy.zap_cache` is scheduled to be called at the end
-    of every request.
-
-    Parameters:
-        config: A pyramid :term:`configurator`.
-    """
-    region.configure_from_config(config.registry.settings, 'cache.')
-    for wrapper in [JSONProxy, ThreadCacheProxy]:
-        region.wrap(wrapper)
-    config.registry.settings['weasyl.cache_region'] = region
-
-    def setup_zap_cache(event):
-        event.request.add_finished_callback(do_zap_cache)
-
-    def do_zap_cache(request):
-        ThreadCacheProxy.zap_cache()
-
-    from pyramid.events import NewRequest
-    config.add_subscriber(setup_zap_cache, NewRequest)

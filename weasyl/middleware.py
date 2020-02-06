@@ -71,12 +71,6 @@ def db_timer_tween_factory(handler, registry):
         resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
         resp.headers['X-SQL-Queries'] = str(len(request.sql_times))
         resp.headers['X-Memcached-Queries'] = str(len(request.memcached_times))
-        sess = request.weasyl_session
-        d.statsFactory.logRequest(
-            time_queued, time_in_sql, time_in_memcached, time_in_python,
-            len(request.sql_times), len(request.memcached_times),
-            sess.userid, sess.sessionid, request.method, request.path,
-            request.query_string.split(','))
         return resp
     return db_timer_tween
 

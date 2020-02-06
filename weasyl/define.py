@@ -12,7 +12,6 @@ import logging
 import numbers
 import datetime
 import urlparse
-import functools
 import pkgutil
 
 import json
@@ -57,18 +56,7 @@ _load_resources()
 
 
 def record_timing(func):
-    key = 'timing.{0.__module__}.{0.__name__}'.format(func)
-
-    @functools.wraps(func)
-    def wrapper(*a, **kw):
-        start = time.time()
-        try:
-            return func(*a, **kw)
-        finally:
-            delta = time.time() - start
-            metric('timing', key, delta)
-
-    return wrapper
+    return func
 
 
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
@@ -1055,12 +1043,9 @@ def _requests_wrapper(func_name):
 http_get = _requests_wrapper('get')
 http_post = _requests_wrapper('post')
 
-# This will be set by twisted.
-statsFactory = None
-
 
 def metric(*a, **kw):
-    statsFactory.metric(*a, **kw)
+    pass
 
 
 def iso8601(unixtime):

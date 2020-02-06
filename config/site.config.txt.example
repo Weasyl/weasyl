@@ -7,8 +7,6 @@ convert_currency = false
 [backend]
 run_periodic_tasks = false
 profile_responses = false
-# this should almost always be off in prod but it's a useful default for dev
-rough_shutdowns = true
 
 [sqlalchemy]
 # url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl

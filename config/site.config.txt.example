@@ -13,7 +13,7 @@ profile_responses = false
 url = postgresql+psycopg2cffi:///weasyl
 
 [memcached]
-# servers = tcp:weasyl-memcached:11211
+# servers = weasyl-memcached
 
 [sentry]
 # dsn = twisted+http://...

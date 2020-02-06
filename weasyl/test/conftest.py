@@ -17,11 +17,11 @@ from webtest import TestApp
 from weasyl import config
 config._in_test = True  # noqa
 
+from libweasyl import cache
 from libweasyl.cache import JSONProxy, ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from weasyl import (
-    cache,
     commishinfo,
     define,
     emailer,

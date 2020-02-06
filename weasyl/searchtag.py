@@ -4,6 +4,7 @@ import re
 import sqlalchemy as sa
 
 from libweasyl import staff
+from libweasyl.cache import region
 
 from weasyl import define as d
 from weasyl import files
@@ -11,7 +12,6 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import orm
 from weasyl import welcome
-from weasyl.cache import region
 from weasyl.error import WeasylError
 
 

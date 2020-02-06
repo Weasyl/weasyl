@@ -6,6 +6,7 @@ from libweasyl import ratings
 
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
+MACRO_SUPPORT_ADDRESS = "support@weasyl.dev"
 
 MACRO_BCRYPT_ROUNDS = 13
 

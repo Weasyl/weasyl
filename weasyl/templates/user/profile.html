@@ -1,4 +1,4 @@
-$def with (profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends)
+$def with (request, profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <section><div id="user-header" class="stage clear">
@@ -46,9 +46,16 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       $ cover = featured['sub_media']['cover'][0]
       <div id="user-featured">
         $if featured['contype'] in (10, 15):
-          <h3>${blurb}: <a class="color-c" href="/submission/${featured['submitid']}/${SLUG(featured['title'])}">${featured['title']}</a></h3>
+          $code:
+            featured_link = request.route_path(
+              'submission_detail_profile',
+              name=LOGIN(featured['username']),
+              submitid=featured['submitid'],
+              slug=SLUG(featured['title']),
+            )
+          <h3>${blurb}: <a class="color-c" href="${featured_link}">${featured['title']}</a></h3>
           <div id="uf-image">
-            <a href="/submission/${featured['submitid']}/${SLUG(featured['title'])}"><img src="${cover['display_url']}" alt="${blurb} image: ${featured['title']}" /></a>
+            <a href="${featured_link}"><img src="${cover['display_url']}" alt="${blurb} image: ${featured['title']}" /></a>
         $elif featured['contype'] == 20:
           <h3>Most Recent: <a class="color-c" href="/character/${featured['charid']}/${SLUG(featured['title'])}">${featured['title']}</a></h3>
           <div id="uf-image">

@@ -30,6 +30,7 @@ from weasyl import (
     middleware,
     spam_filtering,
 )
+from weasyl.controllers.routes import setup_routes_and_views
 from weasyl.wsgi import wsgi_app
 
 
@@ -90,7 +91,7 @@ def setup_request_environment(request):
     pyramid_request.web_input = middleware.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'
     pyramid_request.client_addr = '127.0.0.1'
-    pyramid.testing.setUp(request=pyramid_request)
+    setup_routes_and_views(pyramid.testing.setUp(request=pyramid_request))
 
     def tear_down():
         pyramid_request.pg_connection.close()

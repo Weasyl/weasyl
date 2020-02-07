@@ -1,4 +1,4 @@
-$def with (myself, query, subtypes, violations)
+$def with (request, myself, query, subtypes, violations)
 $code:
   def _CAT(x):
     if x // 1000 == 1:   return "Visual"
@@ -113,9 +113,16 @@ $code:
       $ older = query['folder_more']['older']
       $if older:
         $for e, i in enumerate(older, start=1):
-          $ thumb = THUMB(i)
-          $ id = 'id="folder-nav-prev"' if e == len(older) else ''
-          <a class="nav-link older" $:{id} href="/submission/${i['submitid']}/${SLUG(i['title'])}">
+          $code:
+            thumb = THUMB(i)
+            id = 'id="folder-nav-prev"' if e == len(older) else ''
+            link = request.route_path(
+              'submission_detail_profile',
+              name=LOGIN(i['username']),
+              submitid=i['submitid'],
+              slug=SLUG(i['title']),
+            )
+          <a class="nav-link older" $:{id} href="${link}">
             <span class="text">&#171; Older</span>
             $if i['rating'] == R.MATURE.code:
               <span class="rating mature">The following submission is rated Mature:</span>
@@ -126,9 +133,16 @@ $code:
 
       $if query['folder_more']['newer']:
         $for e, i in enumerate(query['folder_more']['newer']):
-          $ thumb = THUMB(i)
-          $ id = 'id="folder-nav-next"' if e == 0 else ''
-          <a class="nav-link newer" $:{id} href="/submission/${i['submitid']}/${SLUG(i['title'])}">
+          $code:
+            thumb = THUMB(i)
+            id = 'id="folder-nav-next"' if e == 0 else ''
+            link = request.route_path(
+              'submission_detail_profile',
+              name=LOGIN(i['username']),
+              submitid=i['submitid'],
+              slug=SLUG(i['title']),
+            )
+          <a class="nav-link newer" $:{id} href="${link}">
             $if i['rating'] == R.MATURE.code:
               <span class="rating mature">The following submission is rated Mature:</span>
             $elif i['rating'] == R.EXPLICIT.code:

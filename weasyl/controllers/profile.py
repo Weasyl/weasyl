@@ -79,6 +79,7 @@ def profile_(request):
     statistics, show_statistics = profile.select_statistics(otherid)
 
     page.append(define.render('user/profile.html', [
+        request,
         # Profile information
         userprofile,
         # User information

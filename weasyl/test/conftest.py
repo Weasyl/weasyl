@@ -25,7 +25,6 @@ from weasyl import (
     commishinfo,
     define,
     emailer,
-    login,
     macro,
     media,
     middleware,

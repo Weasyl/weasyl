@@ -32,7 +32,7 @@ setup(
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
         'Pillow==6.2.2',
-        'psycopg2cffi==2.7.7',
+        'psycopg2cffi==2.8.1',
         'pyramid~=1.10.4',
         'pytz==2019.3',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera

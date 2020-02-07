@@ -701,7 +701,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
     }
 
 
-def twitter_card(submitid):
+def twitter_card(request, submitid):
     query = d.engine.execute("""
         SELECT
             su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value, su.rating
@@ -728,7 +728,13 @@ def twitter_card(submitid):
 
     ret = {
         'url': d.absolutify_url(
-            '/submission/%s/%s' % (submitid, text.slug_for(title))),
+            request.route_path(
+                'submission_detail_profile',
+                name=d.get_sysname(username),
+                submitid=submitid,
+                slug=text.slug_for(title),
+            )
+        ),
     }
 
     if twitter:

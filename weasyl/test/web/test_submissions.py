@@ -8,33 +8,7 @@ import pytest
 import webtest
 
 from weasyl.test import db_utils
-from weasyl.test.web.common import read_static_image, read_storage_image
-
-
-_BASE_VISUAL_FORM = {
-    'submitfile': u'',
-    'thumbfile': u'',
-    'title': u'Test title',
-    'subtype': u'1030',
-    'folderid': u'',
-    'rating': u'10',
-    'content': u'Description',
-    'tags': u'foo bar ',
-}
-
-
-@pytest.fixture(name='submission_user')
-def _submission_user(db):
-    return db_utils.create_user(username='submission_test')
-
-
-def _create_visual(app, user, **kwargs):
-    cookie = db_utils.create_session(user)
-    form = dict(_BASE_VISUAL_FORM, **kwargs)
-    resp = app.post('/submit/visual', form, headers={'Cookie': cookie}).maybe_follow(headers={'Cookie': cookie})
-    submitid = int(resp.html.find('input', {'name': 'submitid'})['value'])
-
-    return submitid
+from weasyl.test.web.common import create_visual, read_static_image, read_storage_image
 
 
 def _image_hash(image):
@@ -55,7 +29,7 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     cookie = db_utils.create_session(submission_user)
 
     # Create submission 1 with image 1
-    v1 = _create_visual(app, submission_user, submitfile=wesley1_large)
+    v1 = create_visual(app, submission_user, submitfile=wesley1_large)
 
     # Reupload submission 1 with image 2
     app.post('/reupload/submission', {
@@ -73,7 +47,7 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     }, headers={'Cookie': cookie}).follow()
 
     # Upload submission 2 with image 2
-    v2 = _create_visual(
+    v2 = create_visual(
         app,
         submission_user,
         submitfile=wesley2_large,

@@ -2,6 +2,7 @@ from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
     Integer, String, Text, text, DateTime, func, Boolean)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
+from sqlalchemy.schema import ForeignKey
 
 
 from libweasyl.models.helpers import (
@@ -363,6 +364,7 @@ login = Table(
     Column('twofa_secret', String(length=420), nullable=True),
     # Must be nullable, since existing accounts will not have this information
     Column('ip_address_at_signup', String(length=39), nullable=True),
+    Column('voucher', Integer, ForeignKey('login.userid'), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)

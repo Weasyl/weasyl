@@ -8,7 +8,6 @@ import pytz
 from pyramid.decorator import reify
 from sqlalchemy import orm
 
-from libweasyl.common import minimize_media
 from libweasyl.models.helpers import clauses_for
 from libweasyl.models.meta import Base
 from libweasyl.models import tables
@@ -57,17 +56,6 @@ class Login(Base):
         given rating. Otherwise, returns False.
         """
         return self.info.age >= rating.minimum_age
-
-    def __json__(self, request):
-        """
-        Returns a dictionary representing this user for export to JSON.
-        """
-        return {
-            'login': self.login_name,
-            'username': self.profile.username,
-            'full_name': self.profile.full_name,
-            'media': minimize_media(request, self.media),
-        }
 
 
 class AuthBCrypt(Base):

@@ -9,7 +9,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship
 import sqlalchemy as sa
 
-from libweasyl.common import minimize_media
 from libweasyl.constants import Category, DEFAULT_LIMITS, MEBIBYTE
 from libweasyl.exceptions import InvalidData, RatingExceeded, SubmissionFileTooLarge
 from libweasyl.files import file_type_for_category
@@ -17,7 +16,7 @@ from libweasyl.models.helpers import CharSettings, apply_validators, clauses_for
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Login
 from libweasyl.models import tables
-from libweasyl.text import markdown, slug_for
+from libweasyl.text import slug_for
 
 
 class Tag(Base):
@@ -67,13 +66,6 @@ class Submission(Base):
         is_critique = c('critique')
         is_google_doc = c('embed-type', 'google-drive')
         is_other_embed = c('embed-type', 'other')
-
-    def __json__(self, request):
-        return {
-            'title': self.title,
-            'rating': self.rating.name,
-            'media': minimize_media(request, self.media),
-        }
 
     def legacy_path(self, mod=False):
         """
@@ -248,17 +240,6 @@ class Comment(Base):
             return self._target_sub
         else:
             raise ValueError('no target user or submission')
-
-    def __json__(self, request):
-        return {
-            'id': self.commentid,
-            'poster': self.poster,
-            'children': self.subcomments,
-            'content': markdown(self.content),
-            'posted_at': self.unixtime,
-        }
-
-    subcomments = ()
 
 
 class Folder(Base):

@@ -34,9 +34,3 @@ $code:
 
   </div>
 </form>
-
-<form name="removecomment" action="/remove/comment" method="post">
-  $:{CSRF()}
-  <input type="hidden" name="feature" value="${feature}" />
-  <input type="hidden" name="commentid" />
-</form>

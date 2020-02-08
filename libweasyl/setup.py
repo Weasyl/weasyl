@@ -19,7 +19,7 @@ setup(
     ],
     package_data={
         'libweasyl': [
-            'alembic/*.py', 'alembic/versions/*.py',
+            'alembic/*.py', 'alembic/script.py.mako', 'alembic/versions/*.py',
             'test/data/*',
         ],
     },

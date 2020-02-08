@@ -1714,4 +1714,29 @@
             }
         });
     })();
+
+    (function () {
+        var siterating = $('#siterating');
+        var sfwrating = $('#sfwrating');
+        siterating.change(function (e) {
+            var maxvalue = siterating.children("option:selected").val();
+            $('#sfwrating option').each(function(i, element){
+                if(element.value >= maxvalue && i !== 0){
+                    $(element).hide();
+                }
+                else {
+                    $(element).show();
+                }
+            });
+            if (sfwrating.children("option:selected").val() >= maxvalue) {
+                if (maxvalue > 10) {
+                    sfwrating.val(String(maxvalue - 10));
+                } else {
+                    sfwrating.val(String(10)).change();
+                    sfwrating.trigger("updated");
+                }
+            }
+        });
+        siterating.trigger("change");
+    })();
 })();

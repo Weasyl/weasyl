@@ -149,7 +149,6 @@ def tidy_submission(submission):
             linktype = submission['type']
         submission['link'] = d.absolutify_url(
             "/%s/%d/%s" % (linktype, submitid, slug_for(submission['title'])))
-    return submission
 
 
 @view_config(route_name='api_frontpage', renderer='json')
@@ -330,13 +329,14 @@ def api_user_view_(request):
         featured = submission.select_featured(userid, otherid, rating)
 
     if submissions:
-        submissions = map(tidy_submission, submissions)
+        for sub in submissions:
+            tidy_submission(sub)
 
     user['recent_submissions'] = submissions
     user['recent_type'] = more_submissions
 
     if featured:
-        featured = tidy_submission(featured)
+        tidy_submission(featured)
 
     user['featured_submission'] = featured
 

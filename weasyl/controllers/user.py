@@ -349,3 +349,29 @@ def force_resetbirthday_(request):
     birthday = define.convert_inputdate(form.birthday)
     profile.force_resetbirthday(request.userid, birthday)
     raise HTTPSeeOther(location="/", headers=request.response.headers)
+
+
+@login_required
+@token_checked
+def vouch_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
+    targetid = int(request.POST['targetid'])
+
+    result = define.engine.execute(
+        "UPDATE login SET voucher = %(voucher)s WHERE userid = %(target)s AND voucher IS NULL",
+        voucher=request.userid,
+        target=targetid,
+    )
+
+    if result.rowcount != 0:
+        define._get_all_config.invalidate(targetid)
+
+    target_username = define.get_display_name(targetid)
+
+    if target_username is None:
+        assert result.rowcount == 0
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location=request.route_path('profile_tilde', name=define.get_sysname(target_username)))

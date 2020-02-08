@@ -58,6 +58,7 @@ routes = (
     Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetbirthday_}),
     Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
+    Route("/vouch", "vouch", {'POST': user.vouch_}),
 
     # Two-Factor Authentication views.
     Route("/control/2fa/status", "control_2fa_status", {'GET': two_factor_auth.tfa_status_get_}),
@@ -343,6 +344,7 @@ routes = (
     Route("/help/searching", "help_searching", info.help_searching_),
     Route("/help/tagging", "help_tagging", info.help_tagging_),
     Route("/help/two_factor_authentication", "help_two_factor_authentication", info.help_two_factor_authentication_),
+    Route("/help/verification", "help_verification", info.help_verification_),
 
     # OAuth2 routes.
     Route("/api/oauth2/authorize", "oauth2_authorize",

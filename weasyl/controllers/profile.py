@@ -25,6 +25,19 @@ def profile_(request):
         raise WeasylError("userRecordMissing")
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+
+    if otherid != request.userid and not define.is_vouched_for(otherid):
+        can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
+
+        return Response(
+            define.webpage(
+                request.userid,
+                "error/unverified.html",
+                [request, otherid, userprofile['username'], can_vouch],
+            ),
+            status=403,
+        )
+
     extras = {
         "canonical_url": "/~" + define.get_sysname(form.name)
     }
@@ -294,6 +307,19 @@ def shouts_(request):
         return Response(define.errorpage(request.userid, errorcode.no_guest_access))
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+
+    if otherid != request.userid and not define.is_vouched_for(otherid):
+        can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
+
+        return Response(
+            define.webpage(
+                request.userid,
+                "error/unverified.html",
+                [request, otherid, userprofile['username'], can_vouch],
+            ),
+            status=403,
+        )
+
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)

@@ -466,7 +466,7 @@ def setusermode(userid, form):
             'staff.actions',
             userid=userid, action=action, target=form.userid, reason=form.reason,
             release=isoformat_release)
-        d.get_login_settings.invalidate(form.userid)
+        d._get_all_config.invalidate(form.userid)
         note_about(userid, form.userid, 'User mode changed: action was %r' % (action,), message)
 
 

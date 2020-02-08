@@ -319,21 +319,29 @@ def _get_csrf_input():
 
 
 @region.cache_on_arguments()
-@record_timing
-def _get_config(userid):
-    return engine.scalar("SELECT config FROM profile WHERE userid = %(user)s", user=userid)
+def _get_all_config(userid):
+    row = engine.execute(
+        "SELECT login.settings, login.voucher IS NOT NULL, profile.config"
+        " FROM login INNER JOIN profile USING (userid)"
+        " WHERE userid = %(user)s",
+        user=userid,
+    ).first()
+
+    return list(row)
 
 
 def get_config(userid):
     if not userid:
         return ""
-    return _get_config(userid)
+    return _get_all_config(userid)[2]
 
 
-@region.cache_on_arguments()
-@record_timing
 def get_login_settings(userid):
-    return engine.scalar("SELECT settings FROM login WHERE userid = %(user)s", user=userid)
+    return _get_all_config(userid)[0]
+
+
+def is_vouched_for(userid):
+    return _get_all_config(userid)[1]
 
 
 @region.cache_on_arguments()

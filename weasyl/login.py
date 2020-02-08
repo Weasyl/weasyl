@@ -135,7 +135,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         if d.get_time() > suspension.release:
             d.execute("UPDATE login SET settings = REPLACE(settings, 's', '') WHERE userid = %i", [USERID])
             d.execute("DELETE FROM suspension WHERE userid = %i", [USERID])
-            d.get_login_settings.invalidate(USERID)
+            d._get_all_config.invalidate(USERID)
         else:
             # Return the proper userid and an error code (indicating the user's
             # account has been temporarily suspended)

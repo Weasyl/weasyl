@@ -13,6 +13,9 @@ from weasyl import (
 @login_required
 @token_checked
 def followuser_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(userid="")
     otherid = define.get_int(form.userid)
 
@@ -43,6 +46,9 @@ def unfollowuser_(request):
 @login_required
 @token_checked
 def frienduser_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(userid="")
     otherid = define.get_int(form.userid)
 
@@ -95,6 +101,9 @@ def ignoreuser_(request):
 # Private messaging functions
 @login_required
 def note_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input()
 
     data = note.select_view(request.userid, int(form.noteid))
@@ -108,6 +117,9 @@ def note_(request):
 
 @login_required
 def notes_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(folder="inbox", filter="", backid="", nextid="")
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
@@ -134,6 +146,9 @@ def notes_(request):
 
 @login_required
 def notes_compose_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(recipient="")
 
     return Response(define.webpage(request.userid, "note/compose.html", [
@@ -146,6 +161,9 @@ def notes_compose_get_(request):
 @login_required
 @token_checked
 def notes_compose_post_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(recipient="", title="", content="", mod_copy='', staff_note='')
 
     try:

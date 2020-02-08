@@ -22,6 +22,7 @@ def control_(request):
     return Response(define.webpage(request.userid, "control/control.html", [
         # Premium
         define.get_premium(request.userid),
+        define.is_vouched_for(request.userid),
     ], title="Settings"))
 
 

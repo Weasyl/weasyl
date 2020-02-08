@@ -156,6 +156,9 @@ error_messages = {
     "usernameIncorrect": "The username you entered does not match the account for which this request was made.",
     "usernameInvalid": (
         "The username you entered is not valid. Usernames must contain one or more alphanumeric characters."),
+    "vouchRequired": (
+        "Your account has to be verified to do that."
+        " [How do I verify my account?](/help/verification)"),
     "watchuserRecordMissing": "You are not following the specified user.",
     "YouIgnored": "You have this user ignored.",
     "youIgnoredPageOwner": "You have the owner of this page ignored.",
@@ -170,6 +173,7 @@ error_status_code = {
     "submissionRecordMissing": 404,
     "journalRecordMissing": 404,
     "characterRecordMissing": 404,
+    "vouchRequired": 403,
 }
 
 

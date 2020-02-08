@@ -20,11 +20,17 @@ from weasyl.login import get_user_agent_id
 # Content submission functions
 @login_required
 def submit_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/submit.html", title="Submit Artwork"))
 
 
 @login_required
 def submit_visual_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(title='', tags=[], description='', imageURL='', baseURL='')
     if form.baseURL:
         form.imageURL = urlparse.urljoin(form.baseURL, form.imageURL)
@@ -50,6 +56,9 @@ def submit_visual_post_(request):
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
+
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -77,6 +86,9 @@ def submit_visual_post_(request):
 
 @login_required
 def submit_literary_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/literary.html", [
         # Folders
         folder.select_list(request.userid, "drop/all"),
@@ -97,6 +109,9 @@ def submit_literary_post_(request):
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
+
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -123,6 +138,9 @@ def submit_literary_post_(request):
 
 @login_required
 def submit_multimedia_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/multimedia.html", [
         # Folders
         folder.select_list(request.userid, "drop/all"),
@@ -143,6 +161,9 @@ def submit_multimedia_post_(request):
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
+
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -172,6 +193,9 @@ def submit_multimedia_post_(request):
 
 @login_required
 def submit_character_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/character.html", [
         profile.get_user_ratings(request.userid),
     ], title="Character Profile"))
@@ -188,6 +212,9 @@ def submit_character_post_(request):
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
+
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -210,6 +237,9 @@ def submit_character_post_(request):
 
 @login_required
 def submit_journal_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/journal.html",
                                    [profile.get_user_ratings(request.userid)], title="Journal Entry"))
 
@@ -223,6 +253,9 @@ def submit_journal_post_(request):
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
+
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -248,6 +281,9 @@ def submit_shout_(request):
     if form.staffnotes and request.userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     c = orm.Comment()
     c.parentid = define.get_int(form.parentid)
     c.userid = define.get_int(form.userid or form.staffnotes)
@@ -268,6 +304,9 @@ def submit_shout_(request):
 @token_checked
 @supports_json
 def submit_comment_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(submitid="", charid="", journalid="", updateid="", parentid="", content="", format="")
     updateid = define.get_int(form.updateid)
 
@@ -312,6 +351,9 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(submitid="", charid="", journalid="", preferred_tags_userid="", optout_tags_userid="", tags="")
 
     tags = searchtag.parse_tags(form.tags)

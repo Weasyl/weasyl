@@ -145,6 +145,10 @@ def send(userid, form):
     users.difference_update(
         d.column(d.engine.execute("SELECT userid FROM ignoreuser WHERE otherid = %(user)s", user=userid)))
 
+    # can't send a note to an unverified user
+    users.difference_update(
+        d.column(d.engine.execute("SELECT userid FROM login WHERE userid = ANY (%(users)s) AND voucher IS NULL", users=list(users))))
+
     # can't send a note to a user you're ignoring
     users.difference_update(ignoreuser.cached_list_ignoring(userid))
 

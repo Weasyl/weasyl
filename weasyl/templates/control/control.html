@@ -1,10 +1,14 @@
-$def with (premium)
+$def with (premium, is_vouched_for)
 $:{RENDER("common/stage_title.html", ["Settings"])}
 
 <div id="control-content" class="content">
 
   <div class="group">
     <h3>My Profile</h3>
+
+    $if not is_vouched_for:
+      <p style="margin-bottom: 1em"><strong>Your profile is hidden</strong> and won’t show up until your account is <a href="/help/verification">verified</a>.</p>
+
     <p><a href="/manage/avatar">Avatar Image</a></p>
     <p><a href="/manage/banner">Banner Image</a></p>
     <p><a href="/control/editprofile">Profile Information</a></p>

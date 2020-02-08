@@ -212,6 +212,7 @@ def select_myself(userid):
         "userid": userid,
         "username": d.get_display_name(userid),
         "is_mod": userid in staff.MODS,
+        "is_verified": d.is_vouched_for(userid),
         "user_media": media.get_user_media(userid),
     }
 
@@ -353,7 +354,8 @@ def select_streaming(userid, rating, limit, following=True, order_by=None):
         "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
         "FROM profile pr "
         "JOIN user_streams USING (userid) "
-        "WHERE end_time > %i" % (d.get_time(),)
+        "JOIN login USING (userid) "
+        "WHERE login.voucher IS NOT NULL AND end_time > %i" % (d.get_time(),)
     ]
 
     if userid:
@@ -398,7 +400,7 @@ def edit_profile_settings(userid,
     d.engine.execute(
         "UPDATE profile SET settings = %(settings)s WHERE userid = %(user)s",
         settings=settings, user=userid)
-    d._get_config.invalidate(userid)
+    d._get_all_config.invalidate(userid)
 
 
 def edit_profile(userid, profile,
@@ -424,7 +426,7 @@ def edit_profile(userid, profile,
             'config': sa.func.regexp_replace(pr.c.config, "[OA]", "").concat(profile_display),
         })
     )
-    d._get_config.invalidate(userid)
+    d._get_all_config.invalidate(userid)
 
 
 STREAMING_ACTION_MAP = {
@@ -530,7 +532,7 @@ def edit_userinfo(userid, form):
             WHERE userid = %(userid)s
         """, userid=userid)
 
-    d._get_config.invalidate(userid)
+    d._get_all_config.invalidate(userid)
 
 
 def edit_email_password(userid, username, password, newemail, newemailcheck,
@@ -675,7 +677,7 @@ def edit_preferences(userid, timezone=None,
             config = config.replace(i, "")
         config_str = config + preferences.to_code()
         updates['config'] = config_str
-        d._get_config.invalidate(userid)
+        d._get_all_config.invalidate(userid)
     if jsonb_settings is not None:
         # update jsonb preferences
         updates['jsonb_settings'] = jsonb_settings.get_raw()
@@ -845,7 +847,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
                 rating_flag=rating_flag,
                 user=userid,
             )
-            d._get_config.invalidate(userid)
+            d._get_all_config.invalidate(userid)
         updates.append('- Birthday: %s' % (birthday,))
 
     # Gender
@@ -881,7 +883,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
         if d.engine.execute(query, user=userid).rowcount != 0:
             updates.append('- Permission to tag: ' + ('yes' if permission_tag else 'no'))
-            d._get_config.invalidate(userid)
+            d._get_all_config.invalidate(userid)
 
     if updates:
         from weasyl import moderation
@@ -896,7 +898,7 @@ def force_resetbirthday(userid, birthday):
 
     d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [birthday, userid])
     d.execute("UPDATE login SET settings = REPLACE(settings, 'i', '') WHERE userid = %i", [userid])
-    d.get_login_settings.invalidate(userid)
+    d._get_all_config.invalidate(userid)
 
 
 # TODO(hyena): Make this class unnecessary and remove it when we fix up settings.

@@ -61,7 +61,7 @@ def insert(userid, shout, staffnotes=False):
     # Check invalid content
     if not shout.content:
         raise WeasylError("commentInvalid")
-    elif not shout.userid:
+    elif not shout.userid or not d.is_vouched_for(shout.userid):
         raise WeasylError("Unexpected")
 
     # Determine indent and parentuserid

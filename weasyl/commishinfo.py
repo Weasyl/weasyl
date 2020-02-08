@@ -265,6 +265,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         WHERE LOWER(cc.title) LIKE %(cclasslike)s
         AND p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
+        AND login.voucher IS NOT NULL
         AND NOT EXISTS (
             SELECT 0
             FROM searchtag tag

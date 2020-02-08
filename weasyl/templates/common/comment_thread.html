@@ -17,7 +17,7 @@ $ can_remove = is_owner or (myself and myself['userid'] in staff.MODS)
       <div class="comment-content">
         <p class="actions">
           $if not hidden:
-            $if myself:
+            $if myself and myself['is_verified']:
               <a href="#" class="comment-reply-link needs-js">Reply</a>
             $ has_replies = i + 1 < size and comments[i + 1]['indent'] == comment['indent'] + 1
             $ user_is_commenter = myself and comment['userid'] == myself['userid']

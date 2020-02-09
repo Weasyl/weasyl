@@ -14,14 +14,11 @@ $code:
     <i>(critique requested)</i>
   </h1>
 
-  $ submissions = query['sub_media'].get('submission')
-  $ submission = submissions[0] if submissions else None
-  $ cover = submission['described']['cover'][0] if submission and submission['described'].get('cover') else None
-  $if cover is None:
-    $ covers = query['sub_media'].get('cover')
-    $ cover = covers[0] if covers else None
-  $else:
-    $ covers = None
+  $code:
+    submissions = query['sub_media'].get('submission')
+    submission = submissions[0] if submissions else None
+    covers = query['sub_media'].get('cover')
+    cover = covers[0] if covers else None
   <!-- embedded -->
   $if query['google_doc_embed'] is not None:
     <div id="detail-art">

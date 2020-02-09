@@ -80,7 +80,7 @@ def format_media_link(media, link):
         return None
 
 
-_IMAGE_EXTENSIONS = ('.png', '.jpg', '.gif', '.webp')
+_IMAGE_FILE_TYPES = ('png', 'jpg', 'gif', 'webp')
 _CDN2_PREFIX = define.config_read_setting('prefix', section='cdn2')
 
 
@@ -89,9 +89,11 @@ def _deserialize_image_representation(serialized):
     file_key = serialized[1:17]
     width, height = struct.unpack_from('>HH', serialized, 17)
 
-    filename = base64.urlsafe_b64encode(file_key).rstrip('=') + _IMAGE_EXTENSIONS[content_type - 1]
+    file_type = _IMAGE_FILE_TYPES[content_type - 1]
+    filename = base64.urlsafe_b64encode(file_key).rstrip('=') + '.' + file_type
 
     return {
+        'file_type': file_type,
         'display_url': _CDN2_PREFIX + filename,
         'attributes': {
             'width': str(width),

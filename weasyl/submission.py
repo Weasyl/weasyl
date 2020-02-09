@@ -549,7 +549,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.engine.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, fd.title, su.favorites
+            su.page_views, fd.title, su.favorites, su.image_representations
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
@@ -602,6 +602,11 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
             "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%(target)s, 's')",
             target=submitid)
 
+    if query[12] is None:
+        sub_media = media.get_submission_media(submitid)
+    else:
+        sub_media = media.deserialize_image_representations(query[12])
+
     return {
         "submitid": submitid,
         "userid": query[0],
@@ -627,7 +632,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "no_request": not settings.allow_collection_requests,
 
         "text": submittext,
-        "sub_media": media.get_submission_media(submitid),
+        "sub_media": sub_media,
         "user_media": media.get_user_media(query[0]),
         "submit": submitfile,
         "embedlink": embedlink,
@@ -908,7 +913,7 @@ def select_featured(userid, otherid, rating):
 def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
         SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
-               pr.username, su.settings, su.subtype
+               pr.username, su.settings, su.subtype, su.image_representations
           FROM submission su
          INNER JOIN profile pr ON su.userid = pr.userid
          WHERE su.userid = %i
@@ -936,12 +941,13 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
         "userid": i[4],
         "username": i[5],
         "subtype": i[7],
+        "image_representations": i[8],
     } for i in d.execute("".join(statement))]
 
     query.sort(key=lambda i: i['submitid'])
     older = [i for i in query if i["submitid"] < submitid][-limit:]
     newer = [i for i in query if i["submitid"] > submitid][:limit]
-    media.populate_with_submission_media(older + newer)
+    media.populate_with_remaining_submission_media(older + newer)
 
     return {
         "older": older,

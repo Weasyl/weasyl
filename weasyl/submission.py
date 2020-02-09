@@ -872,7 +872,8 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
 
     statement = [
         "SELECT su.submitid, su.title, su.rating, su.unixtime, "
-        "su.userid, pr.username, su.settings, su.subtype "]
+        "su.userid, pr.username, su.settings, su.subtype, "
+        "su.image_representations "]
 
     statement.extend(select_query(
         userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
@@ -890,8 +891,9 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         "userid": i[4],
         "username": i[5],
         "subtype": i[7],
+        "image_representations": i[8],
     } for i in d.execute("".join(statement))]
-    media.populate_with_submission_media(query)
+    media.populate_with_remaining_submission_media(query)
 
     return query[::-1] if backid else query
 
@@ -1078,6 +1080,7 @@ def select_recently_popular():
             submission.unixtime,
             submission_tags.tags,
             submission.userid,
+            submission.image_representations,
             profile.username
         FROM submission
             INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
@@ -1090,5 +1093,5 @@ def select_recently_popular():
     """)
 
     submissions = [dict(row, contype=10) for row in query]
-    media.populate_with_submission_media(submissions)
+    media.populate_with_remaining_submission_media(submissions)
     return submissions

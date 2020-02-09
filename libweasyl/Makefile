@@ -31,7 +31,7 @@ all: .stamp-ve .stamp-egg-info alembic.ini
 
 # Installs libweasyl package in development mode
 .stamp-egg-info: setup.py .stamp-ve
-	$(VE)/bin/pip install $(USE_WHEEL) -e '.[development]'
+	$(VE)/bin/pip install $(USE_WHEEL) -e '.[development]' -c ../etc/requirements.txt
 	touch $@
 
 # Creates alembic config

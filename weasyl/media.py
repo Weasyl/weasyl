@@ -149,7 +149,7 @@ def deserialize_image_representations(serialized):
         media['thumbnail-custom'] = [thumbnail_custom]
 
     if thumbnail_generated_webp is not None:
-        media['thumbnail-generated-webp'] = [thumbnail_custom]
+        media['thumbnail-generated-webp'] = [thumbnail_generated_webp]
 
     return media
 

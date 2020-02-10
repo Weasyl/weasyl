@@ -404,7 +404,7 @@ def favorites_(request):
         nextid = define.get_int(form.nextid)
         backid = define.get_int(form.backid)
         url_format = (
-            "/favorites?userid={userid}&feature={feature}&%s".format(userid=userprofile['userid'], feature=form.feature))
+            "/favorites?userid={userid}&feature={feature}&%s".format(userid=otherid, feature=form.feature))
         id_field = form.feature + "id"
 
         count_function = None

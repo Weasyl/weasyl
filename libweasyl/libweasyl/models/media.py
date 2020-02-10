@@ -5,7 +5,7 @@ import hashlib
 from io import BytesIO
 import os
 
-from sqlalchemy.orm import relationship, foreign, remote, joinedload, object_mapper
+from sqlalchemy.orm import relationship, foreign, remote, joinedload
 
 from libweasyl.files import fanout, makedirs_exist_ok
 from libweasyl.models.meta import Base
@@ -49,8 +49,13 @@ class MediaItem(Base):
     _base_file_path = None
 
     def to_dict(self):
-        return {col.name: getattr(self, col.name)
-                for col in object_mapper(self).mapped_table.c}
+        return {
+            'mediaid': self.mediaid,
+            'file_type': self.file_type,
+            'file_url': self.file_url,
+            'attributes': self.attributes,
+            'sha256': self.sha256,
+        }
 
     def serialize(self, recursive=1, link=None):
         ret = self.to_dict()

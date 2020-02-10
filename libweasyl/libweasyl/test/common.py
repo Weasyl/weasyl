@@ -24,18 +24,6 @@ def dummy_format_media_link(media, link):
     return None
 
 
-class Bag(object):
-    """
-    An object with attributes.
-
-    It takes keyword arguments and sets their values as attributes.
-    """
-
-    def __init__(self, **kwargs):
-        for kv in kwargs.items():
-            setattr(self, *kv)
-
-
 def user_with_age(age):
     """
     Create a Login, UserInfo, and Profile with the provided age.

@@ -123,7 +123,7 @@ def create(x1, y1, x2, y2, submitid=None, charid=None,
         bounds = geometry.Rectangle(x1, y1, x2, y2)
     thumb = images.make_thumbnail(im, bounds)
     file_type = images.image_file_type(im)
-    media_item = orm.fetch_or_create_media_item(
+    media_item = orm.MediaItem.fetch_or_create(
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
     orm.SubmissionMediaLink.make_or_replace_link(
         submitid, 'thumbnail-custom', media_item)

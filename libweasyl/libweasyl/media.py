@@ -1,5 +1,5 @@
 from libweasyl.cache import region
-from libweasyl.models.media import SubmissionMediaLink, UserMediaLink, fetch_or_create_media_item
+from libweasyl.models.media import MediaItem, SubmissionMediaLink, UserMediaLink
 
 
 @SubmissionMediaLink.register_cache
@@ -41,5 +41,5 @@ populate_with_user_media = build_populator('userid', get_multi_user_media)
 
 
 __all__ = [
-    'fetch_or_create_media_item', 'populate_with_submission_media', 'populate_with_user_media',
+    'MediaItem', 'populate_with_submission_media', 'populate_with_user_media', 'get_submission_media',
 ]

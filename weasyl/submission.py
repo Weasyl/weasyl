@@ -174,7 +174,7 @@ def create_visual(userid, submission,
     is_spam = _check_for_spam(submission=submission, userid=userid)
 
     submit_file_type = submitextension.lstrip('.')
-    submit_media_item = orm.fetch_or_create_media_item(
+    submit_media_item = orm.MediaItem.fetch_or_create(
         submitfile, file_type=submit_file_type, im=im)
     check_for_duplicate_media(userid, submit_media_item.mediaid)
     cover_media_item = submit_media_item.ensure_cover_image(im)
@@ -185,7 +185,7 @@ def create_visual(userid, submission,
         thumbnail_formats = images_new.get_thumbnail(buf)
 
     thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
-    thumb_generated_media_item = orm.fetch_or_create_media_item(
+    thumb_generated_media_item = orm.MediaItem.fetch_or_create(
         thumb_generated,
         file_type=thumb_generated_file_type,
         attributes=thumb_generated_attributes,
@@ -195,7 +195,7 @@ def create_visual(userid, submission,
         thumb_generated_media_item_webp = None
     else:
         thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
-        thumb_generated_media_item_webp = orm.fetch_or_create_media_item(
+        thumb_generated_media_item_webp = orm.MediaItem.fetch_or_create(
             thumb_generated,
             file_type=thumb_generated_file_type,
             attributes=thumb_generated_attributes,
@@ -205,7 +205,7 @@ def create_visual(userid, submission,
     thumb_media_item = media.make_cover_media_item(thumbfile)
     if thumb_media_item:
         thumb_custom = images.make_thumbnail(image.from_string(thumbfile))
-        thumb_custom_media_item = orm.fetch_or_create_media_item(
+        thumb_custom_media_item = orm.MediaItem.fetch_or_create(
             thumb_custom.to_buffer(format=submit_file_type), file_type=submit_file_type,
             im=thumb_custom)
 
@@ -302,7 +302,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
             raise WeasylError("submitType")
         if _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
-        submit_media_item = orm.fetch_or_create_media_item(
+        submit_media_item = orm.MediaItem.fetch_or_create(
             submitfile, file_type=submitextension.lstrip('.'))
         check_for_duplicate_media(userid, submit_media_item.mediaid)
     else:
@@ -400,7 +400,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             raise WeasylError("submitType")
         elif _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
-        submit_media_item = orm.fetch_or_create_media_item(
+        submit_media_item = orm.MediaItem.fetch_or_create(
             submitfile, file_type=submitextension.lstrip('.'))
         check_for_duplicate_media(userid, submit_media_item.mediaid)
     else:
@@ -428,7 +428,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
     if im:
         tempthumb = images.make_thumbnail(im)
         tempthumb_type = images.image_file_type(tempthumb)
-        tempthumb_media_item = orm.fetch_or_create_media_item(
+        tempthumb_media_item = orm.MediaItem.fetch_or_create(
             tempthumb.to_buffer(format=tempthumb_type),
             file_type=tempthumb_type,
             im=tempthumb)
@@ -529,7 +529,7 @@ def reupload(userid, submitid, submitfile):
     im = None
     if submit_file_type in {'jpg', 'png', 'gif'}:
         im = image.from_string(submitfile)
-    submit_media_item = orm.fetch_or_create_media_item(
+    submit_media_item = orm.MediaItem.fetch_or_create(
         submitfile, file_type=submit_file_type, im=im)
     check_for_duplicate_media(userid, submit_media_item.mediaid)
     orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
@@ -538,7 +538,7 @@ def reupload(userid, submitid, submitfile):
         cover_media_item = submit_media_item.ensure_cover_image()
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
         generated_thumb = images.make_thumbnail(im)
-        generated_thumb_media_item = orm.fetch_or_create_media_item(
+        generated_thumb_media_item = orm.MediaItem.fetch_or_create(
             generated_thumb.to_buffer(format=images.image_file_type(generated_thumb)),
             file_type=submit_file_type,
             im=generated_thumb)

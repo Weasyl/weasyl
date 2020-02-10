@@ -12,7 +12,9 @@ import sqlalchemy as sa
 from libweasyl.constants import Category, DEFAULT_LIMITS, MEBIBYTE
 from libweasyl.exceptions import InvalidData, RatingExceeded, SubmissionFileTooLarge
 from libweasyl.files import file_type_for_category
+from libweasyl.media import get_submission_media
 from libweasyl.models.helpers import CharSettings, apply_validators, clauses_for, validator
+from libweasyl.models.media import MediaItem, SubmissionMediaLink
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Login
 from libweasyl.models import tables
@@ -85,7 +87,6 @@ class Submission(Base):
 
     @reify
     def media(self):
-        from libweasyl.media import get_submission_media
         return get_submission_media(self.submitid)
 
     @reify
@@ -159,9 +160,6 @@ class Submission(Base):
     @classmethod
     def create(cls, owner, title, rating, description, category, subtype, folder, tags, friends_only=False,
                critique_requested=False, submission_data=None, embed_link=None, submission_size_limit=None):
-        from libweasyl.media import fetch_or_create_media_item
-        from libweasyl.models.media import SubmissionMediaLink
-
         now = cls.now()
         inst = cls(owner=owner, title=title, content=description, subtype=subtype, folder=folder, settings=None,
                    unixtime=now, sorttime=now)
@@ -184,7 +182,7 @@ class Submission(Base):
             submission_image = None
             if category == Category.visual:
                 submission_image = submission_decoded
-            submission_media_item = fetch_or_create_media_item(
+            submission_media_item = MediaItem.fetch_or_create(
                 submission_data, file_type=submission_format, im=submission_image)
         elif category == Category.visual:
             raise ValueError('embedded visual submissions are not supported')

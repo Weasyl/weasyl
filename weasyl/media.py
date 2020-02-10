@@ -22,7 +22,7 @@ def make_resized_media_item(filedata, size, error_type='FileType'):
     resized = image.resize_image(im, *size)
     if resized is not im:
         filedata = resized.to_buffer(format=file_type)
-    return orm.fetch_or_create_media_item(filedata, file_type=file_type, im=resized)
+    return orm.MediaItem.fetch_or_create(filedata, file_type=file_type, im=resized)
 
 
 def make_cover_media_item(coverfile, error_type='coverType'):

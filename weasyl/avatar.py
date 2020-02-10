@@ -40,7 +40,7 @@ def create(userid, x1, y1, x2, y2):
     if image.check_crop(size, x1, y1, x2, y2):
         bounds = geometry.Rectangle(x1, y1, x2, y2)
     thumb = image.shrinkcrop(im, geometry.Size(100, 100), bounds)
-    media_item = orm.fetch_or_create_media_item(
+    media_item = orm.MediaItem.fetch_or_create(
         thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
     orm.UserMediaLink.make_or_replace_link(userid, 'avatar', media_item)
     orm.UserMediaLink.clear_link(userid, 'avatar-source')

@@ -109,19 +109,18 @@ class MediaItem(Base):
 
     @property
     def full_file_path(self):
-        return os.path.join(self._base_file_path, self.file_path)
+        return os.path.join(self._base_file_path, *self._file_path_components)
 
     def as_image(self):
         return images.read(self.full_file_path.encode())
 
     @property
-    def file_path(self):
-        path = ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
-        return os.path.join(*path)
+    def _file_path_components(self):
+        return ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
 
     @property
     def file_url(self):
-        return '/' + self.file_path
+        return '/' + '/'.join(self._file_path_components)
 
 
 class _LinkMixin(object):

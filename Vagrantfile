@@ -74,7 +74,7 @@ server {
 
     server_name lo.weasyl.com;
 
-    rewrite "^(/static/character/../../../../../../)(.+)-(.+)\$" \\$1\\$4 break;
+    rewrite "^(/static/character/../../../../../../)(.+)-(.+)\$" \\$1\\$3 break;
     # Allows trailing slash after a profile name
     rewrite ^/(.*)/$ /\\$1 permanent;
 

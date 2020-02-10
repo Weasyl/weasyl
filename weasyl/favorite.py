@@ -30,8 +30,7 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
         statement.append(" AND su.rating <= %i" % (rating,))
         statement.append(" AND su.settings !~ 'f'")
 
-    if otherid:
-        statement.append(" AND fa.userid = %i" % otherid)
+    statement.append(" AND fa.userid = %i" % otherid)
 
     if backid:
         statement.append(" AND fa.unixtime > "
@@ -45,13 +44,13 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
     return statement
 
 
-def select_submit_count(userid, rating, otherid=None, backid=None, nextid=None):
+def select_submit_count(userid, rating, otherid, backid=None, nextid=None):
     statement = ["SELECT COUNT(submitid) "]
     statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
     return d.execute("".join(statement))[0][0]
 
 
-def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None):
+def select_submit(userid, rating, limit, otherid, backid=None, nextid=None):
     statement = ["SELECT su.submitid, su.title, su.rating, fa.unixtime, su.userid, pr.username, su.subtype"]
     statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
 
@@ -72,7 +71,7 @@ def select_submit(userid, rating, limit, otherid=None, backid=None, nextid=None)
     return query[::-1] if backid else query
 
 
-def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None):
+def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
     statement = ["""
         SELECT ch.charid, ch.char_name, ch.rating, fa.unixtime, ch.userid, pr.username, ch.settings
         FROM favorite fa
@@ -94,8 +93,7 @@ def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None):
     else:
         statement.append(" AND ch.rating <= %i AND ch.settings !~ 'f'" % (rating,))
 
-    if otherid:
-        statement.append(" AND fa.userid = %i" % (otherid,))
+    statement.append(" AND fa.userid = %i" % (otherid,))
 
     if backid:
         statement.append(" AND fa.unixtime > "
@@ -123,7 +121,7 @@ def select_char(userid, rating, limit, otherid=None, backid=None, nextid=None):
     return query[::-1] if backid else query
 
 
-def select_journal(userid, rating, limit, otherid=None, backid=None, nextid=None):
+def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
     statement = ["""
         SELECT jo.journalid, jo.title, jo.rating, fa.unixtime, jo.userid, pr.username, pr.config
         FROM favorite fa
@@ -145,8 +143,7 @@ def select_journal(userid, rating, limit, otherid=None, backid=None, nextid=None
     else:
         statement.append(" AND jo.rating <= %i AND jo.settings !~ 'f'" % (rating,))
 
-    if otherid:
-        statement.append(" AND fa.userid = %i" % (otherid,))
+    statement.append(" AND fa.userid = %i" % (otherid,))
 
     if backid:
         statement.append(" AND fa.unixtime > "

@@ -20,7 +20,9 @@ class MediaItem(Base):
     @classmethod
     def fetch_or_create(cls, data, file_type=None, im=None, attributes=()):
         sha256 = hashlib.sha256(data).hexdigest()
-        obj = (cls.query.filter(cls.sha256 == sha256).first())
+        obj = (cls.query
+               .filter(cls.sha256 == sha256)
+               .first())
         if obj is None:
             attributes = dict(attributes)
             if file_type is None and im is not None:
@@ -53,7 +55,8 @@ class MediaItem(Base):
             buckets = collections.defaultdict(list)
             for described_link in self.described:
                 buckets[described_link.link_type].append(
-                    described_link.media_item.serialize(recursive=recursive - 1, link=described_link))
+                    described_link.media_item.serialize(
+                        recursive=recursive - 1, link=described_link))
             ret['described'] = dict(buckets)
         else:
             ret['described'] = {}
@@ -76,7 +79,8 @@ class MediaItem(Base):
             cover_media_item = self
         else:
             cover_media_item = self.fetch_or_create(
-                cover.to_buffer(format=self.file_type.encode()), file_type=self.file_type, im=cover)
+                cover.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
+                im=cover)
         self.dbsession.flush()
         MediaMediaLink.make_or_replace_link(self.mediaid, 'cover', cover_media_item)
         return cover_media_item

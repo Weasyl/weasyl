@@ -89,7 +89,7 @@ def api_login_required(view_callable):
 @api_method
 def api_useravatar_(request):
     form = request.web_input(username="")
-    userid = profile.resolve_by_login(form.username)
+    userid = profile.resolve_by_login(d.get_sysname(form.username))
 
     if userid:
         media_items = media.get_user_media(userid)
@@ -149,7 +149,6 @@ def tidy_submission(submission):
             linktype = submission['type']
         submission['link'] = d.absolutify_url(
             "/%s/%d/%s" % (linktype, submitid, slug_for(submission['title'])))
-    return submission
 
 
 @view_config(route_name='api_frontpage', renderer='json')
@@ -226,7 +225,7 @@ def api_user_view_(request):
             return None
 
     userid = request.userid
-    otherid = profile.resolve_by_login(request.matchdict['login'])
+    otherid = profile.resolve_by_login(d.get_sysname(request.matchdict['login']))
     user = profile.select_profile(otherid)
 
     rating = d.get_rating(userid)
@@ -330,13 +329,14 @@ def api_user_view_(request):
         featured = submission.select_featured(userid, otherid, rating)
 
     if submissions:
-        submissions = map(tidy_submission, submissions)
+        for sub in submissions:
+            tidy_submission(sub)
 
     user['recent_submissions'] = submissions
     user['recent_type'] = more_submissions
 
     if featured:
-        featured = tidy_submission(featured)
+        tidy_submission(featured)
 
     user['featured_submission'] = featured
 
@@ -361,7 +361,7 @@ def api_user_view_(request):
 @view_config(route_name='api_user_gallery', renderer='json')
 @api_method
 def api_user_gallery_(request):
-    userid = profile.resolve_by_login(request.matchdict['login'])
+    userid = profile.resolve_by_login(d.get_sysname(request.matchdict['login']))
     if not userid:
         raise WeasylError('userRecordMissing')
 

@@ -2624,7 +2624,7 @@ blockquote + blockquote {
     color: #808080;
 }
 
-#user-commissions > h4, #user-journal > h4, #commissions-content .item h4 {
+#user-commissions > h4, #user-journal > h4 {
     font-size: 16px;
     font-size: 1rem;
 }
@@ -3697,27 +3697,6 @@ img + #detail-art-text {
     padding-top: 1em;
 }
 
-#wesley-collections, #wesley-collections img {
-    display: block;
-    max-width: 100%;
-}
-
-#wesley-collections {
-    max-width: 240px;
-    margin: 2em auto;
-}
-
-#compose-content .buttons {
-    padding-bottom: 2em;
-    text-align: center;
-}
-
-#submit-comp-title {
-    font-size: 16px;
-    font-size: 1rem;
-    padding-top: 1em;
-}
-
 .tags-help {
     padding-top: 0.5em;
 }
@@ -3780,28 +3759,9 @@ img + #detail-art-text {
     #edit-profile .social .group {
         width: 23%;
     }
-
-    #wesley-collections {
-        max-width: 100%;
-    }
 }
 
 @media (min-width: 53em) {
-    #compose-content .info {
-        width: 31%;
-        float: left;
-        padding-right: 3.5%;
-    }
-
-    #compose-content .main {
-        width: 65.5%;
-        float: left;
-        padding-top: 48px;
-        padding-top: 3rem;
-        padding-bottom: 16px;
-        padding-bottom: 1rem;
-    }
-
     #apikeys-content .column {
         width: 46%;
         float: left;
@@ -4014,24 +3974,6 @@ img + #detail-art-text {
 
 
 /* ------------------------------------ =misc -- */
-
-#commissions-content .wrapper {
-    max-width: 45em;
-    margin: 0 auto;
-    padding-bottom: 1em;
-}
-
-#commissions-content .date {
-    padding-bottom: 0.75em;
-}
-
-#commissions-content .description {
-    padding-top: 0.75em;
-}
-
-#compose-content .buttons .button {
-    margin-bottom: 0.5em;
-}
 
 #journals-content {
     padding-bottom: 4em;

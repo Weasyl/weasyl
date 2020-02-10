@@ -38,7 +38,8 @@ def create_api_key(userid, token, description=""):
 
 
 def create_user(full_name="", birthday=arrow.get(586162800), config=None,
-                username=None, password=None, email_addr=None, user_id=None):
+                username=None, password=None, email_addr=None, user_id=None,
+                verified=True):
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
         username = "User-" + str(next(_user_index))
@@ -57,6 +58,10 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
     add_entity(users.Profile(userid=user.userid, username=username,
                              full_name=full_name, unixtime=arrow.get(0), config=config))
     add_entity(users.UserInfo(userid=user.userid, birthday=birthday))
+    # Verify this user
+    if verified:
+        d.engine.execute("UPDATE login SET voucher = userid WHERE userid = %(id)s",
+                         id=user.userid)
     # Set a password for this user
     if password is not None:
         d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",

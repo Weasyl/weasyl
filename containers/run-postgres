@@ -1,0 +1,13 @@
+#!/bin/sh
+set -euo pipefail
+exec containers/run \
+    --rm=false \
+    --restart=on-failure \
+    --detach \
+    --network=wzlnet \
+    --name=weasyl-database \
+    "$(containers/mount --writable containers/data /var/lib/postgresql/data)" \
+    --tmpfs=/run/postgresql \
+    --env=POSTGRES_USER=weasyl \
+    --env=POSTGRES_DB=weasyl \
+    postgres:12

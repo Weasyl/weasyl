@@ -24,7 +24,7 @@ def submission_(request):
 
     if not request.userid:
         # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
-        twit_card = submission.twitter_card(submitid)
+        twit_card = submission.twitter_card(request, submitid)
         if define.user_is_twitterbot():
             extras['twitter_card'] = twit_card
         # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
@@ -67,6 +67,7 @@ def submission_(request):
 
     page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [
+        request,
         # Myself
         profile.select_myself(request.userid),
         # Submission detail

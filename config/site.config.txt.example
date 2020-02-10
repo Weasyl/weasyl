@@ -1,24 +1,25 @@
 [general]
-notice = 9387490
-warning = 12345
-adpath = ui/it/il/tx/
 allow_submit = true
-captcha_disable_verification = false
+captcha_disable_verification = true
 # Whether currency exchange rates should be fetched for /marketplace
 convert_currency = false
 
 [backend]
 run_periodic_tasks = false
 profile_responses = false
-time_endpoints = false
-# this should almost always be off in prod but it's a useful default for dev
-rough_shutdowns = true
 
 [sqlalchemy]
+# url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl
 url = postgresql+psycopg2cffi:///weasyl
+
+[memcached]
+# servers = weasyl-memcached
 
 [sentry]
 # dsn = twisted+http://...
+
+[smtp]
+host = localhost
 
 [recaptcha-lo.weasyl.com]
 public_key = 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI

@@ -39,7 +39,7 @@ def request(form):
         """, id=user_id, token=token, time=now, address=address)
 
         # Generate and send an email to the user containing a password reset link
-        emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
+        emailer.send(email, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
 
 
 def prepare(token):
@@ -132,4 +132,4 @@ def force(userid, form):
 
     d.engine.execute("UPDATE login SET settings = REPLACE(settings, 'p', '') WHERE userid = %(user)s", user=userid)
     d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(form.password), user=userid)
-    d.get_login_settings.invalidate(userid)
+    d._get_all_config.invalidate(userid)

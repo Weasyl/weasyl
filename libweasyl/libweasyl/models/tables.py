@@ -1,7 +1,8 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
     Integer, String, Text, text, DateTime, func, Boolean)
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, JSONB, TIMESTAMP
+from sqlalchemy.schema import ForeignKey
 
 
 from libweasyl.models.helpers import (
@@ -354,6 +355,7 @@ login = Table(
     Column('twofa_secret', String(length=420), nullable=True),
     # Must be nullable, since existing accounts will not have this information
     Column('ip_address_at_signup', String(length=39), nullable=True),
+    Column('voucher', Integer, ForeignKey('login.userid'), nullable=True),
 )
 
 Index('ind_login_login_name', login.c.login_name)
@@ -774,6 +776,7 @@ submission = Table(
     Column('sorttime', WeasylTimestampColumn(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
+    Column('image_representations', BYTEA(), nullable=True),
     Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),

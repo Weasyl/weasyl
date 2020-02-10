@@ -9,10 +9,11 @@ from decimal import Decimal
 
 from pyramid.threadlocal import get_current_request
 
+from libweasyl.cache import region
+
 from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
-from weasyl.cache import region
 from weasyl.error import PostgresError, WeasylError
 
 _MAX_PRICE = 99999999
@@ -264,6 +265,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         WHERE LOWER(cc.title) LIKE %(cclasslike)s
         AND p.settings ~ '^[os]'
         AND login.settings !~ '[bs]'
+        AND login.voucher IS NOT NULL
         AND NOT EXISTS (
             SELECT 0
             FROM searchtag tag

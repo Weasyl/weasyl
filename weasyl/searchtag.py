@@ -4,6 +4,7 @@ import re
 import sqlalchemy as sa
 
 from libweasyl import staff
+from libweasyl.cache import region
 
 from weasyl import define as d
 from weasyl import files
@@ -11,7 +12,6 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import orm
 from weasyl import welcome
-from weasyl.cache import region
 from weasyl.error import WeasylError
 
 
@@ -476,7 +476,7 @@ def query_user_restricted_tags(ownerid):
         ownerid: The userid of the user who owns the content tags are being added to.
 
     Returns:
-        A set of user restricted tag titles.
+        A list of user restricted tag titles, in no particular order.
     """
     query = d.engine.execute("""
         SELECT title
@@ -484,7 +484,7 @@ def query_user_restricted_tags(ownerid):
         INNER JOIN searchtag USING (tagid)
         WHERE userid = %(ownerid)s
     """, ownerid=ownerid).fetchall()
-    return {tag.title for tag in query}
+    return [tag.title for tag in query]
 
 
 @region.cache_on_arguments()
@@ -496,14 +496,14 @@ def query_global_restricted_tags():
         None. Retrieves all global tag restriction entries.
 
     Returns:
-        A set of global restricted tag titles.
+        A list of global restricted tag titles, in no particular order.
     """
     query = d.engine.execute("""
         SELECT title
         FROM globally_restricted_tags
         INNER JOIN searchtag USING (tagid)
     """).fetchall()
-    return {tag.title for tag in query}
+    return [tag.title for tag in query]
 
 
 def remove_restricted_tags(patterns, tags):

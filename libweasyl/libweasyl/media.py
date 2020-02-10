@@ -1,7 +1,5 @@
 from libweasyl.cache import region
-from libweasyl.constants import Category
-from libweasyl.models.media import SubmissionMediaLink, UserMediaLink, MediaItem
-from libweasyl import files, images
+from libweasyl.models.media import MediaItem, SubmissionMediaLink, UserMediaLink
 
 
 @SubmissionMediaLink.register_cache
@@ -42,30 +40,6 @@ populate_with_submission_media = build_populator('submitid', get_multi_submissio
 populate_with_user_media = build_populator('userid', get_multi_user_media)
 
 
-def make_resized_media_item(data, size):
-    """
-    Resizes raw image data and makes a media item for it. This method only
-    shrinks images; it will not zoom them if size describes larger dimensions.
-
-    Parameters:
-        data: The raw data as :term:`bytes`.
-        size (tuple): A ``width, height`` tuple representing target size.
-
-    Returns:
-        A media item.
-    """
-    im, im_format = files.file_type_for_category(data, Category.visual)
-    resized = images.resize_image(im, *size)
-    if resized is not im:
-        data = resized.to_buffer(format=im_format)
-    return MediaItem.fetch_or_create(data, file_type=im_format, im=resized)
-
-
-def make_cover_media_item(coverfile):
-    return make_resized_media_item(coverfile, images.COVER_SIZE)
-
-
 __all__ = [
-    'populate_with_submission_media', 'populate_with_user_media',
-    'make_resized_media_item', 'make_cover_media_item', 'get_submission_media',
+    'MediaItem', 'populate_with_submission_media', 'populate_with_user_media', 'get_submission_media',
 ]

@@ -1,6 +1,6 @@
 #!/bin/sh -eux
 if [ "$(python -V 2>&1)" ">" "Python 3" ]; then
-    weasyl_reqs=
+    weasyl_reqs='-c etc/requirements.txt'
 else
     weasyl_reqs='-r etc/requirements.txt -c etc/requirements.txt -e .'
     make setup

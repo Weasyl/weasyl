@@ -25,6 +25,19 @@ def profile_(request):
         raise WeasylError("userRecordMissing")
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+
+    if otherid != request.userid and not define.is_vouched_for(otherid):
+        can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
+
+        return Response(
+            define.webpage(
+                request.userid,
+                "error/unverified.html",
+                [request, otherid, userprofile['username'], can_vouch],
+            ),
+            status=403,
+        )
+
     extras = {
         "canonical_url": "/~" + define.get_sysname(form.name)
     }
@@ -79,6 +92,7 @@ def profile_(request):
     statistics, show_statistics = profile.select_statistics(otherid)
 
     page.append(define.render('user/profile.html', [
+        request,
         # Profile information
         userprofile,
         # User information
@@ -293,6 +307,19 @@ def shouts_(request):
         return Response(define.errorpage(request.userid, errorcode.no_guest_access))
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+
+    if otherid != request.userid and not define.is_vouched_for(otherid):
+        can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
+
+        return Response(
+            define.webpage(
+                request.userid,
+                "error/unverified.html",
+                [request, otherid, userprofile['username'], can_vouch],
+            ),
+            status=403,
+        )
+
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
@@ -419,8 +446,6 @@ def favorites_(request):
 
 
 def friends_(request):
-    cachename = "user/friends.html"
-
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
@@ -434,7 +459,7 @@ def friends_(request):
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, cachename, [
+    return Response(define.webpage(request.userid, "user/friends.html", [
         # Profile information
         userprofile,
         # User information
@@ -448,8 +473,6 @@ def friends_(request):
 
 
 def following_(request):
-    cachename = "user/following.html"
-
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
@@ -463,7 +486,7 @@ def following_(request):
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, cachename, [
+    return Response(define.webpage(request.userid, "user/following.html", [
         # Profile information
         userprofile,
         # User information
@@ -477,8 +500,6 @@ def following_(request):
 
 
 def followed_(request):
-    cachename = "user/followed.html"
-
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
     form.userid = define.get_int(form.userid)
@@ -492,7 +513,7 @@ def followed_(request):
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, cachename, [
+    return Response(define.webpage(request.userid, "user/followed.html", [
         # Profile information
         userprofile,
         # User information

@@ -5,7 +5,7 @@ import arrow
 from dateutil.relativedelta import relativedelta
 import py.path
 
-from libweasyl.models import api, content, users
+from libweasyl.models import content, users
 from libweasyl import media, ratings
 
 
@@ -20,12 +20,8 @@ class NotFound(Exception):
     """
 
 
-class DummyMediaLinkFormatter(object):
-    def format_media_link(self, media, link):
-        return None
-
-
-media_link_formatter = DummyMediaLinkFormatter()
+def dummy_format_media_link(media, link):
+    return None
 
 
 class Bag(object):
@@ -40,7 +36,7 @@ class Bag(object):
             setattr(self, *kv)
 
 
-def user_with_age(age, login_name=None):
+def user_with_age(age):
     """
     Create a Login, UserInfo, and Profile with the provided age.
 
@@ -50,8 +46,7 @@ def user_with_age(age, login_name=None):
         Login: The user Login object created.
     """
     birthday = arrow.get(datetime.datetime.utcnow() - relativedelta(years=age))
-    if login_name is None:
-        login_name = 'user%d' % next(_user_counter)
+    login_name = 'user%d' % next(_user_counter)
     return users.Login(
         info=users.UserInfo(birthday=birthday),
         profile=users.Profile(username=login_name, full_name=login_name, unixtime=arrow.get(0)),
@@ -143,23 +138,3 @@ def make_media(db):
         A MediaItem.
     """
     return media_item(db, '2x233.gif')
-
-
-def make_oauth_consumer(db, clientid='client_id'):
-    """
-    Create an OAuth consumer.
-
-    A new user is also created to be the owner of the consumer. Both the user
-    objects and the OAuth consumer object are added to the session.
-
-    Returns:
-        OAuthConsumer: The OAuthConsumer object created.
-    """
-    user = make_user(db)
-    consumer = api.OAuthConsumer(
-        owner=user, clientid=clientid, client_secret='secret', description='description',
-        grant_type='authorization_code', response_type='code', scopes=['wholesite'],
-        redirect_uris=['urn:ietf:wg:oauth:2.0:oob'])
-    db.add(consumer)
-    db.flush()
-    return consumer

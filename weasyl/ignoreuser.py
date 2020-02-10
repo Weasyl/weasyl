@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 from libweasyl import staff
+from libweasyl.cache import region
 
 from weasyl import define as d
-from weasyl.cache import region
 from weasyl.error import WeasylError
 
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import anyjson as json
+import json
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.response import Response
 
@@ -18,7 +18,7 @@ Contains decorators for weasyl view callables to enforce permissions and the lik
 def login_required(view_callable):
     def inner(request):
         if request.userid == 0:
-            return Response(define.webpage(request.userid))
+            return Response(define.errorpage_html(request.userid, errorcode.unsigned))
         return view_callable(request)
     return inner
 
@@ -26,7 +26,7 @@ def login_required(view_callable):
 def guest_required(view_callable):
     def inner(request):
         if request.userid != 0:
-            return Response(define.webpage(request.userid))
+            return Response(define.errorpage_html(request.userid, errorcode.signed))
         return view_callable(request)
     return inner
 

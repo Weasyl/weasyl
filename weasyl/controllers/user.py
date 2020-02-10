@@ -17,6 +17,8 @@ from weasyl.controllers.decorators import (
     login_required,
     token_checked,
 )
+from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 # Session management functions
@@ -80,7 +82,7 @@ def signin_post_(request):
             request.userid,
             "Your account has been permanently banned and you are no longer allowed "
             "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-            "contact support@weasyl.com for assistance." % (reason,)))
+            "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS)))
     elif logerror == "suspended":
         suspension = moderation.get_suspension(logid)
         return Response(define.errorpage(
@@ -88,10 +90,9 @@ def signin_post_(request):
             "Your account has been temporarily suspended and you are not allowed to "
             "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
             "%s.\n\nIf you believe this suspension is in error, please contact "
-            "support@weasyl.com for assistance." % (suspension.reason, define.convert_date(suspension.release))))
+            "%s for assistance." % (suspension.reason, define.convert_date(suspension.release), MACRO_SUPPORT_ADDRESS)))
 
-    assert logerror is None
-    return Response(define.errorpage(request.userid))
+    raise WeasylError("Unexpected")  # pragma: no cover
 
 
 def _cleanup_2fa_session():
@@ -348,3 +349,29 @@ def force_resetbirthday_(request):
     birthday = define.convert_inputdate(form.birthday)
     profile.force_resetbirthday(request.userid, birthday)
     raise HTTPSeeOther(location="/", headers=request.response.headers)
+
+
+@login_required
+@token_checked
+def vouch_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
+    targetid = int(request.POST['targetid'])
+
+    result = define.engine.execute(
+        "UPDATE login SET voucher = %(voucher)s WHERE userid = %(target)s AND voucher IS NULL",
+        voucher=request.userid,
+        target=targetid,
+    )
+
+    if result.rowcount != 0:
+        define._get_all_config.invalidate(targetid)
+
+    target_username = define.get_display_name(targetid)
+
+    if target_username is None:
+        assert result.rowcount == 0
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location=request.route_path('profile_tilde', name=define.get_sysname(target_username)))

@@ -328,7 +328,7 @@ class TestAccountCreationBlacklist(object):
         assert 'emailBlacklisted' == err.value.value
 
         # Test the domains from the code that would download the list of disposable domains
-        blacklisted_email = "test@mail.sub.test-domain-0001.co.nz"
+        blacklisted_email = "test@mail.sub.sharklasers.com"
         form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                    email=blacklisted_email, emailcheck=blacklisted_email,
                    day='12', month='12', year=arrow.now().year - 19)
@@ -337,7 +337,7 @@ class TestAccountCreationBlacklist(object):
         assert 'emailBlacklisted' == err.value.value
 
         # Ensure address in the form of <domain.domain> is blocked
-        blacklisted_email = "test@test-domain-0001.co.nz.test-domain-0001.co.nz"
+        blacklisted_email = "test@sharklasers.com.sharklasers.com"
         form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                    email=blacklisted_email, emailcheck=blacklisted_email,
                    day='12', month='12', year=arrow.now().year - 19)

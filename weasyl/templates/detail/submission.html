@@ -168,7 +168,7 @@ $code:
             <button><span class="icon icon-20 icon-star"></span> Favorite</button>
       </form></li>
       $if submission:
-        <li><a href="${submission['display_url']}?download"><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
+        <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
     $if query['reported'] and myself and myself['userid'] in staff.MODS:
       <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
     $elif 'h' not in query['settings']:

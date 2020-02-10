@@ -75,6 +75,9 @@ def empty_storage():
         raise
 
     os.mkdir(macro.MACRO_SYS_LOG_PATH)
+    os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static'))
+    os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media'))
+    os.symlink('ad', os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media', 'ax'))
 
     try:
         yield

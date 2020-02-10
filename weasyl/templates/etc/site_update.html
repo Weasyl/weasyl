@@ -6,7 +6,7 @@ $ owner = update.get_display_owner()
 
     <figure class="thumbnail thumbnail-left clear">
       <a class="avatar" href="/~${owner.login_name}" title="${owner.profile.username}">
-        <img src="${owner.avatar['display_url']}" alt="avatar of ${owner.profile.username}" />
+        <img src="${owner.avatar_display_url or resource_path('img/default-avatar.jpg')}" alt="avatar of ${owner.profile.username}" />
       </a>
       <figcaption class="caption">
         <h4 class="title"><i>Posted by</i> <a class="username" href="/~${owner.login_name}">${owner.profile.username}</a></h4>

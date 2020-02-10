@@ -1,5 +1,4 @@
 import datetime
-import logging
 
 import arrow
 import bcrypt
@@ -14,12 +13,6 @@ from libweasyl.models import tables
 from libweasyl import cache, ratings
 
 
-log = logging.getLogger(__name__)
-
-
-_BLANK_AVATAR = "/static/images/avatar_default.jpg"
-
-
 class Login(Base):
     """
     A Weasyl user account, which can be used to log into the site.
@@ -27,28 +20,15 @@ class Login(Base):
 
     __table__ = tables.login
 
-    default_avatar = {
-        'display_url': _BLANK_AVATAR,
-        'file_url': _BLANK_AVATAR,
-    }
-
     @reify
     def media(self):
         from libweasyl.media import get_user_media
         return get_user_media(self.userid)
 
     @reify
-    def avatar(self):
-        if 'avatar' in self.media:
-            return self.media['avatar'][0]
-        else:
-            return self.default_avatar
-
-    @reify
-    def banner(self):
-        if not self.media.get('banner'):
-            return None
-        return self.media['banner'][0]
+    def avatar_display_url(self):
+        avatar = self.media.get('avatar')
+        return avatar and avatar[0]['display_url']
 
     def is_permitted_rating(self, rating):
         """

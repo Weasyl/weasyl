@@ -200,16 +200,15 @@ def _generate_http2_server_push_headers():
     css_preload = [
         '<' + item + '>; rel=preload; as=style' for item in [
             d.get_resource_path('css/site.css'),
-            '/static/fonts/museo500.css',
+            d.get_resource_path('fonts/museo500.css'),
         ]
     ]
 
     js_preload = [
         '<' + item + '>; rel=preload; as=script' for item in [
-            '/static/jquery-2.2.4.min.js',
-            '/static/typeahead.bundle.min.js',
-            '/static/marked.js?' + d.CURRENT_SHA,
-            '/static/scripts.js?' + d.CURRENT_SHA,
+            d.get_resource_path('js/jquery-2.2.4.min.js'),
+            d.get_resource_path('js/marked.js'),
+            d.get_resource_path('js/scripts.js'),
         ]
     ]
 

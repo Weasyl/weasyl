@@ -83,7 +83,6 @@ RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist2,from=bdis
     "install-wheels/weasyl-0.0.0-py2-none-any.whl"]
 
 COPY --from=assets /weasyl-build/build build
-COPY static static
 
 COPY weasyl/weasyl.tac ./
 
@@ -96,12 +95,12 @@ ENV WEASYL_APP_ROOT=.
 ENV WEASYL_STORAGE_ROOT=testing/storage
 ENV PATH="/weasyl/.venv/bin:${PATH}"
 COPY pytest.ini ./
+COPY assets assets
 CMD pytest -x libweasyl.test && pytest -x weasyl.test
 
 FROM package
 ENV WEASYL_APP_ROOT=/weasyl
 ENV WEASYL_WEB_ENDPOINT=tcp:8080
-ENV WEASYL_SERVE_STATIC_FILES=y
 CMD [".venv/bin/twistd", "--nodaemon", "--python=weasyl.tac", "--pidfile=/tmp/twistd.pid"]
 EXPOSE 8080
 STOPSIGNAL SIGINT

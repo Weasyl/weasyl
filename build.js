@@ -23,30 +23,6 @@ const terminate = error => {
     });
 };
 
-const touchDir = dirPath =>
-    new Promise((resolve, reject) => {
-        fs.mkdir(dirPath, error => {
-            if (error && error.code !== 'EEXIST') {
-                reject(error);
-                return;
-            }
-
-            resolve();
-        });
-    });
-
-const writeFile = (filePath, content, options) =>
-    new Promise((resolve, reject) => {
-        fs.writeFile(filePath, content, options, error => {
-            if (error) {
-                reject(error);
-                return;
-            }
-
-            resolve();
-        });
-    });
-
 const sassc = inputPath =>
     new Promise((resolve, reject) => {
         const sassProcess = child_process.execFile(
@@ -66,45 +42,158 @@ const sassc = inputPath =>
         sassProcess.stderr.pipe(process.stderr);
     });
 
-const main = () => {
-    const inputPath = path.join(ASSETS, 'scss/site.scss');
-    const manifestPath = path.join(BUILD, 'rev-manifest.json');
+/**
+ * Gets a 10-character digest from a SHA-512 digest buffer using characters from the URL-safe base64 set.
+ */
+const getShortDigest = digest => {
+    if (digest.length < 8) {
+        throw new RangeError('Digest too short');
+    }
 
-    const touch =
-        touchDir(path.join(BUILD, 'css'))
-            .catch(() =>
-                touchDir(BUILD).then(() =>
-                    touchDir(path.join(BUILD, 'css'))));
+    return digest
+        .toString('base64')
+        .substring(0, 10)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+};
 
-    return sassc(inputPath)
-        .then(css =>
-            postcss([autoprefixer(autoprefixerOptions)]).process(css, {
-                from: undefined,
-                map: false,
-            }))
-        .then(result => {
-            result.warnings().forEach(warning => {
-                console.error(String(warning));
-            });
+const addFilenameSuffix = (relativePath, suffix) => {
+    const pathInfo = path.parse(relativePath);
 
-            const hash =
-                crypto.createHash('sha512')
-                    .update(result.css, 'utf8')
-                    .digest('hex')
-                    .substring(0, 10);
+    return path.format({
+        dir: pathInfo.dir,
+        name: pathInfo.name + '-' + suffix,
+        ext: pathInfo.ext,
+    });
+};
 
-            const outputPath = `css/site-${hash}.css`;
+const copyStaticFile = (relativePath, touch) => {
+    const inputPath = path.join(ASSETS, relativePath);
+    const stream = fs.createReadStream(inputPath);
+    const hash = crypto.createHash('sha512');
+
+    stream.pipe(hash);
+
+    return new Promise((resolve, reject) => {
+        stream.once('error', reject);
+
+        hash.once('readable', () => {
+            const shortDigest = getShortDigest(hash.read());
+            const outputPath = addFilenameSuffix(relativePath, shortDigest);
             const outputFullPath = path.join(BUILD, outputPath);
 
-            return touch.then(() =>
-                Promise.all([
-                    writeFile(outputFullPath, result.css, 'utf8'),
-                    writeFile(manifestPath, JSON.stringify({
-                        'css/site.css': outputPath,
-                    }), 'utf8'),
-                ])
-            );
+            resolve({
+                entries: [[relativePath, outputPath]],
+                work: touch.then(() =>
+                    fs.promises.copyFile(inputPath, outputFullPath)),
+            });
         });
+    });
+};
+
+const copyStaticFiles = async (relativePath, touch) => {
+    const names = await fs.promises.readdir(path.join(ASSETS, relativePath));
+    const subtasks = await Promise.all(
+        names.map(async name => {
+            const subpath = path.join(relativePath, name);
+            const subpathStat = await fs.promises.stat(path.join(ASSETS, subpath));
+
+            if (subpathStat.isDirectory()) {
+                return {
+                    entries: [],
+                    work: Promise.resolve(),
+                };
+            }
+
+            return await copyStaticFile(subpath, touch);
+        })
+    );
+
+    return {
+        entries: subtasks.flatMap(task => task.entries),
+        work: Promise.all(subtasks.map(task => task.work)),
+    };
+};
+
+const sasscFile = async (relativeInputPath, relativeOutputPath, touch, copyImages) => {
+    const inputPath = path.join(ASSETS, relativeInputPath);
+
+    const css = await sassc(inputPath);
+
+    const result = postcss([autoprefixer(autoprefixerOptions)]).process(css, {
+        from: undefined,
+        map: false,
+    });
+
+    result.warnings().forEach(warning => {
+        console.error(String(warning));
+    });
+
+    // ew
+    const images = new Map(
+        (await copyImages).entries
+            .map(([k, v]) => [new URL('http://localhost/' + k).href, v])
+    );
+
+    const urlTranslatedCss = result.css.replace(/(url\()([^)]*)\)/gi, (match, left, link) => {
+        if (/^["']./.test(link) && link.slice(-1) === link.charAt(0)) {
+            link = link.slice(1, -1);
+        }
+
+        const expandedLink = new URL(link, 'http://localhost/' + relativeInputPath).href;
+
+        if (!images.has(expandedLink)) {
+            throw new Error(`Unresolvable url() in ${relativeInputPath}: ${link}`);
+        }
+
+        return left + '/' + images.get(expandedLink) + ')';
+    });
+
+    const shortDigest = getShortDigest(
+        crypto.createHash('sha512')
+            .update(urlTranslatedCss, 'utf8')
+            .digest()
+    );
+
+    const outputPath = addFilenameSuffix(relativeOutputPath, shortDigest);
+    const outputFullPath = path.join(BUILD, outputPath);
+
+    return {
+        entries: [[relativeOutputPath, outputPath]],
+        work: touch.then(() => fs.promises.writeFile(outputFullPath, urlTranslatedCss, 'utf8')),
+    };
+};
+
+const main = async () => {
+    const manifestPath = path.join(BUILD, 'rev-manifest.json');
+
+    const touch = Promise.all([
+        fs.promises.mkdir(path.join(BUILD, 'css'), {recursive: true}),
+        fs.promises.mkdir(path.join(BUILD, 'fonts'), {recursive: true}),
+        fs.promises.mkdir(path.join(BUILD, 'img', 'help'), {recursive: true}),
+        fs.promises.mkdir(path.join(BUILD, 'js'), {recursive: true}),
+    ]);
+
+    const copyImages = copyStaticFiles('img', touch);
+
+    const tasks = await Promise.all([
+        sasscFile('scss/site.scss', 'css/site.css', touch, copyImages),
+        copyStaticFiles('img/help', touch),
+        copyImages,
+        copyStaticFiles('js', touch),
+    ]);
+
+    await touch;
+    await fs.promises.writeFile(
+        manifestPath,
+        JSON.stringify(
+            Object.fromEntries(
+                [
+                    ...tasks.flatMap(task => task.entries),
+                    ['fonts/museo500.css', 'fonts/museo500.css'],
+                ])),
+    );
+    await Promise.all(tasks.map(task => task.work));
 };
 
 if (module === require.main) {

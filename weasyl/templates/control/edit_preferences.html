@@ -21,8 +21,8 @@ $code:
           <option value="${tzvalue}"$:{' selected' if timezone == tzvalue else ''}>${tzname}</option>
     </select>
     <a id="tz-autodetect" class="button" style="margin-top: 0.5em; display: none">Autodetect</a>
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.min.js"></script>
-    <script type="text/javascript" src="${CDNIFY('/static/tz-autodetect.js')}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.min.js"></script>
+    <script src="${resource_path('js/tz-autodetect.js')}"></script>
 
     <label class="input-checkbox" style="margin-top: 0.5em">
       <input type="checkbox" name="twelvehour"$:{_CHECKED("2")} />

@@ -17,7 +17,7 @@ $def with (profile, userinfo, relationship)
   $ banner = profile['user_media'].get('banner', [None])[0]
   $if banner:
     <div id="user-image">
-      <img class="lazy" data-src="${banner['display_url']}" src="${CDNIFY('/static/images/user-image-blank.png')}" alt="" />
+      <img class="lazy" data-src="${banner['display_url']}" src="${resource_path('img/user-image-blank.png')}" alt="" />
       <noscript><img src="${banner['display_url']}" alt="" /></noscript>
       <svg class="img-space" width="${banner['attributes']['width']}" height="${banner['attributes']['height']}"></svg>
     </div>
@@ -123,14 +123,6 @@ $def with (profile, userinfo, relationship)
         $if profile['settings'][2] != 'e':
           <h6>Requests: <strong class="${_STATUS_CLASS_(profile['settings'][2])}">${_STATUS_WORD_(profile['settings'][2])}</strong></h6>
       </div>
-
-      $#<div class="social">
-        $#<a href="#"><img src="${CDNIFY('/static/images/icon_social_fb.png')}" alt="Facebook" /></a>
-        $#<a href="#"><img src="${CDNIFY('/static/images/icon_social_flickr.png')}" alt="Flickr" /></a>
-        $#<a href="#"><img src="${CDNIFY('/static/images/icon_social_lastfm.png')}" alt="Last.FM" /></a>
-        $#<a href="#"><img src="${CDNIFY('/static/images/icon_social_aim.png')}" alt="AOL Instant Messenger" /></a>
-        $#<a href="#"><img src="${CDNIFY('/static/images/icon_social_skype.png')}" alt="Skype" /></a>
-      $#</div>
 
     </div>
 

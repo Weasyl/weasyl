@@ -8,10 +8,6 @@
 etc/*
 !etc/requirements.txt
 
-!static
-static/character
-static/media
-
 !build.js
 !package.json
 !package-lock.json

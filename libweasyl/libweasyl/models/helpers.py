@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import contextlib
-import logging
 
 import json
 import arrow
@@ -13,9 +12,6 @@ from sqlalchemy import event, types
 
 from ..legacy import UNIXTIME_OFFSET
 from .. import ratings
-
-
-log = logging.getLogger(__name__)
 
 
 def reverse_dict(d):

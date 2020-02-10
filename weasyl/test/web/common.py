@@ -10,21 +10,21 @@ from weasyl.macro import MACRO_APP_ROOT, MACRO_STORAGE_ROOT
 from weasyl.test import db_utils
 
 
-_static_cache = {}
+_asset_cache = {}
 
 
-def read_static(path):
-    full_path = os.path.join(MACRO_APP_ROOT, 'static', path)
+def read_asset(path):
+    full_path = os.path.join(MACRO_APP_ROOT, 'assets', path)
 
-    if full_path not in _static_cache:
+    if full_path not in _asset_cache:
         with open(full_path, 'rb') as f:
-            _static_cache[full_path] = f.read()
+            _asset_cache[full_path] = f.read()
 
-    return _static_cache[full_path]
+    return _asset_cache[full_path]
 
 
-def read_static_image(path):
-    return Image.open(BytesIO(read_static(path))).convert('RGBA')
+def read_asset_image(path):
+    return Image.open(BytesIO(read_asset(path))).convert('RGBA')
 
 
 def read_storage_image(image_url):

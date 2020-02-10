@@ -7,7 +7,6 @@ from libweasyl import media as libweasylmedia
 from libweasyl.text import slug_for
 
 from weasyl.error import WeasylError
-from weasyl import macro as m
 from weasyl import define, image, orm
 
 
@@ -32,14 +31,14 @@ def make_cover_media_item(coverfile, error_type='coverType'):
 def get_multi_submission_media(*submitids):
     ret = libweasylmedia.get_multi_submission_media(*submitids)
     for d in ret:
-        d.setdefault('thumbnail-generated', m.MACRO_DEFAULT_SUBMISSION_THUMBNAIL)
+        d.setdefault('thumbnail-generated', define.DEFAULT_SUBMISSION_THUMBNAIL)
     return ret
 
 
 def get_multi_user_media(*userids):
     ret = libweasylmedia.get_multi_user_media(*userids)
     for d in ret:
-        d.setdefault('avatar', m.MACRO_DEFAULT_AVATAR)
+        d.setdefault('avatar', define.DEFAULT_AVATAR)
     return ret
 
 

@@ -18,15 +18,15 @@ $def with (query, notifications=None, lazy_load=True)
 
         display_url = thumb['display_url']
 
-        if display_url == M.MACRO_BLANK_THUMB:
+        if display_url == resource_path('img/default-visual.png'):
           subtype = query.get('subtype', 0)
 
           if 2000 <= subtype < 3000:
-            display_url = '/static/images/default-thumbs/lit.png'
+            display_url = resource_path('img/default-lit.png')
           elif 3000 <= subtype < 3040:
-            display_url = '/static/images/default-thumbs/music.png'
+            display_url = resource_path('img/default-music.png')
           elif 3040 <= subtype < 4000:
-            display_url = '/static/images/default-thumbs/multi.png'
+            display_url = resource_path('img/default-multi.png')
 
         playable = query['sub_media'].get('submission')
 

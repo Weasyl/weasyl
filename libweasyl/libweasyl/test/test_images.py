@@ -1,13 +1,11 @@
 from __future__ import unicode_literals
 
-import errno
-
 import pytest
 
 from PIL import Image
 
-from libweasyl.test.common import Bag, datadir
-from libweasyl import images, media
+from libweasyl.test.common import datadir
+from libweasyl import images
 
 
 def test_image_load_file():

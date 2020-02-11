@@ -979,7 +979,7 @@ def get_resource_url(resource):
 
     Useful for <meta name="og:image">, for example.
     """
-    return absolutify_url(get_resource_path())
+    return 'https://www.weasyl.com' + get_resource_path(resource)
 
 
 DEFAULT_SUBMISSION_THUMBNAIL = [

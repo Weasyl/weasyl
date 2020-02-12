@@ -30,7 +30,7 @@ before_install:
     - pip install -U pip setuptools pbr
     - pip --version
     - export VE=$VIRTUAL_ENV  # Use the virtual environment travis provides.
-    - nvm install 8
+    - nvm install 13
 
 install:
     - createdb -E UTF8 -O travis weasyl_test

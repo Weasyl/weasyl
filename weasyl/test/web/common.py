@@ -32,7 +32,7 @@ def read_storage_image(image_url):
     return Image.open(full_path).convert('RGBA')
 
 
-_BASE_VISUAL_FORM = {
+BASE_VISUAL_FORM = {
     'submitfile': u'',
     'thumbfile': u'',
     'title': u'Test title',
@@ -46,7 +46,7 @@ _BASE_VISUAL_FORM = {
 
 def create_visual(app, user, **kwargs):
     cookie = db_utils.create_session(user)
-    form = dict(_BASE_VISUAL_FORM, **kwargs)
+    form = dict(BASE_VISUAL_FORM, **kwargs)
     resp = app.post('/submit/visual', form, headers={'Cookie': cookie}).maybe_follow(headers={'Cookie': cookie})
     submitid = int(resp.html.find('input', {'name': 'submitid'})['value'])
 

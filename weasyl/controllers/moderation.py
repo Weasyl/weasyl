@@ -192,15 +192,6 @@ def modcontrol_editcatchphrase_(request):
 
 @moderator_only
 @token_checked
-def modcontrol_edituserconfig_(request):
-    form = request.web_input(userid="")
-
-    moderation.edituserconfig(form)
-    raise HTTPSeeOther("/modcontrol")
-
-
-@moderator_only
-@token_checked
 def modcontrol_copynotetostaffnotes_post_(request):
     form = request.web_input(noteid=None)
 

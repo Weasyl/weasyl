@@ -16,7 +16,7 @@ from libweasyl.text import slug_for
 class Submission(Base):
     __table__ = tables.submission
 
-    owner = relationship(Login, backref='submissions')
+    owner = relationship(Login)
 
     with clauses_for(__table__) as c:
         is_hidden = c('hidden')
@@ -66,8 +66,8 @@ class Submission(Base):
 class Comment(Base):
     __table__ = tables.comments
 
-    _target_user = relationship(Login, foreign_keys=[__table__.c.target_user], backref='shouts')
-    _target_sub = relationship(Submission, backref='comments')
+    _target_user = relationship(Login, foreign_keys=[__table__.c.target_user])
+    _target_sub = relationship(Submission)
     poster = relationship(Login, foreign_keys=[__table__.c.userid])
 
     @property
@@ -83,7 +83,7 @@ class Comment(Base):
 class Folder(Base):
     __table__ = tables.folder
 
-    owner = relationship(Login, backref='folders')
+    owner = relationship(Login)
     submissions = relationship(Submission, backref=backref('folder', uselist=False))
 
     with clauses_for(__table__) as c:
@@ -93,7 +93,7 @@ class Folder(Base):
 class Journal(Base):
     __table__ = tables.journal
 
-    owner = relationship(Login, backref='journals')
+    owner = relationship(Login)
 
     with clauses_for(__table__) as c:
         is_hidden = c('hidden')
@@ -122,7 +122,7 @@ class JournalComment(Base):
 class Character(Base):
     __table__ = tables.character
 
-    owner = relationship(Login, backref='characters')
+    owner = relationship(Login)
 
     with clauses_for(__table__) as c:
         is_hidden = c('hidden')
@@ -170,7 +170,7 @@ class Favorite(Base):
 class ReportComment(Base):
     __table__ = tables.reportcomment
 
-    poster = relationship(Login, backref='report_comments')
+    poster = relationship(Login)
 
 
 class Report(Base):
@@ -179,13 +179,13 @@ class Report(Base):
     with clauses_for(__table__) as c:
         is_under_review = c('under-review')
 
-    _target_user = relationship(Login, foreign_keys=[__table__.c.target_user], backref='profile_reports')
-    _target_sub = relationship(Submission, backref='reports')
-    _target_char = relationship(Character, backref='reports')
-    _target_journal = relationship(Journal, backref='reports')
-    _target_comment = relationship(Comment, backref='reports')
+    _target_user = relationship(Login, foreign_keys=[__table__.c.target_user])
+    _target_sub = relationship(Submission)
+    _target_char = relationship(Character)
+    _target_journal = relationship(Journal)
+    _target_comment = relationship(Comment)
     comments = relationship(ReportComment, backref=backref('report', uselist=False))
-    owner = relationship(Login, foreign_keys=[__table__.c.closerid], backref='owned_reports')
+    owner = relationship(Login, foreign_keys=[__table__.c.closerid])
 
     @property
     def target(self):

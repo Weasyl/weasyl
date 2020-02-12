@@ -1,4 +1,4 @@
-$def with (options=None, active_users_string='')
+$def with (options=None)
   <footer><div id="footer">
 
     <nav><div id="footer-nav" class="clear">
@@ -57,9 +57,6 @@ $def with (options=None, active_users_string='')
     <img id="footer-wesley" src="${resource_path('img/wesley1.png')}" alt="" />
 
     <p id="footer-info">
-      $if active_users_string:
-        ${active_users_string}.
-        <br>
       <a href="https://github.com/Weasyl/weasyl/commit/${SHA}">${SHA}</a> &middot; Copyright &copy; 2012–${arrow.now().year} Weasyl LLC<br>
       <a href="https://github.com/Weasyl/weasyl">Weasyl is an open source project</a>
     </p>

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import arrow
 from twisted.python import log
 
-from weasyl.define import active_users, engine, get_time
+from weasyl.define import engine, get_time
 from weasyl import index, submission
 
 
@@ -28,12 +28,6 @@ def run_periodic_tasks():
         if now.minute % 2 == 0:
             index.recent_submissions.refresh()
             log.msg('refreshed recent submissions')
-
-        # Recache the active user counts
-        # Every 5 minutes
-        if now.minute % 5 == 0:
-            active_users.refresh()
-            log.msg('refreshed active user counts')
 
         # Recalculate recently popular submissions
         # Every 10 minutes

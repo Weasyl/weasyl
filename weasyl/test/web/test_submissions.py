@@ -49,6 +49,21 @@ def test_rating_accessibility(app, age):
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
+def test_gif_thumbnail_static(app, submission_user):
+    sub = create_visual(
+        app, submission_user,
+        submitfile=webtest.Upload('loader.gif', read_asset('img/loader.gif'), 'image/gif'),
+    )
+
+    [thumb_compat] = app.get('/~submissiontest').html.select('#user-thumbs img')
+    assert thumb_compat['src'].endswith('.png')
+
+    [thumb] = app.get('/~submissiontest').html.select('#user-thumbs .thumb-bounds')
+    assert thumb.picture is not None
+    assert thumb.picture.source['srcset'].endswith('.webp')
+
+
+@pytest.mark.usefixtures('db', 'no_csrf')
 def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     # resized to be larger than COVER_SIZE so a cover is created
     with BytesIO() as f:

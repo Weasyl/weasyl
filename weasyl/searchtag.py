@@ -10,7 +10,6 @@ from weasyl import define as d
 from weasyl import files
 from weasyl import ignoreuser
 from weasyl import macro as m
-from weasyl import orm
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -34,13 +33,16 @@ def select(submitid=None, charid=None, journalid=None):
 
 
 def select_with_artist_tags(submitid):
-    db = d.connect()
-    tags = (
-        db.query(orm.Tag.title, orm.SubmissionTag.is_artist_tag)
-        .join(orm.SubmissionTag)
-        .filter_by(targetid=submitid)
-        .order_by(orm.Tag.title)
-        .all())
+    # 'a': artist-tag
+    tags = d.engine.execute(
+        "SELECT title, settings ~ 'a'"
+        " FROM searchmapsubmit"
+        " INNER JOIN searchtag USING (tagid)"
+        " WHERE targetid = %(sub)s"
+        " ORDER BY title",
+        sub=submitid,
+    ).fetchall()
+
     ret = []
     artist_tags = set()
     for tag, is_artist_tag in tags:

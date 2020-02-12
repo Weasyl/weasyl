@@ -185,7 +185,6 @@ def _compile(template_name):
                 "SLUG": text.slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
-                "CDNIFY": cdnify_url,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
@@ -951,7 +950,7 @@ def url_make(targetid, feature, query=None, root=False, file_prefix=None):
         if query and "-" in query[0]:
             result.append("%i.thumb%s" % (targetid, url_type(query[0], feature)))
         else:
-            return None if root else macro.MACRO_BLANK_THUMB
+            return None if root else get_resource_path("img/default-visual.png")
     # Character thumbnail selection
     elif feature == "char/.thumb":
         result.append("%i.new.thumb" % (targetid,))
@@ -972,6 +971,30 @@ def get_resource_path(resource):
         _load_resources()
 
     return '/' + resource_paths[resource]
+
+
+def get_resource_url(resource):
+    """
+    Get a full URL for a resource.
+
+    Useful for <meta name="og:image">, for example.
+    """
+    return 'https://www.weasyl.com' + get_resource_path(resource)
+
+
+DEFAULT_SUBMISSION_THUMBNAIL = [
+    dict.fromkeys(
+        ['display_url', 'file_url'],
+        get_resource_path('img/default-visual.png'),
+    ),
+]
+
+DEFAULT_AVATAR = [
+    dict.fromkeys(
+        ['display_url', 'file_url'],
+        get_resource_path('img/default-avatar.jpg'),
+    ),
+]
 
 
 def absolutify_url(url):

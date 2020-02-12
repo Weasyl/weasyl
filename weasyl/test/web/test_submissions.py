@@ -8,7 +8,7 @@ import pytest
 import webtest
 
 from weasyl.test import db_utils
-from weasyl.test.web.common import create_visual, read_static_image, read_storage_image
+from weasyl.test.web.common import create_visual, read_asset_image, read_storage_image
 
 
 def _image_hash(image):
@@ -19,11 +19,11 @@ def _image_hash(image):
 def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     # resized to be larger than COVER_SIZE so a cover is created
     with BytesIO() as f:
-        read_static_image('images/wesley1.png').resize((2200, 200)).save(f, format='PNG')
+        read_asset_image('img/wesley1.png').resize((2200, 200)).save(f, format='PNG')
         wesley1_large = webtest.Upload('wesley1.png', f.getvalue(), 'image/png')
 
     with BytesIO() as f:
-        read_static_image('images/wesley-jumpingtext.png').resize((2200, 100)).save(f, format='PNG')
+        read_asset_image('img/help/wesley-jumpingtext.png').resize((2200, 100)).save(f, format='PNG')
         wesley2_large = webtest.Upload('wesley-jumpingtext.png', f.getvalue(), 'image/png')
 
     cookie = db_utils.create_session(submission_user)

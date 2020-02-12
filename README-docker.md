@@ -90,6 +90,8 @@ containers/run \
 ## Nginx
 
 ```shell
+mkdir -p weasyl-web
+docker cp weasyl-web:/weasyl/build weasyl-web/
 containers/run-nginx
 ```
 

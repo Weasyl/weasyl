@@ -212,7 +212,7 @@
 
             $('#login-box-container').empty().append(
                 $('<div>', { id: 'login-box', class: 'content' }).append(
-                    $('<img>', { id: 'modal-loader', src: '/static/images/loader.gif', alt: '' })
+                    $('<img>', { id: 'modal-loader', src: $('#login-box-container').data('loader'), alt: '' })
                 )
             ).load('/signin #login-box', function () {
                 $('#login-user').focus();

@@ -9,7 +9,7 @@ $:{TITLE("User Management", "Moderator Control Panel", "/modcontrol")}
   </h3>
 
   $ avatar = query['user_media']['avatar'][0]
-  $if avatar != M.MACRO_DEFAULT_AVATAR[0]:
+  $if avatar['display_url'] != resource_path('img/default-avatar.jpg'):
     <div class="clear" style="margin-top:20px;">
       <img src="${avatar['display_url']}" alt="" />
       <form action="/modcontrol/removeavatar" method="post">

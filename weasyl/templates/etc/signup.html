@@ -101,8 +101,8 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
       </div>
     </div>
 
-    <script src="${CDNIFY('/static/scripts/zxcvbn/zxcvbn.js')}" async></script>
-    <script src="${CDNIFY('/static/scripts/zxcvbn/check.js')}" async></script>
+    <script src="${resource_path('js/zxcvbn.js')}" async></script>
+    <script src="${resource_path('js/zxcvbn-check.js')}" async></script>
 
     <button type="submit" class="button positive" style="float: right;">Join Weasyl</button>
     <a class="button" href="/index">Cancel</a>

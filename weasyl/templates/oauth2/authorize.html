@@ -46,8 +46,8 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
       padding: 0 20px;
       font: 15px/20px 'Lucida Sans', 'Lucida Grande', Arial, Roboto, sans-serif;
       color: #ebeae9;
-      background: #161d26 url('${CDNIFY('/static/authorize/bg.jpg')}') no-repeat 50% 0;
-      background: url('${CDNIFY('/static/authorize/noise.png')}') repeat 0 0, #161d26 url('${CDNIFY('/static/authorize/bg.jpg')}') no-repeat 50% 0;
+      background: #161d26 url('${resource_path('img/authorize-bg.jpg')}') no-repeat 50% 0;
+      background: url('${resource_path('img/authorize-noise.png')}') repeat 0 0, #161d26 url('${resource_path('img/authorize-bg.jpg')}') no-repeat 50% 0;
       background-size: auto, 100% auto;
     }
     a, .a {
@@ -172,7 +172,7 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
 <body>
 
   <header>
-    <a href="/" class="logo"><img src="${CDNIFY('/static/images/logo-mark-light.svg')}" alt="Weasyl logo" /></a>
+    <a href="/" class="logo"><img src="${resource_path('img/logo-mark-light.svg')}" alt="Weasyl logo" /></a>
   </header>
 
   <form method="POST" action="">

@@ -8,7 +8,7 @@ from PIL import Image
 
 from weasyl.macro import MACRO_STORAGE_ROOT
 from weasyl.test import db_utils
-from weasyl.test.web.common import read_static, read_static_image
+from weasyl.test.web.common import read_asset, read_asset_image
 
 
 _BASE_FORM = {
@@ -42,7 +42,7 @@ def _character(app, db, character_user, no_csrf):
 
     form = dict(
         _BASE_FORM,
-        submitfile=webtest.Upload('wesley', read_static('images/wesley1.png'), 'image/png'),
+        submitfile=webtest.Upload('wesley', read_asset('img/wesley1.png'), 'image/png'),
     )
 
     resp = app.post('/submit/character', form, headers={'Cookie': cookie}).follow(headers={'Cookie': cookie})
@@ -64,7 +64,7 @@ def test_create_default_thumbnail(app, character):
     assert resp.html.find(id='char-stats').find('dt', text=u'Gender:').findNext('dd').string == u'🦊'
 
     image_url = resp.html.find(id='detail-art').a['href']
-    assert _read_character_image(image_url).tobytes() == read_static_image('images/wesley1.png').tobytes()
+    assert _read_character_image(image_url).tobytes() == read_asset_image('img/wesley1.png').tobytes()
 
 
 @pytest.mark.usefixtures('db', 'character_user', 'character', 'no_csrf')
@@ -87,8 +87,8 @@ def test_owner_reupload(app, character_user, character):
 
     resp = app.post('/reupload/character', {
         'targetid': str(character),
-        'submitfile': webtest.Upload('wesley', read_static('images/wesley-draw.png'), 'image/png'),
+        'submitfile': webtest.Upload('wesley', read_asset('img/help/wesley-draw.png'), 'image/png'),
     }, headers={'Cookie': cookie}).follow()
 
     image_url = resp.html.find(id='detail-art').a['href']
-    assert _read_character_image(image_url).tobytes() == read_static_image('images/wesley-draw.png').tobytes()
+    assert _read_character_image(image_url).tobytes() == read_asset_image('img/help/wesley-draw.png').tobytes()

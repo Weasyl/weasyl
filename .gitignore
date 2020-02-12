@@ -12,7 +12,6 @@ __pycache__/
 /node_modules
 /save
 /static/character
-/static/fonts
 /static/media
 /config/site.config.txt
 /config/weasyl-staff.py
@@ -22,3 +21,5 @@ __pycache__/
 /version.txt
 
 /.pytest_cache/
+
+/weasyl-web/

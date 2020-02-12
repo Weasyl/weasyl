@@ -5,7 +5,7 @@ import pytest
 import webtest
 
 import weasyl.define as d
-from weasyl.test.web.common import create_visual, read_static
+from weasyl.test.web.common import create_visual, read_asset
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
@@ -13,7 +13,7 @@ def test_submission_view(app, submission_user):
     submission = create_visual(
         app,
         submission_user,
-        submitfile=webtest.Upload('wesley1.png', read_static('images/wesley1.png'), 'image/png'),
+        submitfile=webtest.Upload('wesley1.png', read_asset('img/wesley1.png'), 'image/png'),
     )
     d.engine.execute('UPDATE submission SET unixtime = 1581092121 WHERE submitid = %(id)s', id=submission)
 
@@ -51,7 +51,7 @@ def test_submission_view(app, submission_user):
     assert owner_media == {
         'avatar': [{
             'mediaid': None,
-            'url': 'http://localhost/static/images/avatar_default.jpg',
+            'url': 'http://localhost/img/default-avatar-tjcj1QiKH4.jpg',
         }],
     }
 

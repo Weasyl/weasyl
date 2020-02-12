@@ -15,7 +15,7 @@ $:{TITLE("Site Updates")}
                 </div>
 
             <article class="text-post-item">
-                <img class="text-post-image text-post-image-small" src="${owner.avatar['display_url']}" title="${owner.profile.username}" alt="${owner.profile.username}’s avatar" />
+                <img class="text-post-image text-post-image-small" src="${owner.avatar_display_url or resource_path('img/default-avatar.jpg')}" title="${owner.profile.username}" alt="${owner.profile.username}’s avatar" />
 
                 <div class="text-post-text">
                     <h4 class="text-post-title">

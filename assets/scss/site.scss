@@ -318,10 +318,10 @@ a.more-block:last-child {
 
 @media (min-width: 45em) {
     .stage, #footer {
-        background: #242d31 url('../static/images/bg.jpg') no-repeat 50% 0;
+        background: #242d31 url('../img/bg.jpg') no-repeat 50% 0;
         background:
-            url('../static/images/texture-canvas.png'),
-            #242d31 url('../static/images/bg.jpg') no-repeat 50% 0;
+            url('../img/texture-canvas.png'),
+            #242d31 url('../img/bg.jpg') no-repeat 50% 0;
     }
 }
 
@@ -915,26 +915,26 @@ select.input {
 .icon-20 {
     width: 20px;
     height: 20px;
-    background-image: url('../static/images/icons-20.png');
+    background-image: url('../img/icons-20.png');
     margin: -0.3em 0 0 0;
 }
 
 .icon-status {
     width: 20px;
     height: 20px;
-    background-image: url('../static/images/icons-status.png');
+    background-image: url('../img/icons-status.png');
     position: relative;
     overflow: visible;
 }
 
 @media only screen and (min-resolution: 1.5dppx) {
     .icon-20 {
-        background-image: url('../static/images/icons-20@2x.png');
+        background-image: url('../img/icons-20@2x.png');
         background-size: 60px 260px;
     }
 
     .icon-status {
-        background-image: url('../static/images/icons-status@2x.png');
+        background-image: url('../img/icons-status@2x.png');
         background-size: 60px 20px;
     }
 }
@@ -1617,7 +1617,7 @@ blockquote + blockquote {
     height: 1.75rem;
     right: 0;
     top: 0;
-    background: url('../static/images/icon-delete.png') no-repeat 50% 50%;
+    background: url('../img/icon-delete.png') no-repeat 50% 50%;
 }
 
 .listbuilder-entry-add {
@@ -2027,7 +2027,7 @@ blockquote + blockquote {
     border: 1px solid #272d2f;
     border-radius: 0;
     color: #ddd;
-    background: transparent url('../static/images/icon-search.png') no-repeat 5px 50%;
+    background: transparent url('../img/icon-search.png') no-repeat 5px 50%;
     background-color: rgba(255,255,255,0.02);
     box-shadow: 0 4px 0 #19354e;
     transition: all 0.15s linear;
@@ -3998,7 +3998,7 @@ img + #detail-art-text {
     width: 17em;
     max-width: 100%;
     padding-left: 25px;
-    background-image: url('../static/images/icon-search-lightbg.png');
+    background-image: url('../img/icon-search-lightbg.png');
     background-repeat: no-repeat;
     background-position: 5px 50%;
 }
@@ -4731,7 +4731,7 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 }
 
 .playable-toggle {
-    background: url('../static/images/play-light.svg') no-repeat center/auto 4.6em;
+    background: url('../img/play-light.svg') no-repeat center/auto 4.6em;
     border: none;
     height: 5em;
     margin: 0;
@@ -4747,7 +4747,7 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 }
 
 .playable-toggle.playing {
-    background-image: url('../static/images/pause-light.svg');
+    background-image: url('../img/pause-light.svg');
 }
 
 .playable-time {

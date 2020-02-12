@@ -264,7 +264,6 @@ routes = (
     Route("/modcontrol/removebanner", "modcontrol_removebanner", {'POST': moderation.modcontrol_removebanner_}),
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
-    Route("/modcontrol/edituserconfig", "modcontrol_edituserconfig", {'POST': moderation.modcontrol_edituserconfig_}),
     Route("/modcontrol/spamqueue/journal", "modcontrol_spamqueue_journal", {
         "GET": moderation.modcontrol_spamqueue_journal_get_,
         "POST": moderation.modcontrol_spamqueue_journal_post_,

@@ -681,7 +681,7 @@ def edit_preferences(userid, timezone=None,
     if jsonb_settings is not None:
         # update jsonb preferences
         updates['jsonb_settings'] = jsonb_settings.get_raw()
-        d._get_profile_settings.invalidate(userid)
+        d._get_all_config.invalidate(userid)
 
     d.engine.execute(
         tables.profile.update().where(tables.profile.c.userid == userid),

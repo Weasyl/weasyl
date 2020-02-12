@@ -317,10 +317,10 @@ def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(namespace='v2')
 def _get_all_config(userid):
     row = engine.execute(
-        "SELECT login.settings, login.voucher IS NOT NULL, profile.config"
+        "SELECT login.settings, login.voucher IS NOT NULL, profile.config, profile.jsonb_settings"
         " FROM login INNER JOIN profile USING (userid)"
         " WHERE userid = %(user)s",
         user=userid,
@@ -343,28 +343,18 @@ def is_vouched_for(userid):
     return _get_all_config(userid)[1]
 
 
-@region.cache_on_arguments()
-@record_timing
-def _get_profile_settings(userid):
-    """
-    This helper function is required because we want to return
-    the ProfileSettings object, which by itself is not serializable
-    by our cacheing library (or at least, I don't know how to make it so)
-    :param userid:
-    :return: json representation of profile settings
-    """
-    if userid is None:
-        return {}
-    jsonb = engine.scalar("SELECT jsonb_settings FROM profile WHERE userid = %(user)s",
-                          user=userid)
-    if jsonb is None:
-        jsonb = {}
-    return jsonb
-
-
 def get_profile_settings(userid):
     from weasyl.profile import ProfileSettings
-    return ProfileSettings(_get_profile_settings(userid))
+
+    if not userid:
+        jsonb = {}
+    else:
+        jsonb = _get_all_config(userid)[3]
+
+        if jsonb is None:
+            jsonb = {}
+
+    return ProfileSettings(jsonb)
 
 
 def get_rating(userid):

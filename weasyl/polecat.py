@@ -11,22 +11,10 @@ from twisted.application.service import Service
 from twisted.internet.task import LoopingCall
 from twisted.internet.threads import deferToThread
 from twisted.python import log
-from twisted.web.server import Request, Site
-
-
-class WeasylRequest(Request):
-    def getClientIP(self):
-        "If there's an X-Forwarded-For, treat that as the client IP."
-        forwarded_for = self.getHeader('x-forwarded-for')
-        if forwarded_for is not None:
-            return forwarded_for
-        else:
-            return Request.getClientIP(self)
+from twisted.web.server import Site
 
 
 class WeasylSite(Site):
-    requestFactory = WeasylRequest
-
     def log(self, request):
         "Do nothing; we don't need request logging."
 

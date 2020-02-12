@@ -1,6 +1,4 @@
 language: python
-# Run on Travis CI's docker infrastructure
-sudo: false
 
 matrix:
     include:

@@ -1,6 +1,5 @@
 language: python
-# Run on Travis CI's docker infrastructure
-sudo: false
+dist: bionic
 
 matrix:
     include:
@@ -17,6 +16,9 @@ cache:
         - ~/.cache/pip
 
 addons:
+    apt:
+        packages:
+            - sassc
     postgresql: "9.6"
 
 services:
@@ -25,15 +27,10 @@ services:
 
 before_install:
     - mkdir -p ~/.cache/pip/wheels ~/.bin
-    - wget https://github.com/Weasyl/sassc/releases/download/3.5.0/sassc-ubuntu14.04.xz
-    - echo '80b7c3321c74f0a7ec965b27cdeb9332b63865ab6c5105b095b72df1a250808f sassc-ubuntu14.04.xz' | sha256sum -c
-    - unxz < sassc-ubuntu14.04.xz > ~/.bin/sassc
-    - chmod +x ~/.bin/sassc
     - pip install -U pip setuptools pbr
     - pip --version
     - export VE=$VIRTUAL_ENV  # Use the virtual environment travis provides.
-    - export PATH=$HOME/.bin:$PATH
-    - nvm install 8
+    - nvm install 13
 
 install:
     - createdb -E UTF8 -O travis weasyl_test

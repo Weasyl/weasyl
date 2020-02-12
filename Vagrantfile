@@ -18,7 +18,7 @@ curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key > \
 echo >/etc/apt/sources.list.d/postgresql.list \
     'deb https://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main 9.6'
 echo >/etc/apt/sources.list.d/nodesource.list \
-    'deb https://deb.nodesource.com/node_6.x stretch main'
+    'deb https://deb.nodesource.com/node_13.x stretch main'
 
 apt-get -y update
 apt-mark hold grub-pc

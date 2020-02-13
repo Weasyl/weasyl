@@ -734,36 +734,8 @@ def common_page_start(userid, options=None, **extended_options):
     return [data]
 
 
-def _active_users(seconds):
-    usercount_url_template = config_read_setting('url_template', section='usercount')
-    if not usercount_url_template:
-        return
-    try:
-        resp = http_get(usercount_url_template % (seconds,))
-    except WeasylError:
-        return
-    if resp.status_code != 200:
-        return
-    return resp.json()['users']
-
-
-@region.cache_on_arguments(expiration_time=600)
-@record_timing
-def active_users():
-    active_users = []
-    for span, seconds in [('hour', 60 * 60), ('day', 60 * 60 * 24)]:
-        users = _active_users(seconds)
-        if users:
-            active_users.append((span, users))
-
-    return '; '.join(
-        '%d users active in the last %s' % (users, span)
-        for span, users in active_users)
-
-
 def common_page_end(userid, page, options=None):
-    active_users_string = active_users()
-    data = render("common/page_end.html", (options, active_users_string))
+    data = render("common/page_end.html", (options,))
     page.append(data)
     return "".join(page)
 

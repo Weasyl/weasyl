@@ -226,34 +226,43 @@ def create_suspenduser(userid, reason, release):
 
 
 def create_tag(title):
-    tag = add_entity(content.Tag(title=title))
-    return tag.tagid
+    return d.engine.scalar("INSERT INTO searchtag (title) VALUES (%(title)s) RETURNING tagid", title=title)
 
 
-def create_journal_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.JournalTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+def create_journal_tag(tagid, targetid):
+    d.engine.execute(
+        'INSERT INTO searchmapjournal (tagid, targetid)'
+        ' VALUES (%(tag)s, %(journal)s)',
+        tag=tagid,
+        journal=targetid,
+    )
 
 
-def create_character_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.CharacterTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+def create_character_tag(tagid, targetid):
+    d.engine.execute(
+        'INSERT INTO searchmapchar (tagid, targetid)'
+        ' VALUES (%(tag)s, %(char)s)',
+        tag=tagid,
+        char=targetid,
+    )
 
 
 def create_submission_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.SubmissionTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+    d.engine.execute(
+        'INSERT INTO searchmapsubmit (tagid, targetid, settings)'
+        ' VALUES (%(tag)s, %(sub)s, %(settings)s)',
+        tag=tagid,
+        sub=targetid,
+        settings=settings or '',
+    )
 
-    db.execute(
-        'INSERT INTO submission_tags (submitid, tags) VALUES (:submission, ARRAY[:tag]) '
-        'ON CONFLICT (submitid) DO UPDATE SET tags = submission_tags.tags || :tag',
-        {'submission': targetid, 'tag': tagid})
+    d.engine.execute(
+        'INSERT INTO submission_tags (submitid, tags)'
+        ' VALUES (%(sub)s, ARRAY[%(tag)s])'
+        ' ON CONFLICT (submitid) DO UPDATE SET tags = submission_tags.tags || %(tag)s',
+        sub=targetid,
+        tag=tagid,
+    )
 
 
 def create_blocktag(userid, tagid, rating):

@@ -4,15 +4,63 @@ from __future__ import absolute_import, division
 import hashlib
 from io import BytesIO
 
+import arrow
 import pytest
 import webtest
 
 from weasyl.test import db_utils
-from weasyl.test.web.common import create_visual, read_asset_image, read_storage_image
+from weasyl.test.web.common import BASE_VISUAL_FORM, create_visual, read_asset, read_asset_image, read_storage_image
 
 
 def _image_hash(image):
     return hashlib.sha224(image.tobytes()).hexdigest()
+
+
+@pytest.mark.parametrize('age', [17, 19])
+@pytest.mark.usefixtures('db', 'no_csrf')
+def test_rating_accessibility(app, age):
+    submission_user = db_utils.create_user('submission_test', birthday=arrow.utcnow().shift(years=-age))
+    cookie = db_utils.create_session(submission_user)
+
+    def _post_expecting(form, expected_rating):
+        success = expected_rating is not None
+        resp = app.post('/submit/visual', form, headers={'Cookie': cookie}, status=303 if success else 422)
+
+        if success:
+            resp = resp.maybe_follow(headers={'Cookie': cookie})
+            assert "Rating: %s" % (expected_rating,) in resp.html.find(id='di-info').dl.text
+        else:
+            assert resp.html.find(id='error_content').p.text == "The specified rating is invalid."
+
+    form = dict(
+        BASE_VISUAL_FORM,
+        rating=u'30',
+        submitfile=webtest.Upload('wesley1.png', read_asset('img/wesley1.png'), 'image/png'),
+    )
+    _post_expecting(form, 'Mature' if age >= 18 else None)
+
+    form['submitfile'] = webtest.Upload('wesley-jumpingtext.png', read_asset('img/help/wesley-jumpingtext.png'), 'image/png')
+    form['rating'] = u'40'
+    _post_expecting(form, 'Explicit' if age >= 18 else None)
+
+    form['submitfile'] = webtest.Upload('wesley-draw.png', read_asset('img/help/wesley-draw.png'), 'image/png')
+    form['rating'] = u'10'
+    _post_expecting(form, 'General')
+
+
+@pytest.mark.usefixtures('db', 'no_csrf')
+def test_gif_thumbnail_static(app, submission_user):
+    sub = create_visual(
+        app, submission_user,
+        submitfile=webtest.Upload('loader.gif', read_asset('img/loader.gif'), 'image/gif'),
+    )
+
+    [thumb_compat] = app.get('/~submissiontest').html.select('#user-thumbs img')
+    assert thumb_compat['src'].endswith('.png')
+
+    [thumb] = app.get('/~submissiontest').html.select('#user-thumbs .thumb-bounds')
+    assert thumb.picture is not None
+    assert thumb.picture.source['srcset'].endswith('.webp')
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')

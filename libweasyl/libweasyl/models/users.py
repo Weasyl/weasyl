@@ -30,13 +30,6 @@ class Login(Base):
         avatar = self.media.get('avatar')
         return avatar and avatar[0]['display_url']
 
-    def is_permitted_rating(self, rating):
-        """
-        Returns True if this user's is old enough to view content with the
-        given rating. Otherwise, returns False.
-        """
-        return self.info.age >= rating.minimum_age
-
 
 class AuthBCrypt(Base):
     """

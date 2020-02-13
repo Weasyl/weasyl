@@ -94,19 +94,6 @@ class MediaItem(Base):
         MediaMediaLink.make_or_replace_link(self.mediaid, 'cover', cover_media_item)
         return cover_media_item
 
-    def make_thumbnail(self, source_image=None):
-        if self.file_type not in {'jpg', 'png', 'gif'}:
-            raise ValueError('can only auto-thumbnail image media items')
-        if source_image is None:
-            source_image = self.as_image()
-        thumbnail = images.make_thumbnail(source_image)
-        if thumbnail is source_image:
-            return self
-        else:
-            return self.fetch_or_create(
-                thumbnail.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
-                im=thumbnail)
-
     @property
     def display_url(self):
         # Dodge a silly AdBlock rule

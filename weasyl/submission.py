@@ -543,6 +543,10 @@ def reupload(userid, submitid, submitfile):
             file_type=submit_file_type,
             im=generated_thumb)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
+        d.engine.execute(
+            "UPDATE submission SET image_representations = NULL WHERE submitid = %(id)s",
+            id=submitid,
+        )
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):

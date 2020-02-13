@@ -74,15 +74,13 @@ class MediaItem(Base):
         ret['full_file_path'] = self.full_file_path
         return ret
 
-    def ensure_cover_image(self, source_image=None):
+    def ensure_cover_image(self, source_image):
         if self.file_type not in {'jpg', 'png', 'gif'}:
             raise ValueError('can only auto-cover image media items')
         cover_link = next((link for link in self.described if link.link_type == 'cover'), None)
         if cover_link is not None:
             return cover_link.media_item
 
-        if source_image is None:
-            source_image = self.as_image()
         cover = images.make_cover_image(source_image)
         if cover is source_image:
             cover_media_item = self

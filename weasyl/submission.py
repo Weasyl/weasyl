@@ -535,7 +535,7 @@ def reupload(userid, submitid, submitfile):
     orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
 
     if subcat == m.ART_SUBMISSION_CATEGORY:
-        cover_media_item = submit_media_item.ensure_cover_image()
+        cover_media_item = submit_media_item.ensure_cover_image(im)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
         generated_thumb = images.make_thumbnail(im)
         generated_thumb_media_item = orm.MediaItem.fetch_or_create(
@@ -543,6 +543,10 @@ def reupload(userid, submitid, submitfile):
             file_type=submit_file_type,
             im=generated_thumb)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
+        d.engine.execute(
+            "UPDATE submission SET image_representations = NULL WHERE submitid = %(id)s",
+            id=submitid,
+        )
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):

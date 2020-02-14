@@ -203,7 +203,7 @@ def create_ignoreuser(ignorer, ignoree):
 # TODO: do these two in a less bad way
 def create_banuser(userid, reason):
     query = d.engine.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %(target)s",
+        "UPDATE login SET is_banned = TRUE WHERE userid = %(target)s",
         target=userid)
 
     assert query.rowcount == 1
@@ -215,7 +215,7 @@ def create_banuser(userid, reason):
 
 def create_suspenduser(userid, reason, release):
     query = d.engine.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %(target)s",
+        "UPDATE login SET is_suspended = TRUE WHERE userid = %(target)s",
         target=userid)
 
     assert query.rowcount == 1

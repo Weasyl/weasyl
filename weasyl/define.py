@@ -319,28 +319,31 @@ def _get_csrf_input():
 
 @region.cache_on_arguments(namespace='v2')
 def _get_all_config(userid):
-    row = engine.execute(
-        "SELECT login.settings, login.voucher IS NOT NULL, profile.config, profile.jsonb_settings"
-        " FROM login INNER JOIN profile USING (userid)"
-        " WHERE userid = %(user)s",
-        user=userid,
-    ).first()
+    row = engine.execute("""
+        SELECT lo.force_password_reset, lo.is_banned, lo.is_suspended, lo.voucher IS NOT NULL,
+               pr.config, pr.jsonb_settings
+        FROM login lo INNER JOIN profile pr USING (userid)
+        WHERE userid = %(userid)s
+    """, userid=userid).first()
 
     return list(row)
 
 
 def get_config(userid):
+    """ Gets user configuration from the profile table (profile.settings)"""
     if not userid:
         return ""
-    return _get_all_config(userid)[2]
+    return _get_all_config(userid)[4]
 
 
 def get_login_settings(userid):
-    return _get_all_config(userid)[0]
+    """ Returns a Boolean three-tuple in the form of (force_password_reset, is_banned, is_suspended)"""
+    r = _get_all_config(userid)
+    return r[0], r[1], r[2]
 
 
 def is_vouched_for(userid):
-    return _get_all_config(userid)[1]
+    return _get_all_config(userid)[3]
 
 
 def get_profile_settings(userid):
@@ -349,7 +352,7 @@ def get_profile_settings(userid):
     if not userid:
         jsonb = {}
     else:
-        jsonb = _get_all_config(userid)[3]
+        jsonb = _get_all_config(userid)[5]
 
         if jsonb is None:
             jsonb = {}
@@ -748,15 +751,13 @@ def common_status_check(userid):
     if not userid:
         return None
 
-    settings = get_login_settings(userid)
+    reset_password, is_banned, is_suspended = get_login_settings(userid)
 
-    if "p" in settings:
+    if reset_password:
         return "resetpassword"
-    if "i" in settings:
-        return "resetbirthday"
-    if "b" in settings:
+    if is_banned:
         return "banned"
-    if "s" in settings:
+    if is_suspended:
         return "suspended"
 
     return None
@@ -769,8 +770,6 @@ def common_status_page(userid, status):
     """
     if status == "resetpassword":
         return webpage(userid, "force/resetpassword.html")
-    elif status == "resetbirthday":
-        return webpage(userid, "force/resetbirthday.html")
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 

@@ -420,8 +420,9 @@ def setusermode(userid, form):
     elif form.userid in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     if form.mode == "b":
+        # Ban user
         query = d.engine.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %(target)s",
+            "UPDATE login SET is_banned = TRUE, is_suspended = FALSE WHERE userid = %(target)s",
             target=form.userid)
 
         if query.rowcount != 1:
@@ -431,11 +432,12 @@ def setusermode(userid, form):
         d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
         d.engine.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=form.userid, reason=form.reason)
     elif form.mode == "s":
+        # Suspend user
         if not form.release:
             raise WeasylError("releaseInvalid")
 
         query = d.engine.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %(target)s",
+            "UPDATE login SET is_suspended = TRUE, is_banned = FALSE WHERE userid = %(target)s",
             target=form.userid)
 
         if query.rowcount != 1:
@@ -445,8 +447,9 @@ def setusermode(userid, form):
         d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
         d.engine.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=form.userid, reason=form.reason, release=form.release)
     elif form.mode == "x":
+        # Unban/Unsuspend
         query = d.engine.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 's', ''), 'b', '') WHERE userid = %(target)s",
+            "UPDATE login SET is_banned = FALSE, is_suspended = FALSE WHERE userid = %(target)s",
             target=form.userid)
 
         if query.rowcount != 1:

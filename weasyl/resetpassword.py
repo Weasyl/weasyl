@@ -130,6 +130,6 @@ def force(userid, form):
     elif not login.password_secure(form.password):
         raise WeasylError("passwordInsecure")
 
-    d.engine.execute("UPDATE login SET settings = REPLACE(settings, 'p', '') WHERE userid = %(user)s", user=userid)
+    d.engine.execute("UPDATE login SET force_password_reset = FALSE WHERE userid = %(user)s", user=userid)
     d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(form.password), user=userid)
     d._get_all_config.invalidate(userid)

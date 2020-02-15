@@ -71,7 +71,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
 
     <span class="label">Date of Birth</span>
     <p><input type="checkbox" name="ch_birthday" />Update value</p>
-    <input type="text" class="input" name="birthday" value="${DATE(profile['birthday'])}" />
+    <input type="date" class="input" name="birthday" value="${ISO_DATE(profile['birthday'])}" />
 
     <span class="label">Gender</span>
     <p><input type="checkbox" name="ch_gender" />Update value</p>

@@ -165,6 +165,7 @@ def _compile(template_name):
                 "CSRF": _get_csrf_input,
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
+                "ISO_DATE": convert_iso_date,
                 "TIME": _convert_time,
                 "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
@@ -576,6 +577,20 @@ def convert_date(target=None):
     return result[1:] if result and result[0] == "0" else result
 
 
+def convert_iso_date(target=None):
+    """
+    Converts a unix timestamp to an ISO 8601 date (yyyy-mm-dd). If no target is passed,
+    the current date is returned.
+
+    Note that the date is converted to localtime (via ``convert_to_localtime``).
+
+    :param target: The target unix timestamp to convert. Optional.
+    :return: An ISO 8601 string representing the date of `target`, otherwise the current date formatted as YYYY-MM-DD.
+    """
+    date = convert_to_localtime(target)
+    return arrow.get(date).format("YYYY-MM-DD")
+
+
 def _convert_time(target=None):
     """
     Returns the time in the format 16:00:00. If no target is passed, the
@@ -604,49 +619,6 @@ def convert_unixdate(day, month, year):
     if ret > 2147483647 or ret < -2147483648:
         return None
     return ret
-
-
-def convert_inputdate(target):
-    def _month(target):
-        target = "".join(i for i in target if i in "abcdefghijklmnopqrstuvwxyz")
-        for i, j in enumerate(["ja", "f", "mar", "ap", "may", "jun", "jul", "au",
-                               "s", "o", "n", "d"]):
-            if target.startswith(j):
-                return i + 1
-
-    target = target.strip().lower()
-
-    if not target:
-        return
-
-    if re.match(r"[0-9]+ [a-z]+,? [0-9]+", target):
-        # 1 January 1990
-        target = target.split()
-        target[0] = get_int(target[0])
-        target[2] = get_int(target[2])
-
-        if 1933 <= target[0] <= 2037:
-            return convert_unixdate(target[2], _month(target[1]), target[0])
-        else:
-            return convert_unixdate(target[0], _month(target[1]), target[2])
-    elif re.match("[a-z]+ [0-9]+,? [0-9]+", target):
-        # January 1 1990
-        target = target.split()
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
-
-        return convert_unixdate(target[1], _month(target[0]), target[2])
-    elif re.match("[0-9]+ ?/ ?[0-9]+ ?/ ?[0-9]+", target):
-        # 1/1/1990
-        target = target.split("/")
-        target[0] = get_int(target[0])
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
-
-        if target[0] > 12:
-            return convert_unixdate(target[0], target[1], target[2])
-        else:
-            return convert_unixdate(target[1], target[0], target[2])
 
 
 def convert_age(target):

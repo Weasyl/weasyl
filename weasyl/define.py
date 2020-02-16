@@ -576,14 +576,14 @@ def convert_date(target=None):
     return result[1:] if result and result[0] == "0" else result
 
 
-def convert_iso_date(target=None):
+def convert_iso_date(target):
     """
-    Converts a unix timestamp to an ISO 8601 date (yyyy-mm-dd). If no target is passed,
+    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd). If no target is passed,
     the current date is returned.
 
     Note that the date is converted to localtime (via ``convert_to_localtime``).
 
-    :param target: The target unix timestamp to convert. Optional.
+    :param target: The target Weasyl timestamp to convert.
     :return: An ISO 8601 string representing the date of `target`, otherwise the current date formatted as YYYY-MM-DD.
     """
     date = convert_to_localtime(target)

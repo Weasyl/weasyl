@@ -828,7 +828,9 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
     if birthday is not None:
         # HTML5 date format is yyyy-mm-dd
         split = birthday.split("-")
-        if len(split) == 3 and d.convert_unixdate(day=split[2], month=split[1], year=split[0]):
+        if len(split) != 3 and d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
+            raise WeasylError("birthdayInvalid")
+        else:
             unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
             age = d.convert_age(unixtime)
 

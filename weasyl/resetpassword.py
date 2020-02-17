@@ -8,12 +8,9 @@ from weasyl import emailer
 from weasyl.error import WeasylError
 
 
-# form
-#   email
-
-def request(form):
+def request(email):
     token = security.generate_key(100)
-    email = emailer.normalize_address(form.email)
+    email = emailer.normalize_address(email)
 
     # Determine the user associated with `username`; if the user is not found,
     # raise an exception
@@ -65,20 +62,15 @@ def prepare(token):
     return result.rowcount == 1
 
 
-# form
-#   username    passcheck    month
-#   email       token        year
-#   password    day
-
-def reset(form):
+def reset(username, email, password, passcheck, token):
     from weasyl import login
 
     # Raise an exception if `password` does not enter `passcheck` (indicating
     # that the user mistyped one of the fields) or if `password` does not meet
     # the system's password security requirements
-    if form.password != form.passcheck:
+    if password != passcheck:
         raise WeasylError("passwordMismatch")
-    elif not login.password_secure(form.password):
+    elif not login.password_secure(password):
         raise WeasylError("passwordInsecure")
 
     # Select the user information and record data from the forgotpassword table
@@ -91,7 +83,7 @@ def reset(form):
             INNER JOIN userinfo ui USING (userid)
             INNER JOIN forgotpassword fp USING (userid)
         WHERE fp.token = %(token)s AND fp.link_time > %(cutoff)s
-    """, token=form.token, cutoff=d.get_time() - 300).first()
+    """, token=token, cutoff=d.get_time() - 300).first()
 
     if not query:
         raise WeasylError("forgotpasswordRecordMissing")
@@ -100,9 +92,9 @@ def reset(form):
 
     # Check `username` and `email` against known correct values and raise an
     # exception if there is a mismatch
-    if emailer.normalize_address(form.email) != emailer.normalize_address(EMAIL):
+    if emailer.normalize_address(email) != emailer.normalize_address(EMAIL):
         raise WeasylError("emailIncorrect")
-    elif d.get_sysname(form.username) != USERNAME:
+    elif d.get_sysname(username) != USERNAME:
         raise WeasylError("usernameIncorrect")
     elif d.get_address() != ADDRESS:
         raise WeasylError("addressInvalid")
@@ -111,25 +103,21 @@ def reset(form):
     d.engine.execute(
         'INSERT INTO authbcrypt (userid, hashsum) VALUES (%(user)s, %(hash)s) '
         'ON CONFLICT (userid) DO UPDATE SET hashsum = %(hash)s',
-        user=USERID, hash=login.passhash(form.password))
+        user=USERID, hash=login.passhash(password))
 
     d.engine.execute(
         "DELETE FROM forgotpassword WHERE token = %(token)s",
-        token=form.token)
+        token=token)
 
 
-# form
-#   password
-#   passcheck
-
-def force(userid, form):
+def force(userid, password, passcheck):
     from weasyl import login
 
-    if form.password != form.passcheck:
+    if password != passcheck:
         raise WeasylError("passwordMismatch")
-    elif not login.password_secure(form.password):
+    elif not login.password_secure(password):
         raise WeasylError("passwordInsecure")
 
     d.engine.execute("UPDATE login SET settings = REPLACE(settings, 'p', '') WHERE userid = %(user)s", user=userid)
-    d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(form.password), user=userid)
+    d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(password), user=userid)
     d._get_all_config.invalidate(userid)

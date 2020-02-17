@@ -34,22 +34,28 @@ def signin_get_(request):
 @guest_required
 @token_checked
 def signin_post_(request):
-    form = request.web_input(username="", password="", referer="", sfwmode="nsfw")
-    form.referer = form.referer or '/'
+    referer = request.params.get('referer', '/')
+    sfwmode = request.params.get('sfwmode', 'nsfw')
 
-    logid, logerror = login.authenticate_bcrypt(form.username, form.password, request=request, ip_address=request.client_addr, user_agent=request.user_agent)
+    logid, logerror = login.authenticate_bcrypt(
+        request.params.get('username'),
+        request.params.get('password'),
+        request=request,
+        ip_address=request.client_addr,
+        user_agent=request.user_agent
+    )
 
     if logid and logerror == 'unicode-failure':
         raise HTTPSeeOther(location='/signin/unicode-failure')
     elif logid and logerror is None:
-        if form.sfwmode == "sfw":
+        if sfwmode == "sfw":
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
         # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
         index.template_fields.invalidate(logid)
-        raise HTTPSeeOther(location=form.referer)
+        raise HTTPSeeOther(location=referer)
     elif logid and logerror == "2fa":
         # Password authentication passed, but user has 2FA set, so verify second factor (Also set SFW mode now)
-        if form.sfwmode == "sfw":
+        if sfwmode == "sfw":
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
         index.template_fields.invalidate(logid)
         # Check if out of recovery codes; this should *never* execute normally, save for crafted
@@ -71,11 +77,11 @@ def signin_post_(request):
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(logid), form.referer, remaining_recovery_codes, None],
+            [define.get_display_name(logid), referer, remaining_recovery_codes, None],
             title="Sign In - 2FA"
         ))
     elif logerror == "invalid":
-        return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
+        return Response(define.webpage(request.userid, "etc/signin.html", [True, referer]))
     elif logerror == "banned":
         reason = moderation.get_ban_reason(logid)
         return Response(define.errorpage(
@@ -199,15 +205,18 @@ def signin_unicode_failure_get_(request):
 
 @login_required
 def signin_unicode_failure_post_(request):
-    form = request.web_input(password='', password_confirm='')
-    login.update_unicode_password(request.userid, form.password, form.password_confirm)
+    login.update_unicode_password(
+        request.userid,
+        request.params.get('password', ''),
+        request.params.get('password_confirm', '')
+    )
     raise HTTPFound(location="/", headers=request.response.headers)
 
 
 @login_required
 @disallow_api
 def signout_(request):
-    if request.web_input(token="").token != define.get_token()[:8]:
+    if request.params.get('token') != define.get_token()[:8]:
         return Response(define.errorpage(request.userid, errorcode.token), status=403)
 
     login.signout(request)
@@ -217,12 +226,10 @@ def signout_(request):
 
 @guest_required
 def signup_get_(request):
-    form = request.web_input(email="")
-
     return Response(define.webpage(request.userid, "etc/signup.html", [
         # Signup data
         {
-            "email": form.email,
+            "email": request.params.get('email', ''),
             "username": None,
             "day": None,
             "month": None,
@@ -235,16 +242,21 @@ def signup_get_(request):
 @guest_required
 @token_checked
 def signup_post_(request):
-    form = request.web_input(
-        username="", password="", passcheck="", email="", emailcheck="",
-        day="", month="", year="")
-
-    if not define.captcha_verify(form.get('g-recaptcha-response')):
+    if not define.captcha_verify(request.params.get('g-recaptcha-response', '')):
         return Response(define.errorpage(
             request.userid,
             "There was an error validating the CAPTCHA response; you should go back and try again."))
 
-    login.create(form)
+    login.create(
+        request.params.get('username', ''),
+        request.params.get('email', ''),
+        request.params.get('emailcheck', ''),
+        request.params.get('password', ''),
+        request.params.get('passcheck', ''),
+        request.params.get('year', ''),
+        request.params.get('month', ''),
+        request.params.get('day', '')
+    )
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your username has been reserved and a message "
@@ -256,7 +268,7 @@ def signup_post_(request):
 
 @guest_required
 def verify_account_(request):
-    login.verify(token=request.web_input(token="").token, ip_address=request.client_addr)
+    login.verify(token=request.params.get('token'), ip_address=request.client_addr)
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your email address has been verified "
@@ -266,7 +278,7 @@ def verify_account_(request):
 
 @login_required
 def verify_emailchange_get_(request):
-    token = request.web_input(token="").token
+    token = request.params.get('token')
     email = login.verify_email_change(request.userid, token)
     return Response(define.errorpage(
         request.userid,
@@ -283,9 +295,7 @@ def forgotpassword_get_(request):
 @guest_required
 @token_checked
 def forgetpassword_post_(request):
-    form = request.web_input(email="")
-
-    resetpassword.request(form)
+    resetpassword.request(request.params.get('email'))
     return Response(define.errorpage(
         request.userid,
         "**Success!** Provided the supplied email matches a user account in our  "
@@ -296,21 +306,24 @@ def forgetpassword_post_(request):
 
 @guest_required
 def resetpassword_get_(request):
-    form = request.web_input(token="")
-
-    if not resetpassword.prepare(form.token):
+    token = request.params.get('token')
+    if not resetpassword.prepare(token):
         return Response(define.errorpage(
             request.userid,
             "This link does not appear to be valid. If you followed this link from your email, it may have expired."))
 
-    return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token], title="Reset Forgotten Password"))
+    return Response(define.webpage(request.userid, "etc/resetpassword.html", [token], title="Reset Forgotten Password"))
 
 
 @guest_required
 def resetpassword_post_(request):
-    form = request.web_input(token="", username="", email="", day="", month="", year="", password="", passcheck="")
-
-    resetpassword.reset(form)
+    resetpassword.reset(
+        request.params.get('username', ''),
+        request.params.get('email', ''),
+        request.params.get('password', ''),
+        request.params.get('passcheck', ''),
+        request.params.get('token', ''),
+    )
 
     # Invalidate all other user sessions for this user.
     profile.invalidate_other_sessions(request.userid)
@@ -328,9 +341,11 @@ def force_resetpassword_(request):
     if define.common_status_check(request.userid) != "resetpassword":
         return Response(define.errorpage(request.userid, errorcode.permission))
 
-    form = request.web_input(password="", passcheck="")
-
-    resetpassword.force(request.userid, form)
+    resetpassword.force(
+        request.userid,
+        request.params.get('password', ''),
+        request.params.get('passcheck', ''),
+    )
 
     # Invalidate all other user sessions for this user.
     profile.invalidate_other_sessions(request.userid)
@@ -344,9 +359,7 @@ def force_resetbirthday_(request):
     if define.common_status_check(request.userid) != "resetbirthday":
         return define.errorpage(request.userid, errorcode.permission)
 
-    form = request.web_input(birthday="")
-
-    birthday = define.convert_inputdate(form.birthday)
+    birthday = define.convert_inputdate(request.params.get('birthday', ''),)
     profile.force_resetbirthday(request.userid, birthday)
     raise HTTPSeeOther(location="/", headers=request.response.headers)
 

@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
 import pytest
-import arrow
 
 from weasyl import resetpassword
 from weasyl import define as d
 from weasyl.test import db_utils
-from weasyl.test.utils import Bag
 
 
 @pytest.mark.usefixtures('db')
@@ -36,9 +34,7 @@ def test_stale_records_get_deleted_when_function_is_called():
         user_name = "testPrepare%d" % (i,)
         email_addr = "test%d@weasyl.com" % (i,)
         user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
-        form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-                               month=arrow.now().month, year=arrow.now().year)
-        resetpassword.request(form_for_request)
+        resetpassword.request(email=email_addr)
         pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
         token_store.append(pw_reset_token)
     # Set 5 tokens to be two hours old (0,5) (7200)
@@ -76,9 +72,7 @@ def test_link_time_field_is_updated_when_valid_token_supplied_to_function():
     user_name = "test"
     email_addr = "test@weasyl.com"
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
-    form_for_request = Bag(email=email_addr, username=user_name, day=arrow.now().day,
-                           month=arrow.now().month, year=arrow.now().year)
-    resetpassword.request(form_for_request)
+    resetpassword.request(email_addr)
     pw_reset_token = d.engine.scalar("SELECT token FROM forgotpassword WHERE userid = %(id)s", id=user_id)
     link_time = d.engine.scalar("SELECT link_time FROM forgotpassword WHERE token = %(token)s", token=pw_reset_token)
     assert link_time == 0

@@ -830,30 +830,29 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         split = birthday.split("-")
         if len(split) != 3 and d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
             raise WeasylError("birthdayInvalid")
+        unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
+        age = d.convert_age(unixtime)
+
+        d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])
+
+        if age < ratings.EXPLICIT.minimum_age:
+            max_rating = ratings.GENERAL.code
+            rating_flag = ""
         else:
-            unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
-            age = d.convert_age(unixtime)
+            max_rating = ratings.EXPLICIT.code
 
-            d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])
-
-            if age < ratings.EXPLICIT.minimum_age:
-                max_rating = ratings.GENERAL.code
-                rating_flag = ""
-            else:
-                max_rating = ratings.EXPLICIT.code
-
-            if d.get_rating(userid) > max_rating:
-                d.engine.execute(
-                    """
-                    UPDATE profile
-                    SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || %(rating_flag)s
-                    WHERE userid = %(user)s
-                    """,
-                    rating_flag=rating_flag,
-                    user=userid,
-                )
-                d._get_all_config.invalidate(userid)
-            updates.append('- Birthday: %s' % (birthday,))
+        if d.get_rating(userid) > max_rating:
+            d.engine.execute(
+                """
+                UPDATE profile
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || %(rating_flag)s
+                WHERE userid = %(user)s
+                """,
+                rating_flag=rating_flag,
+                user=userid,
+            )
+            d._get_all_config.invalidate(userid)
+        updates.append('- Birthday: %s' % (birthday,))
 
     # Gender
     if gender is not None:

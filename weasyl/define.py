@@ -164,7 +164,7 @@ def _compile(template_name):
                 "CSRF": _get_csrf_input,
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
-                "ISO_DATE": convert_iso_date,
+                "ISO8601_DATE": iso8601_date,
                 "TIME": _convert_time,
                 "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
@@ -576,17 +576,16 @@ def convert_date(target=None):
     return result[1:] if result and result[0] == "0" else result
 
 
-def convert_iso_date(target):
+def iso8601_date(target):
     """
-    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd). If no target is passed,
-    the current date is returned.
+    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
 
-    Note that the date is converted to localtime (via ``convert_to_localtime``).
+    NB: Target is offset by _UNIXTIME_OFFSET
 
     :param target: The target Weasyl timestamp to convert.
-    :return: An ISO 8601 string representing the date of `target`, otherwise the current date formatted as YYYY-MM-DD.
+    :return: An ISO 8601 string representing the date of `target`.
     """
-    date = convert_to_localtime(target)
+    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
     return arrow.get(date).format("YYYY-MM-DD")
 
 

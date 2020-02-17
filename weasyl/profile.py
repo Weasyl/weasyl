@@ -773,7 +773,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         username (str): New username for user. Defaults to None.
         full_name (str): New full name for user. Defaults to None.
         catchphrase (str): New catchphrase for user. Defaults to None.
-        birthday (str): New birthday for user, in format for convert_inputdate. Defaults to None.
+        birthday (str): New birthday for user, in HTML5 date format (ISO 8601 yyyy-mm-dd). Defaults to None.
         gender (str): New gender for user. Defaults to None.
         country (str): New country for user. Defaults to None.
         remove_social (list): Items to remove from the user's social/contact links. Defaults to None.
@@ -825,8 +825,12 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         updates.append('- Catchphrase: %s' % (catchphrase,))
 
     # Birthday
-    if birthday is not None and d.convert_inputdate(birthday):
-        unixtime = d.convert_inputdate(birthday)
+    if birthday is not None:
+        # HTML5 date format is yyyy-mm-dd
+        split = birthday.split("-")
+        if len(split) != 3 or d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
+            raise WeasylError("birthdayInvalid")
+        unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
         age = d.convert_age(unixtime)
 
         d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])

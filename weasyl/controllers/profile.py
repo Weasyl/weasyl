@@ -13,13 +13,12 @@ from weasyl.error import WeasylError
 
 # Profile browsing functions
 def profile_(request):
-    form = request.web_input(userid="", name="")
-
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.params.get('name', '')
+    name = request.matchdict.get('name', name)
+    userid = define.get_int(request.params.get('userid'))
 
     rating = define.get_rating(request.userid)
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -39,7 +38,7 @@ def profile_(request):
         )
 
     extras = {
-        "canonical_url": "/~" + define.get_sysname(form.name)
+        "canonical_url": "/~" + define.get_sysname(name)
     }
 
     if not request.userid:
@@ -138,13 +137,14 @@ def profile_media_(request):
 
 
 def submissions_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None, folderid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
     rating = define.get_rating(request.userid)
-    otherid = profile.resolve(request.userid, form.userid, form.name)
-    folderid = define.get_int(form.folderid) or None
+    otherid = profile.resolve(request.userid, userid, name)
+    folderid = define.get_int(request.params.get('folderid')) or None
+    backid = request.params.get('backid', None)
+    nextid = request.params.get('nextid', None)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -161,8 +161,8 @@ def submissions_(request):
                  folderquery="&folderid=%d" % folderid if folderid else "")
     result = pagination.PaginatedResult(
         submission.select_list, submission.select_count, 'submitid', url_format, request.userid, rating,
-        60, otherid=otherid, folderid=folderid, backid=define.get_int(form.backid),
-        nextid=define.get_int(form.nextid), profile_page_filter=not folderid)
+        60, otherid=otherid, folderid=folderid, backid=define.get_int(backid),
+        nextid=define.get_int(nextid), profile_page_filter=not folderid)
 
     page.append(define.render('user/submissions.html', [
         # Profile information
@@ -183,13 +183,14 @@ def submissions_(request):
 
 
 def collections_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None,
-                             folderid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
     rating = define.get_rating(request.userid)
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
+
+    backid = request.params.get('backid', None)
+    nextid = request.params.get('nextid', None)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -204,7 +205,7 @@ def collections_(request):
     url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
         collection.select_list, collection.select_count, 'submitid', url_format, request.userid, rating, 66,
-        otherid=otherid, backid=define.get_int(form.backid), nextid=define.get_int(form.nextid))
+        otherid=otherid, backid=define.get_int(backid), nextid=define.get_int(nextid))
 
     page.append(define.render('user/collections.html', [
         # Profile information
@@ -221,12 +222,11 @@ def collections_(request):
 
 
 def journals_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
     rating = define.get_rating(request.userid)
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -256,12 +256,14 @@ def journals_(request):
 
 
 def characters_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
     rating = define.get_rating(request.userid)
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
+
+    backid = request.params.get('backid', None)
+    nextid = request.params.get('nextid', None)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -277,8 +279,8 @@ def characters_(request):
     result = pagination.PaginatedResult(
         character.select_list, character.select_count,
         'charid', url_format, request.userid, rating, 60,
-        otherid=otherid, backid=define.get_int(form.backid),
-        nextid=define.get_int(form.nextid))
+        otherid=otherid, backid=define.get_int(backid),
+        nextid=define.get_int(nextid))
 
     page.append(define.render('user/characters.html', [
         # Profile information
@@ -295,11 +297,10 @@ def characters_(request):
 
 
 def shouts_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -344,8 +345,8 @@ def shouts_(request):
 
 @moderator_only
 def staffnotes_(request):
-    form = request.web_input(userid="")
-    otherid = profile.resolve(request.userid, define.get_int(form.userid), request.matchdict.get('name', None))
+    userid = define.get_int(request.params.get('userid'))
+    otherid = profile.resolve(request.userid, define.get_int(userid), request.matchdict.get('name', None))
     if not otherid:
         raise WeasylError("userRecordMissing")
 
@@ -378,12 +379,16 @@ def staffnotes_(request):
 
 
 def favorites_(request):
-    form = request.web_input(userid="", name="", feature="", backid=None, nextid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
     rating = define.get_rating(request.userid)
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
+
+    backid = request.params.get('backid', None)
+    nextid = request.params.get('nextid', None)
+
+    feature = request.params.get('feature', False)
 
     # TODO(hyena): Why aren't more of these WeasylErrors?
     if not otherid:
@@ -400,20 +405,20 @@ def favorites_(request):
     page_title = u"%s's favorites" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
-    if form.feature:
-        nextid = define.get_int(form.nextid)
-        backid = define.get_int(form.backid)
+    if feature:
+        nextid = define.get_int(nextid)
+        backid = define.get_int(backid)
         url_format = (
-            "/favorites?userid={userid}&feature={feature}&%s".format(userid=otherid, feature=form.feature))
-        id_field = form.feature + "id"
+            "/favorites?userid={userid}&feature={feature}&%s".format(userid=otherid, feature=feature))
+        id_field = feature + "id"
 
         count_function = None
-        if form.feature == "submit":
+        if feature == "submit":
             select_function = favorite.select_submit
             count_function = favorite.select_submit_count
-        elif form.feature == "char":
+        elif feature == "char":
             select_function = favorite.select_char
-        elif form.feature == "journal":
+        elif feature == "journal":
             select_function = favorite.select_journal
         else:
             raise httpexceptions.HTTPNotFound()
@@ -437,7 +442,7 @@ def favorites_(request):
         # Relationship
         profile.select_relation(request.userid, otherid),
         # Feature
-        form.feature,
+        feature,
         # Favorites
         faves,
     ]))
@@ -446,11 +451,13 @@ def favorites_(request):
 
 
 def friends_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
+
+    backid = request.params.get('backid', None)
+    nextid = request.params.get('nextid', None)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -468,16 +475,18 @@ def friends_(request):
         profile.select_relation(request.userid, otherid),
         # Friends
         frienduser.select_friends(request.userid, otherid, limit=44,
-                                  backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
+                                  backid=define.get_int(backid), nextid=define.get_int(nextid)),
     ]))
 
 
 def following_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
+
+    backid = request.params.get('backid', None)
+    nextid = request.params.get('nextid', None)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -495,16 +504,18 @@ def following_(request):
         profile.select_relation(request.userid, otherid),
         # Following
         followuser.select_following(request.userid, otherid, limit=44,
-                                    backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
+                                    backid=define.get_int(backid), nextid=define.get_int(nextid)),
     ]))
 
 
 def followed_(request):
-    form = request.web_input(userid="", name="", backid=None, nextid=None)
-    form.name = request.matchdict.get('name', form.name)
-    form.userid = define.get_int(form.userid)
+    name = request.matchdict.get('name', request.params.get('name', ''))
+    userid = define.get_int(request.params.get('userid'))
 
-    otherid = profile.resolve(request.userid, form.userid, form.name)
+    otherid = profile.resolve(request.userid, userid, name)
+
+    backid = request.params.get('backid', None)
+    nextid = request.params.get('nextid', None)
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -522,5 +533,5 @@ def followed_(request):
         profile.select_relation(request.userid, otherid),
         # Followed
         followuser.select_followed(request.userid, otherid, limit=44,
-                                   backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
+                                   backid=define.get_int(backid), nextid=define.get_int(nextid)),
     ]))

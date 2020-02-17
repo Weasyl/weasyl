@@ -518,16 +518,13 @@ def get_ownerid(submitid=None, charid=None, journalid=None):
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
 
 
-def get_random_set(target, count=None):
+def get_random_set(target, count):
     """
     Returns the specified number of unique items chosen at random from the target
     list. If more items are specified than the list contains, the full contents
     of the list will be returned in a randomized order.
     """
-    if count:
-        return random.sample(target, min(count, len(target)))
-    else:
-        return random.choice(target)
+    return random.sample(target, min(count, len(target)))
 
 
 def get_address():

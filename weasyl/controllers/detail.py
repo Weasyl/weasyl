@@ -15,10 +15,10 @@ def submission_(request):
     username = request.matchdict.get('name')
     submitid = request.matchdict.get('submitid')
 
-    form = request.web_input(submitid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
+    submitid = define.get_int(submitid) if submitid else define.get_int(request.params.get('submitid'))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     extras = {}
 
@@ -43,7 +43,7 @@ def submission_(request):
     try:
         item = submission.select_view(
             request.userid, submitid, rating,
-            ignore=form.ignore != 'false', anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         we.errorpage_kwargs = extras
@@ -115,15 +115,15 @@ def submission_tag_history_(request):
 
 
 def character_(request):
-    form = request.web_input(charid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    charid = define.get_int(request.matchdict.get('charid', form.charid))
+    charid = define.get_int(request.matchdict.get('charid', request.params.get('charid')))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     try:
         item = character.select_view(
             request.userid, charid, rating,
-            ignore=form.ignore != 'false', anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
@@ -149,15 +149,15 @@ def character_(request):
 
 
 def journal_(request):
-    form = request.web_input(journalid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    journalid = define.get_int(request.matchdict.get('journalid', form.journalid))
+    journalid = define.get_int(request.matchdict.get('journalid', request.params.get('journalid')))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     try:
         item = journal.select_view(
             request.userid, rating, journalid,
-            ignore=form.ignore != 'false', anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):

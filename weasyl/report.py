@@ -4,7 +4,6 @@ import arrow
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import aliased, contains_eager, joinedload
 import sqlalchemy as sa
-import web
 
 from libweasyl.models.content import Report, ReportComment
 from libweasyl.models.users import Login
@@ -101,7 +100,7 @@ _report_types = [
 ]
 
 
-def select_list(userid, form):
+def select_list(status, violation, submitter):
     # Find the unique violation types and the number of reporters. This will be
     # joined against the Report model to get the violations/reporters for each
     # selected report.
@@ -138,34 +137,34 @@ def select_list(userid, form):
             .options(contains_eager(column_name + '.owner', alias=login_alias))
             .reset_joinpoint())
 
-    # Filter by report status. form.status can also be 'all', in which case no
+    # Filter by report status. status can also be 'all', in which case no
     # filter is applied.
-    if form.status == 'closed':
+    if status == 'closed':
         q = q.filter_by(is_closed=True)
-    elif form.status == 'open':
+    elif status == 'open':
         q = q.filter_by(is_closed=False)
 
     # If filtering by the report's content's owner, iterate over the previously
     # collected Login model aliases to compare against Login.login_name.
-    if form.submitter:
-        submitter = d.get_sysname(form.submitter)
-        q = q.filter(sa.or_(l.login_name == submitter for l in login_aliases))
+    if submitter:
+        _submitter = d.get_sysname(submitter)
+        q = q.filter(sa.or_(l.login_name == _submitter for l in login_aliases))
 
     # If filtering by violation type, see if the violation is in the array
     # aggregate of unique violations for this report.
-    if form.violation and form.violation != '-1':
-        q = q.filter(sa.literal(int(form.violation)) == sa.func.any(subq.c.violations))
+    if violation and violation != '-1':
+        q = q.filter(sa.literal(int(violation)) == sa.func.any(subq.c.violations))
 
     q = q.order_by(Report.opened_at.desc())
     return [(report, report_count, map(_convert_violation, violations))
             for report, _, report_count, violations in q.all()]
 
 
-def select_view(userid, form):
+def select_view(reportid):
     report = (
         Report.query
         .options(joinedload('comments', innerjoin=True).joinedload('poster', innerjoin=True))
-        .get_or_404(int(form.reportid)))
+        .get_or_404(int(reportid)))
     report.old_style_comments = [
         {
             'userid': c.userid,
@@ -186,15 +185,15 @@ _closure_actions = {
 }
 
 
-def close(userid, form):
+def close(userid, reportid, action, explanation, note_title, note_content, assign, unassign, close_all_user_reports):
     if userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    root_report = Report.query.get(int(form.reportid))
+    root_report = Report.query.get(int(reportid))
     if root_report is None or root_report.is_closed:
         return
 
-    if 'close_all_user_reports' in form:
+    if close_all_user_reports:
         # If we're closing all of the reports opened against a particular content
         # owner, do the same thing as in the select_list function and collect Login
         # aliases so that filtering can be done by Login.login_name.
@@ -223,25 +222,25 @@ def close(userid, form):
             raise RuntimeError("a closed report shouldn't have gotten this far")
         report.closerid = userid
         report.settings.mutable_settings.clear()
-        if 'assign' in form:
+        if assign:
             report.is_under_review = True
-        elif 'unassign' in form:
+        elif unassign:
             report.closerid = None
         else:
             report.closed_at = arrow.get()
-            report.closure_explanation = form.explanation
-            report.closure_reason = _closure_actions[form.action]
+            report.closure_explanation = explanation
+            report.closure_reason = _closure_actions[action]
 
     Report.dbsession.flush()
-    if form.action == 'action_taken':
-        # TODO(hyena): Remove this dependency on web.py's Storage objects.
-        note_form = web.Storage()
-        note_form.title = form.note_title
-        note_form.content = form.user_note
-        note_form.recipient = root_report.target.owner.login_name
-        note_form.mod_copy = True
-        note_form.staff_note = form.explanation
-        note.send(userid, note_form)
+    if action == 'action_taken':
+        note.send(
+            userid,
+            root_report.target.owner.login_name,
+            note_title,
+            note_content,
+            True,
+            explanation
+        )
 
 
 def check(submitid=None, charid=None, journalid=None):

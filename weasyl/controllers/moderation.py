@@ -27,17 +27,25 @@ def modcontrol_suspenduser_get_(request):
 @moderator_only
 @token_checked
 def modcontrol_suspenduser_post_(request):
-    form = request.web_input(userid="", username="", mode="", reason="", day="", month="", year="", datetype="",
-                             duration="", durationunit="")
-
-    moderation.setusermode(request.userid, form)
+    moderation.setusermode(
+        request.userid,
+        request.params.get('userid', ''),
+        request.params.get('username', ''),
+        request.params.get('mode', ''),
+        request.params.get('reason', ''),
+        request.params.get('datetype', ''),
+        request.params.get('duration', ''),
+        request.params.get('durationunit', ''),
+        request.params.get('year', ''),
+        request.params.get('month', ''),
+        request.params.get('day', '')
+    )
     raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
 def modcontrol_report_(request):
-    form = request.web_input(reportid='')
-    r = report.select_view(request.userid, form)
+    r = report.select_view(request.params.get('reportid', ''))
     blacklisted_tags = moderation.gallery_blacklisted_tags(request.userid, r.target.userid)
 
     return Response(define.webpage(request.userid, "modcontrol/report.html", [
@@ -49,12 +57,16 @@ def modcontrol_report_(request):
 
 @moderator_only
 def modcontrol_reports_(request):
-    form = request.web_input(status="open", violation="", submitter="")
+    form = {
+               "status": request.params.get('status', 'open'),
+               "violation": request.params.get('violation', None),
+               "submitter": request.params.get('submitter', '')
+           }
     return Response(define.webpage(request.userid, "modcontrol/reports.html", [
         # Method
-        {"status": form.status, "violation": int(form.violation or -1), "submitter": form.submitter},
+        form,
         # Reports
-        report.select_list(request.userid, form),
+        report.select_list(**form),
         macro.MACRO_REPORT_VIOLATION,
     ], title="Reported Content"))
 
@@ -62,45 +74,58 @@ def modcontrol_reports_(request):
 @moderator_only
 @token_checked
 def modcontrol_closereport_(request):
-    form = request.web_input(reportid='', action='')
-    report.close(request.userid, form)
-    raise HTTPSeeOther(location="/modcontrol/report?reportid=%d" % (int(form.reportid),))
+    report.close(
+        request.userid,
+        request.params.get('reportid', ''),
+        request.params.get('action', ''),
+        request.params.get('explanation', ''),
+        request.params.get('note_title', ''),
+        request.params.get('user_note', ''),
+        'assign' in request.params,
+        'unassign' in request.params,
+        'close_all_user_reports' in request.params
+    )
+    raise HTTPSeeOther(location="/modcontrol/report?reportid=%d" % (int(request.params.get('reportid', '')),))
 
 
 @moderator_only
 def modcontrol_contentbyuser_(request):
-    form = request.web_input(name='', features=[])
+    name = request.params.get('name', '')
+    features = request.params.getall('features')
 
     # Does the target user exist? There's no sense in displaying a blank page if not.
-    target_userid = profile.resolve(None, None, form.name)
+    target_userid = profile.resolve(None, None, name)
     if not target_userid:
         raise WeasylError("userRecordMissing")
 
-    submissions = moderation.submissionsbyuser(request.userid, form) if 's' in form.features else []
-    characters = moderation.charactersbyuser(request.userid, form) if 'c' in form.features else []
-    journals = moderation.journalsbyuser(request.userid, form) if 'j' in form.features else []
+    submissions = moderation.submissionsbyuser(request.userid, name) if 's' in features else []
+    characters = moderation.charactersbyuser(request.userid, name) if 'c' in features else []
+    journals = moderation.journalsbyuser(request.userid, name) if 'j' in features else []
 
     return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
-        form.name,
+        name,
         sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
-    ], title=form.name + "'s Content"))
+    ], title=name + "'s Content"))
 
 
 @moderator_only
 @token_checked
 def modcontrol_massaction_(request):
-    form = request.web_input(action='', name='', submissions=[], characters=[], journals=[])
-    if form.action.startswith("zap-"):
+    action = request.params.get('action', '')
+    submissions = request.params.getall('submissions')
+    characters = request.params.getall('characters')
+    journals = request.params.getall('journals')
+    if action.startswith("zap-"):
         # "Zapping" cover art or thumbnails is not a bulk edit.
-        if not form.submissions:
+        if not submissions:
             raise WeasylError("Unexpected")
-        submitid = int(form.submissions[0])
-        type = form.action.split("zap-")[1]
-        if type == "cover":
+        submitid = int(submissions[0])
+        _type = action.split("zap-")[1]
+        if _type == "cover":
             moderation.removecoverart(request.userid, submitid)
-        elif type == "thumb":
+        elif _type == "thumb":
             moderation.removethumbnail(request.userid, submitid)
-        elif type == "both":
+        elif _type == "both":
             moderation.removecoverart(request.userid, submitid)
             moderation.removethumbnail(request.userid, submitid)
         else:
@@ -111,10 +136,10 @@ def modcontrol_massaction_(request):
         content_type='text/plain',
         body=moderation.bulk_edit(
             request.userid,
-            form.action,
-            map(int, form.submissions),
-            map(int, form.characters),
-            map(int, form.journals),
+            action,
+            map(int, submissions),
+            map(int, characters),
+            map(int, journals),
         ),
     )
 
@@ -122,12 +147,10 @@ def modcontrol_massaction_(request):
 @moderator_only
 @token_checked
 def modcontrol_hide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.hidesubmission(int(form.submission))
-    elif form.character:
-        moderation.hidecharacter(int(form.character))
+    if request.params.get('submission'):
+        moderation.hidesubmission(int(request.params.get('submission')))
+    elif request.params.get('character'):
+        moderation.hidecharacter(int(request.params.get('character')))
 
     raise HTTPSeeOther(location="/modcontrol")
 
@@ -135,67 +158,61 @@ def modcontrol_hide_(request):
 @moderator_only
 @token_checked
 def modcontrol_unhide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.unhidesubmission(int(form.submission))
-    elif form.character:
-        moderation.unhidecharacter(int(form.character))
+    if request.params.get('submission'):
+        moderation.unhidesubmission(int(request.params.get('submission')))
+    elif request.params.get('character'):
+        moderation.unhidecharacter(int(request.params.get('character')))
 
     raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
 def modcontrol_manageuser_(request):
-    form = request.web_input(name="")
-
     return Response(define.webpage(request.userid, "modcontrol/manageuser.html", [
-        moderation.manageuser(request.userid, form),
+        moderation.manageuser(request.userid, request.params.get('name', '')),
     ], title="User Management"))
 
 
 @moderator_only
 @token_checked
 def modcontrol_removeavatar_(request):
-    form = request.web_input(userid="")
-
-    moderation.removeavatar(request.userid, define.get_int(form.userid))
+    moderation.removeavatar(request.userid, define.get_int(request.params.get('userid', '')))
     raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
 @token_checked
 def modcontrol_removebanner_(request):
-    form = request.web_input(userid="")
-
-    moderation.removebanner(request.userid, define.get_int(form.userid))
+    moderation.removebanner(request.userid, define.get_int(request.params.get('userid', '')))
     raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
 @token_checked
 def modcontrol_editprofiletext_(request):
-    form = request.web_input(userid="", content="")
-
-    moderation.editprofiletext(request.userid, define.get_int(form.userid), form.content)
+    moderation.editprofiletext(
+        request.userid,
+        define.get_int(request.params.get('userid', '')),
+        request.params.get('content', '')
+    )
     raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
 @token_checked
 def modcontrol_editcatchphrase_(request):
-    form = request.web_input(userid="", content="")
-
-    moderation.editcatchphrase(request.userid, define.get_int(form.userid), form.content)
+    moderation.editcatchphrase(
+        request.userid,
+        define.get_int(request.params.get('userid', '')),
+        request.params.get('content', '')
+    )
     raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
 @token_checked
 def modcontrol_copynotetostaffnotes_post_(request):
-    form = request.web_input(noteid=None)
-
-    notedata = note.select_view(request.userid, int(form.noteid))
+    notedata = note.select_view(request.userid, int(request.params.get('noteid')))
 
     staff_note_title = u"Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
         sender=notedata['sendername'],

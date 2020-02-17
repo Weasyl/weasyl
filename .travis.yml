@@ -26,7 +26,7 @@ services:
     - postgresql
 
 before_install:
-    - mkdir -p ~/.cache/pip/wheels ~/.bin
+    - mkdir -p ~/.cache/pip/wheels
     - pip install -U pip setuptools pbr
     - pip --version
     - export VE=$VIRTUAL_ENV  # Use the virtual environment travis provides.

@@ -216,24 +216,19 @@ def password_secure(password):
     return len(password) >= _PASSWORD
 
 
-# form
-#   username     email         month
-#   password     emailcheck    year
-#   passcheck    day
-
-def create(form):
+def create(username, email, emailcheck, password, passcheck, year, month, day):
     # Normalize form data
-    username = clean_display_name(form.username)
+    username = clean_display_name(username)
     sysname = d.get_sysname(username)
 
-    email = emailer.normalize_address(form.email)
-    emailcheck = emailer.normalize_address(form.emailcheck)
+    email = emailer.normalize_address(email)
+    emailcheck = emailer.normalize_address(emailcheck)
 
-    password = form.password
-    passcheck = form.passcheck
-    if form.day and form.month and form.year:
+    password = password
+    passcheck = passcheck
+    if day and month and year:
         try:
-            birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
+            birthday = arrow.Arrow(int(year), int(month), int(day))
         except ValueError:
             raise WeasylError("birthdayInvalid")
     else:

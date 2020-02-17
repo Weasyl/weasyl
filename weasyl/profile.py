@@ -13,6 +13,7 @@ from libweasyl.models import tables
 
 from weasyl import define as d
 from weasyl import emailer
+from weasyl import login
 from weasyl import macro as m
 from weasyl import media
 from weasyl import orm
@@ -788,12 +789,11 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Username
     if username is not None:
+        username = login.clean_display_name(username)
         sysname = d.get_sysname(username)
 
-        if not sysname:
-            raise WeasylError("usernameInvalid")
-        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s)",
-                             name=sysname):
+        if d.engine.scalar("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s)",
+                           name=sysname):
             raise WeasylError("usernameExists")
         elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s)",
                              name=sysname):

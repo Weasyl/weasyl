@@ -234,13 +234,6 @@ def webpage(userid, template, argv=None, options=None, **extras):
     return common_page_end(userid, page, options=options)
 
 
-def plaintext(target):
-    """
-    Returns `target` string stripped of non-ASCII characters.
-    """
-    return "".join([c for c in target if ord(c) < 128])
-
-
 def _captcha_section():
     request = get_current_request()
     host = request.environ.get('HTTP_HOST', '').partition(':')[0]
@@ -469,7 +462,7 @@ def get_targetid(*argv):
 
 
 def get_search_tag(target):
-    target = plaintext(target)
+    target = "".join(i for i in target if ord(i) < 128)
     target = target.replace(" ", "_")
     target = "".join(i for i in target if i.isalnum() or i in "_")
     target = target.strip("_")

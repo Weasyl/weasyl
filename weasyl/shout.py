@@ -88,14 +88,10 @@ def insert(userid, shout, staffnotes=False):
         elif ignoreuser.check(userid, parentuserid):
             raise WeasylError("youIgnoredReplyRecipient")
 
-        settings = d.engine.execute(
-            "SELECT lo.settings, pr.config FROM login lo"
-            " INNER JOIN profile pr ON lo.userid = pr.userid"
-            " WHERE lo.userid = %(target_user)s",
-            target_user=shout.userid,
-        ).first()
+        _, is_banned, _ = d.get_login_settings(shout.userid)
+        profile_config = d.get_config(shout.userid)
 
-        if "b" in settings[0] or "w" in settings[1] or "x" in settings[1] and not frienduser.check(userid, shout.userid):
+        if is_banned or "w" in profile_config or "x" in profile_config and not frienduser.check(userid, shout.userid):
             raise WeasylError("insufficientActionPermissions")
 
     # Create comment

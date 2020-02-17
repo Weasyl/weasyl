@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import os
-import re
 import time
 import random
 import urllib
@@ -165,6 +164,7 @@ def _compile(template_name):
                 "CSRF": _get_csrf_input,
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
+                "ISO8601_DATE": iso8601_date,
                 "TIME": _convert_time,
                 "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
@@ -317,30 +317,49 @@ def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
 
 
-@region.cache_on_arguments(namespace='v2')
+@region.cache_on_arguments(namespace='v3')
 def _get_all_config(userid):
-    row = engine.execute(
-        "SELECT login.settings, login.voucher IS NOT NULL, profile.config, profile.jsonb_settings"
-        " FROM login INNER JOIN profile USING (userid)"
-        " WHERE userid = %(user)s",
-        user=userid,
-    ).first()
+    """
+    Queries for, and returns, common user configuration settings.
 
-    return list(row)
+    :param userid: The userid to query.
+    :return: A dict(), containing the following keys/values:
+      force_password_reset: Boolean. Is the user required to change their password?
+      is_banned: Boolean. Is the user currently banned?
+      is_suspended: Boolean. Is the user currently suspended?
+      is_vouched_for: Boolean. Is the user vouched for?
+      profile_configuration: CharSettings/string. Configuration options in the profile.
+      jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
+    """
+    row = engine.execute("""
+        SELECT lo.force_password_reset,
+               EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
+               EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
+               lo.voucher IS NOT NULL AS is_vouched_for,
+               pr.config AS profile_configuration,
+               pr.jsonb_settings
+        FROM login lo INNER JOIN profile pr USING (userid)
+        WHERE userid = %(userid)s
+    """, userid=userid).first()
+
+    return dict(row)
 
 
 def get_config(userid):
+    """ Gets user configuration from the profile table (profile.config)"""
     if not userid:
         return ""
-    return _get_all_config(userid)[2]
+    return _get_all_config(userid)['profile_configuration']
 
 
 def get_login_settings(userid):
-    return _get_all_config(userid)[0]
+    """ Returns a Boolean three-tuple in the form of (force_password_reset, is_banned, is_suspended)"""
+    r = _get_all_config(userid)
+    return r['force_password_reset'], r['is_banned'], r['is_suspended']
 
 
 def is_vouched_for(userid):
-    return _get_all_config(userid)[1]
+    return _get_all_config(userid)['is_vouched_for']
 
 
 def get_profile_settings(userid):
@@ -349,7 +368,7 @@ def get_profile_settings(userid):
     if not userid:
         jsonb = {}
     else:
-        jsonb = _get_all_config(userid)[3]
+        jsonb = _get_all_config(userid)['jsonb_settings']
 
         if jsonb is None:
             jsonb = {}
@@ -499,16 +518,13 @@ def get_ownerid(submitid=None, charid=None, journalid=None):
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
 
 
-def get_random_set(target, count=None):
+def get_random_set(target, count):
     """
     Returns the specified number of unique items chosen at random from the target
     list. If more items are specified than the list contains, the full contents
     of the list will be returned in a randomized order.
     """
-    if count:
-        return random.sample(target, min(count, len(target)))
-    else:
-        return random.choice(target)
+    return random.sample(target, min(count, len(target)))
 
 
 def get_address():
@@ -576,6 +592,19 @@ def convert_date(target=None):
     return result[1:] if result and result[0] == "0" else result
 
 
+def iso8601_date(target):
+    """
+    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
+
+    NB: Target is offset by _UNIXTIME_OFFSET
+
+    :param target: The target Weasyl timestamp to convert.
+    :return: An ISO 8601 string representing the date of `target`.
+    """
+    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
+    return arrow.get(date).format("YYYY-MM-DD")
+
+
 def _convert_time(target=None):
     """
     Returns the time in the format 16:00:00. If no target is passed, the
@@ -604,49 +633,6 @@ def convert_unixdate(day, month, year):
     if ret > 2147483647 or ret < -2147483648:
         return None
     return ret
-
-
-def convert_inputdate(target):
-    def _month(target):
-        target = "".join(i for i in target if i in "abcdefghijklmnopqrstuvwxyz")
-        for i, j in enumerate(["ja", "f", "mar", "ap", "may", "jun", "jul", "au",
-                               "s", "o", "n", "d"]):
-            if target.startswith(j):
-                return i + 1
-
-    target = target.strip().lower()
-
-    if not target:
-        return
-
-    if re.match(r"[0-9]+ [a-z]+,? [0-9]+", target):
-        # 1 January 1990
-        target = target.split()
-        target[0] = get_int(target[0])
-        target[2] = get_int(target[2])
-
-        if 1933 <= target[0] <= 2037:
-            return convert_unixdate(target[2], _month(target[1]), target[0])
-        else:
-            return convert_unixdate(target[0], _month(target[1]), target[2])
-    elif re.match("[a-z]+ [0-9]+,? [0-9]+", target):
-        # January 1 1990
-        target = target.split()
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
-
-        return convert_unixdate(target[1], _month(target[0]), target[2])
-    elif re.match("[0-9]+ ?/ ?[0-9]+ ?/ ?[0-9]+", target):
-        # 1/1/1990
-        target = target.split("/")
-        target[0] = get_int(target[0])
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
-
-        if target[0] > 12:
-            return convert_unixdate(target[0], target[1], target[2])
-        else:
-            return convert_unixdate(target[1], target[0], target[2])
 
 
 def convert_age(target):
@@ -748,15 +734,13 @@ def common_status_check(userid):
     if not userid:
         return None
 
-    settings = get_login_settings(userid)
+    reset_password, is_banned, is_suspended = get_login_settings(userid)
 
-    if "p" in settings:
+    if reset_password:
         return "resetpassword"
-    if "i" in settings:
-        return "resetbirthday"
-    if "b" in settings:
+    if is_banned:
         return "banned"
-    if "s" in settings:
+    if is_suspended:
         return "suspended"
 
     return None
@@ -769,8 +753,6 @@ def common_status_page(userid, status):
     """
     if status == "resetpassword":
         return webpage(userid, "force/resetpassword.html")
-    elif status == "resetbirthday":
-        return webpage(userid, "force/resetbirthday.html")
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 

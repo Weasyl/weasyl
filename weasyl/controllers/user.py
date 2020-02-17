@@ -355,17 +355,6 @@ def force_resetpassword_(request):
 
 @login_required
 @token_checked
-def force_resetbirthday_(request):
-    if define.common_status_check(request.userid) != "resetbirthday":
-        return define.errorpage(request.userid, errorcode.permission)
-
-    birthday = define.convert_inputdate(request.params.get('birthday', ''),)
-    profile.force_resetbirthday(request.userid, birthday)
-    raise HTTPSeeOther(location="/", headers=request.response.headers)
-
-
-@login_required
-@token_checked
 def vouch_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")

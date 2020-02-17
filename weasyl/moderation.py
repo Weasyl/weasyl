@@ -416,40 +416,25 @@ def setusermode(userid, targetid, username, mode, reason, datetype, duration, du
     elif targetid in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     if mode == "b":
-        query = d.engine.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %(target)s",
-            target=targetid)
-
-        if query.rowcount != 1:
-            raise WeasylError("Unexpected")
-
-        d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
-        d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
-        d.engine.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=targetid, reason=reason)
+        # Ban user
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
+            db.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=targetid, reason=reason)
     elif mode == "s":
+        # Suspend user
         if not release:
             raise WeasylError("releaseInvalid")
 
-        query = d.engine.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %(target)s",
-            target=targetid)
-
-        if query.rowcount != 1:
-            raise WeasylError("Unexpected")
-
-        d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
-        d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
-        d.engine.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=targetid, reason=reason, release=release)
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
+            db.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=targetid, reason=reason, release=release)
     elif mode == "x":
-        query = d.engine.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 's', ''), 'b', '') WHERE userid = %(target)s",
-            target=targetid)
-
-        if query.rowcount != 1:
-            raise WeasylError("Unexpected")
-
-        d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
-        d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
+        # Unban/Unsuspend
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
 
     action = _mode_to_action_map.get(mode)
     if action is not None:

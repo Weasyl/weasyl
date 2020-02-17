@@ -100,7 +100,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
     query = d.engine.execute(
-        "SELECT ab.userid, ab.hashsum, lo.is_banned, lo.is_suspended, lo.twofa_secret FROM authbcrypt ab"
+        "SELECT ab.userid, ab.hashsum, lo.twofa_secret FROM authbcrypt ab"
         " RIGHT JOIN login lo USING (userid)"
         " WHERE lo.login_name = %(name)s",
         name=d.get_sysname(username),
@@ -109,8 +109,9 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     if not query:
         return 0, "invalid"
 
-    USERID, HASHSUM, IS_BANNED, IS_SUSPENDED, TWOFA = query
+    USERID, HASHSUM, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
+    _, IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
 
     d.metric('increment', 'attemptedlogins')
 
@@ -133,7 +134,6 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         suspension = moderation.get_suspension(USERID)
 
         if d.get_time() > suspension.release:
-            d.execute("UPDATE login SET is_suspended = FALSE WHERE userid = %i", [USERID])
             d.execute("DELETE FROM suspension WHERE userid = %i", [USERID])
             d._get_all_config.invalidate(USERID)
         else:

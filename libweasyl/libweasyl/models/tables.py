@@ -343,8 +343,6 @@ login = Table(
     Column('login_name', String(length=40), nullable=False, unique=True),
     Column('last_login', WeasylTimestampColumn(), nullable=False),
     Column('force_password_reset', Boolean(), nullable=False, server_default='f'),
-    Column('is_banned', Boolean(), nullable=False, server_default='f'),
-    Column('is_suspended', Boolean(), nullable=False, server_default='f'),
     Column('email', String(length=100), nullable=False, server_default=''),
     Column('twofa_secret', String(length=420), nullable=True),
     # Must be nullable, since existing accounts will not have this information

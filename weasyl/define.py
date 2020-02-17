@@ -319,31 +319,47 @@ def _get_csrf_input():
 
 @region.cache_on_arguments(namespace='v2')
 def _get_all_config(userid):
+    """
+    Queries for, and returns, common user configuration settings.
+
+    :param userid: The userid to query.
+    :return: A dict(), containing the following keys/values:
+      force_password_reset: Boolean. Is the user required to change their password?
+      is_banned: Boolean. Is the user currently banned?
+      is_suspended: Boolean. Is the user currently suspended?
+      is_vouched_for: Boolean. Is the user vouched for?
+      profile_configuration: CharSettings/string. Configuration options in the profile.
+      jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
+    """
     row = engine.execute("""
-        SELECT lo.force_password_reset, lo.is_banned, lo.is_suspended, lo.voucher IS NOT NULL,
-               pr.config, pr.jsonb_settings
+        SELECT lo.force_password_reset,
+               EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
+               EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
+               lo.voucher IS NOT NULL AS is_vouched_for,
+               pr.config AS profile_configuration,
+               pr.jsonb_settings
         FROM login lo INNER JOIN profile pr USING (userid)
         WHERE userid = %(userid)s
     """, userid=userid).first()
 
-    return list(row)
+    return dict(row)
 
 
 def get_config(userid):
-    """ Gets user configuration from the profile table (profile.settings)"""
+    """ Gets user configuration from the profile table (profile.config)"""
     if not userid:
         return ""
-    return _get_all_config(userid)[4]
+    return _get_all_config(userid)['profile_configuration']
 
 
 def get_login_settings(userid):
     """ Returns a Boolean three-tuple in the form of (force_password_reset, is_banned, is_suspended)"""
     r = _get_all_config(userid)
-    return r[0], r[1], r[2]
+    return r['force_password_reset'], r['is_banned'], r['is_suspended']
 
 
 def is_vouched_for(userid):
-    return _get_all_config(userid)[3]
+    return _get_all_config(userid)['is_vouched_for']
 
 
 def get_profile_settings(userid):
@@ -352,7 +368,7 @@ def get_profile_settings(userid):
     if not userid:
         jsonb = {}
     else:
-        jsonb = _get_all_config(userid)[5]
+        jsonb = _get_all_config(userid)['jsonb_settings']
 
         if jsonb is None:
             jsonb = {}

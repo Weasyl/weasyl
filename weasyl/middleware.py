@@ -18,7 +18,6 @@ from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
-from web.utils import storify
 
 from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy

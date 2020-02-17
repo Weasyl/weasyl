@@ -182,8 +182,6 @@ def create(username, email, emailcheck, password, passcheck, year, month, day):
     email = emailer.normalize_address(email)
     emailcheck = emailer.normalize_address(emailcheck)
 
-    password = password
-    passcheck = passcheck
     if day and month and year:
         try:
             birthday = arrow.Arrow(int(year), int(month), int(day))

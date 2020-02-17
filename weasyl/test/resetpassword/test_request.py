@@ -5,7 +5,6 @@ import pytest
 from weasyl import resetpassword
 from weasyl import define as d
 from weasyl.test import db_utils
-from weasyl.test.utils import Bag
 
 
 @pytest.mark.usefixtures('db')

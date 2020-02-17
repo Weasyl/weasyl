@@ -494,9 +494,9 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
 #   country
 #   (...)
 
-def edit_userinfo(userid, form):
+def edit_userinfo(userid, site_names, site_values, gender, country, show_age):
     social_rows = []
-    for site_name, site_value in zip(form.site_names, form.site_values):
+    for site_name, site_value in zip(site_names, site_values):
         if not site_name or not site_value:
             continue
         row = {
@@ -510,7 +510,7 @@ def edit_userinfo(userid, form):
         UPDATE userinfo
         SET gender = %(gender)s, country = %(country)s
         WHERE userid = %(userid)s
-    """, userid=userid, gender=form.gender.strip(), country=form.country.strip())
+    """, userid=userid, gender=gender.strip(), country=country.strip())
     d.engine.execute("""
         DELETE FROM user_links
         WHERE userid = %(userid)s
@@ -518,7 +518,7 @@ def edit_userinfo(userid, form):
     if social_rows:
         d.engine.execute(d.meta.tables['user_links'].insert().values(social_rows))
 
-    if form.show_age:
+    if show_age:
         d.engine.execute("""
             UPDATE profile
             SET config = config || 'b'
@@ -552,7 +552,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         newemailcheck: A verification field for the above to serve as a typo-check. Optional,
         but mandatory if `newemail` provided.
         newpassword: If changing the password, the user's new password. Optional.
-        newpasswordcheck: Verification field for `newpassword`. Optional, but mandatory if
+        newpasscheck: Verification field for `newpassword`. Optional, but mandatory if
         `newpassword` provided.
     """
     from weasyl import login

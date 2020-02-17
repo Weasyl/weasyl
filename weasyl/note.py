@@ -120,23 +120,18 @@ def select_view(userid, noteid):
     }
 
 
-# form
-#   title
-#   content
-#   recipient
+def send(userid, recipient, title, content, mod_copy=False, staff_note=False):
+    title = title.strip()
+    content = content.strip()
 
-def send(userid, form):
-    form.title = form.title.strip()
-    form.content = form.content.strip()
-
-    if not form.content:
+    if not content:
         raise WeasylError("contentInvalid")
-    elif not form.title:
+    elif not title:
         raise WeasylError("titleInvalid")
-    elif len(form.title) > 100:
+    elif len(title) > 100:
         raise WeasylError("titleTooLong")
 
-    users = set(d.get_userid_list(form.recipient))
+    users = set(d.get_userid_list(recipient))
 
     # can't send a note to yourself
     users.discard(userid)
@@ -183,8 +178,8 @@ def send(userid, form):
         " SELECT %(sender)s, recipient, %(title)s, %(content)s, %(now)s"
         " FROM UNNEST (%(recipients)s) AS recipient",
         sender=userid,
-        title=form.title,
-        content=form.content,
+        title=title,
+        content=content,
         now=d.get_time(),
         recipients=list(users),
     )
@@ -202,12 +197,12 @@ def send(userid, form):
         recipients=list(users),
     )
 
-    if form.mod_copy and userid in staff.MODS:
+    if mod_copy and userid in staff.MODS:
         mod_content = (
             '## The following message was sent as a note to the user.\n\n### %s\n\n%s' % (
-                form.title, form.content))
-        if form.staff_note:
-            mod_content = '%s\n\n%s' % (form.staff_note, mod_content)
+                title, content))
+        if staff_note:
+            mod_content = '%s\n\n%s' % (staff_note, mod_content)
         now = arrow.utcnow()
         mod_copies = []
         for target in users:

@@ -112,15 +112,7 @@ def resolve(userid, otherid, othername, myself=True):
         if result:
             return result
     elif othername:
-        result = d.engine.scalar("SELECT userid FROM login WHERE login_name = %(name)s", name=d.get_sysname(othername))
-
-        if result:
-            return result
-
-        result = d.engine.scalar("SELECT userid FROM useralias WHERE alias_name = %(name)s", name=d.get_sysname(othername))
-
-        if result:
-            return result
+        return d.get_userids([othername])[othername]
     elif userid and myself:
         return userid
 
@@ -789,27 +781,13 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Username
     if username is not None:
-        username = login.clean_display_name(username)
-        sysname = d.get_sysname(username)
+        login.change_username(
+            acting_user=my_userid,
+            target_user=userid,
+            bypass_limit=True,
+            new_username=username,
+        )
 
-        if d.engine.scalar("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s)",
-                           name=sysname):
-            raise WeasylError("usernameExists")
-        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s)",
-                             name=sysname):
-            raise WeasylError("usernameExists")
-        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)",
-                             name=sysname):
-            raise WeasylError("usernameExists")
-
-        with d.engine.begin() as db:
-            db.execute(
-                "UPDATE login SET login_name = %(sysname)s WHERE userid = %(user)s",
-                sysname=sysname, user=userid)
-            db.execute(
-                "UPDATE profile SET username = %(username)s WHERE userid = %(user)s",
-                username=username, user=userid)
-        d._get_display_name.invalidate(userid)
         updates.append('- Username: %s' % (username,))
 
     # Full name

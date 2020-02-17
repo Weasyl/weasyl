@@ -494,12 +494,24 @@ def get_character_directory(charid):
     return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
-def get_userid_list(target):
-    query = engine.execute(
-        "SELECT userid FROM login WHERE login_name = ANY (%(usernames)s)",
-        usernames=[get_sysname(i) for i in target.split(";")])
+def get_userids(usernames):
+    sysnames = [get_sysname(username) for username in usernames]
 
-    return [userid for (userid,) in query]
+    result = engine.execute(
+        "SELECT login_name, userid FROM login WHERE login_name = ANY (%(names)s)"
+        " UNION ALL SELECT alias_name, userid FROM useralias WHERE alias_name = ANY (%(names)s)"
+        " UNION ALL SELECT login_name, userid FROM username_history WHERE active AND login_name = ANY (%(names)s)",
+        names=sysnames,
+    )
+
+    sysname_userid = dict(result.fetchall())
+
+    return {username: sysname_userid.get(sysname, 0) for sysname, username in zip(sysnames, usernames)}
+
+
+def get_userid_list(target):
+    usernames = target.split(";")
+    return [userid for userid in get_userids(usernames).itervalues() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):

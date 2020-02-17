@@ -1,0 +1,53 @@
+$def with (username, existing_redirect, insufficient_days)
+$:{TITLE("Change Username", "Settings", "/control")}
+<div class="content">
+  <form class="form skinny clear" action="/control/username" method="post">
+    $:{CSRF()}
+
+    <label for="new_username">New username</label>
+    <input id="new_username" class="input" type="text" name="new_username" value="${username}" required maxlength="25"
+      $if insufficient_days is not None:
+        disabled
+      >
+
+    $code:
+      old_link = "/~" + LOGIN(username)
+      older_link = None if existing_redirect is None else "/~" + LOGIN(existing_redirect)
+
+    <div class="formatted-content" style="margin-top: 1em">
+      <ul>
+        <li>Your username will be changed to the one you entered.</li>
+        <li>The profile link with your current username, <a href="${old_link}">https://www.weasyl.com${old_link}</a>, will keep working and redirect to your new username. (You’ll have the option to release the username completely after making the change.)</li>
+
+        $if older_link is not None:
+          <li>Your older username, <a href="${older_link}">https://www.weasyl.com${older_link}</a>, will stop working and be free for someone else to claim.</li>
+
+        <li>You won’t be able to change your username again for 30 days.</li>
+      </ul>
+    </div>
+
+    $if insufficient_days is not None:
+      <p style="margin-top: 1em"><strong>You last changed your username ${insufficient_days} day${'' if insufficient_days == 1 else 's'} ago, so it’s too soon to change it again.</strong></p>
+
+    <div style="margin-top: 1em">
+      <button name="do" value="change" class="button positive" style="float:right;"
+        $if insufficient_days is not None:
+          disabled
+        >Change Username</button>
+      <a class="button" href="/control">Go Back</a>
+    </div>
+  </form>
+
+  $if existing_redirect is not None:
+    <form class="form skinny clear" action="/control/username" method="post">
+      $:{CSRF()}
+
+      <p style="margin-top: 2em">Your old username, <strong>${existing_redirect}</strong>, is reserved, and anyone visiting <a href="${older_link}">https://www.weasyl.com${older_link}</a> will be redirected to your current one.</p>
+
+      <p style="margin-top: 1em">You can release your old username. The link will stop working and the name will be free for someone else to claim.</p>
+
+      <div style="margin-top: 1em">
+        <button name="do" value="release" class="button negative" style="float:right;">Release Old Username</button>
+      </div>
+    </form>
+</div>

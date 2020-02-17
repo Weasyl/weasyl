@@ -15,7 +15,6 @@ from libweasyl.models.users import GuestSession
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
-from weasyl import moderation
 from weasyl.error import WeasylError
 from weasyl.sessions import create_session, create_guest_session
 
@@ -171,6 +170,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         # has been banned)
         return USERID, "banned"
     elif IS_SUSPENDED:
+        from weasyl import moderation
         suspension = moderation.get_suspension(USERID)
 
         if d.get_time() > suspension.release:
@@ -363,8 +363,90 @@ def username_exists(login_name):
         SELECT
             EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s) OR
             EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s) OR
-            EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
+            EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s) OR
+            EXISTS (SELECT 0 FROM username_history WHERE active AND login_name = %(name)s)
     """, name=login_name)
+
+
+def release_username(db, acting_user, target_user):
+    db.execute(
+        "UPDATE username_history SET"
+        " active = FALSE,"
+        " deactivated_at = now(),"
+        " deactivated_by = %(acting)s"
+        " WHERE userid = %(target)s AND active",
+        acting=acting_user,
+        target=target_user,
+    )
+
+
+def change_username(acting_user, target_user, bypass_limit, new_username):
+    new_username = clean_display_name(new_username)
+    new_sysname = d.get_sysname(new_username)
+
+    old_username = d.get_display_name(target_user)
+    old_sysname = d.get_sysname(old_username)
+
+    def change_username_transaction(db):
+        if not bypass_limit:
+            seconds = db.scalar(
+                "SELECT extract(epoch from now() - replaced_at)::int8"
+                " FROM username_history"
+                " WHERE userid = %(target)s"
+                " ORDER BY historyid DESC LIMIT 1",
+                target=target_user,
+            )
+
+            if seconds is not None:
+                days = seconds // (3600 * 24)
+
+                if days < 30:
+                    raise WeasylError("usernameChangedTooRecently")
+
+        release_username(
+            db,
+            acting_user=acting_user,
+            target_user=target_user,
+        )
+
+        conflict = db.scalar(
+            "SELECT EXISTS (SELECT FROM login WHERE login_name = %(new_sysname)s AND userid != %(target)s)"
+            " OR EXISTS (SELECT FROM useralias WHERE alias_name = %(new_sysname)s)"
+            " OR EXISTS (SELECT FROM logincreate WHERE login_name = %(new_sysname)s)"
+            " OR EXISTS (SELECT FROM username_history WHERE active AND login_name = %(new_sysname)s)",
+            target=target_user,
+            new_sysname=new_sysname,
+        )
+
+        if conflict:
+            raise WeasylError("usernameExists")
+
+        db.execute(
+            "INSERT INTO username_history (userid, username, login_name, replaced_at, replaced_by, active)"
+            " VALUES (%(target)s, %(old_username)s, %(old_sysname)s, now(), %(target)s, TRUE)",
+            target=target_user,
+            old_username=old_username,
+            old_sysname=old_sysname,
+        )
+
+        result = db.execute(
+            "UPDATE login SET login_name = %(new_sysname)s WHERE userid = %(target)s AND login_name = %(old_sysname)s",
+            target=target_user,
+            old_sysname=old_sysname,
+            new_sysname=new_sysname,
+        )
+
+        if result.rowcount != 1:
+            raise WeasylError("Unexpected")
+
+        db.execute(
+            "UPDATE profile SET username = %(new_username)s WHERE userid = %(target)s",
+            target=target_user,
+            new_username=new_username,
+        )
+
+    d.serializable_retry(change_username_transaction)
+    d._get_display_name.invalidate(target_user)
 
 
 def update_unicode_password(userid, password, password_confirm):

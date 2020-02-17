@@ -908,6 +908,33 @@ userinfo = Table(
 )
 
 
+username_history = Table(
+    'username_history', metadata,
+    Column('historyid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('username', String(length=25), nullable=False),
+    Column('login_name', String(length=25), nullable=False),
+    Column('replaced_at', TIMESTAMP(timezone=True), nullable=False),
+    Column('replaced_by', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('active', Boolean(), nullable=False),
+    Column('deactivated_at', TIMESTAMP(timezone=True), nullable=True),
+    Column('deactivated_by', Integer(), ForeignKey('login.userid'), nullable=True),
+    CheckConstraint("username !~ '[^ -~]' AND username !~ ';'", name='username_history_username_check'),
+    # TODO: replace with generated column once on PostgreSQL 12
+    CheckConstraint("login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', ''))", name='username_history_login_name_check'),
+    CheckConstraint("active = (deactivated_at IS NULL) AND active = (deactivated_by IS NULL)", name='username_history_active_check'),
+)
+
+# enforces one active redirect per user
+Index('ind_username_history_userid', username_history.c.userid, postgresql_where=username_history.c.active, unique=True)
+
+# enforces that active redirects have unique usernames within this table, although they also need to be unique in all of login, logincreate, useralias, and username_history together
+Index('ind_username_history_login_name', username_history.c.login_name, postgresql_where=username_history.c.active, unique=True)
+
+# lookup for a user's most recent change
+Index('ind_username_history_userid_historyid', username_history.c.userid, username_history.c.historyid, unique=True)
+
+
 userstats = Table(
     'userstats', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),

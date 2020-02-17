@@ -44,27 +44,23 @@ def check(userid, folderid=None, title=None, parentid=None, root=True):
                 user=userid, parent=parentid, title=title)
 
 
-# form
-#   title
-#   parentid
+def create(userid, title, parentid):
+    title = title.strip()[:_TITLE]
+    parentid = d.get_int(parentid)
 
-def create(userid, form):
-    form.title = form.title.strip()[:_TITLE]
-    form.parentid = d.get_int(form.parentid)
-
-    if not check(userid, form.parentid, parentid=0, root=True):
+    if not check(userid, parentid, parentid=0, root=True):
         raise WeasylError("folderRecordMissing")
-    elif not form.title.strip():
+    elif not title.strip():
         raise WeasylError("titleInvalid")
-    elif check(userid, title=form.title, parentid=form.parentid):
+    elif check(userid, title=title, parentid=parentid):
         raise WeasylError("folderRecordExists")
 
     d.engine.execute(
         "INSERT INTO folder (parentid, userid, title)"
         " VALUES (%(parent)s, %(user)s, %(title)s)",
-        parent=form.parentid,
+        parent=parentid,
         user=userid,
-        title=form.title,
+        title=title,
     )
 
 
@@ -230,59 +226,51 @@ def select_list(userid, feature):
     return result
 
 
-# form
-#   folderid
-#   title
-
-def rename(userid, form):
-    form.title = form.title.strip()[:_TITLE]
-    form.folderid = d.get_int(form.folderid)
+def rename(userid, title, folderid):
+    title = title.strip()[:_TITLE]
+    folderid = d.get_int(folderid)
 
     query = d.engine.scalar("SELECT userid FROM folder WHERE folderid = %(folder)s",
-                            folder=form.folderid)
+                            folder=folderid)
 
     if not query:
         raise WeasylError("folderRecordMissing")
-    elif not form.title:
+    elif not title:
         raise WeasylError("titleInvalid")
     elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
     d.engine.execute(
         "UPDATE folder SET title = %(title)s WHERE folderid = %(folder)s",
-        title=form.title, folder=form.folderid)
+        title=title, folder=folderid)
 
 
-# form
-#   folderid
-#   parentid
-
-def move(userid, form):
-    form.folderid = d.get_int(form.folderid)
-    form.parentid = d.get_int(form.parentid)
+def move(userid, folderid, parentid):
+    folderid = d.get_int(folderid)
+    parentid = d.get_int(parentid)
 
     folder_query = d.execute(
         "SELECT folderid, parentid, userid, title FROM folder WHERE folderid = %i",
-        [form.folderid])
+        [folderid])
 
     if not folder_query:
         raise WeasylError("folderRecordMissing")
     # folder cannot be a subfolder of itself
-    elif form.folderid == form.parentid:
+    elif folderid == parentid:
         raise WeasylError("parentidInvalid")
     # folder cannot be a subfolder of another user's folder
     elif userid != folder_query[0][2]:
         raise WeasylError("InsufficientPermissions")
     # folder with subfolders cannot become a subfolder
-    elif (form.folderid and
+    elif (folderid and
           d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s AND settings !~ 'h')",
-                          parent=form.folderid)):
+                          parent=folderid)):
         raise WeasylError("parentidInvalid")
 
-    if form.parentid > 0:
+    if parentid > 0:
         parent_query = d.execute(
             "SELECT folderid, parentid, userid, title FROM folder WHERE folderid = %i",
-            [form.parentid])
+            [parentid])
 
         if not parent_query:
             raise WeasylError("folderRecordMissing")
@@ -297,12 +285,12 @@ def move(userid, form):
             raise WeasylError("folderRecordExists")
 
     # folder cannot share title within parent folder
-    for folder in d.execute("SELECT title FROM folder WHERE parentid = %i AND userid = %i", [form.parentid, userid]):
+    for folder in d.execute("SELECT title FROM folder WHERE parentid = %i AND userid = %i", [parentid, userid]):
         if folder_query[0][3] == folder[0]:
             raise WeasylError("folderRecordExists")
 
     d.execute("UPDATE folder SET parentid = %i WHERE folderid = %i",
-              [form.parentid, form.folderid])
+              [parentid, folderid])
 
 
 def remove(userid, folderid):

@@ -317,7 +317,7 @@ def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
 
 
-@region.cache_on_arguments(namespace='v2')
+@region.cache_on_arguments(namespace='v3')
 def _get_all_config(userid):
     """
     Queries for, and returns, common user configuration settings.

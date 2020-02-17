@@ -42,54 +42,54 @@ def _dict_of_targetid(submitid, charid, journalid):
 #   charid       content
 #   journalid
 
-def create(userid, form):
-    form.submitid = d.get_int(form.submitid)
-    form.charid = d.get_int(form.charid)
-    form.journalid = d.get_int(form.journalid)
-    form.violation = d.get_int(form.violation)
-    form.content = form.content.strip()[:_CONTENT]
+def create(userid, submitid, charid, journalid, violation, content):
+    submitid = d.get_int(submitid)
+    charid = d.get_int(charid)
+    journalid = d.get_int(journalid)
+    violation = d.get_int(violation)
+    content = content.strip()[:_CONTENT]
 
     # get the violation type from allowed types
     try:
-        vtype = next(x for x in m.MACRO_REPORT_VIOLATION if x[0] == form.violation)
+        vtype = next(x for x in m.MACRO_REPORT_VIOLATION if x[0] == violation)
     except StopIteration:
         raise WeasylError("Unexpected")
 
-    if not form.submitid and not form.charid and not form.journalid:
+    if not submitid and not charid and not journalid:
         raise WeasylError("Unexpected")
-    elif form.violation == 0:
+    elif violation == 0:
         if userid not in staff.MODS:
             raise WeasylError("Unexpected")
-    elif (form.submitid or form.charid) and not 2000 <= form.violation < 3000:
+    elif (submitid or charid) and not 2000 <= violation < 3000:
         raise WeasylError("Unexpected")
-    elif form.journalid and not 3000 <= form.violation < 4000:
+    elif journalid and not 3000 <= violation < 4000:
         raise WeasylError("Unexpected")
-    elif vtype[3] and not form.content:
+    elif vtype[3] and not content:
         raise WeasylError("ReportCommentRequired")
 
     is_hidden = d.engine.scalar(
         "SELECT settings ~ 'h' FROM %s WHERE %s = %i" % (
-            ("submission", "submitid", form.submitid) if form.submitid else
-            ("character", "charid", form.charid) if form.charid else
-            ("journal", "journalid", form.journalid)
+            ("submission", "submitid", submitid) if submitid else
+            ("character", "charid", charid) if charid else
+            ("journal", "journalid", journalid)
         )
     )
 
-    if is_hidden is None or (form.violation != 0 and is_hidden):
+    if is_hidden is None or (violation != 0 and is_hidden):
         raise WeasylError("TargetRecordMissing")
 
     now = arrow.get()
-    target_dict = _dict_of_targetid(form.submitid, form.charid, form.journalid)
+    target_dict = _dict_of_targetid(submitid, charid, journalid)
     report = Report.query.filter_by(is_closed=False, **target_dict).first()
     if report is None:
-        if form.violation == 0:
+        if violation == 0:
             raise WeasylError("Unexpected")
         urgency = vtype[1]
         report = Report(urgency=urgency, opened_at=now, **target_dict)
         Report.dbsession.add(report)
 
     Report.dbsession.add(ReportComment(
-        report=report, violation=form.violation, userid=userid, unixtime=now, content=form.content))
+        report=report, violation=violation, userid=userid, unixtime=now, content=content))
 
     Report.dbsession.flush()
 

@@ -30,10 +30,13 @@ def submit_(request):
 def submit_visual_get_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
-
-    form = request.web_input(title='', tags=[], description='', imageURL='', baseURL='')
-    if form.baseURL:
-        form.imageURL = urlparse.urljoin(form.baseURL, form.imageURL)
+    title = request.params.get('title', '')
+    description = request.params.get('description', '')
+    baseURL = request.params.get('baseURL', '')
+    imageURL = request.params.get('imageURL', '')
+    tags = request.params.get('tags', '').split(',')
+    if baseURL:
+        imageURL = urlparse.urljoin(baseURL, imageURL)
 
     return Response(define.webpage(request.userid, "submit/visual.html", [
         # Folders
@@ -41,18 +44,14 @@ def submit_visual_get_(request):
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST if 1000 <= i[0] < 2000],
         profile.get_user_ratings(request.userid),
-        form,
+        title, imageURL, tags, description
     ], title="Visual Artwork"))
 
 
 @login_required
 @token_checked
 def submit_visual_post_(request):
-    form = request.web_input(submitfile="", thumbfile="", title="", folderid="",
-                             subtype="", rating="", friends="", critique="", content="",
-                             tags="", imageURL="")
-
-    tags = searchtag.parse_tags(form.tags)
+    tags = searchtag.parse_tags(request.params.get('tags', ''))
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
@@ -60,28 +59,42 @@ def submit_visual_post_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     s = orm.Submission()
-    s.title = form.title
+    s.title = request.params.get('title', '')
     s.rating = rating
-    s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.content = request.params.get('content', '')
+    s.folderid = define.get_int(request.params.get('folderid', '')) or None
+    s.subtype = define.get_int(request.params.get('subtype', ''))
     s.submitter_ip_address = request.client_addr
     s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
-    submitid = submission.create_visual(
-        request.userid, s, friends_only=form.friends, tags=tags,
-        imageURL=form.imageURL, thumbfile=form.thumbfile, submitfile=form.submitfile,
-        critique=form.critique, create_notifications=('nonotification' not in form))
+    submitfile = request.params.get('submitfile', u'')
+    if submitfile != u'':
+        submitfile = submitfile.file.read()
+    thumbfile = request.params.get('thumbfile', u'')
+    if thumbfile != u'':
+        thumbfile = thumbfile.file.read()
 
-    if 'customthumb' in form:
+    submitid = submission.create_visual(
+        request.userid,
+        s,
+        friends_only=request.params.get('friends', ''),
+        tags=tags,
+        imageURL=request.params.get('imageURL', ''),
+        thumbfile=thumbfile,
+        submitfile=submitfile,
+        critique=request.params.get('critique', False),
+        create_notifications=(request.params.get('nonotification', False) is not True)
+    )
+
+    if request.params.get('customthumb', False):
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
     else:
-        raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(form.title)))
+        raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(s.title)))
 
 
 @login_required
@@ -101,11 +114,7 @@ def submit_literary_get_(request):
 @login_required
 @token_checked
 def submit_literary_post_(request):
-    form = request.web_input(submitfile="", coverfile="boop", thumbfile="", title="",
-                             folderid="", subtype="", rating="", friends="", critique="",
-                             content="", tags="", embedlink="")
-
-    tags = searchtag.parse_tags(form.tags)
+    tags = searchtag.parse_tags(request.params.get('tags', ''))
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
@@ -113,27 +122,45 @@ def submit_literary_post_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     s = orm.Submission()
-    s.title = form.title
+    s.title = request.params.get('title', '')
     s.rating = rating
-    s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.content = request.params.get('content', '')
+    s.folderid = define.get_int(request.params.get('folderid', '')) or None
+    s.subtype = define.get_int(request.params.get('subtype', ''))
     s.submitter_ip_address = request.client_addr
     s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
+    submitfile = request.params.get('submitfile', u'')
+    if submitfile != u'':
+        submitfile = submitfile.file.read()
+    thumbfile = request.params.get('thumbfile', u'')
+    if thumbfile != u'':
+        thumbfile = thumbfile.file.read()
+    coverfile = request.params.get('coverfile', u'')
+    if coverfile != u'':
+        coverfile = coverfile.file.read()
+
     submitid, thumb = submission.create_literary(
-        request.userid, s, embedlink=form.embedlink, friends_only=form.friends, tags=tags,
-        coverfile=form.coverfile, thumbfile=form.thumbfile, submitfile=form.submitfile,
-        critique=form.critique, create_notifications=('nonotification' not in form))
+        request.userid,
+        s,
+        embedlink=request.params.get('embedlink', ''),
+        friends_only=request.params.get('friends', ''),
+        tags=tags,
+        coverfile=coverfile,
+        thumbfile=thumbfile,
+        submitfile=submitfile,
+        critique=request.params.get('critique', False),
+        create_notifications=(request.params.get('nonotification', False) is not True)
+    )
     if thumb:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
     else:
-        raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(form.title)))
+        raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(s.title)))
 
 
 @login_required
@@ -153,11 +180,7 @@ def submit_multimedia_get_(request):
 @login_required
 @token_checked
 def submit_multimedia_post_(request):
-    form = request.web_input(submitfile="", coverfile="", thumbfile="", embedlink="",
-                             title="", folderid="", subtype="", rating="", friends="",
-                             critique="", content="", tags="")
-
-    tags = searchtag.parse_tags(form.tags)
+    tags = searchtag.parse_tags(request.params.get('tags', ''))
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
@@ -165,30 +188,47 @@ def submit_multimedia_post_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     s = orm.Submission()
-    s.title = form.title
+    s.title = request.params.get('title', '')
     s.rating = rating
-    s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.content = request.params.get('content', '')
+    s.folderid = define.get_int(request.params.get('folderid', '')) or None
+    s.subtype = define.get_int(request.params.get('subtype', ''))
     s.submitter_ip_address = request.client_addr
     s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
-    autothumb = ('noautothumb' not in form)
+    submitfile = request.params.get('submitfile', u'')
+    if submitfile != u'':
+        submitfile = submitfile.file.read()
+    thumbfile = request.params.get('thumbfile', u'')
+    if thumbfile != u'':
+        thumbfile = thumbfile.file.read()
+    coverfile = request.params.get('coverfile', u'')
+    if coverfile != u'':
+        coverfile = coverfile.file.read()
+
+    autothumb = (request.params.get('noautothumb', False) is not True)
 
     submitid, thumb = submission.create_multimedia(
-        request.userid, s, embedlink=form.embedlink, friends_only=form.friends, tags=tags,
-        coverfile=form.coverfile, thumbfile=form.thumbfile, submitfile=form.submitfile,
-        critique=form.critique, create_notifications=('nonotification' not in form),
+        request.userid,
+        s,
+        embedlink=request.params.get('embedlink', ''),
+        friends_only=request.params.get('friends', ''),
+        tags=tags,
+        coverfile=coverfile,
+        thumbfile=thumbfile,
+        submitfile=submitfile,
+        critique=request.params.get('critique', False),
+        create_notifications=(request.params.get('nonotification', False) is not True),
         auto_thumb=autothumb)
     if thumb and not autothumb:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
     else:
-        raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(form.title)))
+        raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(s.title)))
 
 
 @login_required
@@ -204,11 +244,7 @@ def submit_character_get_(request):
 @login_required
 @token_checked
 def submit_character_post_(request):
-    form = request.web_input(submitfile="", thumbfile="", title="", age="", gender="",
-                             height="", weight="", species="", rating="", friends="",
-                             content="", tags="")
-
-    tags = searchtag.parse_tags(form.tags)
+    tags = searchtag.parse_tags(request.params.get('tags', ''))
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
@@ -216,22 +252,29 @@ def submit_character_post_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     c = orm.Character()
-    c.age = form.age
-    c.gender = form.gender
-    c.height = form.height
-    c.weight = form.weight
-    c.species = form.species
-    c.char_name = form.title
-    c.content = form.content
+    c.age = request.params.get('age', '')
+    c.gender = request.params.get('gender', '')
+    c.height = request.params.get('height', '')
+    c.weight = request.params.get('weight', '')
+    c.species = request.params.get('species', '')
+    c.char_name = request.params.get('title', '')
+    c.content = request.params.get('content', '')
     c.rating = rating
 
-    charid = character.create(request.userid, c, form.friends, tags,
-                              form.thumbfile, form.submitfile)
+    submitfile = request.params.get('submitfile', u'')
+    if submitfile != u'':
+        submitfile = submitfile.file.read()
+    thumbfile = request.params.get('thumbfile', u'')
+    if thumbfile != u'':
+        thumbfile = thumbfile.file.read()
+
+    charid = character.create(request.userid, c, request.params.get('friends', ''), tags,
+                              thumbfile, submitfile)
     raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
 
 
@@ -247,9 +290,7 @@ def submit_journal_get_(request):
 @login_required
 @token_checked
 def submit_journal_post_(request):
-    form = request.web_input(title="", rating="", friends="", members="", content="", tags="")
-
-    tags = searchtag.parse_tags(form.tags)
+    tags = searchtag.parse_tags(request.params.get('tags', ''))
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
@@ -257,47 +298,47 @@ def submit_journal_post_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     j = orm.Journal()
-    j.title = form.title
+    j.title = request.params.get('title', '')
     j.rating = rating
-    j.content = form.content
+    j.content = request.params.get('content', '')
     j.submitter_ip_address = request.client_addr
     j.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
-    journalid = journal.create(request.userid, j, friends_only=form.friends,
+    journalid = journal.create(request.userid, j, request.params.get('friends', ''),
                                tags=tags)
-    raise HTTPSeeOther(location="/journal/%i/%s" % (journalid, slug_for(form.title)))
+    raise HTTPSeeOther(location="/journal/%i/%s" % (journalid, slug_for(j.title)))
 
 
 @login_required
 @token_checked
 @supports_json
 def submit_shout_(request):
-    form = request.web_input(userid="", parentid="", content="", staffnotes="", format="")
+    staffnotes = request.params.get('staffnotes', False)
 
-    if form.staffnotes and request.userid not in staff.MODS:
+    if staffnotes and request.userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
     c = orm.Comment()
-    c.parentid = define.get_int(form.parentid)
-    c.userid = define.get_int(form.userid or form.staffnotes)
-    c.content = form.content
+    c.parentid = define.get_int(request.params.get('parentid', ''))
+    c.userid = define.get_int(request.params.get('userid', '') or staffnotes)
+    c.content = request.params.get('content', '')
 
-    commentid = shout.insert(request.userid, c, staffnotes=form.staffnotes)
+    commentid = shout.insert(request.userid, c, staffnotes=staffnotes)
 
-    if form.format == "json":
+    if request.params.get('format', '') == "json":
         return {"id": commentid}
 
-    if form.staffnotes:
-        raise HTTPSeeOther(location='/staffnotes?userid=%i#cid%i' % (define.get_int(form.staffnotes), commentid))
+    if staffnotes:
+        raise HTTPSeeOther(location='/staffnotes?userid=%i#cid%i' % (define.get_int(staffnotes), commentid))
     else:
-        raise HTTPSeeOther(location="/shouts?userid=%i#cid%i" % (define.get_int(form.userid), commentid))
+        raise HTTPSeeOther(location="/shouts?userid=%i#cid%i" % (c.userid, commentid))
 
 
 @login_required
@@ -307,25 +348,29 @@ def submit_comment_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(submitid="", charid="", journalid="", updateid="", parentid="", content="", format="")
-    updateid = define.get_int(form.updateid)
+    submitid = define.get_int(request.params.get('submitid', ''))
+    charid = define.get_int(request.params.get('charid', ''))
+    journalid = define.get_int(request.params.get('journalid', ''))
+    updateid = define.get_int(request.params.get('updateid', ''))
+    parentid = define.get_int(request.params.get('updateid', ''))
+    content = request.params.get('content', '')
 
-    commentid = comment.insert(request.userid, charid=define.get_int(form.charid),
-                               parentid=define.get_int(form.parentid),
-                               submitid=define.get_int(form.submitid),
-                               journalid=define.get_int(form.journalid),
+    commentid = comment.insert(request.userid, charid=charid,
+                               parentid=parentid,
+                               submitid=submitid,
+                               journalid=journalid,
                                updateid=updateid,
-                               content=form.content)
+                               content=content)
 
-    if form.format == "json":
+    if request.params.get('format', '') == "json":
         return {"id": commentid}
 
-    if define.get_int(form.submitid):
-        raise HTTPSeeOther(location="/submission/%i#cid%i" % (define.get_int(form.submitid), commentid))
-    elif define.get_int(form.charid):
-        raise HTTPSeeOther(location="/character/%i#cid%i" % (define.get_int(form.charid), commentid))
-    elif define.get_int(form.journalid):
-        raise HTTPSeeOther(location="/journal/%i#cid%i" % (define.get_int(form.journalid), commentid))
+    if submitid:
+        raise HTTPSeeOther(location="/submission/%i#cid%i" % (submitid, commentid))
+    elif charid:
+        raise HTTPSeeOther(location="/character/%i#cid%i" % (charid, commentid))
+    elif journalid:
+        raise HTTPSeeOther(location="/journal/%i#cid%i" % (journalid, commentid))
     elif updateid:
         raise HTTPSeeOther(location="/site-updates/%i#cid%i" % (updateid, commentid))
     else:
@@ -335,17 +380,22 @@ def submit_comment_(request):
 @login_required
 @token_checked
 def submit_report_(request):
-    form = request.web_input(submitid="", charid="", journalid="", reportid="", violation="", content="")
+    submitid = request.params.get('submitid', '')
+    charid = request.params.get('charid', '')
+    journalid = request.params.get('journalid', '')
+    reportid = request.params.get('reportid', '')
+    violation = request.params.get('violation', '')
+    content = request.params.get('content', '')
 
-    report.create(request.userid, form)
-    if form.reportid:
-        raise HTTPSeeOther(location="/modcontrol/report?reportid=%s" % (form.reportid,))
-    elif define.get_int(form.submitid):
-        raise HTTPSeeOther(location="/submission/%i" % (define.get_int(form.submitid),))
-    elif define.get_int(form.charid):
-        raise HTTPSeeOther(location="/character/%i" % (define.get_int(form.charid),))
+    report.create(request.userid, submitid, charid, journalid, violation, content)
+    if reportid:
+        raise HTTPSeeOther(location="/modcontrol/report?reportid=%s" % (reportid,))
+    elif define.get_int(submitid):
+        raise HTTPSeeOther(location="/submission/%i" % (define.get_int(submitid),))
+    elif define.get_int(charid):
+        raise HTTPSeeOther(location="/character/%i" % (define.get_int(charid),))
     else:
-        raise HTTPSeeOther(location="/journal/%i" % (define.get_int(form.journalid),))
+        raise HTTPSeeOther(location="/journal/%i" % (define.get_int(journalid),))
 
 
 @login_required
@@ -354,15 +404,13 @@ def submit_tags_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(submitid="", charid="", journalid="", preferred_tags_userid="", optout_tags_userid="", tags="")
+    tags = searchtag.parse_tags(request.params.get('tags', ''))
 
-    tags = searchtag.parse_tags(form.tags)
-
-    submitid = define.get_int(form.submitid)
-    charid = define.get_int(form.charid)
-    journalid = define.get_int(form.journalid)
-    preferred_tags_userid = define.get_int(form.preferred_tags_userid)
-    optout_tags_userid = define.get_int(form.optout_tags_userid)
+    submitid = define.get_int(request.params.get('submitid', ''))
+    charid = define.get_int(request.params.get('charid', ''))
+    journalid = define.get_int(request.params.get('journalid', ''))
+    preferred_tags_userid = define.get_int(request.params.get('preferred_tags_userid', ''))
+    optout_tags_userid = define.get_int(request.params.get('optout_tags_userid', ''))
 
     result = searchtag.associate(request.userid, tags, submitid, charid, journalid, preferred_tags_userid, optout_tags_userid)
     if result:
@@ -399,88 +447,91 @@ def submit_tags_(request):
 
 @login_required
 def reupload_submission_get_(request):
-    form = request.web_input(submitid="")
-    form.submitid = define.get_int(form.submitid)
+    submitid = define.get_int(request.params.get('submitid', ''))
 
-    if request.userid != define.get_ownerid(submitid=form.submitid):
+    if request.userid != define.get_ownerid(submitid=submitid):
         return Response(define.errorpage(request.userid, errorcode.permission))
 
     return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
         "submission",
         # SubmitID
-        form.submitid,
+        submitid,
     ], title="Reupload Submission"))
 
 
 @login_required
 @token_checked
 def reupload_submission_post_(request):
-    form = request.web_input(targetid="", submitfile="")
-    form.targetid = define.get_int(form.targetid)
+    targetid = define.get_int(request.params.get('targetid', ''))
+    submitfile = request.params.get('submitfile', u'')
+    if submitfile != u'':
+        submitfile = submitfile.file.read()
 
-    if request.userid != define.get_ownerid(submitid=form.targetid):
+    if request.userid != define.get_ownerid(submitid=targetid):
         return Response(define.errorpage(request.userid, errorcode.permission))
 
-    submission.reupload(request.userid, form.targetid, form.submitfile)
-    raise HTTPSeeOther(location="/submission/%i" % (form.targetid,))
+    submission.reupload(request.userid, targetid, submitfile)
+    raise HTTPSeeOther(location="/submission/%i" % (targetid,))
 
 
 @login_required
 def reupload_character_get_(request):
-    form = request.web_input(charid="")
-    form.charid = define.get_int(form.charid)
+    charid = define.get_int(request.params.get('charid', ''))
 
-    if request.userid != define.get_ownerid(charid=form.charid):
+    if request.userid != define.get_ownerid(charid=charid):
         return Response(define.errorpage(request.userid, errorcode.permission))
 
     return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
         "character",
         # charid
-        form.charid,
+        charid,
     ], title="Reupload Character Image"))
 
 
 @login_required
 @token_checked
 def reupload_character_post_(request):
-    form = request.web_input(targetid="", submitfile="")
-    form.targetid = define.get_int(form.targetid)
+    targetid = define.get_int(request.params.get('targetid', ''))
+    submitfile = request.params.get('submitfile', u'')
+    if submitfile != u'':
+        submitfile = submitfile.file.read()
 
-    if request.userid != define.get_ownerid(charid=form.targetid):
+    if request.userid != define.get_ownerid(charid=targetid):
         return Response(define.errorpage(request.userid, errorcode.permission))
 
-    character.reupload(request.userid, form.targetid, form.submitfile)
-    raise HTTPSeeOther(location="/character/%i" % (form.targetid,))
+    character.reupload(request.userid, targetid, submitfile)
+    raise HTTPSeeOther(location="/character/%i" % (targetid,))
 
 
 @login_required
 def reupload_cover_get_(request):
-    form = request.web_input(submitid="")
-    form.submitid = define.get_int(form.submitid)
+    submitid = define.get_int(request.params.get('submitid', ''))
 
-    if request.userid != define.get_ownerid(submitid=form.submitid):
+    if request.userid != define.get_ownerid(submitid=submitid):
         return Response(define.errorpage(request.userid, errorcode.permission))
 
-    return Response(define.webpage(request.userid, "submit/reupload_cover.html", [form.submitid], title="Reupload Cover Artwork"))
+    return Response(define.webpage(request.userid, "submit/reupload_cover.html", [submitid], title="Reupload Cover Artwork"))
 
 
 @login_required
 @token_checked
 def reupload_cover_post_(request):
-    form = request.web_input(submitid="", coverfile="")
-    form.submitid = define.get_int(form.submitid)
+    submitid = define.get_int(request.params.get('submitid', ''))
 
-    submission.reupload_cover(request.userid, form.submitid, form.coverfile)
-    raise HTTPSeeOther(location="/submission/%i" % (form.submitid,))
+    submission.reupload_cover(request.userid, submitid, request.params.get('coverfile', ''))
+    raise HTTPSeeOther(location="/submission/%i" % (submitid,))
 
 
 # Content editing functions
 @login_required
 def edit_submission_get_(request):
-    form = request.web_input(submitid="", anyway="")
-    form.submitid = define.get_int(form.submitid)
-
-    detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = submission.select_view(
+        request.userid,
+        define.get_int(request.params.get('submitid', '')),
+        ratings.EXPLICIT.code,
+        False,
+        anyway=request.params.get('anyway', False)
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -502,36 +553,41 @@ def edit_submission_get_(request):
 @login_required
 @token_checked
 def edit_submission_post_(request):
-    form = request.web_input(submitid="", title="", folderid="", subtype="", rating="",
-                             content="", friends="", critique="", embedlink="")
-
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     s = orm.Submission()
-    s.submitid = define.get_int(form.submitid)
-    s.title = form.title
+    s.submitid = define.get_int(request.params.get('submitid', ''))
+    s.title = request.params.get('title', '')
     s.rating = rating
-    s.content = form.content
-    s.folderid = define.get_int(form.folderid) or None
-    s.subtype = define.get_int(form.subtype)
+    s.content = request.params.get('content', '')
+    s.folderid = define.get_int(request.params.get('folderid', '')) or None
+    s.subtype = define.get_int(request.params.get('subtype', ''))
 
-    submission.edit(request.userid, s, embedlink=form.embedlink,
-                    friends_only=form.friends, critique=form.critique)
+    submission.edit(
+        request.userid,
+        s,
+        embedlink=request.params.get('embedlink', ''),
+        friends_only=request.params.get('friends', False),
+        critique=request.params.get('critique', False)
+    )
     raise HTTPSeeOther(location="/submission/%i/%s%s" % (
-        define.get_int(form.submitid),
-        slug_for(form.title),
+        define.get_int(s.submitid),
+        slug_for(s.title),
         "?anyway=true" if request.userid in staff.MODS else ''
     ))
 
 
 @login_required
 def edit_character_get_(request):
-    form = request.web_input(charid="", anyway="")
-    form.charid = define.get_int(form.charid)
-
-    detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = character.select_view(
+        request.userid,
+        define.get_int(request.params.get('charid')),
+        ratings.EXPLICIT.code,
+        False,
+        anyway=request.params.get('anyway', False)
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -546,38 +602,34 @@ def edit_character_get_(request):
 @login_required
 @token_checked
 def edit_character_post_(request):
-    form = request.web_input(charid="", title="", age="", gender="", height="",
-                             weight="", species="", rating="", content="", friends="")
-
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     c = orm.Character()
-    c.charid = define.get_int(form.charid)
-    c.age = form.age
-    c.gender = form.gender
-    c.height = form.height
-    c.weight = form.weight
-    c.species = form.species
-    c.char_name = form.title
-    c.content = form.content
+    c.charid = define.get_int(request.params.get('charid'))
+    c.age = request.params.get('age', '')
+    c.gender = request.params.get('gender', '')
+    c.height = request.params.get('height', '')
+    c.weight = request.params.get('weight', '')
+    c.species = request.params.get('species', '')
+    c.char_name = request.params.get('title', '')
+    c.content = request.params.get('content', '')
     c.rating = rating
 
-    character.edit(request.userid, c, friends_only=form.friends)
+    character.edit(request.userid, c, friends_only=request.params.get('friends', False))
     raise HTTPSeeOther(location="/character/%i/%s%s" % (
-        define.get_int(form.charid),
-        slug_for(form.title),
+        define.get_int(c.charid),
+        slug_for(c.char_name),
         ("?anyway=true" if request.userid in staff.MODS else '')
     ))
 
 
 @login_required
 def edit_journal_get_(request):
-    form = request.web_input(journalid="", anyway="")
-    form.journalid = define.get_int(form.journalid)
+    journalid = define.get_int(request.params.get('journalid', ''))
 
-    detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
+    detail = journal.select_view(request.userid, ratings.EXPLICIT.code, journalid, False, anyway=request.params.get('anyway', False))
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         return Response(define.errorpage(request.userid, errorcode.permission))
@@ -592,21 +644,19 @@ def edit_journal_get_(request):
 @login_required
 @token_checked
 def edit_journal_post_(request):
-    form = request.web_input(journalid="", title="", rating="", friends="", content="")
-
-    rating = ratings.CODE_MAP.get(define.get_int(form.rating))
+    rating = ratings.CODE_MAP.get(define.get_int(request.params.get('rating', '')))
     if not rating:
         raise WeasylError("ratingInvalid")
 
     j = orm.Journal()
-    j.journalid = define.get_int(form.journalid)
-    j.title = form.title
+    j.journalid = define.get_int(request.params.get('journalid', ''))
+    j.title = request.params.get('title', '')
     j.rating = rating
-    j.content = form.content
-    journal.edit(request.userid, j, friends_only=form.friends)
+    j.content = request.params.get('content', '')
+    journal.edit(request.userid, j, friends_only=request.params.get('friends', False))
     raise HTTPSeeOther(location="/journal/%i/%s%s" % (
-        define.get_int(form.journalid),
-        slug_for(form.title),
+        define.get_int(j.journalid),
+        slug_for(j.title),
         ("?anyway=true" if request.userid in staff.MODS else '')
     ))
 
@@ -615,9 +665,7 @@ def edit_journal_post_(request):
 @login_required
 @token_checked
 def remove_submission_(request):
-    form = request.web_input(submitid="")
-
-    ownerid = submission.remove(request.userid, define.get_int(form.submitid))
+    ownerid = submission.remove(request.userid, define.get_int(request.params.get('submitid', '')))
     if request.userid == ownerid:
         raise HTTPSeeOther(location="/control")  # todo
     else:
@@ -627,9 +675,7 @@ def remove_submission_(request):
 @login_required
 @token_checked
 def remove_character_(request):
-    form = request.web_input(charid="")
-
-    ownerid = character.remove(request.userid, define.get_int(form.charid))
+    ownerid = character.remove(request.userid, define.get_int(request.params.get('charid', '')))
     if request.userid == ownerid:
         raise HTTPSeeOther(location="/control")  # todo
     else:
@@ -639,9 +685,7 @@ def remove_character_(request):
 @login_required
 @token_checked
 def remove_journal_(request):
-    form = request.web_input(journalid="")
-
-    ownerid = journal.remove(request.userid, define.get_int(form.journalid))
+    ownerid = journal.remove(request.userid, define.get_int(request.params.get('journalid', '')))
     if request.userid == ownerid:
         raise HTTPSeeOther(location="/control")  # todo
     else:
@@ -652,22 +696,22 @@ def remove_journal_(request):
 @token_checked
 @supports_json
 def remove_comment_(request):
-    form = request.web_input(commentid="", feature="", format="")
-    commentid = define.get_int(form.commentid)
+    commentid = define.get_int(request.params.get('commentid', ''))
+    feature = request.params.get('feature', '')
 
-    if form.feature == "userid":
+    if feature == "userid":
         targetid = shout.remove(request.userid, commentid=commentid)
     else:
-        targetid = comment.remove(request.userid, commentid=commentid, feature=form.feature)
+        targetid = comment.remove(request.userid, commentid=commentid, feature=feature)
 
-    if form.format == "json":
+    if request.params.get('format', '') == "json":
         return {"success": True}
 
-    if form.feature == "userid":
+    if feature == "userid":
         raise HTTPSeeOther(location="/shouts?userid=%i" % (targetid,))
-    elif form.feature == "submit":
+    elif feature == "submit":
         raise HTTPSeeOther(location="/submission/%i" % (targetid,))
-    elif form.feature == "char":
+    elif feature == "char":
         raise HTTPSeeOther(location="/character/%i" % (targetid,))
-    elif form.feature == "journal":
+    elif feature == "journal":
         raise HTTPSeeOther(location="/journal/%i" % (targetid,))

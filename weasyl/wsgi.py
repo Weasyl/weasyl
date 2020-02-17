@@ -42,7 +42,6 @@ setup_routes_and_views(config)
 config.add_request_method(mw.pg_connection_request_property, name='pg_connection', reify=True)
 config.add_request_method(mw.userid_request_property, name='userid', reify=True)
 config.add_request_method(mw.log_exc_request_method, name='log_exc')
-config.add_request_method(mw.web_input_request_method, name='web_input')
 config.add_request_method(mw.set_cookie_on_response)
 config.add_request_method(mw.delete_cookie_on_response)
 

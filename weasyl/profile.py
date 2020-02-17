@@ -135,7 +135,7 @@ def resolve_by_login(login):
 def select_profile(userid, avatar=False, banner=False, propic=False, images=False, commish=True, viewer=None):
     query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
-            pr.settings, pr.stream_url, pr.config, pr.stream_text, lo.settings, us.end_time
+            pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
         FROM profile pr
             INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
@@ -145,9 +145,11 @@ def select_profile(userid, avatar=False, banner=False, propic=False, images=Fals
     if not query:
         raise WeasylError('RecordMissing')
 
+    _, is_banned, is_suspended = d.get_login_settings(userid)
+
     streaming_status = "stopped"
     if query[6]:  # profile.stream_url
-        if query[10] > d.get_time():  # user_streams.end_time
+        if query[9] > d.get_time():  # user_streams.end_time
             streaming_status = "started"
         elif 'l' in query[5]:
             streaming_status = "later"
@@ -167,8 +169,8 @@ def select_profile(userid, avatar=False, banner=False, propic=False, images=Fals
         "show_favorites_bar": "u" not in query[7] and "v" not in query[7],
         "show_favorites_tab": userid == viewer or "v" not in query[7],
         "commish_slots": 0,
-        "banned": "b" in query[9],
-        "suspended": "s" in query[9],
+        "banned": is_banned,
+        "suspended": is_suspended,
         "streaming_status": streaming_status,
     }
 
@@ -892,17 +894,6 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
     if updates:
         from weasyl import moderation
         moderation.note_about(my_userid, userid, 'The following fields were changed:', '\n'.join(updates))
-
-
-def force_resetbirthday(userid, birthday):
-    if not birthday:
-        raise WeasylError("birthdayInvalid")
-    elif birthday > d.get_time():
-        raise WeasylError("birthdayInvalid")
-
-    d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [birthday, userid])
-    d.execute("UPDATE login SET settings = REPLACE(settings, 'i', '') WHERE userid = %i", [userid])
-    d._get_all_config.invalidate(userid)
 
 
 # TODO(hyena): Make this class unnecessary and remove it when we fix up settings.

@@ -317,30 +317,49 @@ def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
 
 
-@region.cache_on_arguments(namespace='v2')
+@region.cache_on_arguments(namespace='v3')
 def _get_all_config(userid):
-    row = engine.execute(
-        "SELECT login.settings, login.voucher IS NOT NULL, profile.config, profile.jsonb_settings"
-        " FROM login INNER JOIN profile USING (userid)"
-        " WHERE userid = %(user)s",
-        user=userid,
-    ).first()
+    """
+    Queries for, and returns, common user configuration settings.
 
-    return list(row)
+    :param userid: The userid to query.
+    :return: A dict(), containing the following keys/values:
+      force_password_reset: Boolean. Is the user required to change their password?
+      is_banned: Boolean. Is the user currently banned?
+      is_suspended: Boolean. Is the user currently suspended?
+      is_vouched_for: Boolean. Is the user vouched for?
+      profile_configuration: CharSettings/string. Configuration options in the profile.
+      jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
+    """
+    row = engine.execute("""
+        SELECT lo.force_password_reset,
+               EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
+               EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
+               lo.voucher IS NOT NULL AS is_vouched_for,
+               pr.config AS profile_configuration,
+               pr.jsonb_settings
+        FROM login lo INNER JOIN profile pr USING (userid)
+        WHERE userid = %(userid)s
+    """, userid=userid).first()
+
+    return dict(row)
 
 
 def get_config(userid):
+    """ Gets user configuration from the profile table (profile.config)"""
     if not userid:
         return ""
-    return _get_all_config(userid)[2]
+    return _get_all_config(userid)['profile_configuration']
 
 
 def get_login_settings(userid):
-    return _get_all_config(userid)[0]
+    """ Returns a Boolean three-tuple in the form of (force_password_reset, is_banned, is_suspended)"""
+    r = _get_all_config(userid)
+    return r['force_password_reset'], r['is_banned'], r['is_suspended']
 
 
 def is_vouched_for(userid):
-    return _get_all_config(userid)[1]
+    return _get_all_config(userid)['is_vouched_for']
 
 
 def get_profile_settings(userid):
@@ -349,7 +368,7 @@ def get_profile_settings(userid):
     if not userid:
         jsonb = {}
     else:
-        jsonb = _get_all_config(userid)[3]
+        jsonb = _get_all_config(userid)['jsonb_settings']
 
         if jsonb is None:
             jsonb = {}
@@ -718,15 +737,13 @@ def common_status_check(userid):
     if not userid:
         return None
 
-    settings = get_login_settings(userid)
+    reset_password, is_banned, is_suspended = get_login_settings(userid)
 
-    if "p" in settings:
+    if reset_password:
         return "resetpassword"
-    if "i" in settings:
-        return "resetbirthday"
-    if "b" in settings:
+    if is_banned:
         return "banned"
-    if "s" in settings:
+    if is_suspended:
         return "suspended"
 
     return None
@@ -739,8 +756,6 @@ def common_status_page(userid, status):
     """
     if status == "resetpassword":
         return webpage(userid, "force/resetpassword.html")
-    elif status == "resetbirthday":
-        return webpage(userid, "force/resetbirthday.html")
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 

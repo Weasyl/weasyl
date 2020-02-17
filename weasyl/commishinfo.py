@@ -264,7 +264,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
         WHERE LOWER(cc.title) LIKE %(cclasslike)s
         AND p.settings ~ '^[os]'
-        AND login.settings !~ '[bs]'
+        AND NOT EXISTS (SELECT FROM permaban WHERE permaban.userid = login.userid)
+        AND NOT EXISTS (SELECT FROM suspension WHERE suspension.userid = login.userid)
         AND login.voucher IS NOT NULL
         AND NOT EXISTS (
             SELECT 0

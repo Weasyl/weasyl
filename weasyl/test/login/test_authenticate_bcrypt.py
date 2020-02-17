@@ -80,7 +80,7 @@ def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, mo
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_user_is_banned():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    d.engine.execute("UPDATE login SET settings = 'b' WHERE userid = %(id)s", id=user_id)
+    db_utils.create_banuser(userid=user_id, reason="Testing")
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, 'banned')
 
@@ -88,10 +88,8 @@ def test_login_fails_if_user_is_banned():
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_user_is_suspended():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    d.engine.execute("UPDATE login SET settings = 's' WHERE userid = %(id)s", id=user_id)
     release_date = d.get_time() + 60
-    d.engine.execute("INSERT INTO suspension VALUES (%(id)s, %(reason)s, %(rel)s)",
-                     id=user_id, reason='test', rel=release_date)
+    db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, 'suspended')
 
@@ -99,10 +97,8 @@ def test_login_fails_if_user_is_suspended():
 @pytest.mark.usefixtures('db')
 def test_login_succeeds_if_suspension_duration_has_expired():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    d.engine.execute("UPDATE login SET settings = 's' WHERE userid = %(id)s", id=user_id)
     release_date = d.convert_unixdate(31, 12, 2015)
-    d.engine.execute("INSERT INTO suspension VALUES (%(id)s, %(reason)s, %(rel)s)",
-                     id=user_id, reason='test', rel=release_date)
+    db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, None)
 

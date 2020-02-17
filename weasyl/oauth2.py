@@ -42,7 +42,6 @@ def render_form(request, scopes, credentials, mobile, error=None,
 
 @disallow_api
 def authorize_get_(request):
-    form = request.web_input(mobile='')
     try:
         scopes, credentials = server.validate_authorization_request(*extract_params(request))
     except FatalClientError:
@@ -50,21 +49,23 @@ def authorize_get_(request):
     except OAuth2Error as e:
         return HTTPFound(location=e.in_uri(e.redirect_uri))
     del credentials['request']
-    return Response(render_form(request, scopes, credentials, bool(form.mobile)))
+    return Response(render_form(request, scopes, credentials, 'mobile' in request.params))
 
 
 @disallow_api
 @token_checked
 def authorize_post_(request):
-    form = request.web_input(credentials='', username='', password='', remember_me='', mobile='', not_me='')
     try:
-        credentials = json.loads(form.credentials)
+        credentials = json.loads(request.params.get('credentials', ''))
     except ValueError:
         raise HTTPBadRequest()
     scopes = credentials.pop('scopes')
     error = None
-    if form.not_me and form.username:
-        userid, error = login.authenticate_bcrypt(form.username, form.password, request=request if form.remember_me else None)
+    if 'not_me' in request.params and request.params.get('username'):
+        userid, error = login.authenticate_bcrypt(
+            request.params.get('username', ''),
+            request.params.get('password', ''),
+            request=request if 'remember_me' in request.params else None)
         if error:
             error = errorcode.login_errors.get(error, 'Unknown error.')
     elif not request.userid:
@@ -72,9 +73,17 @@ def authorize_post_(request):
     else:
         userid = request.userid
     if error:
-        return Response(render_form(request, scopes, credentials, bool(form.mobile), error,
-                                    form.username, form.password, bool(form.remember_me),
-                                    bool(form.not_me)))
+        return Response(render_form(
+            request,
+            scopes,
+            credentials,
+            'mobile' in request.params,
+            error,
+            request.params.get('username', ''),
+            request.params.get('password', ''),
+            'remember_me' in request.params,
+            'not_me' in request.params
+        ))
     credentials['userid'] = userid
     response_attrs = server.create_authorization_response(
         *(extract_params(request) + (scopes, credentials)))

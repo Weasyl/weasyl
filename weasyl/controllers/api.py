@@ -88,8 +88,7 @@ def api_login_required(view_callable):
 @view_config(route_name='useravatar', renderer='json')
 @api_method
 def api_useravatar_(request):
-    form = request.web_input(username="")
-    userid = profile.resolve_by_login(d.get_sysname(form.username))
+    userid = profile.resolve_by_login(d.get_sysname(request.params.get('username', '')))
 
     if userid:
         media_items = media.get_user_media(userid)
@@ -154,12 +153,12 @@ def tidy_submission(submission):
 @view_config(route_name='api_frontpage', renderer='json')
 @api_method
 def api_frontpage_(request):
-    form = request.web_input(since=None, count=0)
     since = None
+
     try:
-        if form.since:
-            since = d.parse_iso8601(form.since)
-        count = int(form.count)
+        if 'since' in request.params:
+            since = d.parse_iso8601(request.params['since'])
+        count = int(request.params.get('count', 0))
     except ValueError:
         raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:
@@ -181,28 +180,25 @@ def api_frontpage_(request):
 @view_config(route_name='api_submission_view', renderer='json')
 @api_method
 def api_submission_view_(request):
-    form = request.web_input(anyway='', increment_views='')
     return submission.select_view_api(
         request.userid, int(request.matchdict['submitid']),
-        anyway=bool(form.anyway), increment_views=bool(form.increment_views))
+        anyway=('anyway' in request.params), increment_views=('increment_views' in request.params))
 
 
 @view_config(route_name='api_journal_view', renderer='json')
 @api_method
 def api_journal_view_(request):
-    form = request.web_input(anyway='', increment_views='')
     return journal.select_view_api(
         request.userid, int(request.matchdict['journalid']),
-        anyway=bool(form.anyway), increment_views=bool(form.increment_views))
+        anyway=('anyway' in request.params), increment_views=('increment_views' in request.params))
 
 
 @view_config(route_name='api_character_view', renderer='json')
 @api_method
 def api_character_view_(request):
-    form = request.web_input(anyway='', increment_views='')
     return character.select_view_api(
         request.userid, int(request.matchdict['charid']),
-        anyway=bool(form.anyway), increment_views=bool(form.increment_views))
+        anyway=('anyway' in request.params), increment_views=('increment_views' in request.params))
 
 
 @view_config(route_name='api_user_view', renderer='json')
@@ -365,15 +361,14 @@ def api_user_gallery_(request):
     if not userid:
         raise WeasylError('userRecordMissing')
 
-    form = request.web_input(since=None, count=0, folderid=0, backid=0, nextid=0)
     since = None
     try:
-        if form.since:
-            since = d.parse_iso8601(form.since)
-        count = int(form.count)
-        folderid = int(form.folderid)
-        backid = int(form.backid)
-        nextid = int(form.nextid)
+        if 'since' in request.params:
+            since = d.parse_iso8601(request.params['since'])
+        count = int(requests.params.get('count', 0))
+        folderid = int(requests.params.get('folderid', 0))
+        backid = int(requests.params.get('backid', 0))
+        nextid = int(requests.params.get('nextid', 0))
     except ValueError:
         raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:
@@ -401,11 +396,10 @@ def api_user_gallery_(request):
 @api_login_required
 @api_method
 def api_messages_submissions_(request):
-    form = request.web_input(count=0, backtime=0, nexttime=0)
     try:
-        count = int(form.count)
-        backtime = int(form.backtime)
-        nexttime = int(form.nexttime)
+        count = int(requests.params.get('count', 0))
+        backtime = int(requests.params.get('backtime', 0))
+        nexttime = int(requests.params.get('nexttime', 0))
     except ValueError:
         raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:

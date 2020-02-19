@@ -205,6 +205,7 @@ def control_username_get_(request):
         "SELECT username, active, extract(epoch from now() - replaced_at)::int8 AS seconds"
         " FROM username_history"
         " WHERE userid = %(user)s"
+        " AND NOT cosmetic"
         " ORDER BY historyid DESC LIMIT 1",
         user=request.userid,
     ).first()

@@ -387,12 +387,18 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
     old_username = d.get_display_name(target_user)
     old_sysname = d.get_sysname(old_username)
 
+    if new_username == old_username:
+        return
+
+    cosmetic = new_sysname == old_sysname
+
     def change_username_transaction(db):
-        if not bypass_limit:
+        if not cosmetic and not bypass_limit:
             seconds = db.scalar(
                 "SELECT extract(epoch from now() - replaced_at)::int8"
                 " FROM username_history"
                 " WHERE userid = %(target)s"
+                " AND NOT cosmetic"
                 " ORDER BY historyid DESC LIMIT 1",
                 target=target_user,
             )
@@ -403,41 +409,44 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
                 if days < 30:
                     raise WeasylError("usernameChangedTooRecently")
 
-        release_username(
-            db,
-            acting_user=acting_user,
-            target_user=target_user,
-        )
+        if not cosmetic:
+            release_username(
+                db,
+                acting_user=acting_user,
+                target_user=target_user,
+            )
 
-        conflict = db.scalar(
-            "SELECT EXISTS (SELECT FROM login WHERE login_name = %(new_sysname)s AND userid != %(target)s)"
-            " OR EXISTS (SELECT FROM useralias WHERE alias_name = %(new_sysname)s)"
-            " OR EXISTS (SELECT FROM logincreate WHERE login_name = %(new_sysname)s)"
-            " OR EXISTS (SELECT FROM username_history WHERE active AND login_name = %(new_sysname)s)",
-            target=target_user,
-            new_sysname=new_sysname,
-        )
+            conflict = db.scalar(
+                "SELECT EXISTS (SELECT FROM login WHERE login_name = %(new_sysname)s AND userid != %(target)s)"
+                " OR EXISTS (SELECT FROM useralias WHERE alias_name = %(new_sysname)s)"
+                " OR EXISTS (SELECT FROM logincreate WHERE login_name = %(new_sysname)s)"
+                " OR EXISTS (SELECT FROM username_history WHERE active AND login_name = %(new_sysname)s)",
+                target=target_user,
+                new_sysname=new_sysname,
+            )
 
-        if conflict:
-            raise WeasylError("usernameExists")
+            if conflict:
+                raise WeasylError("usernameExists")
 
         db.execute(
-            "INSERT INTO username_history (userid, username, login_name, replaced_at, replaced_by, active)"
-            " VALUES (%(target)s, %(old_username)s, %(old_sysname)s, now(), %(target)s, TRUE)",
+            "INSERT INTO username_history (userid, username, login_name, replaced_at, replaced_by, active, cosmetic)"
+            " VALUES (%(target)s, %(old_username)s, %(old_sysname)s, now(), %(target)s, NOT %(cosmetic)s, %(cosmetic)s)",
             target=target_user,
             old_username=old_username,
             old_sysname=old_sysname,
+            cosmetic=cosmetic,
         )
 
-        result = db.execute(
-            "UPDATE login SET login_name = %(new_sysname)s WHERE userid = %(target)s AND login_name = %(old_sysname)s",
-            target=target_user,
-            old_sysname=old_sysname,
-            new_sysname=new_sysname,
-        )
+        if not cosmetic:
+            result = db.execute(
+                "UPDATE login SET login_name = %(new_sysname)s WHERE userid = %(target)s AND login_name = %(old_sysname)s",
+                target=target_user,
+                old_sysname=old_sysname,
+                new_sysname=new_sysname,
+            )
 
-        if result.rowcount != 1:
-            raise WeasylError("Unexpected")
+            if result.rowcount != 1:
+                raise WeasylError("Unexpected")
 
         db.execute(
             "UPDATE profile SET username = %(new_username)s WHERE userid = %(target)s",

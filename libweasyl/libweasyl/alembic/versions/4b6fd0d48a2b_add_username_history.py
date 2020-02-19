@@ -29,7 +29,7 @@ def upgrade():
     sa.CheckConstraint(u"login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', '', 'g'))", name='username_history_login_name_check'),
     sa.CheckConstraint(u"username !~ '[^ -~]' AND username !~ ';'", name='username_history_username_check'),
     sa.CheckConstraint(u'NOT (cosmetic AND active)', name='username_history_cosmetic_inactive_check'),
-    sa.CheckConstraint(u'active = (deactivated_at IS NULL) AND active = (deactivated_by IS NULL)', name='username_history_active_check'),
+    sa.CheckConstraint(u'(active OR cosmetic) = (deactivated_at IS NULL) AND (active OR cosmetic) = (deactivated_by IS NULL)', name='username_history_active_check'),
     sa.ForeignKeyConstraint(['deactivated_by'], ['login.userid'], ),
     sa.ForeignKeyConstraint(['replaced_by'], ['login.userid'], ),
     sa.ForeignKeyConstraint(['userid'], ['login.userid'], ),

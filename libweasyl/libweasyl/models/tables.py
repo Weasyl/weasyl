@@ -935,7 +935,7 @@ Index('ind_username_history_userid', username_history.c.userid, postgresql_where
 Index('ind_username_history_login_name', username_history.c.login_name, postgresql_where=username_history.c.active, unique=True)
 
 # lookup for a user's most recent change
-Index('ind_username_history_userid_historyid', username_history.c.userid, username_history.c.historyid, unique=True)
+Index('ind_username_history_userid_historyid', username_history.c.userid, username_history.c.historyid, postgresql_where=~username_history.c.cosmetic, unique=True)
 
 
 userstats = Table(

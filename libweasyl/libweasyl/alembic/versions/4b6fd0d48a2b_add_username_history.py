@@ -2,7 +2,7 @@
 
 Revision ID: 4b6fd0d48a2b
 Revises: c1f8375b5805
-Create Date: 2020-02-19 18:29:36.327069
+Create Date: 2020-02-19 18:51:51.714126
 
 """
 
@@ -37,7 +37,7 @@ def upgrade():
     )
     op.create_index('ind_username_history_login_name', 'username_history', ['login_name'], unique=True, postgresql_where=sa.text('active'))
     op.create_index('ind_username_history_userid', 'username_history', ['userid'], unique=True, postgresql_where=sa.text('active'))
-    op.create_index('ind_username_history_userid_historyid', 'username_history', ['userid', 'historyid'], unique=True)
+    op.create_index('ind_username_history_userid_historyid', 'username_history', ['userid', 'historyid'], unique=True, postgresql_where=sa.text(u'NOT cosmetic'))
 
 
 def downgrade():

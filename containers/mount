@@ -10,12 +10,13 @@ expand_src() {
 }
 
 read_only='ro,'
-dst="/weasyl/$1"
 
 if test "$1" = '--writable'; then
     shift
     read_only=''
 fi
+
+dst="/weasyl/$1"
 
 case $# in
 1)

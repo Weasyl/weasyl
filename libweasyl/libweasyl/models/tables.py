@@ -923,7 +923,7 @@ username_history = Table(
     Column('cosmetic', Boolean(), nullable=False),
     CheckConstraint("username !~ '[^ -~]' AND username !~ ';'", name='username_history_username_check'),
     # TODO: replace with generated column once on PostgreSQL 12
-    CheckConstraint("login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', ''))", name='username_history_login_name_check'),
+    CheckConstraint("login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', '', 'g'))", name='username_history_login_name_check'),
     CheckConstraint("active = (deactivated_at IS NULL) AND active = (deactivated_by IS NULL)", name='username_history_active_check'),
     CheckConstraint("NOT (cosmetic AND active)", name='username_history_cosmetic_inactive_check'),
 )

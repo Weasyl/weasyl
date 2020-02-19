@@ -75,9 +75,9 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
         $for i in query:
           <tr>
             <td>${i.userid}</td>
-            $if i.settings['account-state'] == "banned":
+            $if i.is_banned:
               <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Banned)</b></td>
-            $elif i.settings['account-state'] == "suspended":
+            $elif i.is_suspended:
               <td><a href="/~${i.login_name}">${i.login_name}</a> <b>(Suspended)</b></td>
             $else:
               <td><a href="/~${i.login_name}">${i.login_name}</a></td>

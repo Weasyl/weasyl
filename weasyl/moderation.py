@@ -300,6 +300,20 @@ def finduser(userid, form):
     sh = d.meta.tables['comments']
     pr = d.meta.tables['profile']
     sess = d.meta.tables['sessions']
+    permaban = d.meta.tables['permaban']
+    suspension = d.meta.tables['suspension']
+
+    is_banned = d.sa.exists(
+        d.sa.select([])
+        .select_from(permaban)
+        .where(permaban.c.userid == lo.c.userid)
+    ).label('is_banned')
+
+    is_suspended = d.sa.exists(
+        d.sa.select([])
+        .select_from(suspension)
+        .where(suspension.c.userid == lo.c.userid)
+    ).label('is_suspended')
 
     q = d.sa.select([
         lo.c.userid,
@@ -309,7 +323,8 @@ def finduser(userid, form):
          .select_from(sh)
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
-        lo.c.settings,
+        is_banned,
+        is_suspended,
         lo.c.ip_address_at_signup,
         (d.sa.select([sess.c.ip_address])
             .select_from(sess)
@@ -338,11 +353,11 @@ def finduser(userid, form):
 
     # Filter for banned and/or suspended accounts
     if form.excludeactive == "on":
-        q = q.where(lo.c.settings.op('~')('[bs]'))
+        q = q.where(is_banned | is_suspended)
     if form.excludebanned == "on":
-        q = q.where(lo.c.settings.op('!~')('b'))
+        q = q.where(~is_banned)
     if form.excludesuspended == "on":
-        q = q.where(lo.c.settings.op('!~')('s'))
+        q = q.where(~is_suspended)
 
     # Filter for IP address
     if form.ipaddr:

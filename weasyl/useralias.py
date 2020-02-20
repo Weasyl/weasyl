@@ -10,10 +10,12 @@ def select(userid):
 
 
 def set(userid, username):
-    if login.username_exists(username):
+    if username and login.username_exists(username):
         raise WeasylError("usernameExists")
     elif not d.get_premium(userid):
         raise WeasylError("InsufficientPermissions")
 
     d.engine.execute("DELETE FROM useralias WHERE userid = %(user)s AND settings ~ 'p'", user=userid)
-    d.engine.execute("INSERT INTO useralias VALUES (%(user)s, %(name)s, 'p')", user=userid, name=username)
+
+    if username:
+        d.engine.execute("INSERT INTO useralias VALUES (%(user)s, %(name)s, 'p')", user=userid, name=username)

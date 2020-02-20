@@ -501,7 +501,7 @@ def get_userids(usernames):
         "SELECT login_name, userid FROM login WHERE login_name = ANY (%(names)s)"
         " UNION ALL SELECT alias_name, userid FROM useralias WHERE alias_name = ANY (%(names)s)"
         " UNION ALL SELECT login_name, userid FROM username_history WHERE active AND login_name = ANY (%(names)s)",
-        names=sysnames,
+        names=[sysname for sysname in sysnames if sysname],
     )
 
     sysname_userid = dict(result.fetchall())

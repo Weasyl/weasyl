@@ -470,74 +470,53 @@ def setusermode(userid, form):
         note_about(userid, form.userid, 'User mode changed: action was %r' % (action,), message)
 
 
-def submissionsbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
-
+def submissionsbyuser(targetid):
     query = d.engine.execute("""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.settings
-        FROM submission su
-            INNER JOIN profile pr USING (userid)
-        WHERE su.userid = (SELECT userid FROM login WHERE login_name = %(sysname)s)
-        ORDER BY su.submitid DESC
-    """, sysname=d.get_sysname(form.name))
+        SELECT submitid, title, rating, unixtime, settings
+        FROM submission
+        WHERE userid = %(user)s
+    """, user=targetid)
 
     ret = [{
         "contype": 10,
+        "userid": targetid,
         "submitid": i[0],
         "title": i[1],
         "rating": i[2],
         "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "settings": i[6],
+        "settings": i[4],
     } for i in query]
     media.populate_with_submission_media(ret)
     return ret
 
 
-def charactersbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
-
+def charactersbyuser(targetid):
     query = d.engine.execute("""
-        SELECT
-            ch.charid, pr.username, ch.unixtime,
-            ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
-            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
-        FROM character ch
-        INNER JOIN profile pr ON ch.userid = pr.userid
-        INNER JOIN login ON ch.userid = login.userid
-        WHERE login.login_name = %(sysname)s
-    """, sysname=d.get_sysname(form.name))
+        SELECT charid, unixtime, char_name, rating, settings
+        FROM character
+        WHERE userid = %(user)s
+    """, user=targetid)
 
     return [{
         "contype": 20,
-        "userid": userid,
+        "userid": targetid,
         "charid": item[0],
-        "username": item[1],
-        "unixtime": item[2],
-        "title": item[3],
-        "rating": item[10],
-        "settings": item[11],
-        "sub_media": character.fake_media_items(item[0], userid, d.get_sysname(item[1]), item[11]),
+        "unixtime": item[1],
+        "title": item[2],
+        "rating": item[3],
+        "settings": item[4],
+        "sub_media": character.fake_media_items(item[0], targetid, "unused", item[4]),
     } for item in query]
 
 
-def journalsbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
+def journalsbyuser(targetid):
+    query = d.engine.execute("""
+        SELECT journalid, title, settings, unixtime, rating
+        FROM journal
+        WHERE userid = %(user)s
+    """, user=targetid)
 
-    results = d.engine.execute("""
-        SELECT journalid, title, journal.settings, journal.unixtime, rating,
-               profile.username, 30 contype
-          FROM journal
-               JOIN profile USING (userid)
-               JOIN login USING (userid)
-         WHERE login_name = %(sysname)s
-    """, sysname=d.get_sysname(form.name)).fetchall()
-
-    return map(dict, results)
+    return [dict(item, contype=30) for item in query]
 
 
 def gallery_blacklisted_tags(userid, otherid):

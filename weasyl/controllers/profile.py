@@ -39,7 +39,7 @@ def profile_(request):
         )
 
     extras = {
-        "canonical_url": "/~" + define.get_sysname(form.name)
+        "canonical_url": "/~" + define.get_sysname(userprofile['username'])
     }
 
     if not request.userid:

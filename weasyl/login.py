@@ -15,7 +15,6 @@ from libweasyl.models.users import GuestSession
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
-from weasyl import moderation
 from weasyl.error import WeasylError
 from weasyl.sessions import create_session, create_guest_session
 
@@ -23,6 +22,46 @@ from weasyl.sessions import create_session, create_guest_session
 _EMAIL = 100
 _PASSWORD = 10
 _USERNAME = 25
+
+_BANNED_SYSNAMES = frozenset([
+    "admin",
+    "administrator",
+    "mod",
+    "moderator",
+    "weasyl",
+    "weasyladmin",
+    "weasylmod",
+    "staff",
+    "security",
+])
+
+
+def _legacy_plaintext(password):
+    """
+    Returns password stripped of non-ASCII characters, but not of control characters.
+    """
+    return "".join([c for c in password if ord(c) < 128])
+
+
+def clean_display_name(text):
+    """
+    Process a user's selection of their own username into the username that will be stored.
+
+    - Leading and trailing whitespace is removed.
+    - Non-ASCII characters are removed.
+    - Control characters are removed.
+    - Semicolons are removed.
+    - Only the first 25 characters are kept.
+
+    Throws a WeasylError("usernameInvalid") if a well-formed username isn't produced by this process.
+    """
+    cleaned = "".join(c for c in text.strip() if " " <= c <= "~" and c != ";")[:_USERNAME]
+    sysname = d.get_sysname(cleaned)
+
+    if sysname and sysname not in _BANNED_SYSNAMES:
+        return cleaned
+    else:
+        raise WeasylError("usernameInvalid")
 
 
 def signin(request, userid, ip_address=None, user_agent=None):
@@ -116,7 +155,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     d.metric('increment', 'attemptedlogins')
 
     unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
-    if not unicode_success and not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), HASHSUM):
+    if not unicode_success and not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:
@@ -131,6 +170,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         # has been banned)
         return USERID, "banned"
     elif IS_SUSPENDED:
+        from weasyl import moderation
         suspension = moderation.get_suspension(USERID)
 
         if d.get_time() > suspension.release:
@@ -181,7 +221,7 @@ def password_secure(password):
 
 def create(form):
     # Normalize form data
-    username = d.plaintext(form.username[:_USERNAME])
+    username = clean_display_name(form.username)
     sysname = d.get_sysname(username)
 
     email = emailer.normalize_address(form.email)
@@ -212,11 +252,6 @@ def create(form):
         raise WeasylError("emailInvalid")
     if is_email_blacklisted(email):
         raise WeasylError("emailBlacklisted")
-    if not sysname or ";" in username:
-        raise WeasylError("usernameInvalid")
-    if sysname in ["admin", "administrator", "mod", "moderator", "weasyl",
-                   "weasyladmin", "weasylmod", "staff", "security"]:
-        raise WeasylError("usernameInvalid")
     if username_exists(sysname):
         raise WeasylError("usernameExists")
 
@@ -328,8 +363,99 @@ def username_exists(login_name):
         SELECT
             EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s) OR
             EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s) OR
-            EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
+            EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s) OR
+            EXISTS (SELECT 0 FROM username_history WHERE active AND login_name = %(name)s)
     """, name=login_name)
+
+
+def release_username(db, acting_user, target_user):
+    db.execute(
+        "UPDATE username_history SET"
+        " active = FALSE,"
+        " deactivated_at = now(),"
+        " deactivated_by = %(acting)s"
+        " WHERE userid = %(target)s AND active",
+        acting=acting_user,
+        target=target_user,
+    )
+
+
+def change_username(acting_user, target_user, bypass_limit, new_username):
+    new_username = clean_display_name(new_username)
+    new_sysname = d.get_sysname(new_username)
+
+    old_username = d.get_display_name(target_user)
+    old_sysname = d.get_sysname(old_username)
+
+    if new_username == old_username:
+        return
+
+    cosmetic = new_sysname == old_sysname
+
+    def change_username_transaction(db):
+        if not cosmetic and not bypass_limit:
+            seconds = db.scalar(
+                "SELECT extract(epoch from now() - replaced_at)::int8"
+                " FROM username_history"
+                " WHERE userid = %(target)s"
+                " AND NOT cosmetic"
+                " ORDER BY historyid DESC LIMIT 1",
+                target=target_user,
+            )
+
+            if seconds is not None:
+                days = seconds // (3600 * 24)
+
+                if days < 30:
+                    raise WeasylError("usernameChangedTooRecently")
+
+        if not cosmetic:
+            release_username(
+                db,
+                acting_user=acting_user,
+                target_user=target_user,
+            )
+
+            conflict = db.scalar(
+                "SELECT EXISTS (SELECT FROM login WHERE login_name = %(new_sysname)s AND userid != %(target)s)"
+                " OR EXISTS (SELECT FROM useralias WHERE alias_name = %(new_sysname)s)"
+                " OR EXISTS (SELECT FROM logincreate WHERE login_name = %(new_sysname)s)"
+                " OR EXISTS (SELECT FROM username_history WHERE active AND login_name = %(new_sysname)s)",
+                target=target_user,
+                new_sysname=new_sysname,
+            )
+
+            if conflict:
+                raise WeasylError("usernameExists")
+
+        db.execute(
+            "INSERT INTO username_history (userid, username, login_name, replaced_at, replaced_by, active, cosmetic)"
+            " VALUES (%(target)s, %(old_username)s, %(old_sysname)s, now(), %(target)s, NOT %(cosmetic)s, %(cosmetic)s)",
+            target=target_user,
+            old_username=old_username,
+            old_sysname=old_sysname,
+            cosmetic=cosmetic,
+        )
+
+        if not cosmetic:
+            result = db.execute(
+                "UPDATE login SET login_name = %(new_sysname)s WHERE userid = %(target)s AND login_name = %(old_sysname)s",
+                target=target_user,
+                old_sysname=old_sysname,
+                new_sysname=new_sysname,
+            )
+
+            if result.rowcount != 1:
+                raise WeasylError("Unexpected")
+
+        db.execute(
+            "UPDATE profile SET username = %(new_username)s WHERE userid = %(target)s",
+            target=target_user,
+            new_username=new_username,
+        )
+
+    d.serializable_retry(change_username_transaction)
+    d._get_display_name.invalidate(target_user)
 
 
 def update_unicode_password(userid, password, password_confirm):
@@ -345,7 +471,7 @@ def update_unicode_password(userid, password, password_confirm):
     if bcrypt.checkpw(password.encode('utf-8'), hashpw):
         return
 
-    if not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), hashpw):
+    if not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), hashpw):
         raise WeasylError('passwordIncorrect')
 
     d.engine.execute("""

@@ -152,6 +152,7 @@ error_messages = {
     "unknownMessageFolder": "The specified message folder does not exist.",
     "UserIgnored": "This content was posted by a user you have chosen to ignore.",
     "userRecordMissing": userid,
+    "usernameChangedTooRecently": "You can't change your username within 30 days of a previous change.",
     "usernameExists": "The username you entered is already registered by another user.",
     "usernameIncorrect": "The username you entered does not match the account for which this request was made.",
     "usernameInvalid": (

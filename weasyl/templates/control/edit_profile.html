@@ -15,6 +15,9 @@ $code:
     <div class="column info clear">
       <h3>Profile Settings</h3>
 
+      <p class="label">Username</p>
+      <p id="editprofile-username">${profile['username']} <a href="/control/username">[change]</a></p>
+
       <label for="editprofile-fullname">Full Name</label>
       <input type="text" id="editprofile-fullname" class="input" name="full_name" value="${profile['full_name']}" maxlength="100" />
 

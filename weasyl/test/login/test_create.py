@@ -212,9 +212,11 @@ def test_username_cant_be_blank_or_have_semicolon():
         login.create(form)
     assert 'usernameInvalid' == err.value.value
     form.username = 'testloginsuite;'
-    with pytest.raises(WeasylError) as err:
-        login.create(form)
-    assert 'usernameInvalid' == err.value.value
+    login.create(form)
+    assert d.engine.scalar(
+        "SELECT username FROM logincreate WHERE email = %(email)s LIMIT 1",
+        email=form.email,
+    ) == "testloginsuite"
 
 
 @pytest.mark.usefixtures('db')

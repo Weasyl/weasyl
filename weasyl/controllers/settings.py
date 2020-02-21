@@ -13,7 +13,7 @@ from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
-    index, oauth2, profile, searchtag, thumbnail, useralias, orm)
+    index, login, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -62,6 +62,7 @@ def control_editprofile_put_(request):
         raise WeasylError('Unexpected')
 
     if 'more' in form:
+        form.username = define.get_display_name(request.userid)
         form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
         form.settings = form.set_commish + form.set_trade + form.set_request
         form.config = form.profile_display
@@ -196,6 +197,64 @@ def control_removecommishprice_(request):
 
     commishinfo.remove_price(request.userid, priceid)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
+
+
+@login_required
+def control_username_get_(request):
+    latest_change = define.engine.execute(
+        "SELECT username, active, extract(epoch from now() - replaced_at)::int8 AS seconds"
+        " FROM username_history"
+        " WHERE userid = %(user)s"
+        " AND NOT cosmetic"
+        " ORDER BY historyid DESC LIMIT 1",
+        user=request.userid,
+    ).first()
+
+    if latest_change is None:
+        existing_redirect = None
+        days = None
+    else:
+        existing_redirect = latest_change.username if latest_change.active else None
+        days = latest_change.seconds // (3600 * 24)
+
+    return Response(define.webpage(
+        request.userid,
+        "control/username.html",
+        (define.get_display_name(request.userid), existing_redirect, days if days is not None and days < 30 else None),
+        title="Change Username",
+    ))
+
+
+@login_required
+@token_checked
+def control_username_post_(request):
+    if request.POST['do'] == 'change':
+        login.change_username(
+            acting_user=request.userid,
+            target_user=request.userid,
+            bypass_limit=False,
+            new_username=request.POST['new_username'],
+        )
+
+        return Response(define.errorpage(
+            request.userid,
+            "Your username has been changed.",
+            [["Go Back", "/control/username"], ["Return Home", "/"]],
+        ))
+    elif request.POST['do'] == 'release':
+        login.release_username(
+            define.engine,
+            acting_user=request.userid,
+            target_user=request.userid,
+        )
+
+        return Response(define.errorpage(
+            request.userid,
+            "Your old username has been released.",
+            [["Go Back", "/control/username"], ["Return Home", "/"]],
+        ))
+    else:
+        raise WeasylError("Unexpected")
 
 
 @login_required

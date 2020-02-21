@@ -119,11 +119,14 @@ def session_tween_factory(handler, registry):
     return session_tween
 
 
-def sql_debug_tween_factory(handler, registry):
+def query_debug_tween_factory(handler, registry):
     """
-    A tween that allows developers to view SQL timing per query.
+    A tween that allows developers to view timing per query.
     """
     def callback(request, response):
+        if not hasattr(request, 'weasyl_session') or request.weasyl_session.userid not in staff.DEVELOPERS:
+            return
+
         class ParameterCounter(object):
             def __init__(self):
                 self.next = 1
@@ -140,7 +143,7 @@ def sql_debug_tween_factory(handler, registry):
 
         debug_rows = []
 
-        for statement, t in request.sql_debug:
+        for statement, t in request.query_debug:
             statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
             debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
 
@@ -150,14 +153,14 @@ def sql_debug_tween_factory(handler, registry):
             + [u'</table>']
         )
 
-    def sql_debug_tween(request):
-        if 'sql_debug' in request.params and request.weasyl_session.userid in staff.DEVELOPERS:
-            request.sql_debug = []
+    def query_debug_tween(request):
+        if 'query_debug' in request.params:
+            request.query_debug = []
             request.add_response_callback(callback)
 
         return handler(request)
 
-    return sql_debug_tween
+    return query_debug_tween
 
 
 def status_check_tween_factory(handler, registry):
@@ -512,5 +515,5 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)
-    if hasattr(request, 'sql_debug'):
-        request.sql_debug.append((statement, total))
+    if hasattr(request, 'query_debug'):
+        request.query_debug.append((statement, total))

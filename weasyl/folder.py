@@ -9,6 +9,11 @@ from weasyl.error import WeasylError
 
 _TITLE = 100
 
+_PREVIEW_COUNT = 3
+"""
+The maximum number of recently updated folders to display on a profile.
+"""
+
 
 def check(userid, folderid=None, title=None, parentid=None, root=True):
     """
@@ -87,10 +92,10 @@ def submission_has_folder_flag(submitid, flag):
     return bool(results and results[0][0])
 
 
-def select_preview(userid, otherid, rating, limit=3):
+def select_preview(userid, otherid, rating):
     """
-    Picks out random folders up to the limit, and get a count, name, and random
-    submission to use as a preview for each.
+    Pick out recently updated folders up to the limit, and get a count, name,
+    and the latest submission to use as a preview for each.
 
     The rules below ensure that the following images won't be used or counted:
     Hidden images, friends only images from non-friends, submissions above the
@@ -99,64 +104,54 @@ def select_preview(userid, otherid, rating, limit=3):
 
     Params:
         userid: The id of the viewing user.
-        otherid: The id of the users whose folders we're viewing.
+        otherid: The id of the user whose folders we're viewing.
         rating: The maximum rating of submissions that will be considered for
             counts or a preview.
-        limit: The maximum number of folders to consider. Defaults to 3.
 
     Returns:
         An array of dicts, each of which has a folderid, a title, a count, and
         sub_media to use for a preview.
     """
-    query = []
     folder_query = d.engine.execute("""
-        SELECT
-            fd.folderid, fd.title,
-            (SELECT COUNT(*)
-               FROM submission su
-               WHERE folderid = fd.folderid
-                 AND settings !~ '[hu]'
-                 AND (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s))
-                 AND (settings !~ 'f'
-                      OR su.userid = %(userid)s
-                      OR EXISTS (SELECT 0
-                                   FROM frienduser
-                                   WHERE ((userid, otherid) = (%(userid)s, su.userid)
-                                          OR (userid, otherid) = (su.userid, %(userid)s))
-                                     AND settings !~ 'p')))
+        SELECT fd.folderid, fd.title, count(su.*), max(su.submitid) AS submitid
         FROM folder fd
+            INNER JOIN submission su USING (folderid)
+            INNER JOIN submission_tags USING (submitid)
         WHERE fd.userid = %(otherid)s
             AND fd.settings !~ '[hu]'
-            AND EXISTS (SELECT 0 FROM submission
-                          WHERE folderid = fd.folderid
-                            AND (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s)))
-        ORDER BY RANDOM()
+            AND su.settings !~ 'h'
+            AND (su.rating <= %(rating)s OR (su.userid = %(userid)s AND NOT %(sfwmode)s))
+            AND (
+                su.settings !~ 'f'
+                OR su.userid = %(userid)s
+                OR EXISTS (
+                    SELECT FROM frienduser
+                    WHERE settings !~ 'p' AND (
+                        (userid, otherid) = (%(userid)s, su.userid)
+                        OR (userid, otherid) = (su.userid, %(userid)s)
+                    )
+                )
+            )
+            AND (
+                su.userid = %(userid)s
+                OR NOT tags && (SELECT coalesce(array_agg(tagid), '{}') FROM blocktag WHERE userid = %(userid)s)
+            )
+        GROUP BY fd.folderid
+        ORDER BY max(su.submitid) DESC
         LIMIT %(limit)s
-    """, rating=rating, userid=userid, otherid=otherid, limit=limit, sfwmode=d.is_sfw_mode())
+    """, rating=rating, userid=userid, otherid=otherid, limit=_PREVIEW_COUNT, sfwmode=d.is_sfw_mode())
 
-    for i in folder_query:
-        submit = d.engine.execute("""
-            SELECT submitid, settings FROM submission su
-                WHERE (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s))
-                AND folderid = %(folderid)s AND settings !~ 'h'
-                AND (settings !~ 'f' OR su.userid = %(userid)s
-                     OR EXISTS (SELECT 0 FROM frienduser
-                                  WHERE ((userid, otherid) = (%(userid)s, su.userid)
-                                         OR (userid, otherid) = (su.userid, %(userid)s))
-                                    AND settings !~ 'p'))
-                ORDER BY RANDOM() LIMIT 1
-            """, rating=rating, folderid=i.folderid, userid=userid, sfwmode=d.is_sfw_mode()).first()
+    previews = [{
+        "folderid": i.folderid,
+        "title": i.title,
+        "count": i.count,
+        "userid": otherid,
+        "submitid": i.submitid,
+    } for i in folder_query]
 
-        if submit:
-            query.append({
-                "folderid": i.folderid,
-                "title": i.title,
-                "count": i.count,
-                "userid": otherid,
-                "sub_media": media.get_submission_media(submit.submitid),
-            })
+    media.populate_with_submission_media(previews)
 
-    return query
+    return previews
 
 
 def select_list(userid, feature):

@@ -94,6 +94,7 @@ def test_login_required_to_edit_journal(app, journal_user):
 
     resp = app.post(
         '/edit/journal',
-        {'title': u'Created journal', 'rating': '10', 'content': u'A journal', 'journalid': journalid}, status=403,
+        {'title': u'Created journal', 'rating': '10', 'content': u'A journal', 'journalid': journalid},
+        status=403,
     )
     assert "You must be signed in to perform this operation." in resp.html.find(id='error_content').text

@@ -117,7 +117,7 @@ def tfa_init_qrcode_post_(request):
     tfa_secret_sess = _get_totp_code_from_session()
 
     # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
-    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, tfa_secret_sess, tfaresponse)
+    tfa_secret, recovery_codes = tfa.init_verify_tfa(tfa_secret_sess, tfaresponse)
 
     # The 2FA TOTP code did not match with the generated 2FA secret
     if not tfa_secret:

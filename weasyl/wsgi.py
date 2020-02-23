@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPNotFound
-from pyramid.response import Response
 
 from libweasyl.configuration import configure_libweasyl
 from weasyl.controllers.routes import setup_routes_and_views
@@ -11,6 +10,7 @@ import weasyl.macro as m
 from weasyl.media import format_media_link
 import weasyl.middleware as mw
 from weasyl import staff_config
+from weasyl import template
 
 
 # Get a configurator and register some tweens to handle cleanup, etc.
@@ -25,15 +25,25 @@ config.add_tween("weasyl.middleware.http2_server_push_tween_factory")
 config.add_tween("pyramid.tweens.excview_tween_factory")  # Required to catch exceptions thrown in tweens.
 
 
+def setup_jinja2_env():
+    env = config.get_jinja2_environment()
+    env.filters.update(template.filters)
+    env.globals.update(template.jinja2_globals)
+    env.add_extension('jinja2.ext.do')
+
+
+config.include('pyramid_jinja2')
+config.add_jinja2_search_path('weasyl:templates/', name='.jinja2')
+config.action(None, setup_jinja2_env, order=999)
+
 # Set up some exception handling and all our views.
 def weasyl_404(request):
-    userid = d.get_userid()
-    return Response(d.errorpage(userid, "**404!** The page you requested could not be found."),
-                    status="404 Not Found")
+    request.response.status = 404
+    return {'error': "**404!** The page you requested could not be found."}
 
 
-config.add_notfound_view(view=weasyl_404, append_slash=True)
-config.add_view(view=mw.weasyl_exception_view, context=Exception)
+config.add_notfound_view(view=weasyl_404, append_slash=True, renderer='/error/error.jinja2')
+config.add_view(view=mw.weasyl_exception_view, context=Exception, renderer='/error/error.jinja2')
 
 setup_routes_and_views(config)
 

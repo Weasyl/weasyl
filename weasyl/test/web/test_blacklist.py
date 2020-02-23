@@ -26,21 +26,24 @@ def test_blacklist_homepage(app):
     cookie = db_utils.create_session(viewing_user)
 
     resp = app.get('/', headers={'Cookie': cookie})
-    assert len(resp.html.select('#home-art .thumb')) == 2
+    resp = resp.html.find('div', {'id': 'home-art'}).find('ul')
+    assert len(resp.select('.thumb')) == 2
 
     app.post('/manage/tagfilters',
              {'title': 'walrus', 'rating': str(ratings.GENERAL.code), 'do': 'create'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})
-    assert len(resp.html.select('#home-art .thumb')) == 1
+    resp = resp.html.find('div', {'id': 'home-art'}).find('ul')
+    assert len(resp.select('.thumb')) == 1
 
     app.post('/manage/tagfilters',
              {'title': 'walrus', 'rating': str(ratings.GENERAL.code), 'do': 'remove'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})
-    assert len(resp.html.select('#home-art .thumb')) == 2
+    resp = resp.html.find('div', {'id': 'home-art'}).find('ul')
+    assert len(resp.select('.thumb')) == 2
 
 
 @pytest.mark.usefixtures('db', 'cache', 'no_csrf')
@@ -58,18 +61,21 @@ def test_block_user_homepage(app):
     cookie = db_utils.create_session(viewing_user)
 
     resp = app.get('/', headers={'Cookie': cookie})
-    assert len(resp.html.select('#home-art .thumb')) == 2
+    resp = resp.html.find('div', {'id': 'home-art'}).find('ul')
+    assert len(resp.select('.thumb')) == 2
 
     app.post('/ignoreuser',
              {'userid': str(submitting_user1), 'action': 'ignore'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})
-    assert len(resp.html.select('#home-art .thumb')) == 1
+    resp = resp.html.find('div', {'id': 'home-art'}).find('ul')
+    assert len(resp.select('.thumb')) == 1
 
     app.post('/ignoreuser',
              {'userid': str(submitting_user1), 'action': 'unignore'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})
-    assert len(resp.html.select('#home-art .thumb')) == 2
+    resp = resp.html.find('div', {'id': 'home-art'}).find('ul')
+    assert len(resp.select('.thumb')) == 2

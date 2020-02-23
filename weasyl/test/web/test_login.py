@@ -56,6 +56,7 @@ def test_2fa_changes_token(app):
 
     old_cookie = app.cookies['WZL']
     resp = app.post('/signin', {'token': csrf, 'username': 'user1', 'password': 'password1'})
+    resp = resp.follow()  # Follow the redirect
     new_csrf = resp.html.find('html')['data-csrf-token']
     assert app.cookies['WZL'] != old_cookie
     assert new_csrf != csrf

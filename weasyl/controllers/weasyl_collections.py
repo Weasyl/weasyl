@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 from pyramid.httpexceptions import HTTPSeeOther
-from pyramid.response import Response
+from pyramid.view import view_config
 
 from weasyl import define, collection, profile
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import login_required, token_checked
 
 
+@view_config(route_name="control_collection_options", renderer='/manage/collection_options.jinja2', request_method='GET')
 @login_required
 def collection_options_get_(request):
     jsonb_settings = define.get_profile_settings(request.userid)
@@ -15,9 +16,10 @@ def collection_options_get_(request):
         "allow_request": jsonb_settings.allow_collection_requests,
         "allow_notification": jsonb_settings.allow_collection_notifs,
     }
-    return Response(define.webpage(request.userid, "manage/collection_options.html", [form_settings], title="Collection Options"))
+    return {'settings': form_settings, 'title': "Collection Options"}
 
 
+@view_config(route_name="control_collection_options", renderer='/manage/collection_options.jinja2', request_method='POST')
 @login_required
 @token_checked
 def collection_options_post_(request):
@@ -31,6 +33,7 @@ def collection_options_post_(request):
     raise HTTPSeeOther(location="/control")
 
 
+@view_config(route_name="collection_offer", renderer='/manage/collection_offer_request.jinja2', request_method="POST")
 @login_required
 @token_checked
 def collection_offer_(request):
@@ -44,13 +47,13 @@ def collection_offer_(request):
         raise WeasylError("cannotSelfCollect")
 
     collection.offer(request.userid, form.submitid, form.otherid)
-    return Response(define.errorpage(
-        request.userid,
-        "**Success!** Your collection offer has been sent "
-        "and the recipient may now add this submission to their gallery.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/index"]]))
+    return {'message': "**Success!** Your collection offer has been sent "
+                       "and the recipient may now add this submission to their gallery.",
+            'submission': form.submitid
+            }
 
 
+@view_config(route_name="collection_request", renderer='/manage/collection_offer_request.jinja2', request_method="POST")
 @login_required
 @token_checked
 def collection_request_(request):
@@ -67,13 +70,13 @@ def collection_request_(request):
         raise WeasylError("cannotSelfCollect")
 
     collection.request(request.userid, form.submitid, form.otherid)
-    return Response(define.errorpage(
-        request.userid,
-        "**Success!** Your collection request has been sent. "
-        "The submission author may approve or reject this request.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/index"]]))
+    return {'message': "**Success!** Your collection request has been sent. "
+                       "The submission author may approve or reject this request.",
+            'submission': form.submitid
+            }
 
 
+@view_config(route_name="collection_remove", request_method="POST")
 @login_required
 @token_checked
 def collection_remove_(request):

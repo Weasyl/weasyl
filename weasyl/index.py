@@ -106,14 +106,21 @@ def template_fields(userid):
     rating = d.get_rating(userid)
     submissions = list(filter_submissions(userid, recent_submissions()))
     ret = partition_submissions(submissions)
-
-    return ret + [
-        # Recent site news update
-        siteupdate.select_last(),
-        # Recent critique submissions
-        submission.select_list(userid, rating, 4, options=["critique"]),
-        # Currently streaming users
-        profile.select_streaming(userid, rating, 4),
-        # Recently popular submissions
-        list(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 11)),
-    ]
+    data = {'latest': ret[0],
+            'randomized': ret[1],
+            'visual': ret[2],
+            'literary': ret[3],
+            'media': ret[4],
+            'characters': ret[5],
+            # Recent site news update
+            'update': siteupdate.select_last(),
+            # Recent critique submissions
+            'critique': submission.select_list(userid, rating, 4, options=["critique"]),
+            # Currently streaming users
+            'streaming': profile.select_streaming(userid, rating, 4),
+            # Recently popular submissions
+            'popular': list(
+                itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1),
+                                 11))
+            }
+    return data

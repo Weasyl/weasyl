@@ -3,14 +3,14 @@ from __future__ import absolute_import
 import urlparse
 
 from pyramid.httpexceptions import HTTPSeeOther
-from pyramid.response import Response
+from pyramid.view import view_config
 
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl.text import slug_for
 
 from weasyl import (
-    character, comment, define, errorcode, folder, journal, macro, profile,
+    character, comment, define, folder, journal, macro, profile,
     report, searchtag, shout, submission, orm)
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError
@@ -18,14 +18,16 @@ from weasyl.login import get_user_agent_id
 
 
 # Content submission functions
+@view_config(route_name="submit", renderer='/submit/submit.jinja2')
 @login_required
 def submit_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    return Response(define.webpage(request.userid, "submit/submit.html", title="Submit Artwork"))
+    return {'title': "Submit Artwork"}
 
 
+@view_config(route_name="submit_visual", renderer='/submit/visual.jinja2', request_method="GET")
 @login_required
 def submit_visual_get_(request):
     if not define.is_vouched_for(request.userid):
@@ -34,17 +36,16 @@ def submit_visual_get_(request):
     form = request.web_input(title='', tags=[], description='', imageURL='', baseURL='')
     if form.baseURL:
         form.imageURL = urlparse.urljoin(form.baseURL, form.imageURL)
-
-    return Response(define.webpage(request.userid, "submit/visual.html", [
-        # Folders
-        folder.select_list(request.userid, "drop/all"),
-        # Subtypes
-        [i for i in macro.MACRO_SUBCAT_LIST if 1000 <= i[0] < 2000],
-        profile.get_user_ratings(request.userid),
-        form,
-    ], title="Visual Artwork"))
+    return {
+        'folders': folder.select_list(request.userid, "drop/all"),
+        'subtypes': [i for i in macro.MACRO_SUBCAT_LIST if 1000 <= i[0] < 2000],
+        'ratings': profile.get_user_ratings(request.userid),
+        'form': form,
+        'title': "Visual Artwork",
+    }
 
 
+@view_config(route_name="submit_visual", renderer='/submit/visual.jinja2', request_method="POST")
 @login_required
 @token_checked
 def submit_visual_post_(request):
@@ -84,20 +85,21 @@ def submit_visual_post_(request):
         raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(form.title)))
 
 
+@view_config(route_name="submit_literary", renderer='/submit/literary.jinja2', request_method="GET")
 @login_required
 def submit_literary_get_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    return Response(define.webpage(request.userid, "submit/literary.html", [
-        # Folders
-        folder.select_list(request.userid, "drop/all"),
-        # Subtypes
-        [i for i in macro.MACRO_SUBCAT_LIST if 2000 <= i[0] < 3000],
-        profile.get_user_ratings(request.userid),
-    ], title="Literary Artwork"))
+    return {
+        'folders': folder.select_list(request.userid, "drop/all"),
+        'subtypes': [i for i in macro.MACRO_SUBCAT_LIST if 2000 <= i[0] < 3000],
+        'ratings': profile.get_user_ratings(request.userid),
+        'title': "Literary Artwork"
+    }
 
 
+@view_config(route_name="submit_literary", renderer='/submit/literary.jinja2', request_method="POST")
 @login_required
 @token_checked
 def submit_literary_post_(request):
@@ -136,20 +138,21 @@ def submit_literary_post_(request):
         raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(form.title)))
 
 
+@view_config(route_name="submit_multimedia", renderer='/submit/multimedia.jinja2', request_method="GET")
 @login_required
 def submit_multimedia_get_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    return Response(define.webpage(request.userid, "submit/multimedia.html", [
-        # Folders
-        folder.select_list(request.userid, "drop/all"),
-        # Subtypes
-        [i for i in macro.MACRO_SUBCAT_LIST if 3000 <= i[0] < 4000],
-        profile.get_user_ratings(request.userid),
-    ], title="Multimedia Artwork"))
+    return {
+        'folders': folder.select_list(request.userid, "drop/all"),
+        'subtypes': [i for i in macro.MACRO_SUBCAT_LIST if 3000 <= i[0] < 4000],
+        'ratings': profile.get_user_ratings(request.userid),
+        'title': "Multimedia Artwork"
+    }
 
 
+@view_config(route_name="submit_multimedia", renderer='/submit/multimedia.jinja2', request_method="POST")
 @login_required
 @token_checked
 def submit_multimedia_post_(request):
@@ -191,16 +194,19 @@ def submit_multimedia_post_(request):
         raise HTTPSeeOther(location="/submission/%i/%s" % (submitid, slug_for(form.title)))
 
 
+@view_config(route_name="submit_character", renderer='/submit/character.jinja2', request_method="GET")
 @login_required
 def submit_character_get_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    return Response(define.webpage(request.userid, "submit/character.html", [
-        profile.get_user_ratings(request.userid),
-    ], title="Character Profile"))
+    return {
+        'ratings': profile.get_user_ratings(request.userid),
+        'title': "Character Profile"
+    }
 
 
+@view_config(route_name="submit_character", renderer='/submit/character.jinja2', request_method="POST")
 @login_required
 @token_checked
 def submit_character_post_(request):
@@ -235,15 +241,19 @@ def submit_character_post_(request):
     raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
 
 
+@view_config(route_name="submit_journal", renderer='/submit/journal.jinja2', request_method="GET")
 @login_required
 def submit_journal_get_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    return Response(define.webpage(request.userid, "submit/journal.html",
-                                   [profile.get_user_ratings(request.userid)], title="Journal Entry"))
+    return {
+        'ratings': profile.get_user_ratings(request.userid),
+        'title': "Journal Entry"
+    }
 
 
+@view_config(route_name="submit_journal", renderer='/submit/journal.jinja2', request_method="POST")
 @login_required
 @token_checked
 def submit_journal_post_(request):
@@ -272,6 +282,7 @@ def submit_journal_post_(request):
     raise HTTPSeeOther(location="/journal/%i/%s" % (journalid, slug_for(form.title)))
 
 
+@view_config(route_name="submit_shout", request_method="POST")
 @login_required
 @token_checked
 @supports_json
@@ -300,6 +311,7 @@ def submit_shout_(request):
         raise HTTPSeeOther(location="/shouts?userid=%i#cid%i" % (define.get_int(form.userid), commentid))
 
 
+@view_config(route_name="submit_comment", request_method="POST")
 @login_required
 @token_checked
 @supports_json
@@ -332,6 +344,7 @@ def submit_comment_(request):
         raise WeasylError("Unexpected")
 
 
+@view_config(route_name="submit_report", request_method="POST")
 @login_required
 @token_checked
 def submit_report_(request):
@@ -348,6 +361,7 @@ def submit_report_(request):
         raise HTTPSeeOther(location="/journal/%i" % (define.get_int(form.journalid),))
 
 
+@view_config(route_name="submit_tags", renderer='/submit/tags.jinja2', request_method="POST")
 @login_required
 @token_checked
 def submit_tags_(request):
@@ -377,41 +391,41 @@ def submit_tags_(request):
         if not result:
             raise HTTPSeeOther(location=location)
         else:
-            return Response(define.errorpage(request.userid, failed_tag_message,
-                                             [["Return to Content", location]]))
+            return {'message': failed_tag_message, 'location': location}
     elif charid:
         location = "/character/%i" % (charid,)
         if not result:
             raise HTTPSeeOther(location=location)
         else:
-            return Response(define.errorpage(request.userid, failed_tag_message,
-                                             [["Return to Content", location]]))
+            return {'message': failed_tag_message, 'location': location}
     elif journalid:
         location = "/journal/%i" % (journalid,)
         if not result:
             raise HTTPSeeOther(location=location)
         else:
-            return Response(define.errorpage(request.userid, failed_tag_message,
-                                             [["Return to Content", location]]))
+            return {'message': failed_tag_message, 'location': location}
     else:
         raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
+@view_config(route_name="reupload_submission", renderer='/submit/reupload_submission.jinja2', request_method="GET")
 @login_required
 def reupload_submission_get_(request):
     form = request.web_input(submitid="")
     form.submitid = define.get_int(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
 
-    return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
-        "submission",
+    return {
+        'feature': "submission",
         # SubmitID
-        form.submitid,
-    ], title="Reupload Submission"))
+        'targetid': form.submitid,
+        'title': "Reupload Submission"
+    }
 
 
+@view_config(route_name="reupload_submission", renderer='/submit/reupload_submission.jinja2', request_method="POST")
 @login_required
 @token_checked
 def reupload_submission_post_(request):
@@ -419,27 +433,29 @@ def reupload_submission_post_(request):
     form.targetid = define.get_int(form.targetid)
 
     if request.userid != define.get_ownerid(submitid=form.targetid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
 
     submission.reupload(request.userid, form.targetid, form.submitfile)
-    raise HTTPSeeOther(location="/submission/%i" % (form.targetid,))
+    raise HTTPSeeOther(location="/submission/%i/" % (form.targetid,))
 
 
+@view_config(route_name="reupload_character", renderer='/submit/reupload_submission.jinja2', request_method="GET")
 @login_required
 def reupload_character_get_(request):
     form = request.web_input(charid="")
     form.charid = define.get_int(form.charid)
 
     if request.userid != define.get_ownerid(charid=form.charid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
+    return {
+        'feature': "character",
+        # SubmitID
+        'targetid': form.charid,
+        'title': "Reupload Character Image"
+    }
 
-    return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
-        "character",
-        # charid
-        form.charid,
-    ], title="Reupload Character Image"))
 
-
+@view_config(route_name="reupload_character", renderer='/submit/reupload_submission.jinja2', request_method="POST")
 @login_required
 @token_checked
 def reupload_character_post_(request):
@@ -447,23 +463,27 @@ def reupload_character_post_(request):
     form.targetid = define.get_int(form.targetid)
 
     if request.userid != define.get_ownerid(charid=form.targetid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
 
     character.reupload(request.userid, form.targetid, form.submitfile)
-    raise HTTPSeeOther(location="/character/%i" % (form.targetid,))
+    raise HTTPSeeOther(location="/character/%i/" % (form.targetid,))
 
 
+@view_config(route_name="reupload_cover", renderer='/submit/reupload_cover.jinja2', request_method="GET")
 @login_required
 def reupload_cover_get_(request):
     form = request.web_input(submitid="")
     form.submitid = define.get_int(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
+    return {
+        'submitid': form.submitid,
+        'title': "Reupload Cover Artwork"
+    }
 
-    return Response(define.webpage(request.userid, "submit/reupload_cover.html", [form.submitid], title="Reupload Cover Artwork"))
 
-
+@view_config(route_name="reupload_cover", renderer='/submit/reupload_cover.jinja2', request_method="POST")
 @login_required
 @token_checked
 def reupload_cover_post_(request):
@@ -475,6 +495,7 @@ def reupload_cover_post_(request):
 
 
 # Content editing functions
+@view_config(route_name="edit_submission", renderer='/edit/submission.jinja2', request_method="GET")
 @login_required
 def edit_submission_get_(request):
     form = request.web_input(submitid="", anyway="")
@@ -483,22 +504,20 @@ def edit_submission_get_(request):
     detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
 
     submission_category = detail['subtype'] // 1000 * 1000
 
-    return Response(define.webpage(request.userid, "edit/submission.html", [
-        # Submission detail
-        detail,
-        # Folders
-        folder.select_list(detail['userid'], "drop/all"),
-        # Subtypes
-        [i for i in macro.MACRO_SUBCAT_LIST
-         if submission_category <= i[0] < submission_category + 1000],
-        profile.get_user_ratings(detail['userid']),
-    ], title="Edit Submission"))
+    return {
+        'query': detail,
+        'folders': folder.select_list(detail['userid'], "drop/all"),
+        'subtypes': [i for i in macro.MACRO_SUBCAT_LIST if submission_category <= i[0] < submission_category + 1000],
+        'ratings': profile.get_user_ratings(detail['userid']),
+        'title': "Edit Submission",
+    }
 
 
+@view_config(route_name="edit_submission", renderer='/edit/submission.jinja2', request_method="POST")
 @login_required
 @token_checked
 def edit_submission_post_(request):
@@ -526,6 +545,7 @@ def edit_submission_post_(request):
     ))
 
 
+@view_config(route_name="edit_character", renderer='/edit/character.jinja2', request_method="GET")
 @login_required
 def edit_character_get_(request):
     form = request.web_input(charid="", anyway="")
@@ -534,15 +554,17 @@ def edit_character_get_(request):
     detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
 
-    return Response(define.webpage(request.userid, "edit/character.html", [
+    return {
         # Submission detail
-        detail,
-        profile.get_user_ratings(detail['userid']),
-    ], title="Edit Character"))
+        'query': detail,
+        'ratings': profile.get_user_ratings(detail['userid']),
+        'title': "Edit Character"
+    }
 
 
+@view_config(route_name="edit_character", renderer='/edit/character.jinja2', request_method="POST")
 @login_required
 @token_checked
 def edit_character_post_(request):
@@ -572,6 +594,7 @@ def edit_character_post_(request):
     ))
 
 
+@view_config(route_name="edit_journal", renderer='/edit/journal.jinja2', request_method="GET")
 @login_required
 def edit_journal_get_(request):
     form = request.web_input(journalid="", anyway="")
@@ -580,15 +603,17 @@ def edit_journal_get_(request):
     detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
 
-    return Response(define.webpage(request.userid, "edit/journal.html", [
+    return {
         # Journal detail
-        detail,
-        profile.get_user_ratings(detail['userid']),
-    ], title="Edit Journal"))
+        'query': detail,
+        'ratings': profile.get_user_ratings(detail['userid']),
+        'title': "Edit Journal"
+    }
 
 
+@view_config(route_name="edit_journal", renderer='/edit/journal.jinja2', request_method="POST")
 @login_required
 @token_checked
 def edit_journal_post_(request):
@@ -612,6 +637,7 @@ def edit_journal_post_(request):
 
 
 # Content removal functions
+@view_config(route_name="remove_submission", request_method="POST")
 @login_required
 @token_checked
 def remove_submission_(request):
@@ -624,6 +650,7 @@ def remove_submission_(request):
         raise HTTPSeeOther(location="/submissions?userid=%i" % (ownerid,))
 
 
+@view_config(route_name="remove_character", request_method="POST")
 @login_required
 @token_checked
 def remove_character_(request):
@@ -636,6 +663,7 @@ def remove_character_(request):
         raise HTTPSeeOther(location="/characters?userid=%i" % (ownerid,))
 
 
+@view_config(route_name="remove_journal", request_method="POST")
 @login_required
 @token_checked
 def remove_journal_(request):
@@ -648,6 +676,7 @@ def remove_journal_(request):
         raise HTTPSeeOther(location="/journals?userid=%i" % (ownerid,))
 
 
+@view_config(route_name="remove_comment", request_method="POST")
 @login_required
 @token_checked
 @supports_json

@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from pyramid.renderers import render
+
 from libweasyl import security
 from weasyl import define as d
 from weasyl import emailer
@@ -39,7 +41,8 @@ def request(form):
         """, id=user_id, token=token, time=now, address=address)
 
         # Generate and send an email to the user containing a password reset link
-        emailer.send(email, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
+        email_body = render("weasyl:templates/email/reset_password.jinja2", {'token': token})
+        emailer.send(email, "Weasyl Password Recovery", email_body)
 
 
 def prepare(token):

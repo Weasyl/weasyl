@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 from pyramid.httpexceptions import HTTPSeeOther
-from pyramid.response import Response
+from pyramid.view import view_config
 
 from libweasyl import staff
 from libweasyl.models.site import SiteUpdate
 
-from weasyl import errorcode, login, moderation, profile, siteupdate
+from weasyl import login, moderation, profile, siteupdate
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
 from weasyl.controllers.decorators import token_checked
@@ -16,16 +16,19 @@ import weasyl.define as d
 """ Administrator control panel view callables """
 
 
+@view_config(route_name="admincontrol", renderer='/admincontrol/admincontrol.jinja2')
 @admin_only
 def admincontrol_(request):
-    return Response(d.webpage(request.userid, "admincontrol/admincontrol.html", title="Admin Control Panel"))
+    return {'title': "Admin Control Panel"}
 
 
+@view_config(route_name="admin_siteupdate", renderer='/admincontrol/siteupdate.jinja2', request_method="GET")
 @admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),), title="Submit Site Update"))
+    return {'update': SiteUpdate(), 'title': "Submit Site Update"}
 
 
+@view_config(route_name="admin_siteupdate", renderer='/admincontrol/siteupdate.jinja2', request_method="POST")
 @admin_only
 @token_checked
 def admincontrol_siteupdate_post_(request):
@@ -43,13 +46,15 @@ def admincontrol_siteupdate_post_(request):
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 
 
+@view_config(route_name="site_update_edit", renderer='/admincontrol/siteupdate.jinja2', request_method="GET")
 @admin_only
 def site_update_edit_(request):
     updateid = int(request.matchdict['update_id'])
     update = SiteUpdate.query.get_or_404(updateid)
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,), title="Edit Site Update"))
+    return {'update': update, 'title': "Edit Site Update"}
 
 
+@view_config(route_name="site_update", renderer='/admincontrol/siteupdate.jinja2', request_method="POST")
 @admin_only
 @token_checked
 def site_update_put_(request):
@@ -73,6 +78,7 @@ def site_update_put_(request):
     raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
 
 
+@view_config(route_name="admin_manageuser", renderer='/admincontrol/manageuser.jinja2', request_method="GET")
 @admin_only
 def admincontrol_manageuser_get_(request):
     form = request.web_input(name="")
@@ -81,14 +87,12 @@ def admincontrol_manageuser_get_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     if request.userid != otherid and otherid in staff.ADMINS and request.userid not in staff.TECHNICAL:
-        return Response(d.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('permission')
 
-    return Response(d.webpage(request.userid, "admincontrol/manageuser.html", [
-        # Manage user information
-        profile.select_manage(otherid),
-    ], title="User Management"))
+    return {'profile': profile.select_manage(otherid), 'title': "User Management"}
 
 
+@view_config(route_name="admin_manageuser", renderer='/admincontrol/manageuser.jinja2', request_method="POST")
 @admin_only
 @token_checked
 def admincontrol_manageuser_post_(request):
@@ -97,7 +101,7 @@ def admincontrol_manageuser_post_(request):
     userid = d.get_int(form.userid)
 
     if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.TECHNICAL:
-        return d.errorpage(request.userid, errorcode.permission)
+        raise WeasylError('permission')
 
     profile.do_manage(request.userid, userid,
                       username=form.username.strip() if form.ch_username else None,
@@ -111,6 +115,7 @@ def admincontrol_manageuser_post_(request):
     raise HTTPSeeOther(location="/admincontrol")
 
 
+@view_config(route_name="admin_acctverifylink", renderer='/admincontrol/acctverifylink.jinja2', request_method="POST")
 @admin_only
 @token_checked
 def admincontrol_acctverifylink_(request):
@@ -120,11 +125,12 @@ def admincontrol_acctverifylink_(request):
         username=form.username, email=form.email)
 
     if token:
-        return Response(d.webpage(request.userid, "admincontrol/acctverifylink.html", [token]))
+        return {'token': token}
 
-    return Response(d.errorpage(request.userid, "No pending account found."))
+    return {'message': "No pending account found."}
 
 
+@view_config(route_name="admincontrol_pending_accounts", renderer='/admincontrol/pending_accounts.jinja2', request_method="GET")
 @admin_only
 def admincontrol_pending_accounts_get_(request):
     """
@@ -139,14 +145,10 @@ def admincontrol_pending_accounts_get_(request):
         ORDER BY username
     """).fetchall()
 
-    return Response(d.webpage(
-        request.userid,
-        "admincontrol/pending_accounts.html",
-        [query],
-        title="Accounts Pending Creation"
-    ))
+    return {'query': query, 'title': "Accounts Pending Creation"}
 
 
+@view_config(route_name="admincontrol_pending_accounts", renderer='/admincontrol/pending_accounts.jinja2', request_method="POST")
 @admin_only
 @token_checked
 def admincontrol_pending_accounts_post_(request):
@@ -166,11 +168,13 @@ def admincontrol_pending_accounts_post_(request):
     raise HTTPSeeOther(location="/admincontrol/pending_accounts")
 
 
+@view_config(route_name="admincontrol_finduser",  renderer='/admincontrol/finduser.jinja2', request_method="GET")
 @admin_only
 def admincontrol_finduser_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/finduser.html", title="Search Users"))
+    return {'title': "Search Users"}
 
 
+@view_config(route_name="admincontrol_finduser",  renderer='/admincontrol/finduser.jinja2', request_method="POST")
 @admin_only
 @token_checked
 def admincontrol_finduser_post_(request):
@@ -181,10 +185,9 @@ def admincontrol_finduser_post_(request):
     if int(form.row_offset) < 0:
         raise HTTPSeeOther("/admincontrol/finduser")
 
-    return Response(d.webpage(request.userid, "admincontrol/finduser.html", [
-        # Search results
-        moderation.finduser(request.userid, form),
-        # Pass the form and row offset in to enable pagination
-        form,
-        int(form.row_offset)
-    ], title="Search Users: Results"))
+    return {
+        'query': moderation.finduser(request.userid, form),
+        'form': form,
+        'row_offset': int(form.row_offset),
+        'title': "Search Users: Results"
+    }

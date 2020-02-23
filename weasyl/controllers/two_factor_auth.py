@@ -1,8 +1,8 @@
 from __future__ import absolute_import, unicode_literals
 
 import arrow
-from pyramid.response import Response
 from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.view import view_config
 
 from weasyl import define
 from weasyl import login
@@ -54,22 +54,29 @@ def _cleanup_session():
     sess.save = True
 
 
+@view_config(route_name="control_2fa_status", renderer='/control/2fa/status.jinja2')
 @login_required
 def tfa_status_get_(request):
-    return Response(define.webpage(request.userid, "control/2fa/status.html", [
-        tfa.is_2fa_enabled(request.userid), tfa.get_number_of_recovery_codes(request.userid)
-    ], title="2FA Status"))
+    return {
+        'tfa_enabled': tfa.is_2fa_enabled(request.userid),
+        'tfa_recovery_codes_count': tfa.get_number_of_recovery_codes(request.userid),
+        'title': "2FA Status"
+    }
 
 
+@view_config(route_name="control_2fa_init", renderer='/control/2fa/init.jinja2', request_method="GET")
 @login_required
 @twofactorauth_disabled_required
 def tfa_init_get_(request):
-    return Response(define.webpage(request.userid, "control/2fa/init.html", [
-        define.get_display_name(request.userid),
-        None
-    ], title="Enable 2FA: Step 1"))
+    return {
+        'username': define.get_display_name(request.userid),
+        'error': None,
+        'title': "Enable 2FA: Step 1",
+        'step': 1
+    }
 
 
+@view_config(route_name="control_2fa_init", renderer='/control/2fa/init.jinja2', request_method="POST")
 @login_required
 @token_checked
 @twofactorauth_disabled_required
@@ -78,10 +85,12 @@ def tfa_init_post_(request):
                                                request.params['password'], request=None)
     # The user's password failed to authenticate
     if status == "invalid":
-        return Response(define.webpage(request.userid, "control/2fa/init.html", [
-            define.get_display_name(request.userid),
-            "password"
-        ], title="Enable 2FA: Step 1"))
+        return {
+            'username': define.get_display_name(request.userid),
+            'error': "password",
+            'title': "Enable 2FA: Step 1",
+            'step': 1
+        }
     # Unlikely that this block will get triggered, but just to be safe, check for it
     elif status == "unicode-failure":
         raise HTTPSeeOther(location='/signin/unicode-failure')
@@ -89,14 +98,17 @@ def tfa_init_post_(request):
     else:
         tfa_secret, tfa_qrcode = tfa.init(request.userid)
         _set_totp_code_on_session(tfa_secret)
-        return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
-            define.get_display_name(request.userid),
-            tfa_secret,
-            tfa_qrcode,
-            None
-        ], title="Enable 2FA: Step 2"))
+        return {
+            'username': define.get_display_name(request.userid),
+            'tfa_secret': tfa_secret,
+            'qrcode': tfa_qrcode,
+            'error': None,
+            'title': "Enable 2FA: Step 2",
+            'step': 2
+        }
 
 
+@view_config(route_name="control_2fa_init_qrcode", renderer='/control/2fa/init.jinja2', request_method="GET")
 @login_required
 @twofactorauth_disabled_required
 def tfa_init_qrcode_get_(request):
@@ -105,14 +117,10 @@ def tfa_init_qrcode_get_(request):
     verified ownership over the account by verifying their password. That said, be helpful and inform
     the user of this instead of erroring without explanation.
     """
-    # Inform the user of where to go to begin
-    return Response(define.errorpage(
-                    request.userid,
-                    """This page cannot be accessed directly, and must be accessed as part of the 2FA
-                    setup process. Click <b>2FA Status</b>, below, to go to the 2FA Dashboard to begin.""",
-                    [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
+    raise HTTPSeeOther(location="/control/2fa/status")
 
 
+@view_config(route_name="control_2fa_init_qrcode", renderer='/control/2fa/init.jinja2', request_method="POST")
 @login_required
 @token_checked
 @twofactorauth_disabled_required
@@ -126,20 +134,25 @@ def tfa_init_qrcode_post_(request):
 
     # The 2FA TOTP code did not match with the generated 2FA secret
     if not tfa_secret:
-        return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
-            define.get_display_name(request.userid),
-            tfa_secret_sess,
-            tfa.generate_tfa_qrcode(request.userid, tfa_secret_sess),
-            "2fa"
-        ], title="Enable 2FA: Step 2"))
+        return {
+            'username': define.get_display_name(request.userid),
+            'tfa_secret': tfa_secret_sess,
+            'qrcode': tfa.generate_tfa_qrcode(request.userid, tfa_secret_sess),
+            'error': "2fa",
+            'title': "Enable 2FA: Step 2",
+            'step': 2
+        }
     else:
         _set_recovery_codes_on_session(','.join(recovery_codes))
-        return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
-            recovery_codes,
-            None
-        ], title="Enable 2FA: Final Step"))
+        return {
+            'tfa_recovery_codes': recovery_codes,
+            'error': None,
+            'title': "Enable 2FA: Final Step",
+            'step': 3
+        }
 
 
+@view_config(route_name="control_2fa_init_verify", renderer='/control/2fa/init.jinja2', request_method="GET")
 @login_required
 @twofactorauth_disabled_required
 def tfa_init_verify_get_(request):
@@ -150,14 +163,10 @@ def tfa_init_verify_get_(request):
     of choice (`tfa_init_qrcode_*_()`). That said, be helpful and inform the user of this instead of erroring without
     explanation.
     """
-    # Inform the user of where to go to begin
-    return Response(define.errorpage(
-                    request.userid,
-                    """This page cannot be accessed directly, and must be accessed as part of the 2FA
-                    setup process. Click <b>2FA Status</b>, below, to go to the 2FA Dashboard to begin.""",
-                    [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
+    raise HTTPSeeOther(location="/control/2fa/status")
 
 
+@view_config(route_name="control_2fa_init_verify", renderer='/control/2fa/init.jinja2', request_method="POST")
 @login_required
 @token_checked
 @twofactorauth_disabled_required
@@ -181,27 +190,34 @@ def tfa_init_verify_post_(request):
             raise HTTPSeeOther(location="/control/2fa/status")
         # TOTP+2FA Secret did not validate
         else:
-            return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
-                tfarecoverycodes.split(','),
-                "2fa"
-            ], title="Enable 2FA: Final Step"))
+            return {
+                    'tfa_recovery_codes': tfarecoverycodes.split(','),
+                    'error': "2fa",
+                    'title': "Enable 2FA: Final Step",
+                    'step': 3
+            }
     # The user didn't check the verification checkbox (despite HTML5's client-side check); regenerate codes & redisplay
     elif not verify_checkbox:
-        return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
-            tfarecoverycodes.split(','),
-            "verify"
-        ], title="Enable 2FA: Final Step"))
+        return {
+            'tfa_recovery_codes': tfarecoverycodes.split(','),
+            'error': "verify",
+            'title': "Enable 2FA: Final Step",
+            'step': 3
+        }
 
 
+@view_config(route_name="control_2fa_disable", renderer='/control/2fa/disable.jinja2', request_method="GET")
 @login_required
 @twofactorauth_enabled_required
 def tfa_disable_get_(request):
-    return Response(define.webpage(request.userid, "control/2fa/disable.html", [
-        define.get_display_name(request.userid),
-        None
-    ], title="Disable 2FA"))
+    return {
+        'username': define.get_display_name(request.userid),
+        'error': None,
+        'title': 'Disable 2FA',
+    }
 
 
+@view_config(route_name="control_2fa_disable", renderer='/control/2fa/disable.jinja2', request_method="POST")
 @login_required
 @token_checked
 @twofactorauth_enabled_required
@@ -214,29 +230,28 @@ def tfa_disable_post_(request):
         if tfa.deactivate(request.userid, tfaresponse):
             raise HTTPSeeOther(location="/control/2fa/status")
         else:
-            return Response(define.webpage(request.userid, "control/2fa/disable.html", [
-                define.get_display_name(request.userid),
-                "2fa"
-            ], title="Disable 2FA"))
+            return {
+                'username': define.get_display_name(request.userid),
+                'error': "2fa",
+                'title': 'Disable 2FA',
+            }
     # The user didn't check the verification checkbox (despite HTML5's client-side check)
     elif not verify_checkbox:
-        return Response(define.webpage(request.userid, "control/2fa/disable.html", [
-            define.get_display_name(request.userid),
-            "verify"
-        ], title="Disable 2FA"))
+        return {
+            'username': define.get_display_name(request.userid),
+            'error': "verify",
+            'title': 'Disable 2FA',
+        }
 
 
+@view_config(route_name="control_2fa_generate_recovery_codes_verify_password", renderer='/control/2fa/generate_recovery_codes.jinja2', request_method="GET")
 @login_required
 @twofactorauth_enabled_required
 def tfa_generate_recovery_codes_verify_password_get_(request):
-    return Response(define.webpage(
-        request.userid,
-        "control/2fa/generate_recovery_codes_verify_password.html",
-        [None],
-        title="Generate Recovery Codes: Verify Password"
-    ))
+    return {'error': None, 'title': "Generate Recovery Codes: Verify Password", 'step': 1}
 
 
+@view_config(route_name="control_2fa_generate_recovery_codes_verify_password", renderer='/control/2fa/generate_recovery_codes.jinja2', request_method="POST")
 @token_checked
 @login_required
 @twofactorauth_enabled_required
@@ -245,12 +260,7 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
                                                request.params['password'], request=None)
     # The user's password failed to authenticate
     if status == "invalid":
-        return Response(define.webpage(
-            request.userid,
-            "control/2fa/generate_recovery_codes_verify_password.html",
-            ["password"],
-            title="Generate Recovery Codes: Verify Password"
-        ))
+        return {'error': "password", 'title': "Generate Recovery Codes: Verify Password", 'step': 1}
     # The user has authenticated, so continue with generating the new recovery codes.
     else:
         # Edge case prevention: Stop the user from having two Weasyl sessions open and trying
@@ -271,12 +281,14 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
             # Either this is a fresh request to generate codes, or the timelimit was exceeded.
             recovery_codes = tfa.generate_recovery_codes()
             _set_recovery_codes_on_session(','.join(recovery_codes))
-        return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
-            recovery_codes,
-            None
-        ], title="Generate Recovery Codes: Save New Recovery Codes"))
+        return {'tfa_recovery_codes': recovery_codes,
+                'error': None,
+                'title': "Generate Recovery Codes: Save New Recovery Codes",
+                'step': 2
+                }
 
 
+@view_config(route_name="control_2fa_generate_recovery_codes", renderer='/control/2fa/generate_recovery_codes.jinja2', request_method="GET")
 @login_required
 @twofactorauth_enabled_required
 def tfa_generate_recovery_codes_get_(request):
@@ -288,14 +300,10 @@ def tfa_generate_recovery_codes_get_(request):
     in this path to prevent this. That said, be nice and tell the user where to go to proceed.
     """
     # Inform the user of where to go to begin
-    return Response(define.errorpage(
-        request.userid,
-        """This page cannot be accessed directly. Please click <b>Generate Recovery Codes</b>, below, in order to
-        begin generating new recovery codes.""",
-        [["Generate Recovery Codes", "/control/2fa/status"], ["Return to the Home Page", "/"]]
-    ))
+    raise HTTPSeeOther(location="/control/2fa/status")
 
 
+@view_config(route_name="control_2fa_generate_recovery_codes", renderer='/control/2fa/generate_recovery_codes.jinja2', request_method="POST")
 @login_required
 @token_checked
 @twofactorauth_enabled_required
@@ -317,12 +325,16 @@ def tfa_generate_recovery_codes_post_(request):
                 # Recovery code string was corrupted or otherwise altered.
                 raise WeasylError("Unexpected")
         else:
-            return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
-                tfarecoverycodes.split(','),
-                "2fa"
-            ], title="Generate Recovery Codes: Save New Recovery Codes"))
+            return {
+                'tfa_recovery_codes': tfarecoverycodes.split(','),
+                'error': "2fa",
+                'title': "Generate Recovery Codes: Save New Recovery Codes",
+                'step': 2,
+            }
     elif not verify_checkbox:
-        return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
-            tfarecoverycodes.split(','),
-            "verify"
-        ], title="Generate Recovery Codes: Save New Recovery Codes"))
+        return {
+            'tfa_recovery_codes': tfarecoverycodes.split(','),
+            'error': "verify",
+            'title': "Generate Recovery Codes: Save New Recovery Codes",
+            'step': 2
+        }

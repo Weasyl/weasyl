@@ -2,30 +2,26 @@ from __future__ import absolute_import
 
 import itertools
 
-from pyramid.response import Response
+from pyramid.view import view_config
 from sqlalchemy.orm import joinedload
 
 from libweasyl import ratings
-from libweasyl import staff
 from libweasyl.media import get_multi_user_media
 from libweasyl.models.site import SiteUpdate
 
 from weasyl import comment, define, index, macro, search, profile, submission
 
 
-# General browsing functions
+@view_config(route_name="index", renderer='/etc/index.jinja2')
 def index_(request):
-    page = define.common_page_start(request.userid, title="Home")
-    page.append(define.render("etc/index.html", index.template_fields(request.userid)))
-    return Response(define.common_page_end(request.userid, page))
+    return index.template_fields(request.userid)
 
 
+@view_config(route_name="search", renderer='/etc/search.jinja2')
 def search_(request):
     rating = define.get_rating(request.userid)
 
     form = request.web_input(q="", find="", within="", rated=[], cat="", subcat="", backid="", nextid="")
-
-    page = define.common_page_start(request.userid, title="Browse and search")
 
     if form.q:
         find = form.find
@@ -64,19 +60,20 @@ def search_(request):
                 backid=meta["backid"],
                 nextid=meta["nextid"])
 
-        page.append(define.render("etc/search.html", [
+        return {
+            "options": {'search'},
             # Search method
-            {"method": "search"},
+            "method": {"method": "search"},
             # Search metadata
-            meta,
+            "meta": meta,
             # Search results
-            query,
-            next_count,
-            back_count,
+            "results": query,
+            "next_count": next_count,
+            "back_count": back_count,
             # Submission subcategories
-            macro.MACRO_SUBCAT_LIST,
-            search.COUNT_LIMIT,
-        ]))
+            "subcats": macro.MACRO_SUBCAT_LIST,
+            "count_limit": search.COUNT_LIMIT
+        }
     elif form.find:
         query = search.browse(request.userid, rating, 66, form)
 
@@ -85,40 +82,41 @@ def search_(request):
             "cat": int(form.cat) if form.cat else None,
         }
 
-        page.append(define.render("etc/search.html", [
+        return {
+            "options": {'search'},
             # Search method
-            {"method": "browse"},
+            "method": {"method": "browse"},
             # Search metadata
-            meta,
+            "meta": meta,
             # Search results
-            query,
-            0,
-            0,
-        ]))
+            "results": query,
+            "next_count": 0,
+            "back_count": 0
+        }
     else:
-        page.append(define.render("etc/search.html", [
+        return {
+            "options": {'search'},
             # Search method
-            {"method": "summary"},
+            "method": {"method": "summary"},
             # Search metadata
-            None,
+            "meta": None,
             # Search results
-            {
+            "results": {
                 "submit": search.browse(request.userid, rating, 22, form, find="submit"),
                 "char": search.browse(request.userid, rating, 22, form, find="char"),
                 "journal": search.browse(request.userid, rating, 22, form, find="journal"),
-            },
-        ]))
-
-    return Response(define.common_page_end(request.userid, page, options={'search'}))
+            }
+        }
 
 
+@view_config(route_name="streaming", renderer='/etc/streaming.jinja2')
 def streaming_(request):
     rating = define.get_rating(request.userid)
-    return Response(define.webpage(request.userid, 'etc/streaming.html',
-                                   (profile.select_streaming(request.userid, rating, 300, order_by="start_time desc"),),
-                                   title="Streaming"))
+    streaming = profile.select_streaming(request.userid, rating, 300, order_by="start_time desc")
+    return {"streaming": streaming, "title": "Streaming"}
 
 
+@view_config(route_name="site_update_list", renderer='/etc/site_update_list.jinja2')
 def site_update_list_(request):
     updates = (
         SiteUpdate.query
@@ -128,22 +126,25 @@ def site_update_list_(request):
     )
     get_multi_user_media(*[update.userid for update in updates])
 
-    can_edit = request.userid in staff.ADMINS
-
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_edit), title="Site Updates"))
+    return {"updates": updates, "title": "Site Updates"}
 
 
+@view_config(route_name="site_update", renderer='/etc/site_update.jinja2')
 def site_update_(request):
     updateid = int(request.matchdict['update_id'])
     update = SiteUpdate.query.get_or_404(updateid)
     myself = profile.select_myself(request.userid)
     comments = comment.select(request.userid, updateid=updateid)
 
-    return Response(define.webpage(request.userid, 'etc/site_update.html', (myself, update, comments), title="Site Update"))
+    return {"myself": myself, "update": update, "comments": comments, "title": "Site Update"}
 
 
+@view_config(route_name="popular", renderer='/etc/popular.jinja2')
 def popular_(request):
-    return Response(define.webpage(request.userid, 'etc/popular.html', [
-        list(itertools.islice(
-            index.filter_submissions(request.userid, submission.select_recently_popular(), incidence_limit=1), 66))
-    ], title="Recently Popular"))
+    popular = list(
+        itertools.islice(
+            index.filter_submissions(request.userid, submission.select_recently_popular(), incidence_limit=1),
+            66
+        )
+    )
+    return {"submissions": popular, "title": "Recently Popular"}

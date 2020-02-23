@@ -23,11 +23,7 @@
                 <div class="column clear">
                     <h2 class="typeface-a color-a">Community</h2>
                     <ul class="clear">
-                        <li><a href="https://forums.weasyl.com/vbulletin/forum.php">Forums</a></li>
-                        <li><a href="https://twitter.com/Weasyl">@Weasyl</a></li>
-                        <li><a href="https://twitter.com/WeasylDev">@WeasylDev</a></li>
-                        <li><a href="https://twitter.com/WeasylCritique">@WeasylCritique</a></li>
-                        <li><a href="https://twitter.com/WZLCritiqueNSFW">@WZLCritiqueNSFW</a></li>
+                        <li><a href="{{ 'site_update_list' | route_path }}">(coming soon!)</a></li>
                     </ul>
                 </div>
                 <div class="column clear">
@@ -45,17 +41,11 @@
                     <h2 class="typeface-a color-a">Support</h2>
                     <ul class="clear">
                         <li><a href="{{ 'help' | route_path }}">Help Topics</a></li>
-                        <li>
-                            <a href="https://forums.weasyl.com/vbulletin/forumdisplay.php?15-Site-amp-Forum-Support">
-                                Report a Bug
-                            </a>
-                        </li>
+                        <li><a href="mailto:{{ M.MACRO_SUPPORT_ADDRESS }}">Report a Bug</a></li>
                         <li><a href="{{ 'help_reports' | route_path }}">My Reports</a></li>
-                        <li><a href="mailto:support@weasyl.com">support@weasyl.com</a></li>
-                        <li><a href="mailto:sysop@weasyl.com">sysop@weasyl.com</a></li>
+                        <li><a href="mailto:{{ M.MACRO_SUPPORT_ADDRESS }}">{{ M.MACRO_SUPPORT_ADDRESS }}</a></li>
                     </ul>
                 </div>
-
             </div>
         </nav>
 

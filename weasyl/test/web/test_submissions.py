@@ -92,7 +92,7 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     # Remove submission 1, so uploading a duplicate image is allowed
     app.post('/remove/submission', {
         'submitid': u'%i' % (v1,),
-    }, headers={'Cookie': cookie}).follow()
+    }, headers={'Cookie': cookie}).follow(headers={'Cookie': cookie})
 
     # Upload submission 2 with image 2
     v2 = create_visual(

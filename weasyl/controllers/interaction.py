@@ -20,7 +20,7 @@ def followuser_(request):
     otherid = define.get_int(form.userid)
 
     if request.userid == otherid:
-        return Response(define.errorpage(request.userid, "You cannot follow yourself."))
+        raise WeasylError("cannotSelfFollow")
 
     if form.action == "follow":
         followuser.insert(request.userid, otherid)
@@ -38,9 +38,7 @@ def unfollowuser_(request):
 
     followuser.remove(request.userid, form.otherid)
 
-    return Response(define.errorpage(
-        request.userid, "**Success!** You are no longer following this user.",
-        [["Go Back", "/manage/following"], ["Return Home", "/"]]))
+    raise HTTPSeeOther(location="/manage/following")
 
 
 @login_required
@@ -53,7 +51,7 @@ def frienduser_(request):
     otherid = define.get_int(form.userid)
 
     if request.userid == otherid:
-        return Response(define.errorpage(request.userid, "You cannot friend yourself."))
+        raise WeasylError('cannotSelfFriend')
 
     if form.action == "sendfriendrequest":
         if not frienduser.check(request.userid, otherid) and not frienduser.already_pending(request.userid, otherid):
@@ -77,7 +75,7 @@ def unfrienduser_(request):
     otherid = define.get_int(form.userid)
 
     if request.userid == otherid:
-        return Response(define.errorpage(request.userid, "You cannot friend yourself."))
+        raise WeasylError('cannotSelfFriend')
 
     frienduser.remove(request.userid, otherid)
 

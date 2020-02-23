@@ -121,6 +121,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
     :param username: The username of the user attempting authentication.
     :param password: The user's claimed password to check against the stored hash.
+    :param request: The request, or None
     :param ip_address: The address requesting authentication.
     :param user_agent: The user agent string of the submitting client.
 

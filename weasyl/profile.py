@@ -547,7 +547,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         newemailcheck: A verification field for the above to serve as a typo-check. Optional,
         but mandatory if `newemail` provided.
         newpassword: If changing the password, the user's new password. Optional.
-        newpasswordcheck: Verification field for `newpassword`. Optional, but mandatory if
+        newpasscheck: Verification field for `newpassword`. Optional, but mandatory if
         `newpassword` provided.
     """
     from weasyl import login

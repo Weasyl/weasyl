@@ -119,7 +119,7 @@ def signin_2fa_auth_get_(request):
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
     if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     # Maximum secondary authentication time: 5 minutes
@@ -147,7 +147,7 @@ def signin_2fa_auth_post_(request):
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
     if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
@@ -324,7 +324,7 @@ def resetpassword_post_(request):
 @token_checked
 def force_resetpassword_(request):
     if define.common_status_check(request.userid) != "resetpassword":
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     form = request.web_input(password="", passcheck="")
 

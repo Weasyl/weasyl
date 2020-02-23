@@ -34,9 +34,9 @@ def moderator_only(view_callable):
     """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise WeasylError('permission')
+            raise WeasylError('InsufficientPermissions')
         if request.userid not in staff.MODS:
-            raise WeasylError('permission')
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return login_required(inner)
 
@@ -45,9 +45,9 @@ def admin_only(view_callable):
     """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise WeasylError('permission')
+            raise WeasylError('InsufficientPermissions')
         if request.userid not in staff.ADMINS:
-            raise WeasylError('permission')
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return login_required(inner)
 
@@ -56,9 +56,9 @@ def director_only(view_callable):
     """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise WeasylError('permission')
+            raise WeasylError('InsufficientPermissions')
         if request.userid not in staff.DIRECTORS:
-            raise WeasylError('permission')
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return login_required(inner)
 
@@ -66,7 +66,7 @@ def director_only(view_callable):
 def disallow_api(view_callable):
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise WeasylError('permission')
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return inner
 

@@ -400,7 +400,7 @@ def control_removefolder_(request):
 def control_editfolder_get_(request):
     folderid = int(request.matchdict['folderid'])
     if not folder.check(request.userid, folderid):
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     return {'info': folder.select_info(folderid), 'title': "Edit Folder Options"}
 
@@ -411,7 +411,7 @@ def control_editfolder_get_(request):
 def control_editfolder_post_(request):
     folderid = int(request.matchdict['folderid'])
     if not folder.check(request.userid, folderid):
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     form = request.web_input(settings=[])
     folder.update_settings(folderid, form.settings)
@@ -455,7 +455,7 @@ def control_unignoreuser_(request):
 def control_streaming_get_(request):
     form = request.web_input(target='')
     if form.target and request.userid not in staff.MODS:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
     elif form.target:
         target = define.get_int(form.target)
     else:
@@ -475,7 +475,7 @@ def control_streaming_post_(request):
     form = request.web_input(target="", set_stream="", stream_length="", stream_url="", stream_text="")
 
     if form.target and request.userid not in staff.MODS:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     if form.target:
         target = int(form.target)

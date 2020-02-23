@@ -111,7 +111,6 @@ error_messages = {
     "passwordIncorrect": "The password you entered was incorrect.",
     "passwordInsecure": "Passwords must be at least 10 characters in length.",
     "passwordMismatch": "The password you entered did not match the password confirmation.",
-    'permission': permission,
     "priceidInvalid": "You did not specify a price to edit.",
     "RatingExceeded": rating,
     "ratingInvalid": "The specified rating is invalid.",
@@ -178,7 +177,7 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
-    'permission': 403,
+    'InsufficientPermissions': 403,
     "userRecordMissing": 404,
     "submissionRecordMissing": 404,
     "journalRecordMissing": 404,

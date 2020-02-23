@@ -113,7 +113,7 @@ def template_fields(userid):
         # Recent critique submissions
         submission.select_list(userid, rating, 4, options=["critique"]),
         # Currently streaming users
-        profile.select_streaming(userid, rating, 4),
+        profile.select_streaming(userid, 4),
         # Recently popular submissions
         list(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 11)),
     ]

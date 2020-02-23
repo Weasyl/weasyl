@@ -344,7 +344,7 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, rating, limit, following=True, order_by=None):
+def select_streaming(userid, limit, following=True, order_by=None):
     statement = [
         "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
         "FROM profile pr "

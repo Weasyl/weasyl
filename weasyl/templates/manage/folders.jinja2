@@ -1,10 +1,11 @@
-$def with (folders)
-$:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Submission Folders", "Settings") }}
 <div id="manage-folders-content" class="content">
 
   <form name="controlcreatefolder" action="/control/createfolder" method="post" class="form skinny">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <h3>Create Folder</h3>
 
@@ -14,15 +15,16 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <label for="foldersparent">Parent Folder:</label>
     <select name="parentid" id="foldersparent" class="input last-input">
       <option value="0">No folder selected</option>
-      $for i in [j for j in folders if not j['subfolder']]:
-        <option value="${i['folderid']}">${i['title']}</option>
+      {% for i in folders if not i['subfolder'] %}
+          <option value="{{ i['folderid'] }}">{{ i['title'] }}</option>
+       {% endfor %}
     </select>
 
     <button type="submit" class="button positive" style="float: right;">Create Folder</button>
   </form>
 
   <form name="controlrenamefolder" action="/control/renamefolder" method="post" class="form skinny">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <h3>Rename Folder</h3>
 
@@ -32,37 +34,40 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <label for="folderscurrent">Current Folder Name:</label>
     <select name="folderid" id="folderscurrent" class="input last-input">
       <option value="0">No folder selected</option>
-      $for i in folders:
-        <option value="${i['folderid']}">${i['title']}</option>
+      {% for i in folders %}
+          <option value="{{ i['folderid'] }}">{{ i['title'] }}</option>
+      {% endfor %}
     </select>
 
     <button type="submit" class="button positive" style="float: right;">Rename Folder</button>
   </form>
 
   <form name="controlmovefolder" action="/control/movefolder" method="post" class="form skinny">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <h3>Move Folder</h3>
 
     <label for="folderscurrent">Current Folder:</label>
     <select name="folderid" id="folderscurrent" class="input last-input">
       <option value="0">No folder selected</option>
-      $for i in [j for j in folders if not j['haschildren']]:
-        <option value="${i['folderid']}">${i['title']}</option>
+      {% for i in folders if not i['haschildren'] %}
+          <option value="{{ i['folderid'] }}">{{ i['title'] }}</option>
+      {% endfor %}
     </select>
 
     <label for="foldersnewparent">New Parent Folder:</label>
     <select name="parentid" id="foldersnewparent" class="input last-input">
       <option value="0">Root</option>
-      $for i in [j for j in folders if not j['subfolder']]:
-        <option value="${i['folderid']}">${i['title']}</option>
+      {% for i in folders if not i['subfolder'] %}
+          <option value="{{ i['folderid'] }}">{{ i['title'] }}</option>
+      {% endfor %}
     </select>
 
     <button type="submit" class="button positive" style="float: right;">Move Folder</button>
   </form>
 
   <form name="controlremovefolder" action="/control/removefolder" method="post" class="form skinny">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <h3>Remove Folder</h3>
 
@@ -71,20 +76,24 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <label for="foldersremove">Folder Title:</label>
     <select name="folderid" id="foldersremove" class="input last-input">
       <option value="0">No folder selected</option>
-      $for i in folders:
-        <option value="${i['folderid']}">${i['title']}</option>
+      {% for i in folders %}
+          <option value="{{ i['folderid'] }}">{{ i['title'] }}</option>
+       {% endfor %}
     </select>
 
     <button type="submit" class="button negative" style="float: right;">Remove Folder</button>
   </form>
 
-  $if folders:
+   {% if folders %}
     <div style="max-width: 30em; margin: 0 auto">
       <h3>Edit Folder Options</h3>
       <ul>
-      $for i in folders:
-        <li><a href="/control/editfolder/${i['folderid']}">${i['title']}</a></li>
+      {% for i in folders %}
+          <li><a href="/control/editfolder/{{ i['folderid'] }}">{{ i['title'] }}</a></li>
+      {% endfor %}
       </ul>
     </div>
+   {% endif %}
 
 </div>
+{% endblock %}

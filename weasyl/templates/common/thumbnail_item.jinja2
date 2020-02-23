@@ -1,0 +1,143 @@
+{% import 'common/macros.jinja2' as macro %}
+
+{% macro grid_item(item, notifications=None, lazy_load=True) -%}
+    <li class="item">
+        {% if notifications %}
+            <label class="input-checkbox">
+        {% endif %}
+
+        <figure class="thumb{{ ' collection' if item['contype'] == 40 else '' }}">
+            {% if item['contype'] == 20 %}
+                {% set url='character_detail'|route_path(charid=item['charid'], slug=item['title']|SLUG) %}
+                {% set cap_title = item['title']|truncate(52) %}
+                {% set byline = "character of " %}
+            {% elif item['contype'] == 30 %}
+                {% set url='journal_detail'|route_path(journalid=item['journalid'], slug=item['title']|SLUG) %}
+                {% set cap_title = item['title']|truncate(52) %}
+                {% set byline = "by " %}
+            {% elif item['contype'] == 40 %}
+                {% set data_id=item['submitid'] %}
+                {% set url='submission_detail_profile'|route_path(name=item['username']|LOGIN, submitid=item['submitid'], slug=item['title']|SLUG) %}
+                {% set cap_title = item['title']|truncate(52) %}
+                {% set byline = "collected by " %}
+            {% elif item['contype'] == 50 %}
+                {% set url='profile_tilde'|route_path(name=item['username']|LOGIN) %}
+                {% set cap_title = item['username'] %}
+            {% else %}
+                {% set data_id=item['submitid'] %}
+                {% set url='submission_detail_profile'|route_path(name=item['username']|LOGIN, submitid=item['submitid'], slug=item['title']|SLUG) %}
+                {% set cap_title = item['title']|truncate(52) %}
+                {% set byline = "by " %}
+            {% endif %}
+            <a class="thumb-bounds" data-width="{{ width }}" href="{{ url }}" data-id="{{ data_id }}">
+                {{ macro.RATING(item['rating']) }}
+
+                {% if item['contype'] in (30, 50) %}
+                    <img src="{{ item['user_media']['avatar'][0]['display_url'] }}" alt="avatar"/>
+                {% elif WEBP_THUMB(item) %}
+                    {% if lazy_load %}
+                        <picture>
+                            <source type="image/webp" data-srcset="{{ WEBP_THUMB(item)['display_url'] }}"/>
+                            <img class="lazy"
+                                 data-src="{{ THUMB(item)['display_url']|safe }}"
+                                 src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"
+                                 alt=""/>
+                        </picture>
+                        <noscript>
+                            <picture>
+                                <source type="image/webp" srcset="{{ WEBP_THUMB(item)['display_url'] }}"/>
+                                <img src="{{ THUMB(item)['display_url'] }}" alt=""/>
+                            </picture>
+                        </noscript>
+                    {% else %}
+                        <picture>
+                            <source type="image/webp" srcset="{{ WEBP_THUMB(item)['display_url'] }}"/>
+                            <img src="{{ THUMB(item)['display_url'] }}" alt=""/>
+                        </picture>
+                    {% endif %}
+                {% else %}
+                    {% if lazy_load %}
+                        <img class="lazy"
+                             data-src="{{ THUMB(item)['display_url']|safe }}"
+                             src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"
+                             alt=""/>
+                        <noscript>
+                            <img src="{{ THUMB(item)['display_url'] }}" alt=""/>
+                        </noscript>
+                    {% else %}
+                        <img src="{{ THUMB(item)['display_url'] }}" alt=""/>
+                    {% endif %}
+                {% endif %}
+
+            </a>
+
+            {% if item['playable'] and item['playable'][0].get('file_type') == 'mp3' %}
+                <div class="playable-container">
+                    <audio class="playable-media" preload="none">
+                        <source type="audio/mpeg" src="{{ item['playable'][0]['display_url'] }}"/>
+                    </audio>
+                </div>
+            {% endif %}
+
+            <figcaption>
+                <h6 class="title" title="{{ item['title'] }}"><a href="{{ url }}">{{ cap_title }}</a></h6>
+                <p class="byline" title="{{ byline }}{{ item['username'] }}">
+                    {% if byline %}
+                        <i>{{ byline }}</i><a href="{{ 'profile_tilde'|route_path(name=item['username']|LOGIN) }}" class="username">{{ item['username'] }}</a>
+                    {% else %}
+                        <!-- Keeps formatting consistent -->
+                        &nbsp;
+                    {% endif %}
+                </p>
+            </figcaption>
+
+            {% if 'subcat' in item %}
+                {% if item['subcat'] in [3010, 3020, 3030] %} <span class="icon icon-20 icon-music"></span>
+                {% elif 4000 > item['subcat'] >= 3000 %} <span class="icon icon-20 icon-multi"></span>
+                {% elif 3000 > item['subcat'] >= 2000 %} <span class="icon icon-20 icon-lit"></span>
+                {% endif %}
+            {% endif %}
+        </figure>
+
+        {% if notifications %}
+            <input type="checkbox" name="remove" value="{{ item['welcomeid'] }}" class="checkbox"/>
+            </label>
+        {% endif %}
+    </li>
+{%- endmacro %}
+
+{% macro list_item(item, caption=None) -%}
+    <div class="thumbnail_list_item">
+        {% if item['contype'] == 10 %}
+            <div class="item">
+                <label class="input-checkbox">
+                    <input type="checkbox" name="submissions" value="{{ item['submitid'] }};{{ item['collectorid'] }}"/>
+
+                    <!-- thumbnail -->
+                    <a href="/submission/{{ item['submitid'] }}/{{ item['title']|SLUG }}">
+                        {% set thumb = THUMB(item) %}
+                        <img class="thumbnail_list_thumbnail" src="{{ thumb['display_url'] }}" alt=""/>
+                    </a>
+
+                    <!-- caption -->
+                    <a href="/submission/{{ item['submitid'] }}/{{ item['title']|SLUG }}">{{ item['title'] }}</a>
+                    {% if caption == "collection_requested" %}
+                    requested by <a class="username" href="{{ 'profile_tilde'|route_path(name=item['username']|LOGIN) }}">{{ item['collector'] }}</a>
+                    {% else %}
+                    submitted by <a class="username" href="{{ 'profile_tilde'|route_path(name=item['username']|LOGIN) }}">{{ item['username'] }}</a>
+                    {% endif %}
+
+                    {% if caption == "collection_pending" %}
+                    and offered on {{ item['unixtime']|DATE }}
+                    {% elif caption == "collection_requested" %}
+                    on {{ item['unixtime']|DATE }}
+                    {% elif caption == "collection_accepted" %}
+                    and collected on {{ item['unixtime']|DATE }}
+                    {% else %}
+                    on {{ item['unixtime']|DATE }} at {{ item['unixtime']|TIME }}
+                    {% endif %}
+                </label>
+            </div>
+        {% endif %}
+    </div>
+{%- endmacro %}

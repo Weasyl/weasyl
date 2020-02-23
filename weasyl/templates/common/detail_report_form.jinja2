@@ -1,20 +1,22 @@
-$def with (targetid, feature, violations)
+{% macro detail_report_form(targetid, feature, violations) -%}
 <div id="detail-report" style="display: none;">
   <form name="submitreport" action="/submit/report" method="post" class="form clear">
-    $:{CSRF()}
-    <input type="hidden" name="${feature}id" value="${targetid}" />
+    <input type="hidden" name="token" value="{{ TOKEN() }}" />
+    <input type="hidden" name="{{ feature }}id" value="{{ targetid }}" />
 
-    $if(feature == "submit"):
+    {% if(feature == "submit") %}
       <h3>Report Submission</h3>
-    $elif(feature == "char"):
+    {% elif(feature == "char") %}
       <h3>Report Character</h3>
-    $else:
+    {% else %}
       <h3>Report Journal</h3>
+    {% endif %}
 
     <label for="detail_report_violation">Violation Type:</label>
     <select id="detail_report_violation" name="violation" class="input">
-      $for i in violations:
-        <option value="${i[0]}" data-comment-required="${i[3]}">${i[2]}</option>
+      {% for i in violations %}
+        <option value="{{ i[0] }}" data-comment-required="{{ i[3] }}">{{ i[2] }}</option>
+      {% endfor %}
     </select>
     <span id="detail_report_reminder" style="color:#c00;visibility:hidden">* This report type requires a comment</span>
 
@@ -27,3 +29,4 @@ $def with (targetid, feature, violations)
 
   </form>
 </div>
+{%- endmacro %}

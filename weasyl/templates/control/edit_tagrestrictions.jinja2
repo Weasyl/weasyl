@@ -1,9 +1,11 @@
-$def with (tags)
-$:{RENDER("common/stage_title.html", ["Edit Community Tagging Restrictions", "Settings"])}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("Edit Community Tagging Restrictions", "Settings") }}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/control/tagrestrictions">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
     <h3>Community Tagging Restrictions Information</h3>
     <p>
       Other users won't be able to add tags listed here to your submissions. In
@@ -16,9 +18,10 @@ $:{RENDER("common/stage_title.html", ["Edit Community Tagging Restrictions", "Se
       You can still add these tags to your own submissions.
     </p>
     <span class="label">Add or Remove Tags:</span><br />
-    <textarea class="tags-textarea" name="tags">${" ".join(tags)}</textarea>
+    <textarea class="tags-textarea" name="tags">{{ " ".join(tags) }}</textarea>
     <div style="padding-top: 1em;">
       <button class="button positive" style="float: right;">Save Tags</button>
     </div>
   </form>
 </div>
+{% endblock %}

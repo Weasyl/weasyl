@@ -1,5 +1,7 @@
-$:{TITLE("Two Factor Authentication", "Help", "/help")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Two Factor Authentication", "Help", "/help") }}
 <div class="content">
   <div class="constrained">
 
@@ -104,3 +106,4 @@ $:{TITLE("Two Factor Authentication", "Help", "/help")}
 
   </div>
 </div>
+{% endblock %}

@@ -1,23 +1,29 @@
-$def with (profile, userinfo, relationship, result)
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
-
+{% extends 'common/base.jinja2' %}
+{% import 'common/thumbnail_item.jinja2' as thumbnail %}
+{% import 'user/user_tools.jinja2' as user_macro %}
+{% from 'common/page_navigation.jinja2' import page_navigation %}
+{% block content %}
 <div id="characters_stage" class="stage">
-  $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
-  $:{RENDER("common/user_tabs.html", [profile['username'], "characters", profile['show_favorites_tab']])}
+  {{ user_macro.USERTOOLS(profile, userinfo, relationship) }}
+  {{ user_macro.USERTABS(profile['username'], "characters", profile['show_favorites_tab']) }}
 </div>
 
 <div class="content user-characters">
   <h3>Characters</h3>
 
-  $if result.query:
+  {% if result.query %}
     <ul class="thumbnail-grid">
-      $for index, item in enumerate(result.query):
-        $if index < 10:
-          $:{_GRID_ITEM(item, lazy_load=False)}
-        $else:
-          $:{_GRID_ITEM(item)}
+      {% for item in result.query %}
+        {% if loop.index0 < 10 %}
+          {{ thumbnail.grid_item(item, lazy_load=False ) }}
+        {% else %}
+          {{ thumbnail.grid_item(item) }}
+        {% endif %}
+      {% endfor %}
     </ul>
-    $:{RENDER("common/page_navigation.html", [result])}
-  $else:
+    {{ page_navigation(result) }}
+  {% else %}
     There are no characters to display.
+  {% endif %}
 </div>
+{% endblock %}

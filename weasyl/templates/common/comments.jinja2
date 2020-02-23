@@ -1,0 +1,145 @@
+{% from 'common/macros.jinja2' import AVATAR %}
+{% macro comment_form(userid, targetid, feature) -%}
+    {% set user = select_myself(userid) %}
+    {% if feature == "shouts" %}
+        {% set feature = "userid" %}
+    {% elif feature == "submit" %}
+        {% set feature = "submitid" %}
+    {% elif feature == "char" %}
+        {% set feature = "charid" %}
+    {% elif feature == "journal" %}
+        {% set feature = "journalid" %}
+    {% elif feature == "siteupdate" %}
+        {% set feature = "updateid" %}
+    {% endif %}
+    {% if user['is_verified'] %}
+        <form class="comment-form"
+              action="/submit/{{ 'shout' if feature in ['userid', 'staffnotes'] else 'comment' }}"
+              method="post">
+            <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+            <input type="hidden" class="form-target-id" name="{{ feature }}" value="{{ targetid }}"/>
+            <input type="hidden" name="parentid"/>
+
+            <div class="hypothetical comment">
+
+                {{ AVATAR(user) }}
+
+                <div class="comment-content">
+                    <p class="byline"><a class="username" href="/~{{ user['username'] | LOGIN }}">{{ user['username'] }}</a>
+                        <span id="comment_form_reply_text"></span></p>
+                    <textarea class="form-content markdown expanding"
+                              name="content"
+                              placeholder="Leave a comment"
+                              required></textarea>
+                </div>
+
+                <div class="comment-submit clear">
+                    <button class="button positive">Submit Comment</button>
+                    <a href="/help/markdown" class="comment-formatting-help" target="_blank">Formatting Help</a>
+                </div>
+
+            </div>
+        </form>
+    {% else %}
+        <p>Your account has to be verified to comment. <a href="/help/verification">How do I verify my account?</a></p>
+    {% endif %}
+
+    <form name="removecomment" action="/remove/comment" method="post">
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+        <input type="hidden" name="feature" value="{{ feature }}"/>
+        <input type="hidden" name="commentid"/>
+    </form>
+{%- endmacro %}
+
+{% macro comment_thread(userid, container, comments, feature="", targetid=None, page_owner=None) -%}
+    {% set myself = select_myself(userid) %}
+    {% set is_owner = myself and page_owner and myself['userid'] == page_owner %}
+    {% set can_remove = is_owner or (myself and myself['userid'] in staff.MODS) %}
+    <div id="{{ container }}" data-feature="{{ feature }}" data-removal-privileges="{{ 'all' if can_remove else 'own' }}" class="comments">
+        {% set size = comments|length %}
+        {% for comment in comments %}
+            {% if loop.index0 == 0 or comment['indent'] > comments[loop.index0 - 1]['indent'] %}
+                <ul>
+                <li>
+            {% endif %}
+
+        {% set hidden = comment['hidden'] %}
+
+        <div class="comment{{ ' hidden-comment' if hidden else '' }}" id="cid{{ comment['commentid'] }}" data-id="{{ comment['commentid'] }}">
+            {{ AVATAR(comment) }}
+            <div class="comment-content">
+                <p class="actions">
+                    {% if not hidden %}
+                        {% if myself and myself['is_verified'] %}
+                            <a href="#" class="comment-reply-link needs-js">Reply</a>
+                        {% endif %}
+                        {% set has_replies = loop.index0 + 1 < size and comments[loop.index0 + 1]['indent'] == comment['indent'] + 1 %}
+                        {% set user_is_commenter = myself and comment['userid'] == myself['userid'] %}
+                        {% if feature and myself and (can_remove or (user_is_commenter and not has_replies)) %}
+                            <a href="#" class="comment-hide-link needs-js">Hide</a>
+                        {% endif %}
+                        <a href="#cid{{ comment['commentid'] }}">Link</a>
+                    {% endif %}
+                </p>
+                <p class="byline">
+                    <a href="/~{{ comment['username']|LOGIN }}" class="username">{{ comment['username'] }}</a>
+                    {% set user_type = USER_TYPE(comment['userid']) %}
+                    {% if user_type %}
+                        <strong class="user-type-{{ user_type }}">({{ user_type }})</strong>
+                    {% endif %}
+                    <i>on</i> <b>{{ comment['unixtime']|DATE }}</b> <i>at</i> {{ comment['unixtime']|TIME }}
+                    {% if hidden and comment['hidden_by'] %}
+                        {% if comment['hidden_by'] == page_owner %}
+                            <strong>[hidden by page owner]</strong>
+                        {% elif comment['hidden_by'] == comment['userid'] %}
+                            <strong>[hidden by commenter]</strong>
+                        {% else %}
+                            <strong>[hidden by moderator]</strong>
+                        {% endif %}
+                    {% endif %}
+                </p>
+                <div class="formatted-content">{{ comment['content']|MARKDOWN }}</div>
+            </div>
+        </div>
+        {% if loop.index0 == size - 1 %}
+            {% for j in range(comment['indent'] + 1) %}
+                </li>
+                </ul>
+            {% endfor %}
+        {% else %}
+            {% if comment['indent'] == comments[loop.index0 + 1]['indent'] %}
+                </li>
+                <li>
+                    {% elif comment['indent'] > comments[loop.index0 + 1]['indent'] %}
+                    {% for j in range(comment['indent'] - comments[loop.index0 + 1]['indent']) %}
+                        </li>
+                        </ul>
+                    {% endfor %}
+                <li>
+            {% endif %}
+        {% endif %}
+        {% endfor %}
+    </div>
+{%- endmacro %}
+
+{% macro comments_flat(container, query, additional=None) -%}
+    <div id="${container}" class="comments">
+        {% for i in query %}
+            <div class="comment">
+                {{ AVATAR(i) }}
+                <div class="comment-content">
+                    <p class="byline">
+                        <a href="/~{{ i['username'] | LOGIN }}" class="username">{{ i['username'] }}</a>
+                        <i>on</i> <b>{{ i['unixtime'] | DATE }}</b> <i>at</i> {{ i['unixtime'] }}
+                    </p>
+                    <div class="formatted-content">
+                        {{ i['content'] | MARKDOWN }}
+                        {% if additional %}
+                            <p><strong>(&nbsp;{{ i[additional] }}&nbsp;)</strong></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{%- endmacro %}

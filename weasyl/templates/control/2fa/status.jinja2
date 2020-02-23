@@ -1,6 +1,8 @@
-$def with (tfa_enabled, tfa_recovery_codes_count)
-$:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Settings"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/macros.jinja2' import SELECTED, CHECKED %}
+{% block content %}
+{{ stage("Two-Factor Authentication", "Settings") }}
 <div class="content skinny clear">
   <div class="form skinny">
   <h3>Two-Factor Authentication (2FA) Dashboard</h3>
@@ -13,7 +15,7 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Settings"])}
       <a href="/help/two_factor_authentication">2FA help page</a>.
     </p>
     <h3>2FA Status</h3>
-    $if tfa_enabled:
+    {% if tfa_enabled %}
       <p>
         2FA is currently <b>enabled</b>.
       </p>
@@ -22,7 +24,7 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Settings"])}
 
       <h4>Recovery Code Status</h4>
       <p>
-        You currently have <b>${tfa_recovery_codes_count} valid recovery code${'s' if tfa_recovery_codes_count > 1 else ''}</b>
+        You currently have <b>{{ tfa_recovery_codes_count }} valid recovery code{{ 's' if tfa_recovery_codes_count > 1 else '' }}</b>
         assigned to your account. We advise not relying on recovery codes as a routine access method and to, if required, disable
         and re-enable 2FA to reinitialize your authenticator app to provide time-based tokens.
       </p>
@@ -43,7 +45,7 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Settings"])}
           <a class="button negative" href="/control/2fa/disable">Disable 2FA...</a>
         </div>
       </p>
-    $else:
+    {% else %}
       <p>
         2FA is currently <b>disabled</b>.
       </p>
@@ -52,5 +54,7 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Settings"])}
           <a class="button positive" href="/control/2fa/init">Enable 2FA...</a>
         </div>
       </p>
+    {% endif %}
   </div>
 </div>
+{% endblock %}

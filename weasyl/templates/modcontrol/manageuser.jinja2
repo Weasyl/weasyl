@@ -1,58 +1,62 @@
-$def with (query)
-$:{TITLE("User Management", "Moderator Control Panel", "/modcontrol")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("User Management", "Moderator Control Panel", "/modcontrol") }}
 <div class="content">
   <h3>
-    ${query['username']}
-    (<a href="/~${LOGIN(query['username'])}">Profile</a>,
-    <a href="/staffnotes/${LOGIN(query['username'])}">${query['staff_notes']} staff notes</a>)
+    {{ query['username'] }}
+    (<a href="/~{{ query['username'] | LOGIN }}">Profile</a>,
+    <a href="/staffnotes/{{ query['username'] | LOGIN }}">{{ query['staff_notes'] }} staff notes</a>)
   </h3>
 
-  $ avatar = query['user_media']['avatar'][0]
-  $if avatar['display_url'] != resource_path('img/default-avatar.jpg'):
+    {% set avatar = query['user_media']['avatar'][0] %}
+    {% if avatar['display_url'] != resource_path('img/default-avatar.jpg') %}
     <div class="clear" style="margin-top:20px;">
-      <img src="${avatar['display_url']}" alt="" />
+      <img src="{{ avatar['display_url'] }}" alt=""/>
       <form action="/modcontrol/removeavatar" method="post">
-        $:{CSRF()}
-        <input type="hidden" name="userid" value="${query['userid']}" />
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+        <input type="hidden" name="userid" value="{{ query['userid'] }}"/>
         <button type="submit" class="button negative">Remove Avatar</button><br />
       </form>
     </div>
-  $else:
+    {% else %}
     <p style="margin-top:20px;">This user does not have an avatar.</p>
+    {% endif %}
 
-  $ banner = query['user_media'].get('banner', [None])[0]
-  $if banner:
+    {% set banner = query['user_media'].get('banner', [None])[0] %}
+    {% if banner %}
     <div class="clear" style="margin-top:20px;">
-      <img src="${banner['display_url']}" alt="" />
+      <img src="{{ banner['display_url'] }}" alt=""/>
       <form action="/modcontrol/removebanner" method="post">
-        $:{CSRF()}
-        <input type="hidden" name="userid" value="${query['userid']}" />
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+        <input type="hidden" name="userid" value="{{ query['userid'] }}"/>
         <button type="submit" class="button negative">Remove Banner</button><br />
       </form>
     </div>
-  $else:
+  {% else %}
     <p style="margin-top:20px;">This user does not have a banner.</p>
+  {% endif %}
 
   <div class="clear" style="margin-top:20px;">
     <form action="/modcontrol/editprofiletext" method="post">
-      $:{CSRF()}
-      <input type="hidden" name="userid" value="${query['userid']}" />
-      <textarea name="content" style="height:200px;width:500px;">${query['profile_text']}</textarea><br />
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+      <input type="hidden" name="userid" value="{{ query['userid'] }}"/>
+      <textarea name="content" style="height:200px;width:500px;">{{ query['profile_text'] }}</textarea><br/>
       <button type="submit" class="button negative">Edit Profile Text</button><br />
     </form>
   </div>
 
   <div class="clear" style="margin-top:20px;">
     <form action="/modcontrol/editcatchphrase" method="post">
-      $:{CSRF()}
-      <input type="hidden" name="userid" value="${query['userid']}" />
-      <input type="text" name="content" style="width:500px;" value="$:{query['catchphrase']}" /><br />
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+      <input type="hidden" name="userid" value="{{ query['userid'] }}"/>
+      <input type="text" name="content" style="width:500px;" value="{{ query['catchphrase'] }}"/><br/>
       <button type="submit" class="button negative">Edit Catchphrase</button><br />
     </form>
   </div>
 
   <p>
-    <a href="/control/streaming?target=${query['userid']}">Edit Streaming Settings</a>.
+    <a href="/control/streaming?target={{ query['userid'] }}">Edit Streaming Settings</a>.
   </p>
 </div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% macro commission_price_display(commissions) -%}
+    {% for i in commissions['class'] %}
+        <h4 class="color-c">{{ i['title'] }}</h4>
+        <dl class="leaders">
+            {% for j in commissions['price'] %}
+                {% if(j['classid'] == i['classid'] and 'a' not in j['settings']) %}
+                    <dt>{{ j['title'] }}</dt>
+                    <dd>
+                        {% if j['amount_max'] %}
+                            <i>from </i>
+                        {% endif %}
+                        {{ SYMBOL(j['settings']) }}
+                        {{ "%.2f"|format(j['amount_min'] / 100.0) }}
+                    </dd>
+                    {% if(j['amount_max']) %}
+                        <dd><i>to </i>{{ SYMBOL(j['settings']) }} {{ "%.2f"|format(j['amount_max']/ 100.0) }}</dd>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            {% for j in commissions['price'] %}
+                {% if(j['classid'] == i['classid'] and 'a' in j['settings']) %}
+                    <dt><i>add &#160;</i>{{ j['title'] }}</dt>
+                    <dd>
+                        {% if j['amount_max'] %}
+                            <i>from </i>
+                        {% endif %}
+                        {{ SYMBOL(j['settings']) }}
+                        {{ "%.2f"|format(j['amount_min'] / 100.0) }}
+                    </dd>
+                    {% if(j['amount_max']) %}
+                        <dd><i>to </i>{{ SYMBOL(j['settings']) }} {{ "%.2f"|format(j['amount_max']/ 100.0) }}</dd>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        </dl>
+    {% endfor %}
+{%- endmacro %}

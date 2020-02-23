@@ -1,18 +1,43 @@
-$def with (tfa_recovery_codes, error)
-$:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Authentication", "/control/2fa/status"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage(title, "Two-Factor Authentication", "/control/2fa/status") }}
 <div class="content form clear">
   <div class="constrained">
-    $if error == "2fa":
-      <div id="signin_error">
-        <strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.
-      </div>
-    $elif error == "verify":
+    {% if error == "password" %}
+      <div id="signin_error"><strong>Whoops!</strong> You entered an incorrect password.</div>
+    {% elif error == "2fa" %}
+      <div id="signin_error"><strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.</div>
+    {% elif error == "verify" %}
       <div id="signin_error">
         <strong>Hey!</strong> Did you want to generate a new set of recovery codes? You didn't check the verification checkbox!
         <strong>If entered, your recovery code was <em>not</em> consumed.</strong>
       </div>
+    {% endif %}
+    {% if step == 1 %}
+      <form method="POST" class="form skinny clear" action="/control/2fa/generate_recovery_codes_verify_password">
 
+        <h3>Verify your password</h3>
+        <p>
+          Before generating new recovery codes, we need to verify your current Weasyl password.
+        </p>
+        <br/>
+        <p>
+          <strong>Note</strong>: For the security of your account, entering your password
+          will clear all other active login sessions for your account.
+        </p>
+
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+
+        <label for="login-pass">Confirm your Password</label>
+        <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required/>
+
+        <div style="padding-top: 1em;">
+          <a class="button negative" href="/control/2fa/status">Cancel</a>
+          <button class="button positive">Continue</button>
+        </div>
+      </form>
+    {% elif step == 2 %}
     <h3>Generate New Recovery Codes</h3>
     <p>
       The following recovery codes are <strong>not yet active</strong>. Once you provide
@@ -30,8 +55,9 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
   <form method="POST" class="form skinny clear" action="/control/2fa/generate_recovery_codes">
     <h3>Your new recovery codes will be:</h3>
     <ol>
-      $for code in tfa_recovery_codes:
-        <li>${code[0:4] + ' ' + code[4:8] + ' ' + code[8:12] + ' ' + code[12:16] + ' ' + code[16:20]}</li>
+      {% for code in tfa_recovery_codes %}
+        <li>{{ code[0:4] + ' ' + code[4:8] + ' ' + code[8:12] + ' ' + code[12:16] + ' ' + code[16:20] }}</li>
+      {% endfor %}
     </ol>
 
     <br />
@@ -45,11 +71,13 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
     <input type="text" id="tfa-regenerate-codes" maxlength="24" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
     <label><input class="checkbox" type="checkbox" name="verify" required /> I confirm that I have saved the above new recovery codes.</label>
 
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}" />
 
     <div style="padding-top: 1em;">
       <a class="button negative" href="/control/2fa/status">Cancel</a>
       <button class="button positive">Save New Recovery Codes</button>
     </div>
   </form>
+    {% endif %}
 </div>
+{% endblock %}

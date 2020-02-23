@@ -1,4 +1,7 @@
-$:{TITLE("Awesome People")}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Awesome People") }}
 <div class="content">
   <div class="constrained">
 
@@ -1111,7 +1114,8 @@ $:{TITLE("Awesome People")}
   </ul>
 
   <div class="constrained"><div class="formatted-content" style="padding-top: 2em;">
-    <p>If you donated to our IndieGoGo compaign and we missed you (or you need your name edited), send us a message at <a href="mailto:${M.MACRO_SUPPORT_ADDRESS}">${M.MACRO_SUPPORT_ADDRESS}</a>!</p>
+    <p>If you donated to our IndieGoGo compaign and we missed you (or you need your name edited), send us a message at <a href="mailto:{{ M.MACRO_SUPPORT_ADDRESS }}">{{ M.MACRO_SUPPORT_ADDRESS }}</a>!</p>
   </div></div>
 
 </div>
+{% endblock %}

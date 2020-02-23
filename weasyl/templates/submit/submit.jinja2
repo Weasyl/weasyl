@@ -1,5 +1,7 @@
-$:{RENDER("common/stage_title.html", ["Submit Artwork"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Submit Artwork") }}
 <div id="submit-content" class="content">
 
   <div class="group">
@@ -28,3 +30,4 @@ $:{RENDER("common/stage_title.html", ["Submit Artwork"])}
   </div>
 
 </div>
+{% endblock %}

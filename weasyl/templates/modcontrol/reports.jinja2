@@ -1,26 +1,11 @@
-$def with (method, query, violations)
-$:{RENDER("common/stage_title.html", ["Reported Content", "Moderator Control Panel", "/modcontrol"])}
-$code:
-  _color_map = {
-    'review': ' style="color:#e0a000;"',
-    'open': ' style="color:#f00000;"',
-  }
-
-  _context_map = {
-    1: 'Profile',
-    2: 'Submission',
-    3: 'Journal',
-    4: 'Comment'
-  }
-
-  def value(field, value):
-    ret = 'value="%s" ' % (value,)
-    if method[field] == value:
-      ret += 'selected'
-    return ret
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/macros.jinja2' import SELECTED %}
+{% block content %}
+    {% set _context_map = {1: 'Profile', 2: 'Submission', 3: 'Journal', 4: 'Comment'} %}
+    {{ stage("Reported Content", "Moderator Control Panel", "/modcontrol") }}
 <div id="reports_content" class="content">
-  $if query:
+  {% if query %}
     <table>
       <tr>
         <td style="font-weight:bold;">Title</td>
@@ -32,63 +17,75 @@ $code:
         <td style="font-weight:bold;text-align:right;">Report Status</td>
       </tr>
 
-      $for report, report_count, report_violations in query:
-        <tr$:{_color_map.get(report.status, '')}>
-          <td><a href="/modcontrol/report?reportid=${report.reportid}">${report.target.title}</a></td>
+      {% for report, report_count, report_violations in query %}
+        {% if report.status == 'review' %}
+            <tr style="color:#e0a000;">
+        {% elif report.status == 'open' %}
+            <tr style="color:#f00000;">
+        {% else %}
+            <tr>
+        {% endif %}
+                <td><a href="/modcontrol/report?reportid={{ report.reportid }}">{{ report.target.title }}</a></td>
           <td>
-            <a href="${report.target.legacy_path(mod=True)}">
-              View ${report.target_type}
-              $if report.target.is_hidden:
-                (Hidden)
+            <a href="{{ report.target.legacy_path(mod=True) }}">
+               View {{ report.target_type }}
+               {% if report.target.is_hidden %}
+                 (Hidden)
+               {% endif %}
             </a>
           </td>
-          <td><a href="/~${report.target.owner.login_name}">${report.target.owner.profile.username}</a></td>
-          <td>${'; '.join(report_violations)}</td>
-          <td>${report_count}</td>
-          <td>${DATE(report.opened_at)} ${TIME(report.opened_at)}</td>
-          $ status = report.status
-          $if status == 'review':
+          <td><a href="/~{{ report.target.owner.login_name }}">{{ report.target.owner.profile.username }}</a></td>
+          <td>{{ report_violations | join('; ') }}</td>
+          <td>{{ report_count }}</td>
+          <td>{{ report.opened_at | DATE }} {{ report.opened_at | TIME }}}</td>
+          {% if report.status == 'review' %}
             <td class="right">
-              Under review by <a href="/~${report.owner.login_name}">${report.owner.profile.username}</a>
+              Under review by <a href="/~{{ report.owner.login_name }}">{{ report.owner.profile.username }}</a>
             </td>
-          $elif status == 'closed':
+          {% elif report.status == 'closed' %}
             <td class="right">
-              Closed by <a href="/~${report.owner.login_name}">${report.owner.profile.username}</a>
-              (${report.closure_reason.value.replace('-', ' ')}
-              on ${DATE(report.closed_at)} at ${TIME(report.closed_at)})
+              Closed by <a href="/~{{ report.owner.login_name }}">{{ report.owner.profile.username }}</a>
+              ({{ report.closure_reason.value.replace('-', ' ') }}
+              on {{ report.closed_at | DATE }} at {{ report.closed_at | TIME }})
             </td>
-          $else:
+          {% else %}
             <td class="right">Open</td>
+          {% endif %}
         </tr>
+      {% endfor %}
 
     </table>
-  $else:
+  {% else %}
     There are no reports to display.
+  {% endif %}
   <div id="report-filters" class="form">
-    <span style="float: right">
+      <div style="float: right">
       <form action="/modcontrol/reports" method="get">
         <label for="status">Report status</label>
-        <select name="status" class="input">
+          <select id="status" name="status" class="input">
           <option value=""></option>
-          <option $:{value('status', 'open')}>Open/assigned reports</option>
-          <option $:{value('status', 'closed')}>Closed reports</option>
-          <option $:{value('status', 'all')}>All reports</option>
+          <option value="open" {{ SELECTED(method['status'], 'open') }}>Open/assigned reports</option>
+          <option value="closed" {{ SELECTED(method['status'], 'closed') }}>Closed reports</option>
+          <option value="all" {{ SELECTED(method['status'], 'all') }}>All reports</option>
         </select>
         <label for="violation">Violation Type:</label>
         <select id="violation" name="violation" class="input">
-          <option $:{value('violation', -1)}>All</option>
-          $for i in violations:
-            $if i[0] < 2000 or i[0] > 4000:
-              $continue
-            <option $:{value('violation', i[0])}>${_context_map[i[0] // 1000]}: ${i[2]}</option>
+          <option value="-1">All</option>
+          {% for i in violations %}
+            {% if not (i[0] < 2000 or i[0] > 4000) %}
+                <option value="{{ i[0] }}" {{ SELECTED(method['violation'], i[0]) }}>{{ _context_map[i[0] // 1000] }}: {{ i[2] }}</option>
+            {% endif %}
+          {% endfor %}
         </select>
         <label for="submitter">Owner username</label>
-        <input type="text" name="submitter" class="input" value="${method['submitter']}">
+        <input id="submitter" type="text" name="submitter" class="input" value="{{ method['submitter'] }}">
         <div style="padding-top: 1em">
           <button style="float: right" type="submit" class="button positive">Filter</button>
         </div>
       </form>
-    </span>
   </div>
 
 </div>
+
+    </div>
+{% endblock %}

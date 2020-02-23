@@ -1,21 +1,24 @@
-$def with (staff)
-$:{TITLE("Staff List")}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/macros.jinja2' import AVATAR %}
+{% block content %}
+{{ stage("Staff List") }}
 
 <div class="content">
-  $for title, users in staff:
-    <h3 style="text-align: center;">${title}</h3>
+  {% for title, users in staff %}
+    <h3 style="text-align: center;">{{ title }}</h3>
     <ul class="grid avatar-grid">
-    $for info in users:
+    {% for info in users %}
       <li class="grid-item">
         <figure class="thumbnail">
-          $ avatar = info['user_media']['avatar'][0]
-          <a class="avatar" href="/~${LOGIN(info['username'])}">
-            <img src="${avatar['display_url']}" alt="avatar of ${info['username']}" />
-          </a>
+          {{ AVATAR(info) }}
           <figcaption class="caption centered big">
-            <h5><a class="username one-line" href="/~${LOGIN(info['username'])}">${info['username']}</a></h5>
+            <h5><a class="username one-line" href="/~{{ info['username']|LOGIN }}">{{ info['username'] }}</a></h5>
           </figcaption>
         </figure>
-
+      </li>
+    {% endfor %}
     </ul>
+  {% endfor %}
 </div>
+{% endblock %}

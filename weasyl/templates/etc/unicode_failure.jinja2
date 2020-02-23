@@ -1,11 +1,14 @@
-$:{RENDER("common/stage_title.html", ["Fix Your Password"])}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("Fix Your Password") }}
 
 <div class="content">
 
   <div class="clear content" style="width: 20em; margin: 0 auto;">
     <h3>Fix Your Password</h3>
     <form class="form" action="" method="post">
-      $:{CSRF()}
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
       <p>
         As a part of improvements to Weasyl's password storage, your
@@ -26,3 +29,4 @@ $:{RENDER("common/stage_title.html", ["Fix Your Password"])}
   </div>
 
 </div>
+{% endblock %}

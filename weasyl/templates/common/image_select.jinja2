@@ -1,20 +1,22 @@
-$def with (square)
+{% macro image_select(square=False) -%}
 <script>
 function image_select_update(_image, _selection) {
-  if(!_selection.width || !_selection.height) { return; }
-  $$('#x1').val(_selection.x1);
-  $$('#x2').val(_selection.x2);
-  $$('#y1').val(_selection.y1);
-  $$('#y2').val(_selection.y2);
+  if (!_selection.width || !_selection.height) { return; }
+  $('#x1').val(_selection.x1);
+  $('#x2').val(_selection.x2);
+  $('#y1').val(_selection.y1);
+  $('#y2').val(_selection.y2);
 }
-$$(function() {
-  $$('#imageselect').imgAreaSelect({
+$(function () {
+  $('#imageselect').imgAreaSelect({
     handles: true,
-    $if square:
+    {% if square %}
       aspectRatio: "1:1",
-    $else:
+    {% else %}
       maxAspectRatio: 2,
+    {% endif %}
     onSelectChange: image_select_update
   });
 });
 </script>
+{%- endmacro %}

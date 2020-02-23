@@ -1,61 +1,65 @@
-$def with (query, myself)
-$:{RENDER("common/stage_title.html", ["View Private Message", "Notes", "/notes?folder=%s" % ("outbox" if query['mine'] else "inbox")])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("View Private Message", "Notes", "/notes?folder=%s" % ("outbox" if query['mine'] else "inbox")) }}
 <div id="note-content" class="content">
 
   <div class="constrained">
     <dl class="clear">
       <dt>Sender:</dt>
       <dd>
-        <a href="/~${LOGIN(query['sendername'])}" class="username">${query['sendername']}</a>
+        <a href="/~{{ query['sendername'] | LOGIN }}" class="username">{{ query['sendername'] }}</a>
 
-        $ user_type = USER_TYPE(query['senderid'])
-        $if user_type:
-          <strong class="user-type-${user_type}">(${user_type})</strong>
+        {% set user_type = USER_TYPE(query['senderid']) %}
+        {% if user_type %}
+          <strong class="user-type-{{ user_type }}">({{ user_type }})</strong>
+        {% endif %}
       </dd>
 
       <dt>Recipient:</dt>
       <dd>
-        <a href="/~${LOGIN(query['recipientname'])}" class="username">${query['recipientname']}</a>
+        <a href="/~{{ query['recipientname'] | LOGIN }}" class="username">{{ query['recipientname'] }}</a>
 
-        $ user_type = USER_TYPE(query['recipientid'])
-        $if user_type:
-          <strong class="user-type-${user_type}">(${user_type})</strong>
+        {% set user_type = USER_TYPE(query['recipientid']) %}
+        {% if user_type %}
+          <strong class="user-type-{{ user_type }}}">({{ user_type }})</strong>
+        {% endif %}
       </dd>
 
       <dt>Date:</dt>
-      <dd>${DATE(query['unixtime'])} ${TIME(query['unixtime'])}</dd>
+      <dd>{{ query['unixtime'] | DATE }} {{ query['unixtime'] | TIME }}</dd>
 
       <dt>Subject:</dt>
-      <dd>${query['title']}</dd>
+      <dd>{{ query['title'] }}</dd>
     </dl>
 
-    <div class="formatted-content">$:{MARKDOWN(query['content'])}</div>
+    <div class="formatted-content">{{ query['content'] | MARKDOWN }}</div>
 
-    $if myself['is_mod']:
+    {% if myself['is_mod'] %}
       <form action="/modcontrol/copynotetostaffnotes" method="post" class="form clear">
         <button class="button" style="float: right;">Copy Note to Staff Notes</button>
-        <input type="hidden" name="noteid" value="${query['noteid']}" />
-        $:{CSRF()}
+        <input type="hidden" name="noteid" value="{{ query['noteid'] }}" />
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
       </form>
+    {% endif %}
 
-    $if not query['mine']:
+    {% if not query['mine'] %}
       <form name="notescompose" action="/notes/compose" method="post" class="form clear">
-        $:{CSRF()}
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
         <h3>Send Reply</h3>
 
         <label for="notereplyrecipient">Recipient</label>
-        <input type="text" class="input" name="recipient" value="${LOGIN(query['sendername'])}" id="notereplyrecipient" />
+        <input type="text" class="input" name="recipient" value="{{ query['sendername'] | LOGIN }}" id="notereplyrecipient" />
 
         <label for="notereplytitle">Subject</label>
-        <input type="text" name="title" class="input" value="${'' if query['title'][:4] == 'Re: ' else 'Re: '}${query['title']}" id="notereplytitle" />
+        <input type="text" name="title" class="input" value="{{'' if query['title'][:4] == 'Re: ' else 'Re: '}}{{ query['title'] }}" id="notereplytitle" />
 
         <label for="notereplycontent">Content</label>
         <textarea name="content" class="markdown input expanding last-input" rows="9" id="notereplycontent"></textarea>
         <br>
 
-        $if myself['is_mod']:
+        {% if myself['is_mod'] %}
           <div id="note-compose-staff-note">
             <label class="input-checkbox">
               <input type="checkbox" name="mod_copy" id="mod-copy" value="y">
@@ -67,9 +71,12 @@ $:{RENDER("common/stage_title.html", ["View Private Message", "Notes", "/notes?f
             </div>
           </div>
           <br>
+        {% endif %}
 
         <button type="submit" class="button positive" style="float: right;">Send</button>
       </form>
+  {% endif %}
 
   </div>
 </div>
+{% endblock %}

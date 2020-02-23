@@ -1,31 +1,38 @@
-$def with (reports)
-$:{RENDER("common/stage_title.html", ["My reports", "Settings"])}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("My reports", "Settings") }}
 
 <div class="content">
   <br>
-  $if not reports:
+  {% if not reports %}
     <p>You haven't reported anything!</p>
-  $else:
+  {% else %}
     <table id="my-reports">
       <tr>
         <th>Title</th><th>Most recent report</th><th>Status</th>
       </tr>
-      $for report in reports:
+      {% for report in reports %}
         <tr>
-          <td><a href="${report.target.legacy_path()}">${report.target.title}</a></td>
-          <td>${DATE(report.latest_report)} at ${TIME(report.latest_report)}</td>
+          <td><a href="{{ report.target.legacy_path() }}">{{ report.target.title }}</a></td>
+          <td>{{ report.latest_report |DATE }} at {{ report.latest_report | TIME }}</td>
           <td>
-            ${report.status}
-            $if report.is_closed and report.closure_reason != constants.ReportClosureReason.legacy:
-              (resolution: ${report.closure_reason.value.replace('-', ' ')})
+            {{ report.status }}
+            {% if report.is_closed and report.closure_reason != constants.ReportClosureReason.legacy %}
+              (resolution: {{ report.closure_reason.value.replace('-', ' ') }})
+            {% endif %}
           </td>
         </tr>
-        $if report.is_closed and report.closure_reason == constants.ReportClosureReason.no_action_taken:
+      {% endfor %}
+        {% if report.is_closed and report.closure_reason == constants.ReportClosureReason.no_action_taken %}
           <tr>
             <td colspan="3" style="padding: 0 0.5em 0.5em">
               <h5>Reason for no action taken:</h5>
-              <div class="formatted-content">$:{MARKDOWN(report.closure_explanation)}</div>
+              <div class="formatted-content">{{ report.closure_explanation | MARKDOWN }}</div>
             </td>
           </tr>
+        {% endif %}
     </table>
+  {% endif %}
 </div>
+{% endblock %}

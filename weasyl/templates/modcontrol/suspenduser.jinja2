@@ -1,6 +1,7 @@
-$def with (templates)
-$:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Panel", "/modcontrol"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("User Suspensions", "Moderator Control Panel", "/modcontrol") }}
 <div class="content clear" style="padding-top: 2em;">
   <div class="form wide clear">
     <div class="formatted-content">
@@ -18,7 +19,7 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
     </div>
 
     <form name="modcontrolsuspenduser" action="/modcontrol/suspenduser" method="post">
-      $:{CSRF()}
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
       <div class="form-2up clear">
         <div class="form-2up-1">
@@ -34,8 +35,9 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
       <label for="template_id">Predefined Action</label>
       <select id="template_id" class="input">
         <option value="none">Custom Action</option>
-        $for key in sorted(templates):
-          <option value="${key}">${templates[key]['name']}</option>
+          {% for key in templates|sort %}
+            <option value="{{ key }}">{{ templates[key]['name'] }}</option>
+          {% endfor %}
       </select>
 
       <label for="suspendaction">Action</label>
@@ -49,7 +51,7 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
       <textarea name="reason" class="markdown input expanding" rows="9" id="suspendreason"></textarea>
 
       <label>Current Date</label>
-      <p>${DATE()}</p>
+      <p>{{ LOCAL_ARROW(arrow.now()).timestamp | DATE }}</p>
 
       <label>Duration/Release Date</label>
 
@@ -70,7 +72,7 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
       </div>
 
       <script>
-        var banTemplates = $:{INLINE_JSON(templates)};
+        var banTemplates = {{ templates | tojson}};
         var templateId = document.getElementById("template_id");
         var suspendAction = document.getElementById("suspendaction");
         var suspendDuration = document.getElementById("duration");
@@ -131,3 +133,4 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
     </form>
   </div>
 </div>
+{% endblock %}

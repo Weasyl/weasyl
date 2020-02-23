@@ -1,35 +1,35 @@
-$def with (profile, settings)
-$:{RENDER("common/stage_title.html", ["Followed User", "Settings"])}
-$code:
-  def _CHECKED(x):
-    return ' checked="checked"' if x in settings else ''
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/macros.jinja2' import SELECTED, CHECKED %}
+{% block content %}
+    {{ stage("Followed User", "Settings") }}
 
 <div class="content">
 
   <div class="form skinny clear">
-    <h3>${profile['username']}</h3>
-    <form name="managefollowing" action="/manage/following" method="post">
-      $:{CSRF()}
-      <input type="hidden" name="userid" value="${profile['userid']}" />
+     <h3>{{ profile['username'] }}</h3>
+      <form name="managefollowing" action="{{ 'control_manage_follow'|route_path(userid=profile['userid']) }}" method="post">
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+      <input type="hidden" name="userid" value="{{ profile['userid'] }}" />
 
       <label for="followsubmit" class="input-checkbox">
-        <input type="checkbox" id="followsubmit" name="submit"$:{_CHECKED("s")} />
+      <input type="checkbox" id="followsubmit" name="submit" {{ CHECKED('s', settings) }} />
         Submissions posted by this user
       </label>
       <label for="followcollect" class="input-checkbox">
-        <input type="checkbox" id="followcollect" name="collect"$:{_CHECKED("c")} />
+      <input type="checkbox" id="followcollect" name="collect" {{ CHECKED('c', settings) }} />
         Submissions collected by this user
       </label>
       <label for="followchar" class="input-checkbox">
-        <input type="checkbox" id="followchar" name="char"$:{_CHECKED("f")} />
+      <input type="checkbox" id="followchar" name="char" {{ CHECKED('f', settings) }} />
         Characters posted by this user
       </label>
       <label for="followstream" class="input-checkbox">
-        <input type="checkbox" id="followstream" name="stream"$:{_CHECKED("t")} />
+      <input type="checkbox" id="followstream" name="stream" {{ CHECKED('t', settings) }} />
         Stream statuses set by this user
       </label>
       <label for="followjournal" class="input-checkbox last-input">
-        <input type="checkbox" id="followjournal" name="journal"$:{_CHECKED("j")} />
+      <input type="checkbox" id="followjournal" name="journal" {{ CHECKED('j', settings) }} />
         Journals posted by this user
       </label>
 
@@ -38,3 +38,4 @@ $code:
     </form>
   </div>
 </div>
+{% endblock %}

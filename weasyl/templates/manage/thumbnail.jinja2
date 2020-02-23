@@ -1,19 +1,21 @@
-$def with (feature, targetid, thumbnail, exists)
-$:{RENDER("common/stage_title.html", ["Submission Thumbnail" if feature == "submit" else "Character Thumbnail", "Manage"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Submission Thumbnail" if feature == "submit" else "Character Thumbnail", "Manage") }}
 <div id="manage_thumbnail_content" class="content">
 
-  $if(exists):
+    {% if(exists) %}
     <h3>Choose Thumbnail</h3>
-    <div style="text-align: center;"><img id="imageselect" src="${thumbnail}" alt="image" /></div>
+    <div style="text-align: center;"><img id="imageselect" src="{{ thumbnail }}" alt="image"/></div>
     <p style="text-align: center; padding: 0.5em 0 1em;">Click and drag to choose a thumbnail. You may also upload a custom thumbnail or continue without choosing to have one generated automatically</p>
-  $else:
+    {% else %}
     <h3>Upload Thumbnail</h3>
-    <p style="padding: 0.5em 0 1em;">Press <strong>Upload</strong> to select an image from which you will create the thumbnail for this ${'submission' if feature == 'submit' else 'character'}.</p>
+    <p style="padding: 0.5em 0 1em;">Press <strong>Upload</strong> to select an image from which you will create the thumbnail for this {{ 'submission' if feature == 'submit' else 'character' }}.</p>
+    {% endif %}
 
   <form name="manage_thumbnail" action="/manage/thumbnail" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
-    <input type="hidden" name="${feature}id" value="${targetid}" />
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+    <input type="hidden" name="{{ feature }}id" value="{{ targetid }}"/>
     <input type="hidden" id="x1" name="x1" value="0" />
     <input type="hidden" id="y1" name="y1" value="0" />
     <input type="hidden" id="x2" name="x2" value="0" />
@@ -30,3 +32,4 @@ $:{RENDER("common/stage_title.html", ["Submission Thumbnail" if feature == "subm
   </div>
 
 </div>
+{% endblock %}

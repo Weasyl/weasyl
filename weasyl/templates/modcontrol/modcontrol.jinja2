@@ -1,5 +1,7 @@
-$:{RENDER("common/stage_title.html", ["Moderator Control Panel"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Moderator Control Panel") }}
 <div id="modcontrol_content" class="content" style="padding-top:2em;">
   <div class="form skinny">
     <p style="font-size:1.3em;"><a href="/modcontrol/suspenduser">User Suspensions</a></p>
@@ -10,11 +12,12 @@ $:{RENDER("common/stage_title.html", ["Moderator Control Panel"])}
 
     <form action="/modcontrol/contentbyuser">
       <input type="text" name="name" class="input" style="margin-bottom: 1em" placeholder="Username" />
-      $for feature in ['submissions', 'characters', 'journals']:
+      {% for feature in ['submissions', 'characters', 'journals'] %}
         <label class="input-checkbox">
-          <input type="checkbox" name="features" value="${feature[0]}" checked>
-          Select ${feature}
+          <input type="checkbox" name="features" value="{{ feature[0] }}" checked>
+          Select {{ feature }}
         </label>
+      {% endfor %}
       <button type="submit" class="button" style="margin-top:5px;">Get Items by User</button>
     </form>
     <br />
@@ -32,3 +35,4 @@ $:{RENDER("common/stage_title.html", ["Moderator Control Panel"])}
 
   </div>
 </div>
+{% endblock %}

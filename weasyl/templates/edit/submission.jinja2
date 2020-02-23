@@ -1,76 +1,74 @@
-$def with (query, folders, subtypes, ratings)
-$:{RENDER("common/stage_title.html", ["Edit Submission"])}
-
-$code:
-  def _RATING(x):
-    return ' selected="selected"' if query['rating'] == x else ''
-  def _FOLDER(x):
-    return ' selected="selected"' if query['folderid'] == x else ''
-  def _SUBTYPE(x):
-    return ' selected="selected"' if query['subtype'] == x else ''
-  def _CHECKED(x):
-    return ' checked="checked"' if x in query['settings'] else ''
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/macros.jinja2' import SELECTED, CHECKED %}
+{% block content %}
+{{ stage("Edit Submission") }}
 
 <div id="edit-submission-content" class="content">
 
   <form name="editsubmission" action="/edit/submission" method="post" class="form skinny">
-    $:{CSRF()}
-    <input type="hidden" name="submitid" value="${query['submitid']}" />
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+    <input type="hidden" name="submitid" value="{{ query['submitid'] }}"/>
 
     <h3>Submission Information</h3>
 
     <label for="editsubmissiontitle">Title</label>
-    <input type="text" name="title" class="input" value="${query['title']}" id="editsubmissiontitle" maxlength="200" />
+    <input type="text" name="title" class="input" value="{{ query['title'] }}" id="editsubmissiontitle" maxlength="200" />
 
-    $if 'v' in query['settings']:
+    {% if 'v' in query['settings'] %}
       <label for="embedlink">Embed Link</label>
-      <input type="text" name="embedlink" class="input" value="${query['embedlink']}" id="embedlink" />
+      <input type="text" name="embedlink" class="input" value="{{ query['embedlink'] }}" id="embedlink" />
+    {% endif %}
 
-    $if 'D' in query['settings']:
+    {% if 'D' in query['settings'] %}
       <label for="embedlink">Embed Link</label>
-      <input type="url" class="input" name="embedlink" id="embedlink"
-             value="${query['google_doc_embed'].embed_url}" />
+      <input type="url" class="input" name="embedlink" id="embedlink" value="{{ query['google_doc_embed'].embed_url }}" />
       <p class="supported" style="padding-top: 0.5em">
         <i class="color-lighter">Allowed: Google Drive Documents</i>
       </p>
+    {% endif %}
 
     <label for="editsubmissionfolder">Folder</label>
     <select name="folderid" id="editsubmissionfolder" class="input">
       <option value="">No folder selected</option>
-      $for i in folders:
-        <option value="${i['folderid']}"$:{_FOLDER(i['folderid'])}>${i['title']}</option>
+      {% for i in folders %}
+        <option value="{{ i['folderid'] }}" {{ SELECTED(i['folderid'], query['folderid']) }}>{{ i['title'] }}</option>
+      {% endfor %}
     </select>
 
     <label for="editsubmissionsubcat">Subcategory</label>
     <select name="subtype" id="editsubmissionsubcat" class="input">
-      $for i in subtypes:
-        <option value="${i[0]}"$:{_SUBTYPE(i[0])}>${i[1]}</option>
+      {% for i in subtypes %}
+        <option value="{{ i[0] }}" {{ SELECTED(i[0], query['subtype']) }}>{{ i[1] }}</option>
+      {% endfor %}
     </select>
 
     <label for="editsubmissionrating">Rating</label>
     <select name="rating" id="editsubmissionrating" class="input">
-      $for rating in ratings:
-        <option value="${rating.code}"$:{_RATING(rating.code)}>${rating.name_with_age}</option>
+      {% for rating in ratings %}
+        <option value="{{ rating.code }}" {{ SELECTED(rating.code, query['rating']) }}>{{ rating.name_with_age }}</option>
+      {% endfor %}
     </select>
 
     <label for="editsubmissiondesc">Description</label>
-    <textarea name="content" rows="9" class="markdown input expanding" id="editsubmissiondesc">${query['content']}</textarea>
+    <textarea name="content" rows="9" class="markdown input expanding" id="editsubmissiondesc">{{ query['content'] }}</textarea>
 
     <h3>Additional Options</h3>
 
     <label for="editsubmissionfriends" class="input-checkbox">
-      <input type="checkbox" id="editsubmissionfriends" name="friends"$:{_CHECKED("f")} />
+      <input type="checkbox" id="editsubmissionfriends" name="friends" {{ CHECKED("f", query['settings']) }}/>
       Make this submission visible only to my friends
     </label>
     <label for="editsubmissioncrit" class="input-checkbox">
-      <input type="checkbox" id="editsubmissioncrit" name="critique"$:{_CHECKED("q")} />
+      <input type="checkbox" id="editsubmissioncrit" name="critique" {{ CHECKED("q", query['settings']) }} />
       Flag this submission for critique
     </label>
 
     <div class="buttons clear" style="padding-top: 1em;">
       <button type="submit" class="button" style="float: right;">Save</button>
-      <a class="button" href="/submission/${query['submitid']}/${SLUG(query['title'])}">Cancel</a>
+      <a class="button" href="/submission/{{ query['submitid'] }}/{{ query['title']| SLUG }}">Cancel</a>
     </div>
 
   </form>
 </div>
+{% endblock %}

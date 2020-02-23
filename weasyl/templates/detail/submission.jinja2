@@ -1,154 +1,169 @@
-$def with (request, myself, query, subtypes, violations)
-$code:
-  def _CAT(x):
-    if x // 1000 == 1:   return "Visual"
-    elif x // 1000 == 2: return "Literary"
-    else:                return "Multimedia"
+{% extends 'common/base.jinja2' %}
+{% import 'common/comments.jinja2' as comment_macros %}
+{% import 'user/user_tools.jinja2' as user_macro %}
+{% from 'common/detail_tag_form.jinja2' import detail_tag_form %}
+{% from 'common/detail_report_form.jinja2' import detail_report_form %}
+{% from 'common/macros.jinja2' import AVATAR %}
 
-  def _SUBCAT(x):
-    return dict(subtypes).get(x, "General")
 
+{% macro _CAT(x) -%}
+    {% if x // 1000 == 1 %}
+        Visual
+    {% elif x // 1000 == 2 %}
+        Literary
+    {% else %}
+        Multimedia
+    {% endif %}
+{%- endmacro %}
+
+{% block content %}
 <div id="detail-stage" class="stage">
-  <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-  $if 'q' in query['settings']:
+  <h1 id="detail-title" class="pad-left pad-right">{{ query['title'] }} <i>by</i> <a class="username" href="/~{{ query['username'] | LOGIN }}">{{ query['username'] }}</a>
+  {% if 'q' in query['settings'] %}
     <i>(critique requested)</i>
+  {% endif %}
   </h1>
 
-  $code:
-    submissions = query['sub_media'].get('submission')
-    submission = submissions[0] if submissions else None
-    covers = query['sub_media'].get('cover')
-    cover = covers[0] if covers else None
+  {% set submissions = query['sub_media'].get('submission') %}
+  {% set submission = submissions[0] if submissions else None %}
+  {% set cover = submission['described']['cover'][0] if submission and submission['described'].get('cover') else None %}
+  {% if not cover %}
+    {% set covers = query['sub_media'].get('cover') %}
+    {% set cover = covers[0] if covers else None %}
+  {% else %}
+    {% set covers = None %}
+  {% endif %}
   <!-- embedded -->
-  $if query['google_doc_embed'] is not None:
+  {% if query['google_doc_embed'] %}
     <div id="detail-art">
-      $if cover:
-        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+      {% if cover %}
+        <img src="{{ cover['display_url'] }}" alt="" style="margin-bottom: 3em" />
+      {% endif %}
       <iframe
-          src="${query['google_doc_embed'].embed_url}" class="content gdoc"
+          src="{{ query['google_doc_embed'].embed_url }}"  class="content gdoc"
           style="width: 100%; height: 40em; max-width: 80em; padding: 0">
       </iframe>
     </div>
 
-  $elif not submission:
-    $if cover:
+  {% elif not submission %}
+    {% if cover %}
       <div id="detail-art">
-        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+        <img src="{{ cover['display_url'] }}" alt="" style="margin-bottom: 3em" />
       </div>
+    {% endif %}
     <div id="detail-embed" class="pad-left pad-right">
-      $:{query['embed']}
+      {{ query['embed']|safe }}
     </div>
 
-  $elif submission['file_type'] in ["jpg", "png", "gif"] and cover:
+  {% elif submission['file_type'] in ["jpg", "png", "gif"] and cover %}
     <!-- VISUAL -->
     <div id="detail-art">
-      <a href="${submission['display_url']}">
-      <img src="${cover['display_url']}" alt="${query['title']}" />
+      <a href="{{ submission['display_url'] }}">
+      <img src="{{ cover['display_url'] }}" alt="{{ query['title'] }}"/>
       </a>
     </div>
 
-  $elif submission['file_type'] == "txt":
+  {% elif submission['file_type'] == "txt" %}
     <!-- TEXTUAL -->
     <div id="detail-art">
-      $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+    {% if cover %}
+        <img src="{{ cover['display_url'] }}" alt="{{ query['title'] }}" />
+    {% endif %}
       <div id="detail-art-text" class="content formatted-content">
-        $:{MARKDOWN(query['text'])}
+        {{ query['text'] | MARKDOWN }}
       </div>
     </div>
 
-  $elif submission['file_type'] == "pdf":
+  {% elif submission['file_type'] == "pdf" %}
     <div id="detail-art">
-      $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+      {% if cover %}
+        <img src="{{ cover['display_url'] }}" alt="{{ query['title'] }}" />
+      {% endif %}
       <div id="detail-art-text" class="content pdf">
-        <a href="${submission['display_url']}" id="pdf-download" class="button">View PDF</a>
+        <a href="{{ submission['display_url'] }}" id="pdf-download" class="button">View PDF</a>
       </div>
     </div>
 
-  $elif submission['file_type'] == "htm":
+  {% elif submission['file_type'] == "htm" %}
     <!-- COMPOSITION -->
     <div id="detail-art">
-      $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+      {% if cover %}
+        <img src="{{ cover['display_url'] }}" alt="{{ query['title'] }}"/>
+      {% endif %}
       <div id="detail-art-text" class="content formatted-content">
-        $:{query['text']}
+        {{ query['text']|safe }}
       </div>
     </div>
 
-  $elif submission['file_type'] == "mp3":
+  {% elif submission['file_type'] == "mp3" %}
     <!-- MULTIMEDIA -->
     <div id="detail-art" style="text-align:center;">
-      $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+      {% if cover %}
+        <img src="{{ cover['display_url'] }}" alt="{{ query['title'] }}" />
+      {% endif %}
       <div id="detail_submission_media" style="display:inline-block;width:500px;">
-        <audio type="audio/mpeg" src="${submission['display_url']}" controls>
+        <audio type="audio/mpeg" src="{{ submission['display_url'] }}" controls>
           <p>Your browser doesn’t support audio playback.</p>
         </audio>
       </div>
     </div>
 
-  $elif submission['file_type'] == "swf":
+  {% elif submission['file_type'] == "swf" %}
     <!-- SHOCKWAVE FLASH -->
-    <div id="detail-flash" data-flash-url="${submission['display_url']}"
-         data-flash-width="${submission['attributes'].get('width', 550)}"
-         data-flash-height="${submission['attributes'].get('height', 400)}">
-      <a href="${submission['display_url']}">
-        $if cover:
-          <img src="${cover['display_url']}" alt="" />
+    <div id="detail-flash" data-flash-url="{{ submission['display_url'] }}"
+         data-flash-width="{{ submission['attributes'].get('width', 550) }}"
+         data-flash-height="{{ submission['attributes'].get('height', 400) }}">
+      <a href="{{ submission['display_url'] }}">
+        {% if cover %}
+          <img src="{{ cover['display_url'] }}" alt="" />
+        {% endif %}
         <p>
           View Shockwave Flash Animation
         </p>
       </a>
     </div>
+  {% endif %}
 
-  $if query['folder_more']['older'] or query['folder_more']['newer']:
+  {% if query['folder_more']['older'] or query['folder_more']['newer'] %}
     <div class="detail-folder-nav clear">
 
-      <a class="folder-title" href="/submissions/${LOGIN(query['username'])}?folderid=${query['folderid']}"><i class="folder-title-label">Folder:</i><br /><span class="folder-title-title">${query['folder_title']}</span></a>
+       <a class="folder-title" href="/submissions/{{ query['username'] | LOGIN }}?folderid={{ query['folderid'] }}"><i class="folder-title-label">Folder:</i><br /><span class="folder-title-title">{{ query['folder_title'] }}</span></a>
 
-      $ older = query['folder_more']['older']
-      $if older:
-        $for e, i in enumerate(older, start=1):
-          $code:
-            thumb = THUMB(i)
-            id = 'id="folder-nav-prev"' if e == len(older) else ''
-            link = request.route_path(
-              'submission_detail_profile',
-              name=LOGIN(i['username']),
-              submitid=i['submitid'],
-              slug=SLUG(i['title']),
-            )
-          <a class="nav-link older" $:{id} href="${link}">
+      {% set older = query['folder_more']['older'] %}
+      {% if older %}
+        {% for i in older %}
+           {% set thumb = THUMB(i) %}
+           {% set id = 'id="folder-nav-prev"'|safe if loop.index == older|length else '' %}
+            <a class="nav-link older" {{ id }} href="{{req.route_path('submission_detail_profile', name=i['username']|LOGIN, submitid=i['submitid'], slug=i['title']|SLUG)}}">
             <span class="text">&#171; Older</span>
-            $if i['rating'] == R.MATURE.code:
+            {% if i['rating'] == R.MATURE.code %}
               <span class="rating mature">The following submission is rated Mature:</span>
-            $elif i['rating'] == R.EXPLICIT.code:
+            {% elif i['rating'] == R.EXPLICIT.code %}
               <span class="rating explicit">The following submission is rated Explicit:</span>
-            <img src="${thumb['display_url']}" alt="${i['title']}" class="thumb" />
+            {% endif %}
+            <img src="{{ thumb['display_url'] }}" alt="{{ i['title'] }}" class="thumb"/>
           </a>
+        {% endfor %}
+      {% endif %}
 
-      $if query['folder_more']['newer']:
-        $for e, i in enumerate(query['folder_more']['newer']):
-          $code:
-            thumb = THUMB(i)
-            id = 'id="folder-nav-next"' if e == 0 else ''
-            link = request.route_path(
-              'submission_detail_profile',
-              name=LOGIN(i['username']),
-              submitid=i['submitid'],
-              slug=SLUG(i['title']),
-            )
-          <a class="nav-link newer" $:{id} href="${link}">
-            $if i['rating'] == R.MATURE.code:
+      {% if query['folder_more']['newer'] %}
+        {% for i in query['folder_more']['newer'] %}
+          {% set thumb = THUMB(i) %}
+          {% set id = 'id="folder-nav-next"'|safe if loop.index0 == 0 else '' %}
+          <a class="nav-link newer" {{ id }} href="{{req.route_path('submission_detail_profile', name=i['username']|LOGIN, submitid=i['submitid'], slug=i['title']|SLUG)}}">
+          {% if i['rating'] == R.MATURE.code %}
               <span class="rating mature">The following submission is rated Mature:</span>
-            $elif i['rating'] == R.EXPLICIT.code:
+          {% elif i['rating'] == R.EXPLICIT.code %}
               <span class="rating explicit">The following submission is rated Explicit:</span>
-            <img src="${thumb['display_url']}" alt="${i['title']}" class="thumb" />
+          {% endif %}
+          <img src="{{ thumb['display_url'] }}" alt="{{ i['title'] }}" class="thumb"/>
             <span class="text">Newer &#187;</span>
           </a>
+        {% endfor %}
+      {% endif %}
 
     </div>
+  {% endif %}
 
 </div>
 
@@ -156,37 +171,41 @@ $code:
 
   <div id="db-main">
     <ul id="detail-actions" class="toolset clear">
-      <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/submissions/${query['submitid']}/" method="post">
-        $:{CSRF()}
-        <input type="hidden" name="submitid" value="${query['submitid']}" />
-        $if not query['mine']:
-          $if query['favorited']:
+      <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/submissions/{{ query['submitid'] }}/" method="post">
+        <input type="hidden" name="token" value="{{ TOKEN() }}" />
+        <input type="hidden" name="submitid" value="{{ query['submitid'] }}" />
+        {% if not query['mine'] %}
+          {% if query['favorited'] %}
             <input type="hidden" name="action" value="unfavorite" />
             <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
-          $else:
+          {% else %}
             <input type="hidden" name="action" value="favorite" />
             <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+          {% endif %}
+        {% endif %}
       </form></li>
-      $if submission:
-        <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
-    $if query['reported'] and myself and myself['userid'] in staff.MODS:
+      {% if submission %}
+        <li><a href="{{ submission['display_url'] }}?download"><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
+      {% endif %}
+    {% if query['reported'] and myself and myself['userid'] in staff.MODS %}
       <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
-    $elif 'h' not in query['settings']:
+    {% elif 'h' not in query['settings'] %}
       <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
+    {% endif %}
     </ul>
 
-    <h2 id="detail-bar-title">${query['title']}
-    $if 'q' in query['settings']:
+    <h2 id="detail-bar-title">{{ query['title'] }}
+    {% if 'q' in query['settings'] %}
       <em style="font-size: 65%">(critique requested)</em>
+    {% endif %}
     </h2>
 
   </div>
 
   <div id="db-user">
-    $ avatar = query['user_media']['avatar'][0]
-    <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
-    <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-    <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
+    {{ AVATAR(query) }}
+    <a class="username" href="/~{{ query['username'] | LOGIN }}">{{ query['username'] }}</a>
+    <p class="date">{{ query['unixtime']|DATE }} <i>at</i> {{ query['unixtime'] | TIME }}</p>
   </div>
 
 </div>
@@ -195,144 +214,159 @@ $code:
 <div id="detail-content" class="content clear">
 
   <div id="detail-description">
-    $:{RENDER("common/detail_report_form.html", [query['submitid'], "submit", violations])}
+    {{ detail_report_form(query['submitid'], "submit", violations) }}
     <div class="formatted-content">
-      $:{MARKDOWN(query['content'])}
+      {{ query['content'] | MARKDOWN }}
     </div>
   </div>
 
   <div id="detail-info">
 
-    <div id="di-info">
+  <div id="di-info">
       <h3>Submission Information</h3>
-      $if query['friends_only']:
+      {% if query['friends_only'] %}
         <div id="detail-visibility-restricted">Friends Only</div>
+      {% endif %}
       <dl class="clear">
-        <dt>Views:</dt> <dd>${query['page_views']}</dd>
-        <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
-        <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
-        <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
-        <dt>Category:</dt> <dd>${_CAT(query['subtype'])} / ${_SUBCAT(query['subtype'])}</dd>
+        <dt>Views:</dt> <dd>{{ query['page_views'] }}</dd>
+        <dt>Comments:</dt> <dd>{{ query['comments']|length }}</dd>
+        <dt>Favorites:</dt> <dd>{{ query['fave_count'] }}</dd>
+        <dt>Rating:</dt> <dd>{{ R.CODE_MAP[query['rating']].name_with_age }}</dd>
+        <dt>Category:</dt> <dd>{{ _CAT(query['subtype']) }} / {{ subtypes.get(query['subtype'], "General") }}</dd>
       </dl>
-    </div>
+  </div>
 
-    $if query['mine']:
+    {% if query['mine'] %}
       <div id="detail-manage">
         <h3>Submission Management</h3>
 
-        <p><a href="/manage/thumbnail?submitid=${query['submitid']}">Edit Submission Thumbnail</a></p>
-        $if query['subtype'] > 1999:
-          <p><a href="/reupload/cover?submitid=${query['submitid']}">Edit Cover Artwork</a></p>
-        $if 'v' not in query['settings'] and 'D' not in query['settings']:
-          <p><a href="/reupload/submission?submitid=${query['submitid']}">Edit Submission File</a></p>
-        <p><a href="/edit/submission?submitid=${query['submitid']}">Edit Submission Details</a></p>
+        <p><a href="/manage/thumbnail?submitid={{ query['submitid'] }}">Edit Submission Thumbnail</a></p>
+        {% if query['subtype'] > 1999 %}
+          <p><a href="/reupload/cover?submitid={{ query['submitid'] }}">Edit Cover Artwork</a></p>
+        {% endif %}
+        {% if 'v' not in query['settings'] and 'D' not in query['settings'] %}
+          <p><a href="/reupload/submission?submitid={{ query['submitid'] }}">Edit Submission File</a></p>
+        {% endif %}
+        <p><a href="/edit/submission?submitid={{ query['submitid'] }}">Edit Submission Details</a></p>
 
         <form action="/remove/submission" method="POST" data-confirm="Are you sure you want to remove this submission?">
-          $:{CSRF()}
-          <input type="hidden" name="submitid" value="${query['submitid']}">
+          <input type="hidden" name="token" value="{{ TOKEN() }}" />
+          <input type="hidden" name="submitid" value="{{ query['submitid'] }}">
 
           <input type="submit" value="Remove Submission from Gallery" class="link-button">
         </form>
       </div>
+    {% endif %}
 
-    $if myself:
+    {% if myself %}
       <div id="detail-collection-offer">
-        $if query['mine']:
+        {% if query['mine'] %}
           <form name="collectionoffer" action="/collection/offer" method="post" class="form clear">
-            $:{CSRF()}
+            <input type="hidden" name="token" value="{{ TOKEN() }}" />
 
             <h3>Send Collection Offer</h3>
 
-            <input type="hidden" name="submitid" value="${query['submitid']}">
+            <input type="hidden" name="submitid" value="{{ query['submitid'] }}">
 
             <label for="detail_collection_offer_username">Offer to User:</label>
             <input type="text" id="detail_collection_offer_username" name="username" class="input last-input">
 
             <button type="submit" class="button" style="float: right;">Send Offer</button>
           </form>
-        $else:
+        {% else %}
           <h3>Request Collection</h3>
-          $if query['collected']:
+          {% if query['collected'] %}
             <p>This submission is already in your collection.</p>
-          $elif query['friends_only']:
+          {% elif query['friends_only'] %}
             <p>This submission is marked friends only, and cannot be collected.</p>
-          $elif query['no_request']:
+          {% elif query['no_request'] %}
             <p>This user has disallowed collection requests.</p>
-          $else:
+          {% else %}
             <i><a href="/help/collections">What are collections?</a></i>
             <form name="collectionrequest" action="/collection/request" method="post" class="form clear">
-              $:{CSRF()}
+              <input type="hidden" name="token" value="{{ TOKEN() }}" />
 
-              <input type="hidden" name="submitid" value="${query['submitid']}" style="display:block">
+              <input type="hidden" name="submitid" value="{{ query['submitid'] }}" style="display:block">
 
               <button type="submit" class="button" style="display:block">Request This Submission</button>
             </form>
+          {% endif %}
+        {% endif %}
       </div>
+    {% endif %}
 
-    $if not query['mine'] and myself and myself['userid'] in staff.MODS:
+    {% if not query['mine'] and myself and myself['userid'] in staff.MODS %}
       <div id="detail-mod">
         <h3>Submission Moderation</h3>
-        $if query['hidden_submission']:
+        {% if query['hidden_submission'] %}
           <div id="detail-visibility-restricted">Hidden Submission</div>
-        <p><a href="/edit/submission?submitid=${query['submitid']}&amp;anyway=true">Edit Submission Details</a></p>
+        {% endif %}
+        <p><a href="/edit/submission?submitid={{ query['submitid'] }}&amp;anyway=true">Edit Submission Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
-          $:{CSRF()}
-          <input type="hidden" name="submissions" value="${query['submitid']}">
+          <input type="hidden" name="token" value="{{ TOKEN() }}" />
+          <input type="hidden" name="submissions" value="{{ query['submitid'] }}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "submission"):
-              <option value="${value}">${name}</option>
+            {% for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "submission") %}
+              <option value="{{ value }}">{{ name }}</option>
+            {% endfor %}
             <option value="zap-thumb">Remove Custom Thumbnail Art</option>
-            $if query['subtype'] > 1999:
+            {% if query['subtype'] > 1999 %}
               <option value="zap-cover">Remove Cover Art</option>
               <option value="zap-both">Remove Both</option>
+            {% endif %}
           </select>
           <br>
           <button class="button positive">Moderate Submission</button>
         </form>
         <br />
         <form action="/modcontrol/spam/remove" method="POST" data-confirm="Are you sure you want to submit this item as spam and hide it?">
-          $:{CSRF()}
-          <input type="hidden" name="submitid" value="${query['submitid']}" />
+          <input type="hidden" name="token" value="{{ TOKEN() }}" />
+          <input type="hidden" name="submitid" value="{{ query['submitid'] }}" />
 
           <button class="button negative">Submit as Spam and Hide</button>
         </form>
       </div>
-
+    {% endif %}
 
     <div class="di-tags">
       <h3>
         Tags
         <a class="modify typeface-default color-c" href="#">Modify</a>
-        <a class="typeface-default color-c" href="/submission/tag-history/${query['submitid']}">History</a>
+        <a class="typeface-default color-c" href="/submission/tag-history/{{ query['submitid'] }}">History</a>
       </h3>
 
       <div class="tags open clear">
-        $if query['tags']:
-          $for i in query['tags']:
-            <a href="/search?q=${i}"
-               class="${'artist' if i in query['artist_tags'] else ''}
-                      ${'removable' if query['can_remove_tags'] else ''}">
-              ${i}
+        {% if query['tags'] %}
+          {% for i in query['tags'] %}
+            <a href="/search?q={{ i }}"
+               class="{{ 'artist'|safe if i in query['artist_tags'] else ''|safe }}
+                      {{ 'removable'|safe if query['can_remove_tags'] else ''|safe }}">
+              {{ i }}
             </a>
-        $else:
+          {% endfor %}
+        {% else %}
           <p class="color-lighter">There are no tags associated with this submission</p>
+        {% endif %}
       </div>
 
       <h3 class="edit">Edit Tags</h3>
 
-      $:{RENDER("common/detail_tag_form.html", [query['submitid'], "submit", query['removable_tags']])}
+      {{ detail_tag_form(query['submitid'], "submit", query['removable_tags']) }}
     </div>
 
   </div>
 
 
   <div id="detail-comments">
-    $if query['comments']:
+    {% if query['comments'] %}
       <h3>Comments</h3>
-      $:{RENDER("common/comment_thread.html", ["detail_comments", query['comments'], "submit", myself, query['submitid'], query['userid']])}
-    $if myself:
+      {{ comment_macros.comment_thread(req.userid, "detail_comments", query['comments'], "submit", query['submitid'], query['userid']) }}
+    {% endif %}
+    {% if myself %}
       <h3>Leave a Comment</h3>
-      $:{RENDER("common/comment_form.html", [myself, query['submitid'], "submit"])}
+      {{ comment_macros.comment_form(req.userid, query['submitid'], "submit") }}
+    {% endif %}
   </div>
 
 </div>
+{% endblock %}

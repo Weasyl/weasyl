@@ -1,0 +1,81 @@
+{% from 'common/image_select.jinja2' import image_select %}
+<!DOCTYPE html>
+<html class="no-js" data-csrf-token="{{ TOKEN() }}" lang="en">
+<head>
+    {% block head %}
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+        <meta name="google-site-verification" content="2BHBQHl4B1zhVRT4jj6IZ1fIn0YMXGkv8kEpuoMf81k"/>
+        {% if title %}
+            <title>{{ title }} — Weasyl</title>
+        {% else %}
+            <title>Weasyl</title>
+        {% endif %}
+
+        {# If we have JavaScript enabled, remove the no-js class; keep before any link/style elements #}
+        <script>
+            document.documentElement.classList.remove("no-js");
+            document.documentElement.classList.add("js");
+        </script>
+
+        <link rel="stylesheet" href="{{ 'fonts/museo500.css' | route_path }}"/>
+        <link rel="stylesheet" href="{{ 'css/site.css'| route_path}}"/>
+
+        <link type="image/png" rel="icon" href="{{ 'img/favicon.png' | route_path }}"/>
+        <link rel="mask-icon" color="#850002" href="{{ 'img/favicon.svg' | route_path }}"/>
+
+        {% if options and "imageselect" in options %}
+            <link type="text/css" rel="stylesheet" href="{{ 'js/imageselect.css' | route_path }}"/>
+        {% endif %}
+
+        {% if 'twitter_card' in extended_options %}
+            <meta name="twitter:site" content="@weasyl"/>
+            <meta name="twitter:domain" content="weasyl.com"/>
+            {% for k, v in extended_options['twitter_card'].iteritems() %}
+                <meta name="twitter:{{ k }}" content="{{ v }}"/>
+            {% endfor %}
+        {% endif %}
+        {% if 'ogp' in extended_options %}
+            {% for k, v in extended_options['ogp'].iteritems() %}
+                <meta property="og:{{ k }}" content="{{ v }}"/>
+            {% endfor %}
+        {% endif %}
+
+        {% if 'canonical_url' in extended_options %}
+            <link rel="canonical" href="https://www.weasyl.com/{{ extended_options['canonical_url'].lstrip('/') }}"/>
+        {% endif %}
+    {% endblock %}
+</head>
+<body>
+<div id="page-container">
+    {% include 'common/header.jinja2' %}
+    {% block content %}{% endblock %}
+    {% include 'common/footer.jinja2' %}
+</div>
+
+<script src="{{ 'js/jquery-2.2.4.min.js' | route_path }}"></script>
+{% if 'typeahead' in options %}
+    <script src="{{ 'js/typeahead.bundle.min.js' | route_path }}"></script>
+{% endif %}
+<script src="{{ 'js/marked.js' | route_path }}"></script>
+<script src="{{ 'js/scripts.js' | route_path }}"></script>
+
+<script src="{{ 'js/yall.min.js' | route_path }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        yall({
+            threshold: 100
+        });
+    });
+</script>
+
+{% if options and "imageselect" in options %}
+    <script src="{{ 'js/imageselect.js' | route_path }}"></script>
+    {{ image_select(["square_select" in options]) }}
+{% endif %}
+{% if options and 'search' in options %}
+    <script src="{{ 'js/search.js' | route_path }}"></script>
+{% endif %}
+</body>
+</html>

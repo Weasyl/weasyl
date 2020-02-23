@@ -1,5 +1,7 @@
-$:{TITLE("Google Drive Embedding", "Help", "/help")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Google Drive Embedding", "Help", "/help") }}
 <div class="content">
   <div class="constrained">
     <h3>How do I find the embed link?</h3>
@@ -11,7 +13,7 @@ $:{TITLE("Google Drive Embedding", "Help", "/help")}
     </p>
 
     <figure class="help-image">
-      <img src="${resource_path('img/help/help-gdocs-1.png')}" width="276" height="334">
+      <img src="{{ 'img/help/help-gdocs-1.png' | route_path }}" width="276" height="334">
     </figure>
 
     <p>
@@ -19,7 +21,7 @@ $:{TITLE("Google Drive Embedding", "Help", "/help")}
     </p>
 
     <figure class="help-image">
-      <img src="${resource_path('img/help/help-gdocs-2.png')}" width="346" height="150">
+      <img src="{{ 'img/help/help-gdocs-2.png' | route_path }}" width="346" height="150">
     </figure>
 
     <p>
@@ -29,7 +31,7 @@ $:{TITLE("Google Drive Embedding", "Help", "/help")}
     </p>
 
     <figure class="help-image">
-      <img src="${resource_path('img/help/help-gdocs-3.png')}" width="516" height="182">
+      <img src="{{ 'img/help/help-gdocs-3.png' | route_path }}" width="516" height="182">
     </figure>
 
     <h4>For anything else</h4>
@@ -44,7 +46,8 @@ $:{TITLE("Google Drive Embedding", "Help", "/help")}
     </p>
 
     <figure class="help-image">
-      <img src="${resource_path('img/help/help-gdocs-4.png')}" width="540" height="88">
+      <img src="{{ 'img/help/help-gdocs-4.png' | route_path }}" width="540" height="88">
     </figure>
   </div>
 </div>
+{% endblock %}

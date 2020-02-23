@@ -1,5 +1,7 @@
-$:{TITLE("Director Control Panel")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("Director Control Panel") }}
 <div id="directorcontrol_content" class="content" style="padding-top:2em;">
   <div class="form skinny">
     <div style="font-size:1.3em;">
@@ -9,3 +11,4 @@ $:{TITLE("Director Control Panel")}
     <br />
   </div>
 </div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+
+{% block content %}
+    {{ stage("System Message") }}
+    <div id="error_content" class="content">
+        <p>
+            {{ message }}
+        </p>
+
+        <div id="error_buttons">
+                    <a href="{{ location }}" class="button">Return to Content</a>
+        </div>
+    </div>
+{% endblock %}

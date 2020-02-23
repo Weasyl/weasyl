@@ -1,6 +1,9 @@
-$:{TITLE("Staff Code of Conduct")}
-<div class="content">
-  <div class="constrained">
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Staff Code of Conduct") }}
+    <div class="content">
+        <div class="constrained">
 
     <h3>Staff Code of Conduct</h3>
 
@@ -62,3 +65,4 @@ $:{TITLE("Staff Code of Conduct")}
 
   </div>
 </div>
+{% endblock %}

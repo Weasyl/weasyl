@@ -1,11 +1,12 @@
-$def with (submitid)
-$:{RENDER("common/stage_title.html", ["Reupload Cover Artwork"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Reupload Cover Artwork") }}
 <div class="content">
 
   <form id="submit-form" name="submitvisual" class="form skinny clear" action="/reupload/cover" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
-    <input type="hidden" name="submitid" value="${submitid}" />
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+    <input type="hidden" name="submitid" value="{{ submitid }}"/>
 
     <label for="coverfile">Cover Artwork</label>
     <input type="file" name="coverfile" id="coverfile" class="styled-input" accept="image/*" />
@@ -18,3 +19,4 @@ $:{RENDER("common/stage_title.html", ["Reupload Cover Artwork"])}
   </form>
 
 </div>
+{% endblock %}

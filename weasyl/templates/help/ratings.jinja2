@@ -1,5 +1,7 @@
-$:{TITLE("Content Ratings", "Help", "/help")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Content Ratings", "Help", "/help") }}
 <style>
   .formatted-content header, .formatted-content section {
     padding-bottom: 1.5em;
@@ -196,3 +198,4 @@ $:{TITLE("Content Ratings", "Help", "/help")}
     </div>
   </div>
 </div>
+{% endblock %}

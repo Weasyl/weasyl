@@ -1,10 +1,11 @@
-$def with (ratings)
-$:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("Character Profile", "Submit", "/submit") }}
 <div id="submit-character-content" class="content">
 
   <form id="submit-form" name="submitcharacter" class="form clear" action="/submit/character" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <div class="column files">
         <h3>Files</h3>
@@ -43,8 +44,9 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
         <label for="characterrating">Rating</label>
         <select name="rating" class="input" id="characterrating" required>
           <option value="" selected="selected">&nbsp;</option>
-          $for rating in ratings:
-            <option value="${rating.code}">${rating.name_with_age}</option>
+            {% for rating in ratings %}
+              <option value="{{ rating.code }}">{{ rating.name_with_age }}</option>
+            {% endfor %}
         </select>
       <p class="color-lighter tags-help"><i>Please apply a rating to this character according to our <a href="/help/ratings" target="_blank">ratings guidelines</a>.</i></p>
     </div>
@@ -78,3 +80,4 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
 
   </form>
 </div>
+{% endblock %}

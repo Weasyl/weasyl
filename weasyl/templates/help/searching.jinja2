@@ -1,5 +1,7 @@
-$:{TITLE("Searching", "Help", "/help")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Searching", "Help", "/help") }}
 <div class="content">
   <div class="constrained">
     <h3>Using Search on Weasyl</h3>
@@ -49,3 +51,4 @@ $:{TITLE("Searching", "Help", "/help")}
     </div>
   </div>
 </div>
+{% endblock %}

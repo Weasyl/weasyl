@@ -1,11 +1,12 @@
-$def with (query)
-$:{RENDER("common/stage_title.html", ["Ignored Users", "Settings"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Ignored Users", "Settings") }}
 <div class="content">
 
   <div class="form skinny">
     <form name="controlignoreuser" action="/control/ignoreuser" method="post">
-      $:{CSRF()}
+      <input type="hidden" name="token" value="{{ TOKEN() }}" />
 
       <h3>Add Users to Ignore List</h3>
       <p>Enter the usernames of users who you wish to ignore while browsing the site. You can enter multiple usernames by separating each name with a semicolon (ex: user1;user2)</p>
@@ -17,7 +18,7 @@ $:{RENDER("common/stage_title.html", ["Ignored Users", "Settings"])}
     </form>
 
     <form name="controlunignoreuser" action="/control/unignoreuser" method="post">
-      $:{CSRF()}
+      <input type="hidden" name="token" value="{{ TOKEN() }}" />
 
       <h3>Remove Users from Ignore List</h3>
       <p>Enter the usernames of users who you no longer wish to ignore. You can enter multiple usernames by separating each name with a semicolon</p>
@@ -30,12 +31,15 @@ $:{RENDER("common/stage_title.html", ["Ignored Users", "Settings"])}
 
     <h3>Users You Already Ignore</h3>
 
-    $if query:
+    {% if query %}
       <ul>
-      $for i in query:
-        <li><a href="/~${LOGIN(i['username'])}">${i['username']}</a></li>
+          {% for i in query %}
+              <li><a href="/~{{ i['username'] | LOGIN }}">{{ i['username'] }}</a></li>
+          {% endfor %}
       </ul>
-    $else:
+    {% else %}
       <p>(nobody!)</p>
+    {% endif %}
   </div>
 </div>
+{% endblock %}

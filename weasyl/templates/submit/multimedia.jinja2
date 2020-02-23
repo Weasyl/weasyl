@@ -1,10 +1,11 @@
-$def with (folders, subtypes, ratings)
-$:{TITLE("Multimedia Artwork", "Submit", "/submit")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Multimedia Artwork", "Submit", "/submit") }}
 <div id="submit-multimedia-content" class="content">
 
   <form id="submit-form" name="submitmultimedia" class="form clear" action="/submit/multimedia" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <div class="column files">
       <h3>Files</h3>
@@ -39,22 +40,25 @@ $:{TITLE("Multimedia Artwork", "Submit", "/submit")}
       <label for="submissioncat">Subcategory</label>
       <select name="subtype" class="input" id="submissioncat">
         <option value="" selected="selected">&nbsp;</option>
-        $for i in subtypes:
-          <option value="${i[0]}">${i[1]}</option>
+        {% for i in subtypes %}
+          <option value="{{ i[0] }}">{{ i[1] }}</option>
+        {% endfor %}
       </select>
 
       <label for="submissionfolder">Folder</label>
       <select name="folderid" class="input" id="submissionfolder">
         <option value="" selected="selected">&nbsp;</option>
-        $for i in folders:
-          <option value="${i['folderid']}">${i['title']}</option>
+        {% for i in folders %}
+          <option value="{{ i['folderid'] }}">{{ i['title'] }}</option>
+        {% endfor %}
       </select>
 
       <label for="submissionrating">Rating</label>
       <select name="rating" class="input" id="submissionrating" required>
         <option value="" selected="selected">&nbsp;</option>
-        $for rating in ratings:
-          <option value="${rating.code}">${rating.name_with_age}</option>
+        {% for rating in ratings %}
+          <option value="{{ rating.code }}">{{ rating.name_with_age }}</option>
+        {% endfor %}
       </select>
       <p class="color-lighter tags-help"><i>Please apply a rating to this submission according to our <a href="/help/ratings" target="_blank">ratings guidelines</a>.</i></p>
       <p class="tags-help"><i>
@@ -108,3 +112,4 @@ $:{TITLE("Multimedia Artwork", "Submit", "/submit")}
 
   </form>
 </div>
+{% endblock %}

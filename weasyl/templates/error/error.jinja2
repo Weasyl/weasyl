@@ -1,23 +1,30 @@
-$def with (error, links, request_id)
-$:{RENDER("common/stage_title.html", ["System Message"])}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+
+{% block content %}\
+{{ stage("System Message") }}
 
 <div id="error_content" class="content">
-  $:{error}
+  <p>{{ error or 'An unspecified error occured' }}</p>
 
-  $if request_id is not None:
+  {% if request_id %}
     <p>
       If you wish to contact support
-      <a href="mailto:${M.MACRO_SUPPORT_ADDRESS}">by e-mail</a>
+      <a href="mailto:{{ M.MACRO_SUPPORT_ADDRESS }}">by e-mail</a>
       about this error, please include the following information: <br>
-      <tt>request-id: ${request_id}</tt>
+      <tt>request-id: {{ request_id }}</tt>
     </p>
+  {% endif %}
 
   <div id="error_buttons">
-    $if(links):
-      $for i in links:
-        <a href="${i[1]}" class="button">${i[0]}</a>
-    $else:
+    {% if(links) %}
+      {% for i in links %}
+        <a href="{{ i[1] }}" class="button">{{ i[0] }}</a>
+      {% endfor %}
+    {% else %}
       <a href="javascript:void(0);" onclick="window.history.back();" class="button">Go Back</a>
       <a href="/index" class="button">Return to the Home Page</a>
+    {% endif %}
   </div>
 </div>
+{% endblock %}

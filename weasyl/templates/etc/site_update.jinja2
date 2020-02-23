@@ -1,30 +1,34 @@
-$def with (myself, update, comments)
-$ owner = update.get_display_owner()
+{% extends 'common/base.jinja2' %}
+{% import 'common/comments.jinja2' as comment_macros %}
+{% from 'common/macros.jinja2' import AVATAR %}
+{% block content %}
 <div id="home-content" class="content">
   <div class="constrained">
-    <h3>${update.title}</h3>
+    <h3>{{ update.title}}</h3>
 
+    {% set owner = update.get_display_owner() %}
     <figure class="thumbnail thumbnail-left clear">
-      <a class="avatar" href="/~${owner.login_name}" title="${owner.profile.username}">
-        <img src="${owner.avatar_display_url or resource_path('img/default-avatar.jpg')}" alt="avatar of ${owner.profile.username}" />
-      </a>
+        {{ AVATAR(owner) }}
       <figcaption class="caption">
-        <h4 class="title"><i>Posted by</i> <a class="username" href="/~${owner.login_name}">${owner.profile.username}</a></h4>
-        <h5 class="date">${DATE(update.unixtime)} <i>at</i> ${TIME(update.unixtime)}</h5>
+        <h4 class="title"><i>Posted by</i> <a class="username" href="/~{{ owner.login_name }}">{{owner.profile.username}}</a></h4>
+        <h5 class="date">{{ update.unixtime|DATE }} <i>at</i> {{ update.unixtime|TIME }}</h5>
       </figcaption>
     </figure>
 
     <div class="formatted-content" style="margin-top: 1em">
-      $:{MARKDOWN(update.content)}
+      {{update.content|MARKDOWN}}
     </div>
   </div>
 
   <div id="site-update-comments">
-    $if comments:
+   {% if comments %}
       <div class="constrained"><h3>Comments</h3></div>
-      $:{RENDER("common/comment_thread.html", ["detail_comments", comments, "siteupdate", myself, update.updateid, update.userid])}
-    $if myself:
+      {{ comment_macros.comment_thread(req.userid, "detail_comments", comments, "siteupdate", update.updateid, update.userid)}}
+   {% endif %}
+    {% if myself %}
       <div class="constrained"><h3>Leave a Comment</h3></div>
-      $:{RENDER("common/comment_form.html", [myself, update.updateid, "siteupdate"])}
+      {{ comment_macros.comment_form(req.userid, update.updateid, "siteupdate")  }}
+  {% endif %}
   </div>
 </div>
+{% endblock %}

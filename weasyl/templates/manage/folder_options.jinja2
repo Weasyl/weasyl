@@ -1,21 +1,22 @@
-$def with (info)
-$:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
-$code:
-  def _CHECKED(c, name):
-    return ''.join([
-      ' value="%s"' % (c,),
-      ' checked' if name in info.settings else '',
-    ])
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/commission_info.jinja2' import commission_price_display %}
+{% from 'common/macros.jinja2' import CHECKED %}
+
+
+{% block content %}
+    {{ stage("Submission Folders", "Settings") }}
+
 
 <div class="content">
 
   <div class="form skinny clear">
-    <h3>${info.title}</h3>
+    <h3>{{ info.title }}</h3>
     <form method="POST">
-      $:{CSRF()}
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
       <p>
       <label class="input-checkbox">
-        <input type="checkbox" name="settings" $:{_CHECKED("f", "featured-filter")} />
+        <input type="checkbox" name="settings" value="f" {{ CHECKED("featured-filter", info.settings) }} />
         This is a featured submissions folder <em class="color-lighter">
           (A random item will be chosen from all featured submission folders to
           be shown as your "featured" submission on <a href="/~">your profile page</a>.)</em>
@@ -25,18 +26,18 @@ $code:
       <p>
       <strong>Submissions created in this folder:</strong>
       <label class="input-checkbox last-input">
-        <input type="checkbox" name="settings" $:{_CHECKED("n", "no-notifications")} />
+        <input type="checkbox" name="settings" value="n" {{ CHECKED("no-notifications", info.settings) }} />
         Do not generate "new submission" notifications to your followers
       </label>
       </p>
       <p>
       <strong>Submissions inside this folder:</strong>
       <label class="input-checkbox">
-        <input type="checkbox" name="settings" $:{_CHECKED("m", "index-filter")} />
+        <input type="checkbox" name="settings" value="m" {{ CHECKED("index-filter", info.settings) }} />
         Will not appear on <a href="https://www.weasyl.com/">Weasyl's front page</a>
       </label>
       <label class="input-checkbox last-input">
-        <input type="checkbox" name="settings" $:{_CHECKED("u", "profile-filter")} />
+        <input type="checkbox" name="settings" value="u" {{ CHECKED("profile-filter", info.settings) }} />
         Will not appear on <a href="/~">your profile page</a> or <a href="/submissions">your submissions page</a>
       </label>
       </p>
@@ -46,3 +47,4 @@ $code:
     </form>
   </div>
 </div>
+{% endblock %}

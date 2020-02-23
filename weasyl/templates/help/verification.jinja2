@@ -1,6 +1,7 @@
-$def with (username)
-$:{TITLE("Account Verification", "Help", "/help")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Account Verification", "Help", "/help") }}
 <div class="content">
   <div class="constrained">
 
@@ -15,15 +16,15 @@ $:{TITLE("Account Verification", "Help", "/help")}
     <h3>How do I verify my account?</h3>
 
     <div class="formatted-content">
-      $code:
-        if username:
-          profile_link = '<a href="{0}">https://www.weasyl.com{0}</a>'.format("/~" + LOGIN(username))
-        else:
-          profile_link = 'your username in the top-right is a link to it'
+        {% if username %}
+          {% set profile_link = '<a href="/~'+ username | LOGIN +'">https://www.weasyl.com/~' + username | LOGIN + '</a>' %}
+        {% else %}
+          {% set profile_link = 'your username in the top-right is a link to it' %}
+        {% endif %}
 
-      <p>Find someone you know who has a Weasyl account, and ask them to click the “Vouch” button on your profile ($:{profile_link}).</p>
+      <p>Find someone you know who has a Weasyl account, and ask them to click the “Vouch” button on your profile ({{ profile_link|safe }}).</p>
 
-      <p>If you don’t know anyone with an account, e-mail support at <a href="mailto:${M.MACRO_SUPPORT_ADDRESS}">${M.MACRO_SUPPORT_ADDRESS}</a>. A staff member will verify you! (Linking back to your Weasyl profile from any well-used accounts you might have on other websites, and including that information in the e-mail, will help make this process fast.)</p>
+      <p>If you don’t know anyone with an account, e-mail support at <a href="mailto:{{ M.MACRO_SUPPORT_ADDRESS }}">{{ M.MACRO_SUPPORT_ADDRESS }}</a>. A staff member will verify you! (Linking back to your Weasyl profile from any well-used accounts you might have on other websites, and including that information in the e-mail, will help make this process fast.)</p>
     </div>
 
     <a href="#verifying-others" class="faq-permalink">Link</a>
@@ -37,3 +38,4 @@ $:{TITLE("Account Verification", "Help", "/help")}
 
   </div>
 </div>
+{% endblock %}

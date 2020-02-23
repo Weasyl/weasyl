@@ -1,7 +1,8 @@
-$def with (detail, history)
+{% extends 'common/base.jinja2' %}
 
+{% block content %}
 <div class="content">
-  <h3><a href="/submission/${detail['submitid']}/${SLUG(detail['title'])}">${detail['title']}</a> tag updates</h3>
+  <h3><a href="/submission/{{ detail['submitid'] }}/{{ detail['title'] | SLUG }}">{{ detail['title'] }}</a> tag updates</h3>
 
   <table id="tag-history">
     <tr>
@@ -10,18 +11,22 @@ $def with (detail, history)
       <th>Tags removed</th>
       <th>When</th>
     </tr>
-  $for row in history:
+  {% for row in history %}
     <tr>
-      <td><a href="/~${LOGIN(row.username)}">${row.username}</a></td>
+      <td><a href="/~{{ row.username| LOGIN }}">{{ row.username }}</a></td>
       <td>
-      $for i in row.added or []:
-        +<a href="/search?q=${i}">${i}</a>
+      {% for i in row.added or [] %}
+        +<a href="/search?q={{ i }}">{{ i }}</a>
+      {% endfor %}
       </td>
       <td>
-      $for i in row.removed or []:
-        -<a href="/search?q=${i}">${i}</a>
+      {% for i in row.removed or [] %}
+        -<a href="/search?q={{ i }}">{{ i }}</a>
+      {% endfor %}
       </td>
-      <td>${DATE(row.updated_at)} <i>at</i> ${TIME(row.updated_at)}</td>
+      <td>{{ row.updated_at | DATE }} <i>at</i> {{ row.updated_at| TIME }}</td>
     </tr>
+  {% endfor %}
   </table>
 </div>
+{% endblock %}

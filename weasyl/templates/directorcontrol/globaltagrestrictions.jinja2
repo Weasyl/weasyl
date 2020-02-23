@@ -1,9 +1,11 @@
-$def with (tags)
-$:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restrictions", "Director Control Panel"])}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("Edit Global Community Tagging Restrictions", "Director Control Panel") }}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/directorcontrol/globaltagrestrictions">
-    $if tags:
+    {% if tags %}
       <h3>Current Global Community Tagging Restrictions</h3>
       <table>
         <thead>
@@ -13,17 +15,19 @@ $:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restriction
           </tr>
         </thead>
         <tbody>
-          $for title, login_name in tags.iteritems():
+          {% for title, login_name in tags.items() %}
             <tr>
-              <td style="text-align:center">$login_name</td>
-              <td style="text-align:center">$title</td>
+              <td style="text-align:center">{{ login_name }}</td>
+              <td style="text-align:center">{{ title }}</td>
             </tr>
+          {% endfor %}
         </tbody>
       </table>
-    $else:
+    {% else %}
       <p style="text-align: center; font-weight: bold;">No community tags are currently restricted.</p>
+    {% endif %}
 
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
     <h3>Global Community Tagging Restrictions Information</h3>
     <p>
       Tags added here will not be able to be added to the list of search tags for an item,
@@ -34,9 +38,10 @@ $:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restriction
     </p>
 
     <span class="label">Add or Remove Tags:</span><br />
-    <textarea class="tags-textarea" name="tags">${" ".join(sorted(tags))}</textarea>
+    <textarea class="tags-textarea" name="tags">{{ tags | sort | join(" ") }}</textarea>
     <div style="padding-top: 1em;">
       <button class="button positive" style="float: right;">Save Tags</button>
     </div>
   </form>
 </div>
+{% endblock %}

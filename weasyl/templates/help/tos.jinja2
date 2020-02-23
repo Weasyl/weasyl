@@ -1,4 +1,7 @@
-$:{TITLE("Terms of Service")}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Terms of Service") }}
 <div class="content">
   <div class="constrained">
 
@@ -136,3 +139,4 @@ $:{TITLE("Terms of Service")}
     </div>
   </div>
 </div>
+{% endblock %}

@@ -1,0 +1,72 @@
+<footer>
+    <div id="footer">
+        <nav>
+            <div id="footer-nav" class="clear">
+                <div class="column clear">
+                    <h1><a href="/index"><img src="{{ 'img/logo.png' | route_path }}" alt="Weasyl"/></a></h1>
+                    <ul class="clear">
+                        <li><a href="{{ 'submit' | route_path }}">Submit</a></li>
+                        <li><a href="{{ 'search' | route_path }}">Search</a></li>
+                        <li><a href="{{ 'control' | route_path(alias='control') }}">Settings</a></li>
+                    </ul>
+                </div>
+                <div class="column clear">
+                    <h2 class="typeface-a color-a">About</h2>
+                    <ul class="clear">
+                        <li><a href="{{ 'help_about' | route_path }}">About Weasyl</a></li>
+                        <li><a href="{{ 'site_update_list' | route_path }}">News</a></li>
+                        <li><a href="{{ 'help_faq' | route_path }}">FAQ</a></li>
+                        <li><a href="{{ 'staff' | route_path }}">Staff</a></li>
+                        <li><a href="{{ 'thanks' | route_path }}">Awesome People</a></li>
+                    </ul>
+                </div>
+                <div class="column clear">
+                    <h2 class="typeface-a color-a">Community</h2>
+                    <ul class="clear">
+                        <li><a href="https://forums.weasyl.com/vbulletin/forum.php">Forums</a></li>
+                        <li><a href="https://twitter.com/Weasyl">@Weasyl</a></li>
+                        <li><a href="https://twitter.com/WeasylDev">@WeasylDev</a></li>
+                        <li><a href="https://twitter.com/WeasylCritique">@WeasylCritique</a></li>
+                        <li><a href="https://twitter.com/WZLCritiqueNSFW">@WZLCritiqueNSFW</a></li>
+                    </ul>
+                </div>
+                <div class="column clear">
+                    <h2 class="typeface-a color-a">Policy</h2>
+                    <ul class="clear">
+                        <li><a href="{{ 'policy_community' | route_path }}">Community Guidelines</a></li>
+                        <li><a href="{{ 'help_ratings' | route_path }}">Ratings Guidelines</a></li>
+                        <li><a href="{{ 'policy_tos' | route_path }}">Terms of Service</a></li>
+                        <li><a href="{{ 'policy_copyright' | route_path }}">Copyright Policy</a></li>
+                        <li><a href="{{ 'policy_scoc' | route_path }}">Staff Code of Conduct</a></li>
+                        <li><a href="{{ 'policy_privacy' | route_path }}">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="column clear">
+                    <h2 class="typeface-a color-a">Support</h2>
+                    <ul class="clear">
+                        <li><a href="{{ 'help' | route_path }}">Help Topics</a></li>
+                        <li>
+                            <a href="https://forums.weasyl.com/vbulletin/forumdisplay.php?15-Site-amp-Forum-Support">
+                                Report a Bug
+                            </a>
+                        </li>
+                        <li><a href="{{ 'help_reports' | route_path }}">My Reports</a></li>
+                        <li><a href="mailto:support@weasyl.com">support@weasyl.com</a></li>
+                        <li><a href="mailto:sysop@weasyl.com">sysop@weasyl.com</a></li>
+                    </ul>
+                </div>
+
+            </div>
+        </nav>
+
+        <img id="footer-wesley" src="{{ 'img/wesley1.png' | route_path }}" alt=""/>
+
+        <p id="footer-info">
+            <a href="https://github.com/Weasyl/weasyl/commit/{{ SHA }}">{{ SHA }}</a>
+            &middot; Copyright &copy; 2012-{{ arrow.now().year }} Weasyl LLC
+            <br>
+            <a href="https://github.com/Weasyl/weasyl">Weasyl is an open source project</a>
+        </p>
+
+    </div>
+</footer>

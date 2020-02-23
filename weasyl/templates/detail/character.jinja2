@@ -1,15 +1,23 @@
-$def with (myself, query, violations)
+{% extends 'common/base.jinja2' %}
+{% import 'common/comments.jinja2' as comment_macros %}
+{% import 'user/user_tools.jinja2' as user_macro %}
+{% from 'common/detail_tag_form.jinja2' import detail_tag_form %}
+{% from 'common/detail_report_form.jinja2' import detail_report_form %}
+{% from 'common/macros.jinja2' import AVATAR %}
 
+
+
+{% block content %}
 <div id="detail-stage" class="stage">
 
-  <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h1>
+  <h1 id="detail-title" class="pad-left pad-right">{{ query['title'] }} <i>by</i> <a class="username" href="/~{{ query['username'] |LOGIN }}">{{ query['username'] }}</a></h1>
 
   <div id="detail-art">
-    $ submissions = query['sub_media'].get('submission')
-    $ submission = submissions[0]
-    $ cover = submission['described']['cover'][0]
-    <a href="${submission['display_url']}">
-      <img src="${cover['display_url']}" alt="" />
+    {% set submissions = query['sub_media'].get('submission') %}
+    {% set submission = submissions[0] %}
+    {% set cover = submission['described']['cover'][0] %}
+    <a href="{{ submission['display_url'] }}">
+      <img src="{{ cover['display_url'] }}" alt=""/>
     </a>
   </div>
 
@@ -20,31 +28,33 @@ $def with (myself, query, violations)
 
   <div id="db-main">
     <ul id="detail-actions" class="toolset clear">
-      <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/characters/${query['charid']}/" method="post">
-        $:{CSRF()}
-        <input type="hidden" name="charid" value="${query['charid']}" />
-        $if not query['mine']:
-          $if query['favorited']:
+      <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/characters/{{ query['charid'] }}/" method="post">
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+      <input type="hidden" name="charid" value="{{ query['charid'] }}"/>
+        {% if not query['mine'] %}
+          {% if query['favorited'] %}
             <input type="hidden" name="action" value="unfavorite" />
             <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
-          $else:
+          {% else %}
             <input type="hidden" name="action" value="favorite" />
             <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+          {% endif %}
+        {% endif %}
       </form></li>
-      <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
-      $if query['reported'] and myself and myself['userid'] in staff.MODS:
-        <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
-      $elif 'h' not in query['settings']:
+      <li><a href="{{ submission['display_url'] }}"><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
+      {% if query['reported'] and myself and myself['userid'] in staff.MODS %}
+                    <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
+      {% elif 'h' not in query['settings'] %}
         <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
+      {% endif %}
     </ul>
-    <h2 id="detail-bar-title">${query['title']}</h2>
+    <h2 id="detail-bar-title">{{ query['title'] }}</h2>
   </div>
 
   <div id="db-user">
-    $ avatar = query['user_media']['avatar'][0]
-    <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
-    <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-    <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
+    {{ AVATAR(query) }}
+    <a class="username" href="/~{{ query['username'] |LOGIN }}">{{ query['username'] }}</a>
+    <p class="date">{{ query['unixtime'] | DATE }} <i>at</i> {{ query['unixtime'] | TIME }}</p>
   </div>
 
 </div>
@@ -53,23 +63,28 @@ $def with (myself, query, violations)
 <div id="detail-content" class="content clear">
 
   <div id="detail-description">
-    $:{RENDER("common/detail_report_form.html", [query['charid'], "char", violations])}
+    {{ detail_report_form(query['charid'], "char", violations) }}
     <div class="formatted-content">
       <dl id="char-stats" class="clear">
-        <dt>Name:</dt> <dd>${query['title']}</dd>
-        $if query['age']:
-          <dt>Age:</dt> <dd>${query['age']}</dd>
-        $if query['gender']:
-          <dt>Gender:</dt> <dd>${query['gender']}</dd>
-        $if query['height']:
-          <dt>Height:</dt> <dd>${query['height']}</dd>
-        $if query['weight']:
-          <dt>Weight:</dt> <dd>${query['weight']}</dd>
-        $if query['species']:
-          <dt>Species:</dt> <dd>${query['species']}</dd>
+        <dt>Name:</dt> <dd>{{ query['title'] }}</dd>
+        {% if query['age'] %}
+          <dt>Age:</dt> <dd>{{ query['age'] }}</dd>
+        {% endif %}
+        {% if query['gender'] %}
+          <dt>Gender:</dt> <dd>{{ query['gender'] }}</dd>
+        {% endif %}
+        {% if query['height'] %}
+          <dt>Height:</dt> <dd>{{ query['height'] }}</dd>
+        {% endif %}
+        {% if query['weight'] %}
+          <dt>Weight:</dt> <dd>{{ query['weight'] }}</dd>
+        {% endif %}
+        {% if query['species'] %}
+          <dt>Species:</dt> <dd>{{ query['species'] }}</dd>
+        {% endif %}
       </dl>
 
-      <div class="formatted-content">$:{MARKDOWN(query['content'])}</div>
+      <div class="formatted-content">{{ query['content'] | MARKDOWN }}</div>
     </div>
   </div>
 
@@ -78,77 +93,87 @@ $def with (myself, query, violations)
 
     <div id="di-info">
       <h3>Character Information</h3>
-      $if query['friends_only']:
+      {% if query['friends_only'] %}
         <div id="detail-visibility-restricted">Friends Only</div>
+      {% endif %}
       <dl class="clear">
-        <dt>Views:</dt> <dd>${query['page_views']}</dd>
-        <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
-        <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
-        <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
+        <dt>Views:</dt> <dd>{{ query['page_views'] }}</dd>
+        <dt>Comments:</dt> <dd>{{ query['comments'] | length }}</dd>
+        <dt>Favorites:</dt> <dd>{{ query['fave_count'] }}</dd>
+        <dt>Rating:</dt> <dd>{{ R.CODE_MAP[query['rating']].name_with_age }}</dd>
       </dl>
     </div>
 
-    $if query['mine']:
+    {% if query['mine'] %}
       <div id="detail-manage">
         <h3>Character Management</h3>
 
-        <p><a href="/manage/thumbnail?charid=${query['charid']}">Edit Character Thumbnail</a></p>
-        <p><a href="/reupload/character?charid=${query['charid']}">Edit Submission File</a></p>
-        <p><a href="/edit/character?charid=${query['charid']}">Edit Character Details</a></p>
+        <p><a href="/manage/thumbnail?charid={{ query['charid'] }}">Edit Character Thumbnail</a></p>
+        <p><a href="/reupload/character?charid={{ query['charid'] }}">Edit Submission File</a></p>
+        <p><a href="/edit/character?charid={{ query['charid'] }}">Edit Character Details</a></p>
 
         <form action="/remove/character" method="POST" data-confirm="Are you sure you want to remove this character?">
-          $:{CSRF()}
-          <input type="hidden" name="charid" value="${query['charid']}" />
+          <input type="hidden" name="token" value="{{ TOKEN() }}" />
+          <input type="hidden" name="charid" value="{{ query['charid'] }}" />
 
           <button class="link-button">Remove Character from Gallery</button>
         </form>
       </div>
+    {% endif %}
 
-    $if myself and myself['userid'] in staff.MODS:
+    {% if myself and myself['userid'] in staff.MODS %}
       <div id="detail-mod">
         <h3>Character Moderation</h3>
-        $if query['hidden_submission']:
+        {% if query['hidden_submission'] %}
           <div id="detail-visibility-restricted">Hidden Submission</div>
-        <p><a href="/edit/character?charid=${query['charid']}&amp;anyway=true">Edit Character Details</a></p>
+        {% endif %}
+        <p><a href="/edit/character?charid={{ query['charid'] }}&amp;anyway=true">Edit Character Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
-          $:{CSRF()}
-          <input type="hidden" name="characters" value="${query['charid']}">
+          <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+          <input type="hidden" name="characters" value="{{ query['charid'] }}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "character"):
-              <option value="${value}">${name}</option>
+            {% for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "character") %}
+              <option value="{{ value }}">{{ name }}</option>
+            {% endfor %}
           </select>
           <br>
           <button class="button positive">Moderate Character</button>
         </form>
       </div>
+    {% endif %}
 
 
     <div class="di-tags">
       <h3>Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
 
       <div class="tags open clear">
-        $if query['tags']:
-          $for i in query['tags']:
-            <a href="/search?q=${i}">${i}</a>
-        $else:
+        {% if query['tags'] %}
+          {% for i in query['tags'] %}
+            <a href="/search?q={{ i }}">{{ i }}</a>
+          {% endfor %}
+        {% else %}
           <p class="color-lighter">There are no tags associated with this character</p>
+        {% endif %}
       </div>
 
       <h3 class="edit">Edit Tags</h3>
 
-      $:{RENDER("common/detail_tag_form.html", [query['charid'], "char", query['tags']])}
+    {{ detail_tag_form(query['charid'], "char", query['tags']) }}
     </div>
 
   </div>
 
 
   <div id="detail-comments">
-    $if query['comments']:
+    {% if query['comments'] %}
       <h3>Comments</h3>
-      $:{RENDER("common/comment_thread.html", ["detail_comments", query['comments'], "char", myself, query['charid'], query['userid']])}
-    $if myself:
+     {{ comment_macros.comment_thread(req.userid, "detail_comments", query['comments'], "char", query['charid'], query['userid']) }}
+    {% endif %}
+    {% if myself %}
       <h3>Leave a Comment</h3>
-      $:{RENDER("common/comment_form.html", [myself, query['charid'], "char"])}
+      {{ comment_macros.comment_form(req.userid, query['charid'], "char") }}
+    {% endif %}
   </div>
 
 </div>
+{% endblock %}

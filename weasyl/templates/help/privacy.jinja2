@@ -1,4 +1,7 @@
-$:{TITLE("Privacy Policy")}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Privacy Policy") }}
 <div class="content">
   <div class="constrained">
 
@@ -103,3 +106,4 @@ $:{TITLE("Privacy Policy")}
 
   </div>
 </div>
+{% endblock %}

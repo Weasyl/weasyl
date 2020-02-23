@@ -1,11 +1,17 @@
-$def with (myself, query, violations)
+{% extends 'common/base.jinja2' %}
+{% import 'common/comments.jinja2' as comment_macros %}
+{% import 'user/user_tools.jinja2' as user_macro %}
+{% from 'common/detail_tag_form.jinja2' import detail_tag_form %}
+{% from 'common/detail_report_form.jinja2' import detail_report_form %}
+{% from 'common/macros.jinja2' import AVATAR %}
 
+{% block content %}
 <div id="detail-stage" class="stage">
 
-  <h1 id="detail-title">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h1>
+  <h1 id="detail-title">{{ query['title'] }} <i>by</i> <a class="username" href="/~{{ query['username'] | LOGIN }}">{{ query['username'] }}</a></h1>
 
   <div id="detail-journal" class="content formatted-content">
-    $:{MARKDOWN(query['content'])}
+    {{ query['content'] |MARKDOWN }}
   </div>
 
 </div>
@@ -14,32 +20,34 @@ $def with (myself, query, violations)
 
   <div id="db-main">
     <ul id="detail-actions" class="toolset clear">
-      <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/journals/${query['journalid']}/" method="post">
-        $:{CSRF()}
-        <input type="hidden" name="journalid" value="${query['journalid']}" />
-        $if not query['mine']:
-          $if query['favorited']:
+      <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/journals/{{ query['journalid'] }}/" method="post">
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+        <input type="hidden" name="journalid" value="{{ query['journalid'] }}" />
+        {% if not query['mine'] %}
+          {% if query['favorited'] %}
             <input type="hidden" name="action" value="unfavorite" />
             <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
-          $else:
+          {% else %}
             <input type="hidden" name="action" value="favorite" />
             <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+          {% endif %}
+        {% endif %}
       </form></li>
       <li>
-        $if query['reported'] and myself and myself['userid'] in staff.MODS:
+        {% if query['reported'] and myself and myself['userid'] in staff.MODS %}
           <a id="detail-report-button" class="active" href="#"><span class="icon icon-20 icon-report"></span> Reported</a>
-        $elif 'h' not in query['settings']:
+        {% elif 'h' not in query['settings'] %}
           <a id="detail-report-button" href="#"><span class="icon icon-20 icon-report"></span> Report</a>
+        {% endif %}
       </li>
     </ul>
-    <h2 id="detail-bar-title">${query['title']}</h2>
+    <h2 id="detail-bar-title">{{ query['title'] }}</h2>
   </div><!-- db-main -->
 
   <div id="db-user">
-    $ avatar = query['user_media']['avatar'][0]
-    <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
-    <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-    <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
+    {{ AVATAR(query) }}
+    <a class="username" href="/~{{ query['username'] | LOGIN }}">{{ query['username'] }}</a>
+    <p class="date">{{ query['unixtime'] | DATE }} <i>at</i> {{ query['unixtime'] |TIME }}</p>
   </div>
 
 </div>
@@ -48,94 +56,105 @@ $def with (myself, query, violations)
 <div id="detail-content" class="content journal">
 
   <div id="detail-description">
-    $:{RENDER("common/detail_report_form.html", [query['journalid'], "journal", violations])}
+    {{ detail_report_form(query['journalid'], "journal", violations) }}
   </div>
 
   <div id="detail-info">
 
     <div id="di-info">
       <h3>Journal Information</h3>
-      $if query['friends_only']:
+      {% if query['friends_only'] %}
         <div id="detail-visibility-restricted">Friends Only</div>
+      {% endif %}
       <dl>
-        <dt>Views:</dt> <dd>${query['page_views']}</dd>
-        <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
-        <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
-        <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
+        <dt>Views:</dt> <dd>{{ query['page_views'] }}</dd>
+        <dt>Comments:</dt> <dd>{{ query['comments'] | length }}</dd>
+        <dt>Favorites:</dt> <dd>{{ query['fave_count'] }}</dd>
+        <dt>Rating:</dt> <dd>{{ R.CODE_MAP[query['rating']].name_with_age }}</dd>
       </dl>
     </div>
 
-    $if query['mine'] or myself and myself['userid'] in staff.MODS:
+    {% if query['mine'] or myself and myself['userid'] in staff.MODS %}
       <form name="removejournal" action="/remove/journal" method="post">
-        $:{CSRF()}
-        <input type="hidden" name="journalid" value="${query['journalid']}" />
+        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+        <input type="hidden" name="journalid" value="{{ query['journalid'] }}" />
       </form>
+    {% endif %}
 
-    $if query['mine']:
+    {% if query['mine'] %}
       <div id="detail-manage">
         <h3>Journal Management</h3>
 
-        <p><a href="/edit/journal?journalid=${query['journalid']}">Edit Journal Details</a></p>
+        <p><a href="/edit/journal?journalid={{ query['journalid'] }}">Edit Journal Details</a></p>
 
         <form action="/remove/journal" method="POST" data-confirm="Are you sure you want to remove this journal?">
-          $:{CSRF()}
-          <input type="hidden" name="journalid" value="${query['journalid']}" />
+          <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+          <input type="hidden" name="journalid" value="{{ query['journalid'] }}" />
 
           <button class="link-button">Remove Journal Entry</button>
         </form>
       </div>
+    {% endif %}
 
-    $if myself and myself['userid'] in staff.MODS:
+    {% if myself and myself['userid'] in staff.MODS %}
       <div id="detail-mod">
         <h3>Journal Moderation</h3>
-        $if query['hidden_submission']:
+        {% if query['hidden_submission'] %}
           <div id="detail-visibility-restricted">Hidden Submission</div>
-        <p><a href="/edit/journal?journalid=${query['journalid']}&amp;anyway=true">Edit Journal Details</a></p>
+        {% endif %}
+        <p><a href="/edit/journal?journalid={{ query['journalid'] }}&amp;anyway=true">Edit Journal Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
-          $:{CSRF()}
-          <input type="hidden" name="journals" value="${query['journalid']}">
+          <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+          <input type="hidden" name="journals" value="{{ query['journalid'] }}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "journal"):
-              <option value="${value}">${name}</option>
+            {% for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "journal") %}
+              <option value="{{ value }}">{{ name }}</option>
+            {% endfor %}
           </select>
           <br>
           <button class="button positive">Moderate Journal</button>
         </form>
         <br />
         <form action="/modcontrol/spam/remove" method="POST" data-confirm="Are you sure you want to submit this item as spam and hide it?">
-          $:{CSRF()}
-          <input type="hidden" name="journalid" value="${query['journalid']}" />
+          <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+          <input type="hidden" name="journalid" value="{{ query['journalid'] }}" />
 
           <button class="button negative">Submit as Spam and Hide</button>
         </form>
       </div>
+    {% endif %}
 
     <div class="di-tags">
       <h3>Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
 
       <div class="tags open clear">
-        $if query['tags']:
-          $for i in query['tags']:
-            <a href="/search?find=journal&amp;q=${i}">${i}</a>
-        $else:
+        {% if query['tags'] %}
+          {% for i in query['tags'] %}
+            <a href="/search?find=journal&amp;q={{ i }}">{{ i }}</a>
+          {% endfor %}
+        {% else %}
           <p class="color-lighter">There are no tags associated with this journal</p>
+        {% endif %}
       </div>
 
       <h3 class="edit">Edit Tags</h3>
 
-      $:{RENDER("common/detail_tag_form.html", [query['journalid'], "journal", query['tags']])}
+      {{ detail_tag_form(query['journalid'], "journal", query['tags']) }}
     </div>
 
   </div>
 
 
   <div id="detail-comments">
-    $if query['comments']:
+    {% if query['comments'] %}
       <h3>Comments</h3>
-      $:{RENDER("common/comment_thread.html", ["detail_comments", query['comments'], "journal", myself, query['journalid'], query['userid']])}
-    $if myself:
+      {{ comment_macros.comment_thread(req.userid, "detail_comments", query['comments'], "journal", query['journalid'], query['userid']) }}
+    {% endif %}
+    {% if myself %}
       <h3>Leave a Comment</h3>
-      $:{RENDER("common/comment_form.html", [myself, query['journalid'], "journal"])}
+      {{ comment_macros.comment_form(req.userid, query['journalid'], "journal") }}
+    {% endif %}
   </div>
 
 </div>
+{% endblock %}

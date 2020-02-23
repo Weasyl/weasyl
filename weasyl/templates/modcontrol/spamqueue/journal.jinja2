@@ -1,8 +1,9 @@
-$def with (query)
-$:{RENDER("common/stage_title.html", ["Journal Spam Queue", "Moderator Control Panel", "/modcontrol"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Journal Spam Queue", "Moderator Control Panel", "/modcontrol") }}
 <div id="spam_queue_content" class="content">
-  $if query:
+    {% if query %}
     <table>
       <thead>
         <tr>
@@ -12,30 +13,33 @@ $:{RENDER("common/stage_title.html", ["Journal Spam Queue", "Moderator Control P
         </tr>
       </thead>
       <tbody>
-        $for user, journal_id, title, content in query:
+      {% for user, journal_id, title, content in query %}
           <tr>
-            <td>${user} - <a href="/staffnotes/${user}">Staff notes</a></td>
+            <td>{{ user }} - <a href="/staffnotes/{{ user }}">Staff notes</a></td>
             <td>
-              <b>Journal detail page: <a href="/journal/${journal_id}?anyway=true">View journal</a></b>
+              <b>Journal detail page: <a href="/journal/{{ journal_id }}?anyway=true">View journal</a></b>
               <br /><br />
-              <b>Journal Title</b>: ${title}
+              <b>Journal Title</b>: {{ title }}
               <br /><br />
               <b>Journal Body</b>:
               <br /><br />
-              ${content}
+              {{ content }}
             </td>
             <td>
               <form action="/modcontrol/spamqueue/journal" method="post">
-                $:{CSRF()}
-                <input type="hidden" name="journalid" value="${journal_id}" />
+                <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+                <input type="hidden" name="journalid" value="{{ journal_id }}"/>
                 <button class="button positive" name="directive" value="approve">Approve</button>
                 <br /><br />
                 <button class="button negative" name="directive" value="reject">Reject</button>
               </form>
             </td>
           </tr>
+      {% endfor %}
       </tbody>
     </table>
-  $else:
+    {% else %}
     There are no entries in the journal spam queue.
+    {% endif %}
 </div>
+{% endblock %}

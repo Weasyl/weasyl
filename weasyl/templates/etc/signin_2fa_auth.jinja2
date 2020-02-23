@@ -1,31 +1,42 @@
-$def with (username, referer, remaining_recovery_codes, error)
-$:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("Two-Factor Authentication", "Sign In") }}
 
 <div class="content form clear">
   <form method="POST" class="form skinny clear" action="/signin/2fa-auth">
-    $if error == "2fa":
+    {% if error == "2fa" %}
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.</div>
-    $:{CSRF()}
+    {% endif %}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
     <h3>Two-Factor Authentication</h3>
-    <p><strong>Username: ${username}</strong></p>
+    <p><strong>Username: {{ username }}</strong></p>
     <p>
       The Weasyl account identified above has two-factor authentication enabled.
       Enter the current time-based token for this user below. Or, if you no longer
       have access to the authenticator for this account, enter one of your unused
-      twenty-character recovery codes. <strong>You have ${remaining_recovery_codes}
-      recovery code${'s' if remaining_recovery_codes > 1 else ''} remaining.</strong>
+      twenty-character recovery codes.
+      <strong>
+      {% trans remaining=remaining_recovery_codes -%}
+         You have {{ remaining_recovery_codes }} recovery code remaining
+      {% pluralize %}
+         You have {{ remaining_recovery_codes }} recovery codes remaining
+      {%- endtrans %}
+      </strong>
     </p>
-    $if remaining_recovery_codes == 1:
+    {% if remaining_recovery_codes == 1 %}
       <p>
         <strong>Note:</strong> 2FA will be disabled upon using your last recovery
         code. You may re-enable 2FA immediately afterwards, if you desire.
       </p>
+    {% endif %}
     <label for="tfa-response">Time-based Token or Recovery Code</label>
     <input type="text" id="tfa-response" maxlength="24" class="input" name="tfaresponse" placeholder="012345" autofocus="autofocus" autocomplete="off" required />
 
     <div style="padding-top: 1em;">
       <button class="button positive">Sign In</button>
     </div>
-    <input type="hidden" name="referer" value="${referer}" />
+    <input type="hidden" name="referer" value="{{ referer }}" />
   </form>
 </div>
+{% endblock %}

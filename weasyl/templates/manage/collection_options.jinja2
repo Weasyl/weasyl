@@ -1,21 +1,20 @@
-$def with (settings)
-$:{RENDER("common/stage_title.html", ["Collection Settings", "Settings"])}
-$code:
-  def _CHECKED(x):
-    return ' checked' if settings[x] else ''
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/macros.jinja2' import TRUE_CHECKED %}
+{% block content %}
+    {{ stage("Collection Settings", "Settings") }}
 <div id="manage_collection_options" class="content">
   <form class="form skinny" action="/control/collections" method="POST">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <h3>Collection Settings</h3>
     <label class="input-checkbox" style="margin-top:1.5em">
-      <input type="checkbox" name="allow_request"$:{_CHECKED("allow_request")} />
+      <input type="checkbox" name="allow_request" {{ TRUE_CHECKED(settings["allow_request"]) }} />
       Allow users to request my submissions as a collection
     </label>
 
     <label class="input-checkbox last-input">
-      <input type="checkbox" name="allow_notification"$:{_CHECKED("allow_notification")} />
+      <input type="checkbox" name="allow_notification" {{ TRUE_CHECKED(settings["allow_notification"]) }} />
       Recieve notifications for comments and favorites on items I've collected
     </label>
 
@@ -25,3 +24,4 @@ $code:
     </div>
   </form>
 </div>
+{% endblock %}

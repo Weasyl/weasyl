@@ -1,9 +1,10 @@
-$def with (blocktag, filter_ratings)
-$:{RENDER("common/stage_title.html", ["Tag Filters", "Settings"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Tag Filters", "Settings") }}
 <div id="filters-content" class="content">
   <form method="POST" class="form skinny clear">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <h3>Create Filters</h3>
 
@@ -16,8 +17,9 @@ $:{RENDER("common/stage_title.html", ["Tag Filters", "Settings"])}
 
     <label for="tagfilters_rating">Rating to Filter:</label>
     <select name="rating" id="tagfilters_rating" class="input">
-    $for rating in filter_ratings:
-      <option value="${rating.code}">${rating.block_text}</option>
+        {% for rating in filter_ratings %}
+            <option value="{{ rating.code }}">{{ rating.block_text }}</option>
+        {% endfor %}
     </select>
 
     <div id="tagfilters_content_buttons" class="clear">
@@ -29,14 +31,17 @@ $:{RENDER("common/stage_title.html", ["Tag Filters", "Settings"])}
     <h3>Blacklist Filters</h3>
 
     <div id="tagfilters_standard" class="tagfilters clear">
-      $if blocktag:
-        $for i in blocktag:
+        {% if blocktag %}
+        {% for i in blocktag %}
           <span>
-            <strong>${i['title']}</strong>
-            ${R.CODE_MAP[i['rating']].nice_name}${'+' if i['rating'] != R.EXPLICIT.code else ''}
+            <strong>{{ i['title'] }}</strong>
+            {{ R.CODE_MAP[i['rating']].nice_name }}{{ '+' if i['rating'] != R.EXPLICIT.code else '' }}
           </span>
-      $else:
+        {% endfor %}
+        {% else %}
         There are no blacklist filters to display.
+        {% endif %}
     </div>
   </form>
 </div>
+{% endblock %}

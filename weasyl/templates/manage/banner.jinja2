@@ -1,8 +1,10 @@
-$:{RENDER("common/stage_title.html", ["Edit Banner", "Settings"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Edit Banner", "Settings") }}
 <div id="manage-banner-content" class="content">
   <form name="managebanner" class="form skinny clear" action="/manage/banner" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
     <h3 style="padding-bottom: 0.5em;">Upload an Image</h3>
     <input type="file" name="image" class="styled-input" accept="image/*" />
 
@@ -14,3 +16,4 @@ $:{RENDER("common/stage_title.html", ["Edit Banner", "Settings"])}
     <a class="button" href="/control">Back to Settings</a>
   </form>
 </div>
+{% endblock %}

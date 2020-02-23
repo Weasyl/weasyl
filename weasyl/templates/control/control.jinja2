@@ -1,14 +1,16 @@
-$def with (premium, is_vouched_for)
-$:{RENDER("common/stage_title.html", ["Settings"])}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage("Settings") }}
 
 <div id="control-content" class="content">
 
   <div class="group">
     <h3>My Profile</h3>
 
-    $if not is_vouched_for:
-      <p style="margin-bottom: 1em"><strong>Your profile is hidden</strong> and won’t show up until your account is <a href="/help/verification">verified</a>.</p>
-
+    {% if not vouched %}
+        <p style="margin-bottom: 1em"><strong>Your profile is hidden</strong> and won't show up until your account is <a href="/help/verification">verified</a>.</p>
+    {% endif %}
     <p><a href="/manage/avatar">Avatar Image</a></p>
     <p><a href="/manage/banner">Banner Image</a></p>
     <p><a href="/control/editprofile">Profile Information</a></p>
@@ -36,11 +38,12 @@ $:{RENDER("common/stage_title.html", ["Settings"])}
     <p><a href="/manage/ignore">Ignored Users</a></p>
   </div>
 
-  $if premium:
+  {% if premium %}
     <div class="group">
       <h3>Premium Settings</h3>
       <p><a href="/manage/alias">Username Alias</a></p>
     </div>
+   {% endif %}
 
   <div class="group">
     <h3>Collections</h3>
@@ -50,3 +53,4 @@ $:{RENDER("common/stage_title.html", ["Settings"])}
   </div>
 
 </div>
+{% endblock %}

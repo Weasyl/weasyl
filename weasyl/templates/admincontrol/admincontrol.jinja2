@@ -1,5 +1,7 @@
-$:{TITLE("Administrator Control Panel")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Administrator Control Panel") }}
 <div id="admincontrol_content" class="content" style="padding-top:2em;">
   <div class="form skinny">
     <div style="font-size:1.3em;">
@@ -28,7 +30,7 @@ $:{TITLE("Administrator Control Panel")}
 
     <label>Get Confirmation Link</label>
     <form class="form clear" action="/admincontrol/acctverifylink" method="post">
-      $:{CSRF()}
+      <input type="hidden" name="token" value="{{ TOKEN() }}" />
       <p>Username</p>
       <input type="text" name="username" class="input last-input" />
       <p>Email</p>
@@ -39,3 +41,4 @@ $:{TITLE("Administrator Control Panel")}
     <br />
   </div>
 </div>
+{% endblock %}

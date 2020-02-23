@@ -1,4 +1,7 @@
-$:{TITLE("Help Topics", "Help", "/help")}
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Help Topics", "Help", "/help") }}
 <div class="content">
   <div class="constrained">
     <h3>General help</h3>
@@ -32,3 +35,4 @@ $:{TITLE("Help Topics", "Help", "/help")}
     </div>
   </div>
 </div>
+{% endblock %}

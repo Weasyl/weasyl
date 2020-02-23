@@ -1,39 +1,38 @@
-$def with (config, jsonb_settings, current_rating, current_sfw_rating, age, allowed_ratings, timezone, timezones)
-$:{RENDER("common/stage_title.html", ["Site Preferences", "Settings"])}
-$code:
-  def _CHECKED(x):
-    return ' checked="checked"' if x in config else ''
-  def _SELECTED(x):
-    return ' selected="selected"' if x in config else ''
-  def _RATING(current, x):
-    return ' selected="selected"' if current == x.code else ''
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/commission_info.jinja2' import commission_price_display %}
+{% from 'common/macros.jinja2' import SELECTED, CHECKED, NOT_CHECKED %}
+{% block content %}
+{{ stage("Site Preferences", "Settings") }}
 
 <div class="content">
   <form name="controleditpreferences" class="form skinny" action="/control/editpreferences" method="post">
-    $:{CSRF()}
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
 
     <label for="timezone">Display Timezone</label>
     <select name="timezone" class="input" id="timezone">
-      $for tzname, tzvalue in timezones:
-        $if tzvalue is None:
-          <option disabled="true">${tzname}</option>
-        $else:
-          <option value="${tzvalue}"$:{' selected' if timezone == tzvalue else ''}>${tzname}</option>
+      {% for tzname, tzvalue in timezones %}
+        {% if not tzvalue %}
+          <option disabled="true">{{ tzname }}</option>
+        {% else %}
+          <option value="{{ tzvalue }}" {{ SELECTED(timezone, tzvalue) }}>{{ tzname }}</option>
+        {% endif %}
+      {% endfor %}
     </select>
     <a id="tz-autodetect" class="button" style="margin-top: 0.5em; display: none">Autodetect</a>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.min.js"></script>
-    <script src="${resource_path('js/tz-autodetect.js')}"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.4/jstz.min.js"></script>
+    <script type="text/javascript" src="{{ '/static/tz-autodetect.js' | route_path }}"></script>
 
     <label class="input-checkbox" style="margin-top: 0.5em">
-      <input type="checkbox" name="twelvehour"$:{_CHECKED("2")} />
+      <input type="checkbox" name="twelvehour" {{ CHECKED("2", config) }} />
       Show times as 12-hour time <em class="color-lighter">(e.g. 12:34:56 AM)</em>
     </label>
     <label for="custom_thumbs">Custom Thumbnails</label>
     <select name="custom_thumbs" class="input" id="custom_thumbs">
-      <option value="enable"$:{' selected' if not jsonb_settings.disable_custom_thumbs else ''}>
+      <option value="enable" {{ SELECTED(jsonb_settings.disable_custom_thumbs, False) }}>
         Show artists' custom thumbnails for visual submissions
       </option>
-      <option value="disable"$:{' selected' if jsonb_settings.disable_custom_thumbs else ''}>
+      <option value="disable" {{ SELECTED(jsonb_settings.disable_custom_thumbs, True) }}>
         Use only generated thumbnails for all visual submissions
       </option>
     </select>
@@ -41,56 +40,58 @@ $code:
 
     <label for="siterating">Maximum Viewable Content Rating</label>
     <select name="rating" class="input" id="siterating">
-      $for rating in allowed_ratings
-        <option value="${rating.code}"$:{_RATING(current_rating, rating)}>${rating.name_with_age}</option>
+      {% for rating in allowed_ratings %}
+        <option value="{{ rating.code }}" {{ SELECTED(current_rating, rating.code) }}>{{ rating.name_with_age }}</option>
+      {% endfor %}
     </select>
     <label for="sfwrating">Maximum Viewable Content Rating in SFW Mode</label>
     <select name="sfwrating" class="input" id="sfwrating">
-      $for rating in allowed_ratings
-        <option value="${rating.code}"$:{_RATING(current_sfw_rating, rating)}>${rating.name_with_age}</option>
+      {% for rating in allowed_ratings %}
+        <option value="{{ rating.code }}"{{ SELECTED(current_sfw_rating, rating.code) }}>{{ rating.name_with_age }}</option>
+      {% endfor %}
     </select>
-    $if age >= 18:
+    {% if age >= 18 %}
       <p class="color-lighter" style="padding-top: 0.5em;"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos">Weasyl Terms of Service</a></i></p>
-
+    {% endif %}
     <label>Custom Profile Settings</label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="tagging"$:{_CHECKED("k")} />
+      <input type="checkbox" name="tagging" {{ CHECKED("k", config) }} />
       Prevent other users from removing tags I place on my content
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="hideprofile"$:{_CHECKED("h")} />
+      <input type="checkbox" name="hideprofile" {{ CHECKED("h", config) }} />
       Hide my profile from users who aren’t signed in
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="hidestats"$:{_CHECKED("i")} />
+      <input type="checkbox" name="hidestats" {{ CHECKED("i", config) }} />
       Don’t show my user statistics on my profile
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" id="hidefavbar" name="hidefavbar"$:{_CHECKED("u")} />
+      <input type="checkbox" id="hidefavbar" name="hidefavbar" {{ CHECKED("u", config) }} />
       Don’t show my favorites on my profile
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="hidefavorites" data-disables="hidefavbar"$:{_CHECKED("v")} />
+      <input type="checkbox" name="hidefavorites" data-disables="hidefavbar" {{ CHECKED("v", config) }} />
       Hide my favorites from other users
     </label>
 
     <label for="siteshouts">Shouts</label>
     <select name="shouts" class="input" id="siteshouts">
       <option value="">Allow all users to comment on my shouts page</option>
-      <option value="x"$:{_SELECTED('x')}>Allow only friends to comment on my shouts page</option>
-      <option value="w"$:{_SELECTED('w')}>Allow only site staff to comment on my shouts page</option>
+      <option value="x" {{ SELECTED(('x' in config), True) }}>Allow only friends to comment on my shouts page</option>
+      <option value="w" {{ SELECTED(('w' in config), True) }}>Allow only site staff to comment on my shouts page</option>
     </select>
 
     <label for="sitenotes">Notes</label>
     <select name="notes" class="input" id="sitenotes">
       <option value="">Allow all users to send me private messages</option>
-      <option value="z"$:{_SELECTED('z')}>Allow only friends to send me private messages</option>
-      <option value="y"$:{_SELECTED('y')}>Allow only site staff to send me private messages</option>
+      <option value="z" {{ SELECTED(('z' in config), True) }}>Allow only friends to send me private messages</option>
+      <option value="y" {{ SELECTED(('y' in config), True) }}>Allow only site staff to send me private messages</option>
     </select>
 
     <label>Default Follow User Settings</label>
@@ -98,27 +99,27 @@ $code:
       <p class="color-lighter" style="padding-bottom: 0.5em;"><i>To change follow settings for individual users you have already followed, go to <a href="/manage/following">Users You Follow</a> and modify them in "Edit Settings".</i></p>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="follow_s"$:{_CHECKED("s")} />
+      <input type="checkbox" name="follow_s" {{ CHECKED("s", config) }} />
       Submissions posted by the followed user
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="follow_c"$:{_CHECKED("c")} />
+      <input type="checkbox" name="follow_c" {{ CHECKED("c", config) }} />
       Submissions collected by the followed user
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="follow_f"$:{_CHECKED("f")} />
+      <input type="checkbox" name="follow_f" {{ CHECKED("f", config) }} />
       Characters posted by the followed user
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="follow_t"$:{_CHECKED("t")} />
+      <input type="checkbox" name="follow_t" {{ CHECKED("t", config) }} />
       Stream statuses set by the followed user
     </label>
 
     <label class="input-checkbox">
-      <input type="checkbox" name="follow_j"$:{_CHECKED("j")} />
+      <input type="checkbox" name="follow_j"{{ CHECKED("j", config) }} />
       Journals posted by the followed user
     </label>
 
@@ -128,3 +129,4 @@ $code:
     </div>
   </form>
 </div>
+{% endblock %}

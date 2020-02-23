@@ -1,65 +1,69 @@
-$def with (my_userid, report, blacklisted_tags)
-
-$ features = {'submission': 'submit', 'character': 'char', 'journal': 'journal'}
-
-$:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), "Moderator Control Panel", "/modcontrol"])}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/comments.jinja2' import comments_flat %}
+{% set features = {'submission': 'submit', 'character': 'char', 'journal': 'journal'} %}
+{% block content %}
+    {{ stage("Reported " + report.target_type.title(), "Moderator Control Panel", "/modcontrol") }}
 <div id="reports_content" class="content">
-  $if blacklisted_tags:
+    {% if blacklisted_tags %}
     <div class="warning">
       <p>This user’s gallery contains submissions with the following blacklisted tags:</p>
 
       <ul>
-        $for tag_name in blacklisted_tags:
-          <li>$tag_name</li>
+        {% for tag_name in blacklisted_tags %}
+          <li>{{ tag_name }}</li>
+        {% endfor %}
       </ul>
     </div>
+   {% endif %}
 
-  <h2>${report.target_type.title()} Information</h2>
+  <h2>{{ report.target_type.title() }} Information</h2>
   <dl>
     <dt>Title</dt>
-    <dd><a href="${report.target.legacy_path(mod=True)}">${report.target.title}</a></dd>
+    <dd><a href="{{ report.target.legacy_path(mod=True) }}">{{ report.target.title }}</a></dd>
     <dt>Content owner</dt>
     <dd>
-      <a href="/~${report.target.owner.login_name}">${report.target.owner.profile.username}</a>
-      (<a href="/staffnotes/${report.target.owner.login_name}">staff notes</a>,
-      <a href="/modcontrol/reports?submitter=${report.target.owner.login_name}">all open reports</a>)
+      <a href="/~{{ report.target.owner.login_name }}">{{ report.target.owner.profile.username }}</a>
+      (<a href="/staffnotes/{{ report.target.owner.login_name }}">staff notes</a>,
+      <a href="/modcontrol/reports?submitter={{ report.target.owner.login_name }}">all open reports</a>)
     </dd>
   </dl>
 
   <h2>Related reports</h2>
   <ul>
-    $for related in report.related_reports():
+      {% for related in report.related_reports() %}
       <ul>
-        <a href="/modcontrol/report?reportid=${related.reportid}">
-          Opened on ${DATE(related.opened_at)} at ${TIME(related.opened_at)}; status: ${related.status}.
-          $if related.is_closed:
-            (resolution: ${related.closure_reason.value.replace('-', ' ')})
+        <a href="/modcontrol/report?reportid={{ related.reportid }}">
+          Opened on {{ related.opened_at | DATE }} at {{ related.opened_at | TIME }}; status: {{ related.status }}.
+          {% if related.is_closed %}
+            (resolution: {{ related.closure_reason.value.replace('-', ' ') }})
+          {% endif %}
         </a>
       </ul>
+    {% endfor %}
   </ul>
 
   <h2>Report Comments</h2>
-  $:{RENDER("common/comment_flat.html", ["report_comments", report.old_style_comments, "violation"])}
+  {{ comments_flat("report_comments", report.old_style_comments, "violation") }}
 
-  $ feature = features[report.target_type]
-  $if report.is_closed:
+  {% set feature = features[report.target_type] %}
+  {% if report.is_closed %}
     <h2>Report is closed</h2>
     <p>
       <strong>
-        Closed by ${report.owner.profile.username} on ${DATE(report.closed_at)} at ${TIME(report.closed_at)}.
+        Closed by {{ report.owner.profile.username }} on {{ report.closed_at | DATE }} at {{ report.closed_at | TIME }}.
       </strong>
-      The resolution was: ${report.closure_reason.value.replace('-', ' ')}.
+      The resolution was: {{ report.closure_reason.value.replace('-', ' ') }}.
     </p>
     <p>
-      $:{MARKDOWN(report.closure_explanation)}
+      {{ report.closure_explanation | MARKDOWN }}
     </p>
-  $else:
+    {% else %}
     <h2>Add a comment</h2>
     <form class="form" action="/submit/report" method="post" style="margin-bottom: 2em">
-      $:{CSRF()}
-      <input type="hidden" name="reportid" value="${report.reportid}">
-      <input type="hidden" name="${feature}id" value="${getattr(report.target, feature + 'id')}">
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+      <input type="hidden" name="reportid" value="{{ report.reportid }}">
+      <input type="hidden" name="{{ feature }}id" value="{{ report.target[feature+'id'] }}">
       <input type="hidden" name="violation" value="0">
       <div style="width: 50em; margin-bottom: 1em;">
         <textarea class="input markdown expanding" name="content" placeholder="Comment"></textarea>
@@ -69,9 +73,9 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
 
     <h2>Close this report</h2>
     <form name="closereport" class="form" action="/modcontrol/closereport" method="post">
-      $:{CSRF()}
-      <input type="hidden" name="reportid" value="${report.reportid}" />
-      <input type="hidden" name="feature" value="${feature}" />
+      <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+      <input type="hidden" name="reportid" value="{{ report.reportid }}"/>
+      <input type="hidden" name="feature" value="{{ feature }}"/>
       <label for="report-closure-action">Action</label>
       <select id="report-closure-action" class="input" style="width: 20em" name="action">
         <option></option>
@@ -81,7 +85,7 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
       </select>
       <label>
         <input type="checkbox" name="close_all_user_reports" value="yes">
-        Close/assign all open reports against this user (${report.target.owner.profile.username})
+        Close/assign all open reports against this user ( {{ report.target.owner.profile.username }})
       </label>
       <div id="note-title-box" style="width: 50em; margin: 1em 0; display: none">
         <label for="note-title">Note title</label>
@@ -99,11 +103,14 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
       </div>
       <p id="report-closure-warning" style="margin: 0.8em 0"></p>
       <div id="report_buttons">
-        $if report.closerid == my_userid:
+        {% if report.closerid == my_userid %}
           <button class="button negative" name="unassign">Unassign from me</button>
-        $else:
+        {% else %}
           <button class="button positive" name="assign">Assign to me</button>
+        {% endif %}
         <button class="button enableable" disabled>Close</button>
       </div>
     </form>
+  {% endif %}
 </div>
+{% endblock %}

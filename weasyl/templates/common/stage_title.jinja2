@@ -1,13 +1,16 @@
-$def with (title, home = None, link = None)
+{% macro stage(title, home = None, link = None) -%}
 <div class="stage clear">
   <h2 class="page-title">
-    $if(home):
-      $if(link == None):
-        <a href="/control">${home}</a>
-      $elif(link == 0):
-        <a href="javascript:void(0);">${home}</a>
-      $else:
-        <a href="${link}">${home}</a>
-    ${title}
+    {% if(home) %}
+      {% if not link == None %}
+        <a href="/control">{{ home }}</a>
+      {% elif link == 0 %}
+        <a href="javascript:void(0);">{{ home }}</a>
+      {% else %}
+        <a href="{{ link }}">{{ home }}</a>
+      {% endif %}
+    {% endif %}
+    {{ title }}
   </h2>
 </div>
+{%- endmacro %}

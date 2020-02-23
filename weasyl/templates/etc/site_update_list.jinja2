@@ -1,36 +1,42 @@
-$def with (request, updates, can_edit)
-$:{TITLE("Site Updates")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/macros.jinja2' import AVATAR %}
+{% block content %}
 <div class="content">
     <div class="constrained text-post-list">
-        $ last_date = None
-        $for update in updates:
-            $ created = LOCAL_ARROW(update.unixtime)
-            $ date = created.date()
-            $ owner = update.get_display_owner()
-            $if date != last_date:
-                $ last_date = date
+        {% for update in updates %}
+            {% set created = LOCAL_ARROW(update.unixtime) %}
+            {% set date = created.date() %}
+            {% if loop.index0 > 0 %}
+              {% if LOCAL_ARROW(loop.previtem.unixtime).date() != date %}
                 <div class="text-post-group-header">
-                    <time datetime="${date.isoformat()}" title="${created.format()}">${created.format(u"MMMM Do, YYYY")}</time>
+                    <time datetime="{{ date.isoformat() }}" title="{{ created.format() }}">{{ created.format("MMMM Do, YYYY") }}</time>
                 </div>
-
+              {% endif %}
+            {% else %}
+                <div class="text-post-group-header">
+                    <time datetime="{{ date.isoformat() }}" title="{{ created.format() }}">{{ created.format("MMMM Do, YYYY") }}</time>
+                </div>
+            {% endif %}
             <article class="text-post-item">
-                <img class="text-post-image text-post-image-small" src="${owner.avatar_display_url or resource_path('img/default-avatar.jpg')}" title="${owner.profile.username}" alt="${owner.profile.username}’s avatar" />
+                {{ AVATAR(update.get_display_owner()) }}
 
                 <div class="text-post-text">
                     <h4 class="text-post-title">
-                        <a href="${request.route_path('site_update', update_id=update.updateid)}">${update.title}</a>
-                        $if can_edit:
+                        <a href="{{ 'site_update' | route_path(update_id=update.updateid) }}">{{ update.title }}</a>
+                        {% if req.userid in staff.ADMINS %}
                             <span class="text-post-actions">
-                                <a href="${request.route_path('site_update_edit', update_id=update.updateid)}">Edit</a>
+                                <a href="{{ 'site_update_edit' | route_path(update_id=update.updateid) }}">Edit</a>
                             </span>
+                        {% endif %}
                     </h4>
 
-                    <p class="text-post-excerpt">${MARKDOWN_EXCERPT(update.content)}</p>
+                    <p class="text-post-excerpt">{{ update.content | MARKDOWN_EXCERPT }}</p>
                 </div>
             </article>
-
-        $if not updates:
+        {% endfor %}
+        {% if not updates %}
             <p>No site updates to show.</p>
+        {% endif %}
     </div>
 </div>
+{% endblock %}

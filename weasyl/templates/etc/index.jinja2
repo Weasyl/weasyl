@@ -1,27 +1,25 @@
-$def with (everything, randomized, visual, literary, media, characters, update, critique, streaming, popular=None)
-$code:
-  def _RATING(target):
-    if target == R.MATURE.code:
-      return '<span class="rating mature">The following submission is rated Mature:</span>'
-    elif target == R.EXPLICIT.code:
-      return '<span class="rating explicit">The following submission is rated Explicit:</span>'
-    return ''
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+{% extends 'common/base.jinja2' %}
+{% import 'common/thumbnail_item.jinja2' as thumbnail %}
+{% import 'common/macros.jinja2' as macro %}
+{% from 'etc/stream_macro.jinja2' import streams_block %}
+{% block content %}
 <div id="home-art" class="stage">
 
   <h3 class="pad-left typeface-a color-b">Latest Uploads</h3>
 
   <ul class="thumbnail-grid large-footprint">
-    $# Items that are front and center on the main page, quite close to the top; skip lazy loading entirely.
-    $for i in everything:
-      $:{_GRID_ITEM(i, lazy_load=False)}
-    </li><li class="clear more"><a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
+    {#  Items that are front and center on the main page, quite close to the top; skip lazy loading entirely. #}
+    {% for i in latest %}
+      {{ thumbnail.grid_item(i, lazy_load=False ) }}
+    {% endfor %}
+    <li class="clear more"> <a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
   </ul>
 
   <ul id="home-tabs" class="bar clear">
-    $if popular:
+    {% if popular %}
       <li><a class="home-pane-link typeface-a color-c pad-left pad-right current" href="#home-recently-popular">Recently Popular</a></li>
-    <li><a class="home-pane-link typeface-a color-c pad-left pad-right ${'current' if not popular else ''}" href="#home-random-art">Random Art</a></li>
+    {% endif %}
+    <li><a class="home-pane-link typeface-a color-c pad-left pad-right {{ current if not popular }}" href="#home-random-art">Random Art</a></li>
     <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-literature">Literature</a></li>
     <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-multimedia">Multimedia</a></li>
     <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-characters">Characters</a></li>
@@ -29,49 +27,55 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
   <div id="home-panes">
 
-    $if popular:
+    {% if popular %}
       <div id="home-recently-popular" class="pane">
         <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-recently-popular">Recently Popular <span class="icon icon-20 icon-disclosure"></span></a>
         <ul class="thumbnail-grid small-footprint current">
-          $for i in popular:
-            $:{_GRID_ITEM(i)}
-          </li><li class="clear more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
+          {% for i in popular %}
+            {{ thumbnail.grid_item(i) }}
+          {% endfor %}
+          <li class="clear more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
         </ul>
       </div>
+    {% endif %}
 
     <div id="home-random-art" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-random-art">Random Art <span class="icon icon-20 icon-disclosure"></span></a>
-      <ul class="thumbnail-grid small-footprint ${'current' if not popular else ''}">
-        $for i in randomized:
-          $:{_GRID_ITEM(i)}
-        </li><li class="clear more"><a class="more" href="/search"><i>More</i> <span>Random Art</span></a></li>
+      <ul class="thumbnail-grid small-footprint {{ current if not popular }}">
+        {% for i in randomized %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search"><i>More</i> <span>Random Art</span></a></li>
       </ul>
     </div>
 
     <div id="home-literature" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-literature">Literature <span class="icon icon-20 icon-disclosure"></span></a>
       <ul class="thumbnail-grid small-footprint">
-        $for i in literary:
-          $:{_GRID_ITEM(i)}
-        </li><li class="clear more"><a class="more" href="/search?find=submit&amp;cat=2000"><i>More</i> <span>Literature</span></a></li>
+        {% for i in literary %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search?find=submit&amp;cat=2000"><i>More</i> <span>Literature</span></a></li>
       </ul>
     </div>
 
     <div id="home-multimedia" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-multimedia">Multimedia <span class="icon icon-20 icon-disclosure"></span></a>
       <ul class="thumbnail-grid small-footprint">
-        $for i in media:
-          $:{_GRID_ITEM(i)}
-        </li><li class="clear more"><a class="more" href="/search?find=submit&amp;cat=3000"><i>More</i> <span>Multimedia</span></a></li>
+        {% for i in media %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search?find=submit&amp;cat=3000"><i>More</i> <span>Multimedia</span></a></li>
       </ul>
     </div>
 
     <div id="home-characters" class="pane">
       <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-characters">Characters <span class="icon icon-20 icon-disclosure"></span></a>
       <ul class="thumbnail-grid small-footprint">
-        $for i in characters:
-          $:{_GRID_ITEM(i)}
-        </li><li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
+        {% for i in characters %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
       </ul>
     </div>
 
@@ -80,78 +84,64 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <div id="home-content" class="content">
 
-  $if update:
+  {% if update %}
     <div id="hc-update" class="clear">
-      <h3>${update['title']}</h3>
+      <h3>{{ update['title'] }}</h3>
 
       <figure class="thumbnail thumbnail-left clear">
-        <a class="avatar" href="/~${LOGIN(update['username'])}" title="${update['username']}">
-          $ avatar = update['user_media']['avatar'][0]
-          <img src="${avatar['display_url']}" alt="avatar of ${update['username']}" />
-        </a>
+        {{ macro.AVATAR(update) }}
         <figcaption class="caption">
-          <h4 class="title"><i>Posted by</i> <a class="username" href="/~${LOGIN(update['username'])}">${update['username']}</a></h4>
-          <h5 class="date">${DATE(update['unixtime'])} <i>at</i> ${TIME(update['unixtime'])}</h5>
+          <h4 class="title"><i>Posted by</i> <a class="username" href="/~{{ update['username']| LOGIN }}">{{ update['username'] }}</a></h4>
+          <h5 class="date">{{ update['unixtime']|DATE }} <i>at</i> {{ update['unixtime']|TIME }}</h5>
         </figcaption>
       </figure>
 
       <div class="formatted-content">
-        $:{MARKDOWN(update['content'])}
+        {{ update['content']| MARKDOWN }}
       </div>
 
-      $ comment_count = update.get('comment_count')
-      $if comment_count is not None:
-        <a href="/site-updates/${update['updateid']}" class="more more-block"><i>View</i> <span>This Update</span> <i>and</i> <span>${comment_count} Comment${'' if comment_count == 1 else 's'}</span></a>
+      {% if update['comment_count'] %}
+        <a href="/site-updates/{{ update['updateid'] }}" class="more more-block">
+          {# TODO: Plurlize #}
+          <i>View</i> <span>This Update </span><i>and</i>
+          <span>{{ update['comment_count'] }} Comment(s)</span>
+        </a>
+      {% else %}
+        <a href="/site-updates/{{ update['updateid'] }}" class="more more-block">
+          <i>View</i> <span>This Update</span>
+        </a>
+      {% endif %}
     </div>
+  {% endif %}
 
   <div id="hc-critique" class="clear">
     <h3>Critique Wanted</h3>
-    $if critique:
+    {% if critique %}
       <ul class="thumbnail-stack">
-        $for i in critique:
-          $code:
-            thumb = THUMB(i)
-            width = thumb['attributes']['width'] if 'attributes' in thumb else ""
+        {% for i in critique %}
           <li class="clear">
             <figure class="thumb">
-              <a class="thumb-bounds" href="/submission/${i['submitid']}/${SLUG(i['title'])}" title="${i['title']}">
-                $:{_RATING(i['rating'])}
-                <img src="${thumb['display_url']}" alt="thumbnail" />
+              <a class="thumb-bounds" href="/submission/{{ i['submitid'] }}/{{ i['title']|SLUG }}" title="{{ i['title'] }}">
+                {{ macro.RATING(i['rating']) }}
+                <img src="{{ THUMB(i)['display_url'] }}" alt="thumbnail" />
               </a>
               <figcaption class="caption">
-                <h6 class="title"><a href="/submission/${i['submitid']}/${SLUG(i['title'])}" title="${i['title']}">${SUMMARIZE(i['title'], 52)}</a></h6>
-                <p class="byline"><i>by</i> <a class="username" href="/~${LOGIN(i['username'])}">${i['username']}</a></p>
+                <h6 class="title"><a href="/submission/{{ i['submitid'] }}/{{ i['title']|SLUG }}" title="{{ i['title'] }}">{{ i['title']| truncate(52) }}</a></h6>
+                <p class="byline"><i>by</i> <a class="username" href="/~{{ i['username']|LOGIN }}">{{ i['username'] }}</a></p>
               </figcaption>
             </figure>
           </li>
+        {% endfor %}
       </ul>
-    $else:
+    {% else %}
       <div class="color-lighter">There are no submissions to display.</div>
+    {% endif %}
   </div>
 
   <div id="hc-streams" class="clear">
     <h3>Streaming Now <a id="view-streams-link" href="/streaming">View All</a></h3>
-
-
-    $if(streaming):
-      <ul>
-        $for i in streaming:
-          <li class="clear">
-            <figure class="thumbnail thumbnail-left">
-              <a class="avatar" href="${i['stream_url']}" title="${i['username']}">
-                $ avatar = i['user_media']['avatar'][0]
-                <img src="${avatar['display_url']}" alt="avatar of ${i['username']}" />
-              </a>
-              <figcaption class="caption">
-                <h4 class="title"><a class="username" href="/~${LOGIN(i['username'])}">${i['username']}</a> <i>since</i> ${TIME(i['stream_time'])}</h4>
-                <p>${i['stream_text']}</p>
-                <p><a href="${i['stream_url']}">${i['stream_url']}</a></p>
-              </figcaption>
-            </figure>
-          </li>
-      </ul>
-    $else:
-      <div class="color-lighter">There are no streams to display.</div>
+      {{ streams_block(streaming) }}
   </div>
 
 </div>
+{% endblock %}

@@ -1,5 +1,7 @@
-$:{TITLE("Markdown", "Help", "/help")}
-
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Markdown", "Help", "/help") }}
 <div class="content">
   <div class="constrained">
     <h3>What is Markdown?</h3>
@@ -177,3 +179,4 @@ block-formatted code
     </div>
   </div>
 </div>
+{% endblock %}

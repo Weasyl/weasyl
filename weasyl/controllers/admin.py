@@ -81,7 +81,7 @@ def admincontrol_manageuser_get_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     if request.userid != otherid and otherid in staff.ADMINS and request.userid not in staff.TECHNICAL:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     return Response(d.webpage(request.userid, "admincontrol/manageuser.html", [
         # Manage user information
@@ -97,7 +97,7 @@ def admincontrol_manageuser_post_(request):
     userid = d.get_int(form.userid)
 
     if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.TECHNICAL:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     profile.do_manage(request.userid, userid,
                       username=form.username.strip() if form.ch_username else None,

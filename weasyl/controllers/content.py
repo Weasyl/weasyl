@@ -403,7 +403,7 @@ def reupload_submission_get_(request):
     form.submitid = define.get_int(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
         "submission",
@@ -419,7 +419,7 @@ def reupload_submission_post_(request):
     form.targetid = define.get_int(form.targetid)
 
     if request.userid != define.get_ownerid(submitid=form.targetid):
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     submission.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/submission/%i" % (form.targetid,))
@@ -431,7 +431,7 @@ def reupload_character_get_(request):
     form.charid = define.get_int(form.charid)
 
     if request.userid != define.get_ownerid(charid=form.charid):
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
         "character",
@@ -447,7 +447,7 @@ def reupload_character_post_(request):
     form.targetid = define.get_int(form.targetid)
 
     if request.userid != define.get_ownerid(charid=form.targetid):
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     character.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/character/%i" % (form.targetid,))
@@ -459,7 +459,7 @@ def reupload_cover_get_(request):
     form.submitid = define.get_int(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "submit/reupload_cover.html", [form.submitid], title="Reupload Cover Artwork"))
 
@@ -483,7 +483,7 @@ def edit_submission_get_(request):
     detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     submission_category = detail['subtype'] // 1000 * 1000
 
@@ -534,7 +534,7 @@ def edit_character_get_(request):
     detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "edit/character.html", [
         # Submission detail
@@ -580,7 +580,7 @@ def edit_journal_get_(request):
     detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        raise WeasylError('permission')
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "edit/journal.html", [
         # Journal detail

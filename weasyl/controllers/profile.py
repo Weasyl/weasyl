@@ -24,7 +24,7 @@ def profile_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
 
     if otherid != request.userid and not define.is_vouched_for(otherid):
         can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
@@ -148,7 +148,7 @@ def submissions_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's submissions" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
@@ -193,7 +193,7 @@ def collections_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
@@ -230,7 +230,7 @@ def journals_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's journals" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
@@ -265,7 +265,7 @@ def characters_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's characters" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
@@ -303,7 +303,7 @@ def shouts_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
 
     if otherid != request.userid and not define.is_vouched_for(otherid):
         can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
@@ -346,7 +346,7 @@ def staffnotes_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's staff notes" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
@@ -390,7 +390,7 @@ def favorites_(request):
     elif request.userid != otherid and 'v' in define.get_config(otherid):
         raise WeasylError('hiddenFavorites')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's favorites" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
@@ -452,7 +452,7 @@ def friends_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
 
     return Response(define.webpage(request.userid, "user/friends.html", [
         # Profile information
@@ -479,7 +479,7 @@ def following_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
 
     return Response(define.webpage(request.userid, "user/following.html", [
         # Profile information
@@ -506,7 +506,7 @@ def followed_(request):
     elif not request.userid and "h" in define.get_config(otherid):
         raise WeasylError('noGuests')
 
-    userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
+    userprofile = profile.select_profile(otherid, viewer=request.userid)
 
     return Response(define.webpage(request.userid, "user/followed.html", [
         # Profile information

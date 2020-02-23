@@ -43,7 +43,7 @@ def control_editprofile_get_(request):
     userinfo = profile.select_userinfo(request.userid)
     return Response(define.webpage(request.userid, "control/edit_profile.html", [
         # Profile
-        profile.select_profile(request.userid, commish=False),
+        profile.select_profile(request.userid),
         # User information
         userinfo,
     ], title="Edit Profile", options=["typeahead"]))
@@ -453,7 +453,7 @@ def control_streaming_get_(request):
 
     return Response(define.webpage(request.userid, "control/edit_streaming.html", [
         # Profile
-        profile.select_profile(target, commish=False),
+        profile.select_profile(target),
         form.target,
     ], title="Edit Streaming Settings"))
 
@@ -547,7 +547,7 @@ def manage_following_get_(request):
     if form.userid:
         return Response(define.webpage(request.userid, "manage/following_user.html", [
             # Profile
-            profile.select_profile(form.userid, avatar=True),
+            profile.select_profile(form.userid),
             # Follow settings
             followuser.select_settings(request.userid, form.userid),
         ], title="Followed User"))

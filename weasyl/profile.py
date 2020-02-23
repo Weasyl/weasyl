@@ -125,7 +125,7 @@ def resolve_by_login(login):
     return resolve(None, None, login, False)
 
 
-def select_profile(userid, avatar=False, banner=False, propic=False, images=False, commish=True, viewer=None):
+def select_profile(userid, viewer=None):
     query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time

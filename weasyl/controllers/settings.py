@@ -12,7 +12,7 @@ from weasyl.controllers.decorators import disallow_api, login_required, token_ch
 from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
-    define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
+    define, emailer, folder, followuser, frienduser, ignoreuser,
     index, login, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 

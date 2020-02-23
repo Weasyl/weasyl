@@ -4,7 +4,7 @@ from pyramid import httpexceptions
 from pyramid.response import Response
 
 from weasyl import (
-    character, collection, commishinfo, define, errorcode, favorite, folder,
+    character, collection, commishinfo, define, favorite, folder,
     followuser, frienduser, journal, macro, media, profile, shout, submission,
     pagination)
 from weasyl.controllers.decorators import moderator_only

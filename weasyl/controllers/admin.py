@@ -6,7 +6,7 @@ from pyramid.response import Response
 from libweasyl import staff
 from libweasyl.models.site import SiteUpdate
 
-from weasyl import errorcode, login, moderation, profile, siteupdate
+from weasyl import login, moderation, profile, siteupdate
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
 from weasyl.controllers.decorators import token_checked

@@ -9,7 +9,7 @@ from pyramid.httpexceptions import (
 )
 from pyramid.response import Response
 
-from weasyl import define, errorcode, index, login, moderation, \
+from weasyl import define, index, login, moderation, \
     profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,

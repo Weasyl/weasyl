@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import json
-from pyramid.httpexceptions import HTTPForbidden
 from pyramid.response import Response
 
 from libweasyl import staff

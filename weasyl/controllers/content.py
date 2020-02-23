@@ -10,7 +10,7 @@ from libweasyl import staff
 from libweasyl.text import slug_for
 
 from weasyl import (
-    character, comment, define, errorcode, folder, journal, macro, profile,
+    character, comment, define, folder, journal, macro, profile,
     report, searchtag, shout, submission, orm)
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError

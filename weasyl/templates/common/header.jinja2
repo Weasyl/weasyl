@@ -1,0 +1,122 @@
+{% if req.userid == 0 %}
+    <div id="login-top">
+        <div id="lt-modal">
+            <iframe src="javascript:false;"></iframe>
+        </div>
+        <div id="login-box-container">
+        </div>
+    </div>
+{% endif %}
+
+{% from 'common/macros.jinja2' import AVATAR %}
+
+<header>
+    <div id="header" class="clear">
+
+        <h1 id="logo"><a href="/"><img src="{{ 'img/logo.png' | route_path }}" alt="Weasyl"/></a></h1>
+
+        {% if req.userid == 0 %}
+            <h3 id="header-guest">
+                Welcome!
+                <a id="hg-login" href="{{ 'signin'| route_path }}" class="typeface-a color-a">Sign in</a>,
+                <a id="hg-register" href="{{ 'signup' | route_path }}" class="typeface-a color-a">register</a>,
+                or learn more <a href="{{ 'help_about' | route_path }}" class="typeface-a color-a">about Weasyl</a>.
+            </h3>
+        {% else %}
+            {% set user = page_header_info(req.userid) %}
+            <div id="header-user" data-user-type="{{ USER_TYPE(req.userid) }}">
+                {{ AVATAR(user, imgid='avatar') }}
+                <h2>
+                    <i>Welcome,</i>
+                    <a id="username" class="username" href="/~{{ user['username'] | LOGIN }}">{{ user['username'] }}</a>
+                </h2>
+                <div id="header-utility">
+                    <form class="sfw-toggle" action="{{ 'control_sfw_toggle' | route_path }}" method="POST">
+                        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+                        <input type="hidden" name="redirect" value="{{ req.path_url }}">
+                        <button class="link-button {{ 'sfw' if sfw() else 'nsfw' }}">
+                            sfw {{ 'on' if sfw() else 'off' }}
+                        </button>
+                    </form>
+                    <span>|</span>
+                    <a href="{{ '/notes' | route_path }}">inbox</a> <span>|</span>
+                    <a href="{{ 'control' | route_path(alias='control') }}">settings</a> <span>|</span>
+                    {% if req.userid in staff.DIRECTORS %}
+                        <a href="{{ 'modcontrol' | route_path }}">mod</a>
+                        <span>|</span>
+                        <a href="{{ 'admincontrol' | route_path }}">admin</a>
+                        <span>|</span>
+                        <a href="{{ 'directorcontrol' |route_path }}">director</a>
+                        <span>|</span>
+                    {% elif req.userid in staff.ADMINS %}
+                        <a href="{{ 'modcontrol' | route_path }}">mod</a>
+                        <span>|</span>
+                        <a href="{{ 'admincontrol' | route_path }}">admin</a>
+                        <span>|</span>
+                    {% elif req.userid in staff.MODS %}
+                        <a href="{{ 'modcontrol' | route_path }}">mod</a>
+                        <span>|</span>
+                    {% endif %}
+
+                    <a href="{{ 'signout' | route_path }}?token={{ TOKEN()[:8] }}">log&#160;out</a>
+                </div>
+            </div>
+
+            <ul id="header-messages">
+                {% if user['welcome'][3] %}
+                    <li>
+                        <a href="{{ 'messages_submissions'|route_path }}" title="Art">
+                            <span class="icon icon-20 icon-art">Art:</span> {{ user['welcome'][3] }}
+                        </a>
+                    </li>
+                {% endif %}
+                {% if user['welcome'][1] %}
+                    <li>
+                        <a href="{{ 'messages_notifications' | route_path }}#comments" title="Comments">
+                            <span class="icon icon-20 icon-comments">Comments:</span> {{ user['welcome'][1]  }}
+                        </a>
+                    </li>
+                {% endif %}
+                {% if user['welcome'][2] %}
+                    <li>
+                        <a href="{{ 'messages_notifications' | route_path }}#notifications" title="Notifications">
+                            <span class="icon icon-20 icon-notes">Notifications:</span> {{ user['welcome'][2] }}
+                        </a>
+                    </li>
+                {% endif %}
+                {% if user['welcome'][4] %}
+                    <li>
+                        <a href="{{ 'messages_notifications' | route_path }}#journals" title="Journals">
+                            <span class="icon icon-20 icon-journals">Journals:</span> {{ user['welcome'][4] }}
+                        </a>
+                    </li>
+                {% endif %}
+                {% if user['welcome'][0] %}
+                    <li>
+                        <a href="{{ '/notes' | route_path }}" title="Private Messages">
+                            <span class="icon icon-20 icon-messages">Private Messages:</span> {{ user['welcome'][0] }}
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        {% endif %}
+
+        <a id="nav-toggle" href="#footer-nav"><span class="icon icon-20 icon-nav"></span> <i>Menu</i></a>
+
+        <nav>
+            <div id="header-nav">
+                <ul>
+                    <li><a href="{{ 'submit' | route_path }}">Submit</a></li>
+                    <li><a href="{{ 'search' | route_path }}">Browse</a></li>
+                    <li><a href="{{ 'marketplace' | route_path }}">Marketplace</a></li>
+                    <li id="header-search-nav"><a href="{{ 'search' | route_path }}">Search</a></li>
+                </ul>
+
+                <form id="header-search" action="{{ 'search' | route_path }}" method="GET">
+                    <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="1"/>
+                </form>
+            </div>
+        </nav>
+
+    </div>
+</header>

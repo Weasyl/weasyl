@@ -1,0 +1,37 @@
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/thumbnail_item.jinja2' import list_item %}
+{% block content %}
+    {{ stage(title, "Settings") }}
+    <div id="manage-collections" class="content">
+        {% if query %}
+            <form method="POST">
+                <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+
+                <div id="messages-checkboxes">
+                    {% for i in query %}
+                        {% if feature == "pending" %}
+                            {% set caption = "collection_pending" if i["collectorid"] == userid else "collection_requested" %}
+                        {% else %}
+                            {% set caption = "collection_accepted" %}
+                        {% endif %}
+                        {{ list_item(i, caption) }}
+                    {% endfor %}
+
+                    <div id="buttons">
+                        <a class="button back" href="/manage/collections?feature={{ feature }}&amp;backid={{ query[0]['submitid'] }}">Back</a>
+                        {% if feature == "pending" %}
+                            <button class="button" name="action" value="accept">Accept Selected</button>
+                            <button class="button negative" name="action" value="reject" data-confirm="Are you sure you want to reject the selected collections?">Reject Selected</button>
+                        {% else %}
+                            <button class="button negative" name="action" value="remove" data-confirm="Are you sure you want to remove the selected collections?">Remove Selected</button>
+                        {% endif %}
+                        <a class="button next" href="/manage/collections?feature={{ feature }}&amp;nextid={{ query[-1]['submitid'] }}">Next</a>
+                    </div>
+                </div>
+            </form>
+        {% else %}
+            <p id="caption">There are no collections to display.</p>
+        {% endif %}
+    </div>
+{% endblock %}

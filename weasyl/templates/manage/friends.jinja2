@@ -1,0 +1,53 @@
+{% extends 'common/base.jinja2' %}
+{% from 'common/macros.jinja2' import AVATAR %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage(title, "Settings", "/control") }}
+    <div class="content" id="friends-pending">
+        {% if(query) %}
+            <ul class="grid avatar-grid">
+                {% for i in query %}
+                    <li class="grid-unit">
+                        <figure class="thumbnail">
+                            {{ AVATAR(i) }}
+                            <figcaption class="caption centered big">
+                                <h5>
+                                    <a class="username one-line" href="/~{{ i['username'] | LOGIN }}" title="{{ i['username'] }}">{{ i['username'] }}</a>
+                                </h5>
+                                {% if feature == "pending" %}
+                                    <form action="/frienduser" method="post">
+                                        <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+                                        <input type="hidden" name="userid" value="{{ i['userid'] }}"/>
+                                        <input type="hidden" name="feature" value="pending"/>
+                                        <input type="hidden" name="action" value="sendfriendrequest"/>
+                                        <button type="submit" class="button positive">Accept</button>
+                                    </form>
+                                {% endif %}
+                                <form action="/unfrienduser" method="post">
+                                    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+                                    <input type="hidden" name="userid" value="{{ i['userid'] }}"/>
+                                    <input type="hidden" name="feature" value="{{ feature }}"/>
+                                    <button type="submit" class="button negative">
+                                        {% if feature == "pending" %}
+                                            Ignore
+                                        {% elif feature == "accepted" %}
+                                            Unfriend
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </figcaption>
+                        </figure>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>
+                {% if feature == "pending" %}
+                    You do not have any pending friend requests
+                {% elif feature == "accepted" %}
+                    You have not accepted any friend requests.
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+{% endblock %}

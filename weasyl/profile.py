@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pytz
+from pyramid.renderers import render
 import sqlalchemy as sa
 from translationstring import TranslationString as _
 
@@ -587,15 +588,18 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
             """, userid=userid, newemail=newemail, token=token)
 
             # Send out the email containing the verification token.
-            emailer.send(newemail, "Weasyl Email Change Confirmation", d.render("email/verify_emailchange.html", [token, d.get_display_name(userid)]))
+            email_body = render("weasyl:templates/email/verify_emailchange.jinja2",
+                                {'token': token, 'username': d.get_display_name(userid)})
+            emailer.send(newemail, "Weasyl Email Change Confirmation", email_body)
         else:
             # The target email exists: let the target know this
             query_username = d.engine.scalar("""
                 SELECT login_name FROM login WHERE email = %(email)s
             """, email=newemail)
-            emailer.send(newemail, "Weasyl Account Information - Duplicate Email on Accounts Rejected", d.render(
-                "email/email_in_use_email_change.html", [query_username])
-            )
+
+            email_body = render("weasyl:templates/email/email_in_use_email_change.jinja2",
+                                {'username': query_username})
+            emailer.send(newemail, "Weasyl Account Information - Duplicate Email on Accounts Rejected", email_body)
 
         # Then add text to `changes_made` telling that we have completed the email change request, and how to proceed.
         changes_made += "Your email change request is currently pending. An email has been sent to **" + newemail + "**. Follow the instructions within to finalize your email address change.\n"

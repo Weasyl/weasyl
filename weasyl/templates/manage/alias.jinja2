@@ -1,0 +1,15 @@
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+    {{ stage("Username Alias", "Settings") }}
+<div class="content">
+  <form name="managealias" action="/manage/alias" method="post" class="form skinny clear">
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+
+    <label for="editaliasusername">Alias</label>
+    <input type="text" name="username" class="input last-input" id="editaliasusername" value="{{ query if query else '' }}" />
+
+    <button type="submit" class="button positive" style="float: right;">Save Alias</button>
+  </form>
+</div>
+{% endblock %}

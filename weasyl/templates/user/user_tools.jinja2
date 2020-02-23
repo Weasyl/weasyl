@@ -1,0 +1,198 @@
+{% from 'common/macros.jinja2' import AVATAR %}
+
+{% set _STATUS_WORD_ = {'o': "Open", 's': 'Sometimes', 'f': 'Filled', 'c': 'Closed', 'n': 'Online', 'l': 'Later', 'i': 'Offline' } %}
+
+{% macro _STATUS_CLASS_(target) -%}
+    {% if target in ['o', 'n'] %}
+        color-on
+    {% elif target == "s" %}
+        color-mid
+    {% endif %}
+{%- endmacro %}
+
+{% macro USERTABS(username, feature, show_favorites) -%}
+  <nav><ul id="user-nav" class="bar clear pad-left pad-right">
+    <li><a {{ 'class="current"'|safe if feature == 'profile'}} href="/~{{ username }}">Profile</a></li>
+    <li><a {{ 'class="current"'|safe if feature == 'submissions'}} href="/submissions/{{ username }}">Submissions</a></li>
+    <li><a {{ 'class="current"'|safe if feature == 'journals'}} href="/journals/{{ username }}">Journals</a></li>
+    <li><a {{ 'class="current"'|safe if feature == 'collections'}} href="/collections/{{ username }}">Collections</a></li>
+    <li><a {{ 'class="current"'|safe if feature == 'characters' }} href="/characters/{{ username }}">Characters</a></li>
+    <li><a {{ 'class="current"'|safe if feature == 'shouts'}} href="/shouts/{{ username }}">Shouts</a></li>
+    {% if show_favorites %}
+      <li><a {{ 'class="current"'|safe if feature == 'favorites'}} href="/favorites/{{ username }}">Favorites</a></li>
+    {% endif %}
+  </ul></nav>
+{%- endmacro %}
+
+{% macro USERTOOLS(profile, userinfo, relationship) -%}
+    {% set banner = profile['user_media'].get('banner', [None])[0] %}
+    {% if banner %}
+        <div id="user-image">
+            <img class="lazy"
+                 data-src="{{ banner['display_url'] }}"
+                 src="{{ 'img/user-image-blank.png'|route_path }}"
+                 alt=""/>
+            <noscript><img src="{{ banner['display_url'] }}" alt=""/></noscript>
+            <svg class="img-space"
+                 width="{{ banner['attributes']['width'] }}"
+                 height="{{ banner['attributes']['height'] }}"></svg>
+        </div>
+    {% endif %}
+
+    <div id="user-info" class="clear">
+
+        <div class="bar pad-left pad-right clear">
+
+          {{ AVATAR(profile) }}
+
+
+            {% if profile['banned'] %}
+                <a href="/~{{ profile['username'] | LOGIN }}"><h2 class="username banned">{{ profile['username'] }}</h2>
+                </a>
+            {% elif profile['suspended'] %}
+                <a href="/~{{ profile['username'] | LOGIN }}">
+                    <h2 class="username suspended">{{ profile['username'] }}</h2>
+                </a>
+            {% else %}
+                <a href="/~{{ profile['username'] | LOGIN }}">
+                    <h2 class="username">
+                        {{ profile['username'] }}
+                        {% set user_type = USER_TYPE(profile['userid']) %}
+                        {% if user_type %}
+                            <span class="user-type-{{ user_type }}" style="font-size:0.8em;">({{ user_type }})</span>
+                        {% endif %}
+                    </h2>
+                </a>
+            {% endif %}
+
+            <ul id="user-actions" class="toolset clear">
+
+                {% if not relationship['is_self'] %}
+                    <li>
+                        <form name="followuser" action="/followuser" method="post">
+                            <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+                            <input type="hidden" name="userid" value="{{ profile['userid'] }}"/>
+                            {% if(relationship['follow']) %}
+                                <input type="hidden" name="action" value="unfollow"/>
+                                <button type="submit" class="active"><span class="icon icon-20 icon-star"></span>
+                                    Following
+                                </button>
+                            {% else %}
+                                <input type="hidden" name="action" value="follow"/>
+                                <button type="submit"><span class="icon icon-20 icon-star"></span> Follow</button>
+                            {% endif %}
+                        </form>
+                    </li>
+
+                    <li>
+                        <form name="frienduser" action="/frienduser" method="post">
+                            <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+                            <input type="hidden" name="userid" value="{{ profile['userid'] }}"/>
+                            <input type="hidden" name="feature" value="user"/>
+                            {% if(relationship['friendreq']) %}
+                                <input type="hidden" name="action" value="withdrawfriendrequest"/>
+                                <button type="submit" class="active"><span class="icon icon-20 icon-heart"></span>
+                                    Friend
+                                    Request
+                                    Sent
+                                </button>
+                            {% elif(relationship['friend']) %}
+                                <input type="hidden" name="action" value="unfriend"/>
+                                <button type="submit" class="active"><span class="icon icon-20 icon-heart"></span>
+                                    Friends
+                                </button>
+                            {% else %}
+                                <input type="hidden" name="action" value="sendfriendrequest"/>
+                                <button type="submit"><span class="icon icon-20 icon-heart"></span> Friend</button>
+                            {% endif %}
+                        </form>
+                    </li>
+
+                    <li>
+                        <a href="/notes/compose?recipient={{ profile['username'] | LOGIN }}"><span class="icon icon-20 icon-pencil"></span>
+                            Message</a></li>
+
+                    <li>
+                        <form name="ignoreuser" action="/ignoreuser" method="post">
+                            <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+                            <input type="hidden" name="userid" value="{{ profile['userid'] }}"/>
+                            {% if(relationship['ignore']) %}
+                                <input type="hidden" name="action" value="unignore"/>
+                                <button type="submit" class="active"><span class="icon icon-20 icon-cancel"></span>
+                                    Ignored
+                                </button>
+                            {% else %}
+                                <input type="hidden" name="action" value="ignore"/>
+                                <button type="submit"><span class="icon icon-20 icon-cancel"></span> Ignore</button>
+                            {% endif %}
+                        </form>
+                    </li>
+                {% endif %}
+
+                <li class="stream-status">
+                    {% if profile['streaming_status'] == "started" %}
+                        <a href="{{ profile['stream_url'] }}"><span class="icon icon-status icon-on"></span> Streaming
+                                                                                                             Now</a>
+                    {% elif profile['streaming_status'] == "later" %}
+                        <a href="{{ profile['stream_url'] }}"><span class="icon icon-status icon-mid"></span> Streaming
+                                                                                                              Later</a>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+
+        <div id="user-id" class="pad-left pad-right">
+            {% set info = [profile['full_name'], userinfo['age'], userinfo['gender'], userinfo['country']] %}
+                <h4>
+                    <ul>
+                        {% if(info[0]) %}
+                            <li>
+                                <strong>{{ info[0] }}&nbsp;</strong>
+                            </li>
+                        {% endif %}
+                        {% if(info[1]) %}
+                            <li>
+                                <strong>{{ info[1] }}&nbsp;</strong>
+                            </li>
+                        {% endif %}
+                        {% if(info[2]) %}
+                            <li>
+                                <strong>{{ info[2] }}&nbsp;</strong>
+                            </li>
+                        {% endif %}
+                        {% if(info[3]) %}
+                            <li>
+                                <strong>{{ info[3] }}</strong>
+                            </li>
+                        {% endif %}
+
+                    </ul>
+                </h4>
+            <h5>{{ profile['catchphrase'] }}</h5>
+        </div>
+
+        <div id="user-availability" class="clear pad-left pad-right">
+            {% if profile['settings'][0] != 'e' %}
+                <div>
+                    <h6>
+                        Commissions:
+                        <strong class="{{ _STATUS_CLASS_(profile['settings'][0]) }}">{{ _STATUS_WORD_[profile['settings'][0]] }}</strong>
+                    </h6>
+                </div>
+            {% endif %}
+            <div>
+                {% if profile['settings'][1] != 'e' %}
+                    <h6>Trades:
+                        <strong class="{{ _STATUS_CLASS_(profile['settings'][1]) }}">{{ _STATUS_WORD_[profile['settings'][1]] }}</strong>
+                    </h6>
+                {% endif %}
+                {% if profile['settings'][2] != 'e' %}
+                    <h6>Requests:
+                        <strong class="{{ _STATUS_CLASS_(profile['settings'][2]) }}">{{ _STATUS_WORD_[profile['settings'][2]] }}</strong>
+                    </h6>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+{%- endmacro %}

@@ -1,0 +1,18 @@
+{% extends 'common/base.jinja2' %}
+{% import 'common/thumbnail_item.jinja2' as thumbnail %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% block content %}
+{{ stage(title) }}
+
+<div id="search-stage" class="stage clear">
+  <ul class="thumbnail-grid">
+    {% for item in submissions %}
+      {% if loop.index0 < 10 %}
+        {{ thumbnail.grid_item(item, lazy_load=False) }}
+      {% else %}
+          {{ thumbnail.grid_item(item) }}
+      {% endif %}
+      {% endfor %}
+  </ul>
+</div>
+{% endblock %}

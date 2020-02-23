@@ -31,7 +31,7 @@ from weasyl import (
     spam_filtering,
 )
 from weasyl.controllers.routes import setup_routes_and_views
-from weasyl.wsgi import wsgi_app
+from weasyl.wsgi import wsgi_app, setup_jinja2_env
 
 
 cache.region.configure(
@@ -94,7 +94,11 @@ def setup_request_environment(request):
     pyramid_request.web_input = middleware.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'
     pyramid_request.client_addr = '127.0.0.1'
-    setup_routes_and_views(pyramid.testing.setUp(request=pyramid_request))
+    config = pyramid.testing.setUp(request=pyramid_request)
+    config.include('pyramid_jinja2')
+    config.add_jinja2_search_path('weasyl:templates/', name='.jinja2')
+    config.action(None, setup_jinja2_env, order=999)
+    setup_routes_and_views(config)
 
     def tear_down():
         pyramid_request.pg_connection.close()
@@ -141,11 +145,6 @@ def cache_(request):
         wrap=[ThreadCacheProxy, JSONProxy],
         replace_existing_backend=True,
     )
-
-
-@pytest.fixture(autouse=True)
-def template_cache():
-    define._template_cache.clear()
 
 
 @pytest.fixture

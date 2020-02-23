@@ -1,0 +1,13 @@
+{% extends 'common/base.jinja2' %}
+{% from 'etc/stream_macro.jinja2' import streams_block %}
+
+{% block content %}
+<div id="home-content" class="content">
+
+  <div id="hc-streams" class="clear fullpage">
+    <h3>Streaming Now</h3>
+     {{ streams_block(streaming) }}
+  </div>
+
+</div>
+{% endblock %}

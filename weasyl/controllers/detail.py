@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from pyramid import httpexceptions
+from pyramid.view import view_config
 from pyramid.response import Response
 
 from libweasyl.models.content import Submission
@@ -10,7 +11,14 @@ from weasyl import (
 from weasyl.error import WeasylError
 
 
-# Content detail functions
+@view_config(route_name="submission_detail_profile;no_s;no_slug", renderer='/detail/submission.jinja2')
+@view_config(route_name="submission_detail_profile;no_s", renderer='/detail/submission.jinja2')
+@view_config(route_name="submission_detail_profile;no_slug", renderer='/detail/submission.jinja2')
+@view_config(route_name="submission_detail_profile", renderer='/detail/submission.jinja2')
+@view_config(route_name="submission_detail_view_unnamed", renderer='/detail/submission.jinja2')
+@view_config(route_name="submission_detail_view", renderer='/detail/submission.jinja2')
+@view_config(route_name="submission_detail_unnamed", renderer='/detail/submission.jinja2')
+@view_config(route_name="submission_detail", renderer='/detail/submission.jinja2')
 def submission_(request):
     username = request.matchdict.get('name')
     submitid = request.matchdict.get('submitid')
@@ -63,24 +71,21 @@ def submission_(request):
     if login != username:
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
     extras["canonical_url"] = canonical_path
-    extras["title"] = item["title"]
 
-    page = define.common_page_start(request.userid, **extras)
-    page.append(define.render('detail/submission.html', [
-        request,
+    return {
+        'title': item["title"],
         # Myself
-        profile.select_myself(request.userid),
+        'myself': profile.select_myself(request.userid),
         # Submission detail
-        item,
+        'query': item,
         # Subtypes
-        macro.MACRO_SUBCAT_LIST,
+        'subtypes': dict(macro.MACRO_SUBCAT_LIST),
         # Violations
-        [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'violations': [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
+    }
 
 
+@view_config(route_name='submission_detail_media')
 def submission_media_(request):
     link_type = request.matchdict['linktype']
     submitid = int(request.matchdict['submitid'])
@@ -89,9 +94,9 @@ def submission_media_(request):
 
     submission = Submission.query.get(submitid)
     if submission is None:
-        raise httpexceptions.HTTPForbidden()
+        raise WeasylError('permission')
     elif submission.is_hidden or submission.is_friends_only:
-        raise httpexceptions.HTTPForbidden()
+        raise WeasylError('permission')
     media_items = media.get_submission_media(submitid)
     if not media_items.get(link_type):
         raise httpexceptions.HTTPNotFound()
@@ -102,18 +107,19 @@ def submission_media_(request):
     ])
 
 
+@view_config(route_name="submission_tag_history", renderer='/detail/tag_history.jinja2')
 def submission_tag_history_(request):
     submitid = int(request.matchdict['submitid'])
 
-    page_title = "Tag updates"
-    page = define.common_page_start(request.userid, title=page_title)
-    page.append(define.render('detail/tag_history.html', [
-        submission.select_view_api(request.userid, submitid),
-        searchtag.tag_history(submitid),
-    ]))
-    return Response(define.common_page_end(request.userid, page))
+    return {
+        'title': "Tag updates",
+        'detail': submission.select_view_api(request.userid, submitid),
+        'history': searchtag.tag_history(submitid),
+    }
 
 
+@view_config(route_name="character_detail_unnamed", renderer='/detail/character.jinja2')
+@view_config(route_name="character_detail", renderer='/detail/character.jinja2')
 def character_(request):
     form = request.web_input(charid="", ignore="", anyway="")
 
@@ -135,19 +141,20 @@ def character_(request):
 
     canonical_url = "/character/%d/%s" % (charid, slug_for(item["title"]))
 
-    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
-    page.append(define.render('detail/character.html', [
+    return {
+        'canonical_url': canonical_url,
+        'title': item["title"],
         # Profile
-        profile.select_myself(request.userid),
+        'myself': profile.select_myself(request.userid),
         # Character detail
-        item,
+        'query': item,
         # Violations
-        [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'violations': [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
+    }
 
 
+@view_config(route_name="journal_detail_unnamedited", renderer='/detail/journal.jinja2')
+@view_config(route_name="journal_detail", renderer='/detail/journal.jinja2')
 def journal_(request):
     form = request.web_input(journalid="", ignore="", anyway="")
 
@@ -169,14 +176,13 @@ def journal_(request):
 
     canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
 
-    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
-    page.append(define.render('detail/journal.html', [
+    return {
+        'canonical_url': canonical_url,
+        'title': item["title"],
         # Myself
-        profile.select_myself(request.userid),
+        'myself': profile.select_myself(request.userid),
         # Journal detail
-        item,
+        'query': item,
         # Violations
-        [i for i in macro.MACRO_REPORT_VIOLATION if 3000 <= i[0] < 4000],
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'violations': [i for i in macro.MACRO_REPORT_VIOLATION if 3000 <= i[0] < 4000],
+    }

@@ -1,0 +1,34 @@
+{% extends 'common/base.jinja2' %}
+{% import 'user/user_tools.jinja2' as user_macro %}
+{% block content %}
+<div class="stage">
+  {{ user_macro.USERTOOLS(profile, userinfo, relationship) }}
+  {{ user_macro.USERTABS(profile['username'], "", profile['show_favorites_tab']) }}
+</div>
+
+<div class="content">
+  <h3>{{feature|title}}</h3>
+  {% if(query) %}
+    <ul class="grid avatar-grid">
+    {% for i in query %}
+      <li class="grid-unit">
+        <figure class="thumbnail">
+          <a class="avatar" href="/~{{ i['username'] | LOGIN }}" title="{{ i['username'] }}">
+            <img src="{{ i['user_media']['avatar'][0]['display_url'] }}" alt="avatar of {{ i['username'] }}" />
+          </a>
+          <figcaption class="caption centered big">
+            <h5><a class="username one-line" href="/~{{ i['username'] | LOGIN }}" title="{{ i['username'] }}">{{ i['username'] }}</a></h5>
+          </figcaption>
+        </figure>
+     </li>
+   {% endfor %}
+    </ul>
+    <div>
+      <a class="button" href="/{{feature}}?userid={{ profile['userid'] }}&amp;backid={{ query[0]['userid'] }} ">Back</a>
+      <a class="button" href="/{{feature}}?userid={{ profile['userid'] }}&amp;nextid={{ query[-1]['userid'] }} ">Next</a>
+    </div>
+  {% else %}
+    <p>There are no users to display.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+{% from 'common/macros.jinja2' import SELECTED, CHECKED %}
+{% block content %}
+{{ stage("Edit Journal Entry") }}
+
+<div id="edit-journal-content" class="content">
+
+  <form name="editjournal" action="/edit/journal" method="post" class="form skinny clear">
+    <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+    <input type="hidden" name="journalid" value="{{ query['journalid'] }}"/>
+
+    <h3>Journal Composition</h3>
+
+    <label for="editjournaltitle">Title</label>
+    <input type="text" class="input" name="title" value="{{ query['title'] }}" id="editjournaltitle" />
+
+    <label for="editjournalrating">Rating</label>
+    <select name="rating" class="input" id="editjournalrating">
+     {% for rating in ratings %}
+        <option value="{{ rating.code }}" {{ SELECTED(rating.code, query['rating']) }}>{{ rating.name_with_age }}</option>
+     {% endfor %}
+    </select>
+
+    <label for="editjournalcontent">Content</label>
+    <textarea name="content" class="markdown input expanding" rows="9" id="editjournalcontent">{{ query['content'] }}</textarea>
+
+    <h3>Additional Options</h3>
+
+    <label for="editjournalfriends" class="input-checkbox">
+      <input type="checkbox" id="editjournalfriends" name="friends" {{ CHECKED("f", query['settings']) }} />
+      Make this journal visible only to my friends
+    </label>
+
+    <div class="buttons clear" style="padding-top: 1em;">
+      <button type="submit" class="button" style="float: right;">Save</button>
+      <a class="button" href="/journal/{{ query['journalid'] }}/{{ query['title'] | SLUG }}">Cancel</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

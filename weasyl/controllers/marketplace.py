@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
-from pyramid.response import Response
+from pyramid.view import view_config
 
 from weasyl import define, media, commishinfo
 
 
+@view_config(route_name="marketplace", renderer='/etc/marketplace.jinja2')
 def search_(request):
     form = request.web_input(q="", min="", max="", currency="", pc="", c="", o="")
     limit = 30
@@ -25,6 +26,11 @@ def search_(request):
     media.populate_with_user_media(results)
     prev_index = None if offset == 0 else offset - limit if offset - limit > 0 else 0
     next_index = offset + limit if rcount - limit > 0 else None
-    return Response(define.webpage(request.userid, "etc/marketplace.html",
-                    [results, form, commishinfo.CURRENCY_CHARMAP, commishinfo.PRESET_COMMISSION_CLASSES,
-                     prev_index, next_index]))
+    return {
+        'results': results,
+        'form': form,
+        'currencies': commishinfo.CURRENCY_CHARMAP,
+        'presets': commishinfo.PRESET_COMMISSION_CLASSES,
+        'previndex': prev_index,
+        'nextindex': next_index
+    }

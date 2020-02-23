@@ -11,26 +11,23 @@ import logging
 import numbers
 import datetime
 import urlparse
-import pkgutil
 
 import json
 import arrow
 from pyramid.threadlocal import get_current_request
+from pyramid.renderers import render_to_response
 import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
 from sqlalchemy.exc import OperationalError
-from web.template import Template
 
-import libweasyl.constants
 from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
-from libweasyl import html, text, ratings, security, staff
+from libweasyl import ratings, security, staff
 
 from weasyl import config
-from weasyl import errorcode
 from weasyl import macro
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
@@ -40,7 +37,6 @@ from weasyl.macro import MACRO_SUPPORT_ADDRESS
 _shush_pyflakes = [sqlalchemy.orm]
 
 
-reload_templates = bool(os.environ.get('WEASYL_RELOAD_TEMPLATES'))
 reload_assets = bool(os.environ.get('WEASYL_RELOAD_ASSETS'))
 
 
@@ -142,105 +138,13 @@ with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
     CURRENT_SHA = f.read().strip()
 
 
-# Caching all templates. Parsing templates is slow; we don't need to do it all
-# the time and there's plenty of memory for storing the compiled templates.
-_template_cache = {}
-
-
-def _compile(template_name):
-    """
-    Compiles a template file and returns the result.
-    """
-    template = _template_cache.get(template_name)
-
-    if template is None or reload_templates:
-        _template_cache[template_name] = template = Template(
-            pkgutil.get_data(__name__, 'templates/' + template_name),
-            filename=template_name,
-            globals={
-                "STR": str,
-                "LOGIN": get_sysname,
-                "TOKEN": get_token,
-                "CSRF": _get_csrf_input,
-                "USER_TYPE": user_type,
-                "DATE": convert_date,
-                "ISO8601_DATE": iso8601_date,
-                "TIME": _convert_time,
-                "LOCAL_ARROW": local_arrow,
-                "PRICE": text_price_amount,
-                "SYMBOL": text_price_symbol,
-                "TITLE": titlebar,
-                "RENDER": render,
-                "COMPILE": _compile,
-                "CAPTCHA": _captcha_public,
-                "MARKDOWN": text.markdown,
-                "MARKDOWN_EXCERPT": text.markdown_excerpt,
-                "SUMMARIZE": summarize,
-                "SHA": CURRENT_SHA,
-                "NOW": get_time,
-                "THUMB": thumb_for_sub,
-                "WEBP_THUMB": webp_thumb_for_sub,
-                "M": macro,
-                "R": ratings,
-                "SLUG": text.slug_for,
-                "QUERY_STRING": query_string,
-                "INLINE_JSON": html.inline_json,
-                "PATH": _get_path,
-                "arrow": arrow,
-                "constants": libweasyl.constants,
-                "getattr": getattr,
-                "json": json,
-                "sorted": sorted,
-                "staff": staff,
-                "resource_path": get_resource_path,
-            })
-
-    return template
-
-
-def render(template_name, argv=()):
-    """
-    Renders a template and returns the resulting HTML.
-    """
-    template = _compile(template_name)
-    return unicode(template(*argv))
-
-
-def titlebar(title, backtext=None, backlink=None):
-    return render("common/stage_title.html", [title, backtext, backlink])
-
-
-def errorpage_html(userid, message_html, links=None, request_id=None, **extras):
-    return webpage(userid, "error/error.html", [message_html, links, request_id], **extras)
-
-
-def errorpage(userid, code=None, links=None, request_id=None, **extras):
-    if code is None:
-        code = errorcode.unexpected
-
-    return errorpage_html(userid, text.markdown(code), links, request_id, **extras)
-
-
-def webpage(userid, template, argv=None, options=None, **extras):
-    if argv is None:
-        argv = []
-
-    if options is None:
-        options = []
-
-    page = common_page_start(userid, options=options, **extras)
-    page.append(render(template, argv))
-
-    return common_page_end(userid, page, options=options)
-
-
 def _captcha_section():
     request = get_current_request()
     host = request.environ.get('HTTP_HOST', '').partition(':')[0]
     return 'recaptcha-' + host
 
 
-def _captcha_public():
+def captcha_public():
     """
     Returns the reCAPTCHA public key, or None if CAPTCHA verification
     is disabled.
@@ -610,7 +514,7 @@ def iso8601_date(target):
     return arrow.get(date).format("YYYY-MM-DD")
 
 
-def _convert_time(target=None):
+def convert_time(target=None):
     """
     Returns the time in the format 16:00:00. If no target is passed, the
     current time is returned.
@@ -711,26 +615,6 @@ def page_header_info(userid):
     }
 
 
-def common_page_start(userid, options=None, **extended_options):
-    if options is None:
-        options = []
-
-    userdata = None
-    if userid:
-        userdata = page_header_info(userid)
-
-    data = render(
-        "common/page_start.html", [userdata, options, extended_options])
-
-    return [data]
-
-
-def common_page_end(userid, page, options=None):
-    data = render("common/page_end.html", (options,))
-    page.append(data)
-    return "".join(page)
-
-
 def common_status_check(userid):
     """
     Returns the name of the script to which the user should be redirected
@@ -751,33 +635,32 @@ def common_status_check(userid):
     return None
 
 
-def common_status_page(userid, status):
+def common_status_page(userid, status, request):
     """
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
     if status == "resetpassword":
-        return webpage(userid, "force/resetpassword.html")
+        return render_to_response("force/resetpassword.html", {}, request=request)
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 
         login.signout(get_current_request())
         if status == 'banned':
             reason = moderation.get_ban_reason(userid)
-            return errorpage(
-                userid,
-                "Your account has been permanently banned and you are no longer allowed "
-                "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-                "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
+            return render_to_response("/error/error.jinja2", {
+                'error': "Your account has been permanently banned and you are no longer allowed "
+                         "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
+                         "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS)}, request=request)
 
         elif status == 'suspended':
             suspension = moderation.get_suspension(userid)
-            return errorpage(
-                userid,
-                "Your account has been temporarily suspended and you are not allowed to "
-                "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
-                "%s.\n\nIf you believe this suspension is in error, please contact "
-                "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
+            return render_to_response("/error/error.jinja2", {
+                'error': "Your account has been temporarily suspended and you are not allowed to "
+                         "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
+                         "%s.\n\nIf you believe this suspension is in error, please contact "
+                         "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS)
+            }, request=request)
 
 
 _content_types = {

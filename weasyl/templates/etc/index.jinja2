@@ -1,0 +1,147 @@
+{% extends 'common/base.jinja2' %}
+{% import 'common/thumbnail_item.jinja2' as thumbnail %}
+{% import 'common/macros.jinja2' as macro %}
+{% from 'etc/stream_macro.jinja2' import streams_block %}
+{% block content %}
+<div id="home-art" class="stage">
+
+  <h3 class="pad-left typeface-a color-b">Latest Uploads</h3>
+
+  <ul class="thumbnail-grid large-footprint">
+    {#  Items that are front and center on the main page, quite close to the top; skip lazy loading entirely. #}
+    {% for i in latest %}
+      {{ thumbnail.grid_item(i, lazy_load=False ) }}
+    {% endfor %}
+    <li class="clear more"> <a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
+  </ul>
+
+  <ul id="home-tabs" class="bar clear">
+    {% if popular %}
+      <li><a class="home-pane-link typeface-a color-c pad-left pad-right current" href="#home-recently-popular">Recently Popular</a></li>
+    {% endif %}
+    <li><a class="home-pane-link typeface-a color-c pad-left pad-right {{ current if not popular }}" href="#home-random-art">Random Art</a></li>
+    <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-literature">Literature</a></li>
+    <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-multimedia">Multimedia</a></li>
+    <li><a class="home-pane-link typeface-a color-c pad-left pad-right" href="#home-characters">Characters</a></li>
+  </ul>
+
+  <div id="home-panes">
+
+    {% if popular %}
+      <div id="home-recently-popular" class="pane">
+        <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-recently-popular">Recently Popular <span class="icon icon-20 icon-disclosure"></span></a>
+        <ul class="thumbnail-grid small-footprint current">
+          {% for i in popular %}
+            {{ thumbnail.grid_item(i) }}
+          {% endfor %}
+          <li class="clear more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
+        </ul>
+      </div>
+    {% endif %}
+
+    <div id="home-random-art" class="pane">
+      <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-random-art">Random Art <span class="icon icon-20 icon-disclosure"></span></a>
+      <ul class="thumbnail-grid small-footprint {{ current if not popular }}">
+        {% for i in randomized %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search"><i>More</i> <span>Random Art</span></a></li>
+      </ul>
+    </div>
+
+    <div id="home-literature" class="pane">
+      <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-literature">Literature <span class="icon icon-20 icon-disclosure"></span></a>
+      <ul class="thumbnail-grid small-footprint">
+        {% for i in literary %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search?find=submit&amp;cat=2000"><i>More</i> <span>Literature</span></a></li>
+      </ul>
+    </div>
+
+    <div id="home-multimedia" class="pane">
+      <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-multimedia">Multimedia <span class="icon icon-20 icon-disclosure"></span></a>
+      <ul class="thumbnail-grid small-footprint">
+        {% for i in media %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search?find=submit&amp;cat=3000"><i>More</i> <span>Multimedia</span></a></li>
+      </ul>
+    </div>
+
+    <div id="home-characters" class="pane">
+      <a class="home-pane-link home-disclosure bar pad-left color-a typeface-a" href="#home-characters">Characters <span class="icon icon-20 icon-disclosure"></span></a>
+      <ul class="thumbnail-grid small-footprint">
+        {% for i in characters %}
+          {{ thumbnail.grid_item(i) }}
+        {% endfor %}
+        <li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<div id="home-content" class="content">
+
+  {% if update %}
+    <div id="hc-update" class="clear">
+      <h3>{{ update['title'] }}</h3>
+
+      <figure class="thumbnail thumbnail-left clear">
+        {{ macro.AVATAR(update) }}
+        <figcaption class="caption">
+          <h4 class="title"><i>Posted by</i> <a class="username" href="/~{{ update['username']| LOGIN }}">{{ update['username'] }}</a></h4>
+          <h5 class="date">{{ update['unixtime']|DATE }} <i>at</i> {{ update['unixtime']|TIME }}</h5>
+        </figcaption>
+      </figure>
+
+      <div class="formatted-content">
+        {{ update['content']| MARKDOWN }}
+      </div>
+
+      {% if update['comment_count'] %}
+        <a href="/site-updates/{{ update['updateid'] }}" class="more more-block">
+          {# TODO: Plurlize #}
+          <i>View</i> <span>This Update </span><i>and</i>
+          <span>{{ update['comment_count'] }} Comment(s)</span>
+        </a>
+      {% else %}
+        <a href="/site-updates/{{ update['updateid'] }}" class="more more-block">
+          <i>View</i> <span>This Update</span>
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div id="hc-critique" class="clear">
+    <h3>Critique Wanted</h3>
+    {% if critique %}
+      <ul class="thumbnail-stack">
+        {% for i in critique %}
+          <li class="clear">
+            <figure class="thumb">
+              <a class="thumb-bounds" href="/submission/{{ i['submitid'] }}/{{ i['title']|SLUG }}" title="{{ i['title'] }}">
+                {{ macro.RATING(i['rating']) }}
+                <img src="{{ THUMB(i)['display_url'] }}" alt="thumbnail" />
+              </a>
+              <figcaption class="caption">
+                <h6 class="title"><a href="/submission/{{ i['submitid'] }}/{{ i['title']|SLUG }}" title="{{ i['title'] }}">{{ i['title']| truncate(52) }}</a></h6>
+                <p class="byline"><i>by</i> <a class="username" href="/~{{ i['username']|LOGIN }}">{{ i['username'] }}</a></p>
+              </figcaption>
+            </figure>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="color-lighter">There are no submissions to display.</div>
+    {% endif %}
+  </div>
+
+  <div id="hc-streams" class="clear">
+    <h3>Streaming Now <a id="view-streams-link" href="/streaming">View All</a></h3>
+      {{ streams_block(streaming) }}
+  </div>
+
+</div>
+{% endblock %}

@@ -2,16 +2,22 @@ from __future__ import absolute_import
 
 from pyramid import httpexceptions
 from pyramid.response import Response
+from pyramid.view import view_config
 
 from weasyl import (
-    character, collection, commishinfo, define, errorcode, favorite, folder,
+    character, collection, commishinfo, define, favorite, folder,
     followuser, frienduser, journal, macro, media, profile, shout, submission,
     pagination)
 from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
 
 
-# Profile browsing functions
+@view_config(route_name="profile_tilde_unnamed", renderer='/user/profile.jinja2')
+@view_config(route_name="profile_tilde", renderer='/user/profile.jinja2')
+@view_config(route_name="profile_user_unnamed", renderer='/user/profile.jinja2')
+@view_config(route_name="profile_user", renderer='/user/profile.jinja2')
+@view_config(route_name="profile_unnamed", renderer='/user/profile.jinja2')
+@view_config(route_name="profile", renderer='/user/profile.jinja2')
 def profile_(request):
     form = request.web_input(userid="", name="")
 
@@ -29,14 +35,12 @@ def profile_(request):
     if otherid != request.userid and not define.is_vouched_for(otherid):
         can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
 
-        return Response(
-            define.webpage(
-                request.userid,
-                "error/unverified.html",
-                [request, otherid, userprofile['username'], can_vouch],
-            ),
-            status=403,
-        )
+        return {
+            'unverified': True,
+            'targetid': otherid,
+            'target_username': userprofile['username'],
+            'can_vouch': can_vouch
+        }
 
     extras = {
         "canonical_url": "/~" + define.get_sysname(userprofile['username'])
@@ -58,15 +62,11 @@ def profile_(request):
         }
 
     if not request.userid and "h" in userprofile['config']:
-        return Response(define.errorpage(
-            request.userid,
-            "You cannot view this page because the owner does not allow guests to view their profile.",
-            **extras))
+        raise WeasylError('noGuests')
 
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     extras['title'] = u"%s's profile" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
 
-    page = define.common_page_start(request.userid, **extras)
     define.common_view_content(request.userid, otherid, "profile")
 
     if 'O' in userprofile['config']:
@@ -90,40 +90,39 @@ def profile_(request):
         favorites = None
 
     statistics, show_statistics = profile.select_statistics(otherid)
-
-    page.append(define.render('user/profile.html', [
-        request,
+    return {
         # Profile information
-        userprofile,
+        "profile": userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
-        macro.SOCIAL_SITES,
+        "userinfo": profile.select_userinfo(otherid, config=userprofile['config']),
+        'social_sites': macro.SOCIAL_SITES,
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Myself
-        profile.select_myself(request.userid),
+        'myself': profile.select_myself(request.userid),
         # Recent submissions
-        submissions, more_submissions,
-        favorites,
-        featured,
+        'submissions': submissions,
+        'more_submissions': more_submissions,
+        'favorites': favorites,
+        'featured': featured,
         # Folders preview
-        folder.select_preview(request.userid, otherid, rating, 3),
+        'folders': folder.select_preview(request.userid, otherid, rating, 3),
         # Latest journal
-        journal.select_latest(request.userid, rating, otherid=otherid),
+        'journal': journal.select_latest(request.userid, rating, otherid=otherid),
         # Recent shouts
-        shout.select(request.userid, ownerid=otherid, limit=8),
+        'shouts': shout.select(request.userid, ownerid=otherid, limit=8),
         # Statistics information
-        statistics,
-        show_statistics,
+        'statistics': statistics,
+        'show_statistics': show_statistics,
         # Commission information
-        commishinfo.select_list(otherid),
+        'commishinfo': commishinfo.select_list(otherid),
         # Friends
-        lambda: frienduser.has_friends(otherid),
-    ]))
+        'has_friends': lambda: frienduser.has_friends(otherid),
+        'extended_options': extras
+    }
 
-    return Response(define.common_page_end(request.userid, page))
 
-
+@view_config(route_name="profile_media")
 def profile_media_(request):
     name = request.matchdict['name']
     link_type = request.matchdict['link_type']
@@ -137,6 +136,8 @@ def profile_media_(request):
     ])
 
 
+@view_config(route_name="profile_submissions_unnamed", renderer='/user/submissions.jinja2')
+@view_config(route_name="profile_submissions", renderer='/user/submissions.jinja2')
 def submissions_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None, folderid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -149,12 +150,11 @@ def submissions_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's submissions" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
-    page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/submissions/{username}?%s{folderquery}".format(
                  username=define.get_sysname(userprofile['username']),
@@ -163,25 +163,25 @@ def submissions_(request):
         submission.select_list, submission.select_count, 'submitid', url_format, request.userid, rating,
         60, otherid=otherid, folderid=folderid, backid=define.get_int(form.backid),
         nextid=define.get_int(form.nextid), profile_page_filter=not folderid)
-
-    page.append(define.render('user/submissions.html', [
+    return {
+        'title': page_title,
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Recent submissions
-        result,
+        'result': result,
         # Folders
-        folder.select_list(otherid, "sidebar/all"),
+        'folders': folder.select_list(otherid, "sidebar/all"),
         # Current folder
-        folderid,
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'currentfolder': folderid,
+    }
 
 
+@view_config(route_name="profile_collections_unnamed", renderer='/user/collections.jinja2')
+@view_config(route_name="profile_collections", renderer='/user/collections.jinja2')
 def collections_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None,
                              folderid=None)
@@ -194,32 +194,32 @@ def collections_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
-    page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
         collection.select_list, collection.select_count, 'submitid', url_format, request.userid, rating, 66,
         otherid=otherid, backid=define.get_int(form.backid), nextid=define.get_int(form.nextid))
 
-    page.append(define.render('user/collections.html', [
+    return {
+        'title': page_title,
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Collections
-        result,
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'result': result,
+    }
 
 
+@view_config(route_name="profile_journals_unnamed", renderer='/user/journals.jinja2')
+@view_config(route_name="profile_journals", renderer='/user/journals.jinja2')
 def journals_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -231,30 +231,30 @@ def journals_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's journals" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
-    page = define.common_page_start(request.userid, title=page_title)
 
-    page.append(define.render('user/journals.html', [
+    return {
+        'title': page_title,
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Journals list
         # TODO(weykent): use select_user_list
-        journal.select_list(request.userid, rating, 250, otherid=otherid),
+        'journals': journal.select_list(request.userid, rating, 250, otherid=otherid),
         # Latest journal
-        journal.select_latest(request.userid, rating, otherid=otherid),
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'latest': journal.select_latest(request.userid, rating, otherid=otherid),
+    }
 
 
+@view_config(route_name="profile_characters_unnamed", renderer='/user/characters.jinja2')
+@view_config(route_name="profile_characters", renderer='/user/characters.jinja2')
 def characters_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -266,12 +266,11 @@ def characters_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's characters" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
-    page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/characters?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
@@ -280,20 +279,21 @@ def characters_(request):
         otherid=otherid, backid=define.get_int(form.backid),
         nextid=define.get_int(form.nextid))
 
-    page.append(define.render('user/characters.html', [
+    return {
+        'title': page_title,
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Characters list
-        result,
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'result': result,
+    }
 
 
+@view_config(route_name="profile_shouts_unnamed", renderer='/user/shouts.jinja2')
+@view_config(route_name="profile_shouts", renderer='/user/shouts.jinja2')
 def shouts_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -304,44 +304,41 @@ def shouts_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
     if otherid != request.userid and not define.is_vouched_for(otherid):
         can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
-
-        return Response(
-            define.webpage(
-                request.userid,
-                "error/unverified.html",
-                [request, otherid, userprofile['username'], can_vouch],
-            ),
-            status=403,
-        )
+        return {
+            'unverified': True,
+            'targetid': otherid,
+            'target_username': userprofile['username'],
+            'can_vouch': can_vouch
+        }
 
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
-    page = define.common_page_start(request.userid, title=page_title)
 
-    page.append(define.render('user/shouts.html', [
+    return {
+        'title': page_title,
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Myself
-        profile.select_myself(request.userid),
+        'myself': profile.select_myself(request.userid),
         # Comments
-        shout.select(request.userid, ownerid=otherid),
+        'shouts': shout.select(request.userid, ownerid=otherid),
         # Feature
-        "shouts",
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'feature': "shouts",
+    }
 
 
+@view_config(route_name="profile_staffnotes_unnamed", renderer='/user/shouts.jinja2')
+@view_config(route_name="profile_staffnotes", renderer='/user/shouts.jinja2')
 @moderator_only
 def staffnotes_(request):
     form = request.web_input(userid="")
@@ -352,31 +349,31 @@ def staffnotes_(request):
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's staff notes" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
-    page = define.common_page_start(request.userid, title=page_title)
 
     userinfo = profile.select_userinfo(otherid, config=userprofile['config'])
     reportstats = profile.select_report_stats(otherid)
     userinfo['reportstats'] = reportstats
     userinfo['reporttotal'] = sum(reportstats.values())
 
-    page.append(define.render('user/shouts.html', [
+    return {
+        'title': page_title,
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        userinfo,
+        'userinfo': userinfo,
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Myself
-        profile.select_myself(request.userid),
+        'myself': profile.select_myself(request.userid),
         # Comments
-        shout.select(request.userid, ownerid=otherid, staffnotes=True),
+        'shouts': shout.select(request.userid, ownerid=otherid, staffnotes=True),
         # Feature
-        "staffnotes",
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'feature': "staffnotes",
+    }
 
 
+@view_config(route_name="profile_favorites_unnamed", renderer='/user/favorites.jinja2')
+@view_config(route_name="profile_favorites", renderer='/user/favorites.jinja2')
 def favorites_(request):
     form = request.web_input(userid="", name="", feature="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -389,16 +386,13 @@ def favorites_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
     elif request.userid != otherid and 'v' in define.get_config(otherid):
-        return Response(define.errorpage(
-            request.userid,
-            "You cannot view this page because the owner does not allow anyone to see their favorites."))
+        raise WeasylError('hiddenFavorites')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
     page_title = u"%s's favorites" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
-    page = define.common_page_start(request.userid, title=page_title)
 
     if form.feature:
         nextid = define.get_int(form.nextid)
@@ -429,22 +423,23 @@ def favorites_(request):
             "journal": favorite.select_journal(request.userid, rating, 22, otherid=otherid),
         }
 
-    page.append(define.render('user/favorites.html', [
+    return {
+        'title': page_title,
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Feature
-        form.feature,
+        'feature': form.feature,
         # Favorites
-        faves,
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+        'result': faves,
+    }
 
 
+@view_config(route_name="profile_friends_unnamed", renderer='/user/friends.jinja2')
+@view_config(route_name="profile_friends", renderer='/user/friends.jinja2')
 def friends_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -455,23 +450,26 @@ def friends_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, "user/friends.html", [
+    return {
+        'feature': 'friends',
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Friends
-        frienduser.select_friends(request.userid, otherid, limit=44,
-                                  backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
-    ]))
+        'query': frienduser.select_friends(request.userid, otherid, limit=44,
+                                           backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
+    }
 
 
+@view_config(route_name="profile_following_unnamed", renderer='/user/friends.jinja2')
+@view_config(route_name="profile_following", renderer='/user/friends.jinja2')
 def following_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -482,23 +480,26 @@ def following_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, "user/following.html", [
+    return {
+        'feature': 'following',
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Following
-        followuser.select_following(request.userid, otherid, limit=44,
-                                    backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
-    ]))
+        'query': followuser.select_following(request.userid, otherid, limit=44,
+                                             backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
+    }
 
 
+@view_config(route_name="profile_followed_unnamed", renderer='/user/friends.jinja2')
+@view_config(route_name="profile_followed", renderer='/user/friends.jinja2')
 def followed_(request):
     form = request.web_input(userid="", name="", backid=None, nextid=None)
     form.name = request.matchdict.get('name', form.name)
@@ -509,18 +510,19 @@ def followed_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     elif not request.userid and "h" in define.get_config(otherid):
-        return Response(define.errorpage(request.userid, errorcode.no_guest_access))
+        raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, images=True, viewer=request.userid)
 
-    return Response(define.webpage(request.userid, "user/followed.html", [
+    return {
+        'feature': 'followed',
         # Profile information
-        userprofile,
+        'profile': userprofile,
         # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
+        'userinfo': profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        'relationship': profile.select_relation(request.userid, otherid),
         # Followed
-        followuser.select_followed(request.userid, otherid, limit=44,
+        'query': followuser.select_followed(request.userid, otherid, limit=44,
                                    backid=define.get_int(form.backid), nextid=define.get_int(form.nextid)),
-    ]))
+    }

@@ -1,0 +1,160 @@
+{% extends 'common/base.jinja2' %}
+{% from 'common/stage_title.jinja2' import stage %}
+
+{% macro USER_LINK(username) -%}
+    <a href="/~{{ username | LOGIN }}" class="username">{{ username }}</a>
+{%- endmacro %}
+
+{% macro SUBMISSION_LINK(id, title) -%}
+    <a href="/submission/{{ id }}/{{ title | SLUG }}">{{ title }}</a>
+{%- endmacro %}
+
+{% macro CHARACTER_LINK(id, title) -%}
+    <a href="/character/{{ id }}/{{ title | SLUG }}">{{ title }}</a>
+{%- endmacro %}
+
+{% macro JOURNAL_LINK(id, title) -%}
+    <a href="/journal/{{ id }}/{{ title | SLUG }}">{{ title }}</a>
+{%- endmacro %}
+
+{% macro SUBMISSION_COMMENT_LINK(id, title, cid, msg) -%}
+    <a href="/submission/{{ id }}/{{ title | SLUG }}#cid{{ cid }}">{{ msg }}</a>
+{%- endmacro %}
+
+{% macro CHARACTER_COMMENT_LINK(id, title, cid, msg) -%}
+    <a href="/character/{{ id }}/{{ title | SLUG }}#cid{{ cid }}">{{ msg }}</a>
+{%- endmacro %}
+
+{% macro JOURNAL_COMMENT_LINK(id, title, cid, msg) -%}
+    <a href="/journal/{{ id }}/{{ title | SLUG }}#cid{{ cid }}">{{ msg }}</a>
+{%- endmacro %}
+
+{% macro SHOUT_LINK(username, cid, msg) -%}
+    <a href="/shouts/{{ username | LOGIN }}/#cid{{ cid }}">{{ msg }}</a>
+{%- endmacro %}
+
+{% macro STAFF_NOTE_LINK(username, cid, msg) -%}
+    <a href="/staffnotes/{{ user | LOGIN }}/#cid{{ cid }}">{{ msg }}</a>
+{%- endmacro %}
+
+{% macro MESSAGE(item) -%}
+    {% if item['type'] == 1010 %}
+        {{ USER_LINK(item['username']) }} posted a journal entry titled {{ JOURNAL_LINK(item['journalid'], item['title']) }}
+    {% elif item['type'] == 3010 %}
+        {{ USER_LINK(item['username']) }} is now following you.
+    {% elif item['type'] == 3020 %}
+        {{ USER_LINK(item['username']) }} favorited your submission titled {{ SUBMISSION_LINK(item['submitid'], item['title']) }}.
+    {% elif item['type'] == 3030 %}
+        {{ USER_LINK(item['username']) }} offered their submission {{ SUBMISSION_LINK(item['submitid'], item['title']) }} to you as a collection.
+    {% elif item['type'] == 3035 %}
+        {{ USER_LINK(item['username']) }} would like to add your submission {{ SUBMISSION_LINK(item['submitid'], item['title']) }} to their collection.
+    {% elif item['type'] == 3050 %}
+        {{ USER_LINK(item['username']) }} favorited your collected submission titled {{ SUBMISSION_LINK(item['submitid'], item['title']) }}.
+    {% elif item['type'] == 3070 %}
+        {{ USER_LINK(item['username']) }} will be streaming artwork later.
+    {% elif item['type'] == 3075 %}
+        {{ USER_LINK(item['username']) }} is now streaming artwork live.
+        <a href="{{ item['stream_url'] }}">[View Stream]</a>
+    {% elif item['type'] == 3080 %}
+        {{ USER_LINK(item['username']) }} sent you a friend request.
+    {% elif item['type'] == 3085 %}
+        {{ USER_LINK(item['username']) }} accepted your friend request.
+    {% elif item['type'] == 3100 %}
+        {{ USER_LINK(item['username']) }} favorited your character titled {{ CHARACTER_LINK(item['charid'], item['title']) }}.
+    {% elif item['type'] == 3110 %}
+        {{ USER_LINK(item['username']) }} favorited your journal titled {{ JOURNAL_LINK(item['journalid'], item['title']) }}.
+    {% elif item['type'] == 3140 %}
+        <a href="/submission/tag-history/{{ item['submitid'] }}">The tags were changed</a> on your submission {{ SUBMISSION_LINK(item['submitid'], item['title']) }}.
+    {% elif item['type'] == 3150 %}
+        <a href="/site-updates/{{ item['updateid'] }}">{{ item['title'] }}</a>
+    {% elif item['type'] == 4010 %}
+        {{ USER_LINK(item['username']) }} left a
+        <a href="/shouts/{{ item['ownername'] }}#cid{{ item['commentid'] }}">comment</a> on your shout page.
+    {% elif item['type'] == 4015 %}
+        {{ USER_LINK(item['username']) }} left a {{ SHOUT_LINK(item['ownername'], item['commentid'], 'reply' ) }} to {{ SHOUT_LINK(item['ownername'], item['replyid'], 'your comment' ) }} on {{ USER_LINK(item['ownername']) }}'s shout page.
+    {% elif item['type'] == 4016 %}
+        {{ USER_LINK(item['username']) }} left a {{ STAFF_NOTE_LINK(item['ownername'], item['commentid'], 'reply' ) }} to {{ STAFF_NOTE_LINK(item['ownername'], item['replyid'], 'your comment' ) }} on {{ USER_LINK(item['ownername']) }}'s staff notes.
+    {% elif item['type'] == 4020 %}
+        {{ USER_LINK(item['username']) }} left a
+        <a href="/submission/{{ item['submitid'] }}/{{ item['title'] | SLUG }}#cid{{ item['commentid'] }}">comment</a> on your submission {{ SUBMISSION_LINK(item['submitid'], item['title']) }}.
+    {% elif item['type'] == 4025 %}
+        {{ USER_LINK(item['username']) }} left a {{ SUBMISSION_COMMENT_LINK(item['submitid'], item['title'], item['commentid'], 'reply') }} to {{ SUBMISSION_COMMENT_LINK(item['submitid'], item['title'], item['replyid'], 'your comment') }} on the submission {{ SUBMISSION_LINK(item['submitid'], item['title']) }}.
+    {% elif item['type'] == 4030 %}
+        {{ USER_LINK(item['username']) }} left a {{ JOURNAL_COMMENT_LINK(item['journalid'], item['title'], item['commentid'], 'comment') }} on your journal {{ JOURNAL_LINK(item['journalid'], item['title']) }}.
+    {% elif item['type'] == 4035 %}
+        {{ USER_LINK(item['username']) }} left a {{ JOURNAL_COMMENT_LINK(item['journalid'], item['title'], item['commentid'], 'reply') }} to {{ JOURNAL_COMMENT_LINK(item['journalid'], item['title'], item['replyid'], 'your comment') }} on the journal  {{ JOURNAL_LINK(item['journalid'], item['title']) }}.
+    {% elif item['type'] == 4040 %}
+        {{ USER_LINK(item['username']) }} left a {{ CHARACTER_COMMENT_LINK(item['charid'], item['title'], item['commentid'], 'comment') }} on your character {{ CHARACTER_LINK(item['charid'], item['title']) }}.
+    {% elif item['type'] == 4045 %}
+        {{ USER_LINK(item['username']) }} left a {{ CHARACTER_COMMENT_LINK(item['charid'], item['title'], item['commentid'], 'reply') }} to {{ CHARACTER_COMMENT_LINK(item['charid'], item['title'], item['replyid'], 'your comment') }} on the character {{ CHARACTER_LINK(item['charid'], item['title']) }}.
+    {% elif item['type'] == 4050 %}
+        {{ USER_LINK(item['username']) }} left a {{ SUBMISSION_COMMENT_LINK(item['submitid'], item['title'], item['commentid'], 'comment') }} on your collected submission {{ SUBMISSION_LINK(item['submitid'], item['title']) }}.
+    {% elif item['type'] == 4060 %}
+        {{ USER_LINK(item['username']) }} left a <a href="/site-updates/{{ item['updateid'] }}#cid{{ item['commentid'] }}">reply</a> on your site update
+        <a href="/site-updates/{{ item['updateid'] }}">{{ item['title'] }}</a>
+    {% elif item['type'] == 4065 %}
+        {{ USER_LINK(item['username']) }} left a <a href="/site-updates/{{ item['updateid'] }}#cid{{ item['commentid'] }}">reply</a> to  <a href="/site-updates/{{ item['updateid'] }}#cid{{ item['replyid'] }}">your comment</a> on the site update
+        <a href="/site-updates/{{ item['updateid'] }}">{{ item['title'] }}</a>.
+    {% else %}
+        {{ item }}
+    {% endif %}
+{%- endmacro %}
+{% block content %}
+    {{ stage("Notifications", "Messages") }}
+<div id="messages-content" class="content">
+        {% if not query %}
+    <br>
+    There are no notifications to display.
+        {% endif %}
+
+  <form action="/messages/remove" method="post">
+            <input type="hidden" name="token" value="{{ TOKEN() }}"/>
+
+
+      {% if query %}
+      <div class="notifs-actions" id="notification-global-actions-top">
+        <div class="notifs-remove-buttons">
+          <button class="button negative notifs-remove" id="remove-checked-top" data-confirm="Are you sure you want to remove the selected notifications?">Remove Selected</button>
+          <button class="button negative remove-all notifs-remove-all" name="remove-all-before" value="{{ NOW() }}" data-confirm="Are you sure you want to remove all the notifications on this page?">Remove All</button>
+        </div>
+      </div>
+            {% endif %}
+
+    <div id="messages-checkboxes">
+                {% for header in query.keys() %}
+          <h3 class="notification-group-header">
+                        {{ header }}
+                        {% if header == 'Collection Offers' %}
+              <a class="typeface-default" href="/manage/collections?feature=pending">[Manage Collections]</a>
+                        {% elif header == 'Friend Requests' %}
+              <a class="typeface-default" href="/manage/friends?feature=pending">[Manage Friends]</a>
+                        {% endif %}
+          </h3>
+                    <div class="group" id="{{ header | replace(' ', '_') | lower }}">
+                        {% for i in query[header] %}
+        <div class="item">
+          <label class="input-checkbox">
+                                    <input type="checkbox" class="remove" name="remove" value="{{ i['id'] }}"/>
+                                    {{ MESSAGE(i) }}
+                                    <span class="date color-lighter">{{ i['unixtime']| DATE }} <em>at</em> {{ i['unixtime'] | TIME }}</span>
+          </label>
+        </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+    </div>
+
+            {% if query %}
+      <div class="notifs-actions" id="notification-global-actions">
+        <div class="notifs-remove-buttons">
+          <button class="button negative notifs-remove" id="remove-checked" data-confirm="Are you sure you want to remove the selected notifications?">Remove Selected</button>
+          <button class="button negative remove-all notifs-remove-all" name="remove-all-before" value="{{ NOW() }}" data-confirm="Are you sure you want to remove all the notifications on this page?">Remove All</button>
+        </div>
+      </div>
+            {% endif %}
+
+            <script src="{{ 'js/notification-list.js' | route_path }}"></script>
+  </form>
+
+</div>
+{% endblock %}

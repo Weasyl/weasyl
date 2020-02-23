@@ -1,0 +1,186 @@
+{% extends 'common/base.jinja2' %}
+{% import 'common/comments.jinja2' as comment_macros %}
+{% import 'user/user_tools.jinja2' as user_macro %}
+{% import 'common/thumbnail_item.jinja2' as thumbnail %}
+{% from 'common/commission_info.jinja2' import commission_price_display %}
+{% from 'error/unverified.jinja2' import unverified_macro %}
+{% block content %}
+    {% if unverified %}
+        {{ unverified_macro(targetid, target_username,can_vouch) }}
+    {% else %}
+        <section>
+            <div id="user-header" class="stage clear">
+
+                {{ user_macro.USERTOOLS(profile, userinfo, relationship) }}
+
+  <!-- The submissions/favorite grids are above/straddling the fold, so omit lazy load. -->
+  {% if(submissions) %}
+    <ul id="user-thumbs" class="thumbnail-grid small-footprint">
+      {% for i in submissions %}
+        {{ thumbnail.grid_item(i, lazy_load=False ) }}
+      {% endfor %}
+      <li class="clear"><a class="more" href="/{{ more_submissions }}/{{ profile['username']| LOGIN }}"><span>{{ profile['username'] }}'s {{ more_submissions.title() }}</span></a></li>
+    </ul>
+    {% endif %}
+
+  {% if submissions and favorites %}
+    <hr class="more" />
+  {% endif %}
+
+  {% if favorites %}
+    <ul id="fav-thumbs" class="thumbnail-grid tiny-footprint">
+      {% for i in favorites %}
+        {{ thumbnail.grid_item(i, lazy_load=False ) }}
+      {% endfor %}
+      <li class="clear"><a class="more" href="/favorites/{{ profile['username']| LOGIN }}"><span>{{ profile['username'] }}'s Favorites</span></a></li>
+    </ul>
+                {% endif %}
+
+</div></section>
+
+{{ user_macro.USERTABS(profile['username'], "profile", profile['show_favorites_tab']) }}
+
+<div id="user-content" class="content clear">
+
+  {% if(profile['profile_text']) %}
+    <div id="user-profile" class="clear on-side">
+      <h3>Profile</h3>
+      <div class="formatted-content">
+        {{ profile['profile_text'] | MARKDOWN }}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if not featured  and submissions %}
+    {% set featured = submissions[0] %}
+    {% set blurb = 'Most recent' %}
+  {% else %}
+    {% set blurb = 'Featured' %}
+  {% endif %}
+  {% if featured and featured['sub_media'].get('cover') %}
+      <div id="user-featured">
+        {% if featured['contype'] in (10, 15) %}
+          {% set featured_link = req.route_path('submission_detail_profile', name=featured['username']|LOGIN, submitid=featured['submitid'], slug=featured['title'] | SLUG) %}
+          <h3>{{ blurb }}: <a class="color-c" href="{{ featured_link }}">{{ featured['title'] }}</a></h3>
+          <div id="uf-image">
+            <a href="{{ featured_link }}"><img src="{{ featured['sub_media']['cover'][0]['display_url'] }}" alt="{{ blurb }} image: {{ featured['title'] }}" /></a>
+          </div>
+        {% elif featured['contype'] == 20 %}
+          <h3>Most Recent: <a class="color-c" href="/character/{{ featured['charid'] }}/{{ featured['title'] | SLUG }}">{{ featured['title'] }}</a></h3>
+          <div id="uf-image">
+            <a href="/character/{{ featured['charid'] }}/{{ featured['title'] | SLUG }}"><img src="{{ featured['sub_media']['cover'][0]['display_url'] }}" alt="{{ blurb }} character: {{ featured['title'] }}" /></a>
+        </div>
+      {% endif %}
+      </div>
+  {% endif %}
+  {% if userinfo['user_links'] %}
+    <div id="user-contact" class="clear on-side">
+      <h3>Contact</h3>
+      <dl class="leaders">
+      {% for name, values in userinfo['sorted_user_links'] %}
+        {% for value in values %}
+          <dt>{{ name }}</dt>
+          {% set info = social_sites.get(name.lower(), {}) %}
+          {% if value.startswith(('http://', 'https://')) %}
+            <dd><a href="{{ value }}" rel="nofollow">{{ value }}</a></dd>
+          {% elif value.startswith('mailto:') %}
+            <dd><a href="{{ value }}">{{ value.partition('mailto:')[2] }}</a></dd>
+          {% elif info.get("url") %}
+            <dd><a href="{{ info["url"] % value }}">{{ value }}</a></dd>
+          {% else %}
+            <dd>{{ value }}</dd>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+      </dl>
+    </div>
+  {% endif %}
+
+  {% if journal %}
+    <div id="user-journal" class="clear on-side">
+      <h3>Latest Journal</h3>
+      <h4><a class="color-c" href="/journal/{{ journal['journalid'] }}/{{ journal['title'] | SLUG }}">{{ journal['title'] }}</a></h4>
+      <h5><i>on</i> {{ journal['unixtime'] | DATE }} <i>at</i> {{ journal['unixtime'] | TIME }}</h5>
+
+      <div class="formatted-content">
+        {{ journal['content'] | MARKDOWN }}
+      </div>
+
+     <a class="more more-block" href="/journal/{{ journal['journalid'] }}/{{ journal['title'] | SLUG }}"><i>View</i><span>This Journal</span> <i>and</i> <span>{{ journal['comments'] }} Comments</span></a>
+    </div>
+  {% endif %}
+
+
+  {% if(commishinfo['class'] and commishinfo['price']) %}
+    <div id="user-commissions" class="clear on-side">
+      <h3>Commissions</h3>
+
+      {{ commission_price_display(commishinfo) }}
+
+      {% if(commishinfo['content']) %}
+        <div class="formatted-content">{{ commishinfo['content'] | MARKDOWN }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+
+  {% if show_statistics %}
+    <div id="user-stats" class="clear on-side">
+      <h3>Statistics</h3>
+      <p>Joined {{ profile['unixtime']| DATE }}</p>
+      <dl>
+      <dt>{{ statistics['page_views'] }}</dt> <dd>Pageviews</dd>
+      <dt>{{ statistics['submit_views'] }}</dt> <dd>Submission Views</dd>
+      <dt>{{ statistics['faves_received'] }}</dt> <dd>Favorites Received</dd>
+      <dt>{{ statistics['followed'] }}</dt> <dd>Followers</dd>
+      <dt>{{ statistics['faves_sent'] }}</dt> <dd>Favorites Given</dd>
+      <dt>{{ statistics['faves_received'] }}</dt> <dd>Favorites Received</dd>
+      <dt>{{ statistics['submissions'] }}</dt> <dd>Submissions</dd>
+      <dt>{{ statistics['journals'] }}</dt> <dd>Journals</dd>
+      <dt>{{ statistics['following'] }}</dt> <dd>Following</dd>
+      {% if myself and myself['is_mod'] %}
+        <dt>{{ statistics['staff_notes'] }}</dt>
+        <dd><a href="/staffnotes/{{ profile['username']| LOGIN }}">Staff Notes</a></dd>
+      {% endif %}
+      </dl>
+    </div>
+  {% endif %}
+
+  {% if statistics['following'] != 0 or statistics['followed'] != 0 or has_friends() %}
+    <div id="user-connections" class="clear on-side">
+      <h3>Connections</h3>
+      <a class="more more-block" href="/friends/{{ profile['username']| LOGIN }}"><i>View</i> <span>Friends of</span> <i>{{ profile['username'] }}</i></a>
+      <a class="more more-block" href="/following/{{ profile['username']| LOGIN }}"><i>View Users {{ profile['username'] }}</i> <span>is Following</span></a>
+      <a class="more more-block" href="/followed/{{ profile['username']| LOGIN }}"><i>View Users</i><span>who Follow</span> <i>{{ profile['username'] }}</i></a>
+    </div>
+  {% endif %}
+
+  {% if(folders) %}
+    <div id="user-folders" class="clear">
+      <h3>Folders</h3>
+      <div id="uf-folders">
+        {% for i in folders %}
+          <a class="clear" href="/submissions?userid={{ profile['userid'] }}&amp;folderid={{ i['folderid'] }}">
+            {% set thumb = THUMB(i) %}
+            <div class="stack"><img src="{{ thumb['display_url'] }}" alt=""/></div>
+            <h5 class="color-c">{{ i['title'] }}</h5>
+            <h6><b>{{ i['count'] }}</b> Item{{ '' if i['count'] == 1 else 's' }}</h6>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div id="user-shouts">
+    <h3>Shouts</h3>
+    {% if(shouts) %}
+      {{ comment_macros.comment_thread(req.userid, "user_comments", shouts, "userid", None, profile['userid']) }}
+    {% endif %}
+    {% if myself %}
+      {{ comment_macros.comment_form(req.userid, profile['userid'], "shouts") }}
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+{% endblock %}

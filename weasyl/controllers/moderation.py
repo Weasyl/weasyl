@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import arrow
 
 from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.view import view_config
 from pyramid.response import Response
 
 from weasyl import define, index, macro, moderation, note, profile, report, spam_filtering, welcome
@@ -13,17 +14,19 @@ from weasyl.error import WeasylError
 
 
 # Moderator control panel functions
+@view_config(route_name="modcontrol", renderer='/modcontrol/modcontrol.jinja2')
 @moderator_only
 def modcontrol_(request):
-    return Response(define.webpage(request.userid, "modcontrol/modcontrol.html", title="Moderator Control Panel"))
+    return {'title': "Moderator Control Panel"}
 
 
+@view_config(route_name="modcontrol_suspenduser", renderer='/modcontrol/suspenduser.jinja2', request_method="GET")
 @moderator_only
 def modcontrol_suspenduser_get_(request):
-    return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
-                                   (moderation.BAN_TEMPLATES,), title="User Suspensions"))
+    return {'templates': moderation.BAN_TEMPLATES, 'title': "User Suspensions"}
 
 
+@view_config(route_name="modcontrol_suspenduser", renderer='/modcontrol/suspenduser.jinja2', request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_suspenduser_post_(request):
@@ -34,31 +37,34 @@ def modcontrol_suspenduser_post_(request):
     raise HTTPSeeOther(location="/modcontrol")
 
 
+@view_config(route_name="modcontrol_report", renderer='/modcontrol/report.jinja2')
 @moderator_only
 def modcontrol_report_(request):
     form = request.web_input(reportid='')
     r = report.select_view(request.userid, form)
     blacklisted_tags = moderation.gallery_blacklisted_tags(request.userid, r.target.userid)
 
-    return Response(define.webpage(request.userid, "modcontrol/report.html", [
-        request.userid,
-        r,
-        blacklisted_tags,
-    ], title="View Reported " + r.target_type.title()))
+    return {
+        'my_userid': request.userid,
+        'report': r,
+        'blacklisted_tags': blacklisted_tags,
+        'title': "View Reported " + r.target_type.title()
+    }
 
 
+@view_config(route_name="modcontrol_reports", renderer='/modcontrol/reports.jinja2')
 @moderator_only
 def modcontrol_reports_(request):
     form = request.web_input(status="open", violation="", submitter="")
-    return Response(define.webpage(request.userid, "modcontrol/reports.html", [
-        # Method
-        {"status": form.status, "violation": int(form.violation or -1), "submitter": form.submitter},
-        # Reports
-        report.select_list(request.userid, form),
-        macro.MACRO_REPORT_VIOLATION,
-    ], title="Reported Content"))
+    return {
+        'method': {"status": form.status, "violation": int(form.violation or -1), "submitter": form.submitter},
+        'query': report.select_list(request.userid, form),
+        'violations': macro.MACRO_REPORT_VIOLATION,
+        'title': "Reported Content"
+    }
 
 
+@view_config(route_name="modcontrol_closereport", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_closereport_(request):
@@ -67,6 +73,7 @@ def modcontrol_closereport_(request):
     raise HTTPSeeOther(location="/modcontrol/report?reportid=%d" % (int(form.reportid),))
 
 
+@view_config(route_name="modcontrol_contentbyuser", renderer='/modcontrol/contentbyuser.jinja2')
 @moderator_only
 def modcontrol_contentbyuser_(request):
     form = request.web_input(name='', features=[])
@@ -80,12 +87,14 @@ def modcontrol_contentbyuser_(request):
     characters = moderation.charactersbyuser(target_userid) if 'c' in form.features else []
     journals = moderation.journalsbyuser(target_userid) if 'j' in form.features else []
 
-    return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
-        form.name,
-        sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
-    ], title=form.name + "'s Content"))
+    return {
+        'name': form.name,
+        'query': sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
+        'title': form.name + "'s Content"
+    }
 
 
+@view_config(route_name="modcontrol_massaction", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_massaction_(request):
@@ -119,6 +128,7 @@ def modcontrol_massaction_(request):
     )
 
 
+@view_config(route_name="modcontrol_hide", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_hide_(request):
@@ -132,6 +142,7 @@ def modcontrol_hide_(request):
     raise HTTPSeeOther(location="/modcontrol")
 
 
+@view_config(route_name="modcontrol_unhide", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_unhide_(request):
@@ -145,15 +156,14 @@ def modcontrol_unhide_(request):
     raise HTTPSeeOther(location="/modcontrol")
 
 
+@view_config(route_name="modcontrol_manageuser", renderer='/modcontrol/manageuser.jinja2')
 @moderator_only
 def modcontrol_manageuser_(request):
     form = request.web_input(name="")
-
-    return Response(define.webpage(request.userid, "modcontrol/manageuser.html", [
-        moderation.manageuser(request.userid, form),
-    ], title="User Management"))
+    return {'query': moderation.manageuser(request.userid, form), 'title': "User Management"}
 
 
+@view_config(route_name="modcontrol_removeavatar", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_removeavatar_(request):
@@ -163,6 +173,7 @@ def modcontrol_removeavatar_(request):
     raise HTTPSeeOther(location="/modcontrol")
 
 
+@view_config(route_name="modcontrol_removebanner", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_removebanner_(request):
@@ -172,6 +183,7 @@ def modcontrol_removebanner_(request):
     raise HTTPSeeOther(location="/modcontrol")
 
 
+@view_config(route_name="modcontrol_editprofiletext", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_editprofiletext_(request):
@@ -181,6 +193,7 @@ def modcontrol_editprofiletext_(request):
     raise HTTPSeeOther(location="/modcontrol")
 
 
+@view_config(route_name="modcontrol_editcatchphrase", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_editcatchphrase_(request):
@@ -190,6 +203,7 @@ def modcontrol_editcatchphrase_(request):
     raise HTTPSeeOther(location="/modcontrol")
 
 
+@view_config(route_name="modcontrol_copynotetostaffnotes", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_copynotetostaffnotes_post_(request):
@@ -212,6 +226,7 @@ def modcontrol_copynotetostaffnotes_post_(request):
     raise HTTPSeeOther("/staffnotes/" + notedata['sendername'])
 
 
+@view_config(route_name="modcontrol_spamqueue_journal", renderer='/modcontrol/spamqueue/journal.jinja2', request_method="GET")
 @moderator_only
 def modcontrol_spamqueue_journal_get_(request):
     """
@@ -229,14 +244,12 @@ def modcontrol_spamqueue_journal_get_(request):
         WHERE jo.is_spam
             AND jo.settings !~ 'h'
     """).fetchall()
-    return Response(define.webpage(
-        request.userid,
-        "modcontrol/spamqueue/journal.html",
-        [query],
-        title="Journal Spam Queue"
-    ))
+    return {'query': query,
+            'title': "Journal Spam Queue"
+            }
 
 
+@view_config(route_name="modcontrol_spamqueue_journal", renderer='/modcontrol/spamqueue/journal.jinja2', request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_spamqueue_journal_post_(request):
@@ -274,6 +287,7 @@ def modcontrol_spamqueue_journal_post_(request):
     raise HTTPSeeOther("/modcontrol/spamqueue/journal")
 
 
+@view_config(route_name="modcontrol_spamqueue_submission", renderer='/modcontrol/spamqueue/submission.jinja2', request_method="GET")
 @moderator_only
 def modcontrol_spamqueue_submission_get_(request):
     """
@@ -291,14 +305,12 @@ def modcontrol_spamqueue_submission_get_(request):
         WHERE su.is_spam
             AND su.settings !~ 'h'
     """).fetchall()
-    return Response(define.webpage(
-        request.userid,
-        "modcontrol/spamqueue/submission.html",
-        [query],
-        title="Submission Spam Queue"
-    ))
+    return {'query': query,
+            'title': "Submission Spam Queue"
+            }
 
 
+@view_config(route_name="modcontrol_spamqueue_submission", renderer='/modcontrol/spamqueue/submission.jinja2', request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_spamqueue_submission_post_(request):
@@ -336,6 +348,7 @@ def modcontrol_spamqueue_submission_post_(request):
     raise HTTPSeeOther("/modcontrol/spamqueue/submission")
 
 
+@view_config(route_name="modcontrol_spam_remove", request_method="POST")
 @moderator_only
 @token_checked
 def modcontrol_spam_remove_post_(request):

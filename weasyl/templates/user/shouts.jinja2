@@ -1,0 +1,44 @@
+{% extends 'common/base.jinja2' %}
+{% import 'user/user_tools.jinja2' as user_macro %}
+{% import 'common/comments.jinja2' as comment_macros %}
+{% from 'error/unverified.jinja2' import unverified_macro %}
+{% block content %}
+    {% if unverified %}
+        {{ unverified_macro(targetid, target_username,can_vouch) }}
+    {% else %}
+<div id="shouts-stage" class="stage">
+  {{ user_macro.USERTOOLS(profile, userinfo, relationship) }}
+  {{ user_macro.USERTABS(profile['username'], feature, profile['show_favorites_tab']) }}
+</div>
+<div id="shouts-content" class="content">
+  {% if feature == "staffnotes" %}
+    <div class="report-stats">
+      <h4 style="padding-top: 1.5em">Reporting Stats</h4>
+      <!-- open reports should come first in the list -->
+      <strong>Open:</strong>
+      <em>{{ "0" if 'Open' not in userinfo['reportstats'] else userinfo['reportstats']['Open'] }}</em> |
+      {% for closuretype, reportcount in userinfo['reportstats'].iteritems() %}
+        {% if closuretype != 'Open' %}
+          <strong>{{ closuretype }}:</strong>
+          <em>{{ reportcount }}</em> |
+        {% endif %}
+      {% endfor %}
+      <strong>Total:</strong>
+        <em>{{ userinfo['reporttotal'] }}</em>
+    </div>
+
+    <h3>Staff notes for {{ profile['username'] }}</h3>
+  {% else %}
+    <h3>{{ profile['username'] }}'s Shouts</h3>
+  {% endif %}
+  {% if(shouts) %}
+    {{ comment_macros.comment_thread(req.userid, "shouts_comments", shouts, "userid", None, profile['userid']) }}
+  {% else %}
+    There are no {{ 'staff notes' if feature == "staffnotes" else 'comments' }} to display.
+  {% endif %}
+  {% if(myself) %}
+    {{ comment_macros.comment_form(req.userid, profile['userid'], feature) }}
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

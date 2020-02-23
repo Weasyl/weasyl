@@ -1,0 +1,54 @@
+{% macro RATING(rating) -%}
+    {% if rating == R.MATURE.code %}
+        <span class="rating mature">The following submission is rated Mature:</span>
+    {% elif rating == R.EXPLICIT.code %}
+        <span class="rating explicit">The following submission is rated Explicit:</span>
+    {% endif %}
+{%- endmacro %}
+
+{% macro SELECTED(one, two) -%}
+    {% if one == two %}
+        selected="selected"
+    {% endif %}
+{%- endmacro %}
+
+{% macro CHECKED(one, two) -%}
+    {% if one in two %}
+        checked="checked"
+    {% endif %}
+{%- endmacro %}
+
+{% macro NOT_CHECKED(one, two) -%}
+    {% if one not in two %}
+        checked="checked"
+    {% endif %}
+{%- endmacro %}
+
+{% macro TRUE_CHECKED(one) -%}
+    {% if one %}
+        checked="checked"
+    {% endif %}
+{%- endmacro %}
+
+{% macro AVATAR(user, imgid=None) -%}
+    {% if user is mapping %}
+        {% set username = user['username'] %}
+        {% set url = 'profile_tilde'|route_path(name=username | LOGIN) %}
+        {% if 'avatar_display_url' in user %}
+            {% set avatar = user['avatar'][0]['display_url'] %}
+        {% else %}
+            {% set avatar = user['user_media']['avatar'][0]['display_url'] %}
+        {% endif %}
+    {% else %}
+        {% set username = user.profile.username %}
+        {% set url = 'profile_tilde'|route_path(name=user.login_name) %}
+        {% if user.avatar_display_url %}
+            {% set avatar = user.avatar_display_url %}
+        {% else %}
+            {% set avatar = 'img/default-avatar.jpg' | route_path %}
+        {% endif %}
+    {% endif %}
+    <a class="avatar" href="{{ url }}" title="{{ username }}">
+        <img {{ {'id': imgid} | xmlattr}} src="{{ avatar }}" alt="{{ username }}"/>
+    </a>
+{%- endmacro %}

@@ -36,3 +36,6 @@ misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.6.tar.gz#sha224=a7
 
 # https://github.com/Weasyl/sanpera
 sanpera @ https://pypi.weasyl.dev/sanpera/sanpera-0.1.1%2Bweasyl.6.tar.gz#sha224=49ec99f337a620b6e0a3d99ffbe387b3f6c74e03a9ede4f5525daaed
+
+jinja2
+pyramid_jinja2

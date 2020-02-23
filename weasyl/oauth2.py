@@ -96,5 +96,5 @@ def get_userid_from_authorization(request, scopes=['wholesite']):
 
 
 __all__ = [
-    'get_consumers_for_user', 'revoke_consumers_for_user',
+    'get_consumers_for_user', 'revoke_consumers_for_user', 'get_userid_from_authorization',
 ]

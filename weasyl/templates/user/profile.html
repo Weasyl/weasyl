@@ -157,7 +157,14 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
         $for i in folders:
           <a class="clear" href="/submissions?userid=${profile['userid']}&amp;folderid=${i['folderid']}">
             $ thumb = THUMB(i)
-            <div class="stack"><img src="${thumb['display_url']}" alt="" /></div>
+            $ webp_thumb = WEBP_THUMB(i)
+            <div class="stack">
+              <picture>
+                $if webp_thumb is not None:
+                  <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+                <img src="${thumb['display_url']}" alt="" />
+              </picture>
+            </div>
             <h5 class="color-c">${i['title']}</h5>
             <h6><b>${i['count']}</b> Item${'' if i['count'] == 1 else 's'}</h6>
           </a>

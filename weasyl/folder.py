@@ -113,7 +113,7 @@ def select_preview(userid, otherid, rating):
         sub_media to use for a preview.
     """
     folder_query = d.engine.execute("""
-        SELECT fd.folderid, fd.title, count(su.*), max(su.submitid) AS submitid
+        SELECT fd.folderid, fd.title, count(su.*), max(ARRAY[su.submitid, su.subtype]) AS most_recent
         FROM folder fd
             INNER JOIN submission su USING (folderid)
             INNER JOIN submission_tags USING (submitid)
@@ -146,7 +146,8 @@ def select_preview(userid, otherid, rating):
         "title": i.title,
         "count": i.count,
         "userid": otherid,
-        "submitid": i.submitid,
+        "submitid": i.most_recent[0],
+        "subtype": i.most_recent[1],
     } for i in folder_query]
 
     media.populate_with_submission_media(previews)

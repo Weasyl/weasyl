@@ -104,7 +104,7 @@ def profile_(request):
         favorites,
         featured,
         # Folders preview
-        folder.select_preview(request.userid, otherid, rating, 3),
+        folder.select_preview(request.userid, otherid, rating),
         # Latest journal
         journal.select_latest(request.userid, rating, otherid=otherid),
         # Recent shouts

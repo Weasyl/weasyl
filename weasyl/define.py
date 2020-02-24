@@ -245,14 +245,14 @@ def _captcha_public():
     Returns the reCAPTCHA public key, or None if CAPTCHA verification
     is disabled.
     """
-    if config_read_bool("captcha_disable_verification", value=False):
+    if config_read_bool("captcha_disable_verification"):
         return None
 
     return config_obj.get(_captcha_section(), 'public_key')
 
 
 def captcha_verify(captcha_response):
-    if config_read_bool("captcha_disable_verification", value=False):
+    if config_read_bool("captcha_disable_verification"):
         return True
     if not captcha_response:
         return False

@@ -63,7 +63,7 @@ def _limit(size, extension):
     return size > limit
 
 
-def _create_notifications(userid, submitid, rating, settings, title, tags):
+def _create_notifications(userid, submitid, rating, settings):
     """
     Creates notifications to watchers.
     """
@@ -258,8 +258,7 @@ def create_visual(userid, submission,
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
-                              submission.title, tags)
+        _create_notifications(userid, submitid, submission.rating, settings)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'visualsubmissions')
@@ -363,8 +362,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
-                              submission.title, tags)
+        _create_notifications(userid, submitid, submission.rating, settings)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'literarysubmissions')
@@ -481,8 +479,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
-                              submission.title, tags)
+        _create_notifications(userid, submitid, submission.rating, settings)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'multimediasubmissions')

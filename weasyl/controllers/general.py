@@ -113,9 +113,8 @@ def search_(request):
 
 
 def streaming_(request):
-    rating = define.get_rating(request.userid)
     return Response(define.webpage(request.userid, 'etc/streaming.html',
-                                   (profile.select_streaming(request.userid, rating, 300, order_by="start_time desc"),),
+                                   (profile.select_streaming(request.userid, 300, order_by="start_time desc"),),
                                    title="Streaming"))
 
 

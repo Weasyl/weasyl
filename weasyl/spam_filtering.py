@@ -10,7 +10,7 @@ from weasyl import define as d
 from weasyl.error import WeasylError
 
 
-FILTERING_ENABLED = config.config_read_bool(setting='enabled', value=False, section='spam_filtering')
+FILTERING_ENABLED = config.config_read_bool(setting='enabled', section='spam_filtering')
 AKISMET_KEY = config.config_read_setting(setting='key', value=None, section='spam_filtering')
 # Used to set the `is_spam` flag on requests sent to the backend
 _IS_ENVIRONMENT_TESTING = True if os.environ.get("WEASYL_TESTING_ENV") else False

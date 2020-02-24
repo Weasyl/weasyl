@@ -125,7 +125,7 @@ def resolve_by_login(login):
     return resolve(None, None, login, False)
 
 
-def select_profile(userid, avatar=False, banner=False, propic=False, images=False, commish=True, viewer=None):
+def select_profile(userid, viewer=None):
     query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
@@ -344,7 +344,7 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, rating, limit, following=True, order_by=None):
+def select_streaming(userid, limit, following=True, order_by=None):
     statement = [
         "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
         "FROM profile pr "
@@ -547,7 +547,7 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
         newemailcheck: A verification field for the above to serve as a typo-check. Optional,
         but mandatory if `newemail` provided.
         newpassword: If changing the password, the user's new password. Optional.
-        newpasswordcheck: Verification field for `newpassword`. Optional, but mandatory if
+        newpasscheck: Verification field for `newpassword`. Optional, but mandatory if
         `newpassword` provided.
     """
     from weasyl import login

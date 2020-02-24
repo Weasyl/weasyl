@@ -151,14 +151,14 @@ def test_init_verify_tfa():
     tfa_secret, _ = tfa.init(user_id)
 
     # Invalid initial verification (Tuple: False, None)
-    test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, "000000")
+    test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(tfa_secret, "000000")
     assert not test_tfa_secret
     assert not test_recovery_codes
 
     # Valid initial verification
     totp = pyotp.TOTP(tfa_secret)
     tfa_response = totp.now()
-    test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(user_id, tfa_secret, tfa_response)
+    test_tfa_secret, test_recovery_codes = tfa.init_verify_tfa(tfa_secret, tfa_response)
     assert tfa_secret == test_tfa_secret
     assert len(test_recovery_codes) == 10
 

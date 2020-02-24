@@ -23,5 +23,5 @@ def get_user_media(userid):
 
 
 __all__ = [
-    'MediaItem', 'get_submission_media', 'get_user_media',
+    'MediaItem', 'get_submission_media', 'get_user_media', 'get_multi_user_media',
 ]

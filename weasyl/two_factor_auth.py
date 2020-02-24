@@ -100,7 +100,7 @@ def generate_tfa_qrcode(userid, tfa_secret):
     return urllib.quote(qr_svg_only)
 
 
-def init_verify_tfa(userid, tfa_secret, tfa_response):
+def init_verify_tfa(tfa_secret, tfa_response):
     """
     Verify that the user has successfully set-up 2FA in Google Authenticator
     (or similar), and generate recovery codes for the user.

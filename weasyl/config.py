@@ -26,13 +26,13 @@ def config_read_setting(setting, value=None, section='general'):
         return value
 
 
-def config_read_bool(setting, value=False, section='general'):
+def config_read_bool(setting, section='general'):
     """
     Retrieves a boolean value from the weasyl config.
     Defaults to 'general' section. If the key or section is missing, or
-    the value isn't a valid boolean, returns `value`, default False.
+    the value isn't a valid boolean, returns False.
     """
     try:
         return config_obj.getboolean(section, setting)
     except (ConfigParser.NoOptionError, ConfigParser.NoSectionError, ValueError):
-        return value
+        return False

@@ -118,7 +118,7 @@ class WeasylImage(object):
         kwargs['format'] = kwargs['format'].lower()
         if kwargs['format'] == 'jpg':
             kwargs['format'] = 'jpeg'
-        if self.is_animated:
+        if self.is_animated and kwargs['format'] in ['gif', 'webp']:
             kwargs['save_all'] = True
             kwargs['append_images'] = self._frames[1:]
             kwargs['duration'] = self.duration

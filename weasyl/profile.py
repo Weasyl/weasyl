@@ -312,9 +312,8 @@ def _select_statistics(userid):
         SELECT
             (SELECT page_views FROM profile WHERE userid = %(user)s),
             (SELECT COUNT(*) FROM favorite WHERE userid = %(user)s),
-            (SELECT
-                (SELECT COUNT(*) FROM favorite fa JOIN submission su ON fa.targetid = su.submitid
-                    WHERE su.userid = %(user)s AND fa.type = 's') +
+            (
+                (SELECT sum(favorites) FROM submission WHERE userid = %(user)s) +
                 (SELECT COUNT(*) FROM favorite fa JOIN character ch ON fa.targetid = ch.charid
                     WHERE ch.userid = %(user)s AND fa.type = 'f') +
                 (SELECT COUNT(*) FROM favorite fa JOIN journal jo ON fa.targetid = jo.journalid

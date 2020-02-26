@@ -91,7 +91,6 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     try:
         charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
             "userid": userid,
-            "unixtime": arrow.now(),
             "char_name": character.char_name,
             "age": character.age,
             "gender": character.gender,
@@ -194,7 +193,7 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
     query = define.engine.execute("""
         SELECT
-            ch.userid, pr.username, ch.unixtime, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
+            ch.userid, pr.username, ch.timestamp, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
             ch.content, ch.rating, ch.settings, ch.page_views, pr.config
         FROM character ch
             INNER JOIN profile pr USING (userid)
@@ -234,7 +233,7 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
         'username': query['username'],
         'user_media': media.get_user_media(query['userid']),
         'mine': userid == query['userid'],
-        'unixtime': query['unixtime'],
+        'unixtime': query['timestamp'],
         'title': query['char_name'],
         'age': query['age'],
         'gender': query['gender'],
@@ -272,7 +271,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         'owner_login': login,
         'owner_media': api.tidy_all_media(
             media.get_user_media(query['userid'])),
-        'posted_at': define.iso8601(query['unixtime']),
+        'posted_at': define.iso8601(query['timestamp']),
         'title': query['char_name'],
         'age': query['age'],
         'gender': query['gender'],
@@ -332,7 +331,7 @@ def select_count(userid, rating, otherid=None, backid=None, nextid=None):
 
 
 def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
-    statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
+    statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.timestamp, ch.userid, pr.username, ch.settings "]
     statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY ch.charid%s LIMIT %i" % ("" if backid else " DESC", limit))

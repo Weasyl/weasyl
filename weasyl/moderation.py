@@ -492,7 +492,7 @@ def submissionsbyuser(targetid):
 
 def charactersbyuser(targetid):
     query = d.engine.execute("""
-        SELECT charid, unixtime, char_name, rating, settings
+        SELECT charid, timestamp, char_name, rating, settings
         FROM character
         WHERE userid = %(user)s
     """, user=targetid)

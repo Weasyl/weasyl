@@ -164,21 +164,21 @@ def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixti
 
 
 def create_character(userid, name='', age='', gender='', height='', weight='', species='',
-                     description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                     description='', rating=ratings.GENERAL.code, settings=None):
     character = add_entity(content.Character(
         userid=userid, char_name=name, age=age, gender=gender, height=height, weight=weight,
-        species=species, content=description, rating=rating, unixtime=unixtime, settings=settings))
-    update_last_submission_time(userid, unixtime)
+        species=species, content=description, rating=rating, settings=settings))
+    update_last_submission_time(userid, arrow.now())
     return character.charid
 
 
 def create_characters(count, userid, name='', age='', gender='', height='', weight='', species='',
-                      description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                      description='', rating=ratings.GENERAL.code, settings=None):
     results = []
     for i in range(count):
         results.append(create_character(
             userid, name, age, gender, height, weight, species, description,
-            rating, unixtime, settings))
+            rating, settings))
     return results
 
 

@@ -246,7 +246,7 @@ character = Table(
     'character', metadata,
     Column('charid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('char_name', String(length=100), nullable=False, server_default=''),
     Column('age', String(length=100), nullable=False, server_default=''),
     Column('gender', String(length=100), nullable=False, server_default=''),

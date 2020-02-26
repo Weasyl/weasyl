@@ -118,34 +118,34 @@ def create_submissions(count, userid, title="", rating=ratings.GENERAL.code,
 
 
 def create_submission_comment(userid, targetid, parentid=None, body="",
-                              unixtime=arrow.get(1), settings=None):
+                              settings=None):
     comment = add_entity(content.Comment(
         userid=userid, target_sub=targetid, parentid=parentid, content=body,
-        unixtime=unixtime, settings=settings))
+        settings=settings))
     return comment.commentid
 
 
 def create_journal_comment(userid, targetid, parentid=None, body="",
-                           unixtime=arrow.get(1), settings=None):
+                           settings=None):
     comment = add_entity(content.JournalComment(
         userid=userid, targetid=targetid, parentid=parentid, content=body,
-        unixtime=unixtime, settings=settings))
+        settings=settings))
     return comment.commentid
 
 
 def create_character_comment(userid, targetid, parentid=None, body="",
-                             unixtime=arrow.get(1), settings=None):
+                             settings=None):
     comment = add_entity(content.CharacterComment(
         userid=userid, targetid=targetid, parentid=parentid, content=body,
-        unixtime=unixtime, settings=settings))
+        settings=settings))
     return comment.commentid
 
 
 def create_shout(userid, targetid, parentid=None, body="",
-                 unixtime=arrow.get(1), settings=None):
+                 settings=None):
     comment = add_entity(content.Comment(
         userid=userid, target_user=targetid, parentid=parentid, content=body,
-        unixtime=unixtime, settings=settings))
+        settings=settings))
     return comment.commentid
 
 

@@ -582,6 +582,8 @@ def convert_to_localtime(target):
     tz = get_current_request().weasyl_session.timezone
     if isinstance(target, arrow.Arrow):
         return tz.localtime(target.datetime)
+    elif isinstance(target, datetime.datetime):
+        return tz.localtime(target)
     else:
         target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
         return tz.localtime_from_timestamp(target)

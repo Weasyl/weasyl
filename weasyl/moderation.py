@@ -704,14 +704,12 @@ def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals
                 affected[ownerid].append(item_format % text.markdown_link(title, '/%s/%s?anyway=true' % (urlpart, thingid)))
                 copyable.append(item_format % text.markdown_link(title, '/%s/%s' % (urlpart, thingid)))
 
-        now = arrow.utcnow()
         values = []
         for target, target_affected in affected.iteritems():
             staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
             values.append({
                 'userid': userid,
                 'target_user': target,
-                'unixtime': now,
                 'settings': 's',
                 'content': staff_note,
             })
@@ -793,14 +791,12 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
                 else:
                     copyable.append('- %s' % (title,))
 
-    now = arrow.utcnow()
     values = []
     for target, target_affected in affected.iteritems():
         staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
         values.append({
             'userid': userid,
             'target_user': target,
-            'unixtime': now,
             'settings': 's',
             'content': staff_note,
         })
@@ -819,6 +815,6 @@ def note_about(userid, target_user, title, message=None):
     db.execute(
         d.meta.tables['comments'].insert()
         .values(
-            userid=userid, target_user=target_user, unixtime=arrow.utcnow(),
+            userid=userid, target_user=target_user,
             settings='s', content=staff_note,
         ))

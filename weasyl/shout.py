@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import arrow
 
 from libweasyl import staff
 
@@ -18,7 +17,7 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     statement = ["""
         SELECT
             sh.commentid, sh.parentid, sh.userid, pr.username,
-            sh.content, sh.unixtime, sh.settings, sh.indent,
+            sh.content, sh.created_at, sh.settings, sh.indent,
             sh.hidden_by
         FROM comments sh
             INNER JOIN profile pr USING (userid)
@@ -101,7 +100,7 @@ def insert(userid, shout, staffnotes=False):
     commentid = db.scalar(
         co.insert()
         .values(userid=userid, target_user=shout.userid, parentid=shout.parentid or None, content=shout.content,
-                unixtime=arrow.utcnow(), indent=indent, settings=settings)
+                indent=indent, settings=settings)
         .returning(co.c.commentid))
 
     # Create notification

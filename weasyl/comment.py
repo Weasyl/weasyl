@@ -1,10 +1,7 @@
 # encoding: utf-8
 from __future__ import absolute_import
 
-import arrow
-
 from libweasyl import staff
-from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import define as d
 from weasyl import ignoreuser
@@ -40,7 +37,7 @@ def thread(query, reverse_top_level):
             "userid": row[2],
             "username": row[3],
             "content": row[4],
-            "unixtime": row[5],
+            "created_at": row[5],
             "indent": parent_indent + 1,
             "hidden": row[6],
             "hidden_by": row[7],
@@ -73,14 +70,12 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
         statement = ["""
             SELECT
                 cm.commentid, cm.parentid, cm.userid, pr.username,
-                cm.content, cm.unixtime, cm.settings ~ 'h', cm.hidden_by
+                cm.content, cm.created_at, cm.settings ~ 'h', cm.hidden_by
             FROM comments cm
                 INNER JOIN profile pr USING (userid)
             WHERE cm.target_sub = %d
         """ % (submitid,)]
     else:
-        unixtime = "cm.unixtime"
-
         if charid:
             table = "charcomment"
         elif journalid:
@@ -88,18 +83,17 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
         elif updateid:
             table = "siteupdatecomment"
             is_hidden = "cm.hidden_at IS NOT NULL"
-            unixtime = "EXTRACT(EPOCH FROM cm.created_at)::int8 + %i" % (UNIXTIME_OFFSET,)
         else:
             raise WeasylError("Unexpected")
 
         statement = ["""
             SELECT
                 cm.commentid, cm.parentid, cm.userid, pr.username,
-                cm.content, %s, %s, cm.hidden_by
+                cm.content, cm.created_at, %s, cm.hidden_by
             FROM %s cm
                 INNER JOIN profile pr USING (userid)
             WHERE cm.targetid = %i
-        """ % (unixtime, is_hidden, table, d.get_targetid(submitid, charid, journalid, updateid))]
+        """ % (is_hidden, table, d.get_targetid(submitid, charid, journalid, updateid))]
 
     # moderators get to view hidden comments
     if userid not in staff.MODS:
@@ -183,7 +177,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         commentid = db.scalar(
             co.insert()
             .values(userid=userid, target_sub=submitid, parentid=parentid or None,
-                    content=content, unixtime=arrow.utcnow(), indent=indent)
+                    content=content, indent=indent)
             .returning(co.c.commentid))
     elif updateid:
         commentid = d.engine.scalar(
@@ -197,14 +191,13 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         )
     else:
         commentid = d.engine.scalar(
-            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime, indent)"
-            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s, %(indent)s)"
+            "INSERT INTO {table} (userid, targetid, parentid, content, indent)"
+            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(indent)s)"
             " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
             user=userid,
             target=d.get_targetid(charid, journalid),
             parent=parentid or 0,
             content=content,
-            now=d.get_time(),
             indent=indent,
         )
 

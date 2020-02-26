@@ -33,12 +33,12 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
     statement.append(" AND fa.userid = %i" % otherid)
 
     if backid:
-        statement.append(" AND fa.unixtime > "
-                         "(SELECT unixtime FROM favorite WHERE (userid, targetid, type) = (%i, %i, 's'))"
+        statement.append(" AND fa.created_at > "
+                         "(SELECT created_at FROM favorite WHERE (userid, targetid, type) = (%i, %i, 's'))"
                          % (otherid, backid))
     elif nextid:
-        statement.append(" AND fa.unixtime < "
-                         "(SELECT unixtime FROM favorite WHERE (userid, targetid, type) = (%i, %i, 's'))"
+        statement.append(" AND fa.created_at < "
+                         "(SELECT created_at FROM favorite WHERE (userid, targetid, type) = (%i, %i, 's'))"
                          % (otherid, nextid))
 
     return statement
@@ -51,10 +51,10 @@ def select_submit_count(userid, rating, otherid, backid=None, nextid=None):
 
 
 def select_submit(userid, rating, limit, otherid, backid=None, nextid=None):
-    statement = ["SELECT su.submitid, su.title, su.rating, fa.unixtime, su.userid, pr.username, su.subtype"]
+    statement = ["SELECT su.submitid, su.title, su.rating, fa.created_at, su.userid, pr.username, su.subtype"]
     statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
 
-    statement.append(" ORDER BY fa.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
+    statement.append(" ORDER BY fa.created_at%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = [{
         "contype": 10,
@@ -73,7 +73,7 @@ def select_submit(userid, rating, limit, otherid, backid=None, nextid=None):
 
 def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
     statement = ["""
-        SELECT ch.charid, ch.char_name, ch.rating, fa.unixtime, ch.userid, pr.username, ch.settings
+        SELECT ch.charid, ch.char_name, ch.rating, fa.created_at, ch.userid, pr.username, ch.settings
         FROM favorite fa
             INNER JOIN character ch ON fa.targetid = ch.charid
             INNER JOIN profile pr ON ch.userid = pr.userid
@@ -96,15 +96,15 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
     statement.append(" AND fa.userid = %i" % (otherid,))
 
     if backid:
-        statement.append(" AND fa.unixtime > "
-                         "(SELECT unixtime FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'f'))"
+        statement.append(" AND fa.created_at > "
+                         "(SELECT created_at FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'f'))"
                          % (otherid, backid))
     elif nextid:
-        statement.append(" AND fa.unixtime < "
-                         "(SELECT unixtime FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'f'))"
+        statement.append(" AND fa.created_at < "
+                         "(SELECT created_at FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'f'))"
                          % (otherid, nextid))
 
-    statement.append(" ORDER BY fa.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
+    statement.append(" ORDER BY fa.created_at%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     from weasyl import character
     query = [{
@@ -123,7 +123,7 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
 
 def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
     statement = ["""
-        SELECT jo.journalid, jo.title, jo.rating, fa.unixtime, jo.userid, pr.username, pr.config
+        SELECT jo.journalid, jo.title, jo.rating, fa.created_at, jo.userid, pr.username, pr.config
         FROM favorite fa
             INNER JOIN journal jo ON fa.targetid = jo.journalid
             INNER JOIN profile pr ON jo.userid = pr.userid
@@ -146,15 +146,15 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
     statement.append(" AND fa.userid = %i" % (otherid,))
 
     if backid:
-        statement.append(" AND fa.unixtime > "
-                         "(SELECT unixtime FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'j'))"
+        statement.append(" AND fa.created_at > "
+                         "(SELECT created_at FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'j'))"
                          % (otherid, backid))
     elif nextid:
-        statement.append(" AND fa.unixtime < "
-                         "(SELECT unixtime FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'j'))"
+        statement.append(" AND fa.created_at < "
+                         "(SELECT created_at FROM favorite WHERE (userid, targetid, type) = (%i, %i, 'j'))"
                          % (otherid, nextid))
 
-    statement.append(" ORDER BY fa.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
+    statement.append(" ORDER BY fa.created_at%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = [{
         "contype": 30,
@@ -197,13 +197,12 @@ def insert(userid, submitid=None, charid=None, journalid=None):
 
     def insert_transaction(db):
         insert_result = db.execute(
-            'INSERT INTO favorite (userid, targetid, type, unixtime) '
-            'VALUES (%(user)s, %(target)s, %(type)s, %(now)s) '
+            'INSERT INTO favorite (userid, targetid, type) '
+            'VALUES (%(user)s, %(target)s, %(type)s) '
             'ON CONFLICT DO NOTHING',
             user=userid,
             target=d.get_targetid(submitid, charid, journalid),
-            type='s' if submitid else 'f' if charid else 'j',
-            now=d.get_time())
+            type='s' if submitid else 'f' if charid else 'j')
 
         if insert_result.rowcount == 0:
             return

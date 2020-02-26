@@ -3,8 +3,6 @@ from __future__ import absolute_import
 import unittest
 import pytest
 
-import arrow
-
 from libweasyl import ratings
 
 from weasyl.test import db_utils
@@ -24,7 +22,7 @@ class SelectSubmissionCountTestCase(unittest.TestCase):
         time = 100
         for submitid in s:
             time = time + 1
-            f.append(db_utils.create_favorite(self.user2, submitid=submitid, unixtime=arrow.get(time)))
+            f.append(db_utils.create_favorite(self.user2, submitid=submitid))
 
     def test_count_backid(self):
         self.assertEqual(

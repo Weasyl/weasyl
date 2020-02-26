@@ -187,13 +187,13 @@ favorite = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
     Column('type', String(length=5), primary_key=True, nullable=False, server_default=''),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('created_at', DateTime(timezone=True), nullable=False, server_default=func.now()),
     default_fkey(['userid'], ['login.userid'], name='favorite_userid_fkey'),
 )
 
 Index('ind_favorite_userid', favorite.c.userid)
 Index('ind_favorite_type_targetid', favorite.c.type, favorite.c.targetid)
-Index('ind_favorite_userid_type_unixtime', favorite.c.userid, favorite.c.type, favorite.c.unixtime)
+Index('ind_favorite_userid_type_created_at', favorite.c.userid, favorite.c.type, favorite.c.created_at)
 
 
 folder = Table(

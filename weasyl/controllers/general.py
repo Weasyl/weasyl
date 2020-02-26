@@ -27,11 +27,11 @@ def search_(request):
 
     page = define.common_page_start(request.userid, title="Browse and search")
 
+    if form.find and form.find not in ("submit", "char", "journal", "user"):
+        form.find = "submit"
+
     if form.q:
         find = form.find
-
-        if find not in ("submit", "char", "journal", "user"):
-            find = "submit"
 
         q = form.q.strip()
         search_query = search.Query.parse(q, find)
@@ -41,10 +41,10 @@ def search_(request):
             "find": search_query.find,
             "within": form.within,
             "rated": set('gap') & set(form.rated),
-            "cat": int(form.cat) if form.cat else None,
-            "subcat": int(form.subcat) if form.subcat else None,
-            "backid": int(form.backid) if form.backid else None,
-            "nextid": int(form.nextid) if form.nextid else None,
+            "cat": define.get_int(form.cat) if form.cat else None,
+            "subcat": define.get_int(form.subcat) if form.subcat else None,
+            "backid": define.get_int(form.backid) if form.backid else None,
+            "nextid": define.get_int(form.nextid) if form.nextid else None,
         }
 
         if search_query.find == "user":
@@ -82,7 +82,7 @@ def search_(request):
 
         meta = {
             "find": form.find,
-            "cat": int(form.cat) if form.cat else None,
+            "cat": define.get_int(form.cat) if form.cat else None,
         }
 
         page.append(define.render("etc/search.html", [

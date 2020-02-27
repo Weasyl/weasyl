@@ -884,7 +884,7 @@ useralias = Table(
 userinfo = Table(
     'userinfo', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('birthday', WeasylTimestampColumn(), nullable=False),
+    Column('birthday', TIMESTAMP(timezone=True), nullable=False),
     Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),

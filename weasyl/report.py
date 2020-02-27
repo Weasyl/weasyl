@@ -170,7 +170,7 @@ def select_view(userid, form):
         {
             'userid': c.userid,
             'username': c.poster.profile.username,
-            'unixtime': c.unixtime,
+            'unixtime': c.timestamp,
             'content': c.content,
             'violation': _convert_violation(c.violation),
         } for c in report.comments]
@@ -264,7 +264,7 @@ def select_reported_list(userid):
 
     reports = q.all()
     for report in reports:
-        report.latest_report = max(c.unixtime for c in report.comments)
+        report.latest_report = max(c.timestamp for c in report.comments)
 
     reports.sort(key=lambda r: r.latest_report, reverse=True)
     return reports

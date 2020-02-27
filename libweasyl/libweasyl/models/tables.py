@@ -567,7 +567,7 @@ reportcomment = Table(
     'reportcomment', metadata,
     Column('violation', Integer(), nullable=False),
     Column('userid', Integer(), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('content', String(length=2000), nullable=False, server_default=''),
     Column('commentid', Integer(), primary_key=True, nullable=False),
     Column('reportid', Integer(), nullable=False),

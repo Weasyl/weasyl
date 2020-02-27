@@ -83,7 +83,7 @@ collection = Table(
     'collection', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('submitid', Integer(), primary_key=True, nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('settings', String(length=20), nullable=False, server_default='p'),
     default_fkey(['userid'], ['login.userid'], name='collection_userid_fkey'),
     default_fkey(['submitid'], ['submission.submitid'], name='collection_submitid_fkey'),

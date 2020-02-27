@@ -45,10 +45,10 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
         statement.append(" AND co.userid = %i" % otherid)
 
     if backid:
-        statement.append(" AND co.unixtime > (SELECT unixtime FROM collection WHERE (userid, submitid) = (%i, %i))"
+        statement.append(" AND co.timestamp > (SELECT timestamp FROM collection WHERE (userid, submitid) = (%i, %i))"
                          % (otherid, backid))
     elif nextid:
-        statement.append(" AND co.unixtime < (SELECT unixtime FROM collection WHERE (userid, submitid) = (%i, %i))"
+        statement.append(" AND co.timestamp < (SELECT timestamp FROM collection WHERE (userid, submitid) = (%i, %i))"
                          % (otherid, nextid))
 
     if userid:
@@ -71,11 +71,11 @@ def select_count(userid, rating, otherid=None, pending=False, backid=None, nexti
 
 
 def select_list(userid, rating, limit, otherid=None, pending=False, backid=None, nextid=None):
-    statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, "
+    statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.timestamp, "
                  "su.userid, pr.username, cpr.username, cpr.userid "]
     statement.extend(select_query(userid, rating, otherid, pending,
                                   backid, nextid))
-    statement.append(" ORDER BY co.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
+    statement.append(" ORDER BY co.timestamp%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = []
     for i in d.execute("".join(statement)):
@@ -145,8 +145,8 @@ def offer(userid, submitid, otherid):
             raise WeasylError("collectionUnacceptable")
 
     try:
-        d.execute("INSERT INTO collection (userid, submitid, unixtime) VALUES (%i, %i, %i)",
-                  [otherid, submitid, d.get_time()])
+        d.execute("INSERT INTO collection (userid, submitid) VALUES (%i, %i)",
+                  [otherid, submitid])
     except PostgresError:
         raise WeasylError("collectionExists")
 
@@ -200,9 +200,9 @@ def request(userid, submitid, otherid):
 
     request_settings = "r"
     try:
-        d.engine.execute("INSERT INTO collection (userid, submitid, unixtime, settings) "
-                         "VALUES (%(userid)s, %(submitid)s, %(now)s, %(settings)s)",
-                         userid=userid, submitid=submitid, now=d.get_time(), settings=request_settings)
+        d.engine.execute("INSERT INTO collection (userid, submitid, settings) "
+                         "VALUES (%(userid)s, %(submitid)s, %(settings)s)",
+                         userid=userid, submitid=submitid, settings=request_settings)
     except PostgresError:
         raise WeasylError("collectionExists")
 
@@ -215,11 +215,11 @@ def pending_accept(userid, submissions):
 
     d.engine.execute(
         "UPDATE collection SET "
-        "unixtime = %(now)s, "
+        "timestamp = NOW(), "
         "settings = REGEXP_REPLACE(settings, '[pr]', '') "
         "WHERE settings ~ '[pr]' "
         "AND (submitid, userid) = ANY (%(submissions)s)",
-        submissions=submissions, now=d.get_time())
+        submissions=submissions)
 
     for s in submissions:
         welcome.collection_insert(s[1], s[0])

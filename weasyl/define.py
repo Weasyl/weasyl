@@ -582,6 +582,8 @@ def convert_to_localtime(target):
     tz = get_current_request().weasyl_session.timezone
     if isinstance(target, arrow.Arrow):
         return tz.localtime(target.datetime)
+    elif isinstance(target, datetime.datetime):
+        return tz.localtime(target)
     else:
         target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
         return tz.localtime_from_timestamp(target)
@@ -606,7 +608,10 @@ def iso8601_date(target):
     :param target: The target Weasyl timestamp to convert.
     :return: An ISO 8601 string representing the date of `target`.
     """
-    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
+    if isinstance(target, datetime.datetime):
+        date = target
+    else:
+        date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
     return arrow.get(date).format("YYYY-MM-DD")
 
 
@@ -1033,7 +1038,7 @@ def metric(*a, **kw):
 
 
 def iso8601(unixtime):
-    if isinstance(unixtime, arrow.Arrow):
+    if isinstance(unixtime, arrow.Arrow) or isinstance(unixtime, datetime.datetime):
         return unixtime.isoformat().partition('.')[0] + 'Z'
     else:
         return datetime.datetime.utcfromtimestamp(unixtime - _UNIXTIME_OFFSET).isoformat() + 'Z'

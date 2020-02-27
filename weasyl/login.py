@@ -331,7 +331,6 @@ def verify(token, ip_address=None):
             "userid": userid,
             "username": query.username,
             "full_name": query.username,
-            "unixtime": arrow.now(),
             "config": "kscftj",
         })
         db.execute(d.meta.tables["userinfo"].insert(), {

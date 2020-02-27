@@ -107,8 +107,7 @@ def make_submission(db, settings=()):
     """
     owner = make_user(db)
     sub = content.Submission(
-        owner=owner, title='', content='', subtype=1, rating=ratings.GENERAL,
-        sorttime=arrow.get(0), settings=None)
+        owner=owner, title='', content='', subtype=1, rating=ratings.GENERAL, settings=None)
     if settings:
         sub.settings.mutable_settings.update(settings)
     db.add(sub)

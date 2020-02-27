@@ -134,7 +134,7 @@ def admincontrol_pending_accounts_get_(request):
     :return: A Pyramid response with a webpage containing the pending accounts.
     """
     query = d.engine.execute("""
-        SELECT token, username, email, invalid, invalid_email_addr, unixtime
+        SELECT token, username, email, invalid, invalid_email_addr, timestamp
         FROM logincreate
         ORDER BY username
     """).fetchall()

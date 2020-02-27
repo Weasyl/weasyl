@@ -57,8 +57,8 @@ def run_periodic_tasks():
             # Purge stale logincreate records older than two days
             db.execute("""
                 DELETE FROM logincreate
-                WHERE unixtime < %(time)s
-            """, time=time_now - (86400 * 2))
+                WHERE timestamp < (NOW() - INTERVAL '2 days')
+            """)
             log.msg('cleared stale account creation records')
 
         db.execute("UPDATE cron_runs SET last_run = %(now)s", now=now.naive)

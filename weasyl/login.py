@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 from io import open
 
-import arrow
+import pytz
 import bcrypt
 from publicsuffixlist import PublicSuffixList
 from sqlalchemy.sql.expression import select
@@ -66,7 +66,7 @@ def clean_display_name(text):
 
 def signin(request, userid, ip_address=None, user_agent=None):
     # Update the last login record for the user
-    d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
+    d.execute("UPDATE login SET last_login = NOW() WHERE userid = %i", [userid])
 
     # Log the successful login and increment the login count
     d.append_to_log('login.success', userid=userid, ip=d.get_address())
@@ -317,7 +317,7 @@ def verify(token, ip_address=None):
         # Create login record
         userid = db.scalar(lo.insert().returning(lo.c.userid), {
             "login_name": d.get_sysname(query.username),
-            "last_login": arrow.now(),
+            "last_login": datetime.now(tz=pytz.UTC),
             "email": query.email,
             "ip_address_at_signup": ip_address,
         })

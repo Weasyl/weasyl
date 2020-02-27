@@ -708,7 +708,7 @@ siteupdate = Table(
     Column('wesley', Boolean(), nullable=False, server_default='f'),
     Column('title', String(length=100), nullable=False),
     Column('content', Text(), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     default_fkey(['userid'], ['login.userid'], name='siteupdate_userid_fkey'),
 )
 

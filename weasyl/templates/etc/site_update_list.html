@@ -5,7 +5,7 @@ $:{TITLE("Site Updates")}
     <div class="constrained text-post-list">
         $ last_date = None
         $for update in updates:
-            $ created = LOCAL_ARROW(update.unixtime)
+            $ created = LOCAL_ARROW(update.timestamp)
             $ date = created.date()
             $ owner = update.get_display_owner()
             $if date != last_date:

@@ -10,7 +10,7 @@ $ owner = update.get_display_owner()
       </a>
       <figcaption class="caption">
         <h4 class="title"><i>Posted by</i> <a class="username" href="/~${owner.login_name}">${owner.profile.username}</a></h4>
-        <h5 class="date">${DATE(update.unixtime)} <i>at</i> ${TIME(update.unixtime)}</h5>
+        <h5 class="date">${DATE(update.timestamp)} <i>at</i> ${TIME(update.timestamp)}</h5>
       </figcaption>
     </figure>
 

@@ -51,7 +51,7 @@ def test_select_last(app, site_updates):
         'username': 'test_username',
         'title': most_recent.title,
         'content': most_recent.content,
-        'unixtime': most_recent.unixtime.timestamp + UNIXTIME_OFFSET,
+        'unixtime': most_recent.timestamp,
         'comment_count': 0,
     }
 

@@ -15,7 +15,6 @@ def create(userid, title, content, wesley=False):
         wesley=wesley,
         title=title,
         content=content,
-        unixtime=arrow.utcnow(),
     )
 
     SiteUpdate.dbsession.add(update)
@@ -28,7 +27,7 @@ def create(userid, title, content, wesley=False):
 def select_last():
     last = d.engine.execute("""
         SELECT
-            up.updateid, pr.userid, pr.username, up.title, up.content, up.unixtime,
+            up.updateid, pr.userid, pr.username, up.title, up.content, up.timestamp as unixtime,
             (SELECT count(*) FROM siteupdatecomment c WHERE c.targetid = up.updateid) AS comment_count
         FROM siteupdate up
             LEFT JOIN profile pr ON pr.userid = CASE WHEN up.wesley THEN %(wesley)s ELSE up.userid END

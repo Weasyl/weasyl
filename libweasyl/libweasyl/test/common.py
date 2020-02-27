@@ -37,7 +37,7 @@ def user_with_age(age):
     login_name = 'user%d' % next(_user_counter)
     return users.Login(
         info=users.UserInfo(birthday=birthday),
-        profile=users.Profile(username=login_name, full_name=login_name, unixtime=arrow.get(0)),
+        profile=users.Profile(username=login_name, full_name=login_name, timestamp=arrow.get(0).datetime),
         login_name=login_name)
 
 

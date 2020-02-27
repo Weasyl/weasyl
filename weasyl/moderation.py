@@ -368,11 +368,11 @@ def finduser(userid, form):
 
     # Filter for date-time
     if form.dateafter and form.datebefore:
-        q = q.where(d.sa.between(pr.c.unixtime, arrow.get(form.dateafter), arrow.get(form.datebefore)))
+        q = q.where(d.sa.between(pr.c.timestamp, arrow.get(form.dateafter).datetime, arrow.get(form.datebefore).datetime))
     elif form.dateafter:
-        q = q.where(pr.c.unixtime >= arrow.get(form.dateafter))
+        q = q.where(pr.c.timestamp >= arrow.get(form.dateafter).datetime)
     elif form.datebefore:
-        q = q.where(pr.c.unixtime <= arrow.get(form.datebefore))
+        q = q.where(pr.c.timestamp <= arrow.get(form.datebefore).datetime)
 
     # Apply any row offset
     if form.row_offset:

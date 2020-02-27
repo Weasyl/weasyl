@@ -117,7 +117,7 @@ class Query:
 def select_users(q):
     terms = q.lower().split()
     statement = """
-        SELECT userid, full_name, unixtime, username FROM profile
+        SELECT userid, full_name, timestamp, username FROM profile
         WHERE LOWER(username) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
             OR LOWER(full_name) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
         ORDER BY username
@@ -131,7 +131,7 @@ def select_users(q):
         "userid": i.userid,
         "title": i.full_name,
         "rating": "",
-        "unixtime": i.unixtime,
+        "unixtime": i.timestamp,
         "username": i.username,
     } for i in query]
     media.populate_with_user_media(ret)

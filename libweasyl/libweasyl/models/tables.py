@@ -477,7 +477,7 @@ profile = Table(
     Column('full_name', String(length=100), nullable=False),
     Column('catchphrase', String(length=200), nullable=False, server_default=''),
     Column('artist_type', String(length=100), nullable=False, server_default=''),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('latest_submission_time', ArrowColumn(), nullable=False, server_default='epoch'),
     Column('profile_text', String(length=100000), nullable=False, server_default=''),
     Column('settings', String(length=20), nullable=False, server_default='ccci'),

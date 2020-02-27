@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os
 from io import open
+from datetime import datetime
 
 import arrow
 import bcrypt
@@ -232,7 +233,7 @@ def create(form):
     passcheck = form.passcheck
     if form.day and form.month and form.year:
         try:
-            birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
+            birthday = datetime(int(form.year), int(form.month), int(form.day))
         except ValueError:
             raise WeasylError("birthdayInvalid")
     else:
@@ -268,7 +269,7 @@ def create(form):
             "login_name": sysname,
             "hashpass": passhash(password),
             "email": email,
-            "birthday": birthday.datetime
+            "birthday": birthday
         })
 
         # Send verification email
@@ -333,7 +334,7 @@ def verify(token, ip_address=None):
         })
         db.execute(d.meta.tables["userinfo"].insert(), {
             "userid": userid,
-            "birthday": arrow.get(query.birthday),
+            "birthday": query.birthday,
         })
         db.execute(d.meta.tables["userstats"].insert(), {
             "userid": userid,

@@ -56,7 +56,7 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
 
     add_entity(users.Profile(userid=user.userid, username=username,
                              full_name=full_name, unixtime=arrow.get(0), config=config))
-    add_entity(users.UserInfo(userid=user.userid, birthday=birthday))
+    add_entity(users.UserInfo(userid=user.userid, birthday=birthday.datetime))
     # Verify this user
     if verified:
         d.engine.execute("UPDATE login SET voucher = userid WHERE userid = %(id)s",

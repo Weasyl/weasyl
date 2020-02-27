@@ -149,7 +149,7 @@ class UserInfo(Base):
 
     @property
     def age(self):
-        return relativedelta(arrow.get().datetime, self.birthday.datetime).years
+        return relativedelta(arrow.get().datetime, self.birthday).years
 
 
 class UserStream(Base):

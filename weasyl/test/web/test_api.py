@@ -1,6 +1,8 @@
 # encoding: utf-8
 from __future__ import absolute_import, division
 
+from datetime import datetime
+
 import pytest
 import webtest
 
@@ -15,7 +17,8 @@ def test_submission_view(app, submission_user):
         submission_user,
         submitfile=webtest.Upload('wesley1.png', read_asset('img/wesley1.png'), 'image/png'),
     )
-    d.engine.execute('UPDATE submission SET unixtime = 1581092121 WHERE submitid = %(id)s', id=submission)
+    timestamp = datetime.fromtimestamp(1581092121 + 18000)
+    d.engine.execute('UPDATE submission SET timestamp = %(timestamp)s WHERE submitid = %(id)s', id=submission, timestamp=timestamp)
 
     resp_json = app.get('/api/submissions/%i/view' % (submission,)).json
     media = resp_json.pop('media', None)

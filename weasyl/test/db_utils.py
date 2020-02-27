@@ -100,7 +100,7 @@ def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=ar
                       description="", folderid=None, subtype=0, settings=None):
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(
-        userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
+        userid=userid, rating=rating, title=title, timestamp=unixtime.datetime, content=description,
         folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings, favorites=0))
     update_last_submission_time(userid, unixtime)
     return submission.submitid

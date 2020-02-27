@@ -283,7 +283,7 @@ def _find_without_media(userid, rating, limit,
     statement = make_statement(
         """
         SELECT
-            content.{select}, content.{title_field} AS title, content.rating, content.unixtime, content.userid,
+            content.{select}, content.{title_field} AS title, content.rating, content.timestamp, content.userid,
             content.settings, profile.username, {subtype} as subtype
         """,
         pagination_filter,
@@ -326,7 +326,7 @@ def _find_without_media(userid, rating, limit,
         "title": i.title,
         "subtype": i.subtype,
         "rating": i.rating,
-        "unixtime": i.unixtime,
+        "unixtime": i.timestamp,
         "userid": i.userid,
         "username": i.username,
         "settings": i.settings,

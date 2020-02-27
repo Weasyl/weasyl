@@ -222,7 +222,6 @@ def create_visual(userid, submission,
         d.meta.tables['submission'].insert().values([{
             "folderid": submission.folderid,
             "userid": userid,
-            "unixtime": now,
             "title": submission.title,
             "content": submission.content,
             "subtype": submission.subtype,
@@ -331,7 +330,6 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
         d.meta.tables['submission'].insert().values([{
             "folderid": submission.folderid,
             "userid": userid,
-            "unixtime": now,
             "title": submission.title,
             "content": submission.content,
             "subtype": submission.subtype,
@@ -449,7 +447,6 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
         d.meta.tables['submission'].insert().values([{
             "folderid": submission.folderid,
             "userid": userid,
-            "unixtime": now,
             "title": submission.title,
             "content": submission.content,
             "subtype": submission.subtype,
@@ -549,7 +546,7 @@ def reupload(userid, submitid, submitfile):
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.engine.execute("""
         SELECT
-            su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
+            su.userid, pr.username, su.folderid, su.timestamp, su.title, su.content, su.subtype, su.rating, su.settings,
             su.page_views, fd.title, su.favorites, su.image_representations
         FROM submission su
             INNER JOIN profile pr USING (userid)
@@ -691,7 +688,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         'embedlink': embedlink,
         'folderid': sub.folderid,
         'folder_name': sub.folder.title if sub.folderid else None,
-        'posted_at': d.iso8601(sub.unixtime),
+        'posted_at': d.iso8601(sub.timestamp),
         'tags': searchtag.select(submitid=submitid),
         'link': d.absolutify_url("/submission/%d/%s" % (submitid, text.slug_for(sub.title))),
 
@@ -806,7 +803,7 @@ def select_query(userid, rating, otherid=None, folderid=None,
         statement.append(" AND su.subtype >= %i AND su.subtype < %i" % (subcat, subcat + 1000))
 
     if "critique" in options:
-        statement.append(" AND su.settings ~ 'q' AND su.unixtime > %i" % (d.get_time() - 259200,))
+        statement.append(" AND su.settings ~ 'q' AND su.timestamp > (now() - interval '259200 seconds')")
 
     if backid:
         statement.append(" AND su.submitid > %i" % (backid,))
@@ -877,7 +874,7 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
     randomize = bool(options)
 
     statement = [
-        "SELECT su.submitid, su.title, su.rating, su.unixtime, "
+        "SELECT su.submitid, su.title, su.rating, su.timestamp, "
         "su.userid, pr.username, su.settings, su.subtype, "
         "su.image_representations "]
 
@@ -913,7 +910,7 @@ def select_featured(userid, otherid, rating):
 
 def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
+        SELECT su.submitid, su.title, su.rating, su.timestamp, su.userid,
                pr.username, su.settings, su.subtype, su.image_representations
           FROM submission su
          INNER JOIN profile pr ON su.userid = pr.userid
@@ -1079,12 +1076,12 @@ def select_recently_popular():
         SELECT
             log(submission.favorites + 1) +
                 log(submission.page_views + 1) / 2 +
-                submission.unixtime / 180000.0 AS score,
+                EXTRACT(EPOCH FROM submission.timestamp at time zone 'UTC') / 180000.0 AS score,
             submission.submitid,
             submission.title,
             submission.rating,
             submission.subtype,
-            submission.unixtime,
+            submission.timestamp,
             submission_tags.tags,
             submission.userid,
             submission.image_representations,

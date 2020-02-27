@@ -740,7 +740,7 @@ submission = Table(
     Column('submitid', Integer(), primary_key=True, nullable=False),
     Column('folderid', Integer(), nullable=True),
     Column('userid', Integer(), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('title', String(length=200), nullable=False),
     Column('content', String(length=300000), nullable=False),
     Column('subtype', Integer(), nullable=False),
@@ -781,14 +781,14 @@ submission = Table(
         text("""(
             log(favorites + 1)
                 + log(page_views + 1) / 2
-                + unixtime / 180000.0
+                + EXTRACT(EPOCH FROM timestamp at time zone 'UTC')  / 180000.0
         )"""),
         postgresql_where=text("favorites IS NOT NULL"),
     ),
 )
 
 Index('ind_submission_folderid', submission.c.folderid)
-Index('ind_submission_userid_unixtime', submission.c.userid, submission.c.unixtime.desc())
+Index('ind_submission_userid_timestamp', submission.c.userid, submission.c.timestamp.desc())
 Index('ind_submission_userid', submission.c.userid)
 Index('ind_submission_userid_folderid', submission.c.userid, submission.c.folderid)
 Index('ind_submission_is_spam', submission.c.is_spam)

@@ -12,6 +12,9 @@ import re
 import threading
 import zlib
 
+from datetime import datetime
+
+import arrow
 import json
 from dogpile.cache.api import CachedValue, NO_VALUE
 from dogpile.cache.proxy import ProxyBackend
@@ -209,6 +212,24 @@ class ThreadCacheProxy(ProxyBackend):
         self.proxied.delete_multi(keys)
 
 
+class ProxyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+            # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
+
+def json_load_hook(dct):
+    if 'timestamp' in dct:
+        # I hate this, but python 2.7 doesn't have datetime.fromisoformat
+        dct['timestamp'] = arrow.get(dct['timestamp']).datetime
+    if 'unixtime' in dct:
+        # I hate this, but python 2.7 doesn't have datetime.fromisoformat
+        dct['unixtime'] = arrow.get(dct['unixtime']).datetime
+    return dct
+
+
 class JSONProxy(ProxyBackend):
     """
     A JSON-serializing proxy.
@@ -239,7 +260,7 @@ class JSONProxy(ProxyBackend):
             return NO_VALUE
         if value.startswith('\0'):
             value = zlib.decompress(value[1:])
-        payload, metadata = json.loads(value)
+        payload, metadata = json.loads(value, object_hook=json_load_hook)
         return CachedValue(payload, metadata)
 
     def get(self, key):
@@ -287,7 +308,7 @@ class JSONProxy(ProxyBackend):
             :term:`bytes`.
         """
         ret = [value.payload, value.metadata]
-        ret = json.dumps(ret)
+        ret = json.dumps(ret, cls=ProxyEncoder)
         if len(ret) > _GZIP_THRESHOLD:
             ret = '\0' + zlib.compress(ret)
             if len(ret) > _GZIP_THRESHOLD:

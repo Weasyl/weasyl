@@ -294,7 +294,7 @@ journal = Table(
     Column('title', String(length=200), nullable=False),
     Column('content', String(length=100000), nullable=False),
     Column('rating', RatingColumn, nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
         'f': 'friends-only',

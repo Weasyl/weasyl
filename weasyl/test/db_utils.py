@@ -149,17 +149,17 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, content=''):
+def create_journal(userid, title='', rating=ratings.GENERAL.code, settings=None, content=''):
     journal = add_entity(Journal(
-        userid=userid, title=title, rating=rating, unixtime=unixtime, settings=settings, content=content))
-    update_last_submission_time(userid, unixtime)
+        userid=userid, title=title, rating=rating, settings=settings, content=content))
+    update_last_submission_time(userid, arrow.now())
     return journal.journalid
 
 
-def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+def create_journals(count, userid, title='', rating=ratings.GENERAL.code, settings=None):
     results = []
     for i in range(count):
-        results.append(create_journal(userid, title, rating, unixtime, settings))
+        results.append(create_journal(userid, title, rating, settings))
     return results
 
 

@@ -511,7 +511,7 @@ def charactersbyuser(targetid):
 
 def journalsbyuser(targetid):
     query = d.engine.execute("""
-        SELECT journalid, title, settings, unixtime, rating
+        SELECT journalid, title, settings, timestamp as unixtime, rating
         FROM journal
         WHERE userid = %(user)s
     """, user=targetid)

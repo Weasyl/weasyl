@@ -61,7 +61,6 @@ def create(userid, journal, friends_only=False, tags=None):
         "title": journal.title,
         "content": journal.content,
         "rating": journal.rating.code,
-        "unixtime": arrow.now(),
         "settings": settings,
         "is_spam": is_spam,
         "submitter_ip_address": journal.submitter_ip_address,
@@ -97,7 +96,7 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     """
 
     query = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config
+        SELECT jo.userid, pr.username, jo.timestamp, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
@@ -136,7 +135,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'username': journal['username'],
         'user_media': media.get_user_media(journal['userid']),
         'mine': userid == journal['userid'],
-        'unixtime': journal['unixtime'],
+        'unixtime': journal['timestamp'],
         'title': journal['title'],
         'content': journal['content'],
         'rating': journal['rating'],
@@ -176,13 +175,13 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'comments': comment.count(journalid, 'journal'),
         'favorited': favorite.check(userid, journalid=journalid),
         'friends_only': 'f' in journal['settings'],
-        'posted_at': d.iso8601(journal['unixtime']),
+        'posted_at': d.iso8601(journal['timestamp']),
     }
 
 
 def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = [
-        "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.timestamp"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
         " WHERE jo.settings !~ 'h'"]
@@ -227,7 +226,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
 
 
 def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
+    statement = ["SELECT jo.journalid, jo.title, jo.timestamp FROM journal jo WHERE"]
 
     if userid:
         # filter own content in SFW mode
@@ -259,7 +258,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
 
 
 def select_latest(userid, rating, otherid=None):
-    statement = ["SELECT jo.journalid, jo.title, jo.content, jo.unixtime FROM journal jo WHERE"]
+    statement = ["SELECT jo.journalid, jo.title, jo.content, jo.timestamp FROM journal jo WHERE"]
 
     if userid:
         if d.is_sfw_mode():

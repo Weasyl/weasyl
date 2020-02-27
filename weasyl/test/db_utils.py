@@ -45,8 +45,7 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
         username = "User-" + str(next(_user_index))
 
     while True:
-        user = add_entity(users.Login(login_name=get_sysname(username),
-                                      last_login=arrow.get(0)))
+        user = add_entity(users.Login(login_name=get_sysname(username)))
 
         if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:
             break

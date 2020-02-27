@@ -340,7 +340,7 @@ login = Table(
     'login', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('login_name', String(length=40), nullable=False, unique=True),
-    Column('last_login', WeasylTimestampColumn(), nullable=False),
+    Column('last_login', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('force_password_reset', Boolean(), nullable=False, server_default='f'),
     Column('email', String(length=100), nullable=False, server_default=''),
     Column('twofa_secret', String(length=420), nullable=True),

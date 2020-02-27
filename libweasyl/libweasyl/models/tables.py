@@ -415,7 +415,7 @@ message = Table(
     Column('other_folder', Integer(), nullable=False, server_default='0'),
     Column('title', String(length=100), nullable=False),
     Column('content', String(length=100000), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('settings', String(length=20), nullable=False, server_default='u'),
     default_fkey(['otherid'], ['login.userid'], name='message_otherid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='message_userid_fkey'),

@@ -20,7 +20,7 @@ user who received it.
 
 def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
     statement = ["""
-        SELECT ms.noteid, ms.userid, ps.username, ms.title, ms.unixtime, ms.settings
+        SELECT ms.noteid, ms.userid, ps.username, ms.title, ms.timestamp, ms.settings
         FROM message ms
             INNER JOIN profile ps USING (userid)
         WHERE (ms.otherid, ms.other_folder) = (%(recipient)s, 0)
@@ -45,7 +45,7 @@ def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
         "sendername": i.username,
         "unread": "u" in i.settings,
         "title": i.title,
-        "unixtime": i.unixtime,
+        "unixtime": i.timestamp,
     } for i in d.engine.execute(
         "".join(statement), recipient=userid, filter=filter, backid=backid, nextid=nextid, limit=limit)]
 
@@ -54,7 +54,7 @@ def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
 
 def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
     statement = ["""
-        SELECT ms.noteid, ms.otherid, pr.username, ms.title, ms.unixtime
+        SELECT ms.noteid, ms.otherid, pr.username, ms.title, ms.timestamp
         FROM message ms
             INNER JOIN profile pr ON ms.otherid = pr.userid
         WHERE (ms.userid, ms.user_folder) = (%(sender)s, 0)
@@ -78,7 +78,7 @@ def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
         "recipientid": i.otherid,
         "recipientname": i.username,
         "title": i.title,
-        "unixtime": i.unixtime,
+        "unixtime": i.timestamp,
     } for i in d.engine.execute(
         "".join(statement), sender=userid, filter=filter, backid=backid, nextid=nextid, limit=limit)]
 
@@ -88,7 +88,7 @@ def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
 def select_view(userid, noteid):
     query = d.engine.execute(
         "SELECT ps.userid, ps.username, pr.userid, pr.username, "
-        "ms.title, ms.content, ms.unixtime, ms.settings FROM message ms INNER "
+        "ms.title, ms.content, ms.timestamp, ms.settings FROM message ms INNER "
         "JOIN profile ps ON ms.userid = ps.userid INNER JOIN profile pr ON "
         "ms.otherid = pr.userid WHERE ms.noteid = %(id)s",
         id=noteid,
@@ -179,13 +179,12 @@ def send(userid, form):
         raise WeasylError("recipientExcessive")
 
     d.engine.execute(
-        "INSERT INTO message (userid, otherid, title, content, unixtime)"
-        " SELECT %(sender)s, recipient, %(title)s, %(content)s, %(now)s"
+        "INSERT INTO message (userid, otherid, title, content)"
+        " SELECT %(sender)s, recipient, %(title)s, %(content)s"
         " FROM UNNEST (%(recipients)s) AS recipient",
         sender=userid,
         title=form.title,
         content=form.content,
-        now=d.get_time(),
         recipients=list(users),
     )
 
@@ -214,7 +213,6 @@ def send(userid, form):
             mod_copies.append({
                 'userid': userid,
                 'target_user': target,
-                'unixtime': now,
                 'settings': 's',
                 'content': mod_content,
             })

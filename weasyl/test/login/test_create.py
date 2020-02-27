@@ -190,8 +190,8 @@ def test_create_fails_if_pending_account_has_same_email():
         "login_name": "existing",
         "hashpass": login.passhash(raw_password),
         "email": email_addr,
-        "birthday": arrow.Arrow(2000, 1, 1),
-        "unixtime": arrow.now(),
+        "birthday": arrow.Arrow(2000, 1, 1).datetime,
+        "created_at": arrow.now().datetime,
     })
     form = Bag(username="test", password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,
@@ -252,8 +252,8 @@ def test_usernames_cannot_match_pending_account_usernames():
         "login_name": user_name,
         "hashpass": login.passhash(raw_password),
         "email": "test0003@weasyl.com",
-        "birthday": arrow.Arrow(2000, 1, 1),
-        "unixtime": arrow.now(),
+        "birthday": arrow.Arrow(2000, 1, 1).datetime,
+        "created_at": arrow.now().datetime,
     })
     form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
                email=email_addr, emailcheck=email_addr,

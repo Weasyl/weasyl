@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os
 from io import open
+from datetime import datetime
 
 import pytz
 import bcrypt
@@ -232,7 +233,7 @@ def create(form):
     passcheck = form.passcheck
     if form.day and form.month and form.year:
         try:
-            birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
+            birthday = datetime(int(form.year), int(form.month), int(form.day))
         except ValueError:
             raise WeasylError("birthdayInvalid")
     else:
@@ -269,7 +270,6 @@ def create(form):
             "hashpass": passhash(password),
             "email": email,
             "birthday": birthday,
-            "unixtime": arrow.now(),
         })
 
         # Send verification email
@@ -286,8 +286,6 @@ def create(form):
             "login_name": sysname,
             "hashpass": passhash(password),
             "email": token,
-            "birthday": arrow.now(),
-            "unixtime": arrow.now(),
             "invalid": True,
             # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
             "invalid_email_addr": email,

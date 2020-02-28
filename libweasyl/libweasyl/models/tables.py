@@ -17,20 +17,6 @@ def default_fkey(*args, **kwargs):
     return ForeignKeyConstraint(*args, onupdate='CASCADE', ondelete='CASCADE', **kwargs)
 
 
-ads = Table(
-    'ads', metadata,
-    Column('id', Integer(), primary_key=True, nullable=False),
-    Column('owner', String(length=254), nullable=False),
-    Column('link_target', Text(), nullable=False),
-    Column('file', Integer(), nullable=False),
-    Column('start', TIMESTAMP(), nullable=True),
-    Column('end', TIMESTAMP(), nullable=True),
-    default_fkey(['file'], ['media.mediaid'], name='ads_file_fkey'),
-)
-
-Index('ind_ads_end', ads.c.end)
-
-
 api_tokens = Table(
     'api_tokens', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),

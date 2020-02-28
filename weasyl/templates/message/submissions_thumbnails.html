@@ -30,8 +30,8 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
             Remove All Notifications</button>
         </div>
         <div class="notifs-paging">
-          <a class="button notifs-prev" href="/messages/submissions?backtime=${query[0]['unixtime']}">Back</a>
-          <a class="button notifs-next" href="/messages/submissions?nexttime=${query[-1]['unixtime']}">Next</a>
+          <a class="button notifs-prev" href="/messages/submissions?backtime=${query[0]['timestamp'].isoformat()}">Back</a>
+          <a class="button notifs-next" href="/messages/submissions?nexttime=${query[-1]['timestamp'].isoformat()}">Next</a>
         </div>
       </div>
     $else:

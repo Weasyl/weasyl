@@ -984,7 +984,7 @@ welcome = Table(
     Column('otherid', Integer(), nullable=False),
     Column('referid', Integer(), nullable=False, server_default='0'),
     Column('targetid', Integer(), nullable=False, server_default='0'),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('timestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('type', Integer(), nullable=False),
     Column('deleted', ArrowColumn()),
     default_fkey(['userid'], ['login.userid'], name='welcome_userid_fkey'),
@@ -994,7 +994,7 @@ Index('ind_welcome_otherid', welcome.c.otherid)
 Index('ind_welcome_referid', welcome.c.referid)
 Index('ind_welcome_targetid', welcome.c.targetid)
 Index('ind_welcome_type', welcome.c.type)
-Index('ind_welcome_unixtime', welcome.c.unixtime)
+Index('ind_welcome_timestamp', welcome.c.timestamp)
 Index('ind_welcome_userid_type', welcome.c.userid, welcome.c.type)
 
 

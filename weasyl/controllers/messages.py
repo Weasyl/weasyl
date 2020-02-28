@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import itertools
 
+import arrow
+
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
@@ -72,5 +74,5 @@ def messages_submissions_(request):
         form.feature,
         # Submissions
         message.select_submissions(request.userid, 66, include_tags=False,
-                                   backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
+                                   backtime=arrow.get(form.backtime).datetime, nexttime=arrow.get(form.nexttime).datetime),
     ]))

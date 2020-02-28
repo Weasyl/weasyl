@@ -23,13 +23,12 @@ def _insert(sender, referid, targetid, type, notify_users):
         return
 
     d.engine.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type)"
-        " SELECT notify, %(sender)s, %(referid)s, %(targetid)s, %(now)s, %(type)s"
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type)"
+        " SELECT notify, %(sender)s, %(referid)s, %(targetid)s, NOW(), %(type)s"
         " FROM UNNEST (%(notify)s) AS notify",
         sender=sender,
         referid=referid,
         targetid=targetid,
-        now=d.get_time(),
         type=type,
         notify=notify_users,
     )
@@ -154,8 +153,8 @@ def collection_insert(userid, submitid):
         return
 
     query = """
-        INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type)
-        SELECT watchuser.userid, %(sender)s, 0, %(submission)s, %(now)s, %(type)s
+        INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type)
+        SELECT watchuser.userid, %(sender)s, 0, %(submission)s, NOW(), %(type)s
         FROM watchuser
             INNER JOIN profile USING (userid)
         WHERE watchuser.otherid = %(sender)s
@@ -185,7 +184,6 @@ def collection_insert(userid, submitid):
         query,
         sender=userid,
         submission=submitid,
-        now=d.get_time(),
         type=2030)
 
 
@@ -226,9 +224,9 @@ def journal_remove(journalid):
 
 def collectoffer_insert(userid, otherid, submitid):
     d.engine.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) "
-        "VALUES (%(user)s, %(other)s, 0, %(target)s, %(now)s, 3030)",
-        user=otherid, other=userid, target=submitid, now=d.get_time())
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) "
+        "VALUES (%(user)s, %(other)s, 0, %(target)s, NOW(), 3030)",
+        user=otherid, other=userid, target=submitid)
 
 
 # notifications
@@ -236,9 +234,9 @@ def collectoffer_insert(userid, otherid, submitid):
 
 def collectrequest_insert(userid, otherid, submitid):
     d.engine.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) "
-        "VALUES (%(user)s, %(other)s, 0, %(target)s, %(now)s, 3035)",
-        user=otherid, other=userid, target=submitid, now=d.get_time())
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) "
+        "VALUES (%(user)s, %(other)s, 0, %(target)s, NOW(), 3035)",
+        user=otherid, other=userid, target=submitid)
 
 
 # notifications
@@ -276,8 +274,8 @@ def favorite_insert(db, userid, submitid=None, charid=None, journalid=None, othe
         raise WeasylError("Unexpected")
 
     db.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%s, %s, %s, 0, %s, %s)",
-        (otherid, userid, d.get_targetid(submitid, charid, journalid), d.get_time(), notiftype),
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) VALUES (%s, %s, %s, 0, NOW(), %s)",
+        (otherid, userid, d.get_targetid(submitid, charid, journalid), notiftype),
     )
 
 
@@ -299,8 +297,8 @@ def favorite_remove(db, userid, submitid=None, charid=None, journalid=None):
 #   4010 shout comment
 
 def shout_insert(userid, commentid, otherid):
-    d.execute("INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type)"
-              " VALUES (%i, %i, 0, %i, %i, 4010)", [otherid, userid, commentid, d.get_time()])
+    d.execute("INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type)"
+              " VALUES (%i, %i, 0, %i, NOW(), 4010)", [otherid, userid, commentid])
 
 
 # notifications
@@ -308,9 +306,9 @@ def shout_insert(userid, commentid, otherid):
 #   4016 staff note reply
 
 def shoutreply_insert(userid, commentid, otherid, parentid, staffnote=False):
-    d.execute("INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) "
-              "VALUES (%i, %i, %i, %i, %i, %i)",
-              [otherid, userid, parentid, commentid, d.get_time(), 4016 if staffnote else 4015])
+    d.execute("INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) "
+              "VALUES (%i, %i, %i, %i, NOW(), %i)",
+              [otherid, userid, parentid, commentid, 4016 if staffnote else 4015])
 
 
 # notifications
@@ -336,8 +334,8 @@ def comment_insert(userid, commentid, otherid, submitid, charid, journalid, upda
         raise WeasylError("Unexpected")
 
     d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, %i, %i, %i)",
-        [otherid, userid, d.get_targetid(submitid, charid, journalid, updateid), commentid, d.get_time(), notiftype])
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) VALUES (%i, %i, %i, %i, NOW(), %i)",
+        [otherid, userid, d.get_targetid(submitid, charid, journalid, updateid), commentid, notiftype])
 
 
 # notifications
@@ -404,8 +402,8 @@ def commentreply_insert(userid, commentid, otherid, parentid, submitid, charid, 
         raise WeasylError("Unexpected")
 
     d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, %i, %i, %i, %i)",
-        [otherid, userid, parentid, commentid, d.get_time(), notiftype])
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) VALUES (%i, %i, %i, %i, NOW(), %i)",
+        [otherid, userid, parentid, commentid, notiftype])
 
 
 # notifications
@@ -426,8 +424,8 @@ def stream_insert(userid, status):
 
 def followuser_insert(userid, otherid):
     d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, 0, 0, %i, 3010)",
-        [otherid, userid, d.get_time()])
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) VALUES (%i, %i, 0, 0, NOW(), 3010)",
+        [otherid, userid])
 
 
 # notifications
@@ -443,8 +441,8 @@ def followuser_remove(userid, otherid):
 
 def frienduserrequest_insert(userid, otherid):
     d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, 0, 0, %i, 3080)",
-        [otherid, userid, d.get_time()])
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) VALUES (%i, %i, 0, 0, NOW(), 3080)",
+        [otherid, userid])
 
 
 # notifications
@@ -461,8 +459,8 @@ def frienduserrequest_remove(userid, otherid):
 
 def frienduseraccept_insert(userid, otherid):
     d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, 0, 0, %i, 3085)",
-        [otherid, userid, d.get_time()])
+        "INSERT INTO welcome (userid, otherid, referid, targetid, timestamp, type) VALUES (%i, %i, 0, 0, NOW(), 3085)",
+        [otherid, userid])
 
 
 # notifications
@@ -488,7 +486,7 @@ def tag_update_insert(userid, submitid):
         return
     db.execute(
         we.insert()
-        .values(userid=userid, otherid=submitid, unixtime=arrow.utcnow(), type=3140))
+        .values(userid=userid, otherid=submitid, type=3140))
 
 
 # notifications
@@ -501,9 +499,8 @@ def site_update_insert(updateid):
         sa.select([
             lo.c.userid,
             updateid,
-            d.get_time(),
             3150,
         ]))
-    q = we.insert().from_select(['userid', 'otherid', 'unixtime', 'type'], q)
+    q = we.insert().from_select(['userid', 'otherid', 'type'], q)
     db = d.connect()
     db.execute(q)

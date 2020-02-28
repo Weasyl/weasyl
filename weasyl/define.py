@@ -177,7 +177,7 @@ def _compile(template_name):
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
                 "SHA": CURRENT_SHA,
-                "NOW": get_time,
+                "NOW": lambda: int(time.time()),
                 "THUMB": thumb_for_sub,
                 "WEBP_THUMB": webp_thumb_for_sub,
                 "M": macro,

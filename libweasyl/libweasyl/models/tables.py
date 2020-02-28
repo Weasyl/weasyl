@@ -870,8 +870,8 @@ Index('ind_user_links_userid', user_links.c.userid)
 user_streams = Table(
     'user_streams', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('start_time', WeasylTimestampColumn(), nullable=False),
-    Column('end_time', WeasylTimestampColumn(), nullable=False),
+    Column('start_time', DateTime(timezone=True), nullable=False),
+    Column('end_time', DateTime(timezone=True), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='user_streams_userid_fkey'),
 )
 

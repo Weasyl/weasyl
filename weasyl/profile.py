@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 import sqlalchemy as sa
@@ -144,7 +144,7 @@ def select_profile(userid, viewer=None):
 
     streaming_status = "stopped"
     if query[6]:  # profile.stream_url
-        if query[9] > d.get_time():  # user_streams.end_time
+        if query[9] and query[9] > datetime.now():  # user_streams.end_time
             streaming_status = "started"
         elif 'l' in query[5]:
             streaming_status = "later"
@@ -352,7 +352,7 @@ def select_streaming(userid, limit, following=True, order_by=None):
         "FROM profile pr "
         "JOIN user_streams USING (userid) "
         "JOIN login USING (userid) "
-        "WHERE login.voucher IS NOT NULL AND end_time > %i" % (d.get_time(),)
+        "WHERE login.voucher IS NOT NULL AND end_time > NOW() "
     ]
 
     if userid:
@@ -451,9 +451,9 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
     stream_status = None
     # if we're starting to stream, update user_streams to reflect that
     if set_stream == 'start':
-        now = d.get_time()
-        stream_end = now + stream_length * 60  # stream_length is minutes; we need seconds
-        d.execute("INSERT INTO user_streams VALUES (%i, %i, %i)", [userid, now, stream_end])
+        now = datetime.now()
+        stream_end = now + timedelta(minutes=stream_length)   # stream_length is minutes; we need seconds
+        d.engine.execute(sa.text("INSERT INTO user_streams VALUES (:userid, NOW(), :end)"), userid=userid, end=stream_end)
         stream_status = 'n'
     # if we're going to stream later, update profile.settings to reflect that
     elif set_stream == 'later':

@@ -201,6 +201,10 @@ routes = (
     Route("/control/removecommishprice", "control_removecommishprice",
           {'POST': settings.control_removecommishprice_}),
 
+    Route("/control/username", "control_username", {
+        'GET': settings.control_username_get_,
+        'POST': settings.control_username_post_,
+    }),
     Route("/control/editemailpassword", "control_editemailpassword", {
         'GET': settings.control_editemailpassword_get_,
         'POST': settings.control_editemailpassword_post_

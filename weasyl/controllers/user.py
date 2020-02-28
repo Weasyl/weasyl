@@ -9,7 +9,7 @@ from pyramid.httpexceptions import (
 )
 from pyramid.response import Response
 
-from weasyl import define, errorcode, index, login, moderation, \
+from weasyl import define, index, login, moderation, \
     profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,
@@ -123,17 +123,14 @@ def signin_2fa_auth_get_(request):
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
     if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     # Maximum secondary authentication time: 5 minutes
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
         _cleanup_2fa_session()
-        return Response(define.errorpage(
-            request.userid,
-            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+        raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
     else:
         ref = request.params["referer"] if "referer" in request.params else "/"
         return Response(define.webpage(
@@ -151,18 +148,14 @@ def signin_2fa_auth_post_(request):
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
     if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
         # Maximum secondary authentication time: 5 minutes
         _cleanup_2fa_session()
-        return Response(define.errorpage(
-            request.userid,
-            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
-        ))
+        raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
     elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
         # 2FA passed, so login and cleanup.
         _cleanup_2fa_session()
@@ -171,21 +164,15 @@ def signin_2fa_auth_post_(request):
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
-            return Response(define.errorpage(
-                tfa_userid,
-                errorcode.error_messages['TwoFactorAuthenticationZeroRecoveryCodesRemaining'],
-                [["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]]
-            ))
+            raise WeasylError('TwoFactorAuthenticationZeroRecoveryCodesRemaining',
+                              links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
         # Return to the target page, restricting to the path portion of 'ref' per urlparse.
         raise HTTPSeeOther(location=urlparse.urlparse(ref).path)
     elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
         _cleanup_2fa_session()
-        return Response(define.errorpage(
-            request.userid,
-            errorcode.error_messages['TwoFactorAuthenticationAuthenticationAttemptsExceeded'],
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
-        ))
+        raise WeasylError('TwoFactorAuthenticationAuthenticationAttemptsExceeded',
+                          links=[["Sign In", "/signin"], ["Return to the Home Page", "/"]])
     else:
         # Log the failed authentication attempt to the session and save
         sess.additional_data['2fa_pwd_auth_attempts'] += 1
@@ -217,7 +204,7 @@ def signin_unicode_failure_post_(request):
 @disallow_api
 def signout_(request):
     if request.params.get('token') != define.get_token()[:8]:
-        return Response(define.errorpage(request.userid, errorcode.token), status=403)
+        raise WeasylError('token')
 
     login.signout(request)
 
@@ -339,7 +326,7 @@ def resetpassword_post_(request):
 @token_checked
 def force_resetpassword_(request):
     if define.common_status_check(request.userid) != "resetpassword":
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     resetpassword.force(
         request.userid,

@@ -12,8 +12,8 @@ from weasyl.controllers.decorators import disallow_api, login_required, token_ch
 from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
-    define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
-    index, oauth2, profile, searchtag, thumbnail, useralias, orm)
+    define, emailer, folder, followuser, frienduser, ignoreuser,
+    index, login, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -45,7 +45,7 @@ def control_editprofile_get_(request):
     userinfo = profile.select_userinfo(request.userid)
     return Response(define.webpage(request.userid, "control/edit_profile.html", [
         # Profile
-        profile.select_profile(request.userid, commish=False),
+        profile.select_profile(request.userid),
         # User information
         userinfo,
     ], title="Edit Profile", options=["typeahead"]))
@@ -67,6 +67,7 @@ def control_editprofile_put_(request):
 
     if 'more' in request.params:
         form = request.params.mixed()
+        form.username = define.get_display_name(request.userid)
         form['sorted_user_links'] = [(name, [value]) for name, value in sites]
         form['settings'] = fcommish + ftrade + frequest
         form['config'] = request.params.get('profile_display', '')
@@ -205,6 +206,64 @@ def control_removecommishprice_(request):
 
 
 @login_required
+def control_username_get_(request):
+    latest_change = define.engine.execute(
+        "SELECT username, active, extract(epoch from now() - replaced_at)::int8 AS seconds"
+        " FROM username_history"
+        " WHERE userid = %(user)s"
+        " AND NOT cosmetic"
+        " ORDER BY historyid DESC LIMIT 1",
+        user=request.userid,
+    ).first()
+
+    if latest_change is None:
+        existing_redirect = None
+        days = None
+    else:
+        existing_redirect = latest_change.username if latest_change.active else None
+        days = latest_change.seconds // (3600 * 24)
+
+    return Response(define.webpage(
+        request.userid,
+        "control/username.html",
+        (define.get_display_name(request.userid), existing_redirect, days if days is not None and days < 30 else None),
+        title="Change Username",
+    ))
+
+
+@login_required
+@token_checked
+def control_username_post_(request):
+    if request.POST['do'] == 'change':
+        login.change_username(
+            acting_user=request.userid,
+            target_user=request.userid,
+            bypass_limit=False,
+            new_username=request.POST['new_username'],
+        )
+
+        return Response(define.errorpage(
+            request.userid,
+            "Your username has been changed.",
+            [["Go Back", "/control/username"], ["Return Home", "/"]],
+        ))
+    elif request.POST['do'] == 'release':
+        login.release_username(
+            define.engine,
+            acting_user=request.userid,
+            target_user=request.userid,
+        )
+
+        return Response(define.errorpage(
+            request.userid,
+            "Your old username has been released.",
+            [["Go Back", "/control/username"], ["Return Home", "/"]],
+        ))
+    else:
+        raise WeasylError("Unexpected")
+
+
+@login_required
 @disallow_api
 def control_editemailpassword_get_(request):
     return Response(define.webpage(
@@ -334,7 +393,7 @@ def control_removefolder_(request):
 def control_editfolder_get_(request):
     folderid = int(request.matchdict['folderid'])
     if not folder.check(request.userid, folderid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "manage/folder_options.html", [
         folder.select_info(folderid),
@@ -346,7 +405,7 @@ def control_editfolder_get_(request):
 def control_editfolder_post_(request):
     folderid = int(request.matchdict['folderid'])
     if not folder.check(request.userid, folderid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     settings = request.params.getall('settings')
     folder.update_settings(folderid, settings)
@@ -382,15 +441,20 @@ def control_unignoreuser_(request):
 def control_streaming_get_(request):
     target = request.params.get('target', '')
     if target and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
     elif target:
         target = define.get_int(target)
+    form = request.web_input(target='')
+    if form.target and request.userid not in staff.MODS:
+        
+    elif form.target:
+        target = define.get_int(form.target)
     else:
         target = request.userid
 
     return Response(define.webpage(request.userid, "control/edit_streaming.html", [
         # Profile
-        profile.select_profile(target, commish=False),
+        profile.select_profile(target),
         target,
     ], title="Edit Streaming Settings"))
 
@@ -401,7 +465,7 @@ def control_streaming_post_(request):
     target = request.params.get('target', '')
 
     if target and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     if target:
         target = int(target)
@@ -481,7 +545,7 @@ def manage_following_get_(request):
     if userid:
         return Response(define.webpage(request.userid, "manage/following_user.html", [
             # Profile
-            profile.select_profile(userid, avatar=True),
+            profile.select_profile(userid),
             # Follow settings
             followuser.select_settings(request.userid, userid),
         ], title="Followed User"))

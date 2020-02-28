@@ -105,12 +105,7 @@ def tfa_init_qrcode_get_(request):
     verified ownership over the account by verifying their password. That said, be helpful and inform
     the user of this instead of erroring without explanation.
     """
-    # Inform the user of where to go to begin
-    return Response(define.errorpage(
-                    request.userid,
-                    """This page cannot be accessed directly, and must be accessed as part of the 2FA
-                    setup process. Click <b>2FA Status</b>, below, to go to the 2FA Dashboard to begin.""",
-                    [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
+    raise HTTPSeeOther(location="/control/2fa/status")
 
 
 @login_required
@@ -122,7 +117,7 @@ def tfa_init_qrcode_post_(request):
     tfa_secret_sess = _get_totp_code_from_session()
 
     # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
-    tfa_secret, recovery_codes = tfa.init_verify_tfa(request.userid, tfa_secret_sess, tfaresponse)
+    tfa_secret, recovery_codes = tfa.init_verify_tfa(tfa_secret_sess, tfaresponse)
 
     # The 2FA TOTP code did not match with the generated 2FA secret
     if not tfa_secret:
@@ -150,12 +145,7 @@ def tfa_init_verify_get_(request):
     of choice (`tfa_init_qrcode_*_()`). That said, be helpful and inform the user of this instead of erroring without
     explanation.
     """
-    # Inform the user of where to go to begin
-    return Response(define.errorpage(
-                    request.userid,
-                    """This page cannot be accessed directly, and must be accessed as part of the 2FA
-                    setup process. Click <b>2FA Status</b>, below, to go to the 2FA Dashboard to begin.""",
-                    [["2FA Status", "/control/2fa/status"], ["Return to the Home Page", "/"]]))
+    raise HTTPSeeOther(location="/control/2fa/status")
 
 
 @login_required
@@ -288,12 +278,7 @@ def tfa_generate_recovery_codes_get_(request):
     in this path to prevent this. That said, be nice and tell the user where to go to proceed.
     """
     # Inform the user of where to go to begin
-    return Response(define.errorpage(
-        request.userid,
-        """This page cannot be accessed directly. Please click <b>Generate Recovery Codes</b>, below, in order to
-        begin generating new recovery codes.""",
-        [["Generate Recovery Codes", "/control/2fa/status"], ["Return to the Home Page", "/"]]
-    ))
+    raise HTTPSeeOther(location="/control/2fa/status")
 
 
 @login_required

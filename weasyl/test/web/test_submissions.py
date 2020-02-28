@@ -50,7 +50,7 @@ def test_rating_accessibility(app, age):
 
 @pytest.mark.usefixtures('db', 'no_csrf')
 def test_gif_thumbnail_static(app, submission_user):
-    sub = create_visual(
+    create_visual(
         app, submission_user,
         submitfile=webtest.Upload('loader.gif', read_asset('img/loader.gif'), 'image/gif'),
     )
@@ -92,7 +92,7 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     # Remove submission 1, so uploading a duplicate image is allowed
     app.post('/remove/submission', {
         'submitid': u'%i' % (v1,),
-    }, headers={'Cookie': cookie}).follow()
+    }, headers={'Cookie': cookie}).follow(headers={'Cookie': cookie})
 
     # Upload submission 2 with image 2
     v2 = create_visual(

@@ -54,6 +54,7 @@ def clear_thumbnail(userid, submitid):
 
     Args:
         userid: The userid requesting this operation. Used for permission checking.
+        submitid: The submission to operate on.
 
     Returns:
         None

@@ -98,9 +98,9 @@ def modcontrol_contentbyuser_(request):
     if not target_userid:
         raise WeasylError("userRecordMissing")
 
-    submissions = moderation.submissionsbyuser(request.userid, name) if 's' in features else []
-    characters = moderation.charactersbyuser(request.userid, name) if 'c' in features else []
-    journals = moderation.journalsbyuser(request.userid, name) if 'j' in features else []
+    submissions = moderation.submissionsbyuser(target_userid) if 's' in features else []
+    characters = moderation.charactersbyuser(target_userid) if 'c' in features else []
+    journals = moderation.journalsbyuser(target_userid) if 'j' in features else []
 
     return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
         name,

@@ -10,6 +10,7 @@ import weasyl.polecat
 import weasyl.wsgi
 import weasyl.define as d
 from libweasyl import cache
+from weasyl.cache import RequestMemcachedStats
 
 threadPool = reactor.getThreadPool()
 
@@ -43,6 +44,6 @@ cache.region.configure(
         'url': d.config_read_setting('servers', "127.0.0.1", section='memcached').split(),
         'binary': True,
     },
-    wrap=[cache.ThreadCacheProxy, cache.JSONProxy],
+    wrap=[cache.ThreadCacheProxy, cache.JSONProxy, RequestMemcachedStats],
     replace_existing_backend=True
 )

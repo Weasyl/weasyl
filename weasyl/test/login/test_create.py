@@ -195,11 +195,13 @@ def test_username_cant_be_blank_or_have_semicolon():
                      email=email_addr, emailcheck=email_addr,
                      day='12', month='12', year=arrow.now().year - 19)
     assert 'usernameInvalid' == err.value.value
-    with pytest.raises(WeasylError) as err:
-        login.create(username='testloginsuite;', password='0123456789', passcheck='0123456789',
-                     email=email_addr, emailcheck=email_addr,
-                     day='12', month='12', year=arrow.now().year - 19)
-    assert 'usernameInvalid' == err.value.value
+    login.create(username='testloginsuite;', password='0123456789', passcheck='0123456789',
+                 email=email_addr, emailcheck=email_addr,
+                 day='12', month='12', year=arrow.now().year - 19)
+    assert d.engine.scalar(
+        "SELECT username FROM logincreate WHERE email = %(email)s LIMIT 1",
+        email=form.email,
+    ) == "testloginsuite"
 
 
 @pytest.mark.usefixtures('db')

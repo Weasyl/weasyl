@@ -6,7 +6,7 @@ from pyramid.response import Response
 from libweasyl import staff
 from libweasyl.models.site import SiteUpdate
 
-from weasyl import errorcode, login, moderation, profile, siteupdate
+from weasyl import login, moderation, profile, siteupdate
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
 from weasyl.controllers.decorators import token_checked
@@ -80,7 +80,7 @@ def admincontrol_manageuser_get_(request):
     if not otherid:
         raise WeasylError("userRecordMissing")
     if request.userid != otherid and otherid in staff.ADMINS and request.userid not in staff.TECHNICAL:
-        return Response(d.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(d.webpage(request.userid, "admincontrol/manageuser.html", [
         # Manage user information
@@ -94,7 +94,7 @@ def admincontrol_manageuser_post_(request):
     userid = d.get_int(request.params.get('userid', ''))
 
     if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.TECHNICAL:
-        return d.errorpage(request.userid, errorcode.permission)
+        raise WeasylError('InsufficientPermissions')
 
     profile.do_manage(request.userid, userid,
                       username=request.params.get('username', '').strip() if 'ch_username' in request.params else None,

@@ -13,6 +13,7 @@ from libweasyl.models import tables
 
 from weasyl import define as d
 from weasyl import emailer
+from weasyl import login
 from weasyl import macro as m
 from weasyl import media
 from weasyl import orm
@@ -111,15 +112,7 @@ def resolve(userid, otherid, othername, myself=True):
         if result:
             return result
     elif othername:
-        result = d.engine.scalar("SELECT userid FROM login WHERE login_name = %(name)s", name=d.get_sysname(othername))
-
-        if result:
-            return result
-
-        result = d.engine.scalar("SELECT userid FROM useralias WHERE alias_name = %(name)s", name=d.get_sysname(othername))
-
-        if result:
-            return result
+        return d.get_userids([othername])[othername]
     elif userid and myself:
         return userid
 
@@ -132,7 +125,7 @@ def resolve_by_login(login):
     return resolve(None, None, login, False)
 
 
-def select_profile(userid, avatar=False, banner=False, propic=False, images=False, commish=True, viewer=None):
+def select_profile(userid, viewer=None):
     query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
@@ -319,9 +312,8 @@ def _select_statistics(userid):
         SELECT
             (SELECT page_views FROM profile WHERE userid = %(user)s),
             (SELECT COUNT(*) FROM favorite WHERE userid = %(user)s),
-            (SELECT
-                (SELECT COUNT(*) FROM favorite fa JOIN submission su ON fa.targetid = su.submitid
-                    WHERE su.userid = %(user)s AND fa.type = 's') +
+            (
+                (SELECT sum(favorites) FROM submission WHERE userid = %(user)s) +
                 (SELECT COUNT(*) FROM favorite fa JOIN character ch ON fa.targetid = ch.charid
                     WHERE ch.userid = %(user)s AND fa.type = 'f') +
                 (SELECT COUNT(*) FROM favorite fa JOIN journal jo ON fa.targetid = jo.journalid
@@ -351,7 +343,7 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, rating, limit, following=True, order_by=None):
+def select_streaming(userid, limit, following=True, order_by=None):
     statement = [
         "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
         "FROM profile pr "
@@ -788,28 +780,13 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Username
     if username is not None:
-        sysname = d.get_sysname(username)
+        login.change_username(
+            acting_user=my_userid,
+            target_user=userid,
+            bypass_limit=True,
+            new_username=username,
+        )
 
-        if not sysname:
-            raise WeasylError("usernameInvalid")
-        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s)",
-                             name=sysname):
-            raise WeasylError("usernameExists")
-        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s)",
-                             name=sysname):
-            raise WeasylError("usernameExists")
-        elif d.engine.scalar("SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)",
-                             name=sysname):
-            raise WeasylError("usernameExists")
-
-        with d.engine.begin() as db:
-            db.execute(
-                "UPDATE login SET login_name = %(sysname)s WHERE userid = %(user)s",
-                sysname=sysname, user=userid)
-            db.execute(
-                "UPDATE profile SET username = %(username)s WHERE userid = %(user)s",
-                username=username, user=userid)
-        d._get_display_name.invalidate(userid)
         updates.append('- Username: %s' % (username,))
 
     # Full name

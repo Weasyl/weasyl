@@ -63,7 +63,7 @@ def _limit(size, extension):
     return size > limit
 
 
-def _create_notifications(userid, submitid, rating, settings, title, tags):
+def _create_notifications(userid, submitid, rating, settings):
     """
     Creates notifications to watchers.
     """
@@ -258,8 +258,7 @@ def create_visual(userid, submission,
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
-                              submission.title, tags)
+        _create_notifications(userid, submitid, submission.rating, settings)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'visualsubmissions')
@@ -363,8 +362,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
-                              submission.title, tags)
+        _create_notifications(userid, submitid, submission.rating, settings)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'literarysubmissions')
@@ -481,8 +479,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings,
-                              submission.title, tags)
+        _create_notifications(userid, submitid, submission.rating, settings)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'multimediasubmissions')
@@ -599,13 +596,6 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     tags, artist_tags = searchtag.select_with_artist_tags(submitid)
     settings = d.get_profile_settings(query[0])
 
-    fave_count = query[11]
-
-    if fave_count is None:
-        fave_count = d.engine.scalar(
-            "SELECT COUNT(*) FROM favorite WHERE (targetid, type) = (%(target)s, 's')",
-            target=submitid)
-
     if query[12] is None:
         sub_media = media.get_submission_media(submitid)
     else:
@@ -624,7 +614,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "settings": query[8],
         "page_views": (
             query[9] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[9]),
-        "fave_count": fave_count,
+        "fave_count": query[11],
 
 
         "mine": userid == query[0],

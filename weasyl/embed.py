@@ -67,7 +67,7 @@ def _targetid(link):
         if link[i] not in alpha:
             return link[:i]
 
-    return d.plaintext(link)
+    return link
 
 
 @region.cache_on_arguments(expiration_time=60 * 60 * 24)

@@ -420,13 +420,13 @@ def setusermode(userid, form):
             else:  # Catchall, days
                 basedate += datetime.timedelta(days=magnitude)
 
-            form.release = d.convert_unixdate(basedate.day, basedate.month, basedate.year)
+            form.release = basedate
         else:
             # Absolute date
             if datetime.date(int(form.year), int(form.month), int(form.day)) < datetime.date.today():
                 raise WeasylError("releaseInvalid")
 
-            form.release = d.convert_unixdate(form.day, form.month, form.year)
+            form.release = datetime.datetime(day=int(form.day), month=int(form.month), year=int(form.year))
     else:
         form.release = None
 
@@ -460,7 +460,7 @@ def setusermode(userid, form):
         isoformat_release = None
         message = form.reason
         if form.release is not None:
-            isoformat_release = d.datetime.datetime.fromtimestamp(form.release).isoformat()
+            isoformat_release = form.release.isoformat()
             message = '#### Release date: %s\n\n%s' % (isoformat_release, message)
         d.append_to_log(
             'staff.actions',

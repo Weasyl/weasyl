@@ -821,7 +821,7 @@ suspension = Table(
     'suspension', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('reason', Text(), nullable=False),
-    Column('release', Integer(), nullable=False),
+    Column('release', DateTime(timezone=True), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='suspension_userid_fkey'),
 )
 

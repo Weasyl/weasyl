@@ -2,6 +2,8 @@
 from __future__ import absolute_import
 
 import time
+import arrow
+from datetime import datetime, timedelta
 import pytest
 import json
 
@@ -89,7 +91,7 @@ def test_login_fails_if_user_is_banned():
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_user_is_suspended():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    release_date = d.get_time() + 60
+    release_date = datetime.now() + timedelta(seconds=60)
     db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, 'suspended')
@@ -98,7 +100,7 @@ def test_login_fails_if_user_is_suspended():
 @pytest.mark.usefixtures('db')
 def test_login_succeeds_if_suspension_duration_has_expired():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    release_date = d.convert_unixdate(31, 12, 2015)
+    release_date = arrow.get('2015-12-31', 'YYYY-MM-DD').datetime
     db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, None)

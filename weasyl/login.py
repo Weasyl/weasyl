@@ -175,7 +175,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         from weasyl import moderation
         suspension = moderation.get_suspension(USERID)
 
-        if d.get_time() > suspension.release:
+        if arrow.get().datetime > suspension.release:
             d.execute("DELETE FROM suspension WHERE userid = %i", [USERID])
             d._get_all_config.invalidate(USERID)
         else:

@@ -98,7 +98,7 @@ def test_commish_search_invalid():
 
     # user meets all requirements, but is suspended
     u4 = create_commish_searchable_user("u4")
-    db_utils.create_suspenduser(u4, "", d.get_time() + 604800)
+    db_utils.create_suspenduser(u4, "", datetime.datetime.now() + datetime.timedelta(seconds=604800))
 
     # user meets all requirements, but is banned
     u5 = create_commish_searchable_user("u5")

@@ -444,11 +444,6 @@ def control_streaming_get_(request):
         raise WeasylError('InsufficientPermissions')
     elif target:
         target = define.get_int(target)
-    form = request.web_input(target='')
-    if form.target and request.userid not in staff.MODS:
-        
-    elif form.target:
-        target = define.get_int(form.target)
     else:
         target = request.userid
 

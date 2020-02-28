@@ -74,28 +74,7 @@ def make_user(db):
     return user
 
 
-def make_friendship(db, user1, user2):
-    """
-    Create a friendship between two users.
-
-    The Friendship object created is added to the session.
-    """
-    db.add(users.Friendship(userid=user1.userid, otherid=user2.userid))
-    db.flush()
-
-
-def make_password(db, user, hashsum='$2a$13$pr8cpRxMMbiYfyuEnJ9Cl./QiO9yK7A/H/f9.CQ2DTGyIFgwDHCIa'):
-    """
-    Add a password to a user.
-
-    The default password is 'password'. The AuthBCrypt object created is added
-    to the session.
-    """
-    db.add(users.AuthBCrypt(user=user, hashsum=hashsum))
-    db.flush()
-
-
-def make_submission(db, settings=()):
+def make_submission(db):
     """
     Create a new submission.
 
@@ -108,9 +87,7 @@ def make_submission(db, settings=()):
     owner = make_user(db)
     sub = content.Submission(
         owner=owner, title='', content='', subtype=1, rating=ratings.GENERAL,
-        unixtime=arrow.get(0), settings=None)
-    if settings:
-        sub.settings.mutable_settings.update(settings)
+        unixtime=arrow.get(0), settings=None, favorites=0)
     db.add(sub)
     db.flush()
     return sub

@@ -1,7 +1,6 @@
 import datetime
 
 import arrow
-import bcrypt
 from dateutil.relativedelta import relativedelta
 import pytz
 from pyramid.decorator import reify
@@ -10,7 +9,7 @@ from sqlalchemy import orm
 from libweasyl.models.helpers import clauses_for
 from libweasyl.models.meta import Base
 from libweasyl.models import tables
-from libweasyl import cache, ratings
+from libweasyl import cache
 
 
 class Login(Base):
@@ -40,12 +39,6 @@ class AuthBCrypt(Base):
 
     user = orm.relationship(Login, backref=orm.backref('bcrypt', uselist=False))
 
-    def set_password(self, password):
-        """
-        Sets the user's password to the new password provided.
-        """
-        self.hashsum = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(13))
-
 
 class Profile(Base):
     """
@@ -55,16 +48,6 @@ class Profile(Base):
     __table__ = tables.profile
 
     user = orm.relationship(Login, backref=orm.backref('profile', uselist=False, lazy='joined'))
-
-    _tagging_level_to_rating = {
-        'max-rating-explicit': ratings.EXPLICIT,
-        'max-rating-mature': ratings.MATURE,
-        None: ratings.GENERAL,
-    }
-
-    @property
-    def maximum_content_rating(self):
-        return self._tagging_level_to_rating[self.config['tagging-level']]
 
 
 class Session(Base):

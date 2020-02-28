@@ -764,7 +764,7 @@ submission = Table(
         },
     }), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
-    Column('favorites', Integer()),
+    Column('favorites', Integer(), nullable=False),
     Column('sorttime', WeasylTimestampColumn(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),

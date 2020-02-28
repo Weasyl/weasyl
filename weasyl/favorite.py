@@ -210,18 +210,8 @@ def insert(userid, submitid=None, charid=None, journalid=None):
 
         if submitid:
             db.execute(
-                """
-                UPDATE submission SET
-                    favorites = (
-                        CASE
-                            WHEN favorites IS NULL THEN
-                                (SELECT count(*) FROM favorite WHERE type = 's' AND targetid = %(target)s)
-                            ELSE
-                                favorites + 1
-                        END
-                    )
-                    WHERE submitid = %(target)s
-                """,
+                "UPDATE submission SET favorites = favorites + 1"
+                " WHERE submitid = %(target)s",
                 target=submitid,
             )
 

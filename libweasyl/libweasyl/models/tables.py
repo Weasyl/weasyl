@@ -505,7 +505,6 @@ profile = Table(
         },
     }, length=50), nullable=False, server_default=''),
     Column('jsonb_settings', JSONB()),
-    Column('stream_time', Integer()),
     Column('stream_text', String(length=2000)),
     default_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
 )

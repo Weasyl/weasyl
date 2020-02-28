@@ -96,7 +96,7 @@ ENV WEASYL_STORAGE_ROOT=testing/storage
 ENV PATH="/weasyl/.venv/bin:${PATH}"
 COPY pytest.ini ./
 COPY assets assets
-CMD pytest -x libweasyl.test && pytest -x weasyl.test
+CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
 
 FROM package
 ENV WEASYL_APP_ROOT=/weasyl

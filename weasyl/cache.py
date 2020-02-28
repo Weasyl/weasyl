@@ -1,88 +1,56 @@
 from __future__ import absolute_import
 
+import functools
 import time
 
-from crochet import ReactorStopped, TimeoutError
-from dogpile.cache.api import CacheBackend, NO_VALUE
-from dogpile.cache import register_backend
+from dogpile.cache.proxy import ProxyBackend
 from pyramid.threadlocal import get_current_request
-from txyam.client import YamClient
-from txyam.sync import SynchronousYamClient
-
-from libweasyl.cache import region
 
 
-MEMCACHED_FAILURE_EXCEPTIONS = ReactorStopped, TimeoutError
-
-
-class YamBackend(CacheBackend):
-    def __init__(self, arguments):
-        self.client = SynchronousYamClient(
-            YamClient(arguments.pop('reactor'), arguments.pop('url'),
-                      **arguments))
-        self.client.yamClient.connect()
-
-    def get(self, key):
+def _increments(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
         start = time.time()
-        try:
-            value = self.client.operation('get', key)
-        except MEMCACHED_FAILURE_EXCEPTIONS:
-            return NO_VALUE
-        delta = time.time() - start
-        # TODO(hyena): Is there a way to avoid this threadlocal violence?
+        result = func(self, *args, **kwargs)
+        end = time.time()
+
         request = get_current_request()
         if hasattr(request, 'memcached_times'):
-            request.memcached_times.append(delta)
-        if value is None or value[1] is None:
-            return NO_VALUE
-        return value[1]
+            request.memcached_times.append(end - start)
+        if hasattr(request, 'query_debug'):
+            query = '%s(%s)' % (
+                func.__name__,
+                ', '.join(map(repr, args) + ['%s=%r' % kv for kv in kwargs.items()]),
+            )
 
-    def get_multi(self, keys):
-        start = time.time()
-        try:
-            values = self.client.operation('getMultiple', keys)
-        except MEMCACHED_FAILURE_EXCEPTIONS:
-            return [NO_VALUE] * len(keys)
-        delta = time.time() - start
-        # TODO(hyena): Is there a way to avoid this threadlocal violence?
-        request = get_current_request()
-        if hasattr(request, 'memcached_times'):
-            request.memcached_times.append(delta)
-        ret = []
-        for key in keys:
-            value = values.get(key)
-            if value is None or value[1] is None:
-                ret.append(NO_VALUE)
-            else:
-                ret.append(value[1])
-        return ret
+            request.query_debug.append((query, end - start))
 
-    def set(self, key, value):
-        try:
-            self.client.async_operation('set', key, value)
-        except MEMCACHED_FAILURE_EXCEPTIONS:
-            pass
+        return result
 
-    def set_multi(self, items):
-        try:
-            self.client.async_operation('setMultiple', items)
-        except MEMCACHED_FAILURE_EXCEPTIONS:
-            pass
+    return wrapper
 
+
+class RequestMemcachedStats(ProxyBackend):
+    @_increments
     def delete(self, key):
-        try:
-            self.client.async_operation('delete', key)
-        except MEMCACHED_FAILURE_EXCEPTIONS:
-            pass
+        self.proxied.delete(key)
 
+    @_increments
     def delete_multi(self, keys):
-        try:
-            self.client.async_operation('deleteMultiple', keys)
-        except MEMCACHED_FAILURE_EXCEPTIONS:
-            pass
+        self.proxied.delete_multi(keys)
 
+    @_increments
+    def get(self, key):
+        return self.proxied.get(key)
 
-register_backend('txyam', 'weasyl.cache', 'YamBackend')
+    @_increments
+    def get_multi(self, keys):
+        return self.proxied.get_multi(keys)
 
+    @_increments
+    def set(self, key, value):
+        self.proxied.set(key, value)
 
-__all__ = ['region']
+    @_increments
+    def set_multi(self, mapping):
+        self.proxied.set_multi(mapping)

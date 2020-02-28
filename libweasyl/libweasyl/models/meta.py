@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Query, object_mapper
+from sqlalchemy.orm import Query
 
 from libweasyl.models.tables import metadata
 
@@ -14,25 +14,10 @@ class BaseQuery(Query):
             raise self._not_found_exception()
         return ret
 
-    def first_or_404(self):
-        ret = self.first()
-        if ret is None:
-            raise self._not_found_exception()
-        return ret
-
-
-class _BaseObject(object):
-    def to_dict(self):
-        return {col.name: getattr(self, col.name)
-                for col in object_mapper(self).mapped_table.c}
-
-    def __json__(self, request):
-        return self.to_dict()
-
 
 registry = {}
 Base = declarative_base(
-    cls=_BaseObject, class_registry=registry, metadata=metadata)
+    class_registry=registry, metadata=metadata)
 
 
 def _configure_dbsession(dbsession):

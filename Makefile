@@ -8,7 +8,8 @@
 VE ?= weasyl-env
 
 # Whether to install from wheels
-USE_WHEEL := --no-binary :all:
+# Build specific binaries from source, where binaries have been problematic in the past
+USE_WHEEL := --no-binary sanpera,lxml,psycopg2cffi
 
 # Static directories
 STATIC_DIRS := character fonts journal submission tile user media
@@ -40,10 +41,10 @@ config/weasyl-staff.py:
 
 # Creates python environment
 $(VE): etc/requirements.txt
-	test -e $@ || { virtualenv $@; cp etc/pip.conf $@ ; \
-               $@/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; }
-	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt
-	$@/bin/pip install $(USE_WHEEL) pytest flake8
+	test -e $@ || { virtualenv $@; \
+               $@/bin/pip install -U pip setuptools; }
+	$@/bin/pip install $(USE_WHEEL) -r etc/requirements.txt -e .
+	$@/bin/pip install $(USE_WHEEL) pytest==4.6.5 flake8
 	touch $@
 
 .PHONY: install-libweasyl
@@ -87,6 +88,7 @@ build/rev-manifest.json: node_modules
 # Phony setup target
 .PHONY: setup
 setup: $(VE) config/site.config.txt config/weasyl-staff.py build/rev-manifest.json $(STATIC_DIRS) $(TEMP_DIRS)
+	git rev-parse --short HEAD > version.txt
 
 # Phony deploy targets
 .PHONY: deploy deploy-web-worker
@@ -97,13 +99,11 @@ deploy-web-worker: setup
 .PHONY: run
 run: setup
 	WEASYL_APP_ROOT=. \
+		WEASYL_TESTING_ENV=y \
 		WEASYL_STORAGE_ROOT=. \
-		WEASYL_SERVE_STATIC_FILES=y \
 		WEASYL_RELOAD_TEMPLATES=y \
 		WEASYL_RELOAD_ASSETS=y \
-		WEASYL_REVERSE_PROXY_STATIC=y \
 		WEASYL_WEB_ENDPOINT=$(WEB_ENDPOINT) \
-		WEASYL_WEB_STATS_ENDPOINT="" \
 		$(VE)/bin/twistd -ny weasyl/weasyl.tac
 
 # Phony target to run a local server inside of vagrant
@@ -114,7 +114,7 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
-	WEASYL_APP_ROOT=. WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
+	WEASYL_APP_ROOT=. WEASYL_TESTING_ENV=y WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell
 .PHONY: shell

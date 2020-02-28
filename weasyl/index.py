@@ -5,6 +5,7 @@ import itertools
 import operator
 
 from libweasyl import ratings
+from libweasyl.cache import region
 
 from weasyl import blocktag
 from weasyl import character
@@ -15,7 +16,6 @@ from weasyl import profile
 from weasyl import searchtag
 from weasyl import siteupdate
 from weasyl import submission
-from weasyl.cache import region
 
 
 @region.cache_on_arguments()
@@ -103,7 +103,6 @@ def partition_submissions(submissions):
 @region.cache_on_arguments(expiration_time=60)
 @d.record_timing
 def template_fields(userid):
-    config = d.get_config(userid)
     rating = d.get_rating(userid)
     submissions = list(filter_submissions(userid, recent_submissions()))
     ret = partition_submissions(submissions)
@@ -112,9 +111,9 @@ def template_fields(userid):
         # Recent site news update
         siteupdate.select_last(),
         # Recent critique submissions
-        submission.select_list(userid, rating, 4, options=["critique"], config=config),
+        submission.select_list(userid, rating, 4, options=["critique"]),
         # Currently streaming users
-        profile.select_streaming(userid, rating, 4),
+        profile.select_streaming(userid, 4),
         # Recently popular submissions
         list(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 11)),
     ]

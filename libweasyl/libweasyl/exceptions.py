@@ -39,20 +39,6 @@ class ExpectedWeasylError(WeasylError):
     """
 
 
-class LoginFailed(ExpectedWeasylError):
-    """
-    There was a problem during the login process.
-    """
-
-
-class RatingExceeded(ExpectedWeasylError):
-    """
-    The selected rating exceeds the current rating limitations, whether this is
-    because a user has elected to not view such content or is prohibited from
-    viewing such content due to their age.
-    """
-
-
 class InvalidFileFormat(ExpectedWeasylError):
     """
     The file that was uploaded was of a recognized file format, but is
@@ -65,21 +51,6 @@ class UnknownFileFormat(ExpectedWeasylError):
     """
     The file that was uploaded was not of a recognized file format, and as such
     is disallowed from being uploaded. Uses code 422.
-    """
-    code = 422
-
-
-class SubmissionFileTooLarge(ExpectedWeasylError):
-    """
-    The submission file uploaded exceeds the size limit placed on files of its
-    type. Uses code 422.
-    """
-    code = 422
-
-
-class InvalidData(ExpectedWeasylError):
-    """
-    The data submitted failed validation in a nonspecific way. Uses code 422.
     """
     code = 422
 

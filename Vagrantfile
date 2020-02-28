@@ -3,7 +3,7 @@
 
 VAGRANTFILE_API_VERSION = "2"
 
-$priv_script = <<SCRIPT
+$priv_script = <<'SCRIPT'
 
 apt-get -y update
 
@@ -18,7 +18,7 @@ curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key > \
 echo >/etc/apt/sources.list.d/postgresql.list \
     'deb https://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main 9.6'
 echo >/etc/apt/sources.list.d/nodesource.list \
-    'deb https://deb.nodesource.com/node_6.x stretch main'
+    'deb https://deb.nodesource.com/node_13.x stretch main'
 
 apt-get -y update
 apt-mark hold grub-pc
@@ -28,7 +28,7 @@ apt-get -y dist-upgrade
 mkdir -p /etc/dnsmasq.d/
 echo "server=/i.weasyl.com/10.10.10.103" > /etc/dnsmasq.d/i.weasyl.com
 apt-get install -y dnsmasq
-if ! grep -Fxq "prepend domain-name-servers 127.0.0.1;" /etc/dhcp/dhclient.conf 
+if ! grep -Fxq "prepend domain-name-servers 127.0.0.1;" /etc/dhcp/dhclient.conf
 then
     echo "prepend domain-name-servers 127.0.0.1;" >> /etc/dhcp/dhclient.conf
 fi
@@ -58,16 +58,13 @@ sudo -u postgres dropuser vagrant
 sudo -u postgres createuser -drs vagrant
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl
 sudo -u postgres createdb -E UTF8 -O vagrant weasyl_test
-sudo -u vagrant psql weasyl -c 'CREATE EXTENSION hstore;'
-curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz \
-    | unxz | sudo -u vagrant psql weasyl
 
 openssl req -subj '/CN=lo.weasyl.com' -nodes -new -newkey rsa:2048 \
     -keyout /etc/ssl/private/weasyl.key.pem -out /tmp/weasyl.req.pem
 openssl x509 -req -days 3650 -in /tmp/weasyl.req.pem \
     -signkey /etc/ssl/private/weasyl.key.pem -out /etc/ssl/private/weasyl.crt.pem
 
-cat >/etc/nginx/sites-available/weasyl <<NGINX
+cat >/etc/nginx/sites-available/weasyl <<'NGINX'
 
 server {
     listen 8443 ssl http2;
@@ -77,30 +74,19 @@ server {
 
     server_name lo.weasyl.com;
 
-    rewrite "^(/static/(submission|character)/../../../../../../)(.+)-(.+)\$" \\$1\\$4 break;
-    # Allows trailing slash after a profile name
-    rewrite ^/(.*)/$ /\\$1 permanent;
-
-    location /static {
-        root /home/vagrant/weasyl;
-        try_files \\$uri @proxy;
-    }
-
-    location /css {
-        root /home/vagrant/weasyl/build;
-    }
+    root /home/vagrant/weasyl/build;
 
     location / {
         proxy_pass http://127.0.0.1:8880;
-        if (\\$request_method = HEAD) {
+        if ($request_method = HEAD) {
             gzip off;
         }
 
         proxy_redirect off;
-        proxy_set_header X-Forwarded-Proto \\$scheme;
-        proxy_set_header Host \\$http_host;
-        proxy_set_header X-Real-IP \\$remote_addr;
-        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         client_max_body_size 30m;
         client_body_buffer_size 128k;
         proxy_connect_timeout 10;
@@ -109,8 +95,27 @@ server {
         proxy_buffers 32 4k;
     }
 
-    location @proxy {
-        proxy_pass https://www.weasyl.com;
+    location /css {}
+    location /img {}
+    location /js {}
+
+    location = /fonts/museo500.css {
+        return 307 https://cdn.weasyl.com/static/fonts/museo500.css;
+    }
+
+    location /static/media {
+        root /home/vagrant/weasyl;
+        try_files $uri @missing;
+    }
+
+    location /static/character {
+        rewrite "^(/static/character/../../../../../../)(.+)-(.+)$" $1$3 break;
+        root /home/vagrant/weasyl;
+        try_files $uri @missing;
+    }
+
+    location @missing {
+        return 307 https://cdn.weasyl.com$uri;
     }
 }
 
@@ -121,7 +126,11 @@ ln -fs /etc/nginx/sites-available/weasyl /etc/nginx/sites-enabled
 SCRIPT
 
 
-$unpriv_script = <<SCRIPT
+$unpriv_script = <<'SCRIPT'
+
+psql weasyl -c 'CREATE EXTENSION hstore;'
+curl https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz \
+    | unxz | psql weasyl
 
 # Install libweasyl into the weasyl directory and upgrade this VM's DB.
 ln -s /vagrant ~/weasyl

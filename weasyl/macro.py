@@ -6,6 +6,7 @@ from libweasyl import ratings
 
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
+MACRO_SUPPORT_ADDRESS = "support@weasyl.dev"
 
 MACRO_BCRYPT_ROUNDS = 13
 
@@ -172,27 +173,12 @@ MACRO_SYS_TEMP_PATH = os.path.join(MACRO_STORAGE_ROOT, "temp/")
 MACRO_SYS_CONFIG_PATH = os.path.join(MACRO_APP_ROOT, "config/")
 MACRO_SYS_STAFF_CONFIG_PATH = os.path.join(MACRO_SYS_CONFIG_PATH, "weasyl-staff.py")
 
-MACRO_BLANK_THUMB = "/static/images/default-thumbs/visual.png"
-MACRO_DEFAULT_SUBMISSION_THUMBNAIL = [
-    {
-        'display_url': MACRO_BLANK_THUMB,
-        'file_url': MACRO_BLANK_THUMB,
-    },
-]
-MACRO_BLANK_AVATAR = "/static/images/avatar_default.jpg"
-MACRO_DEFAULT_AVATAR = [
-    {
-        'display_url': MACRO_BLANK_AVATAR,
-        'file_url': MACRO_BLANK_AVATAR,
-    },
-]
-
 MACRO_CFG_SITE_CONFIG = MACRO_SYS_CONFIG_PATH + "site.config.txt"
 
 SOCIAL_SITES = {
     "deviantart": {
-        "name": "deviantArt",
-        "url": "https://%s.deviantart.com/",
+        "name": "DeviantArt",
+        "url": "https://www.deviantart.com/%s",
     },
     "facebook": {
         "name": "Facebook",

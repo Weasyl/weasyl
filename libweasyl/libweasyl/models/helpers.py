@@ -1,21 +1,17 @@
 from __future__ import unicode_literals
 
 import contextlib
-import logging
 
-import anyjson as json
+import json
 import arrow
 import six
 from sqlalchemy.dialects.postgresql import ENUM, HSTORE
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import Mutable, MutableDict
-from sqlalchemy import event, types
+from sqlalchemy import types
 
 from ..legacy import UNIXTIME_OFFSET
 from .. import ratings
-
-
-log = logging.getLogger(__name__)
 
 
 def reverse_dict(d):
@@ -89,7 +85,6 @@ class CharSettingsColumn(types.TypeDecorator):
     file_type_things = {
         '~': 'cover',
         '-': 'thumb',
-        '+': 'popup',
         '=': 'submit',
         '>': 'avatar',
         '<': 'banner',
@@ -295,20 +290,3 @@ def enum_column(enum_cls, name, metadata):
 
 def clauses_for(table, column='settings'):
     return table.c[column].type.clauses_for(column)
-
-
-def validator(**kwargs):
-    def deco(f):
-        f.__validator_params = kwargs
-        return f
-    return deco
-
-
-def apply_validators(cls):
-    for name, value in vars(cls).items():
-        _, _, validate_attr = name.partition('validate_')
-        if not validate_attr:
-            continue
-        params = getattr(value, '__validator_params', {})
-        event.listen(getattr(cls, validate_attr), 'set', value, **params)
-    return cls

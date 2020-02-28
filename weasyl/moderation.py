@@ -300,6 +300,20 @@ def finduser(userid, form):
     sh = d.meta.tables['comments']
     pr = d.meta.tables['profile']
     sess = d.meta.tables['sessions']
+    permaban = d.meta.tables['permaban']
+    suspension = d.meta.tables['suspension']
+
+    is_banned = d.sa.exists(
+        d.sa.select([])
+        .select_from(permaban)
+        .where(permaban.c.userid == lo.c.userid)
+    ).label('is_banned')
+
+    is_suspended = d.sa.exists(
+        d.sa.select([])
+        .select_from(suspension)
+        .where(suspension.c.userid == lo.c.userid)
+    ).label('is_suspended')
 
     q = d.sa.select([
         lo.c.userid,
@@ -309,7 +323,8 @@ def finduser(userid, form):
          .select_from(sh)
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
-        lo.c.settings,
+        is_banned,
+        is_suspended,
         lo.c.ip_address_at_signup,
         (d.sa.select([sess.c.ip_address])
             .select_from(sess)
@@ -338,11 +353,11 @@ def finduser(userid, form):
 
     # Filter for banned and/or suspended accounts
     if form.excludeactive == "on":
-        q = q.where(lo.c.settings.op('~')('[bs]'))
+        q = q.where(is_banned | is_suspended)
     if form.excludebanned == "on":
-        q = q.where(lo.c.settings.op('!~')('b'))
+        q = q.where(~is_banned)
     if form.excludesuspended == "on":
-        q = q.where(lo.c.settings.op('!~')('s'))
+        q = q.where(~is_suspended)
 
     # Filter for IP address
     if form.ipaddr:
@@ -420,31 +435,25 @@ def setusermode(userid, form):
     elif form.userid in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     if form.mode == "b":
-        query = d.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-            " RETURNING userid", [form.userid])
-
-        if query:
-            d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-            d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
-            d.execute("INSERT INTO permaban VALUES (%i, '%s')", [form.userid, form.reason])
+        # Ban user
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
+            db.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=form.userid, reason=form.reason)
     elif form.mode == "s":
+        # Suspend user
         if not form.release:
             raise WeasylError("releaseInvalid")
 
-        query = d.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-            " RETURNING userid", [form.userid])
-
-        if query:
-            d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-            d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
-            d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [form.userid, form.reason, form.release])
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
+            db.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=form.userid, reason=form.reason, release=form.release)
     elif form.mode == "x":
-        query = d.execute("UPDATE login SET settings = REPLACE(REPLACE(settings, 's', ''), 'b', '') WHERE userid = %i",
-                          [form.userid])
-        d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
+        # Unban/Unsuspend
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
 
     action = _mode_to_action_map.get(form.mode)
     if action is not None:
@@ -457,78 +466,57 @@ def setusermode(userid, form):
             'staff.actions',
             userid=userid, action=action, target=form.userid, reason=form.reason,
             release=isoformat_release)
-        d.get_login_settings.invalidate(form.userid)
+        d._get_all_config.invalidate(form.userid)
         note_about(userid, form.userid, 'User mode changed: action was %r' % (action,), message)
 
 
-def submissionsbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
-
-    query = d.execute("""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.settings
-        FROM submission su
-            INNER JOIN profile pr USING (userid)
-        WHERE su.userid = (SELECT userid FROM login WHERE login_name = '%s')
-        ORDER BY su.submitid DESC
-    """, [d.get_sysname(form.name)])
+def submissionsbyuser(targetid):
+    query = d.engine.execute("""
+        SELECT submitid, title, rating, unixtime, settings
+        FROM submission
+        WHERE userid = %(user)s
+    """, user=targetid)
 
     ret = [{
         "contype": 10,
+        "userid": targetid,
         "submitid": i[0],
         "title": i[1],
         "rating": i[2],
         "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "settings": i[6],
+        "settings": i[4],
     } for i in query]
     media.populate_with_submission_media(ret)
     return ret
 
 
-def charactersbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
-
-    query = d.execute("""
-        SELECT
-            ch.charid, pr.username, ch.unixtime,
-            ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
-            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
-        FROM character ch
-        INNER JOIN profile pr ON ch.userid = pr.userid
-        INNER JOIN login ON ch.userid = login.userid
-        WHERE login.login_name = '%s'
-    """, [d.get_sysname(form.name)])
+def charactersbyuser(targetid):
+    query = d.engine.execute("""
+        SELECT charid, unixtime, char_name, rating, settings
+        FROM character
+        WHERE userid = %(user)s
+    """, user=targetid)
 
     return [{
         "contype": 20,
-        "userid": userid,
+        "userid": targetid,
         "charid": item[0],
-        "username": item[1],
-        "unixtime": item[2],
-        "title": item[3],
-        "rating": item[10],
-        "settings": item[11],
-        "sub_media": character.fake_media_items(item[0], userid, d.get_sysname(item[1]), item[11]),
+        "unixtime": item[1],
+        "title": item[2],
+        "rating": item[3],
+        "settings": item[4],
+        "sub_media": character.fake_media_items(item[0], targetid, "unused", item[4]),
     } for item in query]
 
 
-def journalsbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
+def journalsbyuser(targetid):
+    query = d.engine.execute("""
+        SELECT journalid, title, settings, unixtime, rating
+        FROM journal
+        WHERE userid = %(user)s
+    """, user=targetid)
 
-    results = d.engine.execute("""
-        SELECT journalid, title, journal.settings, journal.unixtime, rating,
-               profile.username, 30 contype
-          FROM journal
-               JOIN profile USING (userid)
-               JOIN login USING (userid)
-         WHERE login_name = %(sysname)s
-    """, sysname=d.get_sysname(form.name)).fetchall()
-
-    return map(dict, results)
+    return [dict(item, contype=30) for item in query]
 
 
 def gallery_blacklisted_tags(userid, otherid):
@@ -578,14 +566,35 @@ def unhidecharacter(charid):
     d.execute("UPDATE character SET settings = REPLACE(settings, 'h', '') WHERE charid = %i", [charid])
 
 
+def hidejournal(journalid):
+    """ Hides a journal item from view, and removes it from the welcome table. """
+    d.engine.execute("""
+        UPDATE journal
+        SET settings = settings || 'h'
+        WHERE journalid = %(journalid)s
+            AND settings !~ 'h'
+    """, journalid=journalid)
+    welcome.journal_remove(journalid=journalid)
+
+
+def unhidejournal(journalid):
+    """ Removes the hidden settings flag from a journal item, restoring it to view if other conditions are met (e.g., not flagged as spam) """
+    d.engine.execute("""
+        UPDATE journal
+        SET settings = REPLACE(settings, 'h', '')
+        WHERE journalid = %(journalid)s
+    """, journalid=journalid)
+
+
 def manageuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute(
+    query = d.engine.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
-        " WHERE userid = (SELECT userid FROM login WHERE login_name = '%s')",
-        [d.get_sysname(form.name)], ["single"])
+        " WHERE userid = (SELECT userid FROM login WHERE login_name = %(name)s)",
+        name=d.get_sysname(form.name),
+    ).first()
 
     if not query:
         raise WeasylError("noUser")

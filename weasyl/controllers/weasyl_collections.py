@@ -54,6 +54,9 @@ def collection_offer_(request):
 @login_required
 @token_checked
 def collection_request_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(submitid="")
     form.submitid = int(form.submitid)
     form.otherid = define.get_ownerid(submitid=form.submitid)

@@ -1,0 +1,52 @@
+$def with (premium, is_vouched_for)
+$:{RENDER("common/stage_title.html", ["Settings"])}
+
+<div id="control-content" class="content">
+
+  <div class="group">
+    <h3>My Profile</h3>
+
+    $if not is_vouched_for:
+      <p style="margin-bottom: 1em"><strong>Your profile is hidden</strong> and won’t show up until your account is <a href="/help/verification">verified</a>.</p>
+
+    <p><a href="/manage/avatar">Avatar Image</a></p>
+    <p><a href="/manage/banner">Banner Image</a></p>
+    <p><a href="/control/editprofile">Profile Information</a></p>
+    <p><a href="/control/editcommissionsettings">Commission Settings</a></p>
+    <p><a href="/control/streaming">Streaming Settings</a></p>
+  </div>
+
+  <div class="group">
+    <h3>Preferences</h3>
+    <p><a href="/control/editpreferences">Site Preferences</a></p>
+    <p><a href="/control/username">Username</a></p>
+    <p><a href="/control/editemailpassword">Password and Email</a></p>
+    <p><a href="/control/2fa/status">Two-Factor Authentication</a></p>
+    <p><a href="/manage/folders">Submission Folders</a></p>
+    <p><a href="/manage/tagfilters">Search Tag Filters</a></p>
+    <p><a href="/control/tagrestrictions">Community Tagging Restrictions</a></p>
+    <p><a href="/control/apikeys">Manage API Keys</a></p>
+  </div>
+
+  <div class="group">
+    <h3>People</h3>
+    <p><a href="/manage/friends?feature=accepted">Friends</a></p>
+    <p><a href="/manage/friends?feature=pending">Friend Requests</a></p>
+    <p><a href="/manage/following">Followed Users</a></p>
+    <p><a href="/manage/ignore">Ignored Users</a></p>
+  </div>
+
+  $if premium:
+    <div class="group">
+      <h3>Premium Settings</h3>
+      <p><a href="/manage/alias">Username Alias</a></p>
+    </div>
+
+  <div class="group">
+    <h3>Collections</h3>
+    <p><a href="/manage/collections?feature=accepted">Accepted Collections</a></p>
+    <p><a href="/manage/collections?feature=pending">Collection Offers</a></p>
+    <p><a href="/control/collections">Collection Settings</a></p>
+  </div>
+
+</div>

@@ -4,7 +4,7 @@ Utilities for dealing with HTML.
 Specifically, utilities for creating HTML and utilities for removing HTML.
 """
 
-import anyjson as json
+import json
 
 try:
     from html.parser import HTMLParser

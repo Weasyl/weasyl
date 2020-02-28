@@ -11,7 +11,8 @@ VE ?= ve
 PYVENV ?= virtualenv
 
 # Whether to install from wheels
-USE_WHEEL ?= --no-binary :all:
+# Build specific binaries from source, where binaries have been problematic in the past
+USE_WHEEL ?= --no-binary sanpera,lxml,psycopg2cffi
 
 #
 # Rules
@@ -23,14 +24,14 @@ all: .stamp-ve .stamp-egg-info alembic.ini
 
 # Creates python environment
 .stamp-ve:
-	test -e $(VE) || { $(PYVENV) $(VE); cp pip.conf $(VE) ; \
-                $(VE)/bin/pip install -U pip setuptools -i https://pypi.python.org/simple ; \
-                $(VE)/bin/pip install -U pip requests[security] -i https://pypi.python.org/simple; }
+	test -e $(VE) || { $(PYVENV) $(VE); \
+                $(VE)/bin/pip install -U pip setuptools; \
+                $(VE)/bin/pip install -U pip requests[security]; }
 	touch $@
 
 # Installs libweasyl package in development mode
 .stamp-egg-info: setup.py .stamp-ve
-	$(VE)/bin/pip install $(USE_WHEEL) -e '.[development]'
+	$(VE)/bin/pip install $(USE_WHEEL) -e '.[development]' -c ../etc/requirements.txt
 	touch $@
 
 # Creates alembic config

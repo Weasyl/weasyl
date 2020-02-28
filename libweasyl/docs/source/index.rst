@@ -29,7 +29,6 @@ API
    common
    configuration
    constants
-   decorators
    defang
    exceptions
    files

@@ -52,6 +52,7 @@ def test_select_last(app, site_updates):
         'title': most_recent.title,
         'content': most_recent.content,
         'unixtime': most_recent.unixtime.timestamp + UNIXTIME_OFFSET,
+        'comment_count': 0,
     }
 
 
@@ -130,26 +131,26 @@ def test_create_csrf(app, monkeypatch):
 
 @pytest.mark.usefixtures('db')
 def test_create_restricted(app, monkeypatch):
-    resp = app.get('/admincontrol/siteupdate')
-    assert resp.html.find(id='error_content').contents[0].strip() == errorcode.unsigned
-    resp = app.post('/admincontrol/siteupdate', _FORM)
-    assert resp.html.find(id='error_content').contents[0].strip() == errorcode.unsigned
+    resp = app.get('/admincontrol/siteupdate', status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.unsigned
+    resp = app.post('/admincontrol/siteupdate', _FORM, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.unsigned
 
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
 
-    resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
+    resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
+    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
     monkeypatch.setattr(staff, 'TECHNICAL', frozenset([user]))
     monkeypatch.setattr(staff, 'MODS', frozenset([user]))
 
-    resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
+    resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
+    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
@@ -164,10 +165,10 @@ def test_create_validation(app, monkeypatch):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
     resp = app.post('/admincontrol/siteupdate', {'title': u'', 'content': u'Content'}, headers={'Cookie': cookie}, status=422)
-    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['titleInvalid']
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['titleInvalid']
 
     resp = app.post('/admincontrol/siteupdate', {'title': u'Title', 'content': u''}, headers={'Cookie': cookie}, status=422)
-    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['contentInvalid']
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['contentInvalid']
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
@@ -234,33 +235,33 @@ def test_edit_csrf(app, monkeypatch, site_updates):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
     resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie}, status=403)
-    assert resp.html.find(id='error_content').p.string == errorcode.token
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.token
 
 
 @pytest.mark.usefixtures('db')
 def test_edit_restricted(app, monkeypatch, site_updates):
     _, updates = site_updates
 
-    resp = app.get('/site-updates/%d/edit' % (updates[-1].updateid,))
-    assert resp.html.find(id='error_content').contents[0].strip() == errorcode.unsigned
-    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM)
-    assert resp.html.find(id='error_content').contents[0].strip() == errorcode.unsigned
+    resp = app.get('/site-updates/%d/edit' % (updates[-1].updateid,), status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.unsigned
+    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.unsigned
 
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
 
-    resp = app.get('/site-updates/%d/edit' % (updates[-1].updateid,), headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
-    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
+    resp = app.get('/site-updates/%d/edit' % (updates[-1].updateid,), headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
+    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
     monkeypatch.setattr(staff, 'TECHNICAL', frozenset([user]))
     monkeypatch.setattr(staff, 'MODS', frozenset([user]))
 
-    resp = app.get('/site-updates/%d/edit' % (updates[-1].updateid,), headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
-    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie})
-    assert resp.html.find(id='error_content').p.string == errorcode.permission
+    resp = app.get('/site-updates/%d/edit' % (updates[-1].updateid,), headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
+    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie}, status=403)
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
@@ -277,10 +278,10 @@ def test_edit_validation(app, monkeypatch, site_updates):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
     resp = app.post('/site-updates/%d' % (updates[-1].updateid,), {'title': u'', 'content': u'Content'}, headers={'Cookie': cookie}, status=422)
-    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['titleInvalid']
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['titleInvalid']
 
     resp = app.post('/site-updates/%d' % (updates[-1].updateid,), {'title': u'Title', 'content': u''}, headers={'Cookie': cookie}, status=422)
-    assert resp.html.find(id='error_content').p.string == errorcode.error_messages['contentInvalid']
+    assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['contentInvalid']
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')

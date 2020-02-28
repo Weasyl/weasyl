@@ -51,14 +51,13 @@ routes = (
 
     # Verification and password management views.
     Route("/verify/account", "verify_account", user.verify_account_),
-    Route("/verify/premium", "verify_premium", user.verify_premium_),
     Route("/forgotpassword", "forgot_password",
           {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
     Route("/resetpassword", "reset_password",
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
     Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
-    Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
     Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
+    Route("/vouch", "vouch", {'POST': user.vouch_}),
 
     # Two-Factor Authentication views.
     Route("/control/2fa/status", "control_2fa_status", {'GET': two_factor_auth.tfa_status_get_}),
@@ -202,6 +201,10 @@ routes = (
     Route("/control/removecommishprice", "control_removecommishprice",
           {'POST': settings.control_removecommishprice_}),
 
+    Route("/control/username", "control_username", {
+        'GET': settings.control_username_get_,
+        'POST': settings.control_username_post_,
+    }),
     Route("/control/editemailpassword", "control_editemailpassword", {
         'GET': settings.control_editemailpassword_get_,
         'POST': settings.control_editemailpassword_post_
@@ -264,7 +267,17 @@ routes = (
     Route("/modcontrol/removebanner", "modcontrol_removebanner", {'POST': moderation.modcontrol_removebanner_}),
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
-    Route("/modcontrol/edituserconfig", "modcontrol_edituserconfig", {'POST': moderation.modcontrol_edituserconfig_}),
+    Route("/modcontrol/spamqueue/journal", "modcontrol_spamqueue_journal", {
+        "GET": moderation.modcontrol_spamqueue_journal_get_,
+        "POST": moderation.modcontrol_spamqueue_journal_post_,
+    }),
+    Route("/modcontrol/spamqueue/submission", "modcontrol_spamqueue_submission", {
+        "GET": moderation.modcontrol_spamqueue_submission_get_,
+        "POST": moderation.modcontrol_spamqueue_submission_post_,
+    }),
+    Route("/modcontrol/spam/remove", "modcontrol_spam_remove", {
+        "POST": moderation.modcontrol_spam_remove_post_,
+    }),
 
     # Collection routes.
     Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),
@@ -333,6 +346,7 @@ routes = (
     Route("/help/searching", "help_searching", info.help_searching_),
     Route("/help/tagging", "help_tagging", info.help_tagging_),
     Route("/help/two_factor_authentication", "help_two_factor_authentication", info.help_two_factor_authentication_),
+    Route("/help/verification", "help_verification", info.help_verification_),
 
     # OAuth2 routes.
     Route("/api/oauth2/authorize", "oauth2_authorize",

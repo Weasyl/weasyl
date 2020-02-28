@@ -5,6 +5,7 @@ import unittest
 import pytest
 
 import arrow
+from pyramid.threadlocal import get_current_request
 
 from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
@@ -26,9 +27,9 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission(user1, rating=ratings.GENERAL.code)
         db_utils.create_submission(user1, rating=ratings.MATURE.code)
         db_utils.create_submission(user1, rating=ratings.EXPLICIT.code)
-        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, 10, config="l")))
-        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, 10, config="l")))
-        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, 10, config="l")))
+        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
+        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, 10)))
+        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
 
         # A user sees their own submissions regardless of the rating level
         self.assertEqual(3, len(submission.select_list(
@@ -41,9 +42,10 @@ class SelectListTestCase(unittest.TestCase):
         sub2 = db_utils.create_submission(user, rating=ratings.MATURE.code)
         sub3 = db_utils.create_submission(user, rating=ratings.EXPLICIT.code)
 
-        card1 = submission.twitter_card(sub1)
-        card2 = submission.twitter_card(sub2)
-        card3 = submission.twitter_card(sub3)
+        request = get_current_request()
+        card1 = submission.twitter_card(request, sub1)
+        card2 = submission.twitter_card(request, sub2)
+        card3 = submission.twitter_card(request, sub3)
 
         self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card1['description'])
         self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
@@ -260,7 +262,7 @@ class SelectListTestCase(unittest.TestCase):
 
         for i in range(100):
             favoriter = db_utils.create_user()
-            db_utils.create_favorite(favoriter, sub2, 's', unixtime=now)
+            db_utils.create_favorite(favoriter, submitid=sub2, unixtime=now)
 
         recently_popular = submission.select_recently_popular()
 

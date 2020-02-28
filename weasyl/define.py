@@ -1,43 +1,40 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import os
-import re
 import time
 import random
 import urllib
 import hashlib
 import hmac
+import itertools
 import logging
 import numbers
 import datetime
 import urlparse
-import functools
-import string
-import subprocess
-import unicodedata
+import pkgutil
 
-import anyjson as json
+import json
 import arrow
-from psycopg2cffi.extensions import QuotedString
 from pyramid.threadlocal import get_current_request
 import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
-from web.template import frender
+from sqlalchemy.exc import OperationalError
+from web.template import Template
 
 import libweasyl.constants
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
+from libweasyl.cache import region
+from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
-from weasyl.cache import region
-from weasyl.compat import FakePyramidRequest
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -58,18 +55,7 @@ _load_resources()
 
 
 def record_timing(func):
-    key = 'timing.{0.__module__}.{0.__name__}'.format(func)
-
-    @functools.wraps(func)
-    def wrapper(*a, **kw):
-        start = time.time()
-        try:
-            return func(*a, **kw)
-        finally:
-            delta = time.time() - start
-            metric('timing', key, delta)
-
-    return wrapper
+    return func
 
 
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
@@ -101,96 +87,59 @@ def log_exc(**kwargs):
     return get_current_request().log_exc(**kwargs)
 
 
-def execute(statement, argv=None, options=None):
+def execute(statement, argv=None):
     """
     Executes an SQL statement; if `statement` represents a SELECT or RETURNING
-    statement, the query results will be returned. Note that 'argv' and `options`
-    need not be lists if they would have contained only one element.
+    statement, the query results will be returned.
     """
     db = connect()
 
-    if argv is None:
-        argv = list()
-
-    if options is None:
-        options = list()
-
-    if argv and not isinstance(argv, list):
-        argv = [argv]
-
-    if options and not isinstance(options, list):
-        options = [options]
-
     if argv:
-        statement %= tuple([_sql_escape(i) for i in argv])
+        argv = tuple(argv)
+
+        for x in argv:
+            if type(x) not in (int, long):
+                raise TypeError("can't use %r as define.execute() parameter" % (x,))
+
+        statement %= argv
+
     query = db.connection().execute(statement)
 
     if statement.lstrip()[:6] == "SELECT" or " RETURNING " in statement:
-        query = query.fetchall()
-
-        if "list" in options or "zero" in options:
-            query = [list(i) for i in query]
-
-        if "zero" in options:
-            for i in range(len(query)):
-                for j in range(len(query[i])):
-                    if query[i][j] is None:
-                        query[i][j] = 0
-
-        if "bool" in options:
-            return query and query[0][0]
-        elif "within" in options:
-            return [x[0] for x in query]
-        elif "single" in options:
-            return query[0] if query else list()
-        elif "element" in options:
-            return query[0][0] if query else list()
-
-        return query
+        return query.fetchall()
     else:
         query.close()
 
 
-def _quote_string(s):
-    quoted = QuotedString(s).getquoted()
-    assert quoted[0] == quoted[-1] == "'"
-    return quoted[1:-1].replace('%', '%%')
-
-
-def _sql_escape(target):
+def column(results):
     """
-    SQL-escapes `target`; pg_escape_string is used if `target` is a string or
-    unicode object, else the integer equivalent is returned.
+    Get a list of values from a single-column ResultProxy.
     """
-    if isinstance(target, str):
-        # Escape ASCII string
-        return _quote_string(target)
-    elif isinstance(target, unicode):
-        # Escape Unicode string
-        return _quote_string(target.encode("utf-8"))
-    else:
-        # Escape integer
-        try:
-            return int(target)
-        except:
-            return 0
+    return [x for x, in results]
 
 
-def sql_number_list(target):
+_PG_SERIALIZATION_FAILURE = u'40001'
+
+
+def serializable_retry(action, limit=16):
     """
-    Returns a list of numbers suitable for placement after the SQL IN operator in
-    a query statement, as in "(1, 2, 3)".
+    Runs an action accepting a `Connection` parameter in a serializable
+    transaction, retrying it up to `limit` times.
     """
-    if not target:
-        raise ValueError
-    elif not isinstance(target, list):
-        target = [target]
+    with engine.connect() as db:
+        db = db.execution_options(isolation_level='SERIALIZABLE')
 
-    return "(%s)" % (", ".join(["%d" % (i,) for i in target]))
+        for i in itertools.count(1):
+            try:
+                with db.begin():
+                    return action(db)
+            except OperationalError as e:
+                if i == limit or e.orig.pgcode != _PG_SERIALIZATION_FAILURE:
+                    raise
 
 
-CURRENT_SHA = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).strip()
-the_fake_request = FakePyramidRequest()
+with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
+    CURRENT_SHA = f.read().strip()
 
 
 # Caching all templates. Parsing templates is slow; we don't need to do it all
@@ -205,18 +154,17 @@ def _compile(template_name):
     template = _template_cache.get(template_name)
 
     if template is None or reload_templates:
-        template_path = os.path.join(macro.MACRO_APP_ROOT, 'templates', template_name)
-        _template_cache[template_name] = template = frender(
-            template_path,
+        _template_cache[template_name] = template = Template(
+            pkgutil.get_data(__name__, 'templates/' + template_name),
+            filename=template_name,
             globals={
-                "INT": int,
                 "STR": str,
-                "SUM": sum,
                 "LOGIN": get_sysname,
                 "TOKEN": get_token,
                 "CSRF": _get_csrf_input,
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
+                "ISO8601_DATE": iso8601_date,
                 "TIME": _convert_time,
                 "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
@@ -228,16 +176,15 @@ def _compile(template_name):
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
-                "CONFIG": config_read_setting,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
                 "THUMB": thumb_for_sub,
+                "WEBP_THUMB": webp_thumb_for_sub,
                 "M": macro,
                 "R": ratings,
                 "SLUG": text.slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
-                "CDNIFY": cdnify_url,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
@@ -245,7 +192,6 @@ def _compile(template_name):
                 "json": json,
                 "sorted": sorted,
                 "staff": staff,
-                "request": the_fake_request,
                 "resource_path": get_resource_path,
             })
 
@@ -264,46 +210,28 @@ def titlebar(title, backtext=None, backlink=None):
     return render("common/stage_title.html", [title, backtext, backlink])
 
 
-def errorpage(userid, code=None, links=None,
-              unexpected=None, request_id=None, **extras):
-    if links is None:
-        links = []
+def errorpage_html(userid, message_html, links=None, request_id=None, **extras):
+    return webpage(userid, "error/error.html", [message_html, links, request_id], **extras)
 
+
+def errorpage(userid, code=None, links=None, request_id=None, **extras):
     if code is None:
         code = errorcode.unexpected
 
-        if unexpected:
-            code = "".join([code, " The error code associated with this condition "
-                                  "is '", unexpected, "'."])
-    code = text.markdown(code)
-
-    return webpage(userid, "error/error.html", [code, links, request_id], **extras)
+    return errorpage_html(userid, text.markdown(code), links, request_id, **extras)
 
 
-def webpage(userid=0, template=None, argv=None, options=None, **extras):
+def webpage(userid, template, argv=None, options=None, **extras):
     if argv is None:
         argv = []
 
     if options is None:
         options = []
 
-    if template is None:
-        if userid:
-            template, argv = "error/error.html", [errorcode.signed]
-        else:
-            template, argv = "error/error.html", [errorcode.unsigned]
-
     page = common_page_start(userid, options=options, **extras)
     page.append(render(template, argv))
 
     return common_page_end(userid, page, options=options)
-
-
-def plaintext(target):
-    """
-    Returns `target` string stripped of non-ASCII characters.
-    """
-    return "".join([c for c in target if ord(c) < 128])
 
 
 def _captcha_section():
@@ -317,14 +245,14 @@ def _captcha_public():
     Returns the reCAPTCHA public key, or None if CAPTCHA verification
     is disabled.
     """
-    if config_read_bool("captcha_disable_verification", value=False):
+    if config_read_bool("captcha_disable_verification"):
         return None
 
     return config_obj.get(_captcha_section(), 'public_key')
 
 
 def captcha_verify(captcha_response):
-    if config_read_bool("captcha_disable_verification", value=False):
+    if config_read_bool("captcha_disable_verification"):
         return True
     if not captcha_response:
         return False
@@ -382,71 +310,72 @@ def _get_csrf_input():
     return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
 
 
-_SYSNAME_CHARACTERS = (
-    set(unicode(string.ascii_lowercase)) |
-    set(unicode(string.digits)))
-
-
-def get_sysname(target):
+@region.cache_on_arguments(namespace='v3')
+def _get_all_config(userid):
     """
-    Return `target` stripped of all non-alphanumeric characters and lowercased.
+    Queries for, and returns, common user configuration settings.
+
+    :param userid: The userid to query.
+    :return: A dict(), containing the following keys/values:
+      force_password_reset: Boolean. Is the user required to change their password?
+      is_banned: Boolean. Is the user currently banned?
+      is_suspended: Boolean. Is the user currently suspended?
+      is_vouched_for: Boolean. Is the user vouched for?
+      profile_configuration: CharSettings/string. Configuration options in the profile.
+      jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
     """
-    if isinstance(target, unicode):
-        normalized = unicodedata.normalize("NFD", target.lower())
-        return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS).encode("ascii")
-    else:
-        return "".join(i for i in target if i.isalnum()).lower()
+    row = engine.execute("""
+        SELECT lo.force_password_reset,
+               EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
+               EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
+               lo.voucher IS NOT NULL AS is_vouched_for,
+               pr.config AS profile_configuration,
+               pr.jsonb_settings
+        FROM login lo INNER JOIN profile pr USING (userid)
+        WHERE userid = %(userid)s
+    """, userid=userid).first()
 
-
-@region.cache_on_arguments()
-@record_timing
-def _get_config(userid):
-    return engine.scalar("SELECT config FROM profile WHERE userid = %(user)s", user=userid)
+    return dict(row)
 
 
 def get_config(userid):
+    """ Gets user configuration from the profile table (profile.config)"""
     if not userid:
         return ""
-    return _get_config(userid)
+    return _get_all_config(userid)['profile_configuration']
 
 
-@region.cache_on_arguments()
-@record_timing
 def get_login_settings(userid):
-    return engine.scalar("SELECT settings FROM login WHERE userid = %(user)s", user=userid)
+    """ Returns a Boolean three-tuple in the form of (force_password_reset, is_banned, is_suspended)"""
+    r = _get_all_config(userid)
+    return r['force_password_reset'], r['is_banned'], r['is_suspended']
 
 
-@region.cache_on_arguments()
-@record_timing
-def _get_profile_settings(userid):
-    """
-    This helper function is required because we want to return
-    the ProfileSettings object, which by itself is not serializable
-    by our cacheing library (or at least, I don't know how to make it so)
-    :param userid:
-    :return: json representation of profile settings
-    """
-    if userid is None:
-        return {}
-    jsonb = engine.scalar("SELECT jsonb_settings FROM profile WHERE userid = %(user)s",
-                          user=userid)
-    if jsonb is None:
-        jsonb = {}
-    return jsonb
+def is_vouched_for(userid):
+    return _get_all_config(userid)['is_vouched_for']
 
 
 def get_profile_settings(userid):
     from weasyl.profile import ProfileSettings
-    return ProfileSettings(_get_profile_settings(userid))
+
+    if not userid:
+        jsonb = {}
+    else:
+        jsonb = _get_all_config(userid)['jsonb_settings']
+
+        if jsonb is None:
+            jsonb = {}
+
+    return ProfileSettings(jsonb)
 
 
 def get_rating(userid):
     if not userid:
         return ratings.GENERAL.code
 
-    profile_settings = get_profile_settings(userid)
-
     if is_sfw_mode():
+        profile_settings = get_profile_settings(userid)
+
         # if no explicit max SFW rating picked assume general as a safe default
         return profile_settings.max_sfw_rating
 
@@ -514,12 +443,15 @@ def get_display_name(userid):
 
 
 def get_int(target):
+    if target is None:
+        return 0
+
     if isinstance(target, numbers.Number):
         return int(target)
 
     try:
         return int("".join(i for i in target if i.isdigit()))
-    except:
+    except ValueError:
         return 0
 
 
@@ -530,7 +462,7 @@ def get_targetid(*argv):
 
 
 def get_search_tag(target):
-    target = plaintext(target)
+    target = "".join(i for i in target if ord(i) < 128)
     target = target.replace(" ", "_")
     target = "".join(i for i in target if i.isalnum() or i in "_")
     target = target.strip("_")
@@ -562,12 +494,24 @@ def get_character_directory(charid):
     return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
-def get_userid_list(target):
-    query = engine.execute(
-        "SELECT userid FROM login WHERE login_name = ANY (%(usernames)s)",
-        usernames=[get_sysname(i) for i in target.split(";")])
+def get_userids(usernames):
+    sysnames = [get_sysname(username) for username in usernames]
 
-    return [userid for (userid,) in query]
+    result = engine.execute(
+        "SELECT login_name, userid FROM login WHERE login_name = ANY (%(names)s)"
+        " UNION ALL SELECT alias_name, userid FROM useralias WHERE alias_name = ANY (%(names)s)"
+        " UNION ALL SELECT login_name, userid FROM username_history WHERE active AND login_name = ANY (%(names)s)",
+        names=[sysname for sysname in sysnames if sysname],
+    )
+
+    sysname_userid = dict(result.fetchall())
+
+    return {username: sysname_userid.get(sysname, 0) for sysname, username in zip(sysnames, usernames)}
+
+
+def get_userid_list(target):
+    usernames = target.split(";")
+    return [userid for userid in get_userids(usernames).itervalues() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):
@@ -579,16 +523,13 @@ def get_ownerid(submitid=None, charid=None, journalid=None):
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
 
 
-def get_random_set(target, count=None):
+def get_random_set(target, count):
     """
     Returns the specified number of unique items chosen at random from the target
     list. If more items are specified than the list contains, the full contents
     of the list will be returned in a randomized order.
     """
-    if count:
-        return random.sample(target, min(count, len(target)))
-    else:
-        return random.choice(target)
+    return random.sample(target, min(count, len(target)))
 
 
 def get_address():
@@ -632,10 +573,6 @@ def text_fix_url(target):
     return "http://" + target
 
 
-def text_bool(target, default=False):
-    return target.lower().strip() == "true" or default and target == ""
-
-
 def local_arrow(dt):
     tz = get_current_request().weasyl_session.timezone
     return arrow.Arrow.fromdatetime(tz.localtime(dt))
@@ -660,6 +597,19 @@ def convert_date(target=None):
     return result[1:] if result and result[0] == "0" else result
 
 
+def iso8601_date(target):
+    """
+    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
+
+    NB: Target is offset by _UNIXTIME_OFFSET
+
+    :param target: The target Weasyl timestamp to convert.
+    :return: An ISO 8601 string representing the date of `target`.
+    """
+    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
+    return arrow.get(date).format("YYYY-MM-DD")
+
+
 def _convert_time(target=None):
     """
     Returns the time in the format 16:00:00. If no target is passed, the
@@ -673,69 +623,25 @@ def _convert_time(target=None):
         return dt.strftime("%H:%M:%S %Z")
 
 
-def convert_unixdate(day, month, year, escape=True):
+def convert_unixdate(day, month, year):
     """
     Returns the unixtime corresponding to the beginning of the specified date; if
     the date is not valid, None is returned.
     """
-    if escape:
-        day, month, year = (get_int(i) for i in [day, month, year])
+    day, month, year = (get_int(i) for i in [day, month, year])
 
     try:
         ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except:
-        return
+    except ValueError:
+        return None
     # range of a postgres integer
     if ret > 2147483647 or ret < -2147483648:
         return None
     return ret
 
 
-def convert_inputdate(target):
-    def _month(target):
-        target = "".join(i for i in target if i in "abcdefghijklmnopqrstuvwxyz")
-        for i, j in enumerate(["ja", "f", "mar", "ap", "may", "jun", "jul", "au",
-                               "s", "o", "n", "d"]):
-            if target.startswith(j):
-                return i + 1
-
-    target = target.strip().lower()
-
-    if not target:
-        return
-
-    if re.match(r"[0-9]+ [a-z]+,? [0-9]+", target):
-        # 1 January 1990
-        target = target.split()
-        target[0] = get_int(target[0])
-        target[2] = get_int(target[2])
-
-        if 1933 <= target[0] <= 2037:
-            return convert_unixdate(target[2], _month(target[1]), target[0])
-        else:
-            return convert_unixdate(target[0], _month(target[1]), target[2])
-    elif re.match("[a-z]+ [0-9]+,? [0-9]+", target):
-        # January 1 1990
-        target = target.split()
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
-
-        return convert_unixdate(target[1], _month(target[0]), target[2])
-    elif re.match("[0-9]+ ?/ ?[0-9]+ ?/ ?[0-9]+", target):
-        # 1/1/1990
-        target = target.split("/")
-        target[0] = get_int(target[0])
-        target[1] = get_int(target[1])
-        target[2] = get_int(target[2])
-
-        if target[0] > 12:
-            return convert_unixdate(target[0], target[1], target[2])
-        else:
-            return convert_unixdate(target[1], target[0], target[2])
-
-
 def convert_age(target):
-    return (get_time() - target) / 31556926
+    return (get_time() - target) // 31556926
 
 
 def age_in_years(birthdate):
@@ -819,36 +725,8 @@ def common_page_start(userid, options=None, **extended_options):
     return [data]
 
 
-def _active_users(seconds):
-    usercount_url_template = config_read_setting('url_template', section='usercount')
-    if not usercount_url_template:
-        return
-    try:
-        resp = http_get(usercount_url_template % (seconds,))
-    except WeasylError:
-        return
-    if resp.status_code != 200:
-        return
-    return resp.json()['users']
-
-
-@region.cache_on_arguments(expiration_time=600)
-@record_timing
-def active_users():
-    active_users = []
-    for span, seconds in [('hour', 60 * 60), ('day', 60 * 60 * 24)]:
-        users = _active_users(seconds)
-        if users:
-            active_users.append((span, users))
-
-    return '; '.join(
-        '%d users active in the last %s' % (users, span)
-        for span, users in active_users)
-
-
 def common_page_end(userid, page, options=None):
-    active_users_string = active_users()
-    data = render("common/page_end.html", (options, active_users_string))
+    data = render("common/page_end.html", (options,))
     page.append(data)
     return "".join(page)
 
@@ -861,17 +739,13 @@ def common_status_check(userid):
     if not userid:
         return None
 
-    settings = get_login_settings(userid)
+    reset_password, is_banned, is_suspended = get_login_settings(userid)
 
-    if "p" in settings:
+    if reset_password:
         return "resetpassword"
-    if "i" in settings:
-        return "resetbirthday"
-    if "e" in settings:
-        return "resetemail"
-    if "b" in settings:
+    if is_banned:
         return "banned"
-    if "s" in settings:
+    if is_suspended:
         return "suspended"
 
     return None
@@ -882,20 +756,8 @@ def common_status_page(userid, status):
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
-    if status == "admin":
-        return errorpage(0, errorcode.admin_mode)
-    elif status == "local":
-        return errorpage(0, errorcode.local_mode)
-    elif status == "offline":
-        return errorpage(0, errorcode.offline_mode)
-    elif status == "address":
-        return "IP ADDRESS TEMPORARILY REJECTED"
-    elif status == "resetpassword":
+    if status == "resetpassword":
         return webpage(userid, "force/resetpassword.html")
-    elif status == "resetbirthday":
-        return webpage(userid, "force/resetbirthday.html")
-    elif status == "resetemail":
-        return "reset email"  # todo
     elif status in ('banned', 'suspended'):
         from weasyl import moderation, login
 
@@ -906,7 +768,7 @@ def common_status_page(userid, status):
                 userid,
                 "Your account has been permanently banned and you are no longer allowed "
                 "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-                "contact support@weasyl.com for assistance." % (reason,))
+                "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
 
         elif status == 'suspended':
             suspension = moderation.get_suspension(userid)
@@ -915,7 +777,7 @@ def common_status_page(userid, status):
                 "Your account has been temporarily suspended and you are not allowed to "
                 "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
                 "%s.\n\nIf you believe this suspension is in error, please contact "
-                "support@weasyl.com for assistance." % (suspension.reason, convert_date(suspension.release)))
+                "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
 
 
 _content_types = {
@@ -1037,7 +899,7 @@ def url_make(targetid, feature, query=None, root=False, file_prefix=None):
         if query and "-" in query[0]:
             result.append("%i.thumb%s" % (targetid, url_type(query[0], feature)))
         else:
-            return None if root else macro.MACRO_BLANK_THUMB
+            return None if root else get_resource_path("img/default-visual.png")
     # Character thumbnail selection
     elif feature == "char/.thumb":
         result.append("%i.new.thumb" % (targetid,))
@@ -1058,6 +920,30 @@ def get_resource_path(resource):
         _load_resources()
 
     return '/' + resource_paths[resource]
+
+
+def get_resource_url(resource):
+    """
+    Get a full URL for a resource.
+
+    Useful for <meta name="og:image">, for example.
+    """
+    return 'https://www.weasyl.com' + get_resource_path(resource)
+
+
+DEFAULT_SUBMISSION_THUMBNAIL = [
+    dict.fromkeys(
+        ['display_url', 'file_url'],
+        get_resource_path('img/default-visual.png'),
+    ),
+]
+
+DEFAULT_AVATAR = [
+    dict.fromkeys(
+        ['display_url', 'file_url'],
+        get_resource_path('img/default-avatar.jpg'),
+    ),
+]
 
 
 def absolutify_url(url):
@@ -1118,13 +1004,17 @@ def query_string(query):
     return urllib.urlencode(pairs)
 
 
+_REQUESTS_PROXY = config_read_setting('requests_wrapper', section='proxy')
+_REQUESTS_PROXIES = {} if _REQUESTS_PROXY is None else dict.fromkeys(['http', 'https'], _REQUESTS_PROXY)
+
+
 def _requests_wrapper(func_name):
     func = getattr(requests, func_name)
 
     def wrapper(*a, **kw):
         request = get_current_request()
         try:
-            return func(*a, **kw)
+            return func(*a, proxies=_REQUESTS_PROXIES, **kw)
         except Exception as e:
             request.log_exc(level=logging.DEBUG)
             w = WeasylError('httpError')
@@ -1137,12 +1027,9 @@ def _requests_wrapper(func_name):
 http_get = _requests_wrapper('get')
 http_post = _requests_wrapper('post')
 
-# This will be set by twisted.
-statsFactory = None
-
 
 def metric(*a, **kw):
-    statsFactory.metric(*a, **kw)
+    pass
 
 
 def iso8601(unixtime):
@@ -1203,3 +1090,29 @@ def thumb_for_sub(submission):
         thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
 
     return submission['sub_media'][thumb_key][0]
+
+
+def webp_thumb_for_sub(submission):
+    """
+    Given a submission dict containing sub_media, sub_type and userid,
+    returns the appropriate WebP media item to use as a thumbnail.
+
+    Params:
+        submission: The submission.
+
+    Returns:
+        The sub media to use as a thumb, or None.
+    """
+    user_id = get_userid()
+    profile_settings = get_profile_settings(user_id)
+    disable_custom_thumb = (
+        profile_settings.disable_custom_thumbs and
+        submission.get('subtype', 9999) < 2000 and
+        submission['userid'] != user_id
+    )
+
+    if not disable_custom_thumb and 'thumbnail-custom' in submission['sub_media']:
+        return None
+
+    thumbnail_generated_webp = submission['sub_media'].get('thumbnail-generated-webp')
+    return thumbnail_generated_webp and thumbnail_generated_webp[0]

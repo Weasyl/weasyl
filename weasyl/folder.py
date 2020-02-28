@@ -2,14 +2,17 @@ from __future__ import absolute_import
 
 import sqlalchemy as sa
 
-from libweasyl import staff
-
 from weasyl import define as d
 from weasyl import media
 from weasyl.error import WeasylError
 
 
 _TITLE = 100
+
+_PREVIEW_COUNT = 3
+"""
+The maximum number of recently updated folders to display on a profile.
+"""
 
 
 def check(userid, folderid=None, title=None, parentid=None, root=True):
@@ -23,22 +26,22 @@ def check(userid, folderid=None, title=None, parentid=None, root=True):
 
     if folderid:
         if parentid is None:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid) = (%i, %i) AND settings !~ 'h')",
-                [folderid, userid], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid) = (%(folder)s, %(user)s) AND settings !~ 'h')",
+                folder=folderid, user=userid)
         else:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid, parentid) = (%i, %i, %i) AND settings !~ 'h')",
-                [folderid, userid, parentid], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (folderid, userid, parentid) = (%(folder)s, %(user)s, %(parent)s) AND settings !~ 'h')",
+                folder=folderid, user=userid, parent=parentid)
     elif title:
         if parentid is None:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, title) = (%i, '%s') AND settings !~ 'h')",
-                [userid, title], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, title) = (%(user)s, %(title)s) AND settings !~ 'h')",
+                user=userid, title=title)
         else:
-            return d.execute(
-                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, parentid, title) = (%i, %i, '%s') AND settings !~ 'h')",
-                [userid, parentid, title], options="bool")
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT 0 FROM folder WHERE (userid, parentid, title) = (%(user)s, %(parent)s, %(title)s) AND settings !~ 'h')",
+                user=userid, parent=parentid, title=title)
 
 
 # form
@@ -56,8 +59,13 @@ def create(userid, form):
     elif check(userid, title=form.title, parentid=form.parentid):
         raise WeasylError("folderRecordExists")
 
-    return d.execute("INSERT INTO folder (parentid, userid, title) VALUES (%i, %i, '%s') RETURNING folderid",
-                     [form.parentid, userid, form.title])
+    d.engine.execute(
+        "INSERT INTO folder (parentid, userid, title)"
+        " VALUES (%(parent)s, %(user)s, %(title)s)",
+        parent=form.parentid,
+        user=userid,
+        title=form.title,
+    )
 
 
 def select_info(folderid):
@@ -84,10 +92,10 @@ def submission_has_folder_flag(submitid, flag):
     return bool(results and results[0][0])
 
 
-def select_preview(userid, otherid, rating, limit=3):
+def select_preview(userid, otherid, rating):
     """
-    Picks out random folders up to the limit, and get a count, name, and random
-    submission to use as a preview for each.
+    Pick out recently updated folders up to the limit, and get a count, name,
+    and the latest submission to use as a preview for each.
 
     The rules below ensure that the following images won't be used or counted:
     Hidden images, friends only images from non-friends, submissions above the
@@ -96,86 +104,65 @@ def select_preview(userid, otherid, rating, limit=3):
 
     Params:
         userid: The id of the viewing user.
-        otherid: The id of the users whose folders we're viewing.
+        otherid: The id of the user whose folders we're viewing.
         rating: The maximum rating of submissions that will be considered for
             counts or a preview.
-        limit: The maximum number of folders to consider. Defaults to 3.
 
     Returns:
         An array of dicts, each of which has a folderid, a title, a count, and
         sub_media to use for a preview.
     """
-    query = []
     folder_query = d.engine.execute("""
-        SELECT
-            fd.folderid, fd.title,
-            (SELECT COUNT(*)
-               FROM submission su
-               WHERE folderid = fd.folderid
-                 AND settings !~ '[hu]'
-                 AND (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s))
-                 AND (settings !~ 'f'
-                      OR su.userid = %(userid)s
-                      OR EXISTS (SELECT 0
-                                   FROM frienduser
-                                   WHERE ((userid, otherid) = (%(userid)s, su.userid)
-                                          OR (userid, otherid) = (su.userid, %(userid)s))
-                                     AND settings !~ 'p')))
+        SELECT fd.folderid, fd.title, count(su.*), max(ARRAY[su.submitid, su.subtype]) AS most_recent
         FROM folder fd
+            INNER JOIN submission su USING (folderid)
+            INNER JOIN submission_tags USING (submitid)
         WHERE fd.userid = %(otherid)s
             AND fd.settings !~ '[hu]'
-            AND EXISTS (SELECT 0 FROM submission
-                          WHERE folderid = fd.folderid
-                            AND (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s)))
-        ORDER BY RANDOM()
+            AND su.settings !~ 'h'
+            AND (su.rating <= %(rating)s OR (su.userid = %(userid)s AND NOT %(sfwmode)s))
+            AND (
+                su.settings !~ 'f'
+                OR su.userid = %(userid)s
+                OR EXISTS (
+                    SELECT FROM frienduser
+                    WHERE settings !~ 'p' AND (
+                        (userid, otherid) = (%(userid)s, su.userid)
+                        OR (userid, otherid) = (su.userid, %(userid)s)
+                    )
+                )
+            )
+            AND (
+                su.userid = %(userid)s
+                OR NOT tags && (SELECT coalesce(array_agg(tagid), '{}') FROM blocktag WHERE userid = %(userid)s)
+            )
+        GROUP BY fd.folderid
+        ORDER BY max(su.submitid) DESC
         LIMIT %(limit)s
-    """, rating=rating, userid=userid, otherid=otherid, limit=limit, sfwmode=d.is_sfw_mode())
+    """, rating=rating, userid=userid, otherid=otherid, limit=_PREVIEW_COUNT, sfwmode=d.is_sfw_mode())
 
-    for i in folder_query:
-        submit = d.engine.execute("""
-            SELECT submitid, settings FROM submission su
-                WHERE (rating <= %(rating)s OR (userid = %(userid)s AND NOT %(sfwmode)s))
-                AND folderid = %(folderid)s AND settings !~ 'h'
-                AND (settings !~ 'f' OR su.userid = %(userid)s
-                     OR EXISTS (SELECT 0 FROM frienduser
-                                  WHERE ((userid, otherid) = (%(userid)s, su.userid)
-                                         OR (userid, otherid) = (su.userid, %(userid)s))
-                                    AND settings !~ 'p'))
-                ORDER BY RANDOM() LIMIT 1
-            """, rating=rating, folderid=i.folderid, userid=userid, sfwmode=d.is_sfw_mode()).first()
+    previews = [{
+        "folderid": i.folderid,
+        "title": i.title,
+        "count": i.count,
+        "userid": otherid,
+        "submitid": i.most_recent[0],
+        "subtype": i.most_recent[1],
+    } for i in folder_query]
 
-        if submit:
-            query.append({
-                "folderid": i.folderid,
-                "title": i.title,
-                "count": i.count,
-                "userid": otherid,
-                "sub_media": media.get_submission_media(submit.submitid),
-            })
+    media.populate_with_submission_media(previews)
 
-    return query
+    return previews
 
 
-# feature
-#   "drop/parents"
-#   "drop/all"
-#   "sidebar/all"
-
-def select_list(userid, feature, root=False, limit=None):
+def select_list(userid, feature):
     result = []
-
-    if root and "drop/" in feature:
-        result.append({
-            "folderid": 0,
-            "title": "Root Folder",
-        })
 
     # Select for sidebar
     if feature == "sidebar/all":
         query = d.execute("""
             SELECT
-                fd.folderid, fd.title, fd.parentid,
-                (SELECT COUNT(*) FROM submission WHERE folderid = fd.folderid AND settings !~ 'h')
+                fd.folderid, fd.title, fd.parentid
             FROM folder fd
             WHERE fd.userid = %i
                 AND fd.settings !~ 'h'
@@ -190,8 +177,6 @@ def select_list(userid, feature, root=False, limit=None):
                 "folderid": query[i][0],
                 "title": query[i][1],
                 "subfolder": False,
-                "count": query[i][3],
-                "thumb": "",
             })
 
             for j in range(i + 1, len(query)):
@@ -200,8 +185,6 @@ def select_list(userid, feature, root=False, limit=None):
                         "folderid": query[j][0],
                         "title": query[j][1],
                         "subfolder": True,
-                        "count": query[j][3],
-                        "thumb": "",
                     })
     # Select for dropdown
     else:
@@ -244,7 +227,7 @@ def select_list(userid, feature, root=False, limit=None):
                 for m in (f for f in result if f["folderid"] in has_children):
                     m["haschildren"] = True
 
-    return d.get_random_set(result, limit) if limit else result
+    return result
 
 
 # form
@@ -255,18 +238,19 @@ def rename(userid, form):
     form.title = form.title.strip()[:_TITLE]
     form.folderid = d.get_int(form.folderid)
 
-    query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [form.folderid], options="element")
+    query = d.engine.scalar("SELECT userid FROM folder WHERE folderid = %(folder)s",
+                            folder=form.folderid)
 
     if not query:
         raise WeasylError("folderRecordMissing")
     elif not form.title:
         raise WeasylError("titleInvalid")
-    elif userid != query and userid not in staff.ADMINS:
+    elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
-    d.execute("UPDATE folder SET title = '%s' WHERE folderid = %i",
-              [form.title, form.folderid])
+    d.engine.execute(
+        "UPDATE folder SET title = %(title)s WHERE folderid = %(folder)s",
+        title=form.title, folder=form.folderid)
 
 
 # form
@@ -291,8 +275,8 @@ def move(userid, form):
         raise WeasylError("InsufficientPermissions")
     # folder with subfolders cannot become a subfolder
     elif (form.folderid and
-          d.execute("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %i)",
-                    [form.folderid], options="bool")):
+          d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s)",
+                          parent=form.folderid)):
         raise WeasylError("parentidInvalid")
 
     if form.parentid > 0:
@@ -323,21 +307,17 @@ def move(userid, form):
 
 def remove(userid, folderid):
     # Check folder exists and user owns it
-    query = d.execute("SELECT userid FROM folder WHERE folderid = %i",
-                      [folderid], ["element"])
+    query = d.engine.scalar("SELECT userid FROM folder WHERE folderid = %(folder)s",
+                            folder=folderid)
 
     if not query:
         raise WeasylError("folderRecordMissing")
     elif userid != query:
         raise WeasylError("InsufficientPermissions")
 
-    # Select relevant unhidden folders
-    folders = d.sql_number_list(
-        [folderid] +
-        d.execute("SELECT folderid FROM folder WHERE parentid = %i AND settings !~ 'h'", [folderid], ["within"]))
+    with d.engine.begin() as db:
+        # Hide folders
+        db.execute("UPDATE folder SET settings = settings || 'h' WHERE (folderid = %(id)s OR parentid = %(id)s) AND settings !~ 'h'", id=folderid)
 
-    # Hide folders
-    d.execute("UPDATE folder SET settings = settings || 'h' WHERE folderid IN %s AND settings !~ 'h'", [folders])
-
-    # Move submissions to root
-    d.execute("UPDATE submission SET folderid = NULL WHERE folderid IN %s", [folders])
+        # Move submissions to root
+        db.execute("UPDATE submission SET folderid = NULL FROM folder WHERE submission.folderid = folder.folderid AND (folder.folderid = %(id)s OR folder.parentid = %(id)s)", id=folderid)

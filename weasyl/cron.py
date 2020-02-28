@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import arrow
 from twisted.python import log
 
-from weasyl.define import active_users, engine, get_time
+from weasyl.define import engine, get_time
 from weasyl import index, submission
 
 
@@ -20,7 +20,7 @@ def run_periodic_tasks():
         if not locked:
             return
         last_run = arrow.get(db.scalar("SELECT last_run FROM cron_runs"))
-        if not last_run or now < last_run.replace(seconds=59):
+        if not last_run or now < last_run.replace(second=59):
             return
 
         # Recache the latest submissions
@@ -28,12 +28,6 @@ def run_periodic_tasks():
         if now.minute % 2 == 0:
             index.recent_submissions.refresh()
             log.msg('refreshed recent submissions')
-
-        # Recache the active user counts
-        # Every 5 minutes
-        if now.minute % 5 == 0:
-            active_users.refresh()
-            log.msg('refreshed active user counts')
 
         # Recalculate recently popular submissions
         # Every 10 minutes

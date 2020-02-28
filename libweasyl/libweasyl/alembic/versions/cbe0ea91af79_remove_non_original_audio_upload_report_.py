@@ -12,7 +12,7 @@ Create Date: 2016-08-11 01:21:10.906138
 revision = 'cbe0ea91af79'
 down_revision = 'c8c088918278'
 
-from alembic import op
+from alembic import op   # lgtm[py/unused-import]
 
 
 def upgrade():

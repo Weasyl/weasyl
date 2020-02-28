@@ -121,7 +121,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
         image.make_cover(
             tempthumb, files.make_resource(userid, charid, "char/.thumb"))
 
-    thumbnail.create(userid, 0, 0, 0, 0, charid=charid, remove=False)
+    thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
@@ -295,8 +295,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
     }
 
 
-def select_query(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
-
+def select_query(userid, rating, otherid=None, backid=None, nextid=None):
     statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE ch.settings !~ '[h]'"]
 
     # Ignored users and blocked tags
@@ -326,17 +325,15 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None, options
     return statement
 
 
-def select_count(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_count(userid, rating, otherid=None, backid=None, nextid=None):
     statement = ["SELECT count(ch.charid)"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
     return define.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY ch.charid%s LIMIT %i" % ("" if backid else " DESC", limit))
 
@@ -357,8 +354,8 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, o
 
 
 def edit(userid, character, friends_only):
-    query = define.execute("SELECT userid, settings FROM character WHERE charid = %i",
-                           [character.charid], options="single")
+    query = define.engine.execute("SELECT userid, settings FROM character WHERE charid = %(id)s",
+                                  id=character.charid).first()
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")
@@ -371,22 +368,28 @@ def edit(userid, character, friends_only):
     profile.check_user_rating_allowed(userid, character.rating)
 
     # Assign settings
-    settings = [query[1].replace("f", "")]
-    settings.append("f" if friends_only else "")
-    settings = "".join(settings)
+    settings = query[1].replace("f", "")
 
-    if "f" in settings:
+    if friends_only:
+        settings += "f"
         welcome.character_remove(character.charid)
 
-    define.execute(
-        """
-            UPDATE character
-            SET (char_name, age, gender, height, weight, species, content, rating, settings) =
-                ('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s')
-            WHERE charid = %i
-        """,
-        [character.char_name, character.age, character.gender, character.height, character.weight, character.species,
-         character.content, character.rating.code, settings, character.charid])
+    ch = define.meta.tables["character"]
+    define.engine.execute(
+        ch.update()
+        .where(ch.c.charid == character.charid)
+        .values({
+            'char_name': character.char_name,
+            'age': character.age,
+            'gender': character.gender,
+            'height': character.height,
+            'weight': character.weight,
+            'species': character.species,
+            'content': character.content,
+            'rating': character.rating,
+            'settings': settings,
+        })
+    )
 
     if userid != query[0]:
         from weasyl import moderation

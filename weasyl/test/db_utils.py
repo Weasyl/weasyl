@@ -4,12 +4,13 @@ import itertools
 
 import arrow
 
-from libweasyl import legacy
 from libweasyl import ratings
 from libweasyl import staff
+from libweasyl.legacy import get_sysname
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
+from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
@@ -37,13 +38,14 @@ def create_api_key(userid, token, description=""):
 
 
 def create_user(full_name="", birthday=arrow.get(586162800), config=None,
-                username=None, password=None, email_addr=None, user_id=None):
+                username=None, password=None, email_addr=None, user_id=None,
+                verified=True):
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
         username = "User-" + str(next(_user_index))
 
     while True:
-        user = add_entity(users.Login(login_name=legacy.login_name(username),
+        user = add_entity(users.Login(login_name=get_sysname(username),
                                       last_login=arrow.get(0)))
 
         if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:
@@ -56,6 +58,10 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
     add_entity(users.Profile(userid=user.userid, username=username,
                              full_name=full_name, unixtime=arrow.get(0), config=config))
     add_entity(users.UserInfo(userid=user.userid, birthday=birthday))
+    # Verify this user
+    if verified:
+        d.engine.execute("UPDATE login SET voucher = userid WHERE userid = %(id)s",
+                         id=user.userid)
     # Set a password for this user
     if password is not None:
         d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
@@ -95,7 +101,7 @@ def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=ar
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(
         userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
-        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings))
+        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings, favorites=0))
     update_last_submission_time(userid, unixtime)
     return submission.submitid
 
@@ -196,55 +202,55 @@ def create_ignoreuser(ignorer, ignoree):
 
 # TODO: do these two in a less bad way
 def create_banuser(userid, reason):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-        " RETURNING userid", [userid])
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO permaban VALUES (%i, '%s')", [userid, reason])
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=userid, reason=reason)
 
 
 def create_suspenduser(userid, reason, release):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-        " RETURNING userid", [userid])
-
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [userid, reason, release])
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=userid, reason=reason, release=release)
 
 
 def create_tag(title):
-    tag = add_entity(content.Tag(title=title))
-    return tag.tagid
+    return d.engine.scalar("INSERT INTO searchtag (title) VALUES (%(title)s) RETURNING tagid", title=title)
 
 
-def create_journal_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.JournalTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+def create_journal_tag(tagid, targetid):
+    d.engine.execute(
+        'INSERT INTO searchmapjournal (tagid, targetid)'
+        ' VALUES (%(tag)s, %(journal)s)',
+        tag=tagid,
+        journal=targetid,
+    )
 
 
-def create_character_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.CharacterTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+def create_character_tag(tagid, targetid):
+    d.engine.execute(
+        'INSERT INTO searchmapchar (tagid, targetid)'
+        ' VALUES (%(tag)s, %(char)s)',
+        tag=tagid,
+        char=targetid,
+    )
 
 
 def create_submission_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.SubmissionTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+    d.engine.execute(
+        'INSERT INTO searchmapsubmit (tagid, targetid, settings)'
+        ' VALUES (%(tag)s, %(sub)s, %(settings)s)',
+        tag=tagid,
+        sub=targetid,
+        settings=settings or '',
+    )
 
-    db.execute(
-        'INSERT INTO submission_tags (submitid, tags) VALUES (:submission, ARRAY[:tag]) '
-        'ON CONFLICT (submitid) DO UPDATE SET tags = submission_tags.tags || :tag',
-        {'submission': targetid, 'tag': tagid})
+    d.engine.execute(
+        'INSERT INTO submission_tags (submitid, tags)'
+        ' VALUES (%(sub)s, ARRAY[%(tag)s])'
+        ' ON CONFLICT (submitid) DO UPDATE SET tags = submission_tags.tags || %(tag)s',
+        sub=targetid,
+        tag=tagid,
+    )
 
 
 def create_blocktag(userid, tagid, rating):
@@ -253,8 +259,20 @@ def create_blocktag(userid, tagid, rating):
     db.flush()
 
 
-def create_favorite(userid, targetid, type, unixtime=arrow.get(1), settings=None):
-    db = d.connect()
-    db.add(content.Favorite(userid=userid, targetid=targetid, type=type,
-                            unixtime=unixtime, settings=settings))
-    db.flush()
+def create_favorite(userid, **kwargs):
+    unixtime = kwargs.pop('unixtime', None)
+    favorite.insert(userid, **kwargs)
+
+    if unixtime is not None:
+        if 'submitid' in kwargs:
+            type_ = 's'
+        elif 'charid' in kwargs:
+            type_ = 'c'
+        elif 'journalid' in kwargs:
+            type_ = 'j'
+
+        targetid = d.get_targetid(*kwargs.values())
+
+        fav = content.Favorite.query.filter_by(userid=userid, type=type_, targetid=targetid).one()
+        fav.unixtime = unixtime
+        content.Favorite.dbsession.flush()

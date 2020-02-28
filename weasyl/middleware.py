@@ -71,12 +71,6 @@ def db_timer_tween_factory(handler, registry):
         resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
         resp.headers['X-SQL-Queries'] = str(len(request.sql_times))
         resp.headers['X-Memcached-Queries'] = str(len(request.memcached_times))
-        sess = request.weasyl_session
-        d.statsFactory.logRequest(
-            time_queued, time_in_sql, time_in_memcached, time_in_python,
-            len(request.sql_times), len(request.memcached_times),
-            sess.userid, sess.sessionid, request.method, request.path,
-            request.query_string.split(','))
         return resp
     return db_timer_tween
 
@@ -115,8 +109,6 @@ def session_tween_factory(handler, registry):
         if sess_obj is None:
             sess_obj = create_guest_session()
 
-        # BUG: Because of the way our exception handler relies on a weasyl_session, exceptions
-        # thrown before this part will not be handled correctly.
         request.weasyl_session = sess_obj
 
         # Register a response callback to set the session cookies before returning.
@@ -127,11 +119,14 @@ def session_tween_factory(handler, registry):
     return session_tween
 
 
-def sql_debug_tween_factory(handler, registry):
+def query_debug_tween_factory(handler, registry):
     """
-    A tween that allows developers to view SQL timing per query.
+    A tween that allows developers to view timing per query.
     """
     def callback(request, response):
+        if not hasattr(request, 'weasyl_session') or request.weasyl_session.userid not in staff.DEVELOPERS:
+            return
+
         class ParameterCounter(object):
             def __init__(self):
                 self.next = 1
@@ -148,7 +143,7 @@ def sql_debug_tween_factory(handler, registry):
 
         debug_rows = []
 
-        for statement, t in request.sql_debug:
+        for statement, t in request.query_debug:
             statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
             debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
 
@@ -158,14 +153,14 @@ def sql_debug_tween_factory(handler, registry):
             + [u'</table>']
         )
 
-    def sql_debug_tween(request):
-        if 'sql_debug' in request.params and request.weasyl_session.userid in staff.DEVELOPERS:
-            request.sql_debug = []
+    def query_debug_tween(request):
+        if 'query_debug' in request.params:
+            request.query_debug = []
             request.add_response_callback(callback)
 
         return handler(request)
 
-    return sql_debug_tween
+    return query_debug_tween
 
 
 def status_check_tween_factory(handler, registry):
@@ -177,6 +172,10 @@ def status_check_tween_factory(handler, registry):
     def status_check_tween(request):
         status = d.common_status_check(request.userid)
         if status:
+            # Permit POST'ing to the forced password reset path (handle the request normally)
+            if request.method == "POST" and request.path == "/force/resetpassword":
+                return handler(request)
+            # Otherwise force the user to the corresponding `status` page.
             return Response(d.common_status_page(request.userid, status))
         return handler(request)
     return status_check_tween
@@ -208,16 +207,15 @@ def _generate_http2_server_push_headers():
     css_preload = [
         '<' + item + '>; rel=preload; as=style' for item in [
             d.get_resource_path('css/site.css'),
-            '/static/fonts/museo500.css',
+            d.get_resource_path('fonts/museo500.css'),
         ]
     ]
 
     js_preload = [
         '<' + item + '>; rel=preload; as=script' for item in [
-            '/static/jquery-2.2.4.min.js',
-            '/static/typeahead.bundle.min.js',
-            '/static/marked.js?' + d.CURRENT_SHA,
-            '/static/scripts.js?' + d.CURRENT_SHA,
+            d.get_resource_path('js/jquery-2.2.4.min.js'),
+            d.get_resource_path('js/marked.js'),
+            d.get_resource_path('js/scripts.js'),
         ]
     ]
 
@@ -382,8 +380,22 @@ class RemoveSessionCookieProcessor(raven.processors.Processor):
         if 'headers' in data and 'Cookie' in data['headers']:
             data['headers']['Cookie'] = self._filter_header(data['headers']['Cookie'])
 
-        if 'env' in data and 'HTTP_COOKIE' in data['env']:
-            data['env']['HTTP_COOKIE'] = self._filter_header(data['env']['HTTP_COOKIE'])
+        env = data.get('env')
+
+        if env is not None:
+            if 'HTTP_COOKIE' in env:
+                env['HTTP_COOKIE'] = self._filter_header(env['HTTP_COOKIE'])
+
+            # WebOb cache, like:
+            #  - webob._parsed_query_vars
+            #  - webob._body_file
+            #  - webob._parsed_post_vars
+            #  - webob._parsed_cookies
+            # These mostly just repeat information that can be found elsewhere,
+            # so they’re removed rather than filtered.
+            remove_keys = [key for key in env if key.startswith('webob._')]
+            for key in remove_keys:
+                del env[key]
 
 
 class URLSchemeFixingMiddleware(object):
@@ -503,5 +515,5 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)
-    if hasattr(request, 'sql_debug'):
-        request.sql_debug.append((statement, total))
+    if hasattr(request, 'query_debug'):
+        request.query_debug.append((statement, total))

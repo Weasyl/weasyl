@@ -4,14 +4,13 @@ import re
 import sqlalchemy as sa
 
 from libweasyl import staff
+from libweasyl.cache import region
 
 from weasyl import define as d
 from weasyl import files
 from weasyl import ignoreuser
 from weasyl import macro as m
-from weasyl import orm
 from weasyl import welcome
-from weasyl.cache import region
 from weasyl.error import WeasylError
 
 
@@ -22,24 +21,28 @@ MAX_PREFERRED_TAGS = 50
 
 
 def select(submitid=None, charid=None, journalid=None):
-    return d.execute("SELECT st.title FROM searchtag st"
-                     " INNER JOIN searchmap%s sm USING (tagid)"
-                     " WHERE sm.targetid = %i"
-                     " ORDER BY st.title",
-                     [
-                         "submit" if submitid else "char" if charid else "journal",
-                         submitid if submitid else charid if charid else journalid
-                     ], options="within")
+    return d.column(d.engine.execute(
+        "SELECT st.title FROM searchtag st"
+        " INNER JOIN searchmap{suffix} sm USING (tagid)"
+        " WHERE sm.targetid = %(target)s"
+        " ORDER BY st.title".format(
+            suffix="submit" if submitid else "char" if charid else "journal",
+        ),
+        target=submitid if submitid else charid if charid else journalid,
+    ))
 
 
 def select_with_artist_tags(submitid):
-    db = d.connect()
-    tags = (
-        db.query(orm.Tag.title, orm.SubmissionTag.is_artist_tag)
-        .join(orm.SubmissionTag)
-        .filter_by(targetid=submitid)
-        .order_by(orm.Tag.title)
-        .all())
+    # 'a': artist-tag
+    tags = d.engine.execute(
+        "SELECT title, settings ~ 'a'"
+        " FROM searchmapsubmit"
+        " INNER JOIN searchtag USING (tagid)"
+        " WHERE targetid = %(sub)s"
+        " ORDER BY title",
+        sub=submitid,
+    ).fetchall()
+
     ret = []
     artist_tags = set()
     for tag, is_artist_tag in tags:
@@ -283,9 +286,9 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, preferre
 
         # preference/optout tags can only be set by the artist, so this settings column does not apply
         if userid == ownerid and not (preferred_tags_userid or optout_tags_userid):
-            d.execute(
-                "UPDATE %s SET settings = settings || 'a' WHERE targetid = %i AND tagid IN %s",
-                [table, targetid, d.sql_number_list(list(added))])
+            d.engine.execute(
+                "UPDATE {} SET settings = settings || 'a' WHERE targetid = %(target)s AND tagid = ANY (%(added)s)".format(table),
+                target=targetid, added=list(added))
 
     if submitid:
         d.engine.execute(
@@ -475,7 +478,7 @@ def query_user_restricted_tags(ownerid):
         ownerid: The userid of the user who owns the content tags are being added to.
 
     Returns:
-        A set of user restricted tag titles.
+        A list of user restricted tag titles, in no particular order.
     """
     query = d.engine.execute("""
         SELECT title
@@ -483,7 +486,7 @@ def query_user_restricted_tags(ownerid):
         INNER JOIN searchtag USING (tagid)
         WHERE userid = %(ownerid)s
     """, ownerid=ownerid).fetchall()
-    return {tag.title for tag in query}
+    return [tag.title for tag in query]
 
 
 @region.cache_on_arguments()
@@ -495,14 +498,14 @@ def query_global_restricted_tags():
         None. Retrieves all global tag restriction entries.
 
     Returns:
-        A set of global restricted tag titles.
+        A list of global restricted tag titles, in no particular order.
     """
     query = d.engine.execute("""
         SELECT title
         FROM globally_restricted_tags
         INNER JOIN searchtag USING (tagid)
     """).fetchall()
-    return {tag.title for tag in query}
+    return [tag.title for tag in query]
 
 
 def remove_restricted_tags(patterns, tags):
@@ -511,9 +514,8 @@ def remove_restricted_tags(patterns, tags):
       restricted tag list.
 
     Parameters:
-        patterns: The result of ``query_user_restricted_tags(ownerid) +
-        query_global_restricted_tags()``. Consists
-        of a list of titles of patterns which match a restricted tag.
+        patterns: The result of ``query_user_restricted_tags(ownerid) + query_global_restricted_tags()``.
+        Consists of a list of titles of patterns which match a restricted tag.
 
         tags: The reused SQL query result from ``associate()`` which consists of tagids
         and titles for tags passed to the function.

@@ -1,3 +1,5 @@
+from __future__ import division
+
 import collections
 import hashlib
 from io import BytesIO
@@ -6,7 +8,6 @@ import os
 from sqlalchemy.orm import relationship, foreign, remote, joinedload
 
 from libweasyl.files import fanout, makedirs_exist_ok
-from libweasyl.models.content import Submission
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
@@ -15,7 +16,6 @@ from libweasyl import flash, images
 
 class MediaItem(Base):
     __table__ = tables.media
-    __mapper_args__ = dict(polymorphic_on=__table__.c.media_type)
 
     @classmethod
     def fetch_or_create(cls, data, file_type=None, im=None, attributes=()):
@@ -34,12 +34,28 @@ class MediaItem(Base):
             elif file_type == 'swf':
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
-            obj.init_from_data(data)
+
+            # Write our file to disk
+            real_path = obj.full_file_path
+            makedirs_exist_ok(os.path.dirname(real_path))
+            with open(real_path, 'wb') as outfile:
+                outfile.write(data)
+
             cls.dbsession.add(obj)
         return obj
 
     # set by configure_libweasyl
     _media_link_formatter_callback = None
+    _base_file_path = None
+
+    def to_dict(self):
+        return {
+            'mediaid': self.mediaid,
+            'file_type': self.file_type,
+            'file_url': self.file_url,
+            'attributes': self.attributes,
+            'sha256': self.sha256,
+        }
 
     def serialize(self, recursive=1, link=None):
         ret = self.to_dict()
@@ -55,91 +71,46 @@ class MediaItem(Base):
             ret['described'] = {}
         if 'width' in self.attributes and 'height' in self.attributes:
             ret['aspect_ratio'] = self.attributes['width'] / self.attributes['height']
+        ret['full_file_path'] = self.full_file_path
         return ret
 
-    def ensure_cover_image(self, source_image=None):
+    def ensure_cover_image(self, source_image):
         if self.file_type not in {'jpg', 'png', 'gif'}:
             raise ValueError('can only auto-cover image media items')
         cover_link = next((link for link in self.described if link.link_type == 'cover'), None)
         if cover_link is not None:
             return cover_link.media_item
 
-        if source_image is None:
-            source_image = self.as_image()
         cover = images.make_cover_image(source_image)
         if cover is source_image:
             cover_media_item = self
         else:
-            cover_media_item = fetch_or_create_media_item(
+            cover_media_item = self.fetch_or_create(
                 cover.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
                 im=cover)
         self.dbsession.flush()
         MediaMediaLink.make_or_replace_link(self.mediaid, 'cover', cover_media_item)
         return cover_media_item
 
-    def make_thumbnail(self, source_image=None):
-        if self.file_type not in {'jpg', 'png', 'gif'}:
-            raise ValueError('can only auto-thumbnail image media items')
-        if source_image is None:
-            source_image = self.as_image()
-        thumbnail = images.make_thumbnail(source_image)
-        if thumbnail is source_image:
-            return self
-        else:
-            return fetch_or_create_media_item(
-                thumbnail.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
-                im=thumbnail)
-
-    def make_popup(self, source_image=None):
-        if self.file_type not in {'jpg', 'png', 'gif'}:
-            raise ValueError('can only auto-popup image media items')
-        if source_image is None:
-            source_image = self.as_image()
-        thumbnail = images.make_popup(source_image)
-        if thumbnail is source_image:
-            return self
-        else:
-            return fetch_or_create_media_item(
-                thumbnail.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
-                im=thumbnail)
-
-
-class DiskMediaItem(MediaItem):
-    __table__ = tables.disk_media
-    __mapper_args__ = dict(polymorphic_identity='disk')
-
-    def init_from_data(self, data):
-        path = ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
-        self.file_path = os.path.join(*path)
-        self.file_url = '/' + self.file_path
-        real_path = self.full_file_path
-        makedirs_exist_ok(os.path.dirname(real_path))
-        with open(real_path, 'wb') as outfile:
-            outfile.write(data)
-
     @property
     def display_url(self):
         # Dodge a silly AdBlock rule
         return self.file_url.replace('media/ad', 'media/ax')
 
-    # set by configure_libweasyl
-    _base_file_path = None
-
     @property
     def full_file_path(self):
-        return os.path.join(self._base_file_path, self.file_path)
-
-    def serialize(self, recursive=1, link=None):
-        ret = super(DiskMediaItem, self).serialize(recursive=recursive, link=link)
-        ret['full_file_path'] = self.full_file_path
-        return ret
+        return os.path.join(self._base_file_path, *self._file_path_components)
 
     def as_image(self):
         return images.read(self.full_file_path.encode())
 
+    @property
+    def _file_path_components(self):
+        return ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
 
-def fetch_or_create_media_item(*a, **kw):
-    return DiskMediaItem.fetch_or_create(*a, **kw)
+    @property
+    def file_url(self):
+        return '/' + '/'.join(self._file_path_components)
 
 
 class _LinkMixin(object):
@@ -179,7 +150,6 @@ class _LinkMixin(object):
             return []
         q = (
             cls.dbsession.query(MediaItem, cls)
-            .with_polymorphic([DiskMediaItem])
             .join(cls, *cls._linkjoin)
             .options(joinedload('described'))
             .options(joinedload(cls._linkname))
@@ -207,7 +177,7 @@ class SubmissionMediaLink(Base, _LinkMixin):
     _linkname = 'submission_links'
     _load = ('submission_links.submission', 'submission_links.submission.owner')
 
-    submission = relationship(Submission, backref='media_links')
+    submission = relationship("Submission", backref='media_links')
     media_item = relationship(MediaItem, backref='submission_links')
 
 

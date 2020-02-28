@@ -10,20 +10,27 @@ from libweasyl import staff
 from libweasyl.text import slug_for
 
 from weasyl import (
-    character, comment, define, errorcode, folder, journal, macro, profile,
+    character, comment, define, folder, journal, macro, profile,
     report, searchtag, shout, submission, orm)
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError
+from weasyl.login import get_user_agent_id
 
 
 # Content submission functions
 @login_required
 def submit_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/submit.html", title="Submit Artwork"))
 
 
 @login_required
 def submit_visual_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(title='', tags=[], description='', imageURL='', baseURL='')
     if form.baseURL:
         form.imageURL = urlparse.urljoin(form.baseURL, form.imageURL)
@@ -50,6 +57,9 @@ def submit_visual_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
@@ -60,6 +70,8 @@ def submit_visual_post_(request):
     s.content = form.content
     s.folderid = define.get_int(form.folderid) or None
     s.subtype = define.get_int(form.subtype)
+    s.submitter_ip_address = request.client_addr
+    s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     submitid = submission.create_visual(
         request.userid, s, friends_only=form.friends, tags=tags,
@@ -74,6 +86,9 @@ def submit_visual_post_(request):
 
 @login_required
 def submit_literary_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/literary.html", [
         # Folders
         folder.select_list(request.userid, "drop/all"),
@@ -95,6 +110,9 @@ def submit_literary_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
@@ -105,6 +123,8 @@ def submit_literary_post_(request):
     s.content = form.content
     s.folderid = define.get_int(form.folderid) or None
     s.subtype = define.get_int(form.subtype)
+    s.submitter_ip_address = request.client_addr
+    s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     submitid, thumb = submission.create_literary(
         request.userid, s, embedlink=form.embedlink, friends_only=form.friends, tags=tags,
@@ -118,6 +138,9 @@ def submit_literary_post_(request):
 
 @login_required
 def submit_multimedia_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/multimedia.html", [
         # Folders
         folder.select_list(request.userid, "drop/all"),
@@ -139,6 +162,9 @@ def submit_multimedia_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
@@ -149,6 +175,8 @@ def submit_multimedia_post_(request):
     s.content = form.content
     s.folderid = define.get_int(form.folderid) or None
     s.subtype = define.get_int(form.subtype)
+    s.submitter_ip_address = request.client_addr
+    s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     autothumb = ('noautothumb' not in form)
 
@@ -165,6 +193,9 @@ def submit_multimedia_post_(request):
 
 @login_required
 def submit_character_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/character.html", [
         profile.get_user_ratings(request.userid),
     ], title="Character Profile"))
@@ -181,6 +212,9 @@ def submit_character_post_(request):
 
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
+
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -203,6 +237,9 @@ def submit_character_post_(request):
 
 @login_required
 def submit_journal_get_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     return Response(define.webpage(request.userid, "submit/journal.html",
                                    [profile.get_user_ratings(request.userid)], title="Journal Entry"))
 
@@ -217,6 +254,9 @@ def submit_journal_post_(request):
     if not define.config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
         raise WeasylError("ratingInvalid")
@@ -225,6 +265,8 @@ def submit_journal_post_(request):
     j.title = form.title
     j.rating = rating
     j.content = form.content
+    j.submitter_ip_address = request.client_addr
+    j.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
     journalid = journal.create(request.userid, j, friends_only=form.friends,
                                tags=tags)
     raise HTTPSeeOther(location="/journal/%i/%s" % (journalid, slug_for(form.title)))
@@ -238,6 +280,9 @@ def submit_shout_(request):
 
     if form.staffnotes and request.userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
+
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
     c = orm.Comment()
     c.parentid = define.get_int(form.parentid)
@@ -259,12 +304,17 @@ def submit_shout_(request):
 @token_checked
 @supports_json
 def submit_comment_(request):
-    form = request.web_input(submitid="", charid="", journalid="", parentid="", content="", format="")
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
+    form = request.web_input(submitid="", charid="", journalid="", updateid="", parentid="", content="", format="")
+    updateid = define.get_int(form.updateid)
 
     commentid = comment.insert(request.userid, charid=define.get_int(form.charid),
                                parentid=define.get_int(form.parentid),
                                submitid=define.get_int(form.submitid),
                                journalid=define.get_int(form.journalid),
+                               updateid=updateid,
                                content=form.content)
 
     if form.format == "json":
@@ -274,8 +324,12 @@ def submit_comment_(request):
         raise HTTPSeeOther(location="/submission/%i#cid%i" % (define.get_int(form.submitid), commentid))
     elif define.get_int(form.charid):
         raise HTTPSeeOther(location="/character/%i#cid%i" % (define.get_int(form.charid), commentid))
-    else:
+    elif define.get_int(form.journalid):
         raise HTTPSeeOther(location="/journal/%i#cid%i" % (define.get_int(form.journalid), commentid))
+    elif updateid:
+        raise HTTPSeeOther(location="/site-updates/%i#cid%i" % (updateid, commentid))
+    else:
+        raise WeasylError("Unexpected")
 
 
 @login_required
@@ -297,6 +351,9 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(submitid="", charid="", journalid="", preferred_tags_userid="", optout_tags_userid="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
@@ -346,7 +403,7 @@ def reupload_submission_get_(request):
     form.submitid = define.get_int(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
         "submission",
@@ -362,7 +419,7 @@ def reupload_submission_post_(request):
     form.targetid = define.get_int(form.targetid)
 
     if request.userid != define.get_ownerid(submitid=form.targetid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     submission.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/submission/%i" % (form.targetid,))
@@ -374,7 +431,7 @@ def reupload_character_get_(request):
     form.charid = define.get_int(form.charid)
 
     if request.userid != define.get_ownerid(charid=form.charid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "submit/reupload_submission.html", [
         "character",
@@ -390,7 +447,7 @@ def reupload_character_post_(request):
     form.targetid = define.get_int(form.targetid)
 
     if request.userid != define.get_ownerid(charid=form.targetid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     character.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/character/%i" % (form.targetid,))
@@ -402,7 +459,7 @@ def reupload_cover_get_(request):
     form.submitid = define.get_int(form.submitid)
 
     if request.userid != define.get_ownerid(submitid=form.submitid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "submit/reupload_cover.html", [form.submitid], title="Reupload Cover Artwork"))
 
@@ -426,7 +483,7 @@ def edit_submission_get_(request):
     detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     submission_category = detail['subtype'] // 1000 * 1000
 
@@ -477,7 +534,7 @@ def edit_character_get_(request):
     detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "edit/character.html", [
         # Submission detail
@@ -523,7 +580,7 @@ def edit_journal_get_(request):
     detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "edit/journal.html", [
         # Journal detail

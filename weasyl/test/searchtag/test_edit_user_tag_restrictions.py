@@ -20,7 +20,7 @@ def test_edit_user_tag_restrictions_with_no_prior_entries():
     user_id = db_utils.create_user()
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
     searchtag.edit_user_tag_restrictions(user_id, tags)
-    resultant_tags = searchtag.query_user_restricted_tags(user_id)
+    resultant_tags = set(searchtag.query_user_restricted_tags(user_id))
     assert resultant_tags == valid_tags
 
 
@@ -35,7 +35,7 @@ def test_edit_user_tag_restrictions_with_prior_entries_test_removal_of_entry():
     # Set the new tags; AKA, remove the two defined tags
     tags = searchtag.parse_restricted_tags(", ".join(tags_to_keep))
     searchtag.edit_user_tag_restrictions(user_id, tags)
-    resultant_tags = searchtag.query_user_restricted_tags(user_id)
+    resultant_tags = set(searchtag.query_user_restricted_tags(user_id))
     assert resultant_tags == tags_to_keep
 
 
@@ -46,4 +46,4 @@ def test_edit_user_tag_restrictions_fully_clear_entries_after_adding_items():
     searchtag.edit_user_tag_restrictions(user_id, tags)
     tags = set()
     searchtag.edit_user_tag_restrictions(user_id, tags)
-    assert searchtag.query_user_restricted_tags(user_id) == set()
+    assert searchtag.query_user_restricted_tags(user_id) == []

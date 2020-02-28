@@ -4,11 +4,11 @@ from __future__ import absolute_import
 import os
 import pytest
 import webtest
-from io import BytesIO
 from PIL import Image
 
-from weasyl.macro import MACRO_APP_ROOT, MACRO_STORAGE_ROOT
+from weasyl.macro import MACRO_STORAGE_ROOT
 from weasyl.test import db_utils
+from weasyl.test.web.common import read_asset, read_asset_image
 
 
 _BASE_FORM = {
@@ -24,28 +24,11 @@ _BASE_FORM = {
 }
 
 
-_static_cache = {}
-
-
-def _static(path):
-    full_path = os.path.join(MACRO_APP_ROOT, 'static', path)
-
-    if full_path not in _static_cache:
-        with open(full_path, 'rb') as f:
-            _static_cache[full_path] = f.read()
-
-    return _static_cache[full_path]
-
-
 def _read_character_image(image_url):
     parts = image_url.split('/')[1:]
     parts[-1] = parts[-1].split('-', 1)[1]
     full_path = os.path.join(MACRO_STORAGE_ROOT, *parts)
     return Image.open(full_path).convert('RGBA')
-
-
-def _read_static_image(path):
-    return Image.open(BytesIO(_static(path))).convert('RGBA')
 
 
 @pytest.fixture(name='character_user')
@@ -59,7 +42,7 @@ def _character(app, db, character_user, no_csrf):
 
     form = dict(
         _BASE_FORM,
-        submitfile=webtest.Upload('wesley', _static('images/wesley1.png'), 'image/png'),
+        submitfile=webtest.Upload('wesley', read_asset('img/wesley1.png'), 'image/png'),
     )
 
     resp = app.post('/submit/character', form, headers={'Cookie': cookie}).follow(headers={'Cookie': cookie})
@@ -81,7 +64,7 @@ def test_create_default_thumbnail(app, character):
     assert resp.html.find(id='char-stats').find('dt', text=u'Gender:').findNext('dd').string == u'🦊'
 
     image_url = resp.html.find(id='detail-art').a['href']
-    assert _read_character_image(image_url).tobytes() == _read_static_image('images/wesley1.png').tobytes()
+    assert _read_character_image(image_url).tobytes() == read_asset_image('img/wesley1.png').tobytes()
 
 
 @pytest.mark.usefixtures('db', 'character_user', 'character', 'no_csrf')
@@ -104,8 +87,8 @@ def test_owner_reupload(app, character_user, character):
 
     resp = app.post('/reupload/character', {
         'targetid': str(character),
-        'submitfile': webtest.Upload('wesley', _static('images/wesley-draw.png'), 'image/png'),
+        'submitfile': webtest.Upload('wesley', read_asset('img/help/wesley-draw.png'), 'image/png'),
     }, headers={'Cookie': cookie}).follow()
 
     image_url = resp.html.find(id='detail-art').a['href']
-    assert _read_character_image(image_url).tobytes() == _read_static_image('images/wesley-draw.png').tobytes()
+    assert _read_character_image(image_url).tobytes() == read_asset_image('img/help/wesley-draw.png').tobytes()

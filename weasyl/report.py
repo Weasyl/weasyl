@@ -8,7 +8,7 @@ import web
 
 from libweasyl.models.content import Report, ReportComment
 from libweasyl.models.users import Login
-from libweasyl import constants, legacy, staff
+from libweasyl import constants, staff
 from weasyl.error import WeasylError
 from weasyl import macro as m, define as d, media, note
 
@@ -67,14 +67,15 @@ def create(userid, form):
     elif vtype[3] and not form.content:
         raise WeasylError("ReportCommentRequired")
 
-    query = d.execute(
-        "SELECT userid, settings FROM %s WHERE %s = %i",
-        ["submission", "submitid", form.submitid] if form.submitid else
-        ["character", "charid", form.charid] if form.charid else
-        ["journal", "journalid", form.journalid],
-        options="single")
+    is_hidden = d.engine.scalar(
+        "SELECT settings ~ 'h' FROM %s WHERE %s = %i" % (
+            ("submission", "submitid", form.submitid) if form.submitid else
+            ("character", "charid", form.charid) if form.charid else
+            ("journal", "journalid", form.journalid)
+        )
+    )
 
-    if not query or (form.violation != 0 and 'h' in query[1]):
+    if is_hidden is None or (form.violation != 0 and is_hidden):
         raise WeasylError("TargetRecordMissing")
 
     now = arrow.get()
@@ -147,7 +148,7 @@ def select_list(userid, form):
     # If filtering by the report's content's owner, iterate over the previously
     # collected Login model aliases to compare against Login.login_name.
     if form.submitter:
-        submitter = legacy.login_name(form.submitter)
+        submitter = d.get_sysname(form.submitter)
         q = q.filter(sa.or_(l.login_name == submitter for l in login_aliases))
 
     # If filtering by violation type, see if the violation is in the array

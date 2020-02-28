@@ -12,8 +12,8 @@ Create Date: 2017-08-21 07:33:55.535625
 revision = 'f30dc3b5856a'
 down_revision = '088e13f2ae70'
 
-from alembic import op
-import sqlalchemy as sa
+from alembic import op   # lgtm[py/unused-import]
+import sqlalchemy as sa  # lgtm[py/unused-import]
 
 import codecs
 import errno

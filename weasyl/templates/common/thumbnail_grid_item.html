@@ -1,0 +1,125 @@
+$def with (query, notifications=None, lazy_load=True)
+
+<li class="item">
+  $if notifications:
+    <label class="input-checkbox">
+
+  <figure class="thumb${' collection' if query['contype'] == 40 else ''}">
+    $code:
+      playable = None
+
+      if query['contype'] in (30, 50):
+        width = "120"
+        avatar = query['user_media']['avatar'][0]
+      else:
+        thumb = THUMB(query)
+        webp_thumb = WEBP_THUMB(query)
+        width = thumb['attributes']['width'] if 'attributes' in thumb else ""
+
+        display_url = thumb['display_url']
+
+        if display_url == resource_path('img/default-visual.png'):
+          subtype = query.get('subtype', 0)
+
+          if 2000 <= subtype < 3000:
+            display_url = resource_path('img/default-lit.png')
+          elif 3000 <= subtype < 3040:
+            display_url = resource_path('img/default-music.png')
+          elif 3040 <= subtype < 4000:
+            display_url = resource_path('img/default-multi.png')
+
+        playable = query['sub_media'].get('submission')
+
+    <a class="thumb-bounds" data-width="${width}"
+      $if query['contype'] == 20:
+        href="/character/${query['charid']}/${SLUG(query['title'])}">
+      $elif query['contype'] == 30:
+        href="/journal/${query['journalid']}/${SLUG(query['title'])}">
+      $elif query['contype'] == 40:
+        data-id="${query['submitid']}" href="/submission/${query['submitid']}/${SLUG(query['title'])}">
+      $elif query['contype'] == 50:
+        href="/~${LOGIN(query['username'])}">
+      $else:
+        data-id="${query['submitid']}" href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">
+
+      $if query['rating'] == R.MATURE.code:
+        <span class="rating mature">The following submission is rated Mature:</span>
+      $elif query['rating'] == R.EXPLICIT.code:
+        <span class="rating explicit">The following submission is rated Explicit:</span>
+
+      $if query['contype'] in (30, 50):
+        <img src="${avatar['display_url']}" alt="avatar" />
+      $elif webp_thumb is not None:
+        $if lazy_load:
+          <picture>
+            <source type="image/webp" data-srcset="${webp_thumb['display_url']}" />
+            <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
+          </picture>
+          <noscript>
+            <picture>
+              <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+              <img src="${display_url}" alt="" />
+            </picture>
+          </noscript>
+        $else:
+          <picture>
+            <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+            <img src="${display_url}" alt="" />
+          </picture>
+      $else:
+        $if lazy_load:
+          <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
+          <noscript>
+            <img src="${display_url}" alt="" />
+          </noscript>
+        $else:
+          <img src="${display_url}" alt="" />
+
+    </a>
+
+    $if playable and playable[0].get('file_type') == 'mp3':
+      <div class="playable-container">
+        <audio class="playable-media" preload="none">
+          <source type="audio/mpeg" src="${playable[0]['display_url']}" />
+        </audio>
+      </div>
+
+    <figcaption>
+      <h6 class="title" title="${query['title']}"><a
+        $if query['contype'] == 20:
+          href="/character/${query['charid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
+        $elif query['contype'] == 30:
+          href="/journal/${query['journalid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
+        $elif query['contype'] == 40:
+          href="/submission/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
+        $elif query['contype'] == 50:
+          href="/~${LOGIN(query['username'])}">${query['username']}
+        $else:
+          href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
+      </a></h6>
+      <p class="byline"
+        $if query['contype'] == 40:
+          title="collected by $query['username']"
+        $elif query['contype'] == 20:
+          title="character of $query['username']"
+        $else:
+          title="by $query['username']"
+      >
+        <i>${'collected by' if query['contype'] == 40 else 'character of' if query['contype'] == 20 else 'by'}</i>
+        <a href="/~${LOGIN(query['username'])}" class="username">${query['username']}</a>
+      </p>
+    </figcaption>
+
+    $if 'subcat' in query:
+      $if query['subcat'] in [3010, 3020, 3030]:
+        <span class="icon icon-20 icon-music"></span>
+      $elif 4000 > query['subcat'] >= 3000:
+        <span class="icon icon-20 icon-multi"></span>
+      $elif 3000 > query['subcat'] >= 2000:
+        <span class="icon icon-20 icon-lit"></span>
+  </figure>
+
+  $if notifications:
+    <input type="checkbox" name="remove" value="${query['welcomeid']}" class="checkbox" />
+    </label>
+</li>

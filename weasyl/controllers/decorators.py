@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-import anyjson as json
-from pyramid.httpexceptions import HTTPForbidden
+import json
 from pyramid.response import Response
 
 from libweasyl import staff
@@ -18,7 +17,7 @@ Contains decorators for weasyl view callables to enforce permissions and the lik
 def login_required(view_callable):
     def inner(request):
         if request.userid == 0:
-            return Response(define.webpage(request.userid))
+            raise WeasylError('unsigned')
         return view_callable(request)
     return inner
 
@@ -26,7 +25,7 @@ def login_required(view_callable):
 def guest_required(view_callable):
     def inner(request):
         if request.userid != 0:
-            return Response(define.webpage(request.userid))
+            raise WeasylError('signed')
         return view_callable(request)
     return inner
 
@@ -35,9 +34,9 @@ def moderator_only(view_callable):
     """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise HTTPForbidden
+            raise WeasylError('InsufficientPermissions')
         if request.userid not in staff.MODS:
-            return Response(define.errorpage(request.userid, errorcode.permission))
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return login_required(inner)
 
@@ -46,9 +45,9 @@ def admin_only(view_callable):
     """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise HTTPForbidden
+            raise WeasylError('InsufficientPermissions')
         if request.userid not in staff.ADMINS:
-            return Response(define.errorpage(request.userid, errorcode.permission))
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return login_required(inner)
 
@@ -57,9 +56,9 @@ def director_only(view_callable):
     """Implies login_required."""
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise HTTPForbidden
+            raise WeasylError('InsufficientPermissions')
         if request.userid not in staff.DIRECTORS:
-            return Response(define.errorpage(request.userid, errorcode.permission))
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return login_required(inner)
 
@@ -67,7 +66,7 @@ def director_only(view_callable):
 def disallow_api(view_callable):
     def inner(request):
         if weasyl.api.is_api_user(request):
-            raise HTTPForbidden
+            raise WeasylError('InsufficientPermissions')
         return view_callable(request)
     return inner
 
@@ -99,7 +98,7 @@ def twofactorauth_disabled_required(view_callable):
 def token_checked(view_callable):
     def inner(request):
         if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request, request.params.get('token')):
-            return Response(define.errorpage(request.userid, errorcode.token), status=403)
+            raise WeasylError('token')
         return view_callable(request)
     return inner
 
@@ -116,9 +115,3 @@ def supports_json(view_callable):
             return Response(json.dumps(result), headerlist=[("Content-Type", "application/json")])
         return view_callable(request)
     return inner
-
-
-class controller_base(object):
-    """Temporary class to make incremental re-implementation easier."""
-    # TODO: Delete this.
-    pass

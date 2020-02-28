@@ -4,8 +4,9 @@ import re
 import string
 import urlparse
 
+from libweasyl.cache import region
+
 from weasyl import define as d
-from weasyl.cache import region
 
 
 _BANDCAMP_EMBED = re.compile(r"(album|track)=(\d+)")
@@ -66,7 +67,7 @@ def _targetid(link):
         if link[i] not in alpha:
             return link[:i]
 
-    return d.plaintext(link)
+    return link
 
 
 @region.cache_on_arguments(expiration_time=60 * 60 * 24)

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import anyjson as json
+import json
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
 from pyramid.response import Response
 from oauthlib.oauth2 import FatalClientError, OAuth2Error
@@ -96,5 +96,5 @@ def get_userid_from_authorization(request, scopes=['wholesite']):
 
 
 __all__ = [
-    'get_consumers_for_user', 'revoke_consumers_for_user',
+    'get_consumers_for_user', 'revoke_consumers_for_user', 'get_userid_from_authorization',
 ]

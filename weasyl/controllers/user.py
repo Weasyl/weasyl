@@ -9,14 +9,16 @@ from pyramid.httpexceptions import (
 )
 from pyramid.response import Response
 
-from weasyl import define, errorcode, index, login, moderation, \
-    premiumpurchase, profile, resetpassword, two_factor_auth
+from weasyl import define, index, login, moderation, \
+    profile, resetpassword, two_factor_auth
 from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
     login_required,
     token_checked,
 )
+from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 # Session management functions
@@ -80,7 +82,7 @@ def signin_post_(request):
             request.userid,
             "Your account has been permanently banned and you are no longer allowed "
             "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-            "contact support@weasyl.com for assistance." % (reason,)))
+            "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS)))
     elif logerror == "suspended":
         suspension = moderation.get_suspension(logid)
         return Response(define.errorpage(
@@ -88,11 +90,9 @@ def signin_post_(request):
             "Your account has been temporarily suspended and you are not allowed to "
             "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
             "%s.\n\nIf you believe this suspension is in error, please contact "
-            "support@weasyl.com for assistance." % (suspension.reason, define.convert_date(suspension.release))))
-    elif logerror == "address":
-        return Response("IP ADDRESS TEMPORARILY BLOCKED")
+            "%s for assistance." % (suspension.reason, define.convert_date(suspension.release), MACRO_SUPPORT_ADDRESS)))
 
-    return Response(define.errorpage(request.userid))
+    raise WeasylError("Unexpected")  # pragma: no cover
 
 
 def _cleanup_2fa_session():
@@ -117,17 +117,14 @@ def signin_2fa_auth_get_(request):
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
     if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     # Maximum secondary authentication time: 5 minutes
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
         _cleanup_2fa_session()
-        return Response(define.errorpage(
-            request.userid,
-            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+        raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
     else:
         ref = request.params["referer"] if "referer" in request.params else "/"
         return Response(define.webpage(
@@ -145,18 +142,14 @@ def signin_2fa_auth_post_(request):
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
     if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
         # Maximum secondary authentication time: 5 minutes
         _cleanup_2fa_session()
-        return Response(define.errorpage(
-            request.userid,
-            errorcode.error_messages['TwoFactorAuthenticationAuthenticationTimeout'],
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
-        ))
+        raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
     elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
         # 2FA passed, so login and cleanup.
         _cleanup_2fa_session()
@@ -165,21 +158,15 @@ def signin_2fa_auth_post_(request):
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
-            return Response(define.errorpage(
-                tfa_userid,
-                errorcode.error_messages['TwoFactorAuthenticationZeroRecoveryCodesRemaining'],
-                [["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]]
-            ))
+            raise WeasylError('TwoFactorAuthenticationZeroRecoveryCodesRemaining',
+                              links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
         # Return to the target page, restricting to the path portion of 'ref' per urlparse.
         raise HTTPSeeOther(location=urlparse.urlparse(ref).path)
     elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
         _cleanup_2fa_session()
-        return Response(define.errorpage(
-            request.userid,
-            errorcode.error_messages['TwoFactorAuthenticationAuthenticationAttemptsExceeded'],
-            [["Sign In", "/signin"], ["Return to the Home Page", "/"]]
-        ))
+        raise WeasylError('TwoFactorAuthenticationAuthenticationAttemptsExceeded',
+                          links=[["Sign In", "/signin"], ["Return to the Home Page", "/"]])
     else:
         # Log the failed authentication attempt to the session and save
         sess.additional_data['2fa_pwd_auth_attempts'] += 1
@@ -208,7 +195,7 @@ def signin_unicode_failure_post_(request):
 @disallow_api
 def signout_(request):
     if request.web_input(token="").token != define.get_token()[:8]:
-        return Response(define.errorpage(request.userid, errorcode.token), status=403)
+        raise WeasylError('token')
 
     login.signout(request)
 
@@ -239,7 +226,7 @@ def signup_post_(request):
         username="", password="", passcheck="", email="", emailcheck="",
         day="", month="", year="")
 
-    if 'g-recaptcha-response' not in form or not define.captcha_verify(form['g-recaptcha-response']):
+    if not define.captcha_verify(form.get('g-recaptcha-response')):
         return Response(define.errorpage(
             request.userid,
             "There was an error validating the CAPTCHA response; you should go back and try again."))
@@ -275,16 +262,6 @@ def verify_emailchange_get_(request):
     ))
 
 
-@login_required
-def verify_premium_(request):
-    premiumpurchase.verify(request.userid, request.web_input(token="").token)
-    return Response(define.errorpage(
-        request.userid,
-        "**Success!** Your purchased premium terms have "
-        "been applied to your account.",
-        [["Go to Premium " "Settings", "/control"], ["Return to the Home Page", "/"]]))
-
-
 @guest_required
 def forgotpassword_get_(request):
     return Response(define.webpage(request.userid, "etc/forgotpassword.html", title="Reset Forgotten Password"))
@@ -308,12 +285,10 @@ def forgetpassword_post_(request):
 def resetpassword_get_(request):
     form = request.web_input(token="")
 
-    if not resetpassword.checktoken(form.token):
+    if not resetpassword.prepare(form.token):
         return Response(define.errorpage(
             request.userid,
             "This link does not appear to be valid. If you followed this link from your email, it may have expired."))
-
-    resetpassword.prepare(form.token)
 
     return Response(define.webpage(request.userid, "etc/resetpassword.html", [form.token], title="Reset Forgotten Password"))
 
@@ -338,7 +313,7 @@ def resetpassword_post_(request):
 @token_checked
 def force_resetpassword_(request):
     if define.common_status_check(request.userid) != "resetpassword":
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     form = request.web_input(password="", passcheck="")
 
@@ -352,12 +327,25 @@ def force_resetpassword_(request):
 
 @login_required
 @token_checked
-def force_resetbirthday_(request):
-    if define.common_status_check(request.userid) != "resetbirthday":
-        return define.errorpage(request.userid, errorcode.permission)
+def vouch_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
 
-    form = request.web_input(birthday="")
+    targetid = int(request.POST['targetid'])
 
-    birthday = define.convert_inputdate(form.birthday)
-    profile.force_resetbirthday(request.userid, birthday)
-    raise HTTPSeeOther(location="/", headers=request.response.headers)
+    result = define.engine.execute(
+        "UPDATE login SET voucher = %(voucher)s WHERE userid = %(target)s AND voucher IS NULL",
+        voucher=request.userid,
+        target=targetid,
+    )
+
+    if result.rowcount != 0:
+        define._get_all_config.invalidate(targetid)
+
+    target_username = define.get_display_name(targetid)
+
+    if target_username is None:
+        assert result.rowcount == 0
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location=request.route_path('profile_tilde', name=define.get_sysname(target_username)))

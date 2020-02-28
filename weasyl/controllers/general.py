@@ -10,7 +10,7 @@ from libweasyl import staff
 from libweasyl.media import get_multi_user_media
 from libweasyl.models.site import SiteUpdate
 
-from weasyl import define, index, macro, search, profile, submission
+from weasyl import comment, define, index, macro, search, profile, submission
 
 
 # General browsing functions
@@ -113,9 +113,8 @@ def search_(request):
 
 
 def streaming_(request):
-    rating = define.get_rating(request.userid)
     return Response(define.webpage(request.userid, 'etc/streaming.html',
-                                   (profile.select_streaming(request.userid, rating, 300, order_by="start_time desc"),),
+                                   (profile.select_streaming(request.userid, 300, order_by="start_time desc"),),
                                    title="Streaming"))
 
 
@@ -130,14 +129,16 @@ def site_update_list_(request):
 
     can_edit = request.userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (updates, can_edit), title="Site Updates"))
+    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_edit), title="Site Updates"))
 
 
 def site_update_(request):
     updateid = int(request.matchdict['update_id'])
     update = SiteUpdate.query.get_or_404(updateid)
+    myself = profile.select_myself(request.userid)
+    comments = comment.select(request.userid, updateid=updateid)
 
-    return Response(define.webpage(request.userid, 'etc/site_update.html', (update,), title="Site Update"))
+    return Response(define.webpage(request.userid, 'etc/site_update.html', (myself, update, comments), title="Site Update"))
 
 
 def popular_(request):

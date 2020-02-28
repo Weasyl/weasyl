@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import os
+from io import open
+
 import arrow
 import bcrypt
 from publicsuffixlist import PublicSuffixList
@@ -7,13 +10,11 @@ from sqlalchemy.sql.expression import select
 
 from libweasyl import security
 from libweasyl import staff
-from libweasyl.cache import region
 from libweasyl.models.users import GuestSession
 
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
-from weasyl import moderation
 from weasyl.error import WeasylError
 from weasyl.sessions import create_session, create_guest_session
 
@@ -21,6 +22,46 @@ from weasyl.sessions import create_session, create_guest_session
 _EMAIL = 100
 _PASSWORD = 10
 _USERNAME = 25
+
+_BANNED_SYSNAMES = frozenset([
+    "admin",
+    "administrator",
+    "mod",
+    "moderator",
+    "weasyl",
+    "weasyladmin",
+    "weasylmod",
+    "staff",
+    "security",
+])
+
+
+def _legacy_plaintext(password):
+    """
+    Returns password stripped of non-ASCII characters, but not of control characters.
+    """
+    return "".join([c for c in password if ord(c) < 128])
+
+
+def clean_display_name(text):
+    """
+    Process a user's selection of their own username into the username that will be stored.
+
+    - Leading and trailing whitespace is removed.
+    - Non-ASCII characters are removed.
+    - Control characters are removed.
+    - Semicolons are removed.
+    - Only the first 25 characters are kept.
+
+    Throws a WeasylError("usernameInvalid") if a well-formed username isn't produced by this process.
+    """
+    cleaned = "".join(c for c in text.strip() if " " <= c <= "~" and c != ";")[:_USERNAME]
+    sysname = d.get_sysname(cleaned)
+
+    if sysname and sysname not in _BANNED_SYSNAMES:
+        return cleaned
+    else:
+        raise WeasylError("usernameInvalid")
 
 
 def signin(request, userid, ip_address=None, user_agent=None):
@@ -80,13 +121,13 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
     :param username: The username of the user attempting authentication.
     :param password: The user's claimed password to check against the stored hash.
+    :param request: The request, or None
     :param ip_address: The address requesting authentication.
     :param user_agent: The user agent string of the submitting client.
 
     Possible errors are:
     - "invalid"
     - "unexpected"
-    - "address"
     - "banned"
     - "suspended"
     - "2fa" - Indicates the user has opted-in to 2FA. Additional authentication required.
@@ -98,20 +139,24 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
-    query = d.execute("SELECT ab.userid, ab.hashsum, lo.settings, lo.twofa_secret FROM authbcrypt ab"
-                      " RIGHT JOIN login lo USING (userid)"
-                      " WHERE lo.login_name = '%s'", [d.get_sysname(username)], ["single"])
+    query = d.engine.execute(
+        "SELECT ab.userid, ab.hashsum, lo.twofa_secret FROM authbcrypt ab"
+        " RIGHT JOIN login lo USING (userid)"
+        " WHERE lo.login_name = %(name)s",
+        name=d.get_sysname(username),
+    ).first()
 
     if not query:
         return 0, "invalid"
 
-    USERID, HASHSUM, SETTINGS, TWOFA = query
+    USERID, HASHSUM, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
+    _, IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
 
     d.metric('increment', 'attemptedlogins')
 
     unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
-    if not unicode_success and not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), HASHSUM):
+    if not unicode_success and not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:
@@ -121,17 +166,17 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         # Return a zero userid and an error code (indicating the entered password
         # was incorrect)
         return 0, "invalid"
-    elif "b" in SETTINGS:
+    elif IS_BANNED:
         # Return the proper userid and an error code (indicating the user's account
         # has been banned)
         return USERID, "banned"
-    elif "s" in SETTINGS:
+    elif IS_SUSPENDED:
+        from weasyl import moderation
         suspension = moderation.get_suspension(USERID)
 
         if d.get_time() > suspension.release:
-            d.execute("UPDATE login SET settings = REPLACE(settings, 's', '') WHERE userid = %i", [USERID])
             d.execute("DELETE FROM suspension WHERE userid = %i", [USERID])
-            d.get_login_settings.invalidate(USERID)
+            d._get_all_config.invalidate(USERID)
         else:
             # Return the proper userid and an error code (indicating the user's
             # account has been temporarily suspended)
@@ -177,7 +222,7 @@ def password_secure(password):
 
 def create(form):
     # Normalize form data
-    username = d.plaintext(form.username[:_USERNAME])
+    username = clean_display_name(form.username)
     sysname = d.get_sysname(username)
 
     email = emailer.normalize_address(form.email)
@@ -208,11 +253,6 @@ def create(form):
         raise WeasylError("emailInvalid")
     if is_email_blacklisted(email):
         raise WeasylError("emailBlacklisted")
-    if not sysname or ";" in username:
-        raise WeasylError("usernameInvalid")
-    if sysname in ["admin", "administrator", "mod", "moderator", "weasyl",
-                   "weasyladmin", "weasylmod", "staff", "security"]:
-        raise WeasylError("usernameInvalid")
     if username_exists(sysname):
         raise WeasylError("usernameExists")
 
@@ -232,8 +272,8 @@ def create(form):
             "unixtime": arrow.now(),
         })
 
-        # Queue verification email
-        emailer.append([email], None, "Weasyl Account Creation", d.render(
+        # Send verification email
+        emailer.send(email, "Weasyl Account Creation", d.render(
             "email/verify_account.html", [token, sysname]))
         d.metric('increment', 'createdusers')
     else:
@@ -256,7 +296,7 @@ def create(form):
         #   let the already registered user know this via email (perhaps they forgot their username/password)
         query_username_login = d.engine.scalar("SELECT login_name FROM login WHERE email = %(email)s", email=email)
         query_username_logincreate = d.engine.scalar("SELECT login_name FROM logincreate WHERE email = %(email)s", email=email)
-        emailer.append([email], None, "Weasyl Account Creation - Account Already Exists", d.render(
+        emailer.send(email, "Weasyl Account Creation - Account Already Exists", d.render(
             "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 
@@ -324,8 +364,99 @@ def username_exists(login_name):
         SELECT
             EXISTS (SELECT 0 FROM login WHERE login_name = %(name)s) OR
             EXISTS (SELECT 0 FROM useralias WHERE alias_name = %(name)s) OR
-            EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)
+            EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s) OR
+            EXISTS (SELECT 0 FROM username_history WHERE active AND login_name = %(name)s)
     """, name=login_name)
+
+
+def release_username(db, acting_user, target_user):
+    db.execute(
+        "UPDATE username_history SET"
+        " active = FALSE,"
+        " deactivated_at = now(),"
+        " deactivated_by = %(acting)s"
+        " WHERE userid = %(target)s AND active",
+        acting=acting_user,
+        target=target_user,
+    )
+
+
+def change_username(acting_user, target_user, bypass_limit, new_username):
+    new_username = clean_display_name(new_username)
+    new_sysname = d.get_sysname(new_username)
+
+    old_username = d.get_display_name(target_user)
+    old_sysname = d.get_sysname(old_username)
+
+    if new_username == old_username:
+        return
+
+    cosmetic = new_sysname == old_sysname
+
+    def change_username_transaction(db):
+        if not cosmetic and not bypass_limit:
+            seconds = db.scalar(
+                "SELECT extract(epoch from now() - replaced_at)::int8"
+                " FROM username_history"
+                " WHERE userid = %(target)s"
+                " AND NOT cosmetic"
+                " ORDER BY historyid DESC LIMIT 1",
+                target=target_user,
+            )
+
+            if seconds is not None:
+                days = seconds // (3600 * 24)
+
+                if days < 30:
+                    raise WeasylError("usernameChangedTooRecently")
+
+        if not cosmetic:
+            release_username(
+                db,
+                acting_user=acting_user,
+                target_user=target_user,
+            )
+
+            conflict = db.scalar(
+                "SELECT EXISTS (SELECT FROM login WHERE login_name = %(new_sysname)s AND userid != %(target)s)"
+                " OR EXISTS (SELECT FROM useralias WHERE alias_name = %(new_sysname)s)"
+                " OR EXISTS (SELECT FROM logincreate WHERE login_name = %(new_sysname)s)"
+                " OR EXISTS (SELECT FROM username_history WHERE active AND login_name = %(new_sysname)s)",
+                target=target_user,
+                new_sysname=new_sysname,
+            )
+
+            if conflict:
+                raise WeasylError("usernameExists")
+
+        db.execute(
+            "INSERT INTO username_history (userid, username, login_name, replaced_at, replaced_by, active, cosmetic)"
+            " VALUES (%(target)s, %(old_username)s, %(old_sysname)s, now(), %(target)s, NOT %(cosmetic)s, %(cosmetic)s)",
+            target=target_user,
+            old_username=old_username,
+            old_sysname=old_sysname,
+            cosmetic=cosmetic,
+        )
+
+        if not cosmetic:
+            result = db.execute(
+                "UPDATE login SET login_name = %(new_sysname)s WHERE userid = %(target)s AND login_name = %(old_sysname)s",
+                target=target_user,
+                old_sysname=old_sysname,
+                new_sysname=new_sysname,
+            )
+
+            if result.rowcount != 1:
+                raise WeasylError("Unexpected")
+
+        db.execute(
+            "UPDATE profile SET username = %(new_username)s WHERE userid = %(target)s",
+            target=target_user,
+            new_username=new_username,
+        )
+
+    d.serializable_retry(change_username_transaction)
+    d._get_display_name.invalidate(target_user)
 
 
 def update_unicode_password(userid, password, password_confirm):
@@ -341,7 +472,7 @@ def update_unicode_password(userid, password, password_confirm):
     if bcrypt.checkpw(password.encode('utf-8'), hashpw):
         return
 
-    if not bcrypt.checkpw(d.plaintext(password).encode('utf-8'), hashpw):
+    if not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), hashpw):
         raise WeasylError('passwordIncorrect')
 
     d.engine.execute("""
@@ -364,6 +495,10 @@ def get_account_verification_token(email=None, username=None):
     return d.engine.scalar(statement)
 
 
+with open(os.path.join(m.MACRO_SYS_CONFIG_PATH, "disposable-domains.txt"), encoding='ascii') as f:
+    DISPOSABLE_DOMAINS = frozenset([line.rstrip() for line in f])
+
+
 def is_email_blacklisted(address):
     """
     Determines if a supplied email address is present in the 'emailblacklist' table.
@@ -377,36 +512,14 @@ def is_email_blacklisted(address):
     private_suffix = psl.privatesuffix(domain=domain)
 
     # Check the disposable email address list
-    disposable_domains = _retrieve_disposable_email_domains()
-    if private_suffix in disposable_domains:
+    if private_suffix in DISPOSABLE_DOMAINS:
         return True
 
     # Check the explicitly defined/blacklisted domains.
-    blacklisted_domains = d.engine.execute("""
-        SELECT domain_name
-        FROM emailblacklist
-    """).fetchall()
-    for site in blacklisted_domains:
-        if private_suffix == site['domain_name']:
-            return True
-
-    # If we get here, the domain (or subdomain) is not blacklisted
-    return False
-
-
-@region.cache_on_arguments(expiration_time=12*60*60)
-def _retrieve_disposable_email_domains():
-    """
-    Retrieves a periodically updated list of disposable email address domains from the 'url' variable, below.
-
-    :return: A [list] of disposable email address domains. Results are cached for 12 hours.
-    """
-    url = "https://raw.githubusercontent.com/ivolo/disposable-email-domains/master/index.json"
-    resp = d.http_get(url=url)
-    if resp.status_code == 200:
-        return resp.json()
-    else:
-        return []
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT FROM emailblacklist WHERE domain_name = %(domain)s)",
+        domain=private_suffix,
+    )
 
 
 def verify_email_change(userid, token):

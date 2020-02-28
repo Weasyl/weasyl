@@ -24,7 +24,7 @@ def submission_(request):
 
     if not request.userid:
         # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
-        twit_card = submission.twitter_card(submitid)
+        twit_card = submission.twitter_card(request, submitid)
         if define.user_is_twitterbot():
             extras['twitter_card'] = twit_card
         # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
@@ -36,14 +36,14 @@ def submission_(request):
             'description': twit_card['description'],
             # >> BUG AVOIDANCE: https://trello.com/c/mBx51jfZ/1285-any-image-link-with-in-it-wont-preview-up-it-wont-show-up-in-embeds-too
             #    Image URLs with '~' in it will not be displayed by Discord, so replace ~ with the URL encoded char code %7E
-            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.cdnify_url(
-                '/static/images/logo-mark-light.svg'),
+            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.get_resource_url(
+                'img/logo-mark-light.svg'),
         }
 
     try:
         item = submission.select_view(
             request.userid, submitid, rating,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=form.ignore != 'false', anyway=form.anyway
         )
     except WeasylError as we:
         we.errorpage_kwargs = extras
@@ -65,12 +65,9 @@ def submission_(request):
     extras["canonical_url"] = canonical_path
     extras["title"] = item["title"]
 
-    submission_files = item["sub_media"].get("submission")
-    submission_file = submission_files[0] if submission_files else None
-    extras["pdf"] = bool(submission_file) and submission_file["file_type"] == "pdf"
-
     page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [
+        request,
         # Myself
         profile.select_myself(request.userid),
         # Submission detail
@@ -126,7 +123,7 @@ def character_(request):
     try:
         item = character.select_view(
             request.userid, charid, rating,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=form.ignore != 'false', anyway=form.anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
@@ -160,7 +157,7 @@ def journal_(request):
     try:
         item = journal.select_view(
             request.userid, rating, journalid,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=form.ignore != 'false', anyway=form.anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):

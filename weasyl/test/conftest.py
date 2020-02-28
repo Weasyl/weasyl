@@ -17,22 +17,27 @@ from webtest import TestApp
 from weasyl import config
 config._in_test = True  # noqa
 
+from libweasyl import cache
+from libweasyl.cache import JSONProxy, ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from weasyl import (
-    cache,
     commishinfo,
     define,
     emailer,
-    login,
     macro,
     media,
-    middleware
+    middleware,
+    spam_filtering,
 )
+from weasyl.controllers.routes import setup_routes_and_views
 from weasyl.wsgi import wsgi_app
 
 
-cache.region.configure('dogpile.cache.memory')
+cache.region.configure(
+    'dogpile.cache.memory',
+    wrap=[ThreadCacheProxy, JSONProxy],
+)
 define.metric = lambda *a, **kw: None
 
 
@@ -70,6 +75,9 @@ def empty_storage():
         raise
 
     os.mkdir(macro.MACRO_SYS_LOG_PATH)
+    os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static'))
+    os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media'))
+    os.symlink('ad', os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media', 'ax'))
 
     try:
         yield
@@ -86,7 +94,7 @@ def setup_request_environment(request):
     pyramid_request.web_input = middleware.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'
     pyramid_request.client_addr = '127.0.0.1'
-    pyramid.testing.setUp(request=pyramid_request)
+    setup_routes_and_views(pyramid.testing.setUp(request=pyramid_request))
 
     def tear_down():
         pyramid_request.pg_connection.close()
@@ -102,10 +110,10 @@ def lower_bcrypt_rounds(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def drop_email(monkeypatch):
-    def drop_append(mailto, mailfrom, subject, content, displayto=None):
+    def drop_send(mailto, subject, content):
         pass
 
-    monkeypatch.setattr(emailer, 'append', drop_append)
+    monkeypatch.setattr(emailer, 'send', drop_send)
 
 
 @pytest.fixture
@@ -128,7 +136,11 @@ def db(request):
 
 @pytest.fixture(name='cache')
 def cache_(request):
-    cache.region.configure('dogpile.cache.memory', replace_existing_backend=True)
+    cache.region.configure(
+        'dogpile.cache.memory',
+        wrap=[ThreadCacheProxy, JSONProxy],
+        replace_existing_backend=True,
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -151,15 +163,11 @@ def deterministic_marketplace_tests(monkeypatch):
     monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
 
 
-@pytest.fixture(autouse=True)
-def do_not_retrieve_disposable_email_domains(monkeypatch):
-    """ Don't hammer GitHub's server with testing requests. """
-    def _retrieve_disposable_email_domains():
-        return ['test-domain-0001.co.nz', 'test-domain-0001.com']
-
-    monkeypatch.setattr(login, '_retrieve_disposable_email_domains', _retrieve_disposable_email_domains)
-
-
 @pytest.fixture
 def app():
     return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})
+
+
+@pytest.fixture(autouse=True)
+def do_not_run_spam_checks(monkeypatch):
+    monkeypatch.setattr(spam_filtering, 'FILTERING_ENABLED', False)

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import time
 import re
 import sqlalchemy as sa
 
@@ -305,8 +306,8 @@ def associate(userid, tags, submitid=None, charid=None, journalid=None, preferre
             welcome.tag_update_insert(ownerid, submitid)
 
     files.append(
-        "%stag.%s.%s.log" % (m.MACRO_SYS_LOG_PATH, feature, d.get_timestamp()),
-        "-%sID %i  -T %i  -UID %i  -X %s\n" % (feature[0].upper(), targetid, d.get_time(), userid,
+        "%stag.%s.%s.log" % (m.MACRO_SYS_LOG_PATH, feature, time.time()),
+        "-%sID %i  -T %i  -UID %i  -X %s\n" % (feature[0].upper(), targetid, int(time.time()), userid,
                                                " ".join(tags)))
 
     # Return dict with any tag titles as a string that failed to be added or removed

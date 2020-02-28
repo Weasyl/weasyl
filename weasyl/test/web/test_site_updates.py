@@ -3,7 +3,6 @@ from __future__ import absolute_import, unicode_literals
 import pytest
 
 from libweasyl import staff
-from libweasyl.legacy import UNIXTIME_OFFSET
 from weasyl import errorcode
 from weasyl import siteupdate
 from weasyl.define import sessionmaker

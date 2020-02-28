@@ -10,7 +10,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import Mutable, MutableDict
 from sqlalchemy import types
 
-from ..legacy import UNIXTIME_OFFSET
 from .. import ratings
 
 
@@ -193,20 +192,6 @@ class CharSettingsColumn(types.TypeDecorator):
 
 
 CharSettings.associate_with(CharSettingsColumn)
-
-
-class WeasylTimestampColumn(types.TypeDecorator):
-    impl = types.INTEGER
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return arrow.get(value - UNIXTIME_OFFSET)
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        return value.timestamp + UNIXTIME_OFFSET
 
 
 class ArrowColumn(types.TypeDecorator):

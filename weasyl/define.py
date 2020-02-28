@@ -25,7 +25,7 @@ from web.template import Template
 
 import libweasyl.constants
 from libweasyl.cache import region
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
+from libweasyl.legacy import get_sysname
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, security, staff
 
@@ -471,20 +471,6 @@ def get_search_tag(target):
     return target.lower()
 
 
-def get_time():
-    """
-    Returns the current unixtime.
-    """
-    return int(time.time()) + _UNIXTIME_OFFSET
-
-
-def get_timestamp():
-    """
-    Returns the current date in the format YYYY-MM.
-    """
-    return time.strftime("%Y-%m", time.localtime(get_time()))
-
-
 def _get_hash_path(charid):
     id_hash = hashlib.sha1(str(charid)).hexdigest()
     return "/".join([id_hash[i:i + 2] for i in range(0, 11, 2)]) + "/"
@@ -584,9 +570,6 @@ def convert_to_localtime(target):
         return tz.localtime(target.datetime)
     elif isinstance(target, datetime.datetime):
         return tz.localtime(target)
-    else:
-        target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
-        return tz.localtime_from_timestamp(target)
 
 
 def convert_date(target=None):
@@ -609,10 +592,9 @@ def iso8601_date(target):
     :return: An ISO 8601 string representing the date of `target`.
     """
     if not isinstance(target, datetime.datetime):
-        date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
+        raise ValueError
     else:
-        date = target
-    return arrow.get(date).format("YYYY-MM-DD")
+        return arrow.get(target).format("YYYY-MM-DD")
 
 
 def _convert_time(target=None):
@@ -626,27 +608,6 @@ def _convert_time(target=None):
         return dt.strftime("%I:%M:%S %p %Z")
     else:
         return dt.strftime("%H:%M:%S %Z")
-
-
-def convert_unixdate(day, month, year):
-    """
-    Returns the unixtime corresponding to the beginning of the specified date; if
-    the date is not valid, None is returned.
-    """
-    day, month, year = (get_int(i) for i in [day, month, year])
-
-    try:
-        ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except ValueError:
-        return None
-    # range of a postgres integer
-    if ret > 2147483647 or ret < -2147483648:
-        return None
-    return ret
-
-
-def convert_age(target):
-    return (get_time() - target) // 31556926
 
 
 def age_in_years(birthdate):
@@ -828,7 +789,7 @@ def common_view_content(userid, targetid, feature):
 
 def append_to_log(logname, **parameters):
     parameters['when'] = datetime.datetime.now().isoformat()
-    log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, logname, get_timestamp())
+    log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, logname, int(time.time()))
     with open(log_path, 'a') as outfile:
         outfile.write(json.dumps(parameters))
         outfile.write('\n')
@@ -1039,13 +1000,16 @@ def metric(*a, **kw):
 
 def iso8601(unixtime):
     if isinstance(unixtime, arrow.Arrow) or isinstance(unixtime, datetime.datetime):
+        timestamp = unixtime.isoformat()
+        if timestamp[-5:] == "00:00":
+            return unixtime.isoformat().partition('+')[0].partition('.')[0] + 'Z'
         return unixtime.isoformat().partition('.')[0] + 'Z'
     else:
-        return datetime.datetime.utcfromtimestamp(unixtime - _UNIXTIME_OFFSET).isoformat() + 'Z'
+        raise ValueError
 
 
 def parse_iso8601(s):
-    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').timestamp + _UNIXTIME_OFFSET
+    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ')
 
 
 def paginate(results, backid, nextid, limit, key):

@@ -1,6 +1,8 @@
 # encoding: utf-8
 from __future__ import absolute_import
 
+import arrow
+
 from pyramid.threadlocal import get_current_request
 import pytest
 
@@ -38,9 +40,9 @@ def test_paginate(parameters, expected_pair, expected_rows):
 
 
 iso8601_tests = [
-    (1392206700, '2014-02-12T17:05:00Z'),
-    (1392206701, '2014-02-12T17:05:01Z'),
-    (1392206760, '2014-02-12T17:06:00Z'),
+    (arrow.get(1392224700), '2014-02-12T17:05:00Z'),
+    (arrow.get(1392224701), '2014-02-12T17:05:01Z'),
+    (arrow.get(1392224760), '2014-02-12T17:06:00Z'),
 ]
 
 

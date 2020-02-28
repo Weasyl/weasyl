@@ -36,7 +36,7 @@ def test_submission_view(app, submission_user):
         'link': 'http://localhost/submission/%i/test-title' % (submission,),
         'owner': 'submission_test',
         'owner_login': 'submissiontest',
-        'posted_at': '2020-02-07T21:15:21+00:00Z',
+        'posted_at': '2020-02-07T21:15:21Z',
         'rating': 'general',
         'submitid': submission,
         'subtype': 'visual',

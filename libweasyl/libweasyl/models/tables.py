@@ -6,7 +6,7 @@ from sqlalchemy.schema import ForeignKey
 
 
 from libweasyl.models.helpers import (
-    ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn, enum_column)
+    ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, enum_column)
 from libweasyl import constants
 
 

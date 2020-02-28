@@ -11,12 +11,6 @@ import string
 import unicodedata
 
 
-UNIXTIME_OFFSET = -18000
-"""
-The offset added to UNIX timestamps before storing them in the database.
-"""
-
-
 _SYSNAME_CHARACTERS = frozenset(string.ascii_lowercase + string.digits)
 
 

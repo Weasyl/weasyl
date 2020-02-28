@@ -219,8 +219,8 @@ forgotpassword = Table(
     'forgotpassword', metadata,
     Column('userid', Integer(), unique=True, nullable=False),
     Column('token', String(length=100), primary_key=True, nullable=False),
-    Column('set_time', Integer(), nullable=False),
-    Column('link_time', Integer(), nullable=False, server_default='0'),
+    Column('set_time', DateTime(timezone=True), nullable=False, server_default=func.now()),
+    Column('link_time', DateTime(timezone=True), nullable=False, server_default=text(u"TIMESTAMP 'epoch'")),
     Column('address', Text(), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='forgotpassword_userid_fkey'),
 )

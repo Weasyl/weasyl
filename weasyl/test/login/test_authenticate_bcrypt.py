@@ -1,6 +1,7 @@
 # encoding: utf-8
 from __future__ import absolute_import
 
+import time
 import pytest
 import json
 
@@ -48,7 +49,7 @@ def test_login_fails_for_incorrect_credentials():
 def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, monkeypatch):
     # Required: Monkeypatch the log directory, and the staff.MODS frozenset
     monkeypatch.setenv(macro.MACRO_SYS_LOG_PATH, tmpdir + "/")
-    log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
+    log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', int(time.time()))
     user_id = db_utils.create_user(username='ikani', password=raw_password)
     # Set the moderators in libweasyl/staff.py via monkeypatch
     monkeypatch.setattr(staff, 'MODS', frozenset([user_id]))

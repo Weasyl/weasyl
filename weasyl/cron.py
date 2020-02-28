@@ -44,7 +44,7 @@ def run_periodic_tasks():
         # Daily at 0:00
         if now.hour == 0 and now.minute == 0:
             # Delete password resets older than one day
-            db.execute("DELETE FROM forgotpassword WHERE set_time < %(expiry)s", expiry=time_now - 86400)
+            db.execute("DELETE FROM forgotpassword WHERE set_time < NOW() - INTERVAL '86400 seconds'")
             log.msg('cleared old forgotten password requests')
 
             # Delete email reset requests older than two days

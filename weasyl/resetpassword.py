@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+
 from libweasyl import security
 from weasyl import define as d
 from weasyl import emailer
@@ -26,17 +28,16 @@ def request(form):
     if user_id:
         # Insert a record into the forgotpassword table for the user,
         # or update an existing one
-        now = d.get_time()
         address = d.get_address()
 
         d.engine.execute("""
             INSERT INTO forgotpassword (userid, token, set_time, address)
-            VALUES (%(id)s, %(token)s, %(time)s, %(address)s)
+            VALUES (%(id)s, %(token)s, NOW(), %(address)s)
             ON CONFLICT (userid) DO UPDATE SET
                 token = %(token)s,
-                set_time = %(time)s,
+                set_time = NOW(),
                 address = %(address)s
-        """, id=user_id, token=token, time=now, address=address)
+        """, id=user_id, token=token, address=address)
 
         # Generate and send an email to the user containing a password reset link
         emailer.send(email, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
@@ -49,16 +50,15 @@ def prepare(token):
     # which have been visited but have not been removed by the password reset
     # script within five minutes of being visited
     d.engine.execute(
-        "DELETE FROM forgotpassword WHERE set_time < %(set_cutoff)s OR link_time > 0 AND link_time < %(link_cutoff)s",
-        set_cutoff=d.get_time() - 3600,
-        link_cutoff=d.get_time() - 300,
+        "DELETE FROM forgotpassword WHERE set_time < %(set_cutoff)s OR link_time > TIMESTAMP 'epoch' AND link_time < %(link_cutoff)s",
+        set_cutoff=datetime.now() - timedelta(seconds=3600),
+        link_cutoff=datetime.now() - timedelta(seconds=300),
     )
 
     # Set the unixtime record for which the link associated with `token` was
     # visited by the user
     result = d.engine.execute(
-        "UPDATE forgotpassword SET link_time = %(now)s WHERE token = %(token)s",
-        now=d.get_time(),
+        "UPDATE forgotpassword SET link_time = NOW() WHERE token = %(token)s",
         token=token,
     )
 
@@ -91,7 +91,7 @@ def reset(form):
             INNER JOIN userinfo ui USING (userid)
             INNER JOIN forgotpassword fp USING (userid)
         WHERE fp.token = %(token)s AND fp.link_time > %(cutoff)s
-    """, token=form.token, cutoff=d.get_time() - 300).first()
+    """, token=form.token, cutoff=datetime.now() - timedelta(seconds=300)).first()
 
     if not query:
         raise WeasylError("forgotpasswordRecordMissing")

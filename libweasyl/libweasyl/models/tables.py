@@ -923,22 +923,6 @@ Index('ind_username_history_login_name', username_history.c.login_name, postgres
 Index('ind_username_history_userid_historyid', username_history.c.userid, username_history.c.historyid, postgresql_where=~username_history.c.cosmetic, unique=True)
 
 
-userstats = Table(
-    'userstats', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('page_views', Integer(), nullable=False, server_default='0'),
-    Column('submit_views', Integer(), nullable=False, server_default='0'),
-    Column('followers', Integer(), nullable=False, server_default='0'),
-    Column('faved_works', Integer(), nullable=False, server_default='0'),
-    Column('journals', Integer(), nullable=False, server_default='0'),
-    Column('submits', Integer(), nullable=False, server_default='0'),
-    Column('characters', Integer(), nullable=False, server_default='0'),
-    Column('collects', Integer(), nullable=False, server_default='0'),
-    Column('faves', Integer(), nullable=False, server_default='0'),
-    default_fkey(['userid'], ['login.userid'], name='userstats_userid_fkey'),
-)
-
-
 views = Table(
     'views', metadata,
     Column('viewer', String(length=127), primary_key=True, nullable=False),

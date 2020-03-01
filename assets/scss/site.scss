@@ -445,20 +445,20 @@ a.bar {
     content: "";
     position: absolute;
     top: 50%;
+    border: 0 solid transparent;
     border-width: 1.4em 0 1.4em 0.8em;
-    border-style: solid;
     margin-top: -1.35em;
     z-index: 1;
 }
 
 .page-title a::before {
-    border-color: transparent transparent transparent #334047;
-    border-color: transparent transparent transparent rgba(150, 170, 189, 0.2);
+    border-left-color: #334047;
+    border-left-color: rgba(150, 170, 189, 0.2);
     right: 0;
 }
 
 .page-title a::after {
-    border-color: transparent transparent transparent #15181b;
+    border-left-color: #15181b;
     right: 4px;
 }
 

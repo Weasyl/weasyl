@@ -338,9 +338,6 @@ def verify(token, ip_address=None):
             "userid": userid,
             "birthday": query.birthday,
         })
-        db.execute(d.meta.tables["userstats"].insert(), {
-            "userid": userid,
-        })
         db.execute(d.meta.tables["welcomecount"].insert(), {
             "userid": userid,
         })

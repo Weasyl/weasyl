@@ -17,20 +17,6 @@ def default_fkey(*args, **kwargs):
     return ForeignKeyConstraint(*args, onupdate='CASCADE', ondelete='CASCADE', **kwargs)
 
 
-ads = Table(
-    'ads', metadata,
-    Column('id', Integer(), primary_key=True, nullable=False),
-    Column('owner', String(length=254), nullable=False),
-    Column('link_target', Text(), nullable=False),
-    Column('file', Integer(), nullable=False),
-    Column('start', TIMESTAMP(), nullable=True),
-    Column('end', TIMESTAMP(), nullable=True),
-    default_fkey(['file'], ['media.mediaid'], name='ads_file_fkey'),
-)
-
-Index('ind_ads_end', ads.c.end)
-
-
 api_tokens = Table(
     'api_tokens', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
@@ -519,7 +505,6 @@ profile = Table(
         },
     }, length=50), nullable=False, server_default=''),
     Column('jsonb_settings', JSONB()),
-    Column('stream_time', Integer()),
     Column('stream_text', String(length=2000)),
     default_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
 )
@@ -765,7 +750,6 @@ submission = Table(
     }), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('favorites', Integer(), nullable=False),
-    Column('sorttime', WeasylTimestampColumn(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
     Column('image_representations', BYTEA(), nullable=True),
@@ -936,22 +920,6 @@ Index('ind_username_history_login_name', username_history.c.login_name, postgres
 
 # lookup for a user's most recent change
 Index('ind_username_history_userid_historyid', username_history.c.userid, username_history.c.historyid, postgresql_where=~username_history.c.cosmetic, unique=True)
-
-
-userstats = Table(
-    'userstats', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('page_views', Integer(), nullable=False, server_default='0'),
-    Column('submit_views', Integer(), nullable=False, server_default='0'),
-    Column('followers', Integer(), nullable=False, server_default='0'),
-    Column('faved_works', Integer(), nullable=False, server_default='0'),
-    Column('journals', Integer(), nullable=False, server_default='0'),
-    Column('submits', Integer(), nullable=False, server_default='0'),
-    Column('characters', Integer(), nullable=False, server_default='0'),
-    Column('collects', Integer(), nullable=False, server_default='0'),
-    Column('faves', Integer(), nullable=False, server_default='0'),
-    default_fkey(['userid'], ['login.userid'], name='userstats_userid_fkey'),
-)
 
 
 views = Table(

@@ -46,12 +46,12 @@ def test_submission_view(app, submission_user):
     assert type(media['submission'][0].pop('mediaid')) is int
     assert set(media['submission'][0].pop('links')) == {'cover'}
     assert media['submission'] == [{
-        'url': 'http://localhost/~submissiontest/submissions/%i/09e446a1988d4cd9f5636a489c0046d0bac59341c299cfd73e9db8ceff93858e/submissiontest-test-title.png' % (submission,),
+        'url': 'http://localhost/~submissiontest/submissions/%i/ca23760d8ca4bf6c2d721f5b02e389627b6b9181d5f323001f2d5801c086407b/submissiontest-test-title.png' % (submission,),
     }]
     assert owner_media == {
         'avatar': [{
             'mediaid': None,
-            'url': 'http://localhost/img/default-avatar-tjcj1QiKH4.jpg',
+            'url': 'http://localhost/img/default-avatar-vuOx5v6OBn.jpg',
         }],
     }
 

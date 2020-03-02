@@ -219,7 +219,7 @@ frienduser = Table(
     Column('settings', CharSettingsColumn({
         'p': 'pending',
     }, length=20), nullable=False, server_default='p'),
-    Column('created_at', DateTime(timezone=True), nullable=False, server_default=func.now()),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
     default_fkey(['otherid'], ['login.userid'], name='frienduser_otherid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='frienduser_userid_fkey'),
 )
@@ -934,7 +934,7 @@ watchuser = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('otherid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(length=20), nullable=False),
-    Column('created_at', DateTime(timezone=True), nullable=False, server_default=func.now()),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
     default_fkey(['otherid'], ['login.userid'], name='watchuser_otherid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='watchuser_userid_fkey'),
 )

@@ -16,7 +16,7 @@ python-akismet==0.4.1       # For spam filtering
 
 
 # libweasyl
-alembic==1.4.0
+alembic==1.4.1
 arrow==0.15.2
 bcrypt==3.1.7
 dogpile.cache==0.9.0

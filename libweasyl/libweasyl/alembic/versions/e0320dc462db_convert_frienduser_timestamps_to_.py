@@ -21,7 +21,7 @@ def upgrade():
                server_default=sa.func.now(),
                type_=sa.DateTime(timezone=True),
                existing_nullable=False,
-               postgresql_using="timestamp with time zone 'epoch' + (unixtime-18000) * interval '1 second';",
+               postgresql_using="to_timestamp(unixtime + 18000)",
                new_column_name='created_at')
     op.alter_column('frienduser', 'unixtime', server_default=None)
     op.alter_column('frienduser', 'unixtime',
@@ -29,7 +29,7 @@ def upgrade():
                server_default=sa.func.now(),
                type_=sa.DateTime(timezone=True),
                existing_nullable=False,
-               postgresql_using="timestamp with time zone 'epoch' + (unixtime-18000) * interval '1 second';",
+               postgresql_using="to_timestamp(unixtime + 18000)",
                new_column_name='created_at')
 
 
@@ -40,7 +40,7 @@ def downgrade():
                     type_=sa.INTEGER(),
                     existing_nullable=False,
                     server_default=sa.text(u"(date_part('epoch'::text, now()) - (18000)::double precision)"),
-                    postgresql_using="extract(epoch from created_at)+18000;",
+                    postgresql_using="extract(epoch from created_at) - 18000",
                     new_column_name='unixtime')
     op.alter_column('frienduser', 'created_at', server_default=None)
     op.alter_column('frienduser', 'created_at',
@@ -48,5 +48,5 @@ def downgrade():
                     type_=sa.INTEGER(),
                     existing_nullable=False,
                     server_default=sa.text(u"(date_part('epoch'::text, now()) - (18000)::double precision)"),
-                    postgresql_using="extract(epoch from created_at)+18000;",
+                    postgresql_using="extract(epoch from created_at) - 18000",
                     new_column_name='unixtime')

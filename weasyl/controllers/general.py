@@ -23,14 +23,14 @@ def index_(request):
 def search_(request):
     rating = define.get_rating(request.userid)
 
-    q = request.params.get('q', None)
-    find = request.params.get('find', None)
+    q = request.params.get('q')
+    find = request.params.get('find')
     within = request.params.get('within', '')
-    rated = request.params.get('rated')
-    cat = request.params.get('cat', None)
-    subcat = request.params.get('subcat', None)
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    rated = request.params.getall('rated')
+    cat = request.params.get('cat')
+    subcat = request.params.get('subcat')
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     page = define.common_page_start(request.userid, title="Browse and search")
 

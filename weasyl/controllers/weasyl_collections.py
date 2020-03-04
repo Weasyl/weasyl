@@ -33,7 +33,7 @@ def collection_options_post_(request):
 @token_checked
 def collection_offer_(request):
     otherid = profile.resolve(None, None, request.params.get('username'))
-    submitid = int(request.params.get('submitid'))
+    submitid = int(request.params['submitid'])
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -54,7 +54,7 @@ def collection_request_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    submitid = int(request.params.get('submitid'))
+    submitid = int(request.params['submitid'])
     otherid = define.get_ownerid(submitid=submitid)
 
     if not otherid:

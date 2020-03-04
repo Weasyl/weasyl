@@ -7,7 +7,7 @@ from weasyl import define, media, commishinfo
 
 def search_(request):
     limit = 30
-    offset = define.get_int(request.params.get('o', None))
+    offset = define.get_int(request.params.get('o'))
     pc = request.params.get('pc', '')
     c = request.params.get('c', '')
     commishclass = pc if pc else c

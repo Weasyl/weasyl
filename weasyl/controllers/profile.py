@@ -140,8 +140,8 @@ def submissions_(request):
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, userid, name)
     folderid = define.get_int(request.params.get('folderid')) or None
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -186,8 +186,8 @@ def collections_(request):
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, userid, name)
 
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -259,8 +259,8 @@ def characters_(request):
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, userid, name)
 
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -382,8 +382,8 @@ def favorites_(request):
     rating = define.get_rating(request.userid)
     otherid = profile.resolve(request.userid, userid, name)
 
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     feature = request.params.get('feature', False)
 
@@ -451,8 +451,8 @@ def friends_(request):
 
     otherid = profile.resolve(request.userid, userid, name)
 
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -480,8 +480,8 @@ def following_(request):
 
     otherid = profile.resolve(request.userid, userid, name)
 
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     if not otherid:
         raise WeasylError("userRecordMissing")
@@ -509,8 +509,8 @@ def followed_(request):
 
     otherid = profile.resolve(request.userid, userid, name)
 
-    backid = request.params.get('backid', None)
-    nextid = request.params.get('nextid', None)
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     if not otherid:
         raise WeasylError("userRecordMissing")

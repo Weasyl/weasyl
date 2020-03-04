@@ -100,7 +100,7 @@ def note_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    data = note.select_view(request.userid, int(request.params.get('noteid')))
+    data = note.select_view(request.userid, int(request.params['noteid']))
 
     return Response(define.webpage(request.userid, "note/message_view.html", [
         # Private message
@@ -160,12 +160,12 @@ def notes_compose_post_(request):
 
     try:
         note.send(
-            request.userid,
-            request.params.get('recipient', ''),
-            request.params.get('title', ''),
-            request.params.get('content', ''),
-            request.params.get('mod_copy'),
-            request.params.get('staff_note'),
+            userid=request.userid,
+            recipient=request.params.get('recipient', ''),
+            title=request.params.get('title', ''),
+            content=request.params.get('content', ''),
+            mod_copy=request.params.get('mod_copy'),
+            staff_note=request.params.get('staff_note'),
         )
     except ValueError:
         raise WeasylError('recipientInvalid')

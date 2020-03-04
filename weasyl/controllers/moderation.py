@@ -59,7 +59,7 @@ def modcontrol_report_(request):
 def modcontrol_reports_(request):
     form = {
                "status": request.params.get('status', 'open'),
-               "violation": request.params.get('violation', None),
+               "violation": request.params.get('violation'),
                "submitter": request.params.get('submitter', '')
            }
     return Response(define.webpage(request.userid, "modcontrol/reports.html", [
@@ -148,9 +148,9 @@ def modcontrol_massaction_(request):
 @token_checked
 def modcontrol_hide_(request):
     if request.params.get('submission'):
-        moderation.hidesubmission(int(request.params.get('submission')))
+        moderation.hidesubmission(int(request.params['submission']))
     elif request.params.get('character'):
-        moderation.hidecharacter(int(request.params.get('character')))
+        moderation.hidecharacter(int(request.params['character']))
 
     raise HTTPSeeOther(location="/modcontrol")
 
@@ -212,7 +212,7 @@ def modcontrol_editcatchphrase_(request):
 @moderator_only
 @token_checked
 def modcontrol_copynotetostaffnotes_post_(request):
-    notedata = note.select_view(request.userid, int(request.params.get('noteid')))
+    notedata = note.select_view(request.userid, int(request.params['noteid']))
 
     staff_note_title = u"Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
         sender=notedata['sendername'],

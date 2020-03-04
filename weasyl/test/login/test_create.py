@@ -200,7 +200,7 @@ def test_username_cant_be_blank_or_have_semicolon():
                  day='12', month='12', year=arrow.now().year - 19)
     assert d.engine.scalar(
         "SELECT username FROM logincreate WHERE email = %(email)s LIMIT 1",
-        email=form.email,
+        email=email_addr,
     ) == "testloginsuite"
 
 

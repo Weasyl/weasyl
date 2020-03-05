@@ -342,7 +342,7 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, limit, following=True, order_by=None):
+def select_streaming(userid, limit, order_by=None):
     statement = [
         "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
         "FROM profile pr "
@@ -353,9 +353,6 @@ def select_streaming(userid, limit, following=True, order_by=None):
 
     if userid:
         statement.append(m.MACRO_IGNOREUSER % (userid, "pr"))
-
-        if following:
-            pass  # todo
     if order_by:
         statement.append(" ORDER BY %s LIMIT %i" % (order_by, limit))
     else:

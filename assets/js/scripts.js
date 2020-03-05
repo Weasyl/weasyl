@@ -91,13 +91,6 @@
                 }
             }
 
-            // reset on resize
-            forEach(items, function (item) {
-                item.style.width = '';
-                item.style.height = '';
-                item.parentNode.parentNode.style.display = '';
-            });
-
             while (items.length > 0) {
                 rowCount++;
                 if (rowCount === maxRows) {
@@ -129,6 +122,9 @@
                     item.style.width = width + 'px';
                     item.style.height = height + 'px';
 
+                    // reset on resize
+                    item.parentNode.parentNode.style.display = '';
+
                     thumbnailLayoutCalculated.emit({
                         item: item,
                         width: width,
@@ -155,11 +151,11 @@
         // thumbnails
         // give enhanced layout to modern browsers
         if ('classList' in document.createElement('_') && typeof window.matchMedia === 'function') {
-            document.documentElement.classList.add('enhanced-thumbnails');
             if (thumbnailContainers.length > 0) {
                 calculateThumbnailLayout();
                 window.addEventListener('resize', calculateThumbnailLayout);
             }
+            document.documentElement.classList.add('enhanced-thumbnails');
         }
 
         // call appropriate functions and plugins

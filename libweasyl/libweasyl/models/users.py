@@ -30,16 +30,6 @@ class Login(Base):
         return avatar and avatar[0]['display_url']
 
 
-class AuthBCrypt(Base):
-    """
-    A user's bcrypt-hashed password.
-    """
-
-    __table__ = tables.authbcrypt
-
-    user = orm.relationship(Login, backref=orm.backref('bcrypt', uselist=False))
-
-
 class Profile(Base):
     """
     A user's profile information.
@@ -133,15 +123,6 @@ class UserInfo(Base):
     @property
     def age(self):
         return relativedelta(arrow.get().datetime, self.birthday.datetime).years
-
-
-class UserStream(Base):
-    """
-    Stream information.
-    """
-    __table__ = tables.user_streams
-
-    owner = orm.relationship(Login, backref='user_streams')
 
 
 class Friendship(Base):

@@ -499,8 +499,7 @@ A user object resembles::
           "following": 56,
           "journals": 0,
           "page_views": 16354,
-          "submissions": 0,
-          "submit_views": 0
+          "submissions": 0
       },
       "stream_text": "",
       "stream_url": "",

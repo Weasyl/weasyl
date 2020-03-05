@@ -327,7 +327,6 @@ def _select_statistics(userid):
 
     return {
         "page_views": query[0],
-        "submit_views": 0,
         "faves_sent": query[1],
         "faves_received": query[2],
         "followed": query[3],

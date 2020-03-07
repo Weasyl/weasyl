@@ -154,7 +154,6 @@ def journal_(request):
     ignore = request.params.get('ignore', '')
     anyway = request.params.get('anyway', '')
 
-
     try:
         item = journal.select_view(
             request.userid, rating, journalid,

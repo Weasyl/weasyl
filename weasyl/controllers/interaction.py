@@ -78,7 +78,7 @@ def unfrienduser_(request):
     frienduser.remove(request.userid, otherid)
 
     redirect = "/manage/friends"
-    
+
     if request.params.get('feature') == 'pending':
         redirect += "?feature=pending"
 

@@ -258,8 +258,8 @@ def test_username_cannot_match_an_active_alias():
 @pytest.mark.usefixtures('db')
 def test_verify_correct_information_creates_account():
     login.create(username=user_name, password='0123456789', passcheck='0123456789',
-               email=email_addr, emailcheck=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+                 email=email_addr, emailcheck=email_addr,
+                 day='12', month='12', year=arrow.now().year - 19)
     # This record should exist when this function completes successfully
     assert d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM logincreate WHERE login_name = %(name)s)",

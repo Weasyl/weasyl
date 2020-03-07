@@ -377,7 +377,7 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
 
     # Apply any row offset
     if row_offset:
-        q = q.offset(form.row_offset)
+        q = q.offset(row_offset)
 
     q = q.limit(250).order_by(lo.c.login_name.asc())
     db = d.connect()
@@ -503,7 +503,6 @@ def charactersbyuser(targetid):
         "settings": item[4],
         "sub_media": character.fake_media_items(item[0], targetid, "unused", item[4]),
     } for item in query]
-
 
 
 def journalsbyuser(targetid):

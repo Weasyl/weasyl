@@ -28,17 +28,17 @@ def modcontrol_suspenduser_get_(request):
 @token_checked
 def modcontrol_suspenduser_post_(request):
     moderation.setusermode(
-        request.userid,
-        request.params.get('userid', ''),
-        request.params.get('username', ''),
-        request.params.get('mode', ''),
-        request.params.get('reason', ''),
-        request.params.get('datetype', ''),
-        request.params.get('duration', ''),
-        request.params.get('durationunit', ''),
-        request.params.get('year', ''),
-        request.params.get('month', ''),
-        request.params.get('day', '')
+        userid=request.userid,
+        targetid=request.params.get('userid', ''),
+        username=request.params.get('username', ''),
+        mode=request.params.get('mode', ''),
+        reason=request.params.get('reason', ''),
+        datetype=request.params.get('datetype', ''),
+        duration=request.params.get('duration', ''),
+        durationunit=request.params.get('durationunit', ''),
+        year=request.params.get('year', ''),
+        month=request.params.get('month', ''),
+        day=request.params.get('day', '')
     )
     raise HTTPSeeOther(location="/modcontrol")
 
@@ -58,10 +58,10 @@ def modcontrol_report_(request):
 @moderator_only
 def modcontrol_reports_(request):
     form = {
-               "status": request.params.get('status', 'open'),
-               "violation": request.params.get('violation'),
-               "submitter": request.params.get('submitter', '')
-           }
+        "status": request.params.get('status', 'open'),
+        "violation": request.params.get('violation', '-1'),
+        "submitter": request.params.get('submitter', '')
+    }
     return Response(define.webpage(request.userid, "modcontrol/reports.html", [
         # Method
         form,
@@ -75,15 +75,15 @@ def modcontrol_reports_(request):
 @token_checked
 def modcontrol_closereport_(request):
     report.close(
-        request.userid,
-        request.params.get('reportid', ''),
-        request.params.get('action', ''),
-        request.params.get('explanation', ''),
-        request.params.get('note_title', ''),
-        request.params.get('user_note', ''),
-        'assign' in request.params,
-        'unassign' in request.params,
-        'close_all_user_reports' in request.params
+        userid=request.userid,
+        reportid=request.params.get('reportid', ''),
+        action=request.params.get('action', ''),
+        explanation=request.params.get('explanation', ''),
+        note_title=request.params.get('note_title', ''),
+        note_content=request.params.get('user_note', ''),
+        assign='assign' in request.params,
+        unassign='unassign' in request.params,
+        close_all_user_reports='close_all_user_reports' in request.params
     )
     raise HTTPSeeOther(location="/modcontrol/report?reportid=%d" % (int(request.params['reportid']),))
 
@@ -120,12 +120,12 @@ def modcontrol_massaction_(request):
         if not submissions:
             raise WeasylError("Unexpected")
         submitid = int(submissions[0])
-        _type = action.split("zap-")[1]
-        if _type == "cover":
+        type = action.split("zap-")[1]
+        if type == "cover":
             moderation.removecoverart(request.userid, submitid)
-        elif _type == "thumb":
+        elif type == "thumb":
             moderation.removethumbnail(request.userid, submitid)
-        elif _type == "both":
+        elif type == "both":
             moderation.removecoverart(request.userid, submitid)
             moderation.removethumbnail(request.userid, submitid)
         else:

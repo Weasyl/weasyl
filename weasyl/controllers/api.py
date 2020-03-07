@@ -397,9 +397,9 @@ def api_user_gallery_(request):
 @api_method
 def api_messages_submissions_(request):
     try:
-        count = int(requests.params.get('count', 0))
-        backtime = int(requests.params.get('backtime', 0))
-        nexttime = int(requests.params.get('nexttime', 0))
+        count = int(request.params.get('count', 0))
+        backtime = int(request.params.get('backtime', 0))
+        nexttime = int(request.params.get('nexttime', 0))
     except ValueError:
         raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:

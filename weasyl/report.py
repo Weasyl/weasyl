@@ -147,8 +147,8 @@ def select_list(status, violation, submitter):
     # If filtering by the report's content's owner, iterate over the previously
     # collected Login model aliases to compare against Login.login_name.
     if submitter:
-        _submitter = d.get_sysname(submitter)
-        q = q.filter(sa.or_(l.login_name == _submitter for l in login_aliases))
+        submitter_sysname = d.get_sysname(submitter)
+        q = q.filter(sa.or_(l.login_name == submitter_sysname for l in login_aliases))
 
     # If filtering by violation type, see if the violation is in the array
     # aggregate of unique violations for this report.

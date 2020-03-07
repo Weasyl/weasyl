@@ -77,7 +77,12 @@ def unfrienduser_(request):
 
     frienduser.remove(request.userid, otherid)
 
-    raise HTTPSeeOther(location="/manage/friends?feature=%s" % request.params.get('feature'))
+    redirect = "/manage/friends"
+    
+    if request.params.get('feature') == 'pending':
+        redirect += "?feature=pending"
+
+    raise HTTPSeeOther(location=redirect)
 
 
 @login_required

@@ -85,7 +85,7 @@ def modcontrol_closereport_(request):
         'unassign' in request.params,
         'close_all_user_reports' in request.params
     )
-    raise HTTPSeeOther(location="/modcontrol/report?reportid=%d" % (int(request.params.get('reportid', '')),))
+    raise HTTPSeeOther(location="/modcontrol/report?reportid=%d" % (int(request.params['reportid']),))
 
 
 @moderator_only

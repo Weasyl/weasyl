@@ -365,10 +365,10 @@ def api_user_gallery_(request):
     try:
         if 'since' in request.params:
             since = d.parse_iso8601(request.params['since'])
-        count = int(requests.params.get('count', 0))
-        folderid = int(requests.params.get('folderid', 0))
-        backid = int(requests.params.get('backid', 0))
-        nextid = int(requests.params.get('nextid', 0))
+        count = int(request.params.get('count', 0))
+        folderid = int(request.params.get('folderid', 0))
+        backid = int(request.params.get('backid', 0))
+        nextid = int(request.params.get('nextid', 0))
     except ValueError:
         raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:

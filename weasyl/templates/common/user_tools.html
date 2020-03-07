@@ -17,8 +17,7 @@ $def with (profile, userinfo, relationship)
   $ banner = profile['user_media'].get('banner', [None])[0]
   $if banner:
     <div id="user-image">
-      <img class="lazy" data-src="${banner['display_url']}" src="${resource_path('img/user-image-blank.png')}" alt="" />
-      <noscript><img src="${banner['display_url']}" alt="" /></noscript>
+      <img src="${banner['display_url']}" alt="" loading="lazy" />
       <svg class="img-space" width="${banner['attributes']['width']}" height="${banner['attributes']['height']}"></svg>
     </div>
 

@@ -34,7 +34,7 @@ def submit_visual_get_(request):
     description = request.params.get('description', '')
     baseURL = request.params.get('baseURL', '')
     imageURL = request.params.get('imageURL', '')
-    tags = request.params.get('tags', '').split(',')
+    tags = request.params.getall('tags')
     if baseURL:
         imageURL = urlparse.urljoin(baseURL, imageURL)
 
@@ -88,7 +88,7 @@ def submit_visual_post_(request):
         thumbfile=thumbfile,
         submitfile=submitfile,
         critique=request.params.get('critique', False),
-        create_notifications=(request.params.get('nonotification', False) is not True)
+        create_notifications=('nonotification' not in request.params)
     )
 
     if request.params.get('customthumb', False):
@@ -155,7 +155,7 @@ def submit_literary_post_(request):
         thumbfile=thumbfile,
         submitfile=submitfile,
         critique=request.params.get('critique', False),
-        create_notifications=(request.params.get('nonotification', False) is not True)
+        create_notifications=('nonotification' not in request.params)
     )
     if thumb:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
@@ -211,7 +211,7 @@ def submit_multimedia_post_(request):
     if coverfile != u'':
         coverfile = coverfile.file.read()
 
-    autothumb = (request.params.get('noautothumb', False) is not True)
+    autothumb = ('noautothumb' not in request.params)
 
     submitid, thumb = submission.create_multimedia(
         request.userid,
@@ -223,7 +223,7 @@ def submit_multimedia_post_(request):
         thumbfile=thumbfile,
         submitfile=submitfile,
         critique=request.params.get('critique', False),
-        create_notifications=(request.params.get('nonotification', False) is not True),
+        create_notifications=('nonotification' not in request.params)
         auto_thumb=autothumb)
     if thumb and not autothumb:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))

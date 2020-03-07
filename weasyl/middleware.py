@@ -214,7 +214,6 @@ def _generate_http2_server_push_headers():
     js_preload = [
         '<' + item + '>; rel=preload; as=script' for item in [
             d.get_resource_path('js/jquery-2.2.4.min.js'),
-            d.get_resource_path('js/marked.js'),
             d.get_resource_path('js/scripts.js'),
         ]
     ]

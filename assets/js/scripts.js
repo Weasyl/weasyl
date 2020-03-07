@@ -90,13 +90,6 @@
                 }
             }
 
-            // reset on resize
-            forEach(items, function (item) {
-                item.style.width = '';
-                item.style.height = '';
-                item.parentNode.parentNode.style.display = '';
-            });
-
             while (items.length > 0) {
                 rowCount++;
                 if (rowCount === maxRows) {
@@ -128,6 +121,9 @@
                     item.style.width = width + 'px';
                     item.style.height = height + 'px';
 
+                    // reset on resize
+                    item.parentNode.parentNode.style.display = '';
+
                     thumbnailLayoutCalculated.emit({
                         item: item,
                         width: width,
@@ -154,11 +150,11 @@
         // thumbnails
         // give enhanced layout to modern browsers
         if ('classList' in document.createElement('_') && typeof window.matchMedia === 'function') {
-            document.documentElement.classList.add('enhanced-thumbnails');
             if (thumbnailContainers.length > 0) {
                 calculateThumbnailLayout();
                 window.addEventListener('resize', calculateThumbnailLayout);
             }
+            document.documentElement.classList.add('enhanced-thumbnails');
         }
 
         // call appropriate functions and plugins
@@ -962,6 +958,28 @@
 
     var ATTEMPTED_BBCODE = /\[(\w+)\][\s\S]+\[\/\1\]/i;
 
+    var markedLoadState = 0;
+
+    function loadMarked() {
+        if (markedLoadState !== 0) {
+            return;
+        }
+
+        markedLoadState = 1;
+
+        var markedScript = document.createElement('script');
+
+        markedScript.onload = function () {
+            markedLoadState = 2;
+
+            forEach(document.getElementsByClassName('markdown'), updateMarkdownPreview);
+        };
+
+        markedScript.src = document.getElementById('scripts').getAttribute('data-marked-src');
+
+        document.body.appendChild(markedScript);
+    }
+
     function renderMarkdown(content, container) {
         var markdown = marked(content, markdownOptions);
         var fragment = document.createElement('div');
@@ -975,22 +993,37 @@
         }
     }
 
-    function addMarkdownPreview(input) {
-        var preview = document.createElement('div');
-        preview.className = 'markdown-preview formatted-content';
+    function updateMarkdownPreview(input) {
+        if (markedLoadState === 2) {
+            var preview = input.nextSibling.nextSibling;
 
-        function showPreview() {
             while (preview.childNodes.length) {
                 preview.removeChild(preview.firstChild);
             }
 
             renderMarkdown(input.value, preview);
+        } else {
+            loadMarked();
         }
+    }
 
-        input.addEventListener('input', showPreview, false);
+    function updateMarkdownPreviewListener() {
+        updateMarkdownPreview(this);
+    }
 
-        showPreview();
+    function addMarkdownPreview(input) {
+        var preview = document.createElement('div');
+        preview.className = 'markdown-preview formatted-content';
+
         input.parentNode.insertBefore(preview, input.nextSibling);
+
+        input.addEventListener('input', updateMarkdownPreviewListener, false);
+
+        if (input.value === '') {
+            input.addEventListener('focus', loadMarked, false);
+        } else {
+            updateMarkdownPreview(input);
+        }
     }
 
     function addMarkdownWarning(input) {
@@ -1160,8 +1193,8 @@
             var contentField = newFormContent.getElementsByClassName('form-content')[0];
 
             // Remove the original form’s non-functional Markdown preview and warning elements
-            contentField.parentNode.removeChild(contentField.nextElementSibling);
-            contentField.parentNode.removeChild(contentField.nextElementSibling);
+            contentField.parentNode.removeChild(contentField.nextSibling);
+            contentField.parentNode.removeChild(contentField.nextSibling);
 
             if (!children || children.nodeName !== 'UL') {
                 children = document.createElement('ul');
@@ -1270,7 +1303,15 @@
 
                     var commentBody = document.createElement('div');
                     commentBody.className = 'formatted-content';
-                    renderMarkdown(contentField.value, commentBody);
+
+                    if (markedLoadState === 2) {
+                        renderMarkdown(contentField.value, commentBody);
+                    } else {
+                        var pre = document.createElement('span');
+                        pre.style.whiteSpace = 'pre-wrap';
+                        pre.textContent = contentField.value;
+                        commentBody.appendChild(pre);
+                    }
 
                     commentContent.appendChild(commentActions);
                     commentContent.appendChild(commentByline);
@@ -1314,6 +1355,8 @@
                                     linkLink.textContent = 'Link';
                                     commentActions.appendChild(document.createTextNode(' '));
                                     commentActions.appendChild(linkLink);
+
+                                    commentBody.innerHTML = result.html;
 
                                     return;
                                 }

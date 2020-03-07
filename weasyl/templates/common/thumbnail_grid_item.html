@@ -30,6 +30,11 @@ $def with (query, notifications=None, lazy_load=True)
 
         playable = query['sub_media'].get('submission')
 
+        if width:
+          spacer = '<svg class="img-space" width="%i" height="%i"></svg>' % (int(width), int(thumb['attributes']['height']))
+        else:
+          spacer = None
+
     <a class="thumb-bounds" data-width="${width}"
       $if query['contype'] == 20:
         href="/character/${query['charid']}/${SLUG(query['title'])}">
@@ -50,30 +55,14 @@ $def with (query, notifications=None, lazy_load=True)
       $if query['contype'] in (30, 50):
         <img src="${avatar['display_url']}" alt="avatar" />
       $elif webp_thumb is not None:
-        $if lazy_load:
-          <picture>
-            <source type="image/webp" data-srcset="${webp_thumb['display_url']}" />
-            <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
-          </picture>
-          <noscript>
-            <picture>
-              <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-              <img src="${display_url}" alt="" />
-            </picture>
-          </noscript>
-        $else:
-          <picture>
-            <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-            <img src="${display_url}" alt="" />
-          </picture>
+        <picture>
+          <source type="image/webp" srcset="${webp_thumb['display_url']}" />
+          <img src="${display_url}" alt=""$:{' loading="lazy"' if lazy_load else ''}$:{' class="has-space"' if spacer else ''} />
+        </picture>
+        $:{spacer}
       $else:
-        $if lazy_load:
-          <img class="lazy" data-src="${display_url}" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" alt="" />
-          <noscript>
-            <img src="${display_url}" alt="" />
-          </noscript>
-        $else:
-          <img src="${display_url}" alt="" />
+        <img src="${display_url}" alt=""$:{' loading="lazy"' if lazy_load else ''}$:{' class="has-space"' if spacer else ''} />
+        $:{spacer}
 
     </a>
 

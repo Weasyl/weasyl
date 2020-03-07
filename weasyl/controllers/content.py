@@ -223,7 +223,7 @@ def submit_multimedia_post_(request):
         thumbfile=thumbfile,
         submitfile=submitfile,
         critique=request.params.get('critique', False),
-        create_notifications=('nonotification' not in request.params)
+        create_notifications=('nonotification' not in request.params),
         auto_thumb=autothumb)
     if thumb and not autothumb:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
@@ -317,7 +317,7 @@ def submit_journal_post_(request):
 @token_checked
 @supports_json
 def submit_shout_(request):
-    staffnotes = request.params.get('staffnotes', False)
+    staffnotes = int(request.params.get('staffnotes', 0))
 
     if staffnotes and request.userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
@@ -518,7 +518,11 @@ def reupload_cover_get_(request):
 def reupload_cover_post_(request):
     submitid = define.get_int(request.params.get('submitid', ''))
 
-    submission.reupload_cover(request.userid, submitid, request.params.get('coverfile', ''))
+    coverfile = request.params.get('coverfile', u'')
+    if coverfile != u'':
+        coverfile = coverfile.file.read()
+
+    submission.reupload_cover(request.userid, submitid, coverfile)
     raise HTTPSeeOther(location="/submission/%i" % (submitid,))
 
 
@@ -530,7 +534,7 @@ def edit_submission_get_(request):
         define.get_int(request.params.get('submitid', '')),
         ratings.EXPLICIT.code,
         False,
-        anyway=request.params.get('anyway', False)
+        anyway=request.params.get('anyway', '')
     )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
@@ -586,7 +590,7 @@ def edit_character_get_(request):
         define.get_int(request.params.get('charid')),
         ratings.EXPLICIT.code,
         False,
-        anyway=request.params.get('anyway', False)
+        anyway=request.params.get('anyway', '')
     )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
@@ -629,7 +633,7 @@ def edit_character_post_(request):
 def edit_journal_get_(request):
     journalid = define.get_int(request.params.get('journalid', ''))
 
-    detail = journal.select_view(request.userid, ratings.EXPLICIT.code, journalid, False, anyway=request.params.get('anyway', False))
+    detail = journal.select_view(request.userid, ratings.EXPLICIT.code, journalid, False, anyway=request.params.get('anyway', ''))
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')

@@ -94,7 +94,7 @@ def get_thumbnail(image_file, bounds=None):
 
     thumbnail_attributes = {'width': image.width, 'height': image.height}
 
-    if image_format == 'JPEG':
+    if image_format in ('JPEG', 'MPO'):
         with BytesIO() as f:
             image.save(f, format='JPEG', quality=95, optimize=True, progressive=True, subsampling='4:2:2')
             compatible = (f.getvalue(), 'jpg', thumbnail_attributes)

@@ -31,10 +31,6 @@ a:hover {
     text-decoration: underline;
 }
 
-.no-js .lazy {
-    display: none !important;
-}
-
 .no-js .needs-js {
     display: none;
 }
@@ -1194,26 +1190,37 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     opacity: 1;
 }
 .thumbnail-grid .thumb-bounds {
+    background: rgba(0,0,0,0.15);
     box-sizing: border-box;
     display: block;
     position: relative;
-}
-.enhanced-thumbnails .thumbnail-grid .thumb-bounds {
-    background: rgba(0,0,0,0.15);
-    height: 250px;
-}
-.thumbnail-grid .thumb-bounds img {
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
 
-    html.no-js & {
-        position: static;
-        transform: none;
+    img {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+
+        &.has-space {
+            position: absolute;
+        }
+
+        html.enhanced-thumbnails & {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+    }
+
+    .img-space {
+        display: block;
+        height: auto;
+        max-height: 100%;
+        max-width: 100%;
+
+        html.enhanced-thumbnails & {
+            display: none;
+        }
     }
 }
 .thumbnail-grid .rating {

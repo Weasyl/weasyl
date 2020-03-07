@@ -7,7 +7,7 @@ from pyramid.response import Response
 
 from libweasyl import ratings
 from libweasyl import staff
-from libweasyl.text import slug_for
+from libweasyl.text import markdown, slug_for
 
 from weasyl import (
     character, comment, define, folder, journal, macro, profile,
@@ -363,7 +363,10 @@ def submit_comment_(request):
                                content=content)
 
     if request.params.get('format', '') == "json":
-        return {"id": commentid}
+        return {
+            "id": commentid,
+            "html": markdown(content)
+        }
 
     if submitid:
         raise HTTPSeeOther(location="/submission/%i#cid%i" % (submitid, commentid))

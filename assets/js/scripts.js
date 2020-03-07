@@ -44,7 +44,6 @@
     var thumbnailContainers = document.getElementsByClassName('thumbnail-grid'),
         thumbnailOptions = {
             minWidth: 125,  // minimum width per cell (should match min thumbnail width)
-            maxWidth: 500,  // thumbnails over this width will be cropped
             rowBasis: 250,  // row height basis (should match max thumbnail height)
             itemGap: 8,     // common item padding
             breakpoint: '(max-width: 29.9em)'

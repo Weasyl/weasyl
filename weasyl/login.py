@@ -4,10 +4,10 @@ import os
 from io import open
 from datetime import datetime
 
-import pytz
 import bcrypt
 from publicsuffixlist import PublicSuffixList
 from sqlalchemy.sql.expression import select
+import sqlalchemy
 
 from libweasyl import security
 from libweasyl import staff
@@ -313,12 +313,13 @@ def verify(token, ip_address=None):
     db = d.connect()
     with db.begin():
         # Create login record
-        userid = db.scalar(lo.insert().returning(lo.c.userid), {
-            "login_name": d.get_sysname(query.username),
-            "last_login": datetime.now(tz=pytz.UTC),
-            "email": query.email,
-            "ip_address_at_signup": ip_address,
-        })
+        userid = db.scalar(
+            lo.insert().values(
+                login_name=d.get_sysname(query.username),
+                last_login=sqlalchemy.func.now(),
+                email=query.email,
+                ip_address_at_signup=ip_address
+            ).returning(lo.c.userid))
 
         # Create profile records
         db.execute(d.meta.tables["authbcrypt"].insert(), {

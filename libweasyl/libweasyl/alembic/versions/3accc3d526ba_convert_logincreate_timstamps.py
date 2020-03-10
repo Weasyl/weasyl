@@ -23,12 +23,6 @@ def upgrade():
                     existing_nullable=False,
                     postgresql_using="to_timestamp(unixtime + 18000)",
                     new_column_name='created_at')
-    op.alter_column('logincreate', 'birthday',
-                    existing_type=sa.INTEGER(),
-                    server_default=sa.func.now(),
-                    type_=TIMESTAMP(timezone=True),
-                    existing_nullable=False,
-                    postgresql_using="to_timestamp(birthday + 18000)")
 
 
 def downgrade():
@@ -39,9 +33,3 @@ def downgrade():
                     existing_nullable=False,
                     postgresql_using="extract(epoch from created_at) - 18000",
                     new_column_name='unixtime')
-    op.alter_column('logincreate', 'birthday', server_default=None)
-    op.alter_column('logincreate', 'birthday',
-                    existing_type=TIMESTAMP(timezone=True),
-                    type_=sa.INTEGER(),
-                    existing_nullable=False,
-                    postgresql_using="extract(epoch from birthday) - 18000")

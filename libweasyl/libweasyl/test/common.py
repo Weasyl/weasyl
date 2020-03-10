@@ -36,7 +36,7 @@ def user_with_age(age):
     birthday = datetime.datetime.utcnow() - relativedelta(years=age)
     login_name = 'user%d' % next(_user_counter)
     return users.Login(
-        info=users.UserInfo(birthday=birthday),
+        info=users.UserInfo(birthday=arrow.get(birthday)),
         profile=users.Profile(username=login_name, full_name=login_name, created_at=arrow.get(0).datetime),
         last_login=arrow.get(0).datetime,
         login_name=login_name)

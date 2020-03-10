@@ -26,20 +26,6 @@
         return false;
     }
 
-    function EventStream() {
-        this.listeners = [];
-    }
-
-    EventStream.prototype.emit = function emit(data) {
-        forEach(this.listeners, function (listener) {
-            listener(data);
-        });
-    };
-
-    EventStream.prototype.listen = function listen(listener) {
-        this.listeners.push(listener);
-    };
-
     // thumbnails: config
     var thumbnailContainers = document.getElementsByClassName('thumbnail-grid'),
         thumbnailOptions = {
@@ -55,8 +41,6 @@
     }
 
     // thumbnails: calculate layout
-    var thumbnailLayoutCalculated = new EventStream();
-
     function calculateThumbnailLayout() {
         forEach(thumbnailContainers, function (container) {
             if (container.offsetWidth === 0 || container.offsetHeight === 0) {
@@ -123,24 +107,12 @@
 
                     // reset on resize
                     item.parentNode.parentNode.style.display = '';
-
-                    thumbnailLayoutCalculated.emit({
-                        item: item,
-                        width: width,
-                        height: height
-                    });
                 });
             }
 
             // if any items did not get placed, hide them
             forEach(items, function (item) {
                 item.parentNode.parentNode.style.display = 'none';
-
-                thumbnailLayoutCalculated.emit({
-                    item: item,
-                    width: null,
-                    height: null
-                });
             });
         });
     }
@@ -1636,109 +1608,6 @@
         if (savedTab) {
             savedTab.children[0].click();
         }
-    })();
-
-    // In-gallery audio playback
-    (function () {
-        var currentlyPlaying = null;
-        var currentButton = null;
-
-        function formatTime(totalSeconds) {
-            var minutes = totalSeconds / 60 | 0;
-            var seconds = totalSeconds % 60 | 0;
-
-            return minutes + ':' + (seconds < 10 ? '0' + seconds : seconds);
-        }
-
-        forEach(document.getElementsByClassName('playable-media'), function (playableMedia) {
-            // This returns a string, but it’s an empty string for “absolutely not playable”
-            if (!playableMedia.canPlayType('audio/mpeg')) {
-                return;
-            }
-
-            var playableContainer = playableMedia.parentNode;
-
-            var playableOverlay = document.createElement('div');
-            playableOverlay.className = 'playable-overlay';
-
-            var playButton = document.createElement('button');
-            playButton.type = 'button';
-            playButton.className = 'playable-toggle';
-
-            var timeIndicator = document.createElement('span');
-            timeIndicator.className = 'playable-time';
-
-            var timeText = document.createElement('span');
-            timeText.className = 'playable-time-text';
-
-            var timeCurrent = document.createElement('span');
-            timeCurrent.className = 'playable-time-current';
-            timeCurrent.textContent = '0:00';
-
-            var timeTotal = document.createElement('span');
-            timeTotal.className = 'playable-time-total';
-            timeTotal.textContent = ' / 0:00';
-
-            var timeTrack = document.createElement('span');
-            timeTrack.className = 'playable-time-track';
-
-            var timeTrackInner = document.createElement('span');
-            timeTrackInner.style.width = '0%';
-
-            playButton.addEventListener('click', function () {
-                if (currentlyPlaying) {
-                    currentlyPlaying.pause();
-                    currentButton.classList.remove('playing');
-
-                    if (currentlyPlaying === playableMedia) {
-                        currentlyPlaying = null;
-                        currentButton = null;
-                        return;
-                    }
-                }
-
-                currentlyPlaying = playableMedia;
-                currentButton = playButton;
-
-                playableMedia.play();
-
-                playButton.classList.add('playing');
-                playableOverlay.classList.add('open');
-            }, false);
-
-            playableMedia.addEventListener('timeupdate', function () {
-                timeCurrent.textContent = formatTime(playableMedia.currentTime);
-                timeTotal.textContent = ' / ' + formatTime(playableMedia.duration);
-                timeTrackInner.style.width = playableMedia.currentTime / playableMedia.duration * 100 + '%';
-            }, false);
-
-            playableMedia.addEventListener('ended', function () {
-                currentlyPlaying = null;
-                currentButton = null;
-                playButton.classList.remove('playing');
-            }, false);
-
-            timeTrack.appendChild(timeTrackInner);
-            timeText.appendChild(timeCurrent);
-            timeText.appendChild(timeTotal);
-            timeIndicator.appendChild(timeText);
-            timeIndicator.appendChild(timeTrack);
-            playableOverlay.appendChild(playButton);
-            playableOverlay.appendChild(timeIndicator);
-            playableContainer.appendChild(playableOverlay);
-        });
-
-        thumbnailLayoutCalculated.listen(function (layout) {
-            var playableContainer = layout.item.parentNode.querySelector('.playable-container');
-
-            if (playableContainer) {
-                playableContainer.style.width = layout.width + 'px';
-                playableContainer.style.height = layout.height + 'px';
-
-                playableContainer.classList.toggle('small', layout.width < 155);
-                playableContainer.classList.toggle('tiny', layout.width < 115);
-            }
-        });
     })();
 
     // Confirm removing friends

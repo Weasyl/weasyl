@@ -21,7 +21,6 @@ def _create_pending_account(invalid=False):
         "hashpass": login.passhash('0123456789'),
         "email": email,
         "birthday": arrow.Arrow(2000, 1, 1),
-        "created_at": arrow.now().datetime,
         "invalid": invalid,
     })
 

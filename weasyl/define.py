@@ -164,7 +164,6 @@ def _compile(template_name):
                 "CSRF": _get_csrf_input,
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
-                "ISO8601_DATE": iso8601_date,
                 "TIME": _convert_time,
                 "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
@@ -597,19 +596,6 @@ def convert_date(target=None):
     return result[1:] if result and result[0] == "0" else result
 
 
-def iso8601_date(target):
-    """
-    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
-
-    NB: Target is offset by _UNIXTIME_OFFSET
-
-    :param target: The target Weasyl timestamp to convert.
-    :return: An ISO 8601 string representing the date of `target`.
-    """
-    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
-    return arrow.get(date).format("YYYY-MM-DD")
-
-
 def _convert_time(target=None):
     """
     Returns the time in the format 16:00:00. If no target is passed, the
@@ -638,10 +624,6 @@ def convert_unixdate(day, month, year):
     if ret > 2147483647 or ret < -2147483648:
         return None
     return ret
-
-
-def convert_age(target):
-    return (get_time() - target) // 31556926
 
 
 def age_in_years(birthdate):

@@ -33,7 +33,7 @@ def user_with_age(age):
     Returns:
         Login: The user Login object created.
     """
-    birthday = arrow.get(datetime.datetime.utcnow() - relativedelta(years=age))
+    birthday = datetime.date.today() - relativedelta(years=age)
     login_name = 'user%d' % next(_user_counter)
     return users.Login(
         info=users.UserInfo(birthday=birthday),

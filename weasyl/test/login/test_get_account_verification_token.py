@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from datetime import date
+
 import pytest
 import arrow
 
@@ -27,7 +29,7 @@ def test_acct_verif_token_returned_if_email_provided_to_function():
         "login_name": form.username,
         "hashpass": login.passhash(raw_password),
         "email": form.email,
-        "birthday": arrow.Arrow(2000, 1, 1),
+        "birthday": date(2000, 1, 1),
         "unixtime": arrow.now(),
     })
     acct_verification_token = login.get_account_verification_token(email=form.email, username=None)
@@ -45,7 +47,7 @@ def test_acct_verif_token_returned_if_username_provided_to_function():
         "login_name": form.username,
         "hashpass": login.passhash(raw_password),
         "email": form.email,
-        "birthday": arrow.Arrow(2000, 1, 1),
+        "birthday": date(2000, 1, 1),
         "unixtime": arrow.now(),
     })
     acct_verification_token = login.get_account_verification_token(email=None, username=form.username)

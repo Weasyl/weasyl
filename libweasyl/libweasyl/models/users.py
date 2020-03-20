@@ -1,6 +1,5 @@
 import datetime
 
-import arrow
 from dateutil.relativedelta import relativedelta
 import pytz
 from pyramid.decorator import reify
@@ -122,7 +121,7 @@ class UserInfo(Base):
 
     @property
     def age(self):
-        return relativedelta(arrow.get().datetime, self.birthday.datetime).years
+        return relativedelta(datetime.date.today(), self.birthday).years
 
 
 class Friendship(Base):

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from datetime import date
+
 import pytz
 import sqlalchemy as sa
 from translationstring import TranslationString as _
@@ -214,7 +216,7 @@ def select_myself(userid):
 
 def get_user_age(userid):
     assert userid
-    return d.convert_age(d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid))
+    return d.age_in_years(d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid))
 
 
 def get_user_ratings(userid):
@@ -253,7 +255,7 @@ def select_userinfo(userid, config=None):
     show_age = "b" in query[0] or d.get_userid() in staff.MODS
     return {
         "birthday": query[1],
-        "age": d.convert_age(query[1]) if show_age else None,
+        "age": d.age_in_years(query[1]) if show_age else None,
         "show_age": "b" in query[0],
         "gender": query[2],
         "country": query[3],
@@ -803,12 +805,18 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
     if birthday is not None:
         # HTML5 date format is yyyy-mm-dd
         split = birthday.split("-")
-        if len(split) != 3 or d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
+        if len(split) == 3:
+            try:
+                unixtime = date(day=int(split[2]), month=int(split[1]), year=int(split[0]))
+            except ValueError:
+                raise WeasylError("birthdayInvalid")
+        else:
             raise WeasylError("birthdayInvalid")
-        unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
-        age = d.convert_age(unixtime)
 
-        d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])
+        age = d.age_in_years(unixtime)
+
+        d.engine.execute("UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(id)s",
+                         birthday=unixtime, id=userid)
 
         if age < ratings.EXPLICIT.minimum_age:
             max_rating = ratings.GENERAL.code

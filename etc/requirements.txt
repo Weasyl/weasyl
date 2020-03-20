@@ -1,4 +1,4 @@
-Twisted[tls]==19.10.0
+Twisted[tls]==20.3.0
 web.py==0.40
 raven==6.10.0
 requests[security,socks]==2.23.0

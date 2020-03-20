@@ -608,10 +608,7 @@ def iso8601_date(target):
     :param target: The target Weasyl timestamp to convert.
     :return: An ISO 8601 string representing the date of `target`.
     """
-    if isinstance(target, datetime.datetime):
-        date = target
-    else:
-        date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
+    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
     return arrow.get(date).format("YYYY-MM-DD")
 
 

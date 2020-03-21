@@ -24,7 +24,7 @@ setup(
         ],
     },
     install_requires=[
-        'alembic==1.4.1',
+        'alembic==1.4.2',
         'arrow==0.15.2',
         'bcrypt==3.1.7',
         'dogpile.cache==0.9.0',
@@ -36,14 +36,14 @@ setup(
         'pyramid~=1.10.4',
         'pytz==2019.3',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.3.13',
+        'sqlalchemy==1.3.15',
         'translationstring==1.3',
         'backports.lzma==0.0.12;python_version<"3.3"',
         'enum34==1.1.6;python_version<"3.4"',
     ],
     extras_require={
         'development': [
-            'coverage==5.0.3',
+            'coverage==5.0.4',
             'flake8',
             'pytest==4.6.9',
             'tox',

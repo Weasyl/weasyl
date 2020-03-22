@@ -127,7 +127,7 @@ def resolve_by_login(login):
 
 def select_profile(userid, viewer=None):
     query = d.engine.execute("""
-        SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
+        SELECT pr.username, pr.full_name, pr.catchphrase, pr.created_at, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
         FROM profile pr
             INNER JOIN login lo USING (userid)
@@ -703,7 +703,7 @@ def select_manage(userid):
     query = d.engine.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
-            pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
+            pr.created_at, pr.username, pr.full_name, pr.catchphrase,
             ui.birthday, ui.gender, ui.country, pr.config
         FROM login lo
             INNER JOIN profile pr USING (userid)

@@ -7,6 +7,7 @@ import arrow
 import bcrypt
 from publicsuffixlist import PublicSuffixList
 from sqlalchemy.sql.expression import select
+import sqlalchemy
 
 from libweasyl import security
 from libweasyl import staff
@@ -66,7 +67,7 @@ def clean_display_name(text):
 
 def signin(request, userid, ip_address=None, user_agent=None):
     # Update the last login record for the user
-    d.execute("UPDATE login SET last_login = %i WHERE userid = %i", [d.get_time(), userid])
+    d.execute("UPDATE login SET last_login = NOW() WHERE userid = %i", [userid])
 
     # Log the successful login and increment the login count
     d.append_to_log('login.success', userid=userid, ip=d.get_address())
@@ -269,7 +270,6 @@ def create(form):
             "hashpass": passhash(password),
             "email": email,
             "birthday": birthday,
-            "unixtime": arrow.now(),
         })
 
         # Send verification email
@@ -287,7 +287,6 @@ def create(form):
             "hashpass": passhash(password),
             "email": token,
             "birthday": arrow.now(),
-            "unixtime": arrow.now(),
             "invalid": True,
             # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
             "invalid_email_addr": email,
@@ -315,12 +314,13 @@ def verify(token, ip_address=None):
     db = d.connect()
     with db.begin():
         # Create login record
-        userid = db.scalar(lo.insert().returning(lo.c.userid), {
-            "login_name": d.get_sysname(query.username),
-            "last_login": arrow.now(),
-            "email": query.email,
-            "ip_address_at_signup": ip_address,
-        })
+        userid = db.scalar(
+            lo.insert().values(
+                login_name=d.get_sysname(query.username),
+                last_login=sqlalchemy.func.now(),
+                email=query.email,
+                ip_address_at_signup=ip_address
+            ).returning(lo.c.userid))
 
         # Create profile records
         db.execute(d.meta.tables["authbcrypt"].insert(), {
@@ -331,7 +331,6 @@ def verify(token, ip_address=None):
             "userid": userid,
             "username": query.username,
             "full_name": query.username,
-            "unixtime": arrow.now(),
             "config": "kscftj",
         })
         db.execute(d.meta.tables["userinfo"].insert(), {

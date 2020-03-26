@@ -1,5 +1,5 @@
 Twisted[tls]==20.3.0
-web.py==0.40
+web.py==0.51
 raven==6.10.0
 requests[security,socks]==2.23.0
 oauth2==1.9.0.post1

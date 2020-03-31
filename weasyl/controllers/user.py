@@ -279,7 +279,7 @@ def forgetpassword_post_(request):
 
 @guest_required
 def resetpassword_get_(request):
-    token = request.GET['token']
+    token = request.GET.get('token', "")
     reset_target = resetpassword.prepare(token=token)
 
     if reset_target is None:

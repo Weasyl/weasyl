@@ -15,6 +15,14 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 def upgrade():
+    op.create_index(
+        'ind_login_lower_email',
+        'login',
+        [
+            sa.text('(lower(email COLLATE "C"))'),
+        ],
+        unique=False,
+    )
     op.drop_table('forgotpassword')
     op.create_table('forgotpassword',
     sa.Column('token_sha256', postgresql.BYTEA(), nullable=False),
@@ -36,6 +44,8 @@ def upgrade():
 
 
 def downgrade():
+    op.drop_index('ind_login_lower_email', table_name='login')
+
     op.drop_table('forgotpassword')
     op.create_table('forgotpassword',
     sa.Column('set_time', sa.INTEGER(), autoincrement=False, nullable=False),

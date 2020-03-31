@@ -3,16 +3,13 @@ from __future__ import absolute_import
 import arrow
 from twisted.python import log
 
-from weasyl.define import engine, get_time
+from weasyl.define import engine
 from weasyl import index, submission
 
 
 def run_periodic_tasks():
     # An arrow object representing the current UTC time
     now = arrow.utcnow()
-
-    # An integer representing the current unixtime (with an offset applied sourced from libweasyl.legacy)
-    time_now = get_time()
 
     db = engine.connect()
     with db.begin():
@@ -43,10 +40,6 @@ def run_periodic_tasks():
 
         # Daily at 0:00
         if now.hour == 0 and now.minute == 0:
-            # Delete password resets older than one day
-            db.execute("DELETE FROM forgotpassword WHERE set_time < %(expiry)s", expiry=time_now - 86400)
-            log.msg('cleared old forgotten password requests')
-
             # Delete email reset requests older than two days
             db.execute("""
                 DELETE FROM emailverify

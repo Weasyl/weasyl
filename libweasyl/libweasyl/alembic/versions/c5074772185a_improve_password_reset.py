@@ -46,6 +46,7 @@ def upgrade():
 def downgrade():
     op.drop_index('ind_login_lower_email', table_name='login')
 
+    op.drop_index('ind_forgotpassword_created_at', table_name='forgotpassword')
     op.drop_table('forgotpassword')
     op.create_table('forgotpassword',
     sa.Column('set_time', sa.INTEGER(), autoincrement=False, nullable=False),
@@ -58,4 +59,3 @@ def downgrade():
     )
     op.drop_index('ind_user_events_userid_eventid', table_name='user_events')
     op.drop_table('user_events')
-    op.drop_index('ind_forgotpassword_created_at', table_name='forgotpassword')

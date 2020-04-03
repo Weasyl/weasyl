@@ -116,36 +116,33 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
 
 
 def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, parentid=None, content=None):
-    if not submitid and not charid and not journalid and not updateid:
+    if submitid:
+        table = "comments"
+    elif charid:
+        table = "charcomment"
+    elif journalid:
+        table = "journalcomment"
+    elif updateid:
+        table = "siteupdatecomment"
+    else:
         raise WeasylError("Unexpected")
-    elif not content:
+
+    if not content:
         raise WeasylError("commentInvalid")
 
-    # Determine indent and parentuserid
+    # Determine parent userid
     if parentid:
-        if updateid:
-            parentuserid = d.engine.scalar("SELECT userid FROM siteupdatecomment WHERE commentid = %(parent)s", parent=parentid)
+        parentuserid = d.engine.scalar(
+            "SELECT userid FROM {table} WHERE commentid = %(parent)s".format(table=table),
+            parent=parentid,
+        )
 
-            if parentuserid is None:
-                raise WeasylError("Unexpected")
-        else:
-            parent = d.engine.execute(
-                "SELECT userid, indent FROM {table} WHERE commentid = %(parentid)s".format(
-                    table="comments" if submitid else "charcomment" if charid else "journalcomment",
-                ),
-                parentid=parentid,
-            ).first()
-
-            if not parent:
-                raise WeasylError("Unexpected")
-
-            indent = parent.indent + 1
-            parentuserid = parent.userid
-    elif updateid:
-        parentid = None  # parentid == 0
-        parentuserid = None
+        if parentuserid is None:
+            raise WeasylError("Unexpected")
     else:
-        indent = 0
+        if updateid:
+            parentid = None  # parentid == 0
+
         parentuserid = None
 
     if updateid:
@@ -183,7 +180,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         commentid = db.scalar(
             co.insert()
             .values(userid=userid, target_sub=submitid, parentid=parentid or None,
-                    content=content, unixtime=arrow.utcnow(), indent=indent)
+                    content=content, unixtime=arrow.utcnow())
             .returning(co.c.commentid))
     elif updateid:
         commentid = d.engine.scalar(
@@ -197,15 +194,14 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         )
     else:
         commentid = d.engine.scalar(
-            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime, indent)"
-            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s, %(indent)s)"
+            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
+            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
             " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
             user=userid,
             target=d.get_targetid(charid, journalid),
             parent=parentid or 0,
             content=content,
             now=d.get_time(),
-            indent=indent,
         )
 
     # Create notification

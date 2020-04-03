@@ -63,18 +63,17 @@ def insert(userid, shout, staffnotes=False):
     elif not shout.userid or not d.is_vouched_for(shout.userid):
         raise WeasylError("Unexpected")
 
-    # Determine indent and parentuserid
+    # Determine parent userid
     if shout.parentid:
-        parent = d.engine.execute("SELECT userid, indent FROM comments WHERE commentid = %(parentid)s",
-                                  parentid=shout.parentid).first()
+        parentuserid = d.engine.scalar(
+            "SELECT userid FROM comments WHERE commentid = %(parent)s",
+            parent=shout.parentid,
+        )
 
-        if not parent:
+        if parentuserid is None:
             raise WeasylError("shoutRecordMissing")
-
-        indent = parent.indent + 1
-        parentuserid = parent.userid
     else:
-        indent, parentuserid = 0, None
+        parentuserid = None
 
     # Check permissions
     if userid not in staff.MODS:
@@ -100,7 +99,7 @@ def insert(userid, shout, staffnotes=False):
     commentid = db.scalar(
         co.insert()
         .values(userid=userid, target_user=shout.userid, parentid=shout.parentid or None, content=shout.content,
-                unixtime=arrow.utcnow(), indent=indent, settings=settings)
+                unixtime=arrow.utcnow(), settings=settings)
         .returning(co.c.commentid))
 
     # Create notification

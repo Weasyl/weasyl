@@ -203,13 +203,12 @@ Index('ind_folder_userid', folder.c.userid)
 
 forgotpassword = Table(
     'forgotpassword', metadata,
-    Column('userid', Integer(), unique=True, nullable=False),
-    Column('token', String(length=100), primary_key=True, nullable=False),
-    Column('set_time', Integer(), nullable=False),
-    Column('link_time', Integer(), nullable=False, server_default='0'),
-    Column('address', Text(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='forgotpassword_userid_fkey'),
+    Column('token_sha256', BYTEA(), primary_key=True, nullable=False),
+    Column('email', String(length=254), nullable=False),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
 )
+
+Index('ind_forgotpassword_created_at', forgotpassword.c.created_at)
 
 
 frienduser = Table(
@@ -336,6 +335,7 @@ login = Table(
 )
 
 Index('ind_login_login_name', login.c.login_name)
+Index('ind_login_lower_email', func.lower(login.c.login_name.collate('C')))
 
 
 twofa_recovery_codes = Table(
@@ -684,6 +684,17 @@ user_agents = Table(
     Column('user_agent_id', Integer(), primary_key=True, nullable=False),
     Column('user_agent', String(length=1024), nullable=False, unique=True),
 )
+
+user_events = Table(
+    'user_events', metadata,
+    Column('eventid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('event', String(length=100), nullable=False),
+    Column('data', JSONB(), nullable=False),
+    Column('occurred', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+)
+
+Index('ind_user_events_userid_eventid', user_events.c.userid, user_events.c.eventid)
 
 
 siteupdate = Table(

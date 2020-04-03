@@ -29,8 +29,3 @@ private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
 secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
-
-[spam_filtering]
-enabled = false
-# Akismet.com API key -- For spam filtering
-key = None

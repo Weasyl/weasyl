@@ -282,38 +282,46 @@ def forgotpassword_get_(request):
 @guest_required
 @token_checked
 def forgetpassword_post_(request):
-    resetpassword.request(request.params.get('email'))
+    resetpassword.request(email=request.POST['email'])
     return Response(define.errorpage(
         request.userid,
-        "**Success!** Provided the supplied email matches a user account in our  "
-        "records, information on how to reset your password has been sent to your "
-        "email address.",
+        "**Success!** Information on how to reset your password has been sent to your email address.",
         [["Return to the Home Page", "/"]]))
 
 
 @guest_required
 def resetpassword_get_(request):
-    token = request.params.get('token')
-    if not resetpassword.prepare(token):
+    token = request.GET.get('token', "")
+    reset_target = resetpassword.prepare(token=token)
+
+    if reset_target is None:
         return Response(define.errorpage(
             request.userid,
             "This link does not appear to be valid. If you followed this link from your email, it may have expired."))
 
-    return Response(define.webpage(request.userid, "etc/resetpassword.html", [token], title="Reset Forgotten Password"))
+    if isinstance(reset_target, resetpassword.Unregistered):
+        return Response(define.errorpage(
+            request.userid,
+            "The e-mail address **%s** is not associated with a Weasyl account." % (reset_target.email,),
+            [["Sign Up", "/signup"], ["Return to the Home Page", "/"]]))
+
+    return Response(define.webpage(request.userid, "etc/resetpassword.html", [token, reset_target], title="Reset Forgotten Password"))
 
 
 @guest_required
 def resetpassword_post_(request):
+    expect_userid = int(request.POST['userid'])
+
     resetpassword.reset(
-        request.params.get('username', ''),
-        request.params.get('email', ''),
-        request.params.get('password', ''),
-        request.params.get('passcheck', ''),
-        request.params.get('token', ''),
+        token=request.POST['token'],
+        password=request.POST['password'],
+        passcheck=request.POST['passcheck'],
+        expect_userid=expect_userid,
+        address=request.client_addr,
     )
 
-    # Invalidate all other user sessions for this user.
-    profile.invalidate_other_sessions(request.userid)
+    # Invalidate user sessions for this user.
+    profile.invalidate_other_sessions(expect_userid)
 
     return Response(define.errorpage(
         request.userid,

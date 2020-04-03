@@ -176,7 +176,6 @@ def test_create_fails_if_pending_account_has_same_email():
         "hashpass": login.passhash(raw_password),
         "email": email_addr,
         "birthday": arrow.Arrow(2000, 1, 1),
-        "unixtime": arrow.now(),
     })
     username = 'test'
     login.create(username=username, password='0123456789', passcheck='0123456789',
@@ -235,7 +234,6 @@ def test_usernames_cannot_match_pending_account_usernames():
         "hashpass": login.passhash(raw_password),
         "email": "test0003@weasyl.com",
         "birthday": arrow.Arrow(2000, 1, 1),
-        "unixtime": arrow.now(),
     })
     with pytest.raises(WeasylError) as err:
         login.create(username=user_name, password='0123456789', passcheck='0123456789',

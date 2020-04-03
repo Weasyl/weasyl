@@ -1,8 +1,6 @@
 (function () {
     "use strict";
 
-    var word = /[a-zA-Z0-9]+/g;
-
     var strengthMessages = [
         "Crackable password",
         "Over easy password",
@@ -27,6 +25,9 @@
                     .split(",")
                     .filter(Boolean)
                     .map(document.getElementById, document);
+            var personalData =
+                (passwordStrength.getAttribute("data-personal-data") || "")
+                    .match(/[a-zA-Z0-9]+/g) || [];
 
             function check() {
                 if (!passwordField.value) {
@@ -35,16 +36,20 @@
                     return;
                 }
 
-                var personalStrings = personalFields.reduce(function (strings, field) {
-                    var value = field.value;
-                    var match;
+                var personalStrings =
+                    personalFields
+                        .reduce(function (strings, field) {
+                            var value = field.value;
+                            var word = /[a-zA-Z0-9]+/g;
+                            var match;
 
-                    while ((match = word.exec(value))) {
-                        strings.push(match[0]);
-                    }
+                            while ((match = word.exec(value))) {
+                                strings.push(match[0]);
+                            }
 
-                    return strings;
-                }, []);
+                            return strings;
+                        }, [])
+                        .concat(personalData);
 
                 var result = zxcvbn(passwordField.value, personalStrings);
 

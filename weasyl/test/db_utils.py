@@ -18,6 +18,8 @@ from weasyl import sessions
 _user_index = itertools.count()
 TEST_DATABASE = "weasyl_test"
 
+_DEFAULT_PASSWORD = "$2b$04$IIdgY7gIpBckJI.YZQ3nHOo.Gh5j2lLhoTEPnWJplnfdpIOSoHYcu"
+
 
 def add_entity(entity):
     db = d.connect()
@@ -46,7 +48,7 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
 
     while True:
         user = add_entity(users.Login(login_name=get_sysname(username),
-                                      last_login=arrow.get(0)))
+                                      last_login=arrow.get(0).datetime))
 
         if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:
             break
@@ -56,16 +58,15 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
         db.flush()
 
     add_entity(users.Profile(userid=user.userid, username=username,
-                             full_name=full_name, unixtime=arrow.get(0), config=config))
+                             full_name=full_name, created_at=arrow.get(0).datetime, config=config))
     add_entity(users.UserInfo(userid=user.userid, birthday=birthday))
     # Verify this user
     if verified:
         d.engine.execute("UPDATE login SET voucher = userid WHERE userid = %(id)s",
                          id=user.userid)
     # Set a password for this user
-    if password is not None:
-        d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
-                         id=user.userid, bcrypthash=login.passhash(password))
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                     id=user.userid, bcrypthash=_DEFAULT_PASSWORD if password is None else login.passhash(password))
     # Set an email address for this user
     if email_addr is not None:
         d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s",

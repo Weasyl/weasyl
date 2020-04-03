@@ -127,7 +127,7 @@ def resolve_by_login(login):
 
 def select_profile(userid, viewer=None):
     query = d.engine.execute("""
-        SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
+        SELECT pr.username, pr.full_name, pr.catchphrase, pr.created_at, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
         FROM profile pr
             INNER JOIN login lo USING (userid)
@@ -327,7 +327,6 @@ def _select_statistics(userid):
 
     return {
         "page_views": query[0],
-        "submit_views": 0,
         "faves_sent": query[1],
         "faves_received": query[2],
         "followed": query[3],
@@ -343,7 +342,7 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, limit, following=True, order_by=None):
+def select_streaming(userid, limit, order_by=None):
     statement = [
         "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
         "FROM profile pr "
@@ -354,9 +353,6 @@ def select_streaming(userid, limit, following=True, order_by=None):
 
     if userid:
         statement.append(m.MACRO_IGNOREUSER % (userid, "pr"))
-
-        if following:
-            pass  # todo
     if order_by:
         statement.append(" ORDER BY %s LIMIT %i" % (order_by, limit))
     else:
@@ -707,7 +703,7 @@ def select_manage(userid):
     query = d.engine.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
-            pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
+            pr.created_at, pr.username, pr.full_name, pr.catchphrase,
             ui.birthday, ui.gender, ui.country, pr.config
         FROM login lo
             INNER JOIN profile pr USING (userid)

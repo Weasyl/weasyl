@@ -203,13 +203,12 @@ Index('ind_folder_userid', folder.c.userid)
 
 forgotpassword = Table(
     'forgotpassword', metadata,
-    Column('userid', Integer(), unique=True, nullable=False),
-    Column('token', String(length=100), primary_key=True, nullable=False),
-    Column('set_time', Integer(), nullable=False),
-    Column('link_time', Integer(), nullable=False, server_default='0'),
-    Column('address', Text(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='forgotpassword_userid_fkey'),
+    Column('token_sha256', BYTEA(), primary_key=True, nullable=False),
+    Column('email', String(length=254), nullable=False),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
 )
+
+Index('ind_forgotpassword_created_at', forgotpassword.c.created_at)
 
 
 frienduser = Table(
@@ -326,7 +325,7 @@ login = Table(
     'login', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('login_name', String(length=40), nullable=False, unique=True),
-    Column('last_login', WeasylTimestampColumn(), nullable=False),
+    Column('last_login', TIMESTAMP(timezone=True), nullable=False),
     Column('force_password_reset', Boolean(), nullable=False, server_default='f'),
     Column('email', String(length=100), nullable=False, server_default=''),
     Column('twofa_secret', String(length=420), nullable=True),
@@ -336,6 +335,7 @@ login = Table(
 )
 
 Index('ind_login_login_name', login.c.login_name)
+Index('ind_login_lower_email', func.lower(login.c.login_name.collate('C')))
 
 
 twofa_recovery_codes = Table(
@@ -356,7 +356,7 @@ logincreate = Table(
     Column('hashpass', String(length=100), nullable=False),
     Column('email', String(length=100), nullable=False, unique=True),
     Column('birthday', WeasylTimestampColumn(), nullable=False),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
     # Used to determine if a record is invalid for purposes of plausible deniability of email addresses
     #   AKA, create a logincreate entry if an in-use email address is provided, thus preserving the effect of
     #   a pending username triggering a username taken error.
@@ -463,7 +463,7 @@ profile = Table(
     Column('full_name', String(length=100), nullable=False),
     Column('catchphrase', String(length=200), nullable=False, server_default=''),
     Column('artist_type', String(length=100), nullable=False, server_default=''),
-    Column('unixtime', WeasylTimestampColumn(), nullable=False),
+    Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
     Column('latest_submission_time', ArrowColumn(), nullable=False, server_default='epoch'),
     Column('profile_text', String(length=100000), nullable=False, server_default=''),
     Column('settings', String(length=20), nullable=False, server_default='ccci'),
@@ -684,6 +684,17 @@ user_agents = Table(
     Column('user_agent_id', Integer(), primary_key=True, nullable=False),
     Column('user_agent', String(length=1024), nullable=False, unique=True),
 )
+
+user_events = Table(
+    'user_events', metadata,
+    Column('eventid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('event', String(length=100), nullable=False),
+    Column('data', JSONB(), nullable=False),
+    Column('occurred', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+)
+
+Index('ind_user_events_userid_eventid', user_events.c.userid, user_events.c.eventid)
 
 
 siteupdate = Table(

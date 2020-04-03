@@ -6,8 +6,6 @@ $def with (query, notifications=None, lazy_load=True)
 
   <figure class="thumb${' collection' if query['contype'] == 40 else ''}">
     $code:
-      playable = None
-
       if query['contype'] in (30, 50):
         width = "120"
         avatar = query['user_media']['avatar'][0]
@@ -28,8 +26,6 @@ $def with (query, notifications=None, lazy_load=True)
           elif 3040 <= subtype < 4000:
             display_url = resource_path('img/default-multi.png')
 
-        playable = query['sub_media'].get('submission')
-
         if width:
           spacer = '<svg class="img-space" width="%i" height="%i"></svg>' % (int(width), int(thumb['attributes']['height']))
         else:
@@ -41,11 +37,11 @@ $def with (query, notifications=None, lazy_load=True)
       $elif query['contype'] == 30:
         href="/journal/${query['journalid']}/${SLUG(query['title'])}">
       $elif query['contype'] == 40:
-        data-id="${query['submitid']}" href="/submission/${query['submitid']}/${SLUG(query['title'])}">
+        href="/submission/${query['submitid']}/${SLUG(query['title'])}">
       $elif query['contype'] == 50:
         href="/~${LOGIN(query['username'])}">
       $else:
-        data-id="${query['submitid']}" href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">
+        href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">
 
       $if query['rating'] == R.MATURE.code:
         <span class="rating mature">The following submission is rated Mature:</span>
@@ -65,13 +61,6 @@ $def with (query, notifications=None, lazy_load=True)
         $:{spacer}
 
     </a>
-
-    $if playable and playable[0].get('file_type') == 'mp3':
-      <div class="playable-container">
-        <audio class="playable-media" preload="none">
-          <source type="audio/mpeg" src="${playable[0]['display_url']}" />
-        </audio>
-      </div>
 
     <figcaption>
       <h6 class="title" title="${query['title']}"><a

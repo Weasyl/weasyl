@@ -369,11 +369,11 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
 
     # Filter for date-time
     if dateafter and datebefore:
-        q = q.where(d.sa.between(pr.c.unixtime, arrow.get(dateafter), arrow.get(datebefore)))
+        q = q.where(d.sa.between(pr.c.created_at, arrow.get(dateafter).datetime, arrow.get(datebefore).datetime))
     elif dateafter:
-        q = q.where(pr.c.unixtime >= arrow.get(dateafter))
+        q = q.where(pr.c.created_at >= arrow.get(dateafter).datetime)
     elif datebefore:
-        q = q.where(pr.c.unixtime <= arrow.get(datebefore))
+        q = q.where(pr.c.created_at <= arrow.get(datebefore).datetime)
 
     # Apply any row offset
     if row_offset:

@@ -284,12 +284,13 @@ def submit_shout_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    c = orm.Comment()
-    c.parentid = define.get_int(form.parentid)
-    c.userid = define.get_int(form.userid or form.staffnotes)
-    c.content = form.content
-
-    commentid = shout.insert(request.userid, c, staffnotes=form.staffnotes)
+    commentid = shout.insert(
+        request.userid,
+        target_user=define.get_int(form.userid or form.staffnotes),
+        parentid=define.get_int(form.parentid),
+        content=form.content,
+        staffnotes=bool(form.staffnotes),
+    )
 
     if form.format == "json":
         return {"id": commentid}

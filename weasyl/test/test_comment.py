@@ -8,7 +8,6 @@ from libweasyl.models import site
 
 from weasyl import define as d
 from weasyl import comment
-from weasyl import orm
 from weasyl import shout
 from weasyl.error import WeasylError
 from weasyl.test import db_utils
@@ -118,8 +117,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
     def test_add_and_remove_shout(self):
         # commenter1 posts a shout on owner's page
-        c1 = shout.insert(self.commenter1, orm.Comment(userid=self.owner,
-                                                       content="hello"))
+        c1 = shout.insert(self.commenter1, target_user=self.owner, parentid=None, content="hello", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)
@@ -127,8 +125,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[0].viewitems() >= {"content": "hello"}.viewitems())
 
         # commenter2 posts a reply to c1
-        c2 = shout.insert(self.commenter2, orm.Comment(userid=self.owner,
-                                                       content="reply", parentid=c1))
+        c2 = shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.commenter1))
 
         shouts = shout.select(0, self.owner)
@@ -136,8 +133,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[1].viewitems() >= {"content": "reply"}.viewitems())
 
         # owner posts a reply to c2
-        c3 = shout.insert(self.owner, orm.Comment(userid=self.owner,
-                                                  content="reply 2", parentid=c2))
+        c3 = shout.insert(self.owner, target_user=self.owner, parentid=c2, content="reply 2", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.commenter2))
 
         shouts = shout.select(0, self.owner)
@@ -145,8 +141,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[2].viewitems() >= {"content": "reply 2"}.viewitems())
 
         # commenter1 responds to owner
-        shout.insert(self.commenter1, orm.Comment(userid=self.owner,
-                                                  content="reply 3", parentid=c3))
+        shout.insert(self.commenter1, target_user=self.owner, parentid=c3, content="reply 3", staffnotes=False)
         self.assertEqual(2, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)
@@ -154,8 +149,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[3].viewitems() >= {"content": "reply 3"}.viewitems())
 
         # commenter1 posts a new root shout
-        shout.insert(self.commenter1, orm.Comment(userid=self.owner,
-                                                  content="root 2"))
+        shout.insert(self.commenter1, target_user=self.owner, parentid=None, content="root 2", staffnotes=False)
         self.assertEqual(3, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)
@@ -164,8 +158,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[4].viewitems() >= {"content": "reply 3"}.viewitems())
 
         # commenter2 posts another reply to c1
-        shout.insert(self.commenter2, orm.Comment(userid=self.owner,
-                                                  content="reply 4", parentid=c1))
+        shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply 4", staffnotes=False)
         self.assertEqual(2, self.count_notifications(self.commenter1))
 
         shouts = shout.select(0, self.owner)

@@ -54,7 +54,6 @@ charcomment = Table(
     Column('parentid', Integer(), nullable=False, server_default='0'),
     Column('content', String(length=10000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('indent', Integer(), nullable=False, server_default='0'),
     Column('settings', String(length=20), nullable=False, server_default=''),
     Column('hidden_by', Integer(), nullable=True),
     default_fkey(['targetid'], ['character.charid'], name='charcomment_targetid_fkey'),
@@ -87,7 +86,6 @@ comments = Table(
     Column('parentid', Integer(), nullable=True),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('indent', Integer(), nullable=False, server_default='0'),
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
         's': 'staff-note',
@@ -308,7 +306,6 @@ journalcomment = Table(
     Column('parentid', Integer(), nullable=False, server_default='0'),
     Column('content', String(length=10000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('indent', Integer(), nullable=False, server_default='0'),
     Column('settings', String(length=20), nullable=False, server_default=''),
     Column('hidden_by', Integer(), nullable=True),
     default_fkey(['targetid'], ['journal.journalid'], name='journalcomment_targetid_fkey'),

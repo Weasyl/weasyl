@@ -267,17 +267,6 @@ routes = (
     Route("/modcontrol/removebanner", "modcontrol_removebanner", {'POST': moderation.modcontrol_removebanner_}),
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
-    Route("/modcontrol/spamqueue/journal", "modcontrol_spamqueue_journal", {
-        "GET": moderation.modcontrol_spamqueue_journal_get_,
-        "POST": moderation.modcontrol_spamqueue_journal_post_,
-    }),
-    Route("/modcontrol/spamqueue/submission", "modcontrol_spamqueue_submission", {
-        "GET": moderation.modcontrol_spamqueue_submission_get_,
-        "POST": moderation.modcontrol_spamqueue_submission_post_,
-    }),
-    Route("/modcontrol/spam/remove", "modcontrol_spam_remove", {
-        "POST": moderation.modcontrol_spam_remove_post_,
-    }),
 
     # Collection routes.
     Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),

@@ -287,7 +287,6 @@ journal = Table(
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
-    Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='journal_userid_fkey'),
     ForeignKeyConstraint(
         ['submitter_user_agent_id'],
@@ -297,7 +296,6 @@ journal = Table(
 )
 
 Index('ind_journal_userid', journal.c.userid)
-Index('ind_journal_is_spam', journal.c.is_spam)
 
 
 journalcomment = Table(
@@ -760,7 +758,6 @@ submission = Table(
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
     Column('image_representations', BYTEA(), nullable=True),
-    Column('is_spam', Boolean(), nullable=False, server_default='f'),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
     ForeignKeyConstraint(
@@ -783,7 +780,6 @@ Index('ind_submission_folderid', submission.c.folderid)
 Index('ind_submission_userid_unixtime', submission.c.userid, submission.c.unixtime.desc())
 Index('ind_submission_userid', submission.c.userid)
 Index('ind_submission_userid_folderid', submission.c.userid, submission.c.folderid)
-Index('ind_submission_is_spam', submission.c.is_spam)
 
 
 submission_media_links = Table(

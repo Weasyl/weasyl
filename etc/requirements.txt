@@ -10,9 +10,8 @@ WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
 WebTest==2.0.34
 pyotp==2.3.0                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
-cryptography==2.8           # For Two-Factor Authentication
+cryptography==2.9           # For Two-Factor Authentication
 publicsuffixlist==0.6.13    # For extracting the base domain for the email blacklist
-python-akismet==0.4.1       # For spam filtering
 
 
 # libweasyl

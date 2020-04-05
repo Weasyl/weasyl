@@ -124,10 +124,6 @@ error_messages = {
     "ReportCommentRequired": "This report type requires a comment",
     "shoutRecordMissing": "This shout doesn't seem to exist in our database.",
     "signed": signed,
-    "SpamFilteringDisabled": "Spam filtering is disabled (is the site configuration file configured correctly?).",
-    "SpamFilteringDelayed": "Your post has been successfully received, and is pending moderator approval.",
-    "SpamFilteringDropped": "Your post has been rejected due to similarity to spam. If you feel this rejection is "
-                            "in error, please contact support, and include the exact content you attempted to post.",
     "streamDurationNotSet": "Please set a stream length.",
     "streamDurationOutOfRange": "Please enter a number up to 360 minutes for stream length.",
     "streamLocationNotSet": "Please set a stream location.",

@@ -325,20 +325,23 @@ def submit_shout_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    c = orm.Comment()
-    c.parentid = define.get_int(request.params.get('parentid', ''))
-    c.userid = define.get_int(request.params.get('userid', '') or staffnotes)
-    c.content = request.params.get('content', '')
+    target_user = define.get_int(request.params.get('userid', '') or staffnotes)
 
-    commentid = shout.insert(request.userid, c, staffnotes=staffnotes)
+    commentid = shout.insert(
+        request.userid,
+        target_user=target_user,
+        parentid=define.get_int(request.params.get('parentid', '')),
+        content=request.params.get('content', ''),
+        staffnotes=bool(staffnotes),
+    )
 
     if request.params.get('format', '') == "json":
         return {"id": commentid}
 
     if staffnotes:
-        raise HTTPSeeOther(location='/staffnotes?userid=%i#cid%i' % (define.get_int(staffnotes), commentid))
+        raise HTTPSeeOther(location='/staffnotes?userid=%i#cid%i' % (staffnotes, commentid))
     else:
-        raise HTTPSeeOther(location="/shouts?userid=%i#cid%i" % (c.userid, commentid))
+        raise HTTPSeeOther(location="/shouts?userid=%i#cid%i" % (target_user, commentid))
 
 
 @login_required

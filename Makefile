@@ -99,7 +99,6 @@ deploy-web-worker: setup
 .PHONY: run
 run: setup
 	WEASYL_APP_ROOT=. \
-		WEASYL_TESTING_ENV=y \
 		WEASYL_STORAGE_ROOT=. \
 		WEASYL_RELOAD_TEMPLATES=y \
 		WEASYL_RELOAD_ASSETS=y \
@@ -114,7 +113,7 @@ guest-run: .vagrant
 # Phony target to run tests
 .PHONY: test
 test: setup
-	WEASYL_APP_ROOT=. WEASYL_TESTING_ENV=y WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
+	WEASYL_APP_ROOT=. WEASYL_STORAGE_ROOT=testing $(VE)/bin/py.test weasyl/test
 
 # Phony target for an interactive shell
 .PHONY: shell

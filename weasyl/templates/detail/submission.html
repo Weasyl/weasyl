@@ -289,13 +289,6 @@ $code:
           <br>
           <button class="button positive">Moderate Submission</button>
         </form>
-        <br />
-        <form action="/modcontrol/spam/remove" method="POST" data-confirm="Are you sure you want to submit this item as spam and hide it?">
-          $:{CSRF()}
-          <input type="hidden" name="submitid" value="${query['submitid']}" />
-
-          <button class="button negative">Submit as Spam and Hide</button>
-        </form>
       </div>
 
 

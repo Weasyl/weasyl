@@ -28,7 +28,6 @@ from weasyl import (
     macro,
     media,
     middleware,
-    spam_filtering,
 )
 from weasyl.controllers.routes import setup_routes_and_views
 from weasyl.wsgi import wsgi_app
@@ -165,8 +164,3 @@ def deterministic_marketplace_tests(monkeypatch):
 @pytest.fixture
 def app():
     return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})
-
-
-@pytest.fixture(autouse=True)
-def do_not_run_spam_checks(monkeypatch):
-    monkeypatch.setattr(spam_filtering, 'FILTERING_ENABLED', False)

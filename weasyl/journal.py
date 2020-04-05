@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import arrow
-from akismet import SpamStatus
 
 from libweasyl import ratings
 from libweasyl import staff
@@ -20,7 +19,6 @@ from weasyl import moderation
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
-from weasyl import spam_filtering
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -41,21 +39,6 @@ def create(userid, journal, friends_only=False, tags=None):
     # Create journal
     jo = d.meta.tables["journal"]
 
-    # Run the journal through Akismet to check for spam
-    is_spam = False
-    if spam_filtering.FILTERING_ENABLED:
-        result = spam_filtering.check(
-            user_ip=journal.submitter_ip_address,
-            user_agent_id=journal.submitter_user_agent_id,
-            user_id=userid,
-            comment_type="journal",
-            comment_content=journal.content,
-        )
-        if result == SpamStatus.DefiniteSpam:
-            raise WeasylError("SpamFilteringDropped")
-        elif result == SpamStatus.ProbableSpam:
-            is_spam = True
-
     journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
@@ -63,7 +46,6 @@ def create(userid, journal, friends_only=False, tags=None):
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
-        "is_spam": is_spam,
         "submitter_ip_address": journal.submitter_ip_address,
         "submitter_user_agent_id": journal.submitter_user_agent_id,
     })

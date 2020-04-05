@@ -15,7 +15,6 @@ setup(
         'weasyl': [
             'templates/*/*.html',
             'templates/control/2fa/*.html',
-            'templates/modcontrol/spamqueue/*.html',
         ],
     },
 )

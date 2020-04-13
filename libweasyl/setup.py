@@ -43,7 +43,7 @@ setup(
     ],
     extras_require={
         'development': [
-            'coverage==5.0.4',
+            'coverage==5.1',
             'flake8',
             'pytest==4.6.9',
             'tox',

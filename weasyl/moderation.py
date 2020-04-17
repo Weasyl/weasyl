@@ -287,13 +287,14 @@ def get_suspension(userid):
                             user=userid).first()
 
 
-def finduser(userid, form):
-    form.userid = d.get_int(form.userid)
+def finduser(targetid, username, email, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,
+             row_offset):
+    targetid = d.get_int(targetid)
 
     # If we don't have any of these variables, nothing will be displayed. So fast-return an empty list.
-    if not form.userid and not form.username and not form.email and not form.dateafter \
-            and not form.datebefore and not form.excludesuspended and not form.excludebanned \
-            and not form.excludeactive and not form.ipaddr:
+    if not targetid and not username and not email and not dateafter \
+            and not datebefore and not excludesuspended and not excludebanned \
+            and not excludeactive and not ipaddr:
         return []
 
     lo = d.meta.tables['login']
@@ -341,52 +342,47 @@ def finduser(userid, form):
     # Is there a better way to only select unique accounts, when _also_ joining sessions? This _does_ work, though.
     q = q.distinct(lo.c.login_name)
 
-    if form.userid:
-        q = q.where(lo.c.userid == form.userid)
-    elif form.username:
-        q = q.where(lo.c.login_name.op('~')(form.username))
-    elif form.email:
+    if targetid:
+        q = q.where(lo.c.userid == targetid)
+    elif username:
+        q = q.where(lo.c.login_name.op('~')(username))
+    elif email:
         q = q.where(d.sa.or_(
-            lo.c.email.op('~')(form.email),
-            lo.c.email.op('ilike')('%%%s%%' % form.email),
+            lo.c.email.op('~')(email),
+            lo.c.email.op('ilike')('%%%s%%' % email),
         ))
 
     # Filter for banned and/or suspended accounts
-    if form.excludeactive == "on":
+    if excludeactive == "on":
         q = q.where(is_banned | is_suspended)
-    if form.excludebanned == "on":
+    if excludebanned == "on":
         q = q.where(~is_banned)
-    if form.excludesuspended == "on":
+    if excludesuspended == "on":
         q = q.where(~is_suspended)
 
     # Filter for IP address
-    if form.ipaddr:
+    if ipaddr:
         q = q.where(d.sa.or_(
-            lo.c.ip_address_at_signup.op('ilike')('%s%%' % form.ipaddr),
-            sess.c.ip_address.op('ilike')('%s%%' % form.ipaddr)
+            lo.c.ip_address_at_signup.op('ilike')('%s%%' % ipaddr),
+            sess.c.ip_address.op('ilike')('%s%%' % ipaddr)
         ))
 
     # Filter for date-time
-    if form.dateafter and form.datebefore:
-        q = q.where(d.sa.between(pr.c.created_at, arrow.get(form.dateafter).datetime, arrow.get(form.datebefore).datetime))
-    elif form.dateafter:
-        q = q.where(pr.c.created_at >= arrow.get(form.dateafter).datetime)
-    elif form.datebefore:
-        q = q.where(pr.c.created_at <= arrow.get(form.datebefore).datetime)
+    if dateafter and datebefore:
+        q = q.where(d.sa.between(pr.c.created_at, arrow.get(dateafter).datetime, arrow.get(datebefore).datetime))
+    elif dateafter:
+        q = q.where(pr.c.created_at >= arrow.get(dateafter).datetime)
+    elif datebefore:
+        q = q.where(pr.c.created_at <= arrow.get(datebefore).datetime)
 
     # Apply any row offset
-    if form.row_offset:
-        q = q.offset(form.row_offset)
+    if row_offset:
+        q = q.offset(row_offset)
 
     q = q.limit(250).order_by(lo.c.login_name.asc())
     db = d.connect()
     return db.execute(q)
 
-
-# form
-#   mode        reason
-#   userid      release
-#   username
 
 _mode_to_action_map = {
     'b': 'ban',

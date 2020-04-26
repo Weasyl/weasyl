@@ -18,7 +18,6 @@ from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from twisted.internet.threads import blockingCallFromThread
-from web.utils import storify
 
 from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy
@@ -279,20 +278,6 @@ def log_exc_request_method(request, **kwargs):
     """
     # It's unclear to me why this should be a request method and not just define.log_exc().
     return request.environ.get('raven.captureException', lambda **kw: traceback.print_exc())(**kwargs)
-
-
-def web_input_request_method(request, *required, **kwargs):
-    """
-    Callable that processes the pyramid request.params multidict into a web.py storage object
-    in the style of web.input().
-    TODO: Replace usages of this method with accessing request directly.
-
-    @param request: The pyramid request object.
-    @param kwargs: Default values. If a default value is a list, it indicates that multiple
-        values of that key should be collapsed into a list.
-    @return: A dictionary-like object in the fashion of web.py's web.input()
-    """
-    return storify(request.params.mixed(), *required, **kwargs)
 
 
 # Methods to add response callbacks to a request. The callbacks run in the order they

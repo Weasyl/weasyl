@@ -14,17 +14,18 @@ from weasyl.controllers.decorators import login_required, token_checked
 @login_required
 @token_checked
 def messages_remove_(request):
-    form = request.web_input(recall='', remove=[])
-    remove_all_before = form.get('remove-all-before')
+    recall = request.params.get('recall', '')
+    remove = request.params.getall('remove')
+    remove_all_before = request.params.get('remove-all-before')
 
     if remove_all_before:
         message.remove_all_before(request.userid, int(remove_all_before))
-    elif form.get('remove-all-submissions'):
-        message.remove_all_submissions(request.userid, define.get_int(form['remove-all-submissions']))
+    elif request.params.get('remove-all-submissions'):
+        message.remove_all_submissions(request.userid, define.get_int(request.params.get('remove-all-submissions')))
     else:
-        message.remove(request.userid, map(int, form.remove))
+        message.remove(request.userid, map(int, remove))
 
-    if form.recall:
+    if recall:
         raise HTTPSeeOther(location="/messages/submissions")
     else:
         raise HTTPSeeOther(location="/messages/notifications")
@@ -64,13 +65,14 @@ def messages_notifications_(request):
 
 @login_required
 def messages_submissions_(request):
-    form = request.web_input(feature="", backtime=None, nexttime=None)
+    backtime = request.params.get('backtime')
+    nexttime = request.params.get('nexttime')
 
     define._page_header_info.refresh(request.userid)
     return Response(define.webpage(request.userid, "message/submissions_thumbnails.html", [
         # Feature
-        form.feature,
+        request.params.get('feature', ''),
         # Submissions
         message.select_submissions(request.userid, 66, include_tags=False,
-                                   backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
+                                   backtime=define.get_int(backtime), nexttime=define.get_int(nexttime)),
     ]))

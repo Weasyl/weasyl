@@ -12,36 +12,36 @@ $code:
     <form id="marketplace-search" method="GET" class="form">
       <label for="commission-class-preset">Type of Commission</label>
       <select class="input last-input" name="pc" id="commission-class-preset">
-        <option value="" $:{selected(form.pc == "" and not form.c)}>Any</option>
+        <option value="" $:{selected(form['pc'] == "" and not form['c'])}>Any</option>
         $for group_name, group_options in presets:
           <optgroup label="${group_name}">
             $for c in group_options:
-              <option value="${c}" $:{selected(form.pc == c)}>${c}</option>
+              <option value="${c}" $:{selected(form['pc'] == c)}>${c}</option>
           </optgroup>
-        <option value="" $:{selected(form.pc == "" and form.c)} data-select-other="">Other</option>
+        <option value="" $:{selected(form['pc'] == "" and form['c'])} data-select-other="">Other</option>
       </select>
-      <input name="c" type="text" class="input data-select-other" value="${form.c}" data-select="commission-class-preset" title="Other commission type" placeholder="Other commission type">
+      <input name="c" type="text" class="input data-select-other" value="${form['c']}" data-select="commission-class-preset" title="Other commission type" placeholder="Other commission type">
 
       <label for="commission-type-tags">Content</label>
       <input id="commission-type-tags" name="q" title="Commission Content"
-             type="text" class="input" value="${form.q}">
+             type="text" class="input" value="${form['q']}">
 
       <div class="form-2up clear">
         <div class="form-2up-1">
           <label for="commission-min-price">Min. Price</label>
-          <input id="commission-min-price" name="min" type="number" step="any" min="0" class="input" value="${form.min}">
+          <input id="commission-min-price" name="min" type="number" step="any" min="0" class="input" value="${form['min']}">
         </div>
 
         <div class="form-2up-2">
           <label for="commission-max-price">Max. Price</label>
-          <input id="commission-max-price" name="max" type="number" step="any" min="0" class="input" value="${form.max}">
+          <input id="commission-max-price" name="max" type="number" step="any" min="0" class="input" value="${form['max']}">
         </div>
       </div>
 
       <label for="commish-currency">Display Currency</label>
       <select class="input last-input" name="currency" id="commish-currency">
         $for char, info in currencies.iteritems():
-          <option value="${char}" $:{selected(form.currency == char)}>${info.name}</option>
+          <option value="${char}" $:{selected(form['currency'] == char)}>${info.name}</option>
       </select>
 
       <button class="button">Search</button>
@@ -74,20 +74,20 @@ $code:
               $if artist['pricemax'] and artist['pricemax'] != artist['pricemin']:
                 $# display high end of price range in artist's currency
                 <span>to ${SYMBOL(artist['pricesettings'])} ${PRICE(artist['pricemax'])}</span>
-              $if artist['pricesettings'] != form.currency and artist['localmin']:
+              $if artist['pricesettings'] != form['currency'] and artist['localmin']:
                 $if artist['localmax'] and artist['localmax'] != artist['localmin']:
                   $# display converted prices (range)
-                  (<span>Approx. ${SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>
-                  <span>to ${SYMBOL(form.currency)} ${PRICE(artist['localmax'])}</span>)
+                  (<span>Approx. ${SYMBOL(form['currency'])} ${PRICE(artist['localmin'])}</span>
+                  <span>to ${SYMBOL(form['currency'])} ${PRICE(artist['localmax'])}</span>)
                 $else:
                   $# display converted price (single)
-                  (<span>Approx. ${SYMBOL(form.currency)} ${PRICE(artist['localmin'])}</span>)
+                  (<span>Approx. ${SYMBOL(form['currency'])} ${PRICE(artist['localmin'])}</span>)
             $else:
               Price not declared
           </div>
           $# matching commission classes
           <div class="artist-classes">
-            <strong>${"Matched" if form.pc or form.c else "Types Available"}: ${artist['class']}</strong>
+            <strong>${"Matched" if form['pc'] or form['c'] else "Types Available"}: ${artist['class']}</strong>
           </div>
           $# commission description
           <div class="formatted-content marketplace-desc-preview">

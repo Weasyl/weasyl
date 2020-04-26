@@ -391,79 +391,79 @@ _mode_to_action_map = {
 }
 
 
-def setusermode(userid, form):
-    form.userid = profile.resolve(None, form.userid, form.username)
-    if not form.userid:
+def setusermode(userid, targetid, username, mode, reason, datetype, duration, durationunit, year, month, day):
+    targetid = profile.resolve(None, targetid, username)
+    if not targetid:
         raise WeasylError('noUser')
 
-    form.reason = form.reason.strip()
+    reason = reason.strip()
 
-    if form.mode == "s":
-        if form.datetype == "r":
+    if mode == "s":
+        if datetype == "r":
             # Relative date
-            magnitude = int(form.duration)
+            magnitude = int(duration)
 
             if magnitude < 0:
                 raise WeasylError("releaseInvalid")
 
             basedate = datetime.datetime.now()
-            if form.durationunit == "y":
+            if durationunit == "y":
                 basedate += datetime.timedelta(days=magnitude * 365)
-            elif form.durationunit == "m":
+            elif durationunit == "m":
                 basedate += datetime.timedelta(days=magnitude * 30)
-            elif form.durationunit == "w":
+            elif durationunit == "w":
                 basedate += datetime.timedelta(weeks=magnitude)
             else:  # Catchall, days
                 basedate += datetime.timedelta(days=magnitude)
 
-            form.release = d.convert_unixdate(basedate.day, basedate.month, basedate.year)
+            release = d.convert_unixdate(basedate.day, basedate.month, basedate.year)
         else:
             # Absolute date
-            if datetime.date(int(form.year), int(form.month), int(form.day)) < datetime.date.today():
+            if datetime.date(int(year), int(month), int(day)) < datetime.date.today():
                 raise WeasylError("releaseInvalid")
 
-            form.release = d.convert_unixdate(form.day, form.month, form.year)
+            release = d.convert_unixdate(day, month, year)
     else:
-        form.release = None
+        release = None
 
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
-    elif form.userid in staff.MODS:
+    elif targetid in staff.MODS:
         raise WeasylError("InsufficientPermissions")
-    if form.mode == "b":
+    if mode == "b":
         # Ban user
         with d.engine.begin() as db:
-            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
-            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
-            db.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=form.userid, reason=form.reason)
-    elif form.mode == "s":
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
+            db.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=targetid, reason=reason)
+    elif mode == "s":
         # Suspend user
-        if not form.release:
+        if not release:
             raise WeasylError("releaseInvalid")
 
         with d.engine.begin() as db:
-            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
-            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
-            db.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=form.userid, reason=form.reason, release=form.release)
-    elif form.mode == "x":
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
+            db.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=targetid, reason=reason, release=release)
+    elif mode == "x":
         # Unban/Unsuspend
         with d.engine.begin() as db:
-            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
-            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=targetid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=targetid)
 
-    action = _mode_to_action_map.get(form.mode)
+    action = _mode_to_action_map.get(mode)
     if action is not None:
         isoformat_release = None
-        message = form.reason
-        if form.release is not None:
-            isoformat_release = d.datetime.datetime.fromtimestamp(form.release).isoformat()
+        message = reason
+        if release is not None:
+            isoformat_release = d.datetime.datetime.fromtimestamp(release).isoformat()
             message = '#### Release date: %s\n\n%s' % (isoformat_release, message)
         d.append_to_log(
             'staff.actions',
-            userid=userid, action=action, target=form.userid, reason=form.reason,
+            userid=userid, action=action, target=targetid, reason=reason,
             release=isoformat_release)
-        d._get_all_config.invalidate(form.userid)
-        note_about(userid, form.userid, 'User mode changed: action was %r' % (action,), message)
+        d._get_all_config.invalidate(targetid)
+        note_about(userid, targetid, 'User mode changed: action was %r' % (action,), message)
 
 
 def submissionsbyuser(targetid):
@@ -582,14 +582,14 @@ def unhidejournal(journalid):
     """, journalid=journalid)
 
 
-def manageuser(userid, form):
+def manageuser(userid, name):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
     query = d.engine.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
         " WHERE userid = (SELECT userid FROM login WHERE login_name = %(name)s)",
-        name=d.get_sysname(form.name),
+        name=d.get_sysname(name),
     ).first()
 
     if not query:

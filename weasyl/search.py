@@ -397,21 +397,14 @@ def select(**kwargs):
     return results, next_count, back_count
 
 
-# form
-#   find    backid
-#   cat     nextid
+def browse(userid, rating, limit, find, cat, backid, nextid):
+    backid = d.get_int(backid)
+    nextid = d.get_int(nextid)
 
-def browse(userid, rating, limit, form, find=None):
-    backid = d.get_int(form.backid)
-    nextid = d.get_int(form.nextid)
-
-    if find:
-        form.find = find
-
-    if form.find == "char":
+    if find == "char":
         return character.select_list(userid, rating, limit, backid=backid, nextid=nextid)
-    elif form.find == "journal":
+    elif find == "journal":
         return journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid)
     else:
         return submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
-                                      subcat=d.get_int(form.cat) if d.get_int(form.cat) in [1000, 2000, 3000] else None)
+                                      subcat=d.get_int(cat) if d.get_int(cat) in [1000, 2000, 3000] else None)

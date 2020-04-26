@@ -16,15 +16,15 @@ def followuser_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(userid="")
-    otherid = define.get_int(form.userid)
+    action = request.params.get('action')
+    otherid = define.get_int(request.params.get('userid', ''))
 
     if request.userid == otherid:
         raise WeasylError("cannotSelfFollow")
 
-    if form.action == "follow":
+    if action == "follow":
         followuser.insert(request.userid, otherid)
-    elif form.action == "unfollow":
+    elif action == "unfollow":
         followuser.remove(request.userid, otherid)
 
     raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
@@ -33,10 +33,9 @@ def followuser_(request):
 @login_required
 @token_checked
 def unfollowuser_(request):
-    form = request.web_input(userid="")
-    form.otherid = define.get_int(form.userid)
+    otherid = define.get_int(request.params.get('userid', ''))
 
-    followuser.remove(request.userid, form.otherid)
+    followuser.remove(request.userid, otherid)
 
     raise HTTPSeeOther(location="/manage/following")
 
@@ -47,22 +46,22 @@ def frienduser_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(userid="")
-    otherid = define.get_int(form.userid)
+    action = request.params.get('action')
+    otherid = define.get_int(request.params.get('userid', ''))
 
     if request.userid == otherid:
         raise WeasylError('cannotSelfFriend')
 
-    if form.action == "sendfriendrequest":
+    if action == "sendfriendrequest":
         if not frienduser.check(request.userid, otherid) and not frienduser.already_pending(request.userid, otherid):
             frienduser.request(request.userid, otherid)
-    elif form.action == "withdrawfriendrequest":
+    elif action == "withdrawfriendrequest":
         if frienduser.already_pending(request.userid, otherid):
             frienduser.remove_request(request.userid, otherid)
-    elif form.action == "unfriend":
+    elif action == "unfriend":
         frienduser.remove(request.userid, otherid)
 
-    if form.feature == "pending":
+    if request.params.get('feature') == "pending":
         raise HTTPSeeOther(location="/manage/friends?feature=pending")
     else:  # typical value will be user
         raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
@@ -71,26 +70,30 @@ def frienduser_(request):
 @login_required
 @token_checked
 def unfrienduser_(request):
-    form = request.web_input(userid="", feature="")
-    otherid = define.get_int(form.userid)
+    otherid = define.get_int(request.params.get('userid', ''))
 
     if request.userid == otherid:
         raise WeasylError('cannotSelfFriend')
 
     frienduser.remove(request.userid, otherid)
 
-    raise HTTPSeeOther(location="/manage/friends?feature=%s" % form.feature)
+    redirect = "/manage/friends"
+
+    if request.params.get('feature') == 'pending':
+        redirect += "?feature=pending"
+
+    raise HTTPSeeOther(location=redirect)
 
 
 @login_required
 @token_checked
 def ignoreuser_(request):
-    form = request.web_input(userid="")
-    otherid = define.get_int(form.userid)
+    action = request.params.get('action')
+    otherid = define.get_int(request.params.get('userid', ''))
 
-    if form.action == "ignore":
+    if action == "ignore":
         ignoreuser.insert(request.userid, [otherid])
-    elif form.action == "unignore":
+    elif action == "unignore":
         ignoreuser.remove(request.userid, [otherid])
 
     raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
@@ -102,9 +105,7 @@ def note_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input()
-
-    data = note.select_view(request.userid, int(form.noteid))
+    data = note.select_view(request.userid, int(request.params['noteid']))
 
     return Response(define.webpage(request.userid, "note/message_view.html", [
         # Private message
@@ -118,12 +119,14 @@ def notes_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(folder="inbox", filter="", backid="", nextid="")
-    backid = int(form.backid) if form.backid else None
-    nextid = int(form.nextid) if form.nextid else None
-    filter_ = define.get_userid_list(form.filter)
+    folder = request.params.get('folder', 'inbox')
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
+    backid = int(backid) if backid else None
+    nextid = int(nextid) if nextid else None
+    filter_ = define.get_userid_list(request.params.get('filter', ''))
 
-    if form.folder == "inbox":
+    if folder == "inbox":
         return Response(define.webpage(request.userid, "note/message_list.html", [
             # Folder
             "inbox",
@@ -131,7 +134,7 @@ def notes_(request):
             note.select_inbox(request.userid, 50, backid=backid, nextid=nextid, filter=filter_),
         ]))
 
-    if form.folder == "outbox":
+    if folder == "outbox":
         return Response(define.webpage(request.userid, "note/message_list.html", [
             # Folder
             "outbox",
@@ -147,11 +150,9 @@ def notes_compose_get_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(recipient="")
-
     return Response(define.webpage(request.userid, "note/compose.html", [
         # Recipient
-        form.recipient.strip(),
+        request.params.get('recipient', '').strip(),
         profile.select_myself(request.userid),
     ]))
 
@@ -162,10 +163,15 @@ def notes_compose_post_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(recipient="", title="", content="", mod_copy='', staff_note='')
-
     try:
-        note.send(request.userid, form)
+        note.send(
+            userid=request.userid,
+            recipient=request.params.get('recipient', ''),
+            title=request.params.get('title', ''),
+            content=request.params.get('content', ''),
+            mod_copy=request.params.get('mod_copy'),
+            staff_note=request.params.get('staff_note'),
+        )
     except ValueError:
         raise WeasylError('recipientInvalid')
     else:
@@ -175,12 +181,13 @@ def notes_compose_post_(request):
 @login_required
 @token_checked
 def notes_remove_(request):
-    form = request.web_input(folder="", backid="", nextid="", notes=[])
-    backid = int(form.backid) if form.backid else None
-    nextid = int(form.nextid) if form.nextid else None
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
+    backid = int(backid) if backid else None
+    nextid = int(nextid) if nextid else None
 
-    note.remove_list(request.userid, map(int, form.notes))
-    link = "/notes?folder=" + form.folder
+    note.remove_list(request.userid, map(int, request.params.getall('notes')))
+    link = "/notes?folder=" + request.params.get('folder', '')
 
     if backid:
         link += "&backid=%i" % backid
@@ -193,19 +200,19 @@ def notes_remove_(request):
 @login_required
 @token_checked
 def favorite_(request):
-    form = request.web_input(submitid="", charid="", journalid="")
-    form.charid = define.get_int(form.charid)
-    form.submitid = define.get_int(form.submitid)
-    form.journalid = define.get_int(form.journalid)
+    charid = define.get_int(request.params.get('charid', ''))
+    submitid = define.get_int(request.params.get('submitid', ''))
+    journalid = define.get_int(request.params.get('journalid', ''))
+    action = request.params.get('action')
 
-    if form.action == "favorite":
-        favorite.insert(request.userid, form.submitid, form.charid, form.journalid)
-    elif form.action == "unfavorite":
-        favorite.remove(request.userid, form.submitid, form.charid, form.journalid)
+    if action == "favorite":
+        favorite.insert(request.userid, submitid, charid, journalid)
+    elif action == "unfavorite":
+        favorite.remove(request.userid, submitid, charid, journalid)
 
-    if form.submitid:
-        raise HTTPSeeOther(location="/submission/%i" % (form.submitid,))
-    elif form.charid:
-        raise HTTPSeeOther(location="/character/%i" % (form.charid,))
+    if submitid:
+        raise HTTPSeeOther(location="/submission/%i" % (submitid,))
+    elif charid:
+        raise HTTPSeeOther(location="/character/%i" % (charid,))
     else:
-        raise HTTPSeeOther(location="/journal/%i" % (form.journalid,))
+        raise HTTPSeeOther(location="/journal/%i" % (journalid,))

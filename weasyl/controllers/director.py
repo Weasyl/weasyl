@@ -32,19 +32,20 @@ def directorcontrol_emailblacklist_get_(request):
 @token_checked
 @director_only
 def directorcontrol_emailblacklist_post_(request):
-    form = request.web_input(action=None, remove_selection=[], domain_name=None, reason=None)
+    action = request.params.get('action')
+    domain_name = request.params.get('domain_name')
     # Remove entr(y|ies) from blacklist
-    if form.action == "remove":
+    if action == "remove":
         d.engine.execute("DELETE FROM emailblacklist WHERE id = ANY (%(selected_ids)s)",
-                         selected_ids=map(int, form.remove_selection))
+                         selected_ids=map(int, request.params.getall('remove_selection')))
 
-    # Add any entries to blacklist, if any in form.domain_name; duplicate entries are silently discarded.
-    elif form.action == "add" and form.domain_name:
+    # Add any entries to blacklist, if any in domain_name; duplicate entries are silently discarded.
+    elif action == "add" and domain_name:
         d.engine.execute("""
             INSERT INTO emailblacklist (domain_name, reason, added_by)
                 SELECT UNNEST(%(domain_name)s), %(reason)s, %(added_by)s
             ON CONFLICT (domain_name) DO NOTHING
-        """, domain_name=form.domain_name.split(), reason=form.reason, added_by=request.userid)
+        """, domain_name=domain_name.split(), reason=request.params.get('reason'), added_by=request.userid)
 
     raise HTTPSeeOther(location="/directorcontrol/emailblacklist")
 

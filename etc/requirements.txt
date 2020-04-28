@@ -7,7 +7,7 @@ mock==2.0.0
 pylibmc==1.6.1
 pyramid==1.10.4
 WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
-WebTest==2.0.34
+WebTest==2.0.35
 pyotp==2.3.0                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
 cryptography==2.9.1           # For Two-Factor Authentication

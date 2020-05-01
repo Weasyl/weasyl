@@ -1006,17 +1006,13 @@ def query_string(query):
     return urllib.urlencode(pairs)
 
 
-_REQUESTS_PROXY = config_read_setting('requests_wrapper', section='proxy')
-_REQUESTS_PROXIES = {} if _REQUESTS_PROXY is None else dict.fromkeys(['http', 'https'], _REQUESTS_PROXY)
-
-
 def _requests_wrapper(func_name):
     func = getattr(requests, func_name)
 
     def wrapper(*a, **kw):
         request = get_current_request()
         try:
-            return func(*a, proxies=_REQUESTS_PROXIES, **kw)
+            return func(*a, **kw)
         except Exception as e:
             request.log_exc(level=logging.DEBUG)
             w = WeasylError('httpError')

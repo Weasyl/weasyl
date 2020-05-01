@@ -275,7 +275,7 @@ def move(userid, form):
         raise WeasylError("InsufficientPermissions")
     # folder with subfolders cannot become a subfolder
     elif (form.folderid and
-          d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s)",
+          d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s AND settings !~ 'h')",
                           parent=form.folderid)):
         raise WeasylError("parentidInvalid")
 

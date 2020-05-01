@@ -27,14 +27,14 @@ setup(
         'alembic==1.4.2',
         'arrow==0.15.2',
         'bcrypt==3.1.7',
-        'dogpile.cache==0.9.0',
+        'dogpile.cache==0.9.1',
         'lxml==4.5.0',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
         'Pillow==6.2.2',
         'psycopg2cffi==2.8.1',
         'pyramid~=1.10.4',
-        'pytz==2019.3',
+        'pytz==2020.1',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
         'sqlalchemy==1.3.16',
         'translationstring==1.3',

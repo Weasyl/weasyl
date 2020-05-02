@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM node:13-alpine AS assets
+FROM node:14-alpine AS assets
 RUN apk add --update sassc
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build

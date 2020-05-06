@@ -83,7 +83,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
 
             $code:
               if 'username' in i:
-                item_user = '<a href="/~' + LOGIN(i['username']) + '" class="username">' + escape_(i['username']) + '</a>'
+                item_user = '<a href="/~' + LOGIN(i['username']) + '" class="username">' + escape_(i['username'], True) + '</a>'
 
               if 'submitid' in i or 'journalid' in i or 'charid' in i or 'updateid' in i:
                 if 'submitid' in i:
@@ -101,7 +101,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
                 if 'title' in i:
                   slug = '' if 'updateid' in i else '/%s' % (SLUG(i['title']),)
                   item_base_url = '/%s/%i%s' % (folder, id, slug)
-                  item_link = '<a href="' + item_base_url + '">' + escape_(i['title']) + '</a>'
+                  item_link = '<a href="' + item_base_url + '">' + escape_(i['title'], True) + '</a>'
                   if 'commentid' in i:
                     comment_url = lambda id: item_base_url + '#cid' + STR(id)
                     if 'replyid' in i:
@@ -111,7 +111,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
                       item_comment = '<a href="' + comment_url(i['commentid']) + '">comment</a>'
 
               if 'ownername' in i:
-                item_ownername = '<a href="/~' + LOGIN(i['ownername']) + '" class="username">' + escape_(i['ownername']) + '</a>'
+                item_ownername = '<a href="/~' + LOGIN(i['ownername']) + '" class="username">' + escape_(i['ownername'], True) + '</a>'
                 if 'commentid' in i and 'replyid' in i:
                   shout_reply = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['commentid']) + '">reply</a>'
                   your_comment = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['replyid']) + '">your comment</a>'

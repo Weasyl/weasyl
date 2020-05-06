@@ -1,4 +1,4 @@
-$def with (profile, userinfo, relationship, journals, latest)
+$def with (profile, userinfo, relationship, journals)
 <div id="journals_stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
   $:{RENDER("common/user_tabs.html", [profile['username'], "journals", profile['show_favorites_tab']])}

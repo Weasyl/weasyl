@@ -5,6 +5,7 @@ import arrow
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
+from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import api
 from weasyl import blocktag
@@ -209,7 +210,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
 
 
 def select_list(userid, rating, limit, otherid):
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
+    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
 
     if userid:
         # filter own content in SFW mode
@@ -229,7 +230,8 @@ def select_list(userid, rating, limit, otherid):
     return [{
         "journalid": i[0],
         "title": i[1],
-        "unixtime": i[2],
+        "created_at": arrow.get(i[2] - UNIXTIME_OFFSET),
+        "content": i[3],
     } for i in d.execute("".join(statement))]
 
 

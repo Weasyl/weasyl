@@ -5,10 +5,39 @@ $def with (profile, userinfo, relationship, journals)
 </div>
 
 <div class="content" id="journals-content">
-  <div class="form wide">
-    <h3>Journals</h3>
+  <div class="constrained text-post-list">
+    $code:
+      avatar = profile['user_media']['avatar'][0]
 
-    $for i in journals:
-      <h4><a href="/journal/${i['journalid']}/${SLUG(i['title'])}">${i['title']}</a></h4>
+      avatar_html = '<img class="text-post-image text-post-image-small" src="{avatar_url_html}" title="{username_html}" alt="{username_html}’s avatar">'.format(
+        avatar_url_html=escape_(avatar['display_url'], True),
+        username_html=escape_(profile['username'], True),
+      )
+
+      last_date = None
+
+    $for journal in journals:
+      $ created = LOCAL_ARROW(journal['created_at'])
+      $ date = created.date()
+      $if date != last_date:
+        $ last_date = date
+        <div class="text-post-group-header">
+          <time datetime="${date.isoformat()}" title="${created.format()}">${created.format(u"MMMM Do, YYYY")}</time>
+        </div>
+
+      <article class="text-post-item">
+        $:{avatar_html}
+
+        <div class="text-post-text">
+          <h4 class="text-post-title">
+            <a href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a>
+          </h4>
+
+          <p class="text-post-excerpt">${MARKDOWN_EXCERPT(journal['content'])}</p>
+        </div>
+      </article>
+
+    $if not journals:
+      <p>No journals to show.</p>
   </div>
 </div>

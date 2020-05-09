@@ -5,6 +5,7 @@ import arrow
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
+from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import api
 from weasyl import blocktag
@@ -208,8 +209,8 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
     return query[::-1] if backid else query
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
+def select_list(userid, rating, limit, otherid):
+    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
 
     if userid:
         # filter own content in SFW mode
@@ -217,30 +218,24 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
             statement.append(" (jo.rating <= %i)" % (rating,))
         else:
             statement.append(" (jo.userid = %i OR jo.rating <= %i)" % (userid, rating))
-        if not otherid:
-            statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
         statement.append(" jo.rating <= %i" % (rating,))
 
-    if otherid:
-        statement.append(
-            " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
-    else:
-        statement.append(" AND jo.settings !~ 'h'")
+    statement.append(
+        " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
     statement.append("ORDER BY jo.journalid DESC LIMIT %i" % limit)
 
-    query = [{
+    return [{
         "journalid": i[0],
         "title": i[1],
-        "unixtime": i[2],
+        "created_at": arrow.get(i[2] - UNIXTIME_OFFSET),
+        "content": i[3],
     } for i in d.execute("".join(statement))]
 
-    return query[::-1] if backid else query
 
-
-def select_latest(userid, rating, otherid=None):
+def select_latest(userid, rating, otherid):
     statement = ["SELECT jo.journalid, jo.title, jo.content, jo.unixtime FROM journal jo WHERE"]
 
     if userid:
@@ -248,15 +243,12 @@ def select_latest(userid, rating, otherid=None):
             statement.append(" (jo.rating <= %i)" % (rating,))
         else:
             statement.append(" (jo.userid = %i OR jo.rating <= %i)" % (userid, rating))
-        if not otherid:
-            statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
         statement.append(" jo.rating <= %i" % (rating,))
 
-    if otherid:
-        statement.append(
-            " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
+    statement.append(
+        " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
     query = d.engine.execute("".join(statement)).first()

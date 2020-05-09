@@ -88,6 +88,7 @@ containers/run \
     --network=wzlnet \
     --name=weasyl-test \
     --tmpfs=/weasyl/testing \
+    "$(containers/mount --writable .pytest_cache)" \
     "$(containers/mount config)" \
     "$(containers/mount weasyl)" \
     "$(containers/mount libweasyl)" \

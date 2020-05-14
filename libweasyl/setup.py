@@ -36,7 +36,7 @@ setup(
         'pyramid~=1.10.4',
         'pytz==2020.1',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.3.16',
+        'sqlalchemy==1.3.17',
         'translationstring==1.3',
         'backports.lzma==0.0.12;python_version<"3.3"',
         'enum34==1.1.6;python_version<"3.4"',
@@ -45,7 +45,7 @@ setup(
         'development': [
             'coverage==5.1',
             'flake8',
-            'pytest==4.6.9',
+            'pytest==4.6.10',
             'tox',
         ],
     },

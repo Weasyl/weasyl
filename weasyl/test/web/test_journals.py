@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 from __future__ import absolute_import
 
 import arrow
@@ -60,6 +62,21 @@ def test_list_guest(app):
     resp = app.get('/journals/journal_test')
     titles = [link.string for link in resp.html.find(id='journals-content').find_all('a')]
     assert titles == [u'Public journal', u'Test journal']
+
+
+@pytest.mark.usefixtures('db')
+def test_list_unicode_username(app):
+    """
+    Test journal lists on profiles with usernames containing non-ASCII
+    characters, which aren’t supposed to exist but do because of
+    a historical bug.
+    """
+    journal_user = db_utils.create_user(username=u'journál_test')
+    db_utils.create_journal(journal_user, title=u'Unícode journal 😊', content=u'A journal and poster username with non-ASCII characters 😊')
+
+    resp = app.get('/journals/journaltest')
+    titles = [link.string for link in resp.html.find(id='journals-content').find_all('a')]
+    assert titles == [u'Unícode journal 😊']
 
 
 @pytest.mark.usefixtures('db', 'journal_user', 'no_csrf')

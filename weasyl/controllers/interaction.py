@@ -13,9 +13,6 @@ from weasyl import (
 @login_required
 @token_checked
 def followuser_(request):
-    if not define.is_vouched_for(request.userid):
-        raise WeasylError("vouchRequired")
-
     form = request.web_input(userid="")
     otherid = define.get_int(form.userid)
 

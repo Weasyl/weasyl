@@ -356,11 +356,11 @@ def vouch_(request):
         target=targetid,
     ).first()
 
+    target_username = define.get_display_name(targetid)
+
     if updated is not None:
         define._get_all_config.invalidate(targetid)
-        emailer.send(updated.email, "Weasyl Account Verified", define.render("email/verified.html"))
-
-    target_username = define.get_display_name(targetid)
+        emailer.send(updated.email, "Weasyl Account Verified", define.render("email/verified.html", [target_username]))
 
     if target_username is None:
         assert updated is None

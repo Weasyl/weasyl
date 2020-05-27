@@ -1,4 +1,4 @@
-$def with (request, profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends)
+$def with (request, profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <section><div id="user-header" class="stage clear">
@@ -28,6 +28,22 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['show_favorites_tab']])}
 
 <div id="user-content" class="content clear">
+  $# only moderators can see the profiles of unverified users, so no need for additional ability-to-vouch checks
+  $# this messes with the spacing, but, again, only moderators can see it. it's hard to fix without redoing the layout.
+  $if is_unverified:
+    <div id="user-mod">
+      <h3>Moderation</h3>
+
+      <p>
+        This account hasn’t been <a href="/help/verification">verified</a> yet, so it’s only visible to staff.
+      </p>
+
+      <form id="error_buttons" method="POST" action="${request.route_path('vouch')}">
+        $:{CSRF()}
+        <input type="hidden" name="targetid" value="${profile['userid']}">
+        <button class="button positive">Vouch for ${profile['username']}</button>
+      </form>
+    </div>
 
   $if(profile['profile_text']):
     <div id="user-profile" class="clear on-side">

@@ -9,8 +9,16 @@ from pyramid.httpexceptions import (
 )
 from pyramid.response import Response
 
-from weasyl import define, index, login, moderation, \
-    profile, resetpassword, two_factor_auth
+from weasyl import (
+    define,
+    emailer,
+    index,
+    login,
+    moderation,
+    profile,
+    resetpassword,
+    two_factor_auth,
+)
 from weasyl.controllers.decorators import (
     disallow_api,
     guest_required,
@@ -342,19 +350,20 @@ def vouch_(request):
 
     targetid = int(request.POST['targetid'])
 
-    result = define.engine.execute(
-        "UPDATE login SET voucher = %(voucher)s WHERE userid = %(target)s AND voucher IS NULL",
+    updated = define.engine.execute(
+        "UPDATE login SET voucher = %(voucher)s WHERE userid = %(target)s AND voucher IS NULL RETURNING email",
         voucher=request.userid,
         target=targetid,
-    )
-
-    if result.rowcount != 0:
-        define._get_all_config.invalidate(targetid)
+    ).first()
 
     target_username = define.get_display_name(targetid)
 
+    if updated is not None:
+        define._get_all_config.invalidate(targetid)
+        emailer.send(updated.email, "Weasyl Account Verified", define.render("email/verified.html", [target_username]))
+
     if target_username is None:
-        assert result.rowcount == 0
+        assert updated is None
         raise WeasylError("Unexpected")
 
     raise HTTPSeeOther(location=request.route_path('profile_tilde', name=define.get_sysname(target_username)))

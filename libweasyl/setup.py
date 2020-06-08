@@ -45,7 +45,7 @@ setup(
         'development': [
             'coverage==5.1',
             'flake8',
-            'pytest==4.6.10',
+            'pytest==4.6.11',
             'tox',
         ],
     },

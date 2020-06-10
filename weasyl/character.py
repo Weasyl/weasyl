@@ -27,6 +27,7 @@ from weasyl.error import PostgresError, WeasylError
 
 
 _MEGABYTE = 1048576
+_MAIN_IMAGE_SIZE_LIMIT = 50 * _MEGABYTE
 
 
 def create(userid, character, friends, tags, thumbfile, submitfile):
@@ -65,7 +66,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     if not submitsize:
         files.clear_temporary(userid)
         raise WeasylError("submitSizeZero")
-    elif submitsize > 10 * _MEGABYTE:
+    elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         files.clear_temporary(userid)
         raise WeasylError("submitSizeExceedsLimit")
     elif thumbsize > 10 * _MEGABYTE:
@@ -139,7 +140,7 @@ def reupload(userid, charid, submitdata):
     submitsize = len(submitdata)
     if not submitsize:
         raise WeasylError("submitSizeZero")
-    elif submitsize > 10 * _MEGABYTE:
+    elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         raise WeasylError("submitSizeExceedsLimit")
 
     # Select character data

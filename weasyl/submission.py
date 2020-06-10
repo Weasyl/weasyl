@@ -41,9 +41,9 @@ from weasyl.error import WeasylError
 _MEGABYTE = 1048576
 
 _LIMITS = {
-    ".jpg": 10 * _MEGABYTE,
-    ".png": 10 * _MEGABYTE,
-    ".gif": 10 * _MEGABYTE,
+    ".jpg": 50 * _MEGABYTE,
+    ".png": 50 * _MEGABYTE,
+    ".gif": 50 * _MEGABYTE,
     ".txt": 2 * _MEGABYTE,
     ".pdf": 10 * _MEGABYTE,
     ".htm": 10 * _MEGABYTE,

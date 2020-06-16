@@ -56,7 +56,12 @@ mkdir -p storage/log
 ### Migrate
 
 ```shell
-containers/run --network=wzlnet "$(containers/mount alembic.ini)" weasyl env WEASYL_STORAGE_ROOT=/tmp .venv/bin/alembic upgrade head
+containers/run \
+    --network=wzlnet \
+    "$(containers/mount alembic.ini)" \
+    "$(containers/mount libweasyl)" \
+    --env=WEASYL_STORAGE_ROOT=/tmp \
+    weasyl .venv/bin/alembic upgrade head
 ```
 
 
@@ -69,6 +74,8 @@ containers/run \
     --env=WEASYL_STORAGE_ROOT=storage \
     "$(containers/mount --writable storage)" \
     "$(containers/mount config)" \
+    "$(containers/mount weasyl)" \
+    "$(containers/mount libweasyl)" \
     weasyl
 ```
 
@@ -81,7 +88,10 @@ containers/run \
     --network=wzlnet \
     --name=weasyl-test \
     --tmpfs=/weasyl/testing \
+    "$(containers/mount --writable .pytest_cache)" \
     "$(containers/mount config)" \
+    "$(containers/mount weasyl)" \
+    "$(containers/mount libweasyl)" \
     --env=WEASYL_TEST_SQLALCHEMY_URL=postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl_test \
     weasyl-test
 ```
@@ -107,7 +117,7 @@ Merging the existing Docker branch should help with some of these.
 - [X] parallel builds
 - [ ] elimination of pypi.weasyl.dev
 - [ ] requirements.txt as constraints file
-- [ ] editable install with bind mount for faster development
+- [X] editable install with bind mount for faster development
 - [ ] single configuration file
 - [ ] scripts for common commands
 - [ ] windows compatibility

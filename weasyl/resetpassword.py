@@ -47,7 +47,7 @@ def _find_reset_target(db, email):
     matches = db.execute(
         "SELECT userid, email, username FROM login"
         " INNER JOIN profile USING (userid)"
-        ' WHERE lower(email COLLATE "C") = %(email)s',
+        ' WHERE lower(email COLLATE "C") = lower(%(email)s COLLATE "C")',
         email=email,
     ).fetchall()
 

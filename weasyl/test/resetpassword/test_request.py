@@ -28,3 +28,19 @@ def test_verify_success_if_valid_information_provided(captured_tokens):
         "email": email_addr,
         "username": username,
     }
+
+
+@pytest.mark.usefixtures('db')
+def test_case_insensitive_local_part(captured_tokens):
+    email_addr = "Test@weasyl.com"
+    username = "test"
+    user_id = db_utils.create_user(username=username, email_addr=email_addr.swapcase())
+    resetpassword.request(email=email_addr)
+
+    pw_reset_token = captured_tokens[email_addr]
+    assert 25 == len(pw_reset_token)
+    assert dict(resetpassword.prepare(pw_reset_token)) == {
+        "userid": user_id,
+        "email": email_addr.swapcase(),
+        "username": username,
+    }

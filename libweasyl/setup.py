@@ -37,7 +37,7 @@ setup(
         'pytz==2020.1',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
         'sqlalchemy==1.3.18',
-        'translationstring==1.3',
+        'translationstring==1.4',
         'backports.lzma==0.0.12;python_version<"3.3"',
         'enum34==1.1.6;python_version<"3.4"',
     ],

@@ -873,7 +873,7 @@ class ProfileSettings(object):
     exceptions if you try to access a setting that has
     not been properly defined!
     """
-    class Setting:
+    class Setting(object):
         def __init__(self, default, typecast):
             self.default = default
             self.typecast = typecast

@@ -48,7 +48,6 @@ ALL_RATINGS = [GENERAL, MATURE, EXPLICIT]
 
 
 CODE_MAP = {rating.code: rating for rating in ALL_RATINGS}
-NAME_MAP = {rating.name: rating for rating in ALL_RATINGS}
 CHARACTER_MAP = {rating.character: rating for rating in ALL_RATINGS}
 CODE_TO_NAME = {rating.code: rating.name for rating in ALL_RATINGS}
 

@@ -14,19 +14,15 @@ class Rating(object):
         self.nice_name = nice_name
         self.block_text = block_text
 
-    @property
-    def name_with_age(self):
-        """ e.g. 'Mature (18+)': Internationalized name plus age restriction """
-
         info = [
             self.minimum_age and "%d+" % (self.minimum_age,),
             self.additional_description
         ]
 
         if any(info):
-            return "%s (%s)" % (self.nice_name, " ".join(filter(bool, info)))
-
-        return self.nice_name
+            self.name_with_age = "%s (%s)" % (self.nice_name, " ".join(filter(bool, info)))
+        else:
+            self.name_with_age = self.nice_name
 
     def __repr__(self):
         return "Rating:" + self.name

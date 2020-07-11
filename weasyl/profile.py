@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import pytz
 import sqlalchemy as sa
-from translationstring import TranslationString as _
 
 from libweasyl import ratings
 from libweasyl import security
@@ -23,31 +22,27 @@ from weasyl.configuration_builder import create_configuration, BoolOption, Confi
 from weasyl.error import WeasylError
 
 
-class ExchangeType:
-    def __init__(self, name_singular, name_plural):
-        self.name_singular = name_singular
-        self.name_plural = name_plural
+class ExchangeType(object):
+    __slots__ = ()
 
 
-EXCHANGE_TYPE_TRADE = ExchangeType("trade", "trades")
-EXCHANGE_TYPE_REQUEST = ExchangeType("request", "requests")
-EXCHANGE_TYPE_COMMISSION = ExchangeType("commission", "commissions")
+EXCHANGE_TYPE_TRADE = ExchangeType()
+EXCHANGE_TYPE_REQUEST = ExchangeType()
+EXCHANGE_TYPE_COMMISSION = ExchangeType()
 
 
-class ExchangeSetting:
-    def __init__(self, code, text):
+class ExchangeSetting(object):
+    __slots__ = ("code",)
+
+    def __init__(self, code):
         self.code = code
-        self.text = text
-
-    def format(self, request_type):
-        return _(self.text.format(type=request_type))
 
 
-EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o", "I am currently accepting {type.name_plural}")
-EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s", "I may sometimes accept {type.name_plural}")
-EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f", "My {type.name_singular} queue is currently filled")
-EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c", "I am not accepting {type.name_plural} right now")
-EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e", "This is not applicable to me")
+EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o")
+EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s")
+EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f")
+EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c")
+EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e")
 
 ALL_EXCHANGE_SETTINGS = [EXCHANGE_SETTING_ACCEPTING, EXCHANGE_SETTING_SOMETIMES,
                          EXCHANGE_SETTING_FULL_QUEUE, EXCHANGE_SETTING_NOT_ACCEPTING,
@@ -878,7 +873,7 @@ class ProfileSettings(object):
     exceptions if you try to access a setting that has
     not been properly defined!
     """
-    class Setting:
+    class Setting(object):
         def __init__(self, default, typecast):
             self.default = default
             self.typecast = typecast

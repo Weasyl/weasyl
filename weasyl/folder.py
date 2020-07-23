@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from collections import defaultdict
+
 import sqlalchemy as sa
 
 from weasyl import define as d
@@ -158,8 +160,6 @@ def select_preview(userid, otherid, rating):
 def select_list(userid, feature):
     assert feature in ("sidebar/all", "drop/all", "api/all")
 
-    result = []
-
     query = d.engine.execute(
         "SELECT folderid, title, parentid FROM folder"
         " WHERE userid = %(user)s AND settings !~ 'h'"
@@ -167,37 +167,36 @@ def select_list(userid, feature):
         user=userid,
     ).fetchall()
 
-    for i, row in enumerate(query):
-        if row.parentid:
-            break
+    folders_by_parentid = defaultdict(list)
 
-        row_folder = {
-            "folderid": row.folderid,
-            "title": row.title,
+    for row in query:
+        folders_by_parentid[row.parentid].append(row)
+
+    result = []
+
+    for top_level_folder in folders_by_parentid[0]:
+        children = folders_by_parentid[top_level_folder.folderid]
+
+        result.append({
+            "folderid": top_level_folder.folderid,
+            "title": top_level_folder.title,
             "subfolder": False,
-        }
-        result.append(row_folder)
+            "haschildren": bool(children),
+        })
 
-        has_children = False
+        for child in children:
+            if feature == "drop/all":
+                title = "%s / %s" % (top_level_folder.title, child.title)
+            else:
+                title = child.title
 
-        for j in range(i + 1, len(query)):
-            if query[j].parentid == row.folderid:
-                has_children = True
-
-                if feature == "drop/all":
-                    title = "%s / %s" % (row.title, query[j].title)
-                else:
-                    title = query[j].title
-
-                result.append({
-                    "folderid": query[j].folderid,
-                    "title": title,
-                    "subfolder": True,
-                    "parentid": query[j].parentid,
-                    "haschildren": False
-                })
-
-        row_folder["haschildren"] = has_children
+            result.append({
+                "folderid": child.folderid,
+                "title": title,
+                "subfolder": True,
+                "haschildren": False,
+                "parentid": child.parentid,
+            })
 
     return result
 

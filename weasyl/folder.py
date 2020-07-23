@@ -186,6 +186,8 @@ def select_list(userid, feature):
                     })
     # Select for dropdown
     else:
+        assert feature in ("drop/all", "api/all")
+
         for i, row in enumerate(query):
             if row.parentid:
                 break
@@ -197,27 +199,26 @@ def select_list(userid, feature):
             }
             result.append(row_folder)
 
-            if feature == "drop/all" or feature == "api/all":
-                has_children = False
+            has_children = False
 
-                for j in range(i + 1, len(query)):
-                    if query[j].parentid == row.folderid:
-                        has_children = True
+            for j in range(i + 1, len(query)):
+                if query[j].parentid == row.folderid:
+                    has_children = True
 
-                        if feature == "drop/all":
-                            title = "%s / %s" % (row.title, query[j].title)
-                        else:
-                            title = query[j].title
+                    if feature == "drop/all":
+                        title = "%s / %s" % (row.title, query[j].title)
+                    else:
+                        title = query[j].title
 
-                        result.append({
-                            "folderid": query[j].folderid,
-                            "title": title,
-                            "subfolder": True,
-                            "parentid": query[j].parentid,
-                            "haschildren": False
-                        })
+                    result.append({
+                        "folderid": query[j].folderid,
+                        "title": title,
+                        "subfolder": True,
+                        "parentid": query[j].parentid,
+                        "haschildren": False
+                    })
 
-                row_folder["haschildren"] = has_children
+            row_folder["haschildren"] = has_children
 
     return result
 

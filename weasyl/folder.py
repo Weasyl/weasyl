@@ -158,17 +158,12 @@ def select_preview(userid, otherid, rating):
 def select_list(userid, feature):
     result = []
 
+    query = d.execute(
+        "SELECT folderid, title, parentid FROM folder WHERE userid = %i AND settings !~ 'h' ORDER BY parentid, title",
+        [userid])
+
     # Select for sidebar
     if feature == "sidebar/all":
-        query = d.execute("""
-            SELECT
-                fd.folderid, fd.title, fd.parentid
-            FROM folder fd
-            WHERE fd.userid = %i
-                AND fd.settings !~ 'h'
-            ORDER BY fd.parentid, fd.title
-        """, [userid])
-
         for i in range(len(query)):
             if query[i][2]:
                 break
@@ -188,10 +183,6 @@ def select_list(userid, feature):
                     })
     # Select for dropdown
     else:
-        query = d.execute(
-            "SELECT folderid, title, parentid FROM folder WHERE userid = %i AND settings !~ 'h' ORDER BY parentid, title",
-            [userid])
-
         for i in range(len(query)):
             if query[i][2]:
                 break

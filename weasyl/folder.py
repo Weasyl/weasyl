@@ -158,38 +158,41 @@ def select_preview(userid, otherid, rating):
 def select_list(userid, feature):
     result = []
 
-    query = d.execute(
-        "SELECT folderid, title, parentid FROM folder WHERE userid = %i AND settings !~ 'h' ORDER BY parentid, title",
-        [userid])
+    query = d.engine.execute(
+        "SELECT folderid, title, parentid FROM folder"
+        " WHERE userid = %(user)s AND settings !~ 'h'"
+        " ORDER BY parentid, title",
+        user=userid,
+    ).fetchall()
 
     # Select for sidebar
     if feature == "sidebar/all":
-        for i in range(len(query)):
-            if query[i][2]:
+        for i, row in enumerate(query):
+            if row.parentid:
                 break
 
             result.append({
-                "folderid": query[i][0],
-                "title": query[i][1],
+                "folderid": row.folderid,
+                "title": row.title,
                 "subfolder": False,
             })
 
             for j in range(i + 1, len(query)):
-                if query[j][2] == query[i][0]:
+                if query[j].parentid == row.folderid:
                     result.append({
-                        "folderid": query[j][0],
-                        "title": query[j][1],
+                        "folderid": query[j].folderid,
+                        "title": query[j].title,
                         "subfolder": True,
                     })
     # Select for dropdown
     else:
-        for i in range(len(query)):
-            if query[i][2]:
+        for i, row in enumerate(query):
+            if row.parentid:
                 break
 
             result.append({
-                "folderid": query[i][0],
-                "title": query[i][1],
+                "folderid": row.folderid,
+                "title": row.title,
                 "subfolder": False,
                 "haschildren": False,
             })
@@ -198,22 +201,22 @@ def select_list(userid, feature):
                 has_children = set()
 
                 for j in range(i + 1, len(query)):
-                    if query[j][2] == query[i][0]:
+                    if query[j].parentid == row.folderid:
                         if feature == "drop/all":
-                            title = "%s / %s" % (query[i][1], query[j][1])
+                            title = "%s / %s" % (row.title, query[j].title)
                         else:
-                            title = query[j][1]
+                            title = query[j].title
 
                         result.append({
-                            "folderid": query[j][0],
+                            "folderid": query[j].folderid,
                             "title": title,
                             "subfolder": True,
-                            "parentid": query[j][2],
+                            "parentid": query[j].parentid,
                             "haschildren": False
                         })
 
-                        if not query[j][2] in has_children:
-                            has_children.add(query[j][2])
+                        if not query[j].parentid in has_children:
+                            has_children.add(query[j].parentid)
 
                 for m in (f for f in result if f["folderid"] in has_children):
                     m["haschildren"] = True

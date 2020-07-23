@@ -175,7 +175,7 @@ def submissions_(request):
         # Recent submissions
         result,
         # Folders
-        folder.select_list(otherid, "sidebar/all"),
+        folder.select_list(otherid),
         # Current folder
         folderid,
     ]))

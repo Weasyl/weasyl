@@ -37,7 +37,7 @@ def submit_visual_get_(request):
 
     return Response(define.webpage(request.userid, "submit/visual.html", [
         # Folders
-        folder.select_list(request.userid, "drop/all"),
+        folder.select_flat(request.userid),
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST if 1000 <= i[0] < 2000],
         profile.get_user_ratings(request.userid),
@@ -91,7 +91,7 @@ def submit_literary_get_(request):
 
     return Response(define.webpage(request.userid, "submit/literary.html", [
         # Folders
-        folder.select_list(request.userid, "drop/all"),
+        folder.select_flat(request.userid),
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST if 2000 <= i[0] < 3000],
         profile.get_user_ratings(request.userid),
@@ -143,7 +143,7 @@ def submit_multimedia_get_(request):
 
     return Response(define.webpage(request.userid, "submit/multimedia.html", [
         # Folders
-        folder.select_list(request.userid, "drop/all"),
+        folder.select_flat(request.userid),
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST if 3000 <= i[0] < 4000],
         profile.get_user_ratings(request.userid),
@@ -495,7 +495,7 @@ def edit_submission_get_(request):
         # Submission detail
         detail,
         # Folders
-        folder.select_list(detail['userid'], "drop/all"),
+        folder.select_flat(detail['userid']),
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST
          if submission_category <= i[0] < submission_category + 1000],

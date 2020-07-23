@@ -157,9 +157,7 @@ def select_preview(userid, otherid, rating):
     return previews
 
 
-def select_list(userid, feature):
-    assert feature in ("sidebar/all", "drop/all", "api/all")
-
+def select_list(userid):
     query = d.engine.execute(
         "SELECT folderid, title, parentid FROM folder"
         " WHERE userid = %(user)s AND settings !~ 'h'"
@@ -170,32 +168,38 @@ def select_list(userid, feature):
     folders_by_parentid = defaultdict(list)
 
     for row in query:
-        folders_by_parentid[row.parentid].append(row)
-
-    result = []
-
-    for top_level_folder in folders_by_parentid[0]:
-        children = folders_by_parentid[top_level_folder.folderid]
-
-        result.append({
-            "folderid": top_level_folder.folderid,
-            "title": top_level_folder.title,
-            "subfolder": False,
-            "haschildren": bool(children),
+        folders_by_parentid[row.parentid].append({
+            "folder_id": row.folderid,
+            "title": row.title,
         })
 
-        for child in children:
-            if feature == "drop/all":
-                title = "%s / %s" % (top_level_folder.title, child.title)
-            else:
-                title = child.title
+    result = folders_by_parentid[0]
 
+    for top_level_folder in result:
+        children = folders_by_parentid.get(top_level_folder.folderid)
+
+        if children:
+            top_level_folder["subfolders"] = children
+
+    return result
+
+
+def select_flat(userid):
+    folders = select_list(userid)
+    result = []
+
+    for f in folders:
+        title = f["title"]
+
+        result.append({
+            "folderid": f["folder_id"],
+            "title": title,
+        })
+
+        for child in f.get("subfolders", ()):
             result.append({
-                "folderid": child.folderid,
-                "title": title,
-                "subfolder": True,
-                "haschildren": False,
-                "parentid": child.parentid,
+                "folderid": child["folder_id"],
+                "title": "%s / %s" % (title, child["title"]),
             })
 
     return result

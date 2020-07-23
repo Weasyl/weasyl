@@ -17,10 +17,9 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       <div class="content sectioned-sidebar">
         <h3>Folders</h3>
         $for i in folders:
-          $if(i['subfolder']):
-            <p style="margin-left:15px;"><a href="/submissions/${username}?folderid=${i['folderid']}"$:{' class="current"' if i['folderid'] == currentfolder else ''}>${i['title']}</a></p>
-          $else:
-            <p><a href="/submissions/${username}?folderid=${i['folderid']}"$:{' class="current"' if i['folderid'] == currentfolder else ''}>${i['title']}</a></p>
+          <p><a href="/submissions/${username}?folderid=${i['folder_id']}"$:{' class="current"' if i['folder_id'] == currentfolder else ''}>${i['title']}</a></p>
+          $for s in i.get('subfolders', ()):
+            <p style="margin-left:15px;"><a href="/submissions/${username}?folderid=${s['folder_id']}"$:{' class="current"' if s['folder_id'] == currentfolder else ''}>${s['title']}</a></p>
       </div>
 
     $if result.query:

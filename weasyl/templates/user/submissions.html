@@ -9,11 +9,6 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
     $ username = LOGIN(profile['username'])
 
-    $if(currentfolder == None):
-      $ folderquery = ""
-    $else:
-      $ folderquery = "&amp;folderid=%i" % currentfolder
-
     $ div_class = ""
     $ grid_class = "thumbnail-grid"
     $if(folders):

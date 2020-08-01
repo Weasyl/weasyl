@@ -96,7 +96,7 @@ def exchange_settings_from_settings_string(settings_string):
 def resolve(userid, otherid, othername):
     """
     Attempts to determine the userid of a specified user; resolves using otherid,
-    othername, and userid (if myself is True), in that order. If no userid can be
+    othername, and userid, in that order. If no userid can be
     resolved, returns 0 instead.
     """
     result = None

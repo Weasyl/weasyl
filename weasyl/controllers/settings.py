@@ -66,11 +66,21 @@ def control_editprofile_put_(request):
     sites = zip(site_names, site_values)
 
     if 'more' in request.params:
-        form = request.params.mixed()
-        form['sorted_user_links'] = [(name, [value]) for name, value in sites]
-        form['settings'] = fcommish + ftrade + frequest
-        form['config'] = request.params.get('profile_display', '')
-        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form], title="Edit Profile", options=["typeahead"]))
+        profile_form = {
+            'username': define.get_display_name(request.userid),
+            'full_name': request.params.get('full_name', ''),
+            'catchphrase': request.params.get('catchphrase', ''),
+            'settings': fcommish + ftrade + frequest,
+            'config': request.params.get('profile_display', ''),
+            'profile_text': request.params.get('profile_text', '')
+        }
+        userinfo_form = {
+            'show_age': request.params.get('show_age', ''),
+            'gender': request.params.get('gender', ''),
+            'country': request.params.get('country', ''),
+            'sorted_user_links': [(name, [value]) for name, value in sites]
+        }
+        return Response(define.webpage(request.userid, "control/edit_profile.html", [profile_form, userinfo_form], title="Edit Profile", options=["typeahead"]))
 
     p = orm.Profile()
     p.full_name = request.params.get('full_name', '')

@@ -3,7 +3,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
 
 <div id="manage-folders-content" class="content">
 
-  <form name="controlcreatefolder" action="/control/createfolder" method="post" class="form skinny">
+  <form id="create-folder" action="/control/createfolder" method="post" class="form skinny">
     $:{CSRF()}
 
     <h3>Create Folder</h3>
@@ -21,7 +21,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <button type="submit" class="button positive" style="float: right;">Create Folder</button>
   </form>
 
-  <form name="controlrenamefolder" action="/control/renamefolder" method="post" class="form skinny">
+  <form id="rename-folder" action="/control/renamefolder" method="post" class="form skinny">
     $:{CSRF()}
 
     <h3>Rename Folder</h3>
@@ -39,7 +39,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <button type="submit" class="button positive" style="float: right;">Rename Folder</button>
   </form>
 
-  <form name="controlmovefolder" action="/control/movefolder" method="post" class="form skinny">
+  <form id="move-folder" action="/control/movefolder" method="post" class="form skinny">
     $:{CSRF()}
 
     <h3>Move Folder</h3>
@@ -61,7 +61,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <button type="submit" class="button positive" style="float: right;">Move Folder</button>
   </form>
 
-  <form name="controlremovefolder" action="/control/removefolder" method="post" class="form skinny">
+  <form id="remove-folder" action="/control/removefolder" method="post" class="form skinny">
     $:{CSRF()}
 
     <h3>Remove Folder</h3>

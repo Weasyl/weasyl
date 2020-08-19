@@ -83,7 +83,15 @@ def search_(request):
             search.COUNT_LIMIT,
         ]))
     elif find:
-        query = search.browse(request.userid, rating, 66, find, cat, backid, nextid)
+        query = search.browse(
+            userid=request.userid,
+            rating=rating,
+            limit=66,
+            find=find,
+            cat=cat,
+            backid=backid,
+            nextid=nextid,
+        )
 
         meta = {
             "find": find,

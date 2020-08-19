@@ -101,6 +101,8 @@ def search_(request):
             0,
         ]))
     else:
+        backid = define.get_int(backid)
+        nextid = define.get_int(nextid)
         page.append(define.render("etc/search.html", [
             # Search method
             {"method": "summary"},
@@ -108,9 +110,33 @@ def search_(request):
             None,
             # Search results
             {
-                "submit": search.browse(request.userid, rating, 22, "submit", cat, backid, nextid),
-                "char": search.browse(request.userid, rating, 22, "char", cat, backid, nextid),
-                "journal": search.browse(request.userid, rating, 22, "journal", cat, backid, nextid),
+                "submit": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="submit",
+                    cat=cat,
+                    backid=backid,
+                    nextid=nextid
+                ),
+                "char": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="char",
+                    cat=cat,
+                    backid=backid,
+                    nextid=nextid
+                ),
+                "journal": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="journal",
+                    cat=cat,
+                    backid=backid,
+                    nextid=nextid
+                ),
             },
         ]))
 

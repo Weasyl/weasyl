@@ -398,9 +398,6 @@ def select(**kwargs):
 
 
 def browse(userid, rating, limit, find, cat, backid, nextid):
-    backid = d.get_int(backid)
-    nextid = d.get_int(nextid)
-
     if find == "char":
         return character.select_list(userid, rating, limit, backid=backid, nextid=nextid)
     elif find == "journal":

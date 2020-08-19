@@ -23,28 +23,33 @@ def index_(request):
 def search_(request):
     rating = define.get_rating(request.userid)
 
-    form = request.web_input(q="", find="", within="", rated=[], cat="", subcat="", backid="", nextid="")
+    q = request.params.get('q')
+    find = request.params.get('find')
+    within = request.params.get('within', '')
+    rated = request.params.getall('rated')
+    cat = request.params.get('cat')
+    subcat = request.params.get('subcat')
+    backid = request.params.get('backid')
+    nextid = request.params.get('nextid')
 
     page = define.common_page_start(request.userid, title="Browse and search")
 
-    if form.q:
-        find = form.find
-
+    if q:
         if find not in ("submit", "char", "journal", "user"):
             find = "submit"
 
-        q = form.q.strip()
+        q = q.strip()
         search_query = search.Query.parse(q, find)
 
         meta = {
             "q": q,
             "find": search_query.find,
-            "within": form.within,
-            "rated": set('gap') & set(form.rated),
-            "cat": int(form.cat) if form.cat else None,
-            "subcat": int(form.subcat) if form.subcat else None,
-            "backid": int(form.backid) if form.backid else None,
-            "nextid": int(form.nextid) if form.nextid else None,
+            "within": within,
+            "rated": set('gap') & set(rated),
+            "cat": int(cat) if cat else None,
+            "subcat": int(subcat) if subcat else None,
+            "backid": int(backid) if backid else None,
+            "nextid": int(nextid) if nextid else None,
         }
 
         if search_query.find == "user":
@@ -77,12 +82,20 @@ def search_(request):
             macro.MACRO_SUBCAT_LIST,
             search.COUNT_LIMIT,
         ]))
-    elif form.find:
-        query = search.browse(request.userid, rating, 66, form)
+    elif find:
+        query = search.browse(
+            userid=request.userid,
+            rating=rating,
+            limit=66,
+            find=find,
+            cat=cat,
+            backid=backid,
+            nextid=nextid,
+        )
 
         meta = {
-            "find": form.find,
-            "cat": int(form.cat) if form.cat else None,
+            "find": find,
+            "cat": int(cat) if cat else None,
         }
 
         page.append(define.render("etc/search.html", [
@@ -96,6 +109,8 @@ def search_(request):
             0,
         ]))
     else:
+        backid = define.get_int(backid)
+        nextid = define.get_int(nextid)
         page.append(define.render("etc/search.html", [
             # Search method
             {"method": "summary"},
@@ -103,9 +118,33 @@ def search_(request):
             None,
             # Search results
             {
-                "submit": search.browse(request.userid, rating, 22, form, find="submit"),
-                "char": search.browse(request.userid, rating, 22, form, find="char"),
-                "journal": search.browse(request.userid, rating, 22, form, find="journal"),
+                "submit": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="submit",
+                    cat=cat,
+                    backid=backid,
+                    nextid=nextid
+                ),
+                "char": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="char",
+                    cat=cat,
+                    backid=backid,
+                    nextid=nextid
+                ),
+                "journal": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="journal",
+                    cat=cat,
+                    backid=backid,
+                    nextid=nextid
+                ),
             },
         ]))
 

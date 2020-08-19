@@ -93,10 +93,10 @@ def exchange_settings_from_settings_string(settings_string):
     }
 
 
-def resolve(userid, otherid, othername, myself=True):
+def resolve(userid, otherid, othername):
     """
     Attempts to determine the userid of a specified user; resolves using otherid,
-    othername, and userid (if myself is True), in that order. If no userid can be
+    othername, and userid, in that order. If no userid can be
     resolved, returns 0 instead.
     """
     result = None
@@ -108,7 +108,7 @@ def resolve(userid, otherid, othername, myself=True):
             return result
     elif othername:
         return d.get_userids([othername])[othername]
-    elif userid and myself:
+    elif userid:
         return userid
 
     return 0
@@ -117,7 +117,7 @@ def resolve(userid, otherid, othername, myself=True):
 @region.cache_on_arguments()
 @d.record_timing
 def resolve_by_login(login):
-    return resolve(None, None, login, False)
+    return resolve(None, None, login)
 
 
 def select_profile(userid, viewer=None):

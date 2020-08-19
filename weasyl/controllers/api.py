@@ -248,29 +248,7 @@ def api_user_view_(request):
     user['login_name'] = d.get_sysname(user['username'])
     user['profile_text'] = markdown(user['profile_text'])
 
-    folders = folder.select_list(otherid, "api/all")
-    if folders:
-        old_folders = folders
-        folders = list()
-        for fldr in (i for i in old_folders if 'parentid' not in i):
-            newfolder = {
-                "folder_id": fldr['folderid'],
-                "title": fldr['title']
-            }
-
-            if fldr['haschildren']:
-                subfolders = list()
-                for sub in (i for i in old_folders if 'parentid' in i and i['parentid'] == fldr['folderid']):
-                    subfolders.append({
-                        "folder_id": sub['folderid'],
-                        "title": sub['title']
-                    })
-
-                newfolder['subfolders'] = subfolders
-
-            folders.append(newfolder)
-
-    user['folders'] = folders
+    user['folders'] = folder.select_list(otherid)
 
     commissions = {
         "details": None,

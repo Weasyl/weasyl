@@ -176,7 +176,7 @@ def select_list(userid):
     result = folders_by_parentid[0]
 
     for top_level_folder in result:
-        children = folders_by_parentid.get(top_level_folder.folderid)
+        children = folders_by_parentid.get(top_level_folder["folder_id"])
 
         if children:
             top_level_folder["subfolders"] = children
@@ -194,12 +194,16 @@ def select_flat(userid):
         result.append({
             "folderid": f["folder_id"],
             "title": title,
+            "subfolder": False,
+            "haschildren": "subfolders" in f,
         })
 
         for child in f.get("subfolders", ()):
             result.append({
                 "folderid": child["folder_id"],
                 "title": "%s / %s" % (title, child["title"]),
+                "subfolder": True,
+                "haschildren": False,
             })
 
     return result

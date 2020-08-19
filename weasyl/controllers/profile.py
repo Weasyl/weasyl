@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from pyramid import httpexceptions
 from pyramid.response import Response
 
+from libweasyl import staff
+
 from weasyl import (
     character, collection, commishinfo, define, favorite, folder,
     followuser, frienduser, journal, macro, media, profile, shout, submission,
@@ -25,8 +27,9 @@ def profile_(request):
         raise WeasylError("userRecordMissing")
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    is_unverified = otherid != request.userid and not define.is_vouched_for(otherid)
 
-    if otherid != request.userid and not define.is_vouched_for(otherid):
+    if is_unverified and request.userid not in staff.MODS:
         can_vouch = request.userid != 0 and define.is_vouched_for(request.userid)
 
         return Response(
@@ -116,6 +119,7 @@ def profile_(request):
         commishinfo.select_list(otherid),
         # Friends
         lambda: frienduser.has_friends(otherid),
+        is_unverified,
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -245,8 +249,6 @@ def journals_(request):
         # Journals list
         # TODO(weykent): use select_user_list
         journal.select_list(request.userid, rating, 250, otherid=otherid),
-        # Latest journal
-        journal.select_latest(request.userid, rating, otherid=otherid),
     ]))
 
     return Response(define.common_page_end(request.userid, page))

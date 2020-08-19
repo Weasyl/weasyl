@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM node:13-alpine AS assets
+FROM node:14-alpine AS assets
 RUN apk add --update sassc
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
@@ -45,11 +45,6 @@ WORKDIR /weasyl-build
 USER build
 COPY etc/requirements.txt requirements.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist -r requirements.txt
-COPY --chown=build:nobody libweasyl libweasyl
-RUN cd libweasyl && python2 setup.py bdist_wheel -d ../dist2
-COPY setup.py setup.py
-COPY weasyl weasyl
-RUN python2 setup.py bdist_wheel -d dist2
 
 
 FROM python:2.7-alpine3.11 AS bdist-pytest
@@ -78,13 +73,14 @@ COPY etc/requirements.txt etc/requirements.txt
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-lxml .venv/bin/pip install --no-deps install-wheels/*
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist .venv/bin/pip install --no-deps install-wheels/*
 
-RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist2,from=bdist [".venv/bin/pip", "install", "--no-deps", \
-    "install-wheels/libweasyl-0.0.0-py2-none-any.whl", \
-    "install-wheels/weasyl-0.0.0-py2-none-any.whl"]
+COPY --chown=weasyl:nobody libweasyl libweasyl
+RUN .venv/bin/pip install --no-deps -e libweasyl
+
+COPY --chown=weasyl:nobody setup.py setup.py
+COPY --chown=weasyl:nobody weasyl weasyl
+RUN .venv/bin/pip install --no-deps -e .
 
 COPY --from=assets /weasyl-build/build build
-
-COPY weasyl/weasyl.tac ./
 
 ARG version
 RUN test -n "$version" && printf '%s\n' "$version" > version.txt
@@ -101,6 +97,6 @@ CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
 FROM package
 ENV WEASYL_APP_ROOT=/weasyl
 ENV WEASYL_WEB_ENDPOINT=tcp:8080
-CMD [".venv/bin/twistd", "--nodaemon", "--python=weasyl.tac", "--pidfile=/tmp/twistd.pid"]
+CMD [".venv/bin/twistd", "--nodaemon", "--python=weasyl/weasyl.tac", "--pidfile=/tmp/twistd.pid"]
 EXPOSE 8080
 STOPSIGNAL SIGINT

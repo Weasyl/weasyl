@@ -101,7 +101,7 @@ def submit_literary_get_(request):
 @login_required
 @token_checked
 def submit_literary_post_(request):
-    form = request.web_input(submitfile="", coverfile="boop", thumbfile="", title="",
+    form = request.web_input(submitfile="", coverfile="", thumbfile="", title="",
                              folderid="", subtype="", rating="", friends="", critique="",
                              content="", tags="", embedlink="")
 

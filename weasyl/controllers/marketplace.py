@@ -17,14 +17,14 @@ def search_(request):
     max_value = request.params.get('max', '')
     currency = request.params.get('currency', '')
 
-    results = commishinfo.select_commissionable(request.userid,
-                                                q,
-                                                commishclass,
-                                                commishinfo.parse_currency(min_value),
-                                                commishinfo.parse_currency(max_value),
-                                                currency,
-                                                offset,
-                                                limit * 2,)
+    results = commishinfo.select_commissionable(userid=request.userid,
+                                                q=q,
+                                                commishclass=commishclass,
+                                                min_price=commishinfo.parse_currency(min_value),
+                                                max_price=commishinfo.parse_currency(max_value),
+                                                currency=currency,
+                                                offset=offset,
+                                                limit=limit * 2)
     rcount = len(results)
     results = results[0:limit]
     media.populate_with_user_media(results)

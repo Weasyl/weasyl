@@ -533,7 +533,7 @@ def control_tagrestrictions_post_(request):
 def manage_folders_(request):
     return Response(define.webpage(request.userid, "manage/folders.html", [
         # Folders dropdown
-        folder.select_list(request.userid, "drop/all"),
+        folder.select_flat(request.userid),
     ], title="Submission Folders"))
 
 

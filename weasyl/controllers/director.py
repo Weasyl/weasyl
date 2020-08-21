@@ -64,6 +64,6 @@ def directorcontrol_globaltagrestrictions_get_(request):
 @director_only
 @token_checked
 def directorcontrol_globaltagrestrictions_post_(request):
-    tags = searchtag.parse_restricted_tags(request.params.get("tags", ''))
+    tags = searchtag.parse_restricted_tags(request.params["tags"])
     searchtag.edit_global_tag_restrictions(request.userid, tags)
     raise HTTPSeeOther(location="/directorcontrol/globaltagrestrictions")

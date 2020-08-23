@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import pytest
 
 from libweasyl.test.common import datadir
-from libweasyl import images, media
+from libweasyl import media
 
 
 def test_fetch_or_create_disk_media_item(staticdir, db):

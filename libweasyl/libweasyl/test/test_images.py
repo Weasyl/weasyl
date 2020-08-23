@@ -51,6 +51,15 @@ def test_image_resize():
     assert image.attributes == {'width': 200, 'height': 200}
 
 
+def test_image_shrink():
+    image_file = datadir.join('1200x6566.png').read(mode='rb')
+    image = images.WeasylImage(string=image_file)
+    assert image.size == (1200, 6566)
+    assert image.attributes == {'width': 1200, 'height': 6566}
+    image.shrink((1000, 1000))
+    assert round((float(image.size[0])/image.size[1])*1000) == round((float(1200)/6566)*1000)
+
+
 def test_image_crop():
     image_file = datadir.join('1200x6566.png').read(mode='rb')
     image = images.WeasylImage(string=image_file)

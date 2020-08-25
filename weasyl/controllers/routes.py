@@ -43,9 +43,6 @@ routes = (
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),
     Route("/signin/2fa-auth", "signin_2fa_auth", {'GET': user.signin_2fa_auth_get_, 'POST': user.signin_2fa_auth_post_}),
-    Route("/signin/unicode-failure", "signin-unicode-failure", {
-        'GET': user.signin_unicode_failure_get_, 'POST': user.signin_unicode_failure_post_
-    }),
     Route("/signout", "signout", user.signout_),
     Route("/signup", "signup", {'GET': user.signup_get_, 'POST': user.signup_post_}),
 

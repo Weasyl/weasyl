@@ -148,18 +148,14 @@ def reset(token, password, passcheck, expect_userid, address):
         )
 
 
-# form
-#   password
-#   passcheck
-
-def force(userid, form):
+def force(userid, password, passcheck):
     from weasyl import login
 
-    if form.password != form.passcheck:
+    if password != passcheck:
         raise WeasylError("passwordMismatch")
-    elif not login.password_secure(form.password):
+    elif not login.password_secure(password):
         raise WeasylError("passwordInsecure")
 
     d.engine.execute("UPDATE login SET force_password_reset = FALSE WHERE userid = %(user)s", user=userid)
-    d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(form.password), user=userid)
+    d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(password), user=userid)
     d._get_all_config.invalidate(userid)

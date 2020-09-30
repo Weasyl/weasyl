@@ -1,4 +1,4 @@
-## Dependencies
+## Dependencies - An Amazing Project
 
 ### A network
 

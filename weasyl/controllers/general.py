@@ -89,8 +89,8 @@ def search_(request):
             limit=66,
             find=find,
             cat=cat,
-            backid=backid,
-            nextid=nextid,
+            backid=define.get_int(backid),
+            nextid=define.get_int(nextid),
         )
 
         meta = {

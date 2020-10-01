@@ -189,5 +189,4 @@ login_errors = {
     "invalid": "The username or password provided was incorrect.",
     "banned": "Your account has been permanently banned.",
     "suspended": "Your account has been temporarily suspended.",
-    "unicode-failure": "Your password was stored poorly. You must reset it using the forgotten password page.",
 }

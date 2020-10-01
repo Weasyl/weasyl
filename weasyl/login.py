@@ -37,13 +37,6 @@ _BANNED_SYSNAMES = frozenset([
 ])
 
 
-def _legacy_plaintext(password):
-    """
-    Returns password stripped of non-ASCII characters, but not of control characters.
-    """
-    return "".join([c for c in password if ord(c) < 128])
-
-
 def clean_display_name(text):
     """
     Process a user's selection of their own username into the username that will be stored.
@@ -156,8 +149,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
     d.metric('increment', 'attemptedlogins')
 
-    unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
-    if not unicode_success and not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), HASHSUM):
+    if not bcrypt.checkpw(password.encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:
@@ -197,12 +189,8 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         else:
             signin(request, USERID, ip_address=ip_address, user_agent=user_agent)
 
-    status = None
-    if not unicode_success:
-        # Oops; the user's password was stored badly, but they did successfully authenticate.
-        status = 'unicode-failure'
     # Either way, authentication succeeded, so return the userid and a status.
-    return USERID, status
+    return USERID, None
 
 
 def passhash(password):
@@ -453,27 +441,6 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
 
     d.serializable_retry(change_username_transaction)
     d._get_display_name.invalidate(target_user)
-
-
-def update_unicode_password(userid, password, password_confirm):
-    if password != password_confirm:
-        raise WeasylError('passwordMismatch')
-    if not password_secure(password):
-        raise WeasylError('passwordInsecure')
-
-    hashpw = d.engine.scalar("""
-        SELECT hashsum FROM authbcrypt WHERE userid = %(userid)s
-    """, userid=userid).encode('utf-8')
-
-    if bcrypt.checkpw(password.encode('utf-8'), hashpw):
-        return
-
-    if not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), hashpw):
-        raise WeasylError('passwordIncorrect')
-
-    d.engine.execute("""
-        UPDATE authbcrypt SET hashsum = %(hashsum)s WHERE userid = %(userid)s
-    """, userid=userid, hashsum=passhash(password))
 
 
 def get_account_verification_token(email=None, username=None):

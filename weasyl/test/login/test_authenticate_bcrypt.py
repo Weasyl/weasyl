@@ -104,18 +104,29 @@ def test_login_succeeds_if_suspension_duration_has_expired():
 
 
 @pytest.mark.usefixtures('db')
-def test_logins_with_unicode_failures_succeed_with_corresponding_status():
-    user_id = db_utils.create_user(password=raw_password, username=user_name)
-    # This hash corresponds to "password"
-    old_2a_bcrypt_hash = '$2a$04$uOBx2JziJoxjq/F88NjQZ.8mRGE8FgLi3q0Rm3QUlBZnhhInXCb9K'
-    d.engine.execute("UPDATE authbcrypt SET hashsum = %(hash)s WHERE userid = %(id)s",
-                     hash=old_2a_bcrypt_hash, id=user_id)
-    result = login.authenticate_bcrypt(user_name, u"passwordé", request=None)
-    assert result == (user_id, 'unicode-failure')
-
-
-@pytest.mark.usefixtures('db')
 def test_login_succeeds_for_valid_username_and_password():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
+    assert result == (user_id, None)
+
+
+@pytest.mark.usefixtures('db')
+def test_unicode_password():
+    user_id = db_utils.create_user(password=u"passwordé", username=user_name)
+    result = login.authenticate_bcrypt(username=user_name, password=u"passwordé", request=None)
+    assert result == (user_id, None)
+    result = login.authenticate_bcrypt(username=user_name, password=u"passworde", request=None)
+    assert result == (0, 'invalid')
+    result = login.authenticate_bcrypt(username=user_name, password=u"password", request=None)
+    assert result == (0, 'invalid')
+
+
+@pytest.mark.usefixtures('db')
+def test_unicode_attempts():
+    user_id = db_utils.create_user(password=u"password", username=user_name)
+    result = login.authenticate_bcrypt(username=user_name, password=u"passwordé", request=None)
+    assert result == (0, 'invalid')
+    result = login.authenticate_bcrypt(username=user_name, password=u"passwörd", request=None)
+    assert result == (0, 'invalid')
+    result = login.authenticate_bcrypt(username=user_name, password=u"password", request=None)
     assert result == (user_id, None)

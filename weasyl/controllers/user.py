@@ -3,10 +3,7 @@ from __future__ import absolute_import
 import urlparse
 
 import arrow
-from pyramid.httpexceptions import (
-    HTTPFound,
-    HTTPSeeOther,
-)
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from weasyl import (
@@ -47,9 +44,7 @@ def signin_post_(request):
 
     logid, logerror = login.authenticate_bcrypt(form.username, form.password, request=request, ip_address=request.client_addr, user_agent=request.user_agent)
 
-    if logid and logerror == 'unicode-failure':
-        raise HTTPSeeOther(location='/signin/unicode-failure')
-    elif logid and logerror is None:
+    if logid and logerror is None:
         if form.sfwmode == "sfw":
             request.set_cookie_on_response("sfwmode", "sfw", 31536000)
         # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
@@ -185,18 +180,6 @@ def signin_2fa_auth_post_(request):
             "etc/signin_2fa_auth.html",
             [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
              "2fa"], title="Sign In - 2FA"))
-
-
-@login_required
-def signin_unicode_failure_get_(request):
-    return Response(define.webpage(request.userid, 'etc/unicode_failure.html'))
-
-
-@login_required
-def signin_unicode_failure_post_(request):
-    form = request.web_input(password='', password_confirm='')
-    login.update_unicode_password(request.userid, form.password, form.password_confirm)
-    raise HTTPFound(location="/", headers=request.response.headers)
 
 
 @login_required

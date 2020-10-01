@@ -82,9 +82,6 @@ def tfa_init_post_(request):
             define.get_display_name(request.userid),
             "password"
         ], title="Enable 2FA: Step 1"))
-    # Unlikely that this block will get triggered, but just to be safe, check for it
-    elif status == "unicode-failure":
-        raise HTTPSeeOther(location='/signin/unicode-failure')
     # The user has authenticated, so continue with the initialization process.
     else:
         tfa_secret, tfa_qrcode = tfa.init(request.userid)

@@ -60,7 +60,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
     # Check invalid content
     if not content:
         raise WeasylError("commentInvalid")
-    elif not target_user or not d.is_vouched_for(target_user):
+    elif not target_user or (not d.is_vouched_for(target_user) and not staffnotes):
         raise WeasylError("Unexpected")
 
     # Determine parent userid

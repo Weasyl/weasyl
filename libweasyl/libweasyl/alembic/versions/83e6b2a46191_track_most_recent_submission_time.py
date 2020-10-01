@@ -31,4 +31,3 @@ def upgrade():
 
 def downgrade():
     op.drop_column('profile', 'latest_submission_time')
-    pass

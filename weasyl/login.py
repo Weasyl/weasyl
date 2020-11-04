@@ -283,9 +283,12 @@ def create(form):
         #   let the already registered user know this via email (perhaps they forgot their username/password)
         query_username_login = d.engine.scalar("SELECT login_name FROM login WHERE email = %(email)s", email=email)
         query_username_logincreate = d.engine.scalar("SELECT login_name FROM logincreate WHERE email = %(email)s", email=email)
-        emailer.send(email, "Weasyl Account Creation - Account Already Exists", d.render(
-            "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
-
+        if query_username_login:
+            emailer.send(email, "Weasyl Account Creation - Account Already Exists", d.render(
+                "email/email_in_use_account_creation.html", [query_username_login]))
+        else:
+            emailer.send(email, "Weasyl Account Creation - Account Already Exists", d.render(
+                "email/email_in_use_account_creation_in_progress.html", [token, query_username_logincreate]))
 
 def verify(token, ip_address=None):
     lo = d.meta.tables["login"]

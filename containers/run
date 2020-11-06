@@ -7,4 +7,5 @@ exec docker run --rm -it \
     --user="$UID:$(id -g)" \
     --read-only \
     --init \
+    --tmpfs=/tmp \
     "$@"

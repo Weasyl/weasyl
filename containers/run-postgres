@@ -7,7 +7,6 @@ exec containers/run \
     --network=wzlnet \
     --name=weasyl-database \
     "$(containers/mount --writable containers/data /var/lib/postgresql/data)" \
-    --tmpfs=/tmp \
     --tmpfs=/run/postgresql \
     --env=POSTGRES_HOST_AUTH_METHOD=trust \
     --env=POSTGRES_USER=weasyl \

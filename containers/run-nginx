@@ -9,8 +9,8 @@ containers/run \
     "$(containers/mount containers/nginx.conf /etc/nginx/nginx.conf)" \
     "$(containers/mount weasyl-web/build /weasyl/build)" \
     "$(containers/mount storage/static /weasyl/static)" \
-    --tmpfs=/var/cache/nginx \
-    --tmpfs=/run \
+    --tmpfs=/var/cache/nginx:uid="$UID" \
+    --tmpfs=/run:uid="$UID" \
     --publish=127.0.0.1:80:8080/tcp \
     nginx:mainline-alpine
 docker stop weasyl-nginx

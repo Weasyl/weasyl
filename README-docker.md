@@ -22,7 +22,7 @@ containers/run-postgres
 containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE EXTENSION hstore'
 containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE DATABASE weasyl_test'
 wget https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz
-< weasyl-latest-staff.sql.xz | unxz | containers/run --tty=false --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl
+< weasyl-latest-staff.sql.xz unxz | containers/run --tty=false --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl
 ```
 
 

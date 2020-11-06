@@ -1,6 +1,5 @@
 #!/bin/sh
-set -euo pipefail
-
+set -eu
 exec docker run --rm -it \
     `#--runtime=runsc` \
     --security-opt=no-new-privileges \

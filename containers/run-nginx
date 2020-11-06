@@ -1,5 +1,5 @@
 #!/bin/sh
-set -euo pipefail
+set -eu
 containers/run \
     --rm=false \
     --restart=on-failure \

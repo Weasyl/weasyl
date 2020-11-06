@@ -1,5 +1,5 @@
 #!/bin/sh
-set -euo pipefail
+set -eu
 
 # The working directory, pre-escaped for use in a quoted CSV field.
 csv_pwd=$(printf '%s' "$PWD" | sed 's/"/""/g')

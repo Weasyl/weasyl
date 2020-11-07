@@ -14,6 +14,8 @@ Note that these scripts **cannot** be run as root or they will fail. If interact
 sudo usermod -aG docker $(whoami)
 ```
 
+Note also that the scripts must be run with the bash shell, however the shebang in the scripts is `/bin/sh`. On some systems, such as Ubuntu, this is a symbolic link to the dash shell, not the bash shell. If this is the case, `/bin/sh` must be linked to `/bin/bash` while the scripts are being used.
+
 #### Setting Up the `/etc/hosts` File
 
 To access the Weasyl site once the Docker containers have been created, the following line must be added to the `/etc/hosts` file on the build machine.

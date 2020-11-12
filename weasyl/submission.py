@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division
 
 import urlparse
-from io import BytesIO
 
 import arrow
 import sqlalchemy as sa
@@ -10,7 +9,6 @@ from libweasyl.cache import region
 from libweasyl import (
     html,
     images,
-    images_new,
     ratings,
     staff,
     text,
@@ -27,7 +25,6 @@ from weasyl import files
 from weasyl import folder
 from weasyl import frienduser
 from weasyl import ignoreuser
-from weasyl import image
 from weasyl import macro as m
 from weasyl import media
 from weasyl import orm
@@ -131,48 +128,45 @@ def create_visual(userid, submission,
     elif thumbsize > 10 * _MEGABYTE:
         raise WeasylError("thumbSizeExceedsLimit")
 
-    im = image.from_string(submitfile)
-    submitextension = image.image_extension(im)
+    im = images.WeasylImage(string=submitfile)
+    submitextension = im.image_extension
     if submitextension not in [".jpg", ".png", ".gif"]:
         raise WeasylError("submitType")
     if _limit(submitsize, submitextension):
         raise WeasylError("submitSizeExceedsLimit")
 
-    submit_file_type = submitextension.lstrip('.')
     submit_media_item = orm.MediaItem.fetch_or_create(
-        submitfile, file_type=submit_file_type, im=im)
+        submitfile, file_type=im.file_format, attributes=im.attributes)
     check_for_duplicate_media(userid, submit_media_item.mediaid)
     cover_media_item = submit_media_item.ensure_cover_image(im)
 
     # Thumbnail stuff.
     # Always create a 'generated' thumbnail from the source image.
-    with BytesIO(submitfile) as buf:
-        thumbnail_formats = images_new.get_thumbnail(buf)
-
-    thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
+    thumbnail = images.WeasylImage(string=submitfile)
+    thumbnail.get_thumbnail()
     thumb_generated_media_item = orm.MediaItem.fetch_or_create(
-        thumb_generated,
-        file_type=thumb_generated_file_type,
-        attributes=thumb_generated_attributes,
+        thumbnail.to_buffer(),
+        file_type=thumbnail.file_format,
+        attributes=thumbnail.attributes,
     )
 
-    if thumbnail_formats.webp is None:
+    if thumbnail.webp is None:
         thumb_generated_media_item_webp = None
     else:
-        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
         thumb_generated_media_item_webp = orm.MediaItem.fetch_or_create(
-            thumb_generated,
-            file_type=thumb_generated_file_type,
-            attributes=thumb_generated_attributes,
+            thumbnail.webp,
+            file_type='webp',
+            attributes=thumbnail.attributes,
         )
 
     # If requested, also create a 'custom' thumbnail.
     thumb_media_item = media.make_cover_media_item(thumbfile)
     if thumb_media_item:
-        thumb_custom = images.make_thumbnail(image.from_string(thumbfile))
+        thumb_im = images.WeasylImage(string=thumbfile)
+        thumb_im.get_thumbnail()
         thumb_custom_media_item = orm.MediaItem.fetch_or_create(
-            thumb_custom.to_buffer(format=submit_file_type), file_type=submit_file_type,
-            im=thumb_custom)
+            thumb_im.to_buffer(), file_type=thumb_im.file_format,
+            attributes=thumb_im.attributes)
 
     # Assign settings
     settings = []
@@ -375,16 +369,15 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             thumb_url = embed.thumbnail(embedlink)
             if thumb_url:
                 resp = d.http_get(thumb_url, timeout=5)
-                im = image.from_string(resp.content)
+                im = images.WeasylImage(string=resp.content)
     if not im and (thumbsize or coversize):
-        im = image.from_string(thumbfile or coverfile)
+        im = images.WeasylImage(string=thumbfile or coverfile)
     if im:
-        tempthumb = images.make_thumbnail(im)
-        tempthumb_type = images.image_file_type(tempthumb)
+        im.get_thumbnail()
         tempthumb_media_item = orm.MediaItem.fetch_or_create(
-            tempthumb.to_buffer(format=tempthumb_type),
-            file_type=tempthumb_type,
-            im=tempthumb)
+            im.to_buffer(),
+            file_type=im.file_format,
+            attributes=im.attributes)
 
     # Assign settings
     settings = []
@@ -478,20 +471,20 @@ def reupload(userid, submitid, submitfile):
     submit_file_type = submitextension.lstrip('.')
     im = None
     if submit_file_type in {'jpg', 'png', 'gif'}:
-        im = image.from_string(submitfile)
+        im = images.WeasylImage(string=submitfile)
     submit_media_item = orm.MediaItem.fetch_or_create(
-        submitfile, file_type=submit_file_type, im=im)
+        im.to_buffer(), file_type=submit_file_type, attributes=im.attributes)
     check_for_duplicate_media(userid, submit_media_item.mediaid)
     orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
 
     if subcat == m.ART_SUBMISSION_CATEGORY:
         cover_media_item = submit_media_item.ensure_cover_image(im)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
-        generated_thumb = images.make_thumbnail(im)
+        im.get_thumbnail()
         generated_thumb_media_item = orm.MediaItem.fetch_or_create(
-            generated_thumb.to_buffer(format=images.image_file_type(generated_thumb)),
-            file_type=submit_file_type,
-            im=generated_thumb)
+            im.to_buffer(),
+            file_type=im.file_format,
+            attributes=im.attributes)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
         d.engine.execute(
             "UPDATE submission SET image_representations = NULL WHERE submitid = %(id)s",

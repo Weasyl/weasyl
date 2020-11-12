@@ -1,11 +1,9 @@
 """
 File manipulation and detection.
 """
-
 import errno
 import os
 
-from sanpera.exception import SanperaError
 
 from libweasyl.constants import Category
 from libweasyl.exceptions import InvalidFileFormat, UnknownFileFormat
@@ -94,15 +92,13 @@ def file_type_for_category(data, category):
     """
     if category == Category.visual:
         try:
-            im = images.from_buffer(data)
-        except SanperaError:
+            im = images.WeasylImage(string=data)
+        except IOError:
             raise UnknownFileFormat('The image data provided could not be decoded.')
-        fmt = im.original_format.decode()
-        if fmt == u'JPEG':
-            fmt = u'JPG'
-        if fmt not in {u'GIF', u'JPG', u'PNG'}:
+        fmt = im.file_format if im.file_format else None
+        if fmt not in {'gif', 'png', 'jpg'}:
             raise InvalidFileFormat('Image files must be in the GIF, JPG, or PNG formats.')
-        return im, str(fmt.lower())
+        return im, fmt
     elif category == Category.literary:
         if data.startswith(b'%PDF'):
             return None, 'pdf'

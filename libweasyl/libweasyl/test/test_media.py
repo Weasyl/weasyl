@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import pytest
 
 from libweasyl.test.common import datadir
-from libweasyl import images, media
+from libweasyl import media
 
 
 def test_fetch_or_create_disk_media_item(staticdir, db):
@@ -27,28 +27,6 @@ def test_fetch_or_create_disk_media_item_with_attributes(db):
     data = datadir.join('1200x6566.png').read(mode='rb')
     item = media.MediaItem.fetch_or_create(data, file_type='png', attributes={'spam': 'eggs'})
     assert item.attributes == {'spam': 'eggs'}
-
-
-def test_fetch_or_create_disk_media_item_with_image(db):
-    """
-    An image can be passed in, which pulls out width/height attributes and
-    autodetects the file type.
-    """
-    data = datadir.join('1200x6566.png').read(mode='rb')
-    im = images.from_buffer(data)
-    item = media.MediaItem.fetch_or_create(data, im=im)
-    assert item.file_type == 'png'
-    assert item.attributes == {'width': 1200, 'height': 6566}
-
-
-def test_fetch_or_create_disk_media_item_with_image_and_attributes(db):
-    """
-    Passing an image and attributes merges the two sets of attributes.
-    """
-    data = datadir.join('1200x6566.png').read(mode='rb')
-    im = images.from_buffer(data)
-    item = media.MediaItem.fetch_or_create(data, file_type='png', im=im, attributes={'spam': 'eggs'})
-    assert item.attributes == {'spam': 'eggs', 'width': 1200, 'height': 6566}
 
 
 def test_fetch_or_create_disk_media_item_fetches_extant_items(db):

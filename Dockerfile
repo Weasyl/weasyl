@@ -19,7 +19,8 @@ RUN apk add --update \
 RUN adduser -S build -h /weasyl-build -u 100
 WORKDIR /weasyl-build
 USER build
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist lxml==4.5.0
+COPY requirements/lxml.txt lxml.txt
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist -r lxml.txt
 
 
 FROM python:2.7-alpine3.11 AS bdist

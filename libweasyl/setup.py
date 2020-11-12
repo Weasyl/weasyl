@@ -40,12 +40,4 @@ setup(
         'backports.lzma==0.0.12;python_version<"3.3"',
         'enum34==1.1.6;python_version<"3.4"',
     ],
-    extras_require={
-        'development': [
-            'coverage==5.3',
-            'flake8',
-            'pytest==4.6.11',
-            'tox',
-        ],
-    },
 )

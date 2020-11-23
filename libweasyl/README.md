@@ -4,8 +4,6 @@ Welcome to libweasyl
 `libweasyl` is a library of functionality and database models that underpins
 much of [weasyl](https://github.com/weasyl/weasyl) and its one-off scripts.
 
-[![ci image]][ci]
-
 
 Setup
 -----
@@ -37,7 +35,3 @@ Style-checks:
     $ make check         # checks uncommitted changes. Runs pre-commit
     $ make check-all     # checks entire codebase
     $ make check-commit  # checks most recent commit
-
-
-  [ci image]: https://api.travis-ci.org/Weasyl/libweasyl.svg?branch=master
-  [ci]: https://travis-ci.org/Weasyl/libweasyl

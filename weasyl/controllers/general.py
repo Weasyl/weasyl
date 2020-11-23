@@ -15,7 +15,7 @@ from weasyl import comment, define, index, macro, search, profile, submission
 
 # General browsing functions
 def index_(request):
-    page = define.common_page_start(request.userid, title="Home")
+    page = define.common_page_start(request.userid, title="Home", canonical_url="/")
     page.append(define.render("etc/index.html", index.template_fields(request.userid)))
     return Response(define.common_page_end(request.userid, page))
 

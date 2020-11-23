@@ -792,7 +792,7 @@ def manage_alias_post_(request):
 @token_checked
 @disallow_api
 def sfw_toggle_(request):
-    form = request.web_input(redirect="/index")
+    form = request.web_input(redirect="/")
 
     currentstate = request.cookies.get('sfwmode', "nsfw")
     newstate = "sfw" if currentstate == "nsfw" else "nsfw"

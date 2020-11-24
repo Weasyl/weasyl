@@ -27,6 +27,20 @@ updates:
     - "< 18.1.1"
     - ">= 18.1.0.a"
 - package-ecosystem: pip
+  directory: "/requirements"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: pytest
+    versions:
+    - ">= 5.a"
+    - "< 6"
+  - dependency-name: pytest
+    versions:
+    - ">= 6.a"
+    - "< 7"
+- package-ecosystem: pip
   directory: "/libweasyl"
   schedule:
     interval: daily
@@ -56,11 +70,3 @@ updates:
     versions:
     - ">= 8.a"
     - "< 9"
-  - dependency-name: pytest
-    versions:
-    - ">= 5.a"
-    - "< 6"
-  - dependency-name: pytest
-    versions:
-    - ">= 6.a"
-    - "< 7"

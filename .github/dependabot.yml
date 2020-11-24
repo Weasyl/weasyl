@@ -1,0 +1,66 @@
+version: 2
+updates:
+- package-ecosystem: pip
+  directory: "/etc"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: mock
+    versions:
+    - "> 2.0.0"
+  - dependency-name: pillow
+    versions:
+    - ">= 7.a"
+    - "< 8"
+  - dependency-name: publicsuffixlist
+    versions:
+    - "> 0.6.13"
+  - dependency-name: pyotp
+    versions:
+    - "> 2.3.0"
+  - dependency-name: qrcodegen
+    versions:
+    - "> 1.2.0"
+  - dependency-name: service-identity
+    versions:
+    - "< 18.1.1"
+    - ">= 18.1.0.a"
+- package-ecosystem: pip
+  directory: "/libweasyl"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: alembic
+    versions:
+    - "< 1.0.4"
+    - ">= 1.0.3.a"
+  - dependency-name: bcrypt
+    versions:
+    - ">= 3.2.a"
+    - "< 3.3"
+  - dependency-name: dogpile-cache
+    versions:
+    - ">= 1.a"
+    - "< 2"
+  - dependency-name: misaka
+    versions:
+    - ">= 2.a"
+    - "< 3"
+  - dependency-name: pillow
+    versions:
+    - ">= 7.a"
+    - "< 8"
+  - dependency-name: pillow
+    versions:
+    - ">= 8.a"
+    - "< 9"
+  - dependency-name: pytest
+    versions:
+    - ">= 5.a"
+    - "< 6"
+  - dependency-name: pytest
+    versions:
+    - ">= 6.a"
+    - "< 7"

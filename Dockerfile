@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:experimental
-FROM node:14-alpine AS assets
+FROM node:15-alpine AS assets
 RUN apk add --update sassc
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
 USER node
 COPY package.json package-lock.json ./
-RUN npm install --ignore-scripts
+RUN npm install --no-save --ignore-scripts
 COPY build.js build.js
 COPY assets assets
 RUN node build.js

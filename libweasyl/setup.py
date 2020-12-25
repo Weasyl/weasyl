@@ -34,7 +34,7 @@ setup(
         'Pillow==6.2.2',
         'psycopg2cffi==2.8.1',
         'pyramid~=1.10.4',
-        'pytz==2020.4',
+        'pytz==2020.5',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
         'sqlalchemy==1.3.20',
         'backports.lzma==0.0.12;python_version<"3.3"',

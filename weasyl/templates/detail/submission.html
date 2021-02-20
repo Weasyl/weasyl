@@ -89,15 +89,12 @@ $code:
     </div>
 
   $elif submission['file_type'] == "swf":
-    <!-- SHOCKWAVE FLASH -->
-    <div id="detail-flash" data-flash-url="${submission['display_url']}"
-         data-flash-width="${submission['attributes'].get('width', 550)}"
-         data-flash-height="${submission['attributes'].get('height', 400)}">
+    <div id="detail-flash">
       <a href="${submission['display_url']}">
         $if cover:
           <img src="${cover['display_url']}" alt="" />
         <p>
-          View Shockwave Flash Animation
+          Download Flash Animation
         </p>
       </a>
     </div>

@@ -37,7 +37,7 @@ dhclient eth0
 
 apt-get -y install \
     git-core libffi-dev libmagickcore-dev libpam-systemd libssl-dev \
-    libxml2-dev libxslt-dev memcached nginx pkg-config liblzma-dev \
+    libxml2-dev libxslt-dev memcached nginx pkg-config \
     python-dev python-virtualenv sassc
 
 # Assure that nginx attempts restart if it can't immediately use its proxy host at startup.

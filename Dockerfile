@@ -29,7 +29,6 @@ FROM python:2.7-alpine3.11 AS bdist
 # libffi-dev, openssl-dev: cryptography
 # libmemcached-dev: pylibmc
 # postgresql-dev: psycopg2cffi
-# xz-dev: backports.lzma
 RUN apk add --update \
     musl-dev gcc make \
     imagemagick6-dev \
@@ -39,7 +38,6 @@ RUN apk add --update \
     libwebp-dev \
     openssl-dev \
     postgresql-dev \
-    xz-dev \
     zlib-dev
 RUN adduser -S build -h /weasyl-build -u 100
 WORKDIR /weasyl-build

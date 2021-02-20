@@ -2,7 +2,6 @@ from __future__ import division
 
 import collections
 import hashlib
-from io import BytesIO
 import os
 
 from sqlalchemy.orm import relationship, foreign, remote, joinedload
@@ -11,7 +10,7 @@ from libweasyl.files import fanout, makedirs_exist_ok
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
-from libweasyl import flash, images
+from libweasyl import images
 
 
 class MediaItem(Base):
@@ -31,8 +30,6 @@ class MediaItem(Base):
                 raise ValueError('a file type is required')
             if im is not None:
                 attributes.update({'width': im.size.width, 'height': im.size.height})
-            elif file_type == 'swf':
-                attributes.update(flash.parse_flash_header(BytesIO(data)))
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
 
             # Write our file to disk

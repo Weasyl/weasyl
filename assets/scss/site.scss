@@ -3123,20 +3123,6 @@ img + #detail-art-text {
 #detail-flash a {
     color: #fff;
     }
-#flash-container {
-    position: relative;
-    }
-#flash-container > * {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    }
-#flash-container embed {
-    width: 100%;
-    height: 100%;
-    }
 
 #detail-embed, #detail-embed iframe {
     max-width: 100%;

@@ -28,24 +28,16 @@ setup(
         'arrow==0.15.2',
         'bcrypt==3.1.7',
         'dogpile.cache==0.9.2',
-        'lxml==4.5.2',
+        'lxml==4.6.2',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
         'Pillow==6.2.2',
         'psycopg2cffi==2.8.1',
         'pyramid~=1.10.4',
-        'pytz==2020.1',
+        'pytz==2020.4',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.3.19',
+        'sqlalchemy==1.3.20',
         'backports.lzma==0.0.12;python_version<"3.3"',
         'enum34==1.1.6;python_version<"3.4"',
     ],
-    extras_require={
-        'development': [
-            'coverage==5.3',
-            'flake8',
-            'pytest==4.6.11',
-            'tox',
-        ],
-    },
 )

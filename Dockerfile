@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:experimental
-FROM node:14-alpine AS assets
+FROM node:15-alpine AS assets
 RUN apk add --update sassc
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
 USER node
 COPY package.json package-lock.json ./
-RUN npm install --ignore-scripts
+RUN npm install --no-save --ignore-scripts
 COPY build.js build.js
 COPY assets assets
 RUN node build.js
@@ -19,7 +19,8 @@ RUN apk add --update \
 RUN adduser -S build -h /weasyl-build -u 100
 WORKDIR /weasyl-build
 USER build
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist lxml==4.5.0
+COPY requirements/lxml.txt lxml.txt
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist -r lxml.txt
 
 
 FROM python:2.7-alpine3.11 AS bdist

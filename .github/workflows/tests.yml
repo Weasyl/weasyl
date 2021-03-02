@@ -1,0 +1,87 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/weasyl/ci-base-image@sha256:bd39302290fec24f463cfc9c1d2068247fd98a003e9f7e3cca1ed9e5e08b1d17
+      options: --user 1001
+
+    services:
+      weasyl-database:
+        image: postgres:9.6
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_USER: weasyl
+          POSTGRES_DB: weasyl_test
+        # probably ready by the time the tests run anyway; no need to add latency
+        #options: >-
+        #  --health-cmd pg_isready
+        #  --health-interval 10s
+        #  --health-timeout 5s
+        #  --health-retries 5
+
+      weasyl-memcached:
+        image: memcached:1.5-alpine
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: cache-${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            cache-${{ runner.os }}-npm-
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: cache-${{ runner.os }}-pip-${{ hashFiles('etc/requirements.txt', 'requirements/test.txt', 'requirements/lxml.txt') }}
+          restore-keys: |
+            cache-${{ runner.os }}-pip-
+
+      - name: Create virtualenv
+        run: virtualenv -p python2 .venv
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install pip dependencies
+        run: .venv/bin/pip install -r etc/requirements.txt -r requirements/lxml.txt -r requirements/test.txt
+
+      - name: Install libweasyl
+        run: .venv/bin/pip install --no-deps -e libweasyl
+
+      - name: Install Weasyl
+        run: .venv/bin/pip install --no-deps -e .
+
+      - name: Configure Weasyl
+        run: |
+          cp ci/site.config.txt config/
+          cp config/weasyl-staff.example.py config/weasyl-staff.py
+          printf %.8s "$GITHUB_SHA" > version.txt
+
+      - name: Build assets
+        run: node build.js
+
+      - name: Test libweasyl
+        env:
+          WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl_test
+        run: .venv/bin/pytest --cov=libweasyl --cov=weasyl --cov-report= libweasyl.test libweasyl.models.test
+
+      - name: Test weasyl
+        env:
+          WEASYL_APP_ROOT: .
+          WEASYL_STORAGE_ROOT: testing
+        run: .venv/bin/pytest --cov-append --cov=libweasyl --cov=weasyl --cov-report=xml weasyl.test
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml

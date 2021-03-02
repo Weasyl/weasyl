@@ -710,18 +710,18 @@
             return allowedClasses.indexOf(class_) !== -1;
         }
 
-        function defang(node) {
+        function defang(node, isBody) {
             var i;
 
             for (i = node.childNodes.length; i--;) {
                 var child = node.childNodes[i];
 
                 if (child.nodeType === 1) {
-                    defang(child);
+                    defang(child, false);
                 }
             }
 
-            if (allowedTags.indexOf(node.nodeName.toLowerCase()) === -1) {
+            if (!isBody && allowedTags.indexOf(node.nodeName.toLowerCase()) === -1) {
                 while (node.childNodes.length) {
                     node.parentNode.insertBefore(node.firstChild, node);
                 }
@@ -954,11 +954,11 @@
 
     function renderMarkdown(content, container) {
         var markdown = marked(content, markdownOptions);
-        var fragment = document.createElement('div');
-        fragment.innerHTML = markdown;
+        var sanitizeDocument = new DOMParser().parseFromString(markdown, 'text/html');
+        var fragment = sanitizeDocument.body;
 
         weasylMarkdown(fragment);
-        defang(fragment);
+        defang(fragment, true);
 
         while (fragment.childNodes.length) {
             container.appendChild(fragment.firstChild);

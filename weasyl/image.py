@@ -99,7 +99,6 @@ def resize(filename, width, height, destination=None, animate=False):
     if not image_extension(im):
         raise WeasylError("FileType")
 
-    files.ensure_file_directory(filename)
     im = correct_image_and_call(_resize, im, width, height)
     if im is not None:
         im.write(destination)

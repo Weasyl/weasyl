@@ -90,6 +90,7 @@ $code:
 
   $elif submission['file_type'] == "swf":
     <!-- SHOCKWAVE FLASH -->
+    <script src="${resource_path('js/ruffle.js')}"></script>
     <div id="detail-flash" data-flash-url="${submission['display_url']}"
          data-flash-width="${submission['attributes'].get('width', 550)}"
          data-flash-height="${submission['attributes'].get('height', 400)}">

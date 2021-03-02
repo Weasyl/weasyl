@@ -60,6 +60,16 @@ const getShortDigest = digest => {
 const addFilenameSuffix = (relativePath, suffix) => {
     const pathInfo = path.parse(relativePath);
 
+     // Don't revsuffix Ruffle assets; the .js hardcodes the .wasm filename
+     // Look, it's dirty, but I can't figure out the way to properly exclude a subdirectory ~Kyra
+     if (pathInfo.name.includes("ruffle") || pathInfo.ext.includes("wasm")) {
+        return path.format({
+            dir: pathInfo.dir,
+            name: pathInfo.name,
+            ext: pathInfo.ext,
+        });
+    }
+
     return path.format({
         dir: pathInfo.dir,
         name: pathInfo.name + '-' + suffix,

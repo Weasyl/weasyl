@@ -10,7 +10,7 @@ $def with (profile, userinfo, relationship, myself, shouts, feature)
       $# open reports should come first in the list
       <strong>Open:</strong>
       <em>${"0" if 'Open' not in userinfo['reportstats'] else userinfo['reportstats']['Open']}</em> |
-      $for closuretype, reportcount in userinfo['reportstats'].iteritems():
+      $for closuretype, reportcount in userinfo['reportstats'].items():
         $if closuretype is not 'Open':
           <strong>${closuretype}:</strong>
           <em>${reportcount}</em> |

@@ -230,7 +230,7 @@ SOCIAL_SITES = {
     },
 }
 
-SOCIAL_SITES_BY_NAME = {v['name']: v for v in SOCIAL_SITES.itervalues()}
+SOCIAL_SITES_BY_NAME = {v['name']: v for v in SOCIAL_SITES.values()}
 
 
 ART_SUBMISSION_CATEGORY = 1000

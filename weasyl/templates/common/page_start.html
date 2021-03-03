@@ -36,10 +36,10 @@ $code:
   $if 'twitter_card' in extended_options:
     <meta name="twitter:site" content="@weasyl" />
     <meta name="twitter:domain" content="weasyl.com" />
-    $for k, v in extended_options['twitter_card'].iteritems():
+    $for k, v in extended_options['twitter_card'].items():
       <meta name="twitter:${k}" content="$v" />
   $if 'ogp' in extended_options:
-    $for k, v in extended_options['ogp'].iteritems():
+    $for k, v in extended_options['ogp'].items():
       <meta property="og:${k}" content="${v}" />
 
   $if 'canonical_url' in extended_options:

@@ -194,7 +194,7 @@ def _height_resize(im, height, bounds=None):
     """Creates an image scaled to no more than the specified height with 0.5 <= aspect ratio <= 2."""
     def crop_image_to_width(image, width):  # Crops from both sides equally.
         overflow = image.size.width - width
-        border = overflow / 2
+        border = overflow // 2
         crop_rect = geometry.Rectangle(border, 0, border + width, image.size.height)
         return image.cropped(crop_rect)
 
@@ -203,7 +203,7 @@ def _height_resize(im, height, bounds=None):
         return image.cropped(crop_rect)
 
     def scale_image_to_height(image, height):
-        new_width = (image.size.width * height) / image.size.height
+        new_width = (image.size.width * height) // image.size.height
         return image.resized((new_width, height))
 
     if bounds is not None:

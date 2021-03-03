@@ -270,7 +270,7 @@ class JSONProxy(ProxyBackend):
         Returns:
             list: See :py:meth:`.load` for the contents of the list.
         """
-        return map(self.load, self.proxied.get_multi(keys))
+        return list(map(self.load, self.proxied.get_multi(keys)))
 
     def save(self, value):
         """

@@ -1,7 +1,11 @@
 from __future__ import absolute_import, division
 
-import urlparse
 from io import BytesIO
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 import arrow
 import sqlalchemy as sa
@@ -234,7 +238,7 @@ def check_google_doc_embed_data(embedlink):
     if not m:
         raise WeasylError('googleDocsEmbedLinkInvalid')
     embedlink = m.group()
-    parsed = urlparse.urlparse(embedlink)
+    parsed = urlparse(embedlink)
     if parsed.scheme != 'https' or parsed.netloc != 'docs.google.com':
         raise WeasylError('googleDocsEmbedLinkInvalid')
 

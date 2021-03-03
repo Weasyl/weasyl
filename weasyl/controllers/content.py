@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-import urlparse
+try:
+    from urllib.parse import urljoin
+except ImportError:
+    from urlparse import urljoin
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
@@ -33,7 +36,7 @@ def submit_visual_get_(request):
 
     form = request.web_input(title='', tags=[], description='', imageURL='', baseURL='')
     if form.baseURL:
-        form.imageURL = urlparse.urljoin(form.baseURL, form.imageURL)
+        form.imageURL = urljoin(form.baseURL, form.imageURL)
 
     return Response(define.webpage(request.userid, "submit/visual.html", [
         # Folders

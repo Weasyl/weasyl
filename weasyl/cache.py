@@ -20,7 +20,7 @@ def _increments(func):
         if hasattr(request, 'query_debug'):
             query = '%s(%s)' % (
                 func.__name__,
-                ', '.join(map(repr, args) + ['%s=%r' % kv for kv in kwargs.items()]),
+                ', '.join(list(map(repr, args)) + ['%s=%r' % kv for kv in kwargs.items()]),
             )
 
             request.query_debug.append((query, end - start))

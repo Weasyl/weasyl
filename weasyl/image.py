@@ -33,11 +33,11 @@ def from_string(filedata):
 
 
 def image_setting(im):
-    if im.original_format in ('JPG', 'JPEG'):
+    if im.original_format in (b'JPG', b'JPEG'):
         return 'J'
-    if im.original_format == 'PNG':
+    if im.original_format == b'PNG':
         return 'P'
-    if im.original_format == 'GIF':
+    if im.original_format == b'GIF':
         return 'G'
 
 

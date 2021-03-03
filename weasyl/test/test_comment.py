@@ -122,7 +122,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 1)
-        self.assertTrue(shouts[0].viewitems() >= {"content": "hello"}.viewitems())
+        self.assertTrue(shouts[0].items() >= {"content": "hello"}.items())
 
         # commenter2 posts a reply to c1
         c2 = shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply", staffnotes=False)
@@ -130,7 +130,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 2)
-        self.assertTrue(shouts[1].viewitems() >= {"content": "reply"}.viewitems())
+        self.assertTrue(shouts[1].items() >= {"content": "reply"}.items())
 
         # owner posts a reply to c2
         c3 = shout.insert(self.owner, target_user=self.owner, parentid=c2, content="reply 2", staffnotes=False)
@@ -138,7 +138,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 3)
-        self.assertTrue(shouts[2].viewitems() >= {"content": "reply 2"}.viewitems())
+        self.assertTrue(shouts[2].items() >= {"content": "reply 2"}.items())
 
         # commenter1 responds to owner
         shout.insert(self.commenter1, target_user=self.owner, parentid=c3, content="reply 3", staffnotes=False)
@@ -146,7 +146,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 4)
-        self.assertTrue(shouts[3].viewitems() >= {"content": "reply 3"}.viewitems())
+        self.assertTrue(shouts[3].items() >= {"content": "reply 3"}.items())
 
         # commenter1 posts a new root shout
         shout.insert(self.commenter1, target_user=self.owner, parentid=None, content="root 2", staffnotes=False)
@@ -154,8 +154,8 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 5)
-        self.assertTrue(shouts[0].viewitems() >= {"content": "root 2"}.viewitems())
-        self.assertTrue(shouts[4].viewitems() >= {"content": "reply 3"}.viewitems())
+        self.assertTrue(shouts[0].items() >= {"content": "root 2"}.items())
+        self.assertTrue(shouts[4].items() >= {"content": "reply 3"}.items())
 
         # commenter2 posts another reply to c1
         shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply 4", staffnotes=False)
@@ -163,7 +163,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 6)
-        self.assertTrue(shouts[5].viewitems() >= {"content": "reply 4"}.viewitems())
+        self.assertTrue(shouts[5].items() >= {"content": "reply 4"}.items())
 
         # owner deletes comment thread
         shout.remove(self.owner, commentid=c1)
@@ -173,4 +173,4 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 1)
-        self.assertTrue(shouts[0].viewitems() >= {"content": "root 2"}.viewitems())
+        self.assertTrue(shouts[0].items() >= {"content": "root 2"}.items())

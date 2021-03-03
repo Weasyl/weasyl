@@ -2,7 +2,11 @@ from __future__ import absolute_import
 
 import re
 import string
-import urlparse
+
+try:
+    from urllib.parse import urlsplit
+except ImportError:
+    from urlparse import urlsplit
 
 from libweasyl.cache import region
 
@@ -25,7 +29,7 @@ def _service(link):
     """
     Returns the content service name based on the URL provided.
     """
-    url = urlparse.urlsplit(link)
+    url = urlsplit(link)
     domain = "." + url.netloc.lower()
 
     if domain.endswith((".youtube.com", ".youtu.be")):

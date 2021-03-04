@@ -11,6 +11,7 @@ import logging
 import numbers
 import datetime
 import pkgutil
+from urllib.parse import urlencode, urljoin
 
 import arrow
 from pyramid.threadlocal import get_current_request
@@ -33,12 +34,6 @@ from weasyl import macro
 from weasyl.config import config_obj, config_read_setting, config_read_bool
 from weasyl.error import WeasylError
 from weasyl.macro import MACRO_SUPPORT_ADDRESS
-
-try:
-    from urllib.parse import urlencode, urljoin
-except ImportError:
-    from urllib import urlencode
-    from urlparse import urljoin
 
 
 _shush_pyflakes = [sqlalchemy.orm]

@@ -1,11 +1,7 @@
 from __future__ import absolute_import, division
 
 from io import BytesIO
-
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
 import arrow
 import sqlalchemy as sa

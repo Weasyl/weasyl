@@ -5,11 +5,7 @@ import logging
 import re
 from collections import namedtuple
 from decimal import Decimal
-
-try:
-    from urllib.parse import quote as urlquote
-except ImportError:
-    from urllib import quote as urlquote
+from urllib.parse import quote as urlquote
 
 from pyramid.threadlocal import get_current_request
 

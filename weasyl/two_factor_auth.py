@@ -5,11 +5,7 @@ from __future__ import absolute_import, unicode_literals
 
 import re
 import string
-
-try:
-    from urllib.parse import quote as urlquote
-except ImportError:
-    from urllib import quote as urlquote
+from urllib.parse import quote as urlquote
 
 import bcrypt
 from cryptography.fernet import Fernet

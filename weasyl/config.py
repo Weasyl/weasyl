@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-try:
-    from configparser import ConfigParser, NoOptionError, NoSectionError
-except ImportError:
-    from ConfigParser import SafeConfigParser as ConfigParser, NoOptionError, NoSectionError
+from configparser import ConfigParser, NoOptionError, NoSectionError
 
 from weasyl import macro
 

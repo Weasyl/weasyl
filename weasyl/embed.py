@@ -2,11 +2,7 @@ from __future__ import absolute_import
 
 import re
 import string
-
-try:
-    from urllib.parse import urlsplit
-except ImportError:
-    from urlparse import urlsplit
+from urllib.parse import urlsplit
 
 from libweasyl.cache import region
 

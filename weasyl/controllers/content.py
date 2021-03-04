@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    from urlparse import urljoin
+from urllib.parse import urljoin
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response

@@ -1,11 +1,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import re
-
-try:
-    from urllib.parse import quote as urlquote
-except ImportError:
-    from urllib import quote as urlquote
+from urllib.parse import quote as urlquote
 
 import bcrypt
 import pyotp

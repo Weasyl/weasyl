@@ -110,7 +110,7 @@ def unanimate(im):
     return ret
 
 
-def _correct_image_and_call(f, im, *a, **kw):
+def correct_image_and_call(f, im, *a, **kw):
     """
     Call a function, passing in an image where the canvas size of each frame is
     the same.
@@ -170,7 +170,7 @@ def resize_image(im, width, height):
         ``None`` if the image is smaller than the given *width* and *height*.
         Otherwise, a new ``Image`` resized to fit.
     """
-    return _correct_image_and_call(_resize, im, width, height) or im
+    return correct_image_and_call(_resize, im, width, height) or im
 
 
 def make_cover_image(im):
@@ -260,7 +260,7 @@ def height_resize(im, height, bounds=None):
         Otherwise, a new ``Image`` resized and/or cropped according to the rules
         above.
     """
-    ret = _correct_image_and_call(_height_resize, im, height, bounds)
+    ret = correct_image_and_call(_height_resize, im, height, bounds)
     if ret.size.height > height or (len(ret) == 1 and ret[0].size.height > height):
         # This is a sanity test to make sure the output of _height_resize()
         # conforms to our height contract.

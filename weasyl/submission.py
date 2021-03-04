@@ -132,7 +132,7 @@ def create_visual(userid, submission,
         raise WeasylError("thumbSizeExceedsLimit")
 
     im = image.from_string(submitfile)
-    submitextension = image.image_extension(im)
+    submitextension = images.image_extension(im)
     if submitextension not in [".jpg", ".png", ".gif"]:
         raise WeasylError("submitType")
     if _limit(submitsize, submitextension):

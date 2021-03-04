@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import base64
 import struct
 
+from libweasyl import images
 from libweasyl import media as libweasylmedia
 from libweasyl.text import slug_for
 
@@ -18,7 +19,7 @@ def make_resized_media_item(filedata, size, error_type='FileType'):
     file_type = image.image_file_type(im)
     if file_type not in ["jpg", "png", "gif"]:
         raise WeasylError(error_type)
-    resized = image.resize_image(im, *size)
+    resized = images.resize_image(im, *size)
     if resized is not im:
         filedata = resized.to_buffer(format=file_type)
     return orm.MediaItem.fetch_or_create(filedata, file_type=file_type, im=resized)

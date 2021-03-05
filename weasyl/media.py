@@ -16,7 +16,7 @@ def make_resized_media_item(filedata, size, error_type='FileType'):
         return None
 
     im = image.from_string(filedata)
-    file_type = image.image_file_type(im)
+    file_type = images.image_file_type(im)
     if file_type not in ["jpg", "png", "gif"]:
         raise WeasylError(error_type)
     resized = images.resize_image(im, *size)

@@ -84,7 +84,7 @@ containers/run \
 
 ```shell
 DOCKER_BUILDKIT=1 docker build --target=test -t weasyl-test --build-arg "version=$(git rev-parse --short HEAD)" .
-mkdir .pytest_cache
+mkdir -p .pytest_cache
 containers/run \
     --network=wzlnet \
     --name=weasyl-test \

@@ -110,7 +110,7 @@ def unanimate(im):
     return ret
 
 
-def correct_image_and_call(f, im, *a, **kw):
+def _correct_image_and_call(f, im, *a, **kw):
     """
     Call a function, passing in an image where the canvas size of each frame is
     the same.
@@ -126,7 +126,7 @@ def correct_image_and_call(f, im, *a, **kw):
         **kw: Keyword arguments with which to call *f*.
 
     Returns:
-        *im*, if *f* returned ``None``, or the ``Image`` returned by *f* after
+        ``None``, if *f* returned ``None``, or the ``Image`` returned by *f* after
         post-processing.
     """
 
@@ -145,6 +145,11 @@ def correct_image_and_call(f, im, *a, **kw):
 
 
 def _resize(im, width, height):
+    """
+    Resize an image to fit within the specified height and width; aspect ratio
+    is preserved. Images always preserve animation and might even result in a
+    better-optimized animated gif.
+    """
     # resize only if we need to; return None if we don't
     if im.size.width > width or im.size.height > height:
         im = im.resized(im.size.fit_inside((width, height)))
@@ -162,10 +167,10 @@ def resize_image(im, width, height):
         height: The maximum height, in pixels.
 
     Returns:
-        *im*, if the image is smaller than the given *width* and *height*.
+        ``None`` if the image is smaller than the given *width* and *height*.
         Otherwise, a new ``Image`` resized to fit.
     """
-    return correct_image_and_call(_resize, im, width, height) or im
+    return _correct_image_and_call(_resize, im, width, height) or im
 
 
 def make_cover_image(im):
@@ -255,7 +260,7 @@ def height_resize(im, height, bounds=None):
         Otherwise, a new ``Image`` resized and/or cropped according to the rules
         above.
     """
-    ret = correct_image_and_call(_height_resize, im, height, bounds)
+    ret = _correct_image_and_call(_height_resize, im, height, bounds)
     if ret.size.height > height or (len(ret) == 1 and ret[0].size.height > height):
         # This is a sanity test to make sure the output of _height_resize()
         # conforms to our height contract.

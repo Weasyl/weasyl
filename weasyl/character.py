@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import arrow
 import re
 
+from libweasyl import images
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
@@ -152,7 +153,7 @@ def reupload(userid, charid, submitdata):
         raise WeasylError("Unexpected")
 
     im = image.from_string(submitdata)
-    submitextension = image.image_extension(im)
+    submitextension = images.image_extension(im)
 
     # Check invalid file data
     if not submitextension:

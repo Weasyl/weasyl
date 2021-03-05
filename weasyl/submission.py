@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 
+import re
 import urlparse
 from io import BytesIO
 
@@ -114,12 +115,46 @@ def _create_submission(expected_type):
     return wrapper
 
 
+_ALLOWED_CROSSPOST_HOSTS = frozenset([
+    # DeviantArt
+    "wixmp.com",
+
+    # Fur Affinity
+    "furaffinity.net",
+    "facdn.net",
+
+    # Imgur
+    "imgur.com",
+
+    # Inkbunny
+    "ib.metapix.net",
+
+    # SoFurry
+    "sofurryfiles.com",
+])
+
+_ALLOWED_CROSSPOST_HOST = re.compile(
+    r"(?:\A|\.)"
+    + "(?:" + "|".join(map(re.escape, _ALLOWED_CROSSPOST_HOSTS)) + ")"
+    + r"\Z"
+)
+
+
+def _http_get_if_crosspostable(url):
+    parsed = urlparse.urlparse(url)
+
+    if parsed.scheme not in ("http", "https") or _ALLOWED_CROSSPOST_HOST.search(parsed.netloc) is None:
+        raise WeasylError("crosspostInvalid")
+
+    return d.http_get(url, timeout=5)
+
+
 @_create_submission(expected_type=1)
 def create_visual(userid, submission,
                   friends_only, tags, imageURL, thumbfile,
                   submitfile, critique, create_notifications):
     if imageURL:
-        resp = d.http_get(imageURL, timeout=5)
+        resp = _http_get_if_crosspostable(imageURL)
         submitfile = resp.content
 
     # Determine filesizes
@@ -132,7 +167,7 @@ def create_visual(userid, submission,
         raise WeasylError("thumbSizeExceedsLimit")
 
     im = image.from_string(submitfile)
-    submitextension = image.image_extension(im)
+    submitextension = images.image_extension(im)
     if submitextension not in [".jpg", ".png", ".gif"]:
         raise WeasylError("submitType")
     if _limit(submitsize, submitextension):

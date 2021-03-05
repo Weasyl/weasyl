@@ -63,6 +63,9 @@ error_messages = {
         "The cover art file you uploaded exceeds the allowed filesize for this submission category."),
     "coverType": (
         "The cover art file you uploaded is not a valid filetype for this submission category."),
+    "crosspostInvalid": (
+        "The image you crossposted was from an unsupported source. "
+        "Please report this bug to the creator of the crossposting tool."),
     "duplicateSubmission": "You have already made a submission with this submission file.",
     "emailBlacklisted": (
         "The domain of the email you entered has been associated with a high volume of spam. "

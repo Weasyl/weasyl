@@ -27,8 +27,12 @@ def read_asset_image(path):
     return Image.open(BytesIO(read_asset(path))).convert('RGBA')
 
 
+def get_storage_path(url):
+    return os.path.join(MACRO_STORAGE_ROOT, url[1:])
+
+
 def read_storage_image(image_url):
-    full_path = os.path.join(MACRO_STORAGE_ROOT, image_url[1:])
+    full_path = get_storage_path(image_url)
     return Image.open(full_path).convert('RGBA')
 
 

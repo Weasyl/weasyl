@@ -21,5 +21,6 @@ __pycache__/
 /version.txt
 
 /.pytest_cache/
+/coverage/
 
 /weasyl-web/

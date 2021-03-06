@@ -199,14 +199,7 @@ def add_user_links(fragment, parent, can_contain):
         _nonlocal["previous"].tail = "".join(previous_text)
 
 
-def _markdown_fragment(target, image):
-    if not image:
-        images_left = 0
-    elif type(image) is int:
-        images_left = image
-    else:
-        images_left = 5
-
+def _markdown_fragment(target):
     rendered = _markdown(target)
     fragment = html.fragment_fromstring(rendered, create_parent=True)
 
@@ -243,19 +236,16 @@ def _markdown_fragment(target, image):
                 t, _, user = src.partition(":")
 
                 if t != "user":
-                    if images_left:
-                        images_left -= 1
-                    else:
-                        i = list(parent).index(image)
-                        link = etree.Element(u"a")
-                        link.tail = image.tail
-                        src = image.get("src")
+                    i = list(parent).index(image)
+                    link = etree.Element(u"a")
+                    link.tail = image.tail
+                    src = image.get("src")
 
-                        if src:
-                            link.set(u"href", src)
-                            link.text = image.attrib.get("alt", src)
+                    if src:
+                        link.set(u"href", src)
+                        link.text = image.attrib.get("alt", src)
 
-                        parent[i] = link
+                    parent[i] = link
 
                     continue
 
@@ -285,8 +275,8 @@ def _markdown_fragment(target, image):
     return fragment
 
 
-def markdown(target, image=False):
-    fragment = _markdown_fragment(target, image)
+def markdown(target):
+    fragment = _markdown_fragment(target)
     return html.tostring(fragment, encoding=unicode)[5:-6]  # <div>...</div>
 
 
@@ -315,7 +305,7 @@ def _normalize_whitespace(text):
 
 
 def markdown_excerpt(markdown_text, length=300):
-    fragment = _markdown_fragment(markdown_text, image=False)
+    fragment = _markdown_fragment(markdown_text)
     text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
 
     if len(text) <= length:

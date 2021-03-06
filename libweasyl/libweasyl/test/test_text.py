@@ -96,6 +96,7 @@ def test_markdown_user_linking_with_underscore():
 
 def test_markdown_image_replacement():
     assert markdown('![example](http://example)') == '<p><a href="http://example" rel="nofollow">example</a></p>'
+    assert markdown('<img alt="broken">') == '<p><a href="">broken</a></p>'
 
 
 def test_forum_whitelist():

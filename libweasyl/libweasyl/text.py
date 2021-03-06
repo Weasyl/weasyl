@@ -230,43 +230,39 @@ def _markdown_fragment(target):
             if image.tag != "img":
                 continue
 
-            src = image.get("src")
+            src = image.get("src", "")
 
-            if src:
-                t, _, user = src.partition(":")
+            t, _, user = src.partition(":")
 
-                if t != "user":
-                    i = list(parent).index(image)
-                    link = etree.Element(u"a")
-                    link.tail = image.tail
-                    src = image.get("src")
-
-                    if src:
-                        link.set(u"href", src)
-                        link.text = image.attrib.get("alt", src)
-
-                    parent[i] = link
-
-                    continue
-
-                image.set(u"src", u"/~{user}/avatar".format(user=get_sysname(user)))
-
+            if t != "user":
+                i = list(parent).index(image)
                 link = etree.Element(u"a")
-                link.set(u"href", u"/~{user}".format(user=get_sysname(user)))
-                link.set(u"class", u"user-icon")
-                parent.insert(list(parent).index(image), link)
-                parent.remove(image)
-                link.append(image)
                 link.tail = image.tail
+                link.set(u"href", src)
+                link.text = image.attrib.get("alt", src)
 
-                if "alt" in image.attrib and image.attrib["alt"]:
-                    image.tail = u" "
-                    label = etree.SubElement(link, u"span")
-                    label.text = image.attrib["alt"]
-                    del image.attrib["alt"]
-                else:
-                    image.tail = None
-                    image.set(u"alt", user)
+                parent[i] = link
+
+                continue
+
+            image.set(u"src", u"/~{user}/avatar".format(user=get_sysname(user)))
+
+            link = etree.Element(u"a")
+            link.set(u"href", u"/~{user}".format(user=get_sysname(user)))
+            link.set(u"class", u"user-icon")
+            parent.insert(list(parent).index(image), link)
+            parent.remove(image)
+            link.append(image)
+            link.tail = image.tail
+
+            if "alt" in image.attrib and image.attrib["alt"]:
+                image.tail = u" "
+                label = etree.SubElement(link, u"span")
+                label.text = image.attrib["alt"]
+                del image.attrib["alt"]
+            else:
+                image.tail = None
+                image.set(u"alt", user)
 
     add_user_links(fragment, None, True)
 

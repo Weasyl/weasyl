@@ -91,7 +91,7 @@ RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist
 ENV WEASYL_APP_ROOT=.
 ENV WEASYL_STORAGE_ROOT=testing/storage
 ENV PATH="/weasyl/.venv/bin:${PATH}"
-COPY pytest.ini ./
+COPY pytest.ini .coveragerc ./
 COPY assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
 

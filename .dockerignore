@@ -15,6 +15,7 @@ etc/*
 !setup.py
 
 !pytest.ini
+!.coveragerc
 
 **/*.egg-info
 **/*.py[co]

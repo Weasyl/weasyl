@@ -16,7 +16,9 @@ user_linking_markdown_tests = [
      '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'
      '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'),
     ('<!~spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"> <span>spam</span></a>'),
+    ('![user image with alt text](user:example)', '<a href="/~example" class="user-icon"><img src="/~example/avatar"> <span>user image with alt text</span></a>'),
     ('<user:spam>', '<a href="/~spam">spam</a>'),
+    ('[link](user:spam)', '<a href="/~spam">link</a>'),
     ('<fa:spam>', '<a href="https://www.furaffinity.net/user/spam" rel="nofollow">spam</a>'),
     ('<da:spam>', '<a href="https://www.deviantart.com/spam" rel="nofollow">spam</a>'),
     ('<ib:spam>', '<a href="https://inkbunny.net/spam" rel="nofollow">spam</a>'),
@@ -94,6 +96,7 @@ def test_markdown_user_linking_with_underscore():
 
 def test_markdown_image_replacement():
     assert markdown('![example](http://example)') == '<p><a href="http://example" rel="nofollow">example</a></p>'
+    assert markdown('<img alt="broken">') == '<p><a href="">broken</a></p>'
 
 
 def test_forum_whitelist():

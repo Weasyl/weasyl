@@ -131,7 +131,7 @@ def select_profile(userid, viewer=None):
     """, user=userid).first()
 
     if not query:
-        raise WeasylError('RecordMissing')
+        raise WeasylError('userRecordMissing')
 
     _, is_banned, is_suspended = d.get_login_settings(userid)
 

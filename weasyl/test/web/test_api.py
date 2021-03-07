@@ -60,3 +60,9 @@ def test_submission_view(app, submission_user):
 def test_submission_view_missing(app):
     resp = app.get('/api/submissions/1/view', status=404)
     assert resp.json == {'error': {'name': 'submissionRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db')
+def test_user_view_missing(app):
+    resp = app.get('/api/users/foo/view', status=404)
+    assert resp.json == {'error': {'name': 'userRecordMissing'}}

@@ -247,7 +247,6 @@ def journals_(request):
         # Relationship
         profile.select_relation(request.userid, otherid),
         # Journals list
-        # TODO(weykent): use select_user_list
         journal.select_list(request.userid, rating, otherid=otherid),
     ]))
 

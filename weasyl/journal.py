@@ -163,15 +163,12 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     }
 
 
-def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
+def select_user_list(userid, rating, limit, backid=None, nextid=None):
     statement = [
         "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
         " WHERE jo.settings !~ 'h'"]
-
-    if otherid:
-        statement.append(" AND jo.userid = %i")
 
     if userid:
         # filter own content in SFW mode
@@ -180,10 +177,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
         else:
             statement.append(" AND (jo.userid = %i OR jo.rating <= %i)" % (userid, rating))
         statement.append(m.MACRO_FRIENDUSER_JOURNAL % (userid, userid, userid))
-
-        if not otherid:
-            statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
-
+        statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
         statement.append(" AND jo.rating <= %i AND jo.settings !~ 'f'" % (rating,))

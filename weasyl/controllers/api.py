@@ -240,8 +240,8 @@ def api_user_view_(request):
             },
         })
 
-    user.pop('userid', None)
-    user.pop('commish_slots', None)
+    del user['userid']
+    del user['commish_slots']
 
     user['created_at'] = d.iso8601(user.pop('unixtime'))
     user['media'] = api.tidy_all_media(user.pop('user_media'))
@@ -320,16 +320,16 @@ def api_user_view_(request):
 
     statistics, show_statistics = profile.select_statistics(otherid)
     if statistics:
-        statistics.pop('staff_notes')
+        del statistics['staff_notes']
     user['statistics'] = statistics if show_statistics else None
 
     user_info = profile.select_userinfo(otherid)
     if user_info:
         if not user_info['show_age']:
             user_info['age'] = None
-        user_info.pop('show_age', None)
-        user_info.pop('birthday', None)
-        user_info['location'] = user_info.pop('country', None)
+        del user_info['show_age']
+        del user_info['birthday']
+        user_info['location'] = user_info.pop('country')
     user['user_info'] = user_info
     user['link'] = d.absolutify_url("/~" + user['login_name'])
 

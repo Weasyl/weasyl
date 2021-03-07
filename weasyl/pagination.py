@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-import inspect
-
 
 class PaginatedResult(object):
-    # We expect select_list to have at least the following arguments:
-    # limit, back_id, next_id, where back_id and next_id are keyword arguments
+    # We expect select_list to have at least the following keyword arguments:
+    # limit, back_id, next_id
     def __init__(self, select_list, select_count, id_field, url_format, *args, **kwargs):
-        self._query = select_list(*args, **kwargs)
+        limit = kwargs.pop('limit')
+        self._query = select_list(*args, limit=limit, **kwargs)
         self._url_format = url_format
 
         if self._query:
@@ -16,8 +15,6 @@ class PaginatedResult(object):
 
         if select_count and self._query:
             self._has_counts = True
-
-            (args, kwargs) = self.strip_limit(select_list, args, kwargs)
 
             kwargs['backid'] = self._back_index
             kwargs['nextid'] = None
@@ -28,21 +25,6 @@ class PaginatedResult(object):
             self._next_count = select_count(*args, **kwargs)
         else:
             self._has_counts = False
-
-    def strip_limit(self, select_list, args, kwargs):
-        # Attempt to remove the 'limit' argument from args or kwargs
-        named_arguments = inspect.getargspec(select_list)[0]
-        if 'limit' not in named_arguments:
-            return (args, kwargs)
-        index = named_arguments.index('limit')
-        if index < len(args):
-            args = list(args)
-            args.pop(index)
-            args = tuple(args)
-            return (args, kwargs)
-        else:
-            kwargs.pop('limit')
-            return (args, kwargs)
 
     @property
     def query(self):

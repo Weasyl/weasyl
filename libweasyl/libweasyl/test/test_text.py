@@ -19,10 +19,10 @@ user_linking_markdown_tests = [
     ('![user image with alt text](user:example)', '<a href="/~example" class="user-icon"><img src="/~example/avatar"> <span>user image with alt text</span></a>'),
     ('<user:spam>', '<a href="/~spam">spam</a>'),
     ('[link](user:spam)', '<a href="/~spam">link</a>'),
-    ('<fa:spam>', '<a href="https://www.furaffinity.net/user/spam" rel="nofollow">spam</a>'),
-    ('<da:spam>', '<a href="https://www.deviantart.com/spam" rel="nofollow">spam</a>'),
-    ('<ib:spam>', '<a href="https://inkbunny.net/spam" rel="nofollow">spam</a>'),
-    ('<sf:spam>', '<a href="https://spam.sofurry.com/" rel="nofollow">spam</a>'),
+    ('<fa:spam>', '<a href="https://www.furaffinity.net/user/spam" rel="nofollow ugc">spam</a>'),
+    ('<da:spam>', '<a href="https://www.deviantart.com/spam" rel="nofollow ugc">spam</a>'),
+    ('<ib:spam>', '<a href="https://inkbunny.net/spam" rel="nofollow ugc">spam</a>'),
+    ('<sf:spam>', '<a href="https://spam.sofurry.com/" rel="nofollow ugc">spam</a>'),
 ]
 
 
@@ -95,7 +95,7 @@ def test_markdown_user_linking_with_underscore():
 
 
 def test_markdown_image_replacement():
-    assert markdown('![example](http://example)') == '<p><a href="http://example" rel="nofollow">example</a></p>\n'
+    assert markdown('![example](http://example)') == '<p><a href="http://example" rel="nofollow ugc">example</a></p>\n'
     assert markdown('<img alt="broken">') == '<p><a href="">broken</a></p>\n'
 
 
@@ -121,10 +121,10 @@ def test_markdown_strikethrough():
 
 
 @pytest.mark.parametrize(('target', 'expected'), [
-    (u"[external](http://example.com/)", u'<a href="http://example.com/" rel="nofollow">external</a>'),
-    (u'<a href="http://example.com/">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
-    (u'<a href="http://example.com/" rel="noreferrer">external</a>', u'<a href="http://example.com/" rel="nofollow">external</a>'),
-    (u"[external](//example.com/)", u'<a href="//example.com/" rel="nofollow">external</a>'),
+    (u"[external](http://example.com/)", u'<a href="http://example.com/" rel="nofollow ugc">external</a>'),
+    (u'<a href="http://example.com/">external</a>', u'<a href="http://example.com/" rel="nofollow ugc">external</a>'),
+    (u'<a href="http://example.com/" rel="noreferrer">external</a>', u'<a href="http://example.com/" rel="nofollow ugc">external</a>'),
+    (u"[external](//example.com/)", u'<a href="//example.com/" rel="nofollow ugc">external</a>'),
 ])
 def test_markdown_external_link_noreferrer(target, expected):
     assert markdown(target) == u"<p>%s</p>\n" % (expected,)

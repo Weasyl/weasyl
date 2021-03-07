@@ -133,7 +133,7 @@ def defang(fragment):
 
         extend_attributes = []
 
-        for key, value in child.attrib.items():
+        for key, value in child.items():
             if key == "href" and child.tag == "a" and get_scheme(value) in allowed_schemes:
                 url = urlparse(value)
 
@@ -144,12 +144,12 @@ def defang(fragment):
             elif key == "style" and ALLOWED_STYLE.match(value):
                 pass
             elif key == "class":
-                child.attrib["class"] = " ".join(set(value.split()) & allowed_classes)
+                child.set("class", " ".join(set(value.split()) & allowed_classes))
             elif key not in allowed_attributes:
                 del child.attrib[key]
 
         for key, value in extend_attributes:
-            child.attrib[key] = value
+            child.set(key, value)
 
         defang(child)
 

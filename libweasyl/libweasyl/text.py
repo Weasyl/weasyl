@@ -35,7 +35,6 @@ url_regexp = re.compile(AUTOLINK_URL)
 USER_LINK = re.compile(r"""
     \\(?P<escaped>[\\<])
 | <(?P<type>!~|[!~])(?P<username>[a-z0-9_]+)>
-| .
 """, re.I | re.X)
 
 NON_USERNAME_CHARACTERS = re.compile("[^a-z0-9]+", re.I)
@@ -134,18 +133,30 @@ def add_user_links(fragment, parent, can_contain):
     _nonlocal = {}
 
     def add_matches(text, got_link):
+        text_start = 0
+
         for m in USER_LINK.finditer(text):
+            match_start = m.start()
+
+            if match_start > text_start:
+                previous_text.append(text[text_start:match_start])
+
+            text_start = m.end()
+
             escaped, t, username = m.group("escaped", "type", "username")
 
             if escaped:
                 previous_text.append(escaped)
-                continue
+            else:
+                got_link(t, username)
 
-            if not t:
-                previous_text.append(m.group())
-                continue
+        if text_start == 0:
+            return False
 
-            got_link(t, username)
+        if text_start < len(text):
+            previous_text.append(text[text_start:])
+
+        return True
 
     def got_text_link(t, username):
         previous = _nonlocal["previous"]
@@ -182,87 +193,81 @@ def add_user_links(fragment, parent, can_contain):
             _nonlocal["previous"] = None
             _nonlocal["insert_index"] = 0
             previous_text = []
-            add_matches(fragment.text, got_text_link)
 
-            previous = _nonlocal["previous"]
+            if add_matches(fragment.text, got_text_link):
+                previous = _nonlocal["previous"]
 
-            if previous is None:
-                fragment.text = "".join(previous_text)
-            else:
-                previous.tail = "".join(previous_text)
+                if previous is None:
+                    fragment.text = "".join(previous_text)
+                else:
+                    previous.tail = "".join(previous_text)
 
     if fragment.tail:
         _nonlocal["previous"] = fragment
-        _nonlocal["insert_index"] = list(parent).index(fragment)
+        _nonlocal["insert_index"] = parent.index(fragment)
         previous_text = []
-        add_matches(fragment.tail, got_tail_link)
-        _nonlocal["previous"].tail = "".join(previous_text)
+
+        if add_matches(fragment.tail, got_tail_link):
+            _nonlocal["previous"].tail = "".join(previous_text)
 
 
 def _markdown_fragment(target):
     rendered = _markdown(target)
     fragment = html.fragment_fromstring(rendered, create_parent=True)
 
-    for link in fragment.findall(".//a"):
-        href = link.attrib.get("href")
+    for link in fragment.iter("a"):
+        href = link.get("href")
 
         if href:
             t, _, user = href.partition(":")
 
             if t == "user":
-                link.attrib["href"] = u"/~{user}".format(user=get_sysname(user))
+                link.set("href", u"/~{user}".format(user=get_sysname(user)))
             elif t == "da":
-                link.attrib["href"] = u"https://www.deviantart.com/{user}".format(user=_deviantart(user))
+                link.set("href", u"https://www.deviantart.com/{user}".format(user=_deviantart(user)))
             elif t == "ib":
-                link.attrib["href"] = u"https://inkbunny.net/{user}".format(user=_inkbunny(user))
+                link.set("href", u"https://inkbunny.net/{user}".format(user=_inkbunny(user)))
             elif t == "fa":
-                link.attrib["href"] = u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user))
+                link.set("href", u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user)))
             elif t == "sf":
-                link.attrib["href"] = u"https://{user}.sofurry.com/".format(user=_sofurry(user))
+                link.set("href", u"https://{user}.sofurry.com/".format(user=_sofurry(user)))
             else:
                 continue
 
             if not link.text or link.text == href:
                 link.text = user
 
-    for parent in fragment.findall(".//*[img]"):
-        for image in list(parent):
-            if image.tag != "img":
-                continue
+    for image in list(fragment.iter("img")):
+        src = image.get("src", "")
 
-            src = image.get("src", "")
+        t, _, user = src.partition(":")
 
-            t, _, user = src.partition(":")
-
-            if t != "user":
-                i = list(parent).index(image)
-                link = etree.Element(u"a")
-                link.tail = image.tail
-                link.set(u"href", src)
-                link.text = image.attrib.get("alt", src)
-
-                parent[i] = link
-
-                continue
-
-            image.set(u"src", u"/~{user}/avatar".format(user=get_sysname(user)))
-
+        if t != "user":
             link = etree.Element(u"a")
-            link.set(u"href", u"/~{user}".format(user=get_sysname(user)))
-            link.set(u"class", u"user-icon")
-            parent.insert(list(parent).index(image), link)
-            parent.remove(image)
-            link.append(image)
             link.tail = image.tail
+            link.set(u"href", src)
+            link.text = image.get("alt", src)
+            image.getparent().replace(image, link)
+            continue
 
-            if "alt" in image.attrib and image.attrib["alt"]:
-                image.tail = u" "
-                label = etree.SubElement(link, u"span")
-                label.text = image.attrib["alt"]
-                del image.attrib["alt"]
-            else:
-                image.tail = None
-                image.set(u"alt", user)
+        image.set(u"src", u"/~{user}/avatar".format(user=get_sysname(user)))
+
+        link = etree.Element(u"a")
+        link.set(u"href", u"/~{user}".format(user=get_sysname(user)))
+        link.set(u"class", u"user-icon")
+        link.tail = image.tail
+        image.getparent().replace(image, link)
+        link.append(image)
+
+        alt = image.get("alt")
+        if alt:
+            image.tail = u" "
+            label = etree.SubElement(link, u"span")
+            label.text = alt
+            del image.attrib["alt"]
+        else:
+            image.tail = None
+            image.set("alt", user)
 
     add_user_links(fragment, None, True)
 

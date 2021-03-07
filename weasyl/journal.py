@@ -209,7 +209,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
     return query[::-1] if backid else query
 
 
-def select_list(userid, rating, limit, otherid):
+def select_list(userid, rating, otherid):
     statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
 
     if userid:
@@ -225,7 +225,7 @@ def select_list(userid, rating, limit, otherid):
     statement.append(
         " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
-    statement.append("ORDER BY jo.journalid DESC LIMIT %i" % limit)
+    statement.append("ORDER BY jo.journalid DESC")
 
     return [{
         "journalid": i[0],

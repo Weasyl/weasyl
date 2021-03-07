@@ -248,7 +248,7 @@ def journals_(request):
         profile.select_relation(request.userid, otherid),
         # Journals list
         # TODO(weykent): use select_user_list
-        journal.select_list(request.userid, rating, 250, otherid=otherid),
+        journal.select_list(request.userid, rating, otherid=otherid),
     ]))
 
     return Response(define.common_page_end(request.userid, page))

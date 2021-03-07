@@ -57,14 +57,6 @@ class PaginatedResult(object):
         return self._back_count if self._has_counts else 0
 
     @property
-    def back_index(self):
-        return self._back_index
-
-    @property
-    def next_index(self):
-        return self._next_index
-
-    @property
     def has_counts(self):
         return self._has_counts
 

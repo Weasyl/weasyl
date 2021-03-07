@@ -23,7 +23,7 @@ def test_submission_view(app, submission_user):
 
     assert resp_json == {
         'comments': 0,
-        'description': '<p>Description</p>',
+        'description': '<p>Description</p>\n',
         'embedlink': None,
         'favorited': False,
         'favorites': 0,

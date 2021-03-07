@@ -35,7 +35,6 @@ url_regexp = re.compile(AUTOLINK_URL)
 USER_LINK = re.compile(r"""
     \\(?P<escaped>[\\<])
 | <(?P<type>!~|[!~])(?P<username>[a-z0-9_]+)>
-| .
 """, re.I | re.X)
 
 NON_USERNAME_CHARACTERS = re.compile("[^a-z0-9]+", re.I)
@@ -134,18 +133,30 @@ def add_user_links(fragment, parent, can_contain):
     _nonlocal = {}
 
     def add_matches(text, got_link):
+        text_start = 0
+
         for m in USER_LINK.finditer(text):
+            match_start = m.start()
+
+            if match_start > text_start:
+                previous_text.append(text[text_start:match_start])
+
+            text_start = m.end()
+
             escaped, t, username = m.group("escaped", "type", "username")
 
             if escaped:
                 previous_text.append(escaped)
-                continue
+            else:
+                got_link(t, username)
 
-            if not t:
-                previous_text.append(m.group())
-                continue
+        if text_start == 0:
+            return False
 
-            got_link(t, username)
+        if text_start < len(text):
+            previous_text.append(text[text_start:])
+
+        return True
 
     def got_text_link(t, username):
         previous = _nonlocal["previous"]
@@ -182,21 +193,22 @@ def add_user_links(fragment, parent, can_contain):
             _nonlocal["previous"] = None
             _nonlocal["insert_index"] = 0
             previous_text = []
-            add_matches(fragment.text, got_text_link)
 
-            previous = _nonlocal["previous"]
+            if add_matches(fragment.text, got_text_link):
+                previous = _nonlocal["previous"]
 
-            if previous is None:
-                fragment.text = "".join(previous_text)
-            else:
-                previous.tail = "".join(previous_text)
+                if previous is None:
+                    fragment.text = "".join(previous_text)
+                else:
+                    previous.tail = "".join(previous_text)
 
     if fragment.tail:
         _nonlocal["previous"] = fragment
         _nonlocal["insert_index"] = list(parent).index(fragment)
         previous_text = []
-        add_matches(fragment.tail, got_tail_link)
-        _nonlocal["previous"].tail = "".join(previous_text)
+
+        if add_matches(fragment.tail, got_tail_link):
+            _nonlocal["previous"].tail = "".join(previous_text)
 
 
 def _markdown_fragment(target):

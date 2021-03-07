@@ -62,7 +62,21 @@ def test_submission_view_missing(app):
     assert resp.json == {'error': {'name': 'submissionRecordMissing'}}
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
+def test_useravatar(app, submission_user):
+    resp = app.get('/api/useravatar?username=submissiontest')
+    assert resp.json == {
+        'avatar': 'http://localhost/img/default-avatar-vuOx5v6OBn.jpg',
+    }
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_useravatar_missing(app, submission_user):
+    resp = app.get('/api/useravatar?username=foo', status=404)
+    assert resp.json == {'error': {'name': 'userRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db', 'cache')
 def test_user_view(app, submission_user):
     resp = app.get('/api/users/submissiontest/view')
     assert resp.json == {
@@ -117,7 +131,7 @@ def test_user_view(app, submission_user):
     }
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_user_view_missing(app):
     resp = app.get('/api/users/foo/view', status=404)
     assert resp.json == {'error': {'name': 'userRecordMissing'}}

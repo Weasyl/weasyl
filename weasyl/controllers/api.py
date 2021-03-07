@@ -323,7 +323,7 @@ def api_user_view_(request):
         del statistics['staff_notes']
     user['statistics'] = statistics if show_statistics else None
 
-    user_info = profile.select_userinfo(otherid)
+    user_info = profile.select_userinfo(otherid, config=o_config)
     if user_info:
         if not user_info['show_age']:
             user_info['age'] = None

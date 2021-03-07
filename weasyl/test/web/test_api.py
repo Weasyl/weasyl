@@ -135,3 +135,9 @@ def test_user_view(app, submission_user):
 def test_user_view_missing(app):
     resp = app.get('/api/users/foo/view', status=404)
     assert resp.json == {'error': {'name': 'userRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_whoami_unauthenticated(app):
+    resp = app.get('/api/whoami', status=401)
+    assert resp.json == {'error': {'code': 110, 'text': 'Session unsigned'}}

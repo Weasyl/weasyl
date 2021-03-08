@@ -757,7 +757,6 @@ submission = Table(
     Column('favorites', Integer(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
-    Column('image_representations', BYTEA(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
     ForeignKeyConstraint(

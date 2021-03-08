@@ -162,7 +162,7 @@ def submissions_(request):
                  folderquery="&folderid=%d" % folderid if folderid else "")
     result = pagination.PaginatedResult(
         submission.select_list, submission.select_count, 'submitid', url_format, request.userid, rating,
-        60, otherid=otherid, folderid=folderid, backid=define.get_int(backid),
+        limit=60, otherid=otherid, folderid=folderid, backid=define.get_int(backid),
         nextid=define.get_int(nextid), profile_page_filter=not folderid)
 
     page.append(define.render('user/submissions.html', [
@@ -205,8 +205,8 @@ def collections_(request):
 
     url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
-        collection.select_list, collection.select_count, 'submitid', url_format, request.userid, rating, 66,
-        otherid=otherid, backid=define.get_int(backid), nextid=define.get_int(nextid))
+        collection.select_list, collection.select_count, 'submitid', url_format, request.userid, rating,
+        limit=66, otherid=otherid, backid=define.get_int(backid), nextid=define.get_int(nextid))
 
     page.append(define.render('user/collections.html', [
         # Profile information
@@ -247,8 +247,7 @@ def journals_(request):
         # Relationship
         profile.select_relation(request.userid, otherid),
         # Journals list
-        # TODO(weykent): use select_user_list
-        journal.select_list(request.userid, rating, 250, otherid=otherid),
+        journal.select_list(request.userid, rating, otherid=otherid),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -277,7 +276,8 @@ def characters_(request):
     url_format = "/characters?userid={userid}&%s".format(userid=userprofile['userid'])
     result = pagination.PaginatedResult(
         character.select_list, character.select_count,
-        'charid', url_format, request.userid, rating, 60,
+        'charid', url_format, request.userid, rating,
+        limit=60,
         otherid=otherid, backid=define.get_int(backid),
         nextid=define.get_int(nextid))
 
@@ -422,8 +422,8 @@ def favorites_(request):
 
         faves = pagination.PaginatedResult(
             select_function, count_function,
-            id_field, url_format, request.userid, rating, 60,
-            otherid=otherid, backid=backid, nextid=nextid)
+            id_field, url_format, request.userid, rating,
+            limit=60, otherid=otherid, backid=backid, nextid=nextid)
     else:
         faves = {
             "submit": favorite.select_submit(request.userid, rating, 22, otherid=otherid),

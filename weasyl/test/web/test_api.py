@@ -60,3 +60,84 @@ def test_submission_view(app, submission_user):
 def test_submission_view_missing(app):
     resp = app.get('/api/submissions/1/view', status=404)
     assert resp.json == {'error': {'name': 'submissionRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_useravatar(app, submission_user):
+    resp = app.get('/api/useravatar?username=submissiontest')
+    assert resp.json == {
+        'avatar': 'http://localhost/img/default-avatar-vuOx5v6OBn.jpg',
+    }
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_useravatar_missing(app, submission_user):
+    resp = app.get('/api/useravatar?username=foo', status=404)
+    assert resp.json == {'error': {'name': 'userRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_user_view(app, submission_user):
+    resp = app.get('/api/users/submissiontest/view')
+    assert resp.json == {
+        'banned': False,
+        'catchphrase': '',
+        'commission_info': {
+            'commissions': 'closed',
+            'requests': 'closed',
+            'trades': 'closed',
+            'details': '',
+            'price_classes': None,
+        },
+        'created_at': '1970-01-01T00:00:00+00:00Z',
+        'featured_submission': None,
+        'folders': [],
+        'full_name': '',
+        'link': 'http://localhost/~submissiontest',
+        'login_name': 'submissiontest',
+        'media': {
+            'avatar': [{
+                'mediaid': None,
+                'url': 'http://localhost/img/default-avatar-vuOx5v6OBn.jpg',
+            }],
+        },
+        'profile_text': '',
+        'recent_submissions': [],
+        'recent_type': 'submissions',
+        'relationship': None,
+        'show_favorites_bar': True,
+        'show_favorites_tab': True,
+        'statistics': {
+            'faves_received': 0,
+            'faves_sent': 0,
+            'followed': 0,
+            'following': 0,
+            'journals': 0,
+            'page_views': 0,
+            'submissions': 0,
+        },
+        'stream_text': None,
+        'stream_url': '',
+        'streaming_status': 'stopped',
+        'suspended': False,
+        'user_info': {
+            'age': None,
+            'gender': '',
+            'location': '',
+            'sorted_user_links': [],
+            'user_links': {},
+        },
+        'username': 'submission_test',
+    }
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_user_view_missing(app):
+    resp = app.get('/api/users/foo/view', status=404)
+    assert resp.json == {'error': {'name': 'userRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_whoami_unauthenticated(app):
+    resp = app.get('/api/whoami', status=401)
+    assert resp.json == {'error': {'code': 110, 'text': 'Session unsigned'}}

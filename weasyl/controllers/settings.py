@@ -40,10 +40,11 @@ def control_uploadavatar_(request):
 
 @login_required
 def control_editprofile_get_(request):
-    userinfo = profile.select_userinfo(request.userid)
+    query = profile.select_profile(request.userid)
+    userinfo = profile.select_userinfo(request.userid, config=query["config"])
     return Response(define.webpage(request.userid, "control/edit_profile.html", [
         # Profile
-        profile.select_profile(request.userid),
+        query,
         # User information
         userinfo,
     ], title="Edit Profile", options=["typeahead"]))

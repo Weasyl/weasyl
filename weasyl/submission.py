@@ -886,7 +886,7 @@ def select_featured(userid, otherid, rating):
 def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
         SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
-               pr.username, su.settings, su.subtype
+               pr.username, su.subtype
           FROM submission su
          INNER JOIN profile pr ON su.userid = pr.userid
          WHERE su.userid = %i
@@ -913,7 +913,7 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
         "unixtime": i[3],
         "userid": i[4],
         "username": i[5],
-        "subtype": i[7],
+        "subtype": i[6],
     } for i in d.execute("".join(statement))]
 
     query.sort(key=lambda i: i['submitid'])

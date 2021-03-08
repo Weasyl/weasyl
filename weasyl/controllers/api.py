@@ -259,35 +259,34 @@ def api_user_view_(request):
     }
 
     commission_list = commishinfo.select_list(otherid)
-    if commission_list:
-        commissions['details'] = commission_list['content']
+    commissions['details'] = commission_list['content']
 
-        if len(commission_list['class']) > 0:
-            classes = list()
-            for cclass in commission_list['class']:
-                commission_class = {
-                    "title": cclass['title']
-                }
+    if len(commission_list['class']) > 0:
+        classes = list()
+        for cclass in commission_list['class']:
+            commission_class = {
+                "title": cclass['title']
+            }
 
-                if len(commission_list['price']) > 0:
-                    prices = list()
-                    for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
-                        if 'a' in cprice['settings']:
-                            ptype = 'additional'
-                        else:
-                            ptype = 'base'
+            if len(commission_list['price']) > 0:
+                prices = list()
+                for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
+                    if 'a' in cprice['settings']:
+                        ptype = 'additional'
+                    else:
+                        ptype = 'base'
 
-                        price = {
-                            "title": cprice['title'],
-                            "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                            "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                            'price_type': ptype
-                        }
-                        prices.append(price)
-                    commission_class['prices'] = prices
+                    price = {
+                        "title": cprice['title'],
+                        "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
+                        "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
+                        'price_type': ptype
+                    }
+                    prices.append(price)
+                commission_class['prices'] = prices
 
-                classes.append(commission_class)
-            commissions['price_classes'] = classes
+            classes.append(commission_class)
+        commissions['price_classes'] = classes
 
     user['commission_info'] = commissions
 
@@ -306,9 +305,8 @@ def api_user_view_(request):
         more_submissions = 'submissions'
         featured = submission.select_featured(userid, otherid, rating)
 
-    if submissions:
-        for sub in submissions:
-            tidy_submission(sub)
+    for sub in submissions:
+        tidy_submission(sub)
 
     user['recent_submissions'] = submissions
     user['recent_type'] = more_submissions
@@ -319,17 +317,15 @@ def api_user_view_(request):
     user['featured_submission'] = featured
 
     statistics, show_statistics = profile.select_statistics(otherid)
-    if statistics:
-        del statistics['staff_notes']
+    del statistics['staff_notes']
     user['statistics'] = statistics if show_statistics else None
 
     user_info = profile.select_userinfo(otherid, config=o_config)
-    if user_info:
-        if not user_info['show_age']:
-            user_info['age'] = None
-        del user_info['show_age']
-        del user_info['birthday']
-        user_info['location'] = user_info.pop('country')
+    if not user_info['show_age']:
+        user_info['age'] = None
+    del user_info['show_age']
+    del user_info['birthday']
+    user_info['location'] = user_info.pop('country')
     user['user_info'] = user_info
     user['link'] = d.absolutify_url("/~" + user['login_name'])
 

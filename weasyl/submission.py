@@ -745,7 +745,7 @@ def twitter_card(request, submitid):
 
 
 def select_query(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None, exclude=None,
+                 backid=None, nextid=None, subcat=None,
                  options=[], profile_page_filter=False,
                  index_page_filter=False, featured_filter=False):
     statement = [
@@ -773,9 +773,6 @@ def select_query(userid, rating, otherid=None, folderid=None,
     if folderid:
         statement.append(" AND su.folderid = %i" % (folderid,))
 
-    if exclude:
-        statement.append(" AND su.submitid != %i" % (exclude,))
-
     if subcat:
         statement.append(" AND su.subtype >= %i AND su.subtype < %i" % (subcat, subcat + 1000))
 
@@ -800,7 +797,7 @@ def select_query(userid, rating, otherid=None, folderid=None,
 
 
 def select_count(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None, exclude=None,
+                 backid=None, nextid=None, subcat=None,
                  options=[], profile_page_filter=False,
                  index_page_filter=False, featured_filter=False):
     if options not in [[], ['critique'], ['randomize']]:
@@ -808,13 +805,13 @@ def select_count(userid, rating, otherid=None, folderid=None,
 
     statement = ["SELECT COUNT(submitid) "]
     statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
+        userid, rating, otherid, folderid, backid, nextid, subcat, options, profile_page_filter,
         index_page_filter, featured_filter))
     return d.execute("".join(statement))[0][0]
 
 
 def select_list(userid, rating, limit, otherid=None, folderid=None,
-                backid=None, nextid=None, subcat=None, exclude=None,
+                backid=None, nextid=None, subcat=None,
                 options=[], profile_page_filter=False,
                 index_page_filter=False, featured_filter=False):
     """
@@ -830,7 +827,6 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         nextid: Select the IDs that are greater than this value
         subcat: Select submissions whose subcategory is within this range
             (this value + 1000)
-        exclude: Exclude this specific submission ID
         options: List that can contain the following values:
             "critique": Submissions flagged for critique; additionally selects
                 submissions newer than 3 days old
@@ -855,7 +851,7 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         "su.userid, pr.username, su.settings, su.subtype "]
 
     statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
+        userid, rating, otherid, folderid, backid, nextid, subcat, options, profile_page_filter,
         index_page_filter, featured_filter))
 
     statement.append(

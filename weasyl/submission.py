@@ -934,8 +934,6 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
 
     if not query or "h" in query[2]:
         raise WeasylError("Unexpected")
-    elif "a" in query[2] and userid not in staff.MODS:
-        raise WeasylError("AdminLocked")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     elif not submission.title:

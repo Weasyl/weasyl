@@ -241,8 +241,6 @@ character = Table(
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
         'f': 'friends-only',
-        't': 'tag-locked',
-        'c': 'comment-locked',
     }, length=20), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
     default_fkey(['userid'], ['login.userid'], name='character_userid_fkey'),
@@ -281,8 +279,6 @@ journal = Table(
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
         'f': 'friends-only',
-        't': 'tag-locked',
-        'c': 'comment-locked',
     }, length=20), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('submitter_ip_address', String(length=45), nullable=True),
@@ -740,12 +736,6 @@ submission = Table(
         'h': 'hidden',
         'f': 'friends-only',
         'q': 'critique',
-        'p': 'pool',
-        'o': 'collaboration',
-        't': 'tag-locked',
-        'c': 'comment-locked',
-        'a': 'admin-locked',
-        'e': 'encored',
         'u': 'thumbnail-required',
     }, {
         'embed-type': {

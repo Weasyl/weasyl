@@ -98,9 +98,6 @@ h  Hidden
 f  Friends-only
 m  Members-only
 
-t  Tag-locked
-c  Comment-locked
-
 ------------------
 folder.settings ()
 ------------------
@@ -115,14 +112,6 @@ h  Hidden
 f  Friends-only
 q  Critique
 
-p  Pool
-o  Collaboration
-
-t  Tag-locked
-c  Comment-locked
-a  Admin-locked
-
-e  Encored
 u  Thumbnail required
 v  Embedded content
 
@@ -147,9 +136,6 @@ character.settings ()
 
 h  Hidden
 f  Friends-only
-
-t  Tag-locked
-c  Comment-locked
 
 -----------------------
 charfeature.settings ()

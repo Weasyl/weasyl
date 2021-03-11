@@ -464,8 +464,6 @@ profile = Table(
         'b': 'show-birthday',
         '2': '12-hour-time',
 
-        'l': 'use-only-tag-blacklist',
-
         'g': 'tagging-disabled',
         'd': 'premium',
 

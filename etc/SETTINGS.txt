@@ -38,7 +38,6 @@ profile.config (lkscftjone)
 
 b  Show birthday in profile
 
-l  Use only tag blocklist
 a  View max rating mature
 p  View max rating explicit
 

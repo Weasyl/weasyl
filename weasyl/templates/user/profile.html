@@ -88,7 +88,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
           <dt>${name}</dt>
           $ info = M.SOCIAL_SITES_BY_NAME.get(name, {})
           $if value.startswith(('http://', 'https://')):
-            <dd><a href="${value}" rel="nofollow">${value}</a></dd>
+            <dd><a href="${value}" rel="nofollow ugc">${value}</a></dd>
           $elif value.startswith('mailto:'):
             <dd><a href="${value}">${value.partition('mailto:')[2]}</a></dd>
           $elif info.get("url"):

@@ -528,17 +528,13 @@ def reupload(userid, submitid, submitfile):
             file_type=submit_file_type,
             im=generated_thumb)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
-        d.engine.execute(
-            "UPDATE submission SET image_representations = NULL WHERE submitid = %(id)s",
-            id=submitid,
-        )
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
     query = d.engine.execute("""
         SELECT
             su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, fd.title, su.favorites, su.image_representations
+            su.page_views, fd.title, su.favorites
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
@@ -584,10 +580,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     tags, artist_tags = searchtag.select_with_artist_tags(submitid)
     settings = d.get_profile_settings(query[0])
 
-    if query[12] is None:
-        sub_media = media.get_submission_media(submitid)
-    else:
-        sub_media = media.deserialize_image_representations(query[12])
+    sub_media = media.get_submission_media(submitid)
 
     return {
         "submitid": submitid,
@@ -752,7 +745,7 @@ def twitter_card(request, submitid):
 
 
 def select_query(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None, exclude=None,
+                 backid=None, nextid=None, subcat=None,
                  options=[], profile_page_filter=False,
                  index_page_filter=False, featured_filter=False):
     statement = [
@@ -780,9 +773,6 @@ def select_query(userid, rating, otherid=None, folderid=None,
     if folderid:
         statement.append(" AND su.folderid = %i" % (folderid,))
 
-    if exclude:
-        statement.append(" AND su.submitid != %i" % (exclude,))
-
     if subcat:
         statement.append(" AND su.subtype >= %i AND su.subtype < %i" % (subcat, subcat + 1000))
 
@@ -807,7 +797,7 @@ def select_query(userid, rating, otherid=None, folderid=None,
 
 
 def select_count(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None, exclude=None,
+                 backid=None, nextid=None, subcat=None,
                  options=[], profile_page_filter=False,
                  index_page_filter=False, featured_filter=False):
     if options not in [[], ['critique'], ['randomize']]:
@@ -815,13 +805,13 @@ def select_count(userid, rating, otherid=None, folderid=None,
 
     statement = ["SELECT COUNT(submitid) "]
     statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
+        userid, rating, otherid, folderid, backid, nextid, subcat, options, profile_page_filter,
         index_page_filter, featured_filter))
     return d.execute("".join(statement))[0][0]
 
 
 def select_list(userid, rating, limit, otherid=None, folderid=None,
-                backid=None, nextid=None, subcat=None, exclude=None,
+                backid=None, nextid=None, subcat=None,
                 options=[], profile_page_filter=False,
                 index_page_filter=False, featured_filter=False):
     """
@@ -837,7 +827,6 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         nextid: Select the IDs that are greater than this value
         subcat: Select submissions whose subcategory is within this range
             (this value + 1000)
-        exclude: Exclude this specific submission ID
         options: List that can contain the following values:
             "critique": Submissions flagged for critique; additionally selects
                 submissions newer than 3 days old
@@ -859,11 +848,10 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
 
     statement = [
         "SELECT su.submitid, su.title, su.rating, su.unixtime, "
-        "su.userid, pr.username, su.settings, su.subtype, "
-        "su.image_representations "]
+        "su.userid, pr.username, su.settings, su.subtype "]
 
     statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
+        userid, rating, otherid, folderid, backid, nextid, subcat, options, profile_page_filter,
         index_page_filter, featured_filter))
 
     statement.append(
@@ -878,9 +866,8 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         "userid": i[4],
         "username": i[5],
         "subtype": i[7],
-        "image_representations": i[8],
     } for i in d.execute("".join(statement))]
-    media.populate_with_remaining_submission_media(query)
+    media.populate_with_submission_media(query)
 
     return query[::-1] if backid else query
 
@@ -895,7 +882,7 @@ def select_featured(userid, otherid, rating):
 def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
         SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
-               pr.username, su.settings, su.subtype, su.image_representations
+               pr.username, su.subtype
           FROM submission su
          INNER JOIN profile pr ON su.userid = pr.userid
          WHERE su.userid = %i
@@ -922,14 +909,13 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
         "unixtime": i[3],
         "userid": i[4],
         "username": i[5],
-        "subtype": i[7],
-        "image_representations": i[8],
+        "subtype": i[6],
     } for i in d.execute("".join(statement))]
 
     query.sort(key=lambda i: i['submitid'])
     older = [i for i in query if i["submitid"] < submitid][-limit:]
     newer = [i for i in query if i["submitid"] > submitid][:limit]
-    media.populate_with_remaining_submission_media(older + newer)
+    media.populate_with_submission_media(older + newer)
 
     return {
         "older": older,
@@ -944,8 +930,6 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
 
     if not query or "h" in query[2]:
         raise WeasylError("Unexpected")
-    elif "a" in query[2] and userid not in staff.MODS:
-        raise WeasylError("AdminLocked")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     elif not submission.title:
@@ -1068,7 +1052,6 @@ def select_recently_popular():
             submission.unixtime,
             submission_tags.tags,
             submission.userid,
-            submission.image_representations,
             profile.username
         FROM submission
             INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
@@ -1081,5 +1064,5 @@ def select_recently_popular():
     """)
 
     submissions = [dict(row, contype=10) for row in query]
-    media.populate_with_remaining_submission_media(submissions)
+    media.populate_with_submission_media(submissions)
     return submissions

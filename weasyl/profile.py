@@ -66,7 +66,6 @@ Config = create_configuration([
     BoolOption("hidefavbar", "u"),
     ConfigOption("shouts", {"anyone": "", "friends_only": "x", "staff_only": "w"}),
     ConfigOption("notes", {"anyone": "", "friends_only": "z", "staff_only": "y"}),
-    BoolOption("filter", "l"),
     BoolOption("follow_s", "s"),
     BoolOption("follow_c", "c"),
     BoolOption("follow_f", "f"),
@@ -131,7 +130,7 @@ def select_profile(userid, viewer=None):
     """, user=userid).first()
 
     if not query:
-        raise WeasylError('RecordMissing')
+        raise WeasylError('userRecordMissing')
 
     _, is_banned, is_suspended = d.get_login_settings(userid)
 
@@ -223,20 +222,12 @@ def check_user_rating_allowed(userid, rating):
         raise WeasylError("ratingInvalid")
 
 
-def select_userinfo(userid, config=None):
-    if config is None:
-        query = tuple(d.engine.execute("""
-            SELECT pr.config, ui.birthday, ui.gender, ui.country
-            FROM profile pr
-            INNER JOIN userinfo ui USING (userid)
-            WHERE pr.userid = %(userid)s
-        """, userid=userid).first())
-    else:
-        query = (config,) + tuple(d.engine.execute("""
-            SELECT birthday, gender, country
-            FROM userinfo
-            WHERE userid = %(userid)s
-        """, userid=userid).first())
+def select_userinfo(userid, config):
+    query = d.engine.execute("""
+        SELECT birthday, gender, country
+        FROM userinfo
+        WHERE userid = %(userid)s
+    """, userid=userid).first()
 
     user_links = d.engine.execute("""
         SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
@@ -245,13 +236,13 @@ def select_userinfo(userid, config=None):
         GROUP BY link_type
     """, userid=userid).fetchall()
 
-    show_age = "b" in query[0] or d.get_userid() in staff.MODS
+    show_age = "b" in config or d.get_userid() in staff.MODS
     return {
-        "birthday": query[1],
-        "age": d.convert_age(query[1]) if show_age else None,
-        "show_age": "b" in query[0],
-        "gender": query[2],
-        "country": query[3],
+        "birthday": query.birthday,
+        "age": d.convert_age(query.birthday) if show_age else None,
+        "show_age": "b" in config,
+        "gender": query.gender,
+        "country": query.country,
         "user_links": {r[0]: r[1] for r in user_links},
         "sorted_user_links": sort_user_links(user_links),
     }

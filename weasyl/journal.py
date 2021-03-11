@@ -163,15 +163,12 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     }
 
 
-def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
+def select_user_list(userid, rating, limit, backid=None, nextid=None):
     statement = [
-        "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
         " WHERE jo.settings !~ 'h'"]
-
-    if otherid:
-        statement.append(" AND jo.userid = %i")
 
     if userid:
         # filter own content in SFW mode
@@ -180,10 +177,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
         else:
             statement.append(" AND (jo.userid = %i OR jo.rating <= %i)" % (userid, rating))
         statement.append(m.MACRO_FRIENDUSER_JOURNAL % (userid, userid, userid))
-
-        if not otherid:
-            statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
-
+        statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
         statement.append(" AND jo.rating <= %i AND jo.settings !~ 'f'" % (rating,))
@@ -201,15 +195,15 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
         "title": i[1],
         "userid": i[2],
         "username": i[3],
-        "rating": i[5],
-        "unixtime": i[6],
+        "rating": i[4],
+        "unixtime": i[5],
     } for i in d.execute("".join(statement))]
     media.populate_with_user_media(query)
 
     return query[::-1] if backid else query
 
 
-def select_list(userid, rating, limit, otherid):
+def select_list(userid, rating, otherid):
     statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
 
     if userid:
@@ -225,7 +219,7 @@ def select_list(userid, rating, limit, otherid):
     statement.append(
         " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
-    statement.append("ORDER BY jo.journalid DESC LIMIT %i" % limit)
+    statement.append("ORDER BY jo.journalid DESC")
 
     return [{
         "journalid": i[0],

@@ -105,7 +105,7 @@ def defang(fragment):
     - Each descendant element's tag must be in a whitelist of tags.
     - ``a`` tags with an ``href`` attribute must have their ``href`` URL's
       scheme in a whitelist of URL schemes. Additionally, links to non-Weasyl
-      websites will have a ``rel="nofollow"`` attribute added to the tag.
+      websites will have a ``rel="nofollow ugc"`` attribute added to the tag.
     - ``img`` tags with an ``src`` attribute must have their ``src`` URL's
       scheme in a whitelist of URL schemes.
     - Any element with a ``style`` attribute is only permitted a CSS ``color``
@@ -129,23 +129,23 @@ def defang(fragment):
 
         extend_attributes = []
 
-        for key, value in child.attrib.items():
+        for key, value in child.items():
             if key == "href" and child.tag == "a" and get_scheme(value) in allowed_schemes:
                 url = urlparse(value)
 
                 if url.hostname not in (None, "www.weasyl.com", "weasyl.com", "forums.weasyl.com"):
-                    extend_attributes.append(("rel", "nofollow"))
+                    extend_attributes.append(("rel", "nofollow ugc"))
             elif key == "src" and child.tag == "img" and get_scheme(value) in allowed_schemes:
                 pass
             elif key == "style" and ALLOWED_STYLE.match(value):
                 pass
             elif key == "class":
-                child.attrib["class"] = " ".join(set(value.split()) & allowed_classes)
+                child.set("class", " ".join(set(value.split()) & allowed_classes))
             elif key not in allowed_attributes:
                 del child.attrib[key]
 
         for key, value in extend_attributes:
-            child.attrib[key] = value
+            child.set(key, value)
 
         defang(child)
 

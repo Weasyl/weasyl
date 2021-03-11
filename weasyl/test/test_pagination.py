@@ -36,7 +36,7 @@ class PaginationTestCase(unittest.TestCase):
             raise ValueError()
 
         result = pagination.PaginatedResult(select_list, select_count, ID_FIELD, "%s",
-                                            1, 2, 3, check_limit, extra=extra_value)
+                                            1, 2, 3, limit=check_limit, extra=extra_value)
         self.assertEqual(result_size - 1, result.next_count)
         self.assertEqual(0, result.back_count)
         self.assertEqual(result_size, len(result.query))

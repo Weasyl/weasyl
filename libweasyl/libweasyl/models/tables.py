@@ -241,8 +241,6 @@ character = Table(
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
         'f': 'friends-only',
-        't': 'tag-locked',
-        'c': 'comment-locked',
     }, length=20), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
     default_fkey(['userid'], ['login.userid'], name='character_userid_fkey'),
@@ -281,8 +279,6 @@ journal = Table(
     Column('settings', CharSettingsColumn({
         'h': 'hidden',
         'f': 'friends-only',
-        't': 'tag-locked',
-        'c': 'comment-locked',
     }, length=20), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('submitter_ip_address', String(length=45), nullable=True),
@@ -467,8 +463,6 @@ profile = Table(
     Column('config', CharSettingsColumn({
         'b': 'show-birthday',
         '2': '12-hour-time',
-
-        'l': 'use-only-tag-blacklist',
 
         'g': 'tagging-disabled',
         'd': 'premium',
@@ -740,12 +734,6 @@ submission = Table(
         'h': 'hidden',
         'f': 'friends-only',
         'q': 'critique',
-        'p': 'pool',
-        'o': 'collaboration',
-        't': 'tag-locked',
-        'c': 'comment-locked',
-        'a': 'admin-locked',
-        'e': 'encored',
         'u': 'thumbnail-required',
     }, {
         'embed-type': {
@@ -757,7 +745,6 @@ submission = Table(
     Column('favorites', Integer(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
-    Column('image_representations', BYTEA(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
     default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
     ForeignKeyConstraint(

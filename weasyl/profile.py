@@ -66,7 +66,6 @@ Config = create_configuration([
     BoolOption("hidefavbar", "u"),
     ConfigOption("shouts", {"anyone": "", "friends_only": "x", "staff_only": "w"}),
     ConfigOption("notes", {"anyone": "", "friends_only": "z", "staff_only": "y"}),
-    BoolOption("filter", "l"),
     BoolOption("follow_s", "s"),
     BoolOption("follow_c", "c"),
     BoolOption("follow_f", "f"),

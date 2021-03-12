@@ -237,7 +237,7 @@ class JSONProxy(ProxyBackend):
         """
         if value is NO_VALUE:
             return NO_VALUE
-        if value.startswith('\0'):
+        if value.startswith(b'\0'):
             value = zlib.decompress(value[1:])
         payload, metadata = json.loads(value)
         return CachedValue(payload, metadata)
@@ -287,9 +287,9 @@ class JSONProxy(ProxyBackend):
             :term:`bytes`.
         """
         ret = [value.payload, value.metadata]
-        ret = json.dumps(ret)
+        ret = json.dumps(ret).encode('ascii')
         if len(ret) > _GZIP_THRESHOLD:
-            ret = '\0' + zlib.compress(ret)
+            ret = b'\0' + zlib.compress(ret)
             if len(ret) > _GZIP_THRESHOLD:
                 raise ValueError('compressed object still too large')
         return ret

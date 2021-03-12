@@ -351,7 +351,7 @@ def weasyl_exception_view(exc, request):
                                 status_code=status_code)
         request_id = None
         if 'raven.captureException' in request.environ:
-            request_id = base64.b64encode(os.urandom(6), '+-')
+            request_id = base64.b64encode(os.urandom(6), b'+-').decode('ascii')
             event_id = request.environ['raven.captureException'](request_id=request_id)
             request_id = '%s-%s' % (event_id, request_id)
         print("unhandled error (request id %s) in %r" % (request_id, request.environ))

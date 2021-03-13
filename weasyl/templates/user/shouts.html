@@ -11,7 +11,7 @@ $def with (profile, userinfo, relationship, myself, shouts, feature)
       <strong>Open:</strong>
       <em>${"0" if 'Open' not in userinfo['reportstats'] else userinfo['reportstats']['Open']}</em> |
       $for closuretype, reportcount in userinfo['reportstats'].items():
-        $if closuretype is not 'Open':
+        $if closuretype != 'Open':
           <strong>${closuretype}:</strong>
           <em>${reportcount}</em> |
       <strong>Total:</strong>

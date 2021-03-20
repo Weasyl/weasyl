@@ -33,7 +33,7 @@ setup(
         'oauthlib==2.1.0',
         'Pillow==8.1.2',
         'psycopg2cffi==2.8.1',
-        'pyramid~=1.10.4',
+        'pyramid>=1.10.4,<2.1.0',
         'pytz==2020.4',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
         'sqlalchemy==1.3.20',

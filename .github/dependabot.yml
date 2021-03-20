@@ -6,9 +6,6 @@ updates:
     interval: daily
   open-pull-requests-limit: 10
   ignore:
-  - dependency-name: mock
-    versions:
-    - "> 2.0.0"
   - dependency-name: pillow
     versions:
     - ">= 7.a"

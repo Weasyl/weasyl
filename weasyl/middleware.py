@@ -1,5 +1,5 @@
 # encoding: utf-8
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import re
@@ -218,7 +218,7 @@ def _generate_http2_server_push_headers():
         ]
     ]
 
-    return ", ".join(css_preload + js_preload).encode('ascii')
+    return ", ".join(css_preload + js_preload)
 
 
 # Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below
@@ -351,10 +351,10 @@ def weasyl_exception_view(exc, request):
                                 status_code=status_code)
         request_id = None
         if 'raven.captureException' in request.environ:
-            request_id = base64.b64encode(os.urandom(6), '+-')
+            request_id = base64.b64encode(os.urandom(6), b'+-').decode('ascii')
             event_id = request.environ['raven.captureException'](request_id=request_id)
             request_id = '%s-%s' % (event_id, request_id)
-        print "unhandled error (request id %s) in %r" % (request_id, request.environ)
+        print("unhandled error (request id %s) in %r" % (request_id, request.environ))
         traceback.print_exc()
         if getattr(exc, "__render_as_json", False):
             return Response(json={'error': {}}, status_code=500)

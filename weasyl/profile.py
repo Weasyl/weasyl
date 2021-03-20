@@ -136,10 +136,10 @@ def select_profile(userid, viewer=None):
 
     streaming_status = "stopped"
     if query[6]:  # profile.stream_url
-        if query[9] > d.get_time():  # user_streams.end_time
-            streaming_status = "started"
-        elif 'l' in query[5]:
+        if 'l' in query[5]:
             streaming_status = "later"
+        elif query[9] is not None and query[9] > d.get_time():  # user_streams.end_time
+            streaming_status = "started"
 
     return {
         "userid": userid,

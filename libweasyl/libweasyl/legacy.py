@@ -20,32 +20,15 @@ The offset added to UNIX timestamps before storing them in the database.
 _SYSNAME_CHARACTERS = frozenset(string.ascii_lowercase + string.digits)
 
 
-if isinstance(u"", str):
-    def get_sysname(target):
-        """
-        Convert a username to a login name.
+def get_sysname(target):
+    """
+    Convert a username to a login name.
 
-        Parameters:
-            target: :term:`str`.
+    Parameters:
+        target: :term:`str`.
 
-        Returns:
-            :term:`str` stripped of characters other than ASCII alphanumerics and lowercased.
-        """
-        normalized = unicodedata.normalize("NFD", target.lower())
-        return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS)
-else:
-    def get_sysname(target):
-        """
-        Convert a username to a login name.
-
-        Parameters:
-            target: :term:`str` or :term:`unicode`.
-
-        Returns:
-            :term:`str` stripped of characters other than ASCII alphanumerics and lowercased.
-        """
-        if isinstance(target, unicode):
-            normalized = unicodedata.normalize("NFD", target.lower())
-            return u"".join(i for i in normalized if i in _SYSNAME_CHARACTERS).encode("ascii")
-        else:
-            return "".join(i for i in target if i.isalnum()).lower()
+    Returns:
+        :term:`str` stripped of characters other than ASCII alphanumerics and lowercased.
+    """
+    normalized = unicodedata.normalize("NFD", target.lower())
+    return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS)

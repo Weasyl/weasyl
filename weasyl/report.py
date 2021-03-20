@@ -157,7 +157,7 @@ def select_list(userid, form):
         q = q.filter(sa.literal(int(form.violation)) == sa.func.any(subq.c.violations))
 
     q = q.order_by(Report.opened_at.desc())
-    return [(report, report_count, map(_convert_violation, violations))
+    return [(report, report_count, list(map(_convert_violation, violations)))
             for report, _, report_count, violations in q.all()]
 
 

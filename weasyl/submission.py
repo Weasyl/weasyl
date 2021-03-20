@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division
 
 import re
-import urlparse
 from io import BytesIO
+from urllib.parse import urlparse
 
 import arrow
 import sqlalchemy as sa
@@ -141,7 +141,7 @@ _ALLOWED_CROSSPOST_HOST = re.compile(
 
 
 def _http_get_if_crosspostable(url):
-    parsed = urlparse.urlparse(url)
+    parsed = urlparse(url)
 
     if parsed.scheme not in ("http", "https") or _ALLOWED_CROSSPOST_HOST.search(parsed.netloc) is None:
         raise WeasylError("crosspostInvalid")
@@ -269,7 +269,7 @@ def check_google_doc_embed_data(embedlink):
     if not m:
         raise WeasylError('googleDocsEmbedLinkInvalid')
     embedlink = m.group()
-    parsed = urlparse.urlparse(embedlink)
+    parsed = urlparse(embedlink)
     if parsed.scheme != 'https' or parsed.netloc != 'docs.google.com':
         raise WeasylError('googleDocsEmbedLinkInvalid')
 

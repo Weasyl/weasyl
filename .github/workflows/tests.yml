@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:bd39302290fec24f463cfc9c1d2068247fd98a003e9f7e3cca1ed9e5e08b1d17
+      image: ghcr.io/weasyl/ci-base-image@sha256:893c70251e56e2d443a132602c6f22d1d58fdf3f14fb77443d0d0d71a959e3b3
       options: --user 1001
 
     services:
@@ -47,7 +47,7 @@ jobs:
             cache-${{ runner.os }}-pip-
 
       - name: Create virtualenv
-        run: virtualenv -p python2 .venv
+        run: python3 -m venv --system-site-packages .venv
 
       - name: Install npm dependencies
         run: npm ci

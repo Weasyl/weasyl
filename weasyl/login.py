@@ -194,7 +194,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
 
 def passhash(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS))
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS)).decode('ascii')
 
 
 def password_secure(password):

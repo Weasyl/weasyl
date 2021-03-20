@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 from pyramid.response import Response
 
 from libweasyl import staff
@@ -112,6 +111,6 @@ def supports_json(view_callable):
             except WeasylError as e:
                 result = {"error": e.value, "message": errorcode.error_messages.get(e.value)}
 
-            return Response(json.dumps(result), headerlist=[("Content-Type", "application/json")])
+            return Response(json=result)
         return view_callable(request)
     return inner

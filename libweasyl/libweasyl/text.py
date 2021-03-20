@@ -6,17 +6,13 @@ import re
 from lxml import etree, html
 import misaka
 
-from .compat import unicode
 from .defang import defang
 from .legacy import get_sysname
 
 try:
-    from html.parser import locatestarttagend
+    from html.parser import locatestarttagend_tolerant as locatestarttagend
 except ImportError:
-    try:
-        from html.parser import locatestarttagend_tolerant as locatestarttagend
-    except ImportError:
-        from HTMLParser import locatestarttagend
+    from html.parser import locatestarttagend
 
 
 def slug_for(title):
@@ -278,7 +274,7 @@ def _markdown_fragment(target):
 
 def markdown(target):
     fragment = _markdown_fragment(target)
-    return html.tostring(fragment, encoding=unicode)[5:-6]  # <div>...</div>
+    return html.tostring(fragment, encoding="unicode")[5:-6]  # <div>...</div>
 
 
 def _itertext_spaced(element):

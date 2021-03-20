@@ -86,7 +86,7 @@ class MediaItem(Base):
             cover_media_item = self
         else:
             cover_media_item = self.fetch_or_create(
-                cover.to_buffer(format=self.file_type.encode()), file_type=self.file_type,
+                cover.to_buffer(format=self.file_type), file_type=self.file_type,
                 im=cover)
         self.dbsession.flush()
         MediaMediaLink.make_or_replace_link(self.mediaid, 'cover', cover_media_item)

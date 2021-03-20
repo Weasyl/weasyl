@@ -3,17 +3,16 @@ from __future__ import absolute_import, division
 import os
 import time
 import random
-import urllib
 import hashlib
 import hmac
 import itertools
+import json
 import logging
 import numbers
 import datetime
-import urlparse
 import pkgutil
+from urllib.parse import urlencode, urljoin
 
-import json
 import arrow
 from pyramid.threadlocal import get_current_request
 import pytz
@@ -98,7 +97,7 @@ def execute(statement, argv=None):
         argv = tuple(argv)
 
         for x in argv:
-            if type(x) not in (int, long):
+            if type(x) is not int:
                 raise TypeError("can't use %r as define.execute() parameter" % (x,))
 
         statement %= argv
@@ -155,7 +154,7 @@ def _compile(template_name):
 
     if template is None or reload_templates:
         _template_cache[template_name] = template = Template(
-            pkgutil.get_data(__name__, 'templates/' + template_name),
+            pkgutil.get_data(__name__, 'templates/' + template_name).decode('utf-8'),
             filename=template_name,
             globals={
                 "STR": str,
@@ -203,7 +202,7 @@ def render(template_name, argv=()):
     Renders a template and returns the resulting HTML.
     """
     template = _compile(template_name)
-    return unicode(template(*argv))
+    return str(template(*argv))
 
 
 def titlebar(title, backtext=None, backlink=None):
@@ -486,7 +485,7 @@ def get_timestamp():
 
 
 def _get_hash_path(charid):
-    id_hash = hashlib.sha1(str(charid)).hexdigest()
+    id_hash = hashlib.sha1(b"%i" % (charid,)).hexdigest()
     return "/".join([id_hash[i:i + 2] for i in range(0, 11, 2)]) + "/"
 
 
@@ -511,7 +510,7 @@ def get_userids(usernames):
 
 def get_userid_list(target):
     usernames = target.split(";")
-    return [userid for userid in get_userids(usernames).itervalues() if userid != 0]
+    return [userid for userid in get_userids(usernames).values() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):
@@ -914,7 +913,7 @@ def cdnify_url(url):
     if not cdn_root:
         return url
 
-    return urlparse.urljoin(cdn_root, url)
+    return urljoin(cdn_root, url)
 
 
 def get_resource_path(resource):
@@ -953,7 +952,7 @@ def absolutify_url(url):
     if cdn_root and url.startswith(cdn_root):
         return url
 
-    return urlparse.urljoin(get_current_request().application_url, url)
+    return urljoin(get_current_request().application_url, url)
 
 
 def user_is_twitterbot():
@@ -977,7 +976,7 @@ def timezones():
             (int(ct.astimezone(pytz.timezone(tzname)).strftime("%z")), tzname)
             for tzname in timezones
         ])
-        for cc, timezones in pytz.country_timezones.iteritems()]
+        for cc, timezones in pytz.country_timezones.items()]
     timezones_by_country.sort()
     ret = []
     for country, timezones in timezones_by_country:
@@ -994,16 +993,11 @@ def query_string(query):
     for key, value in query.items():
         if isinstance(value, (tuple, list, set)):
             for subvalue in value:
-                if isinstance(subvalue, unicode):
-                    pairs.append((key, subvalue.encode("utf-8")))
-                else:
-                    pairs.append((key, subvalue))
-        elif isinstance(value, unicode):
-            pairs.append((key, value.encode("utf-8")))
+                pairs.append((key, subvalue))
         elif value:
             pairs.append((key, value))
 
-    return urllib.urlencode(pairs)
+    return urlencode(pairs)
 
 
 def _requests_wrapper(func_name):

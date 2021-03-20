@@ -68,7 +68,7 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
         <label for="day" class="color-lighter">Day</label>
         <select class="input" name="day" id="day">
           <option value=""></option>
-          $for i in xrange(1, 32):
+          $for i in range(1, 32):
             <option value="$i">$i</option>
         </select>
       </div>
@@ -95,7 +95,7 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
         <select class="input last-input" name="year" id="year">
           <option value=""></option>
           $ current_year = arrow.now().year
-          $for i in xrange(current_year, current_year - 101, -1):
+          $for i in range(current_year, current_year - 101, -1):
             <option value="$i">$i</option>
         </select>
       </div>

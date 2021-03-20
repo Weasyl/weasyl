@@ -11,19 +11,19 @@ COPY assets assets
 RUN node build.js
 
 
-FROM python:2.7-alpine3.11 AS bdist-lxml
+FROM python:3.9-alpine3.13 AS bdist-lxml
 # libxml2-dev, libxslt-dev: lxml
 RUN apk add --update \
     musl-dev gcc make \
     libxml2-dev libxslt-dev
-RUN adduser -S build -h /weasyl-build -u 100
+RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
 COPY requirements/lxml.txt lxml.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist -r lxml.txt
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r lxml.txt
 
 
-FROM python:2.7-alpine3.11 AS bdist
+FROM python:3.9-alpine3.13 AS bdist
 # imagemagick6-dev: sanpera
 # libjpeg-turbo-dev, libwebp-dev, zlib-dev: Pillow
 # libffi-dev, openssl-dev: cryptography
@@ -41,23 +41,23 @@ RUN apk add --update \
     postgresql-dev \
     xz-dev \
     zlib-dev
-RUN adduser -S build -h /weasyl-build -u 100
+RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
 COPY etc/requirements.txt requirements.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist -r requirements.txt
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r requirements.txt
 
 
-FROM python:2.7-alpine3.11 AS bdist-pytest
-RUN adduser -S build -h /weasyl-build -u 100
+FROM python:3.9-alpine3.13 AS bdist-pytest
+RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=100 pip2 wheel -w dist pytest==4.6.5
+COPY requirements/test.txt test.txt
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest
 
 
-FROM python:2.7-alpine3.11 AS package
+FROM python:3.9-alpine3.13 AS package
 RUN apk add --update \
-    py3-virtualenv \
     imagemagick6-libs \
     libffi \
     libjpeg-turbo \
@@ -68,7 +68,7 @@ RUN apk add --update \
 RUN adduser -S weasyl -h /weasyl
 WORKDIR /weasyl
 USER weasyl
-RUN virtualenv -p python2 .venv
+RUN python3 -m venv .venv
 COPY etc/requirements.txt etc/requirements.txt
 
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-lxml .venv/bin/pip install --no-deps install-wheels/*

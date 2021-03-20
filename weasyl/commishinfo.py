@@ -3,9 +3,9 @@ from __future__ import absolute_import, division
 
 import logging
 import re
-import urllib
 from collections import namedtuple
 from decimal import Decimal
+from urllib.parse import quote as urlquote
 
 from pyramid.threadlocal import get_current_request
 
@@ -320,7 +320,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if tags:
             terms = ["user:" + d.get_sysname(info.username)] + ["|" + tag for tag in tags]
-            dinfo['searchquery'] = "q=" + urllib.quote(u" ".join(terms).encode("utf-8"))
+            dinfo['searchquery'] = "q=" + urlquote(u" ".join(terms).encode("utf-8"))
         else:
             dinfo['searchquery'] = ""
         return dinfo

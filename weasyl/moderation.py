@@ -702,7 +702,7 @@ def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals
 
         now = arrow.utcnow()
         values = []
-        for target, target_affected in affected.iteritems():
+        for target, target_affected in affected.items():
             staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
             values.append({
                 'userid': userid,
@@ -791,7 +791,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
 
     now = arrow.utcnow()
     values = []
-    for target, target_affected in affected.iteritems():
+    for target, target_affected in affected.items():
         staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
         values.append({
             'userid': userid,

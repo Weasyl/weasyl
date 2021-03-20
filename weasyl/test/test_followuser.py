@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import unittest
+from unittest import mock
+
 import pytest
-import mock
 
 from weasyl.test import db_utils
 

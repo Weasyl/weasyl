@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import base64
 from io import BytesIO
 
-from libweasyl.compat import iterbytes
 from libweasyl.test.common import datadir
 from libweasyl import flash
 
@@ -85,7 +84,7 @@ def test_iter_decompressed_zlib_can_read_all_bytes():
     """
     fobj = BytesIO(compressed_data)
     it = flash.iter_decompressed_zlib(fobj)
-    assert list(it) == [b'\0'] * 65536 + list(iterbytes(decompressed_data))
+    assert bytes(it) == b'\0' * 65536 + decompressed_data
 
 
 def test_read_uncompressed_flash_header():

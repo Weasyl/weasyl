@@ -41,7 +41,7 @@ def tidy_media(item):
 
 
 def tidy_all_media(d):
-    ret = {k: map(tidy_media, v) for k, v in d.iteritems()}
+    ret = {k: list(map(tidy_media, v)) for k, v in d.items()}
     thumbnail_value = ret.get('thumbnail-custom') or ret.get('thumbnail-generated')
     if thumbnail_value:
         ret['thumbnail'] = thumbnail_value

@@ -733,7 +733,6 @@
                     var scheme = attribute.value && attribute.value.substring(0, attribute.value.indexOf(':'));
 
                     if (node.nodeName === 'A' && attribute.name === 'href' && allowedSchemes.indexOf(scheme) !== -1) {
-                        node.rel = 'nofollow';
                         continue;
                     }
 

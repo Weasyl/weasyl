@@ -126,7 +126,7 @@ def correct_image_and_call(f, im, *a, **kw):
         **kw: Keyword arguments with which to call *f*.
 
     Returns:
-        *im*, if *f* returned ``None``, or the ``Image`` returned by *f* after
+        ``None``, if *f* returned ``None``, or the ``Image`` returned by *f* after
         post-processing.
     """
 
@@ -145,6 +145,11 @@ def correct_image_and_call(f, im, *a, **kw):
 
 
 def _resize(im, width, height):
+    """
+    Resize an image to fit within the specified height and width; aspect ratio
+    is preserved. Images always preserve animation and might even result in a
+    better-optimized animated gif.
+    """
     # resize only if we need to; return None if we don't
     if im.size.width > width or im.size.height > height:
         im = im.resized(im.size.fit_inside((width, height)))
@@ -162,7 +167,7 @@ def resize_image(im, width, height):
         height: The maximum height, in pixels.
 
     Returns:
-        *im*, if the image is smaller than the given *width* and *height*.
+        ``None`` if the image is smaller than the given *width* and *height*.
         Otherwise, a new ``Image`` resized to fit.
     """
     return correct_image_and_call(_resize, im, width, height) or im
@@ -189,7 +194,7 @@ def _height_resize(im, height, bounds=None):
     """Creates an image scaled to no more than the specified height with 0.5 <= aspect ratio <= 2."""
     def crop_image_to_width(image, width):  # Crops from both sides equally.
         overflow = image.size.width - width
-        border = overflow / 2
+        border = overflow // 2
         crop_rect = geometry.Rectangle(border, 0, border + width, image.size.height)
         return image.cropped(crop_rect)
 
@@ -198,7 +203,7 @@ def _height_resize(im, height, bounds=None):
         return image.cropped(crop_rect)
 
     def scale_image_to_height(image, height):
-        new_width = (image.size.width * height) / image.size.height
+        new_width = (image.size.width * height) // image.size.height
         return image.resized((new_width, height))
 
     if bounds is not None:

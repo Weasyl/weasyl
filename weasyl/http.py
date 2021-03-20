@@ -8,4 +8,4 @@ def get_headers(wsgi_env):
     """
     return {
         key[5:].replace('_', '-').title(): value
-        for key, value in wsgi_env.iteritems() if key.startswith('HTTP_')}
+        for key, value in wsgi_env.items() if key.startswith('HTTP_')}

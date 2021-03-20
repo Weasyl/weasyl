@@ -112,9 +112,9 @@ def modcontrol_massaction_(request):
         body=moderation.bulk_edit(
             request.userid,
             form.action,
-            map(int, form.submissions),
-            map(int, form.characters),
-            map(int, form.journals),
+            list(map(int, form.submissions)),
+            list(map(int, form.characters)),
+            list(map(int, form.journals)),
         ),
     )
 

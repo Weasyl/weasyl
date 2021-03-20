@@ -5,11 +5,7 @@ Specifically, utilities for creating HTML and utilities for removing HTML.
 """
 
 import json
-
-try:
-    from html.parser import HTMLParser
-except ImportError:
-    from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 
 
 def strip_html(markdown):

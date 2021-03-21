@@ -50,11 +50,11 @@ def db_timer_tween_factory(handler, registry):
     A tween that records timing information in the headers of a response.
     """
     def db_timer_tween(request):
-        started_at = time.time()
+        started_at = time.perf_counter()
         request.sql_times = []
         request.memcached_times = []
         resp = handler(request)
-        ended_at = time.time()
+        ended_at = time.perf_counter()
         time_in_sql = sum(request.sql_times)
         time_in_memcached = sum(request.memcached_times)
         time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
@@ -497,12 +497,12 @@ class InputWrapMiddleware(object):
 
 @event.listens_for(Engine, 'before_cursor_execute')
 def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    context._query_start_time = time.time()
+    context._query_start_time = time.perf_counter()
 
 
 @event.listens_for(Engine, 'after_cursor_execute')
 def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    total = time.time() - context._query_start_time
+    total = time.perf_counter() - context._query_start_time
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)

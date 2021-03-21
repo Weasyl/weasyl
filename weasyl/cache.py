@@ -8,9 +8,9 @@ from pyramid.threadlocal import get_current_request
 def _increments(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        start = time.time()
+        start = time.perf_counter()
         result = func(self, *args, **kwargs)
-        end = time.time()
+        end = time.perf_counter()
 
         request = get_current_request()
         if hasattr(request, 'memcached_times'):

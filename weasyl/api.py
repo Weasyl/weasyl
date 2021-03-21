@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from libweasyl.models.meta import Base
 from libweasyl.models.api import APIToken
 from libweasyl import security

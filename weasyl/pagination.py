@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 
 class PaginatedResult(object):
     # We expect select_list to have at least the following keyword arguments:

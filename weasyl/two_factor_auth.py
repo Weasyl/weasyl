@@ -1,8 +1,6 @@
 """
 Module for handling 2FA-related functions.
 """
-from __future__ import absolute_import, unicode_literals
-
 import re
 import string
 from urllib.parse import quote as urlquote

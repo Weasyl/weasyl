@@ -4,8 +4,6 @@ HTML defanging.
 :py:func:`.defang` is the primary export of this module.
 """
 
-from __future__ import unicode_literals
-
 import re
 from urllib.parse import urlparse
 

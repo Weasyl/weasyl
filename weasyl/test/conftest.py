@@ -1,8 +1,6 @@
 # pytest configuration for weasyl db test fixture.
 # The filename conftest.py is magical, do not change.
 
-from __future__ import absolute_import
-
 import errno
 import json
 import os

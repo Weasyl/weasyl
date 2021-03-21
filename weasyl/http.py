@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 
 def get_headers(wsgi_env):
     """

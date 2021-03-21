@@ -6,8 +6,6 @@ useful to have these values centralized instead of scattered throughout
 libweasyl.
 """
 
-from __future__ import unicode_literals
-
 import enum
 
 

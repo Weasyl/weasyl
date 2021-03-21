@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from itertools import chain
 
 from weasyl import character

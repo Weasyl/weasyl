@@ -3,8 +3,6 @@
 Just bear with me here.
 """
 
-from __future__ import absolute_import, division
-
 import time
 
 from twisted.application.service import Service

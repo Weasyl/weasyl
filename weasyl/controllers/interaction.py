@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 

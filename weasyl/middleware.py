@@ -51,19 +51,13 @@ def db_timer_tween_factory(handler, registry):
     """
     def db_timer_tween(request):
         started_at = time.time()
-        queued_at = request.environ.get('HTTP_X_REQUEST_STARTED_AT')
-        if queued_at is None:
-            return handler(request)
-
         request.sql_times = []
         request.memcached_times = []
-        time_queued = started_at - float(queued_at)
         resp = handler(request)
         ended_at = time.time()
         time_in_sql = sum(request.sql_times)
         time_in_memcached = sum(request.memcached_times)
         time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
-        resp.headers['X-Queued-Time-Spent'] = '%0.1fms' % (time_queued * 1000,)
         resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
         resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
         resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)

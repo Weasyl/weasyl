@@ -1,4 +1,3 @@
-# encoding: utf-8
 from pyramid.threadlocal import get_current_request
 import pytest
 

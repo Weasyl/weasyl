@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 import re
 
 from libweasyl.ratings import GENERAL, MATURE, EXPLICIT

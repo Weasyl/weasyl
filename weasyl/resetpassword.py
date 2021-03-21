@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 import hashlib
 import string
 from collections import namedtuple

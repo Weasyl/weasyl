@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 import arrow
 import pytest
 

@@ -1,4 +1,3 @@
-# encoding: utf-8
 import pytest
 
 from weasyl.test import db_utils

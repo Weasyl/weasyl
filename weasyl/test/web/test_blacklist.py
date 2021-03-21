@@ -1,4 +1,3 @@
-# encoding: utf-8
 import pytest
 
 from libweasyl import ratings

@@ -4372,47 +4372,6 @@ templates/error/error.html
     padding: 2em 0;
 }
 
-/* ---------------------------------------------- force reset password -- */
-/*
-templates/force/resetpassword.html
-*/
-
-#force_resetpassword_content {
-    padding-top: 1em;
-}
-
-#force_resetpassword_content form {
-    width: 25em;
-    margin: auto;
-}
-
-#force_resetpassword_content label {
-    display: block;
-    padding-top: 1em;
-    font-weight: 700;
-}
-
-#force_resetpassword_content input[type="password"] {
-    width: 100%;
-}
-
-#force_resetpassword_content input[type="submit"] {
-    position: absolute;
-    top: -100%;
-    left: -100%;
-}
-
-#force_resetpassword_error {
-    padding: 1em 0;
-    font-size: 1.2em;
-    text-align: center;
-}
-
-#force_resetpassword_buttons {
-    padding: 2em 0;
-    text-align: center;
-}
-
 /******************************************************************************
 *******************************************************************************
 **

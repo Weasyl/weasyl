@@ -143,7 +143,7 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
     USERID, HASHSUM, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
-    _, IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
+    IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
 
     d.metric('increment', 'attemptedlogins')
 

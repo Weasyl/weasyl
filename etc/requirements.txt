@@ -4,8 +4,7 @@ raven==6.10.0
 requests==2.25.1
 oauth2==1.9.0.post1
 pylibmc==1.6.1
-pyramid==1.10.8
-WebOb>=1.8.3                # hack for Pyramid 1.10 with existing packages
+pyramid==2.0
 WebTest==2.0.35
 pyotp==2.3.0                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication

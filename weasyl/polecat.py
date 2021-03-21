@@ -16,12 +16,6 @@ class WeasylSite(Site):
     def log(self, request):
         "Do nothing; we don't need request logging."
 
-    def getResourceFor(self, request):
-        resource = Site.getResourceFor(self, request)
-        now = time.time()
-        request.requestHeaders.addRawHeader('X-Request-Started-At', '%0.8f' % now)
-        return resource
-
 
 class PeriodicTasksService(Service):
     def __init__(self, clock, taskFunction, interval=60):

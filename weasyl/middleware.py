@@ -1,4 +1,5 @@
 # encoding: utf-8
+import html
 import os
 import re
 import sys
@@ -9,7 +10,6 @@ import raven
 import raven.processors
 import traceback
 
-import pyramid.compat
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
@@ -51,19 +51,13 @@ def db_timer_tween_factory(handler, registry):
     """
     def db_timer_tween(request):
         started_at = time.time()
-        queued_at = request.environ.get('HTTP_X_REQUEST_STARTED_AT')
-        if queued_at is None:
-            return handler(request)
-
         request.sql_times = []
         request.memcached_times = []
-        time_queued = started_at - float(queued_at)
         resp = handler(request)
         ended_at = time.time()
         time_in_sql = sum(request.sql_times)
         time_in_memcached = sum(request.memcached_times)
         time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
-        resp.headers['X-Queued-Time-Spent'] = '%0.1fms' % (time_queued * 1000,)
         resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
         resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
         resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
@@ -143,7 +137,7 @@ def query_debug_tween_factory(handler, registry):
 
         for statement, t in request.query_debug:
             statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
-            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
+            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, html.escape(statement)))
 
         response.text += u''.join(
             [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']

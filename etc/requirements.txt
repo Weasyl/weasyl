@@ -8,7 +8,7 @@ pyramid==2.0
 WebTest==2.0.35
 pyotp==2.3.0                # For Two-Factor Authentication
 qrcodegen==1.2.0            # For Two-Factor Authentication
-cryptography==3.3.2           # For Two-Factor Authentication
+cryptography==3.4.6           # For Two-Factor Authentication
 publicsuffixlist==0.6.13    # For extracting the base domain for the email blacklist
 
 

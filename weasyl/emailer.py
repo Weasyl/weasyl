@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 from email.mime.text import MIMEText
 from smtplib import SMTP

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, unicode_literals
-
 import arrow
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPSeeOther

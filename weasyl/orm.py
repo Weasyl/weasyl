@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from libweasyl.models.api import OAuthBearerToken, OAuthConsumer, APIToken
 from libweasyl.models.content import Character, Comment, Journal, Submission
 from libweasyl.models.media import (

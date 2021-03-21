@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid.response import Response
 
 from weasyl import define, media, commishinfo

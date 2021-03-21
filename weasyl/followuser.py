@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from libweasyl import ratings
 
 from weasyl import define as d

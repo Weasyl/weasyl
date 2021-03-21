@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import arrow
 from twisted.python import log
 

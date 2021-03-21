@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from urllib.parse import urlparse
 
 import arrow

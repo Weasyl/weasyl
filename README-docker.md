@@ -101,7 +101,7 @@ containers/run \
 ## Nginx
 
 ```shell
-mkdir -p weasyl-web
+mkdir -p weasyl-web storage/static
 docker cp weasyl-web:/weasyl/build weasyl-web/
 containers/run-nginx
 ```

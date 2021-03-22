@@ -163,10 +163,6 @@ def status_check_tween_factory(handler, registry):
     def status_check_tween(request):
         status = d.common_status_check(request.userid)
         if status:
-            # Permit POST'ing to the forced password reset path (handle the request normally)
-            if request.method == "POST" and request.path == "/force/resetpassword":
-                return handler(request)
-            # Otherwise force the user to the corresponding `status` page.
             return Response(d.common_status_page(request.userid, status))
         return handler(request)
     return status_check_tween

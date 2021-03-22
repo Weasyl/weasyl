@@ -314,7 +314,6 @@ def _get_all_config(userid):
 
     :param userid: The userid to query.
     :return: A dict(), containing the following keys/values:
-      force_password_reset: Boolean. Is the user required to change their password?
       is_banned: Boolean. Is the user currently banned?
       is_suspended: Boolean. Is the user currently suspended?
       is_vouched_for: Boolean. Is the user vouched for?
@@ -322,8 +321,7 @@ def _get_all_config(userid):
       jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
     """
     row = engine.execute("""
-        SELECT lo.force_password_reset,
-               EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
+        SELECT EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
                EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
                lo.voucher IS NOT NULL AS is_vouched_for,
                pr.config AS profile_configuration,
@@ -343,9 +341,9 @@ def get_config(userid):
 
 
 def get_login_settings(userid):
-    """ Returns a Boolean three-tuple in the form of (force_password_reset, is_banned, is_suspended)"""
+    """ Returns a Boolean pair in the form of (is_banned, is_suspended)"""
     r = _get_all_config(userid)
-    return r['force_password_reset'], r['is_banned'], r['is_suspended']
+    return r['is_banned'], r['is_suspended']
 
 
 def is_vouched_for(userid):
@@ -738,10 +736,8 @@ def common_status_check(userid):
     if not userid:
         return None
 
-    reset_password, is_banned, is_suspended = get_login_settings(userid)
+    is_banned, is_suspended = get_login_settings(userid)
 
-    if reset_password:
-        return "resetpassword"
     if is_banned:
         return "banned"
     if is_suspended:
@@ -755,9 +751,7 @@ def common_status_page(userid, status):
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
-    if status == "resetpassword":
-        return webpage(userid, "force/resetpassword.html")
-    elif status in ('banned', 'suspended'):
+    if status in ('banned', 'suspended'):
         from weasyl import moderation, login
 
         login.signout(get_current_request())

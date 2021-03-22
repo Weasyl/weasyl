@@ -29,4 +29,4 @@ sqlalchemy==1.3.20
 misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz#sha224=cc3767d791466c857ec0b147e8c4809eb09948a7a6a72278d49427bb
 
 # https://github.com/Weasyl/sanpera
-sanpera @ https://pypi.weasyl.dev/sanpera/sanpera-0.2rc0%2Bweasyl.1-2.tar.gz#sha224=0281b15d81f42d03afff09179b820d6b0949075f4d923e0ede34fb2f
+sanpera @ https://pypi.weasyl.dev/sanpera/sanpera-0.2rc0%2Bweasyl.3.tar.gz#sha224=6851f50c729cf65b2efcd2c227d1a6b31c29679616055b4ac8664a71

@@ -532,7 +532,20 @@ def reupload(userid, submitid, submitfile):
             attributes=thumb_generated_attributes,
         )
 
+        if thumbnail_formats.webp is None:
+            thumb_generated_media_item_webp = None
+        else:
+            thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
+            thumb_generated_media_item_webp = orm.MediaItem.fetch_or_create(
+                thumb_generated,
+                file_type=thumb_generated_file_type,
+                attributes=thumb_generated_attributes,
+            )
+
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', thumb_generated_media_item)
+
+        if thumbnail_formats.webp is not None:
+            orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated-webp', thumb_generated_media_item_webp)
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):

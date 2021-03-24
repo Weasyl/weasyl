@@ -61,7 +61,7 @@ def setupdb(request):
     define.meta.create_all(define.engine)
 
 
-@pytest.yield_fixture(autouse=True)
+@pytest.fixture(autouse=True)
 def empty_storage():
     try:
         os.mkdir(macro.MACRO_STORAGE_ROOT)

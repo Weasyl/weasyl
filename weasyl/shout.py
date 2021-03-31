@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import arrow
 
 from libweasyl import staff
@@ -86,7 +84,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
         elif ignoreuser.check(userid, parentuserid):
             raise WeasylError("youIgnoredReplyRecipient")
 
-        _, is_banned, _ = d.get_login_settings(target_user)
+        is_banned, _ = d.get_login_settings(target_user)
         profile_config = d.get_config(target_user)
 
         if is_banned or "w" in profile_config or "x" in profile_config and not frienduser.check(userid, target_user):

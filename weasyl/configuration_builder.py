@@ -1,8 +1,5 @@
 # TODO(kailys): Doc and create examples
 
-from __future__ import absolute_import
-
-
 class ConfigOption(object):
     "A class representing options for ``Config``."
 

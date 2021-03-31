@@ -1,6 +1,4 @@
-# encoding: utf-8
-from __future__ import absolute_import, print_function
-
+import html
 import os
 import re
 import sys
@@ -11,7 +9,6 @@ import raven
 import raven.processors
 import traceback
 
-import pyramid.compat
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
@@ -52,20 +49,14 @@ def db_timer_tween_factory(handler, registry):
     A tween that records timing information in the headers of a response.
     """
     def db_timer_tween(request):
-        started_at = time.time()
-        queued_at = request.environ.get('HTTP_X_REQUEST_STARTED_AT')
-        if queued_at is None:
-            return handler(request)
-
+        started_at = time.perf_counter()
         request.sql_times = []
         request.memcached_times = []
-        time_queued = started_at - float(queued_at)
         resp = handler(request)
-        ended_at = time.time()
+        ended_at = time.perf_counter()
         time_in_sql = sum(request.sql_times)
         time_in_memcached = sum(request.memcached_times)
         time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
-        resp.headers['X-Queued-Time-Spent'] = '%0.1fms' % (time_queued * 1000,)
         resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
         resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
         resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
@@ -145,7 +136,7 @@ def query_debug_tween_factory(handler, registry):
 
         for statement, t in request.query_debug:
             statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
-            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, pyramid.compat.escape(statement)))
+            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, html.escape(statement)))
 
         response.text += u''.join(
             [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
@@ -172,10 +163,6 @@ def status_check_tween_factory(handler, registry):
     def status_check_tween(request):
         status = d.common_status_check(request.userid)
         if status:
-            # Permit POST'ing to the forced password reset path (handle the request normally)
-            if request.method == "POST" and request.path == "/force/resetpassword":
-                return handler(request)
-            # Otherwise force the user to the corresponding `status` page.
             return Response(d.common_status_page(request.userid, status))
         return handler(request)
     return status_check_tween
@@ -505,12 +492,12 @@ class InputWrapMiddleware(object):
 
 @event.listens_for(Engine, 'before_cursor_execute')
 def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    context._query_start_time = time.time()
+    context._query_start_time = time.perf_counter()
 
 
 @event.listens_for(Engine, 'after_cursor_execute')
 def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-    total = time.time() - context._query_start_time
+    total = time.perf_counter() - context._query_start_time
     request = get_current_request()  # TODO: There should be a better way to save this.
     if hasattr(request, 'sql_times'):
         request.sql_times.append(total)

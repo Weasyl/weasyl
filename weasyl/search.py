@@ -1,7 +1,3 @@
-# encoding: utf-8
-
-from __future__ import absolute_import
-
 import re
 
 from libweasyl.ratings import GENERAL, MATURE, EXPLICIT

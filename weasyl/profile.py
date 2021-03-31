@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 import sqlalchemy as sa
 
@@ -132,7 +130,7 @@ def select_profile(userid, viewer=None):
     if not query:
         raise WeasylError('userRecordMissing')
 
-    _, is_banned, is_suspended = d.get_login_settings(userid)
+    is_banned, is_suspended = d.get_login_settings(userid)
 
     streaming_status = "stopped"
     if query[6]:  # profile.stream_url

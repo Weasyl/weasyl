@@ -1,8 +1,6 @@
 # pytest configuration for weasyl db test fixture.
 # The filename conftest.py is magical, do not change.
 
-from __future__ import absolute_import
-
 import errno
 import json
 import os
@@ -63,7 +61,7 @@ def setupdb(request):
     define.meta.create_all(define.engine)
 
 
-@pytest.yield_fixture(autouse=True)
+@pytest.fixture(autouse=True)
 def empty_storage():
     try:
         os.mkdir(macro.MACRO_STORAGE_ROOT)

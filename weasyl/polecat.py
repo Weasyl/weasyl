@@ -3,8 +3,6 @@
 Just bear with me here.
 """
 
-from __future__ import absolute_import, division
-
 import time
 
 from twisted.application.service import Service
@@ -17,12 +15,6 @@ from twisted.web.server import Site
 class WeasylSite(Site):
     def log(self, request):
         "Do nothing; we don't need request logging."
-
-    def getResourceFor(self, request):
-        resource = Site.getResourceFor(self, request)
-        now = time.time()
-        request.requestHeaders.addRawHeader('X-Request-Started-At', '%0.8f' % now)
-        return resource
 
 
 class PeriodicTasksService(Service):

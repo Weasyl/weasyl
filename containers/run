@@ -3,7 +3,7 @@ set -eu
 exec docker run --rm -it \
     `#--runtime=runsc` \
     --security-opt=no-new-privileges \
-    --user="$UID:$(id -g)" \
+    --user="$(id -u):$(id -g)" \
     --read-only \
     --init \
     --tmpfs=/tmp \

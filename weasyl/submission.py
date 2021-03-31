@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import re
 from io import BytesIO
 from urllib.parse import urlparse
@@ -522,12 +520,32 @@ def reupload(userid, submitid, submitfile):
     if subcat == m.ART_SUBMISSION_CATEGORY:
         cover_media_item = submit_media_item.ensure_cover_image(im)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
-        generated_thumb = images.make_thumbnail(im)
-        generated_thumb_media_item = orm.MediaItem.fetch_or_create(
-            generated_thumb.to_buffer(format=images.image_file_type(generated_thumb)),
-            file_type=submit_file_type,
-            im=generated_thumb)
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
+
+        # Always create a 'generated' thumbnail from the source image.
+        with BytesIO(submitfile) as buf:
+            thumbnail_formats = images_new.get_thumbnail(buf)
+
+        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
+        thumb_generated_media_item = orm.MediaItem.fetch_or_create(
+            thumb_generated,
+            file_type=thumb_generated_file_type,
+            attributes=thumb_generated_attributes,
+        )
+
+        if thumbnail_formats.webp is None:
+            thumb_generated_media_item_webp = None
+        else:
+            thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
+            thumb_generated_media_item_webp = orm.MediaItem.fetch_or_create(
+                thumb_generated,
+                file_type=thumb_generated_file_type,
+                attributes=thumb_generated_attributes,
+            )
+
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', thumb_generated_media_item)
+
+        if thumbnail_formats.webp is not None:
+            orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated-webp', thumb_generated_media_item_webp)
 
 
 def select_view(userid, submitid, rating, ignore=True, anyway=None):

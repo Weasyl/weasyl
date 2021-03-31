@@ -2,8 +2,6 @@
 Retrieve a dictionary of Weasyl staff.
 """
 
-from __future__ import absolute_import
-
 import ast
 
 from weasyl import macro

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from urllib.parse import urlparse
 
 import arrow
@@ -306,23 +304,6 @@ def resetpassword_post_(request):
         request.userid,
         "**Success!** Your password has been reset and you may now sign in to your account.",
         [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
-
-
-# Forced action functions
-@login_required
-@token_checked
-def force_resetpassword_(request):
-    if define.common_status_check(request.userid) != "resetpassword":
-        raise WeasylError('InsufficientPermissions')
-
-    form = request.web_input(password="", passcheck="")
-
-    resetpassword.force(request.userid, form)
-
-    # Invalidate all other user sessions for this user.
-    profile.invalidate_other_sessions(request.userid)
-
-    raise HTTPSeeOther(location="/", headers=request.response.headers)
 
 
 @login_required

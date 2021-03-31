@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import absolute_import
-
 import arrow
 
 from libweasyl import staff

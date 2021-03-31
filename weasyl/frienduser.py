@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from weasyl import define as d
 from weasyl import ignoreuser
 from weasyl import media

@@ -30,7 +30,7 @@ setup(
         'dogpile.cache==0.9.2',
         'lxml==4.6.2',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
-        'oauthlib==2.1.0',
+        'oauthlib==3.1.0',
         'Pillow==8.2.0',
         'psycopg2cffi==2.9.0',
         'pyramid~=2.0',

@@ -7,7 +7,7 @@ WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
 USER node
 COPY package.json package-lock.json ./
-RUN npm install --no-save --ignore-scripts
+RUN --mount=type=cache,id=npm,target=/home/node/.npm/_cacache,uid=1000 npm install --no-audit --no-save --ignore-scripts
 COPY build.js build.js
 COPY assets assets
 RUN node build.js

@@ -78,7 +78,7 @@ Weasyl should now be running at <http://weasyl:8080/>!
 Merging the existing Docker branch should help with some of these.
 
 - [X] caching for apk
-- [ ] caching for npm
+- [X] caching for npm
 - [X] caching for pip
 - [ ] separate build stages for each expensive wheel
 - [X] parallel builds

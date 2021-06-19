@@ -65,9 +65,9 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     libffi \
     libjpeg-turbo \
     libmemcached-libs \
+    libpq \
     libwebp \
-    libxslt \
-    postgresql-dev
+    libxslt
 RUN adduser -S weasyl -h /weasyl
 WORKDIR /weasyl
 USER weasyl

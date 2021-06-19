@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:experimental
 FROM docker.io/library/node:15-alpine AS assets
-RUN apk add --update sassc
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk add \
+    sassc
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
 USER node
@@ -13,7 +15,8 @@ RUN node build.js
 
 FROM docker.io/library/python:3.9-alpine3.13 AS bdist-lxml
 # libxml2-dev, libxslt-dev: lxml
-RUN apk add --update \
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk add \
     musl-dev gcc make \
     libxml2-dev libxslt-dev
 RUN adduser -S build -h /weasyl-build -u 1000
@@ -29,7 +32,8 @@ FROM docker.io/library/python:3.9-alpine3.13 AS bdist
 # libffi-dev, openssl-dev: cryptography
 # libmemcached-dev: pylibmc
 # postgresql-dev: psycopg2cffi
-RUN apk add --update \
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk add \
     musl-dev gcc make \
     imagemagick6-dev \
     libffi-dev \
@@ -55,7 +59,8 @@ RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,ui
 
 
 FROM docker.io/library/python:3.9-alpine3.13 AS package
-RUN apk add --update \
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk add \
     imagemagick6-libs \
     libffi \
     libjpeg-turbo \

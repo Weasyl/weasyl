@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM node:15-alpine AS assets
+FROM docker.io/library/node:15-alpine AS assets
 RUN apk add --update sassc
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
@@ -11,7 +11,7 @@ COPY assets assets
 RUN node build.js
 
 
-FROM python:3.9-alpine3.13 AS bdist-lxml
+FROM docker.io/library/python:3.9-alpine3.13 AS bdist-lxml
 # libxml2-dev, libxslt-dev: lxml
 RUN apk add --update \
     musl-dev gcc make \
@@ -23,7 +23,7 @@ COPY requirements/lxml.txt lxml.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r lxml.txt
 
 
-FROM python:3.9-alpine3.13 AS bdist
+FROM docker.io/library/python:3.9-alpine3.13 AS bdist
 # imagemagick6-dev: sanpera
 # libjpeg-turbo-dev, libwebp-dev, zlib-dev: Pillow
 # libffi-dev, openssl-dev: cryptography
@@ -46,7 +46,7 @@ COPY etc/requirements.txt requirements.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r requirements.txt
 
 
-FROM python:3.9-alpine3.13 AS bdist-pytest
+FROM docker.io/library/python:3.9-alpine3.13 AS bdist-pytest
 RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
@@ -54,7 +54,7 @@ COPY requirements/test.txt test.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest
 
 
-FROM python:3.9-alpine3.13 AS package
+FROM docker.io/library/python:3.9-alpine3.13 AS package
 RUN apk add --update \
     imagemagick6-libs \
     libffi \
@@ -86,14 +86,19 @@ RUN test -n "$version" && printf '%s\n' "$version" > version.txt
 
 FROM package AS test
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-pytest .venv/bin/pip install --no-deps install-wheels/*
+RUN mkdir .pytest_cache \
+    && ln -s /run/config config
 ENV WEASYL_APP_ROOT=.
 ENV WEASYL_STORAGE_ROOT=testing/storage
 ENV PATH="/weasyl/.venv/bin:${PATH}"
 COPY pytest.ini .coveragerc ./
 COPY assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
+STOPSIGNAL SIGINT
 
 FROM package
+RUN mkdir storage storage/log storage/static \
+    && ln -s /run/config config
 ENV WEASYL_APP_ROOT=/weasyl
 ENV WEASYL_WEB_ENDPOINT=tcp:8080
 CMD [".venv/bin/twistd", "--nodaemon", "--python=weasyl/weasyl.tac", "--pidfile=/tmp/twistd.pid"]

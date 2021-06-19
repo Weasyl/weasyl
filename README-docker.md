@@ -1,109 +1,75 @@
-## Dependencies
+## Starting a Weasyl development environment
 
-### A network
+Requirements:
+
+- [Docker][docker]
+- [docker-compose][] (included with Docker on Windows and macOS)
+
+
+[docker]: https://docs.docker.com/get-docker/
+[docker-compose]: https://docs.docker.com/compose/install/
+
+
+### Get the sample database
+
+Save https://pypi.weasyl.dev/02-weasyl-latest-staff.sql.gz into the `containers/postgres/` directory.
+
+
+### Configure services
+
+This copies the sample configuration into the `config` volume, and only needs to be done each time the volume is recreated or the sample configuration changes.
 
 ```shell
-docker network create --internal wzlnet
+./wzl configure
 ```
 
 
-### Memcached
+### Run database migrations
 
 ```shell
-containers/run-memcached
+./wzl migrate
 ```
 
+Future changes to migrations can be applied with `./wzl migrate --build`.
 
-### PostgreSQL
+
+### Copy assets
 
 ```shell
-mkdir containers/data
-containers/run-postgres
-containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE EXTENSION hstore'
-containers/run --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl -c 'CREATE DATABASE weasyl_test'
-wget https://deploy.weasyldev.com/weasyl-latest-staff.sql.xz
-< weasyl-latest-staff.sql.xz unxz | containers/run --tty=false --network=wzlnet postgres:12 psql -h weasyl-database -U weasyl
+./wzl assets
 ```
 
+Future changes to assets can be applied with `./wzl assets --build`.
 
-## Weasyl
 
-### Build
+### Start Weasyl
+
+Start all the remaining Weasyl services in the background:
 
 ```shell
-DOCKER_BUILDKIT=1 docker build -t weasyl --build-arg "version=$(git rev-parse --short HEAD)" .
+./wzl up -d
 ```
 
-Tag the cached build stages to avoid having them pruned (bdist-lxml is currently very expensive):
+Future changes to the application server can be applied with `./wzl up -d --build web`.
 
-```shell
-for stage in assets bdist-lxml bdist; do
-    DOCKER_BUILDKIT=1 docker build --target=$stage -t weasyl-$stage .
-done
+You can check its logs with `./wzl logs web`, or attach to it with `./wzl up web`. Detaching can be done from another shell with `pkill -x -HUP docker-compose`.
+
+
+### Configure the `weasyl` hostname
+
+Add this entry to `/etc/hosts`:
+
+```
+127.0.0.1 weasyl
 ```
 
-
-### Configure
-
-```shell
-cp -i config/site.config.txt.example config/site.config.txt
-cp -i config/weasyl-staff.example.py config/weasyl-staff.py
-cp -i libweasyl/libweasyl/alembic/alembic.ini.example alembic.ini
-mkdir -p storage/log
-```
+Weasyl should now be running at <http://weasyl:8080/>!
 
 
-### Migrate
+## Running tests
 
 ```shell
-containers/run \
-    --network=wzlnet \
-    "$(containers/mount alembic.ini)" \
-    "$(containers/mount libweasyl)" \
-    --env=WEASYL_STORAGE_ROOT=/tmp \
-    weasyl .venv/bin/alembic upgrade head
-```
-
-
-### Run
-
-```shell
-containers/run \
-    --network=wzlnet \
-    --name=weasyl-web \
-    --env=WEASYL_STORAGE_ROOT=storage \
-    "$(containers/mount --writable storage)" \
-    "$(containers/mount config)" \
-    "$(containers/mount weasyl)" \
-    "$(containers/mount libweasyl)" \
-    weasyl
-```
-
-
-### Test
-
-```shell
-DOCKER_BUILDKIT=1 docker build --target=test -t weasyl-test --build-arg "version=$(git rev-parse --short HEAD)" .
-mkdir -p .pytest_cache
-containers/run \
-    --network=wzlnet \
-    --name=weasyl-test \
-    --tmpfs=/weasyl/testing \
-    "$(containers/mount --writable .pytest_cache)" \
-    "$(containers/mount config)" \
-    "$(containers/mount weasyl)" \
-    "$(containers/mount libweasyl)" \
-    --env=WEASYL_TEST_SQLALCHEMY_URL=postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl_test \
-    weasyl-test
-```
-
-
-## Nginx
-
-```shell
-mkdir -p weasyl-web storage/static
-docker cp weasyl-web:/weasyl/build weasyl-web/
-containers/run-nginx
+./wzl test --build
 ```
 
 
@@ -118,13 +84,12 @@ Merging the existing Docker branch should help with some of these.
 - [X] parallel builds
 - [ ] elimination of pypi.weasyl.dev
 - [ ] requirements.txt as constraints file
-- [X] editable install with bind mount for faster development
+- [ ] editable install with bind mount for faster development
 - [ ] single configuration file
-- [ ] scripts for common commands
+- [X] scripts for common commands
 - [ ] windows compatibility
-- [ ] separate networks for memcached and postgresql?
-- [ ] compose, stack, kubernetes, or something. aaaa
-- [ ] dns with gvisor if not kubernetes previously
+- [X] separate networks for memcached and postgresql?
+- [X] compose, stack, kubernetes, or something. aaaa
 - [ ] build reproduction with github actions
 - [ ] rootless
 - [ ] allow `pytest libweasyl.test weasyl.test`

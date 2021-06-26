@@ -138,6 +138,26 @@ services:
       - postgres
     tty: true
 
+  revision:
+    profiles: [ revision ]
+    image: weasyl
+    build: *weasyl-build
+    entrypoint:
+      - ash
+      - -euc
+      - |
+        rev_id="$$(python3 -c 'import secrets; print(secrets.token_hex(6))')"
+        .venv/bin/alembic -c /run/config/alembic.ini revision --rev-id "$$rev_id" "$$@" >&2
+        tar c libweasyl/libweasyl/alembic/versions/"$$rev_id"_*
+      - ash
+    volumes:
+      - config:/run/config:ro
+    networks:
+      - web-postgres
+    depends_on:
+      - postgres
+    tty: true
+
   test:
     profiles: [ test ]
     build:

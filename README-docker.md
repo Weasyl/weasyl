@@ -73,6 +73,13 @@ Weasyl should now be running at <http://weasyl:8080/>!
 ```
 
 
+## Making migrations
+
+```shell
+./wzl revision --autogenerate -m 'Revision summary'
+```
+
+
 # TODO
 
 Merging the existing Docker branch should help with some of these.

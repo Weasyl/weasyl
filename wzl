@@ -35,6 +35,11 @@ migrate)
     exec docker-compose --profile migrate up --no-log-prefix "$@" migrate
     ;;
 
+revision)
+    docker-compose --profile revision build revision
+    exec docker-compose run -T revision "$@" | tar x libweasyl/libweasyl/alembic/versions
+    ;;
+
 test)
     exec docker-compose --profile test up --no-log-prefix "$@" test
     ;;

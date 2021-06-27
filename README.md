@@ -1,3 +1,8 @@
+# Welcome to Weasyl!
+
+[Weasyl][] is a social gallery website designed for artists, writers, musicians, and more to share their work with other artists and fans. We seek to bring the creative world together in one easy to use, friendly, community website.
+
+
 ## Starting a Weasyl development environment
 
 Requirements:
@@ -80,23 +85,19 @@ Weasyl should now be running at <http://weasyl:8080/>!
 ```
 
 
-# TODO
+## Troubleshooting and getting help
 
-Merging the existing Docker branch should help with some of these.
+If you have questions or get stuck, you can trying talking to Weasyl project members in the project’s [Gitter room](https://gitter.im/Weasyl/weasyl).
 
-- [X] caching for apk
-- [X] caching for npm
-- [X] caching for pip
-- [ ] separate build stages for each expensive wheel
-- [X] parallel builds
-- [ ] elimination of pypi.weasyl.dev
-- [ ] requirements.txt as constraints file
-- [ ] editable install with bind mount for faster development
-- [ ] single configuration file
-- [X] scripts for common commands
-- [ ] windows compatibility
-- [X] separate networks for memcached and postgresql?
-- [X] compose, stack, kubernetes, or something. aaaa
-- [ ] build reproduction with github actions
-- [ ] rootless
-- [ ] allow `pytest libweasyl.test weasyl.test`
+
+## Code of conduct
+
+Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+
+
+## Style guide
+
+When committing code, be sure to follow the [Style and Best Practices Guide](STYLE_GUIDE.md).
+
+
+[Weasyl]: https://www.weasyl.com/

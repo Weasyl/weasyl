@@ -2,7 +2,8 @@ import hashlib
 from io import BytesIO
 import os
 
-from sqlalchemy.orm import relationship, foreign, remote, joinedload
+from sqlalchemy.orm import relationship, foreign, remote, joinedload, lazyload, load_only
+from sqlalchemy.sql.expression import any_
 
 from libweasyl.files import fanout, makedirs_exist_ok
 from libweasyl.models.meta import Base
@@ -99,7 +100,6 @@ class MediaItem(Base):
 
 class _LinkMixin(object):
     cache_func = None
-    _load = ()
 
     @classmethod
     def refresh_cache(cls, identity):
@@ -132,15 +132,11 @@ class _LinkMixin(object):
         if not identities:
             return []
         q = (
-            cls.query
-            .options(joinedload(cls.media_item))
-            .filter(getattr(cls, cls._identity).in_(identities)))
-
-        for load in cls._load:
-            q = q.options(joinedload(load))
+            cls.get_media_query()
+            .filter(getattr(cls, cls._identity) == any_(list(identities))))
 
         buckets = {identity: {} for identity in identities}
-        for link in q.all():
+        for link in q:
             media_data = link.media_item.serialize(link=link)
             buckets[getattr(link, cls._identity)].setdefault(link.link_type, []).append(media_data)
         return list(buckets.values())
@@ -155,10 +151,22 @@ class SubmissionMediaLink(Base, _LinkMixin):
     __table__ = tables.submission_media_links
 
     _identity = 'submitid'
-    _load = ('submission', 'submission.owner')
 
     submission = relationship('Submission')
     media_item = relationship(MediaItem)
+
+    @classmethod
+    def get_media_query(cls):
+        return cls.query.options(
+            joinedload(cls.media_item),
+            joinedload(cls.submission).options(
+                load_only('title'),
+                joinedload('owner').options(
+                    lazyload('profile'),
+                    load_only('login_name'),
+                ),
+            ),
+        )
 
 
 class UserMediaLink(Base, _LinkMixin):
@@ -170,3 +178,9 @@ class UserMediaLink(Base, _LinkMixin):
         Profile,
         primaryjoin=foreign(__table__.c.userid) == remote(Profile.userid))
     media_item = relationship(MediaItem)
+
+    @classmethod
+    def get_media_query(cls):
+        return cls.query.options(
+            joinedload(cls.media_item),
+        )

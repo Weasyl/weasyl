@@ -101,6 +101,17 @@ COPY assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
 STOPSIGNAL SIGINT
 
+FROM docker.io/library/alpine:3.14 AS flake8
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    py3-flake8
+RUN adduser -S weasyl -h /weasyl
+WORKDIR /weasyl
+USER weasyl
+STOPSIGNAL SIGINT
+ENTRYPOINT ["/usr/bin/flake8"]
+COPY . .
+
 FROM package
 RUN mkdir storage storage/log storage/static \
     && ln -s /run/config config

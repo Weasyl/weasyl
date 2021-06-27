@@ -180,3 +180,11 @@ services:
     depends_on:
       - postgres
     tty: true
+
+  flake8:
+    profiles: [ flake8 ]
+    build:
+      context: .
+      target: flake8
+    network_mode: none
+    tty: true

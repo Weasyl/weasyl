@@ -21,6 +21,10 @@ build-all)
     exec docker-compose --profile migrate --profile test build "$@"
     ;;
 
+check)
+    exec docker-compose --profile flake8 up --no-log-prefix --build flake8 "$@"
+    ;;
+
 configure)
     c='docker-compose run --rm configure'
     set -x

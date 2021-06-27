@@ -26,7 +26,7 @@ check)
     ;;
 
 configure)
-    c='docker-compose run --rm configure'
+    c='docker-compose run --rm -T configure'
     set -x
     $c "$@" alembic.ini < libweasyl/libweasyl/alembic/alembic.ini.example
     $c "$@" site.config.txt < config/site.config.txt.example
@@ -41,7 +41,7 @@ migrate)
 
 revision)
     docker-compose --profile revision build revision
-    exec docker-compose run -T revision "$@" | tar x libweasyl/libweasyl/alembic/versions
+    exec docker-compose run --rm -T revision "$@" | tar x libweasyl/libweasyl/alembic/versions
     ;;
 
 test)

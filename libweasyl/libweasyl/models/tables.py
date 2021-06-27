@@ -367,21 +367,6 @@ media = Table(
 Index('ind_media_sha256', media.c.sha256)
 
 
-media_media_links = Table(
-    'media_media_links', metadata,
-    Column('linkid', Integer(), primary_key=True, nullable=False),
-    Column('described_with_id', Integer(), nullable=False),
-    Column('describee_id', Integer(), nullable=False),
-    Column('link_type', String(length=32), nullable=False),
-    default_fkey(['describee_id'], ['media.mediaid'], name='media_media_links_describee_id_fkey'),
-    default_fkey(['described_with_id'], ['media.mediaid'], name='media_media_links_described_with_id_fkey'),
-)
-
-Index('ind_media_media_links_describee_id', media_media_links.c.describee_id)
-Index('ind_media_media_links_submitid', media_media_links.c.describee_id)
-Index('ind_media_media_links_described_with_id', media_media_links.c.described_with_id, unique=False)
-
-
 message = Table(
     'message', metadata,
     Column('noteid', Integer(), primary_key=True, nullable=False),

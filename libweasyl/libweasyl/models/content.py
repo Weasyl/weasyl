@@ -53,9 +53,6 @@ class Submission(Base):
     @reify
     def cover_media(self):
         ret = self.media.get('cover')
-        # TODO: this should be unnecessary
-        if not ret and self.submission_media:
-            ret = self.submission_media['described'].get('cover')
         if ret:
             return ret[0]
         return None

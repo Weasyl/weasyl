@@ -55,18 +55,9 @@ class MediaItem(Base):
             'sha256': self.sha256,
         }
 
-    def serialize(self, recursive=1, link=None):
+    def serialize(self, *, link):
         ret = self.to_dict()
         ret['display_url'] = self._media_link_formatter_callback(self, link) or self.display_url
-        if recursive > 0:
-            buckets = collections.defaultdict(list)
-            for described_link in self.described:
-                buckets[described_link.link_type].append(
-                    described_link.media_item.serialize(
-                        recursive=recursive - 1, link=described_link))
-            ret['described'] = dict(buckets)
-        else:
-            ret['described'] = {}
         if 'width' in self.attributes and 'height' in self.attributes:
             ret['aspect_ratio'] = self.attributes['width'] / self.attributes['height']
         ret['full_file_path'] = self.full_file_path
@@ -75,9 +66,6 @@ class MediaItem(Base):
     def ensure_cover_image(self, source_image):
         if self.file_type not in {'jpg', 'png', 'gif'}:
             raise ValueError('can only auto-cover image media items')
-        cover_link = next((link for link in self.described if link.link_type == 'cover'), None)
-        if cover_link is not None:
-            return cover_link.media_item
 
         cover = images.make_cover_image(source_image)
         if cover is source_image:
@@ -87,7 +75,6 @@ class MediaItem(Base):
                 cover.to_buffer(format=self.file_type), file_type=self.file_type,
                 im=cover)
         self.dbsession.flush()
-        MediaMediaLink.make_or_replace_link(self.mediaid, 'cover', cover_media_item)
         return cover_media_item
 
     @property
@@ -113,7 +100,6 @@ class MediaItem(Base):
 
 class _LinkMixin(object):
     cache_func = None
-    _linkjoin = ()
     _load = ()
 
     @classmethod
@@ -147,18 +133,16 @@ class _LinkMixin(object):
         if not identities:
             return []
         q = (
-            cls.dbsession.query(MediaItem, cls)
-            .join(cls, *cls._linkjoin)
-            .options(joinedload('described'))
-            .options(joinedload(cls._linkname))
+            cls.query
+            .options(joinedload(cls.media_item))
             .filter(getattr(cls, cls._identity).in_(identities)))
 
         for load in cls._load:
             q = q.options(joinedload(load))
 
         buckets = collections.defaultdict(lambda: collections.defaultdict(list))
-        for media_item, link in q.all():
-            media_data = media_item.serialize(link=link)
+        for link in q.all():
+            media_data = link.media_item.serialize(link=link)
             buckets[getattr(link, cls._identity)][link.link_type].append(media_data)
         return [dict(buckets[identity]) for identity in identities]
 
@@ -172,35 +156,18 @@ class SubmissionMediaLink(Base, _LinkMixin):
     __table__ = tables.submission_media_links
 
     _identity = 'submitid'
-    _linkname = 'submission_links'
-    _load = ('submission_links.submission', 'submission_links.submission.owner')
+    _load = ('submission', 'submission.owner')
 
-    submission = relationship("Submission", backref='media_links')
-    media_item = relationship(MediaItem, backref='submission_links')
+    submission = relationship('Submission')
+    media_item = relationship(MediaItem)
 
 
 class UserMediaLink(Base, _LinkMixin):
     __table__ = tables.user_media_links
 
     _identity = 'userid'
-    _linkname = 'user_links'
 
     user = relationship(
-        Profile, backref='media_links',
+        Profile,
         primaryjoin=foreign(__table__.c.userid) == remote(Profile.userid))
-    media_item = relationship(MediaItem, backref='user_links')
-
-
-class MediaMediaLink(Base, _LinkMixin):
-    __table__ = tables.media_media_links
-
-    _identity = 'describee_id'
-    _linkname = 'describing'
-    _linkjoin = __table__.c.described_with_id == MediaItem.mediaid,
-
-    describee = relationship(
-        MediaItem, backref='described',
-        primaryjoin=foreign(__table__.c.describee_id) == remote(MediaItem.mediaid))
-    media_item = relationship(
-        MediaItem, backref='describing',
-        primaryjoin=foreign(__table__.c.described_with_id) == remote(MediaItem.mediaid))
+    media_item = relationship(MediaItem)

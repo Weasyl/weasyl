@@ -91,15 +91,3 @@ def make_submission(db):
     db.add(sub)
     db.flush()
     return sub
-
-
-def make_media(db):
-    """
-    Create a new media item.
-
-    The file used for the media item is fixed: the data file '2x233.gif'.
-
-    Returns:
-        A MediaItem.
-    """
-    return media_item(db, '2x233.gif')

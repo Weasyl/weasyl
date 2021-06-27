@@ -87,7 +87,7 @@ Weasyl should now be running at <http://weasyl:8080/>!
 
 ## Troubleshooting and getting help
 
-If you have questions or get stuck, you can trying talking to Weasyl project members in the project’s [Gitter room](https://gitter.im/Weasyl/weasyl).
+If you have questions or get stuck, you can try talking to Weasyl project members in the project’s [Gitter room](https://gitter.im/Weasyl/weasyl).
 
 
 ## Code of conduct

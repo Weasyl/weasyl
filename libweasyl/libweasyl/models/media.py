@@ -1,4 +1,3 @@
-import collections
 import hashlib
 from io import BytesIO
 import os
@@ -140,11 +139,11 @@ class _LinkMixin(object):
         for load in cls._load:
             q = q.options(joinedload(load))
 
-        buckets = collections.defaultdict(lambda: collections.defaultdict(list))
+        buckets = {identity: {} for identity in identities}
         for link in q.all():
             media_data = link.media_item.serialize(link=link)
-            buckets[getattr(link, cls._identity)][link.link_type].append(media_data)
-        return [dict(buckets[identity]) for identity in identities]
+            buckets[getattr(link, cls._identity)].setdefault(link.link_type, []).append(media_data)
+        return list(buckets.values())
 
     @classmethod
     def register_cache(cls, func):

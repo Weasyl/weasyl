@@ -12,6 +12,7 @@ etc/*
 !build.js
 !package.json
 !package-lock.json
+!setup.cfg
 !setup.py
 
 !pytest.ini

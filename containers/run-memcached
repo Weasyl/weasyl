@@ -1,9 +1,0 @@
-#!/bin/sh
-set -eu
-exec containers/run \
-    --rm=false \
-    --restart=on-failure \
-    --detach \
-    --network=wzlnet \
-    --name=weasyl-memcached \
-    memcached:1.5-alpine --memory-limit=64

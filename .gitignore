@@ -3,8 +3,6 @@
 *.py[co]
 __pycache__/
 
-/containers/data/
-
 /build
 /temp
 /backup
@@ -15,12 +13,8 @@ __pycache__/
 /static/media
 /config/site.config.txt
 /config/weasyl-staff.py
-/.vagrant
-/weasyl-env
 /twistd.pid
 /version.txt
 
 /.pytest_cache/
 /coverage/
-
-/weasyl-web/

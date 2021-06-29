@@ -9,11 +9,11 @@ run_periodic_tasks = false
 profile_responses = false
 
 [sqlalchemy]
-url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl
+url = postgresql+psycopg2cffi://weasyl@postgres/weasyl
 # url = postgresql+psycopg2cffi:///weasyl
 
 [memcached]
-servers = weasyl-memcached
+servers = memcached
 
 [sentry]
 # dsn = twisted+http://...

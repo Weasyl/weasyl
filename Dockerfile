@@ -1,19 +1,22 @@
 # syntax=docker/dockerfile:experimental
-FROM node:15-alpine AS assets
-RUN apk add --update sassc
+FROM docker.io/library/node:15-alpine AS assets
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    sassc
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
 USER node
 COPY package.json package-lock.json ./
-RUN npm install --no-save --ignore-scripts
+RUN --mount=type=cache,id=npm,target=/home/node/.npm/_cacache,uid=1000 npm install --no-audit --no-save --ignore-scripts
 COPY build.js build.js
 COPY assets assets
 RUN node build.js
 
 
-FROM python:3.9-alpine3.13 AS bdist-lxml
+FROM docker.io/library/python:3.9-alpine3.13 AS bdist-lxml
 # libxml2-dev, libxslt-dev: lxml
-RUN apk add --update \
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     musl-dev gcc make \
     libxml2-dev libxslt-dev
 RUN adduser -S build -h /weasyl-build -u 1000
@@ -23,13 +26,14 @@ COPY requirements/lxml.txt lxml.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r lxml.txt
 
 
-FROM python:3.9-alpine3.13 AS bdist
+FROM docker.io/library/python:3.9-alpine3.13 AS bdist
 # imagemagick6-dev: sanpera
 # libjpeg-turbo-dev, libwebp-dev, zlib-dev: Pillow
 # libffi-dev, openssl-dev: cryptography
 # libmemcached-dev: pylibmc
 # postgresql-dev: psycopg2cffi
-RUN apk add --update \
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     musl-dev gcc make \
     imagemagick6-dev \
     libffi-dev \
@@ -46,7 +50,7 @@ COPY etc/requirements.txt requirements.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r requirements.txt
 
 
-FROM python:3.9-alpine3.13 AS bdist-pytest
+FROM docker.io/library/python:3.9-alpine3.13 AS bdist-pytest
 RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
@@ -54,15 +58,16 @@ COPY requirements/test.txt test.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest
 
 
-FROM python:3.9-alpine3.13 AS package
-RUN apk add --update \
+FROM docker.io/library/python:3.9-alpine3.13 AS package
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     imagemagick6-libs \
     libffi \
     libjpeg-turbo \
     libmemcached-libs \
+    libpq \
     libwebp \
-    libxslt \
-    postgresql-dev
+    libxslt
 RUN adduser -S weasyl -h /weasyl
 WORKDIR /weasyl
 USER weasyl
@@ -86,14 +91,30 @@ RUN test -n "$version" && printf '%s\n' "$version" > version.txt
 
 FROM package AS test
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-pytest .venv/bin/pip install --no-deps install-wheels/*
+RUN mkdir .pytest_cache \
+    && ln -s /run/config config
 ENV WEASYL_APP_ROOT=.
 ENV WEASYL_STORAGE_ROOT=testing/storage
 ENV PATH="/weasyl/.venv/bin:${PATH}"
 COPY pytest.ini .coveragerc ./
 COPY assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
+STOPSIGNAL SIGINT
+
+FROM docker.io/library/alpine:3.14 AS flake8
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    py3-flake8
+RUN adduser -S weasyl -h /weasyl
+WORKDIR /weasyl
+USER weasyl
+STOPSIGNAL SIGINT
+ENTRYPOINT ["/usr/bin/flake8"]
+COPY . .
 
 FROM package
+RUN mkdir storage storage/log storage/static \
+    && ln -s /run/config config
 ENV WEASYL_APP_ROOT=/weasyl
 ENV WEASYL_WEB_ENDPOINT=tcp:8080
 CMD [".venv/bin/twistd", "--nodaemon", "--python=weasyl/weasyl.tac", "--pidfile=/tmp/twistd.pid"]

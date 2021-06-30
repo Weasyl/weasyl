@@ -7,8 +7,7 @@ from weasyl.test import db_utils
 
 
 @pytest.fixture(name='journal_user')
-@pytest.mark.usefixtures('db')
-def _journal_user():
+def _journal_user(db, cache):
     return db_utils.create_user(username='journal_test')
 
 
@@ -34,7 +33,7 @@ def test_profile_guest(app):
     assert resp.html.find(id='user-journal').h4.string == u'Public journal'
 
 
-@pytest.mark.usefixtures('db', 'journal_user', 'journals')
+@pytest.mark.usefixtures('db', 'cache', 'journal_user', 'journals')
 def test_profile_user(app):
     user = db_utils.create_user(config=CharSettings(frozenset(), {}, {'tagging-level': 'max-rating-mature'}))
     cookie = db_utils.create_session(user)
@@ -43,7 +42,7 @@ def test_profile_user(app):
     assert resp.html.find(id='user-journal').h4.string == u'Restricted journal'
 
 
-@pytest.mark.usefixtures('db', 'journal_user', 'journals')
+@pytest.mark.usefixtures('db', 'cache', 'journal_user', 'journals')
 def test_profile_friend(app, journal_user):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -60,7 +59,7 @@ def test_list_guest(app):
     assert titles == [u'Public journal', u'Test journal']
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_list_unicode_username(app):
     """
     Test journal lists on profiles with usernames containing non-ASCII

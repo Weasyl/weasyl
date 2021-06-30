@@ -125,7 +125,7 @@ def profile_(request):
 def profile_media_(request):
     name = request.matchdict['name']
     link_type = request.matchdict['link_type']
-    userid = profile.resolve_by_login(name)
+    userid = profile.resolve_by_username(name)
     media_items = media.get_user_media(userid)
     if not media_items.get(link_type):
         raise httpexceptions.HTTPNotFound()

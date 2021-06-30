@@ -29,13 +29,10 @@ def delete_api_keys(userid, keys):
 
 
 def tidy_media(item):
-    ret = {
+    return {
         'url': d.absolutify_url(item['display_url']),
         'mediaid': item.get('mediaid'),
     }
-    if item.get('described'):
-        ret['links'] = tidy_all_media(item['described'])
-    return ret
 
 
 def tidy_all_media(d):

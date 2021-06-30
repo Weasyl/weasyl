@@ -425,21 +425,11 @@ def fake_media_items(charid, userid, login, settings):
     return {
         "submission": [{
             "display_url": submission_url,
-            "described": {
-                "cover": [{
-                    "display_url": cover_url,
-                }],
-            },
         }],
         "thumbnail-generated": [{
             "display_url": thumbnail_url,
         }],
         "cover": [{
             "display_url": cover_url,
-            "described": {
-                "submission": [{
-                    "display_url": submission_url,
-                }],
-            },
         }],
     }

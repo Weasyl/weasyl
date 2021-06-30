@@ -5,9 +5,8 @@ $def with (myself, query, violations)
   <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h1>
 
   <div id="detail-art">
-    $ submissions = query['sub_media'].get('submission')
-    $ submission = submissions[0]
-    $ cover = submission['described']['cover'][0]
+    $ submission = query['sub_media']['submission'][0]
+    $ cover = query['sub_media']['cover'][0]
     <a href="${submission['display_url']}">
       <img src="${cover['display_url']}" alt="" />
     </a>

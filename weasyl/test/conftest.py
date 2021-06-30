@@ -16,7 +16,7 @@ from weasyl import config
 config._in_test = True  # noqa
 
 from libweasyl import cache
-from libweasyl.cache import JSONProxy, ThreadCacheProxy
+from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from weasyl import (
@@ -33,7 +33,7 @@ from weasyl.wsgi import wsgi_app
 
 cache.region.configure(
     'dogpile.cache.memory',
-    wrap=[ThreadCacheProxy, JSONProxy],
+    wrap=[ThreadCacheProxy],
 )
 define.metric = lambda *a, **kw: None
 
@@ -137,7 +137,7 @@ def db(request):
 def cache_(request):
     cache.region.configure(
         'dogpile.cache.memory',
-        wrap=[ThreadCacheProxy, JSONProxy],
+        wrap=[ThreadCacheProxy],
         replace_existing_backend=True,
     )
 

@@ -7,16 +7,15 @@ project.
 .. _dogpile.cache: http://dogpilecache.readthedocs.org/en/latest/
 """
 
-import threading
-import zlib
-
 import json
+import threading
+
+import dogpile.cache
+import dogpile.cache.backends.memcached
+import pylibmc
 from dogpile.cache.api import CachedValue, NO_VALUE
 from dogpile.cache.proxy import ProxyBackend
 from dogpile.cache import make_region
-
-
-_GZIP_THRESHOLD = 1024 * 1024
 
 
 region = make_region()
@@ -172,113 +171,31 @@ class ThreadCacheProxy(ProxyBackend):
         self.proxied.delete_multi(keys)
 
 
-class JSONProxy(ProxyBackend):
+class JsonClient(pylibmc.Client):
     """
-    A JSON-serializing proxy.
-
-    Values passed through this proxy are serialized to or from JSON as they
-    pass through, so that the proxied backend only has to worry about strings
-    instead of python objects.
-
-    Additionally, serialized JSON that is larger than a megabyte is
-    transparently compressed.
+    A pylibmc.Client that stores only dogpile.cache entries, as JSON.
     """
 
-    def load(self, value):
-        """
-        Unserialize some data from JSON.
+    def serialize(self, value):
+        return json.dumps(value).encode('ascii'), 0
 
-        If the JSON was compressed, decompress it first.
-
-        Parameters:
-            value: :py:data:`~dogpile.cache.api.NO_VALUE` or :term:`bytes`.
-
-        Returns:
-            :py:data:`~dogpile.cache.api.NO_VALUE` if *value* was
-            :py:data:`~dogpile.cache.api.NO_VALUE`, or a
-            :py:class:`~dogpile.cache.api.CachedValue`.
-        """
-        if value is NO_VALUE:
-            return NO_VALUE
-        if value.startswith(b'\0'):
-            value = zlib.decompress(value[1:])
-        payload, metadata = json.loads(value)
+    def deserialize(self, bytestring, flag):
+        payload, metadata = json.loads(bytestring)
         return CachedValue(payload, metadata)
 
-    def get(self, key):
-        """
-        Proxy a ``get`` call.
 
-        The data returned from the proxied backend is loaded with
-        :py:meth:`.load` before being returned.
+class JsonPylibmcBackend(dogpile.cache.backends.memcached.PylibmcBackend):
 
-        Parameters:
-            key: A :term:`native string`.
+    def _imports(self):
+        pass
 
-        Returns:
-            See the :py:meth:`.load` method.
-        """
-        return self.load(self.proxied.get(key))
+    def _create_client(self):
+        return JsonClient(
+            self.url,
+            binary=self.binary,
+            behaviors=self.behaviors,
+        )
 
-    def get_multi(self, keys):
-        """
-        Proxy a ``get_multi`` call.
-
-        The data returned from the proxied backend is loaded with
-        :py:meth:`.load` before being returned.
-
-        Parameters
-            key (list): A list of :term:`native string` objects.
-
-        Returns:
-            list: See :py:meth:`.load` for the contents of the list.
-        """
-        return list(map(self.load, self.proxied.get_multi(keys)))
-
-    def save(self, value):
-        """
-        Serialize some data to JSON.
-
-        If the serialized JSON data exceeds a megabyte, it is compressed before
-        being returned. To indicate compressed data, a single NUL byte is
-        prepended to the data.
-
-        Parameters:
-            value: A :py:class:`~dogpile.cache.api.CachedValue`.
-
-        Returns:
-            :term:`bytes`.
-        """
-        ret = [value.payload, value.metadata]
-        ret = json.dumps(ret).encode('ascii')
-        if len(ret) > _GZIP_THRESHOLD:
-            ret = b'\0' + zlib.compress(ret)
-            if len(ret) > _GZIP_THRESHOLD:
-                raise ValueError('compressed object still too large')
-        return ret
-
-    def set(self, key, value):
-        """
-        Proxy a ``set`` call.
-
-        The data sent to the proxied backend is first saved with
-        :py:meth:`.save`.
-
-        Parameters:
-            key: A :term:`native string`.
-            value: A :py:class:`~dogpile.cache.api.CachedValue`.
-        """
-        self.proxied.set(key, self.save(value))
-
-    def set_multi(self, pairs):
-        """
-        Proxy a ``set_multi`` call.
-
-        The data sent to the proxied backend is first saved with
-        :py:meth:`.save`.
-
-        Parameters
-            pairs (dict): A mapping from :term:`native string` objects to
-                :py:class:`~dogpile.cache.api.CachedValue` objects.
-        """
-        self.proxied.set_multi({k: self.save(v) for k, v in pairs.items()})
+    @classmethod
+    def register(cls):
+        dogpile.cache.register_backend('libweasyl.cache.pylibmc', 'libweasyl.cache', 'JsonPylibmcBackend')

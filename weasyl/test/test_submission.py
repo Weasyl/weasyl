@@ -328,9 +328,9 @@ class SubmissionNotificationsTestCase(unittest.TestCase):
         """
         s = db_utils.create_submission(self.owner)
         welcome.submission_insert(self.owner, s)
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(1, self._notification_count(self.nonfriend))
-        self.assertEquals(1, self._notification_count(self.ignored))
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(1, self._notification_count(self.nonfriend))
+        self.assertEqual(1, self._notification_count(self.ignored))
 
     def test_friends_only_submission(self):
         """
@@ -340,9 +340,9 @@ class SubmissionNotificationsTestCase(unittest.TestCase):
             self.owner,
             settings=CharSettings({'friends-only'}, {}, {}))
         welcome.submission_insert(self.owner, s, settings='f')
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(0, self._notification_count(self.nonfriend))
-        self.assertEquals(0, self._notification_count(self.ignored))
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(0, self._notification_count(self.nonfriend))
+        self.assertEqual(0, self._notification_count(self.ignored))
 
     def test_submission_becomes_friends_only(self):
         """
@@ -352,11 +352,11 @@ class SubmissionNotificationsTestCase(unittest.TestCase):
         # Initial behavior should match with normal.
         s = db_utils.create_submission(self.owner)
         welcome.submission_insert(self.owner, s)
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(1, self._notification_count(self.nonfriend))
-        self.assertEquals(1, self._notification_count(self.ignored))
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(1, self._notification_count(self.nonfriend))
+        self.assertEqual(1, self._notification_count(self.ignored))
 
         welcome.submission_became_friends_only(s, self.owner)
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(0, self._notification_count(self.nonfriend))
-        self.assertEquals(0, self._notification_count(self.ignored))
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(0, self._notification_count(self.nonfriend))
+        self.assertEqual(0, self._notification_count(self.ignored))

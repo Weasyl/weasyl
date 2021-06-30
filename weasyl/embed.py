@@ -1,6 +1,6 @@
 import re
 import string
-from urllib.parse import urlsplit
+from urllib.parse import quote as urlquote, urlsplit
 
 from libweasyl.cache import region
 
@@ -75,7 +75,7 @@ def _embed_json(service, targetid):
     Returns oEmbed JSON for a given URL and service
     """
     if service in _OEMBED_MAP:
-        return d.http_get(_OEMBED_MAP[service] % targetid).json()
+        return d.http_get(_OEMBED_MAP[service] % (urlquote(targetid),)).json()
 
 
 def html(link):

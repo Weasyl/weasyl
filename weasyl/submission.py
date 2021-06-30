@@ -1,3 +1,4 @@
+import os
 import re
 from io import BytesIO
 from urllib.parse import urlparse
@@ -6,6 +7,7 @@ import arrow
 import sqlalchemy as sa
 
 from libweasyl.cache import region
+from libweasyl.models.media import MediaItem
 from libweasyl import (
     html,
     images,
@@ -578,7 +580,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
 
     # Get submission text
     if submitfile and submitfile['file_type'] in ['txt', 'htm']:
-        submittext = files.read(submitfile['full_file_path'])
+        submittext = files.read(os.path.join(MediaItem._base_file_path, submitfile['file_url'][1:]))
     else:
         submittext = None
 

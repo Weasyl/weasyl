@@ -104,17 +104,15 @@ def resolve(userid, otherid, othername):
         if result:
             return result
     elif othername:
-        return d.get_userids([othername])[othername]
+        return resolve_by_username(othername)
     elif userid:
         return userid
 
     return 0
 
 
-@region.cache_on_arguments()
-@d.record_timing
-def resolve_by_login(login):
-    return resolve(None, None, login)
+def resolve_by_username(username):
+    return d.get_userids([username])[username]
 
 
 def select_profile(userid, viewer=None):

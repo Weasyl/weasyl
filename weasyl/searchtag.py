@@ -78,8 +78,7 @@ def select_list(map_table, targetids):
 
 
 @region.cache_on_arguments()
-def get_or_create(name):
-    name = d.get_search_tag(name)
+def _get_or_create(name):
     tag = d.engine.scalar(
         'INSERT INTO searchtag (title) VALUES (%(name)s) ON CONFLICT (title) DO NOTHING RETURNING tagid',
         name=name)
@@ -90,6 +89,10 @@ def get_or_create(name):
     return d.engine.scalar(
         'SELECT tagid FROM searchtag WHERE title = %(name)s',
         name=name)
+
+
+def get_or_create(name):
+    return _get_or_create(d.get_search_tag(name))
 
 
 def get_ids(names):

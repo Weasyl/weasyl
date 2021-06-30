@@ -456,19 +456,37 @@ def get_character_directory(charid):
     return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
-def get_userids(usernames):
-    sysnames = [get_sysname(username) for username in usernames]
-
+@region.cache_multi_on_arguments(should_cache_fn=bool)
+def _get_userids(*sysnames):
     result = engine.execute(
         "SELECT login_name, userid FROM login WHERE login_name = ANY (%(names)s)"
         " UNION ALL SELECT alias_name, userid FROM useralias WHERE alias_name = ANY (%(names)s)"
         " UNION ALL SELECT login_name, userid FROM username_history WHERE active AND login_name = ANY (%(names)s)",
-        names=[sysname for sysname in sysnames if sysname],
+        names=list(sysnames),
     )
 
     sysname_userid = dict(result.fetchall())
 
-    return {username: sysname_userid.get(sysname, 0) for sysname, username in zip(sysnames, usernames)}
+    return [sysname_userid.get(sysname, 0) for sysname in sysnames]
+
+
+def get_userids(usernames):
+    ret = {}
+    lookup_usernames = []
+    sysnames = []
+
+    for username in usernames:
+        sysname = get_sysname(username)
+
+        if sysname:
+            lookup_usernames.append(username)
+            sysnames.append(sysname)
+        else:
+            ret[username] = 0
+
+    ret.update(zip(lookup_usernames, _get_userids(*sysnames)))
+
+    return ret
 
 
 def get_userid_list(target):

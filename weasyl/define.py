@@ -29,7 +29,7 @@ from libweasyl import html, text, ratings, security, staff
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
-from weasyl.config import config_obj, config_read_setting, config_read_bool
+from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
 from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
@@ -169,7 +169,6 @@ def _compile(template_name):
                 "TITLE": titlebar,
                 "RENDER": render,
                 "COMPILE": _compile,
-                "CAPTCHA": _captcha_public,
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
@@ -229,38 +228,6 @@ def webpage(userid, template, argv=None, options=None, **extras):
     page.append(render(template, argv))
 
     return common_page_end(userid, page, options=options)
-
-
-def _captcha_section():
-    request = get_current_request()
-    host = request.environ.get('HTTP_HOST', '').partition(':')[0]
-    return 'recaptcha-' + host
-
-
-def _captcha_public():
-    """
-    Returns the reCAPTCHA public key, or None if CAPTCHA verification
-    is disabled.
-    """
-    if config_read_bool("captcha_disable_verification"):
-        return None
-
-    return config_obj.get(_captcha_section(), 'public_key')
-
-
-def captcha_verify(captcha_response):
-    if config_read_bool("captcha_disable_verification"):
-        return True
-    if not captcha_response:
-        return False
-
-    data = dict(
-        secret=config_obj.get(_captcha_section(), 'private_key'),
-        response=captcha_response,
-        remoteip=get_address())
-    response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
-    captcha_validation_result = response.json()
-    return captcha_validation_result['success']
 
 
 def get_weasyl_session():

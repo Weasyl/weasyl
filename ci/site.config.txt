@@ -1,6 +1,5 @@
 [general]
 allow_submit = true
-captcha_disable_verification = true
 # Whether currency exchange rates should be fetched for /marketplace
 convert_currency = false
 
@@ -19,10 +18,6 @@ servers = weasyl-memcached
 
 [smtp]
 host = localhost
-
-[recaptcha-lo.weasyl.com]
-public_key = 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
-private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
 
 [two_factor_auth]
 # This key MUST be changed when in production;

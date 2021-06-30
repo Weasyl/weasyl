@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 from smtplib import SMTP
 
 from weasyl import define, macro
+from weasyl.config import config_read_setting
 
 
 EMAIL_ADDRESS = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\Z")
@@ -37,7 +38,7 @@ def send(mailto, subject, content):
     # smtp.sendmail() only converts CR and LF (produced by MIMEText and our templates) to CRLF in Python 3. In Python 2, we need this:
     msg_crlf = re.sub(r"\r\n|[\r\n]", "\r\n", message.as_string())
 
-    smtp = SMTP(define.config_read_setting('host', "localhost", section='smtp'))
+    smtp = SMTP(config_read_setting('host', "localhost", section='smtp'))
 
     try:
         smtp.sendmail(

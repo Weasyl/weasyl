@@ -10,6 +10,7 @@ from libweasyl.text import markdown, slug_for
 from weasyl import (
     character, comment, define, folder, journal, macro, profile,
     report, searchtag, shout, submission, orm)
+from weasyl.config import config_read_bool
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError
 from weasyl.login import get_user_agent_id
@@ -52,7 +53,7 @@ def submit_visual_post_(request):
 
     tags = searchtag.parse_tags(form.tags)
 
-    if not define.config_read_bool("allow_submit"):
+    if not config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
     if not define.is_vouched_for(request.userid):
@@ -105,7 +106,7 @@ def submit_literary_post_(request):
 
     tags = searchtag.parse_tags(form.tags)
 
-    if not define.config_read_bool("allow_submit"):
+    if not config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
     if not define.is_vouched_for(request.userid):
@@ -157,7 +158,7 @@ def submit_multimedia_post_(request):
 
     tags = searchtag.parse_tags(form.tags)
 
-    if not define.config_read_bool("allow_submit"):
+    if not config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
     if not define.is_vouched_for(request.userid):
@@ -208,7 +209,7 @@ def submit_character_post_(request):
 
     tags = searchtag.parse_tags(form.tags)
 
-    if not define.config_read_bool("allow_submit"):
+    if not config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
     if not define.is_vouched_for(request.userid):
@@ -249,7 +250,7 @@ def submit_journal_post_(request):
 
     tags = searchtag.parse_tags(form.tags)
 
-    if not define.config_read_bool("allow_submit"):
+    if not config_read_bool("allow_submit"):
         raise WeasylError("FeatureDisabled")
 
     if not define.is_vouched_for(request.userid):

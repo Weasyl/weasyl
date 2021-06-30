@@ -11,6 +11,7 @@ import weasyl.wsgi
 import weasyl.define as d
 from libweasyl import cache
 from weasyl.cache import RequestMemcachedStats
+from weasyl.config import config_read_bool, config_read_setting
 
 threadPool = reactor.getThreadPool()
 
@@ -33,7 +34,7 @@ def attachServerEndpoint(factory, endpointEnvironKey, defaultString):
 
 attachServerEndpoint(site, 'WEASYL_WEB_ENDPOINT', 'tcp:8080:interface=127.0.0.1')
 
-if d.config_read_bool('run_periodic_tasks', section='backend'):
+if config_read_bool('run_periodic_tasks', section='backend'):
     from weasyl.cron import run_periodic_tasks
     weasyl.polecat.PeriodicTasksService(reactor, run_periodic_tasks).setServiceParent(application)
 
@@ -41,7 +42,7 @@ if d.config_read_bool('run_periodic_tasks', section='backend'):
 cache.region.configure(
     'dogpile.cache.pylibmc',
     arguments={
-        'url': d.config_read_setting('servers', "127.0.0.1", section='memcached').split(),
+        'url': config_read_setting('servers', "127.0.0.1", section='memcached').split(),
         'binary': True,
     },
     wrap=[cache.ThreadCacheProxy, cache.JSONProxy, RequestMemcachedStats],

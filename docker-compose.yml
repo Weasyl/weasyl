@@ -9,6 +9,7 @@ volumes:
   test-cache:
 
 networks:
+  external-web:
   external-nginx:
   nginx-web:
     internal: true
@@ -51,6 +52,7 @@ services:
       - type: tmpfs
         target: /tmp
     networks:
+      - external-web
       - nginx-web
       - web-memcached
       - web-postgres

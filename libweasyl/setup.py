@@ -27,11 +27,11 @@ setup(
         'alembic==1.5.8',
         'arrow==0.15.2',
         'bcrypt==3.2.0',
-        'dogpile.cache==0.9.2',
+        'dogpile.cache==1.0.2',
         'lxml==4.6.2',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
-        'Pillow==8.2.0',
+        'Pillow==8.3.0',
         'psycopg2cffi==2.9.0',
         'pyramid~=2.0',
         'pytz==2020.4',

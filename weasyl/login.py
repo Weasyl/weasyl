@@ -352,15 +352,18 @@ def username_exists(login_name):
 
 
 def release_username(db, acting_user, target_user):
-    db.execute(
+    old_sysname = db.scalar(
         "UPDATE username_history SET"
         " active = FALSE,"
         " deactivated_at = now(),"
         " deactivated_by = %(acting)s"
-        " WHERE userid = %(target)s AND active",
+        " WHERE userid = %(target)s AND active"
+        " RETURNING login_name",
         acting=acting_user,
         target=target_user,
     )
+
+    d._get_userids.invalidate(old_sysname)
 
 
 def change_username(acting_user, target_user, bypass_limit, new_username):
@@ -439,6 +442,9 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
 
     d.serializable_retry(change_username_transaction)
     d._get_display_name.invalidate(target_user)
+
+    if not cosmetic:
+        d._get_userids.invalidate(old_sysname)
 
 
 def get_account_verification_token(email=None, username=None):

@@ -7,8 +7,6 @@ project.
 .. _dogpile.cache: http://dogpilecache.readthedocs.org/en/latest/
 """
 
-import os
-import re
 import threading
 import zlib
 
@@ -19,44 +17,9 @@ from dogpile.cache import make_region
 
 
 _GZIP_THRESHOLD = 1024 * 1024
-_MEMCACHED_PREFIX = os.environ.get('WEASYL_MEMCACHED_PREFIX', '') + ':'
-_bad_key_regexp = re.compile('[\x00-\x20\x7f]')
 
 
-def escape_key(key):
-    """
-    Escape a key so that it is valid for use in memcached.
-
-    Basically, this just removes nonprintable characters and replaces them with
-    a period (i.e. ``.``).
-
-    Parameters:
-        key: A :term:`native string`.
-
-    Returns:
-        An escaped :term:`native string`.
-    """
-    key = str(key)
-    return _bad_key_regexp.sub('.', key)
-
-
-def key_mangler(key):
-    """
-    Transform keys before they are sent to memcached.
-
-    This escapes *key* with :py:func:`escape_key` and then prepends a prefix
-    derived from the :envvar:`WEASYL_MEMCACHED_PREFIX` environment variable.
-
-    Parameters:
-        key: A :term:`native string`.
-
-    Returns:
-        An escaped, prefixed :term:`native string`.
-    """
-    return _MEMCACHED_PREFIX + escape_key(key)
-
-
-region = make_region(key_mangler=key_mangler)
+region = make_region()
 
 
 class ThreadCacheProxy(ProxyBackend):

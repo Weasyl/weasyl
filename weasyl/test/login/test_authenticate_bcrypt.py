@@ -42,9 +42,9 @@ def test_login_fails_for_incorrect_credentials():
 
 
 @pytest.mark.usefixtures('db')
-def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, monkeypatch):
+def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmp_path, monkeypatch):
     # Required: Monkeypatch the log directory, and the staff.MODS frozenset
-    monkeypatch.setenv(macro.MACRO_SYS_LOG_PATH, tmpdir + "/")
+    monkeypatch.setattr(macro, 'MACRO_SYS_LOG_PATH', f"{tmp_path}/")
     log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
     user_id = db_utils.create_user(username='ikani', password=raw_password)
     # Set the moderators in libweasyl/staff.py via monkeypatch

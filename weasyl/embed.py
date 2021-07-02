@@ -1,6 +1,6 @@
 import re
 import string
-from urllib.parse import urlsplit
+from urllib.parse import quote as urlquote, urlsplit
 
 from libweasyl.cache import region
 
@@ -14,7 +14,6 @@ _OEMBED_MAP = {
     "youtube": "https://www.youtube.com/oembed?url=%s&maxwidth=640&maxheight=360",
     "vimeo": "https://vimeo.com/api/oembed.json?url=%s&maxwidth=400&maxheight=300",
     "soundcloud": "https://soundcloud.com/oembed?format=json&url=%s",
-    "vine": "https://vine.co/oembed.json?url=%s&maxwidth=600&maxheight=600",
     "sketchfab": "https://sketchfab.com/oembed?url=%s&maxwidth=640&maxheight=480",
 }
 
@@ -34,8 +33,6 @@ def _service(link):
         return "bandcamp"
     elif domain.endswith(".soundcloud.com"):
         return "soundcloud"
-    elif domain.endswith(".vine.co"):
-        return "vine"
     elif domain.endswith(".sketchfab.com"):
         return "sketchfab"
 
@@ -74,8 +71,7 @@ def _embed_json(service, targetid):
     """
     Returns oEmbed JSON for a given URL and service
     """
-    if service in _OEMBED_MAP:
-        return d.http_get(_OEMBED_MAP[service] % targetid).json()
+    return d.http_get(_OEMBED_MAP[service] % (urlquote(targetid),)).json()
 
 
 def html(link):

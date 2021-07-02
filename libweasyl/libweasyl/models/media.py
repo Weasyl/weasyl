@@ -46,21 +46,17 @@ class MediaItem(Base):
     _media_link_formatter_callback = None
     _base_file_path = None
 
-    def to_dict(self):
+    def _to_dict(self):
         return {
             'mediaid': self.mediaid,
             'file_type': self.file_type,
             'file_url': self.file_url,
             'attributes': self.attributes,
-            'sha256': self.sha256,
         }
 
     def serialize(self, *, link):
-        ret = self.to_dict()
+        ret = self._to_dict()
         ret['display_url'] = self._media_link_formatter_callback(self, link) or self.display_url
-        if 'width' in self.attributes and 'height' in self.attributes:
-            ret['aspect_ratio'] = self.attributes['width'] / self.attributes['height']
-        ret['full_file_path'] = self.full_file_path
         return ret
 
     def ensure_cover_image(self, source_image):

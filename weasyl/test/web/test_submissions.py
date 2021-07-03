@@ -8,6 +8,7 @@ import arrow
 import pytest
 import webtest
 
+from libweasyl import ratings
 from weasyl import submission
 from weasyl.test import db_utils
 from weasyl.test.web.common import (
@@ -158,3 +159,19 @@ def test_crosspost(app, submission_user, monkeypatch):
     cookie = db_utils.create_session(submission_user)
     resp = app.post('/submit/visual', form, headers={'Cookie': cookie}, status=422)
     assert resp.html.find(id='error_content').p.text == 'The image you crossposted was from an unsupported source. Please report this bug to the creator of the crossposting tool.'
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_folder_navigation_sfw_mode(app, submission_user):
+    """
+    Test that a user’s own submissions are still hidden in SFW mode when rated above their configured SFW mode rating.
+    """
+    app.set_cookie(*db_utils.create_session(submission_user).split("=", 1))
+
+    s1 = db_utils.create_submission(submission_user, rating=ratings.GENERAL.code)
+    s2 = db_utils.create_submission(submission_user, rating=ratings.MATURE.code)
+    s3 = db_utils.create_submission(submission_user, rating=ratings.GENERAL.code)
+
+    assert app.get(f"/~submissiontest/submissions/{s1}/test-title").html.find(id='folder-nav-next')['href'] == f"/~submissiontest/submissions/{s2}/test-title"
+    app.set_cookie('sfwmode', 'sfw')
+    assert app.get(f"/~submissiontest/submissions/{s1}/test-title").html.find(id='folder-nav-next')['href'] == f"/~submissiontest/submissions/{s3}/test-title"

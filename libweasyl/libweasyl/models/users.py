@@ -49,7 +49,7 @@ class Session(Base):
     save = False
     create = False
 
-    user = orm.relationship(Login, backref='sessions')
+    user = orm.relationship(Login)
 
     def __repr__(self):
         return '<Session for %s: %r>' % (self.userid, self.additional_data)

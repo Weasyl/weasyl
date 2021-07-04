@@ -39,12 +39,16 @@ if config_read_bool('run_periodic_tasks', section='backend'):
     weasyl.polecat.PeriodicTasksService(reactor, run_periodic_tasks).setServiceParent(application)
 
 
+cache.JsonPylibmcBackend.register()
 cache.region.configure(
-    'dogpile.cache.pylibmc',
+    'libweasyl.cache.pylibmc',
     arguments={
         'url': config_read_setting('servers', "127.0.0.1", section='memcached').split(),
         'binary': True,
+        'behaviors': {
+            'tcp_nodelay': True,
+        },
     },
-    wrap=[cache.ThreadCacheProxy, cache.JSONProxy, RequestMemcachedStats],
+    wrap=[cache.ThreadCacheProxy, RequestMemcachedStats],
     replace_existing_backend=True
 )

@@ -26,7 +26,7 @@ def setup(request):
 
     cache.region.configure(
         'dogpile.cache.memory',
-        wrap=[cache.ThreadCacheProxy, cache.JSONProxy],
+        wrap=[cache.ThreadCacheProxy],
     )
 
 

@@ -910,8 +910,11 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
     """ % (otherid,)]
 
     if userid:
-        # Users always see their own content.
-        statement.append(" AND (su.rating <= %i OR su.userid = %i)" % (rating, userid))
+        if d.is_sfw_mode():
+            statement.append(" AND su.rating <= %i" % (rating,))
+        else:
+            # Outside of SFW mode, users always see their own content.
+            statement.append(" AND (su.rating <= %i OR su.userid = %i)" % (rating, userid))
         statement.append(m.MACRO_IGNOREUSER % (userid, "su"))
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))

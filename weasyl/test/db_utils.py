@@ -95,7 +95,7 @@ def create_folder(userid, title="Folder", parentid=0, settings=None):
     return folder.folderid
 
 
-def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=arrow.get(1),
+def create_submission(userid, title="Test title", rating=ratings.GENERAL.code, unixtime=arrow.get(1),
                       description="", folderid=None, subtype=0, settings=None):
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(

@@ -245,67 +245,6 @@
             updateChecked();
         });
 
-        // styled file inputs
-        $('.styled-input').each(function () {
-            var nativeInput = $(this).on({
-                mouseover: function () {
-                    container.addClass('hover');
-                },
-                mouseout: function () {
-                    container.removeClass('hover');
-                },
-                focus: function () {
-                    container.addClass('focus');
-                    nativeInput.data('val', nativeInput.val());
-                },
-                blur: function () {
-                    container.removeClass('focus');
-                    $(this).trigger('checkChange');
-                },
-                checkChange: function () {
-                    if (nativeInput.val() && nativeInput.val() !== nativeInput.data('val')) {
-                        nativeInput.trigger('change');
-                    }
-                },
-                change: function () {
-                    var fileName = this.value.split('\\').pop();
-                    var fileExt = 'ext-' + fileName.split('.').pop().toLowerCase();
-                    uploadFeedback
-                        .removeClass(uploadFeedback.data('fileExt') || '')
-                        .addClass(fileExt)
-                        .data('fileExt', fileExt)
-                        .addClass('populated')
-                        .find('.text').text(fileName);
-                    uploadButton.text('Change');
-                },
-                click: function () {
-                    nativeInput.data('val', nativeInput.val());
-                    setTimeout(function () {
-                        nativeInput.trigger('checkChange');
-                    }, 100);
-                }
-            });
-
-            var container =
-                $('<div>', { class: 'file-input-wrapper stage clear' });
-            var innerContainer =
-                $('<div>', { class: 'fake-input clear', 'aria-hidden': true });
-            var uploadButton =
-                $('<span>', { class: 'button', text: 'Choose' });
-            var uploadFeedback =
-                $('<span>', { class: 'feedback', 'aria-hidden': true }).append(
-                    $('<span>', { class: 'icon icon-20 icon-file' }),
-                    ' ',
-                    $('<span>', { class: 'text' }).append(
-                        $('<i>', { text: 'No file selected' })
-                    )
-                );
-
-            nativeInput
-                .wrap(container)
-                .after(innerContainer.append(uploadButton, uploadFeedback));
-        });
-
         var staffNoteArea = $('#note-compose-staff-note #staff-note-area').hide();
 
         $('#note-compose-staff-note #mod-copy').change(function () {

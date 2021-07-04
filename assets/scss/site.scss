@@ -841,60 +841,6 @@ select.input {
     opacity: 0.75;
 }
 
-.file-input-wrapper {
-    position: relative;
-    height: 28px;
-    height: 1.75rem;
-    padding: 4px;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.file-input-wrapper .styled-input {
-    position: absolute;
-    right: 4px;
-    top: 4px;
-    display: block;
-    height: 28px;
-    height: 1.75rem;
-    float: right;
-    z-index: 30;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.fake-input {
-    position: relative;
-    z-index: 1;
-}
-
-.fake-input .feedback {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: block;
-    margin-right: 7em;
-    height: 28px;
-    height: 1.75rem;
-    line-height: 28px;
-    line-height: 1.75rem;
-    color: #eee;
-}
-
-.fake-input .feedback .text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.fake-input .feedback i {
-    color: #aaa;
-}
-
-.fake-input .button {
-    float: right;
-}
-
 
 /* ------------------------------------ =icons -- */
 

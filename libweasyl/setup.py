@@ -24,7 +24,7 @@ setup(
         ],
     },
     install_requires=[
-        'alembic==1.5.8',
+        'alembic==1.6.5',
         'arrow==0.15.2',
         'bcrypt==3.2.0',
         'dogpile.cache==1.1.3',

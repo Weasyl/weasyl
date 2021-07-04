@@ -203,14 +203,12 @@ def _find_without_media(userid, rating, limit,
             statement_with = """
                 WITH
                     bg AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 10),
-                    bm AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 20),
                     ba AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 30),
                     bp AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 40)
             """
 
             statement_where.append("""
                 AND NOT submission_tags.tags && (SELECT tags FROM bg)
-                AND (content.rating < 20 OR NOT submission_tags.tags && (SELECT tags FROM bm))
                 AND (content.rating < 30 OR NOT submission_tags.tags && (SELECT tags FROM ba))
                 AND (content.rating < 40 OR NOT submission_tags.tags && (SELECT tags FROM bp))
             """)

@@ -22,7 +22,7 @@ $ can_remove = is_owner or (myself and myself['userid'] in staff.MODS)
             $ has_replies = i + 1 < size and comments[i + 1]['indent'] == comment['indent'] + 1
             $ user_is_commenter = myself and comment['userid'] == myself['userid']
             $if feature and myself and (can_remove or (user_is_commenter and not has_replies)):
-              <a href="#" class="comment-hide-link needs-js">Hide</a>
+              <a href="#" class="comment-hide-link needs-js">Delete</a>
             <a href="#cid${comment['commentid']}">Link</a>
         </p>
         <p class="byline">

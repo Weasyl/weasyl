@@ -94,14 +94,23 @@ COPY etc/requirements.txt etc/requirements.txt
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-lxml .venv/bin/pip install --no-deps install-wheels/*
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist .venv/bin/pip install --no-deps install-wheels/*
 
-COPY --chown=weasyl:nobody libweasyl libweasyl
+RUN mkdir -p \
+    libweasyl/libweasyl/models/test \
+    libweasyl/libweasyl/test \
+    weasyl/controllers \
+    weasyl/test/login \
+    weasyl/test/resetpassword \
+    weasyl/test/useralias \
+    weasyl/test/web
+COPY libweasyl/setup.py libweasyl/setup.py
 RUN .venv/bin/pip install --no-deps -e libweasyl
 
-COPY --chown=weasyl:nobody setup.py setup.py
-COPY --chown=weasyl:nobody weasyl weasyl
+COPY setup.py setup.py
 RUN .venv/bin/pip install --no-deps -e .
 
 COPY --from=assets /weasyl-build/build build
+COPY libweasyl libweasyl
+COPY weasyl weasyl
 
 ARG version
 RUN test -n "$version" && printf '%s\n' "$version" > version.txt

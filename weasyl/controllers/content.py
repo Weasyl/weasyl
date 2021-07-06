@@ -292,7 +292,10 @@ def submit_shout_(request):
     )
 
     if form.format == "json":
-        return {"id": commentid}
+        return {
+            "id": commentid,
+            "html": markdown(form.content),
+        }
 
     if form.staffnotes:
         raise HTTPSeeOther(location='/staffnotes?userid=%i#cid%i' % (define.get_int(form.staffnotes), commentid))

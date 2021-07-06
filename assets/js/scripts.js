@@ -1028,7 +1028,7 @@
                 children = null;
             }
 
-            if (confirm('Hide this comment and any replies?')) {
+            if (confirm('Delete this comment and any replies?')) {
                 var rq = new XMLHttpRequest();
 
                 rq.open('POST', '/remove/comment', true);
@@ -1063,7 +1063,7 @@
                         }
 
                         target.classList.add('error');
-                        target.textContent = 'Failed to hide comment';
+                        target.textContent = 'Failed to delete comment';
 
                         comment.classList.remove('removing');
 
@@ -1173,7 +1173,7 @@
                     var hideLink = document.createElement('a');
                     hideLink.href = '#';
                     hideLink.className = 'comment-hide-link';
-                    hideLink.textContent = 'Hide';
+                    hideLink.textContent = 'Delete';
 
                     commentActions.appendChild(replyLink);
                     commentActions.appendChild(document.createTextNode(' '));

@@ -276,7 +276,7 @@ def remove(userid, feature=None, commentid=None):
         comment_table = (
             "comments" if feature == 'submit' else feature + "comment")
         has_replies = d.engine.scalar(
-            "SELECT EXISTS (SELECT FROM {table} WHERE parentid = %(comment)s)".format(table=comment_table),
+            "SELECT EXISTS (SELECT FROM {table} WHERE parentid = %(comment)s AND settings !~ 'h')".format(table=comment_table),
             comment=commentid)
         if has_replies:
             # a commenter cannot remove their comment if it has replies

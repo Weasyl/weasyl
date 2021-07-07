@@ -776,7 +776,7 @@ dl + h4, #uc-info {
     opacity: 0.6;
 }
 
-.input, .listbuilder {
+.input {
     box-sizing: border-box;
     padding: 0 0.5em;
     border-style: solid;
@@ -809,11 +809,11 @@ select.input {
     padding-bottom: 0.3rem;
 }
 
-.input:hover, input:focus, .listbuilder:hover, .listbuilder-focus {
+.input:hover, input:focus {
     background-color: #eee;
 }
 
-.input:focus, .listbuilder-focus {
+.input:focus {
     box-shadow: 0 4px 0 #069bc0;
 }
 
@@ -1517,20 +1517,13 @@ blockquote + blockquote {
 
 /* ------------------------------------ =tags -- */
 
-.tags-textarea, .listbuilder {
+.tags-textarea {
+    font-size: 14px;
     box-sizing: border-box;
     width: 100% !important;
 }
 
-.tags-textarea.proxy {
-    display: none;
-}
-
-.listbuilder {
-    padding: 0.3em 0.3em 0;
-}
-
-.listbuilder-entry, .tags a {
+.tags a {
     display: block;
     float: left;
     position: relative;
@@ -1551,46 +1544,6 @@ blockquote + blockquote {
 
 .tags a.artist.removable {
     background-color: #cec;
-}
-
-.listbuilder-entry {
-    padding-right: 2.5em;
-    user-select: none;
-}
-
-.listbuilder-entry:hover {
-    background-color: #f5f5f5;
-}
-
-.listbuilder-entry-remove {
-    display: block;
-    position: absolute;
-    width: 2.5em;
-    height: 28px;
-    height: 1.75rem;
-    right: 0;
-    top: 0;
-    background: url('../img/icon-delete.png') no-repeat 50% 50%;
-}
-
-.listbuilder-entry-add {
-    float: left;
-}
-
-.listbuilder-entry-add input {
-    height: 28px;
-    height: 1.75rem;
-    line-height: 28px;
-    line-height: 1.75rem;
-    padding: 0 0.5em;
-    margin: 0 0 0.5em;
-    border: 0;
-    background-color: #eee;
-    background-color: transparent;
-}
-
-.listbuilder-entry-selected, .listbuilder-entry-selected:hover {
-    background-color: #ebf4b2;
 }
 
 /* ------------------------------------ =forms -- */
@@ -3299,7 +3252,6 @@ img + #detail-art-text {
         width: 48%;
         margin-right: 0;
         margin-left: auto;
-        overflow: hidden;
     }
 
     .detail-folder-nav {
@@ -4279,7 +4231,7 @@ img + #detail-art-text {
 
 /* ------------------------------------ =fixes --*/
 
-.clear::after, .thumbnail-grid::after, .content::after, .stage::after, .listbuilder::after {
+.clear::after, .thumbnail-grid::after, .content::after, .stage::after {
     content: ".";
     display: block;
     height: 0;

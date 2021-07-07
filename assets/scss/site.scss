@@ -1075,9 +1075,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .thumbnail-grid .thumb:hover .title {
     opacity: 1;
 }
-.no-captions .thumbnail-grid .thumb {
-    padding-bottom: 0;
-}
 .thumbnail-grid figcaption {
     box-sizing: border-box;
     width: 100%;
@@ -1086,9 +1083,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     position: absolute;
     bottom: 5px;
     left: 0;
-}
-.no-captions .thumbnail-grid figcaption {
-    display: none;
 }
 .thumbnail-grid .title, .thumbnail-grid .byline {
     display: block;

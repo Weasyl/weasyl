@@ -2850,10 +2850,6 @@ blockquote + blockquote {
     #user-stats ul {
         column-count: 1;
     }
-#user-contact td:nth-child(2) {
-    text-align: right;
-}
-
 }
 
 @media (min-width: 63em) {

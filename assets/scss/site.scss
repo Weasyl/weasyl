@@ -306,10 +306,13 @@ a.more-block:last-child {
     border-left-color: #4d4d4d;
 }
 
+.stage {
+    overflow: hidden;
+}
+
 .stage, #footer {
     background-color: #242d31;
     color: #bbb;
-    overflow: hidden;
 }
 
 @media (min-width: 45em) {

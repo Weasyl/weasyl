@@ -1465,15 +1465,6 @@ blockquote + blockquote {
         max-width: 80px;
     }
 
-    .comment .actions {
-        opacity: 0.25;
-        transition: opacity 0.15s ease;
-    }
-
-    .comment:hover .actions, .touch .comment .actions {
-        opacity: 1;
-    }
-
     .comment .comment-content {
         margin-left: 96px;
         padding: 16px;
@@ -3271,9 +3262,6 @@ img + #detail-art-text {
         right: 4.7em;
     }
     .detail-folder-nav .nav-link {
-        margin-top: -40px;
-    }
-    .csstransforms .detail-folder-nav .nav-link {
         margin-top: 0;
         transform: translateY(-50%);
     }
@@ -3285,10 +3273,10 @@ img + #detail-art-text {
         margin: 0 1em;
         opacity: 0.5;
     }
-    .no-touch .detail-folder-nav .nav-link:hover .thumb {
+    .detail-folder-nav .nav-link:hover .thumb {
         opacity: 1;
     }
-    .no-touch .detail-folder-nav .nav-link:hover .rating {
+    .detail-folder-nav .nav-link:hover .rating {
         opacity: 0.8;
     }
 }
@@ -3970,31 +3958,21 @@ img + #detail-art-text {
 }
 
 .donator-list {
+    column-count: 2;
+    column-gap: 2em;
     padding: 2em 0;
     font-size: 1.15em;
 }
 
 .donator-list > li {
-    display: inline-block;
-    zoom: 1;
-    width: 47%;
-    padding: 0 2% 0.5em 0;
-    vertical-align: top;
+    line-height: 1;
+    overflow-wrap: break-word;
+    padding: 0.25em 0.5em 0.75em 0;
 }
 
 @media (min-width: 45em) {
     .donator-list {
         column-count: 4;
-        column-gap: 2em;
-    }
-
-    .csscolumns .donator-list > li {
-        display: block;
-        width: auto;
-    }
-
-    .no-csscolumns .donator-list > li {
-        width: 22.6%;
     }
 }
 
@@ -4002,17 +3980,11 @@ img + #detail-art-text {
     .donator-list {
         column-count: 5;
     }
-    .no-csscolumns .donator-list > li {
-        width: 18%;
-    }
 }
 
 @media (min-width: 65em) {
     .donator-list {
         column-count: 6;
-    }
-    .no-csscolumns .donator-list > li {
-        width: 15%;
     }
 }
 
@@ -4020,17 +3992,11 @@ img + #detail-art-text {
     .donator-list {
         column-count: 7;
     }
-    .no-csscolumns .donator-list > li {
-        width: 13%;
-    }
 }
 
 @media (min-width: 80em) {
     .donator-list {
         column-count: 8;
-    }
-    .no-csscolumns .donator-list > li {
-        width: 11%;
     }
 }
 

@@ -32,7 +32,7 @@ def weasyl_404(request):
 
 
 config.add_notfound_view(view=weasyl_404, append_slash=True)
-config.add_view(view=mw.weasyl_exception_view, context=Exception)
+config.add_view(view=mw.weasyl_exception_view, context=Exception, exception_only=True)
 
 setup_routes_and_views(config)
 

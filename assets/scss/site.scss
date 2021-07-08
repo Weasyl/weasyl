@@ -2658,10 +2658,12 @@ blockquote + blockquote {
         display: block;
         width: 100%;
         overflow: hidden;
+        position: relative;
     }
 
     #user-image img {
         display: block;
+        max-height: 100%;
         max-width: 100%;
         position: absolute;
     }

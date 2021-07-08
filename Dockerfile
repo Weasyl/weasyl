@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM docker.io/library/node:15-alpine AS assets
+FROM docker.io/library/node:16-alpine AS assets
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     sassc

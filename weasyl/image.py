@@ -1,13 +1,12 @@
-import logging
 import os
 
 from sanpera.exception import SanperaError
 from sanpera.image import Image
 from sanpera import geometry
+from sentry_sdk import capture_exception
 
 from libweasyl import images
 from weasyl import files
-from weasyl.define import log_exc
 from weasyl.error import WeasylError
 
 
@@ -17,17 +16,17 @@ COVER_SIZE = 1024, 3000
 def read(filename):
     try:
         return Image.read(filename)
-    except SanperaError:
-        log_exc(level=logging.DEBUG)
-        raise WeasylError('imageDecodeError')
+    except SanperaError as e:
+        capture_exception(e, level='info')
+        raise WeasylError('imageDecodeError') from e
 
 
 def from_string(filedata):
     try:
         return Image.from_buffer(filedata)
-    except SanperaError:
-        log_exc(level=logging.DEBUG)
-        raise WeasylError('imageDecodeError')
+    except SanperaError as e:
+        capture_exception(e, level='info')
+        raise WeasylError('imageDecodeError') from e
 
 
 def image_setting(im):

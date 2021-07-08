@@ -5,7 +5,6 @@ import hashlib
 import hmac
 import itertools
 import json
-import logging
 import numbers
 import datetime
 import pkgutil
@@ -17,6 +16,7 @@ import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from sentry_sdk import capture_exception
 from sqlalchemy.exc import OperationalError
 from web.template import Template
 
@@ -74,14 +74,6 @@ def connect():
     # connections.
     # TODO(hyena): Does this clean up correctly? There's no registered 'close()' call.
     return sessionmaker()
-
-
-def log_exc(**kwargs):
-    """
-    Logs an exception. This is essentially a wrapper around the current request's log_exc.
-    It's provided for compatibility for methods that depended on web.ctx.log_exc().
-    """
-    return get_current_request().log_exc(**kwargs)
 
 
 def execute(statement, argv=None):
@@ -981,14 +973,13 @@ def _requests_wrapper(func_name):
     func = getattr(requests, func_name)
 
     def wrapper(*a, **kw):
-        request = get_current_request()
         try:
             return func(*a, **kw)
         except Exception as e:
-            request.log_exc(level=logging.DEBUG)
+            capture_exception(e, level='info')
             w = WeasylError('httpError')
             w.error_suffix = 'The original error was: %s' % (e,)
-            raise w
+            raise w from e
 
     return wrapper
 

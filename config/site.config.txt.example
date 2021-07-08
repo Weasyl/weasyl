@@ -16,6 +16,7 @@ servers = memcached
 
 [sentry]
 # dsn = twisted+http://...
+traces_sample_rate = 1.0
 
 [smtp]
 host = localhost

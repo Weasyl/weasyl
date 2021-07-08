@@ -382,8 +382,8 @@ message = Table(
     default_fkey(['userid'], ['login.userid'], name='message_userid_fkey'),
 )
 
-Index('ind_message_otherid', message.c.otherid)
-Index('ind_message_userid', message.c.userid)
+Index('ind_message_otherid_noteid', message.c.otherid, message.c.noteid)
+Index('ind_message_userid_noteid', message.c.userid, message.c.noteid)
 
 
 oauth_bearer_tokens = Table(

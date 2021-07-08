@@ -78,7 +78,7 @@ def _fetch_rates_no_cache_failure():
 
     rates = {'EUR': 1.0}
 
-    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.content):
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.text):
         code, rate = match.groups()
 
         try:

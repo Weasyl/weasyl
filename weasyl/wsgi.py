@@ -1,6 +1,8 @@
+import sentry_sdk
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
+from sentry_sdk.integrations.pyramid import PyramidIntegration
 
 from libweasyl.configuration import configure_libweasyl
 from weasyl.controllers.routes import setup_routes_and_views
@@ -40,7 +42,6 @@ setup_routes_and_views(config)
 # Setup properties and methods for request objects.
 config.add_request_method(mw.pg_connection_request_property, name='pg_connection', reify=True)
 config.add_request_method(mw.userid_request_property, name='userid', reify=True)
-config.add_request_method(mw.log_exc_request_method, name='log_exc')
 config.add_request_method(mw.web_input_request_method, name='web_input')
 config.add_request_method(mw.set_cookie_on_response)
 config.add_request_method(mw.delete_cookie_on_response)
@@ -54,7 +55,14 @@ if config_read_bool('profile_responses', section='backend'):
     wsgi_app = ProfilerMiddleware(
         wsgi_app, profile_dir=m.MACRO_STORAGE_ROOT + 'profile-stats')
 if config_obj.has_option('sentry', 'dsn'):
-    wsgi_app = mw.SentryEnvironmentMiddleware(wsgi_app, config_obj.get('sentry', 'dsn'))
+    sentry_sdk.init(
+        dsn=config_obj.get('sentry', 'dsn'),
+        release=d.CURRENT_SHA,
+        traces_sample_rate=float(config_obj.get('sentry', 'traces_sample_rate')),
+        integrations=[PyramidIntegration()],
+        send_default_pii=False,  # can’t be enabled as long as `before_send` doesn’t run for performance tracing!
+        before_send=mw.strip_session_cookie,
+    )
 
 
 configure_libweasyl(

@@ -1,10 +1,9 @@
-import logging
 import re
 from collections import namedtuple
 from decimal import Decimal
 from urllib.parse import quote as urlquote
 
-from pyramid.threadlocal import get_current_request
+from sentry_sdk import capture_message
 
 from libweasyl.cache import region
 
@@ -73,8 +72,7 @@ def _fetch_rates_no_cache_failure():
         # http_get already logged the exception
         return None
     else:
-        request = get_current_request()
-        request.environ['raven.captureMessage']("Fetched exchange rates", level=logging.INFO)
+        capture_message("Fetched exchange rates")
 
     rates = {'EUR': 1.0}
 

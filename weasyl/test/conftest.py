@@ -87,7 +87,6 @@ def setup_request_environment(request):
     pyramid_request = pyramid.testing.DummyRequest()
     pyramid_request.set_property(middleware.pg_connection_request_property, name='pg_connection', reify=True)
     pyramid_request.set_property(middleware.userid_request_property, name='userid', reify=True)
-    pyramid_request.log_exc = middleware.log_exc_request_method
     pyramid_request.web_input = middleware.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'
     pyramid_request.client_addr = '127.0.0.1'

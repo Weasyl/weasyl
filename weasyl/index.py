@@ -16,7 +16,7 @@ from weasyl import siteupdate
 from weasyl import submission
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(expiration_time=120)
 @d.record_timing
 def recent_submissions():
     submissions = []

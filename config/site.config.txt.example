@@ -4,7 +4,6 @@ allow_submit = true
 convert_currency = false
 
 [backend]
-run_periodic_tasks = false
 profile_responses = false
 
 [sqlalchemy]

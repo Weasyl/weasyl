@@ -1046,7 +1046,7 @@ def reupload_cover(userid, submitid, coverfile):
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(expiration_time=600)
 @d.record_timing
 def select_recently_popular():
     """

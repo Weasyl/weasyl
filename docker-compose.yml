@@ -6,6 +6,7 @@ volumes:
   database:
   storage:
   logs:
+  profile-stats:
   test-cache:
 
 networks:
@@ -49,6 +50,7 @@ services:
       - config:/run/config:ro
       - storage:/weasyl/storage/static
       - logs:/weasyl/storage/log
+      - profile-stats:/weasyl/storage/profile-stats
       - type: tmpfs
         target: /tmp
     networks:

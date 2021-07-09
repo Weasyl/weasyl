@@ -113,7 +113,7 @@ ENTRYPOINT ["/usr/bin/flake8"]
 COPY . .
 
 FROM package
-RUN mkdir storage storage/log storage/static \
+RUN mkdir storage storage/log storage/static storage/profile-stats \
     && ln -s /run/config config
 ENV WEASYL_APP_ROOT=/weasyl
 ENV WEASYL_WEB_ENDPOINT=tcp:8080

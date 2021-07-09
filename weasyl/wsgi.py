@@ -51,9 +51,12 @@ wsgi_app = config.make_wsgi_app()
 wsgi_app = mw.InputWrapMiddleware(wsgi_app)
 wsgi_app = mw.URLSchemeFixingMiddleware(wsgi_app)
 if config_read_bool('profile_responses', section='backend'):
-    from werkzeug.contrib.profiler import ProfilerMiddleware
+    from werkzeug.middleware.profiler import ProfilerMiddleware
     wsgi_app = ProfilerMiddleware(
-        wsgi_app, profile_dir=m.MACRO_STORAGE_ROOT + 'profile-stats')
+        wsgi_app,
+        stream=None,
+        profile_dir=m.MACRO_STORAGE_ROOT + 'profile-stats',
+    )
 if config_obj.has_option('sentry', 'dsn'):
     sentry_sdk.init(
         dsn=config_obj.get('sentry', 'dsn'),

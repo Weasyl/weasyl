@@ -138,12 +138,6 @@ commishprice = Table(
 Index('ind_classid_userid_title', commishprice.c.classid, commishprice.c.userid, commishprice.c.title, unique=True)
 
 
-cron_runs = Table(
-    'cron_runs', metadata,
-    Column('last_run', TIMESTAMP(), nullable=False),
-)
-
-
 emailblacklist = Table(
     'emailblacklist', metadata,
     Column('id', Integer(), primary_key=True, nullable=False),
@@ -901,7 +895,10 @@ views = Table(
     Column('viewer', String(length=127), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
     Column('type', Integer(), primary_key=True, nullable=False, autoincrement=False),
+    Column('viewed_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
 )
+
+Index('ind_views_viewed_at', views.c.viewed_at)
 
 
 watchuser = Table(

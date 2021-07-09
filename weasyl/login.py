@@ -202,6 +202,13 @@ def password_secure(password):
     return len(password) >= _PASSWORD
 
 
+def _delete_expired():
+    """
+    Delete expired logincreate records.
+    """
+    d.engine.execute("DELETE FROM logincreate WHERE created_at < now() - INTERVAL '2 days'")
+
+
 # form
 #   username     email         month
 #   password     emailcheck    year
@@ -246,6 +253,9 @@ def create(form):
     # Account verification token
     token = security.generate_key(40)
 
+    # Delete stale logincreate records before trying to insert more
+    _delete_expired()
+
     # Only attempt to create the account if the email is unused (as defined by the function)
     if not email_exists(email):
         # Create pending account
@@ -286,6 +296,9 @@ def create(form):
 
 
 def verify(token, ip_address=None):
+    # Delete stale logincreate records before verifying against them
+    _delete_expired()
+
     lo = d.meta.tables["login"]
     lc = d.meta.tables["logincreate"]
     query = d.engine.execute(lc.select().where(lc.c.token == token)).first()
@@ -506,6 +519,10 @@ def verify_email_change(userid, token):
     # Sanity checks: Must have userid and token
     if not userid or not token:
         raise WeasylError("Unexpected")
+    d.engine.execute("""
+        DELETE FROM emailverify
+        WHERE createtimestamp < (NOW() - INTERVAL '2 days')
+    """)
     query_result = d.engine.scalar("""
         DELETE FROM emailverify
         WHERE userid = %(userid)s AND token = %(token)s

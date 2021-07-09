@@ -69,7 +69,7 @@ def connect():
     request = get_current_request()
     if request is not None:
         return request.pg_connection
-    # If there's no threadlocal request, we're probably operating in a cron task or the like.
+    # If there's no threadlocal request, this could be… a manual query?
     # Return a connection from the pool. n.b. this means that multiple calls could get different
     # connections.
     # TODO(hyena): Does this clean up correctly? There's no registered 'close()' call.
@@ -771,6 +771,8 @@ def common_view_content(userid, targetid, feature):
         viewer = 'user:%d' % (userid,)
     else:
         viewer = get_address()
+
+    engine.execute("DELETE FROM views WHERE viewed_at < now() - INTERVAL '15 minutes'")
 
     result = engine.execute(
         'INSERT INTO views (viewer, targetid, type) VALUES (%(viewer)s, %(targetid)s, %(type)s) ON CONFLICT DO NOTHING',

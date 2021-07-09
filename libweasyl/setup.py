@@ -36,6 +36,6 @@ setup(
         'pyramid~=2.0',
         'pytz==2020.4',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.3.20',
+        'sqlalchemy==1.4.20',
     ],
 )

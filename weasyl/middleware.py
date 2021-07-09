@@ -352,16 +352,6 @@ def strip_session_cookie(event, hint):
     return event
 
 
-class URLSchemeFixingMiddleware(object):
-    def __init__(self, app):
-        self.app = app
-
-    def __call__(self, environ, start_response):
-        if environ.get('HTTP_X_FORWARDED_PROTO') == 'https':
-            environ['wsgi.url_scheme'] = 'https'
-        return self.app(environ, start_response)
-
-
 def _wrapperfunc(name):
     def wrap(self, *a, **kw):
         meth = getattr(self._wrapped, name)

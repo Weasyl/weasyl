@@ -4,11 +4,13 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 from sentry_sdk.integrations.pyramid import PyramidIntegration
 
+from libweasyl import cache
 from libweasyl.configuration import configure_libweasyl
+from weasyl.cache import RequestMemcachedStats
 from weasyl.controllers.routes import setup_routes_and_views
 import weasyl.define as d
 import weasyl.macro as m
-from weasyl.config import config_obj, config_read_bool
+from weasyl.config import config_obj, config_read_bool, config_read_setting
 from weasyl.media import format_media_link
 import weasyl.middleware as mw
 from weasyl import staff_config
@@ -47,31 +49,49 @@ config.add_request_method(mw.set_cookie_on_response)
 config.add_request_method(mw.delete_cookie_on_response)
 
 
-wsgi_app = config.make_wsgi_app()
-wsgi_app = mw.InputWrapMiddleware(wsgi_app)
-wsgi_app = mw.URLSchemeFixingMiddleware(wsgi_app)
-if config_read_bool('profile_responses', section='backend'):
-    from werkzeug.middleware.profiler import ProfilerMiddleware
-    wsgi_app = ProfilerMiddleware(
-        wsgi_app,
-        stream=None,
-        profile_dir=m.MACRO_STORAGE_ROOT + 'profile-stats',
-    )
-if config_obj.has_option('sentry', 'dsn'):
-    sentry_sdk.init(
-        dsn=config_obj.get('sentry', 'dsn'),
-        release=d.CURRENT_SHA,
-        traces_sample_rate=float(config_obj.get('sentry', 'traces_sample_rate')),
-        integrations=[PyramidIntegration()],
-        send_default_pii=False,  # can’t be enabled as long as `before_send` doesn’t run for performance tracing!
-        before_send=mw.strip_session_cookie,
+def make_wsgi_app(*, configure_cache=True):
+    wsgi_app = config.make_wsgi_app()
+    wsgi_app = mw.InputWrapMiddleware(wsgi_app)
+
+    if config_read_bool('profile_responses', section='backend'):
+        from werkzeug.middleware.profiler import ProfilerMiddleware
+        wsgi_app = ProfilerMiddleware(
+            wsgi_app,
+            stream=None,
+            profile_dir=m.MACRO_STORAGE_ROOT + 'profile-stats',
+        )
+
+    if config_obj.has_option('sentry', 'dsn'):
+        sentry_sdk.init(
+            dsn=config_obj.get('sentry', 'dsn'),
+            release=d.CURRENT_SHA,
+            traces_sample_rate=float(config_obj.get('sentry', 'traces_sample_rate')),
+            integrations=[PyramidIntegration()],
+            send_default_pii=False,  # can’t be enabled as long as `before_send` doesn’t run for performance tracing!
+            before_send=mw.strip_session_cookie,
+        )
+
+    configure_libweasyl(
+        dbsession=d.sessionmaker,
+        not_found_exception=HTTPNotFound,
+        base_file_path=m.MACRO_STORAGE_ROOT,
+        staff_config_dict=staff_config.load(),
+        media_link_formatter_callback=format_media_link,
     )
 
+    if configure_cache:
+        cache.JsonPylibmcBackend.register()
+        cache.region.configure(
+            'libweasyl.cache.pylibmc',
+            arguments={
+                'url': config_read_setting('servers', "127.0.0.1", section='memcached').split(),
+                'binary': True,
+                'behaviors': {
+                    'tcp_nodelay': True,
+                },
+            },
+            wrap=[cache.ThreadCacheProxy, RequestMemcachedStats],
+            replace_existing_backend=True
+        )
 
-configure_libweasyl(
-    dbsession=d.sessionmaker,
-    not_found_exception=HTTPNotFound,
-    base_file_path=m.MACRO_STORAGE_ROOT,
-    staff_config_dict=staff_config.load(),
-    media_link_formatter_callback=format_media_link,
-)
+    return wsgi_app

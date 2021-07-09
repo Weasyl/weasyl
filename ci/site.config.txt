@@ -13,7 +13,7 @@ url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl
 servers = weasyl-memcached
 
 [sentry]
-# dsn = twisted+http://...
+# dsn = http://...
 
 [smtp]
 host = localhost

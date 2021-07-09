@@ -247,14 +247,15 @@ def create(form):
         raise WeasylError("emailInvalid")
     if is_email_blacklisted(email):
         raise WeasylError("emailBlacklisted")
+
+    # Delete stale logincreate records before checking for colliding ones or trying to insert more
+    _delete_expired()
+
     if username_exists(sysname):
         raise WeasylError("usernameExists")
 
     # Account verification token
     token = security.generate_key(40)
-
-    # Delete stale logincreate records before trying to insert more
-    _delete_expired()
 
     # Only attempt to create the account if the email is unused (as defined by the function)
     if not email_exists(email):

@@ -51,7 +51,6 @@ config.add_request_method(mw.delete_cookie_on_response)
 
 def make_wsgi_app(*, configure_cache=True):
     wsgi_app = config.make_wsgi_app()
-    wsgi_app = mw.InputWrapMiddleware(wsgi_app)
 
     if config_read_bool('profile_responses', section='backend'):
         from werkzeug.middleware.profiler import ProfilerMiddleware

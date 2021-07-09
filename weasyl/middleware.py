@@ -7,7 +7,7 @@ import traceback
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
-from sentry_sdk import capture_exception, capture_message, push_scope, set_user
+from sentry_sdk import capture_exception, push_scope, set_user
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from web.utils import storify
@@ -20,10 +20,6 @@ from weasyl import errorcode
 from weasyl import orm
 from weasyl.error import WeasylError
 from weasyl.sessions import create_guest_session, is_guest_token
-
-
-class ClientGoneAway(Exception):
-    pass
 
 
 def cache_clear_tween_factory(handler, registry):
@@ -301,42 +297,38 @@ def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.
     """
-    if isinstance(exc, ClientGoneAway):
-        capture_message('HTTP client went away')
-        return request.response
+    # Avoid using the reified request.userid property here. It might not be set and it might
+    # have changed due to signin/out.
+    if hasattr(request, 'weasyl_session'):
+        userid = request.weasyl_session.userid
     else:
-        # Avoid using the reified request.userid property here. It might not be set and it might
-        # have changed due to signin/out.
-        if hasattr(request, 'weasyl_session'):
-            userid = request.weasyl_session.userid
-        else:
-            userid = 0
-            request.userid = 0  # To keep templates happy.
-        errorpage_kwargs = {}
-        if isinstance(exc, WeasylError):
-            status_code = errorcode.error_status_code.get(exc.value, 422)
-            if exc.render_as_json:
-                return Response(json={'error': {'name': exc.value}},
-                                status_code=status_code)
-            errorpage_kwargs = exc.errorpage_kwargs
-            if exc.value in errorcode.error_messages:
-                message = errorcode.error_messages[exc.value]
-                if exc.error_suffix:
-                    message = '%s %s' % (message, exc.error_suffix)
-                return Response(d.errorpage(userid, message, **errorpage_kwargs),
-                                status_code=status_code)
-        request_id = secrets.token_urlsafe(6)
-        with push_scope() as scope:
-            scope.set_tag('request_id', request_id)
-            event_id = capture_exception(exc)
-        if event_id is not None:
-            request_id = '%s-%s' % (event_id, request_id)
-        print("unhandled error (request id %s) in %r" % (request_id, request.environ))
-        traceback.print_exc()
-        if getattr(exc, "__render_as_json", False):
-            return Response(json={'error': {}}, status_code=500)
-        else:
-            return Response(d.errorpage(userid, request_id=request_id, **errorpage_kwargs), status_code=500)
+        userid = 0
+        request.userid = 0  # To keep templates happy.
+    errorpage_kwargs = {}
+    if isinstance(exc, WeasylError):
+        status_code = errorcode.error_status_code.get(exc.value, 422)
+        if exc.render_as_json:
+            return Response(json={'error': {'name': exc.value}},
+                            status_code=status_code)
+        errorpage_kwargs = exc.errorpage_kwargs
+        if exc.value in errorcode.error_messages:
+            message = errorcode.error_messages[exc.value]
+            if exc.error_suffix:
+                message = '%s %s' % (message, exc.error_suffix)
+            return Response(d.errorpage(userid, message, **errorpage_kwargs),
+                            status_code=status_code)
+    request_id = secrets.token_urlsafe(6)
+    with push_scope() as scope:
+        scope.set_tag('request_id', request_id)
+        event_id = capture_exception(exc)
+    if event_id is not None:
+        request_id = '%s-%s' % (event_id, request_id)
+    print("unhandled error (request id %s) in %r" % (request_id, request.environ))
+    traceback.print_exc()
+    if getattr(exc, "__render_as_json", False):
+        return Response(json={'error': {}}, status_code=500)
+    else:
+        return Response(d.errorpage(userid, request_id=request_id, **errorpage_kwargs), status_code=500)
 
 
 def strip_session_cookie(event, hint):
@@ -350,44 +342,6 @@ def strip_session_cookie(event, hint):
         if (cookies := request.get('cookies')) and 'WZL' in cookies:
             cookies['WZL'] = '*' * len(cookies['WZL'])
     return event
-
-
-def _wrapperfunc(name):
-    def wrap(self, *a, **kw):
-        meth = getattr(self._wrapped, name)
-        try:
-            return meth(*a, **kw)
-        except ValueError:
-            raise ClientGoneAway()
-    return wrap
-
-
-class InputWrap(object):
-    def __init__(self, wrapped):
-        self._wrapped = wrapped
-
-    read = _wrapperfunc('read')
-    readline = _wrapperfunc('readline')
-    readlines = _wrapperfunc('readlines')
-
-    def __iter__(self):
-        it = iter(self._wrapped)
-        while True:
-            try:
-                yield next(it)
-            except StopIteration:
-                return
-            except ValueError:
-                raise ClientGoneAway()
-
-
-class InputWrapMiddleware(object):
-    def __init__(self, app):
-        self.app = app
-
-    def __call__(self, environ, start_response):
-        environ['wsgi.input'] = InputWrap(environ['wsgi.input'])
-        return self.app(environ, start_response)
 
 
 @event.listens_for(Engine, 'before_cursor_execute')

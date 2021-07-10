@@ -6,6 +6,7 @@ volumes:
   database:
   storage:
   logs:
+  profile-stats:
   test-cache:
 
 networks:
@@ -45,10 +46,12 @@ services:
         version: '${WEASYL_VERSION:-}'
     environment:
       WEASYL_STORAGE_ROOT: storage
+      WEB_CONCURRENCY: 8
     volumes:
       - config:/run/config:ro
       - storage:/weasyl/storage/static
       - logs:/weasyl/storage/log
+      - profile-stats:/weasyl/storage/profile-stats
       - type: tmpfs
         target: /tmp
     networks:

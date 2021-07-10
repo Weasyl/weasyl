@@ -28,7 +28,7 @@ from weasyl import (
     middleware,
 )
 from weasyl.controllers.routes import setup_routes_and_views
-from weasyl.wsgi import wsgi_app
+from weasyl.wsgi import make_wsgi_app
 
 
 cache.region.configure(
@@ -161,6 +161,11 @@ def deterministic_marketplace_tests(monkeypatch):
     monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
 
 
-@pytest.fixture
-def app():
+@pytest.fixture(scope='session')
+def wsgi_app():
+    return make_wsgi_app(configure_cache=False)
+
+
+@pytest.fixture()
+def app(wsgi_app):
     return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})

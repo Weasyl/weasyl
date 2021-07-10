@@ -14,6 +14,7 @@ etc/*
 !package-lock.json
 !setup.cfg
 !setup.py
+!gunicorn.conf.py
 
 !pytest.ini
 !.coveragerc

@@ -14,7 +14,7 @@ url = postgresql+psycopg2cffi://weasyl@postgres/weasyl
 servers = memcached
 
 [sentry]
-# dsn = twisted+http://...
+# dsn = http://...
 traces_sample_rate = 1.0
 
 [smtp]

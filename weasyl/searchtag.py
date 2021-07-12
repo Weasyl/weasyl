@@ -1,5 +1,7 @@
 import re
+
 import sqlalchemy as sa
+from sqlalchemy.sql.expression import any_
 
 from libweasyl import staff
 from libweasyl.cache import region
@@ -70,7 +72,7 @@ def select_list(map_table, targetids):
         d.sa
         .select([mt.c.targetid, d.sa.func.array_agg(mt.c.tagid)])
         .select_from(mt)
-        .where(mt.c.targetid.in_(targetids))
+        .where(mt.c.targetid == any_(targetids))
         .group_by(mt.c.targetid))
 
     db = d.connect()
@@ -109,7 +111,7 @@ def tag_array(tagids):
     st = d.meta.tables['searchtag']
     return sa.func.array(
         sa.select([st.c.title])
-        .where(st.c.tagid.in_(tagids))
+        .where(st.c.tagid == any_(list(tagids)))
         .as_scalar())
 
 

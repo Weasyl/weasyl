@@ -87,7 +87,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       <figure class="thumbnail thumbnail-left clear">
         <a class="avatar" href="/~${LOGIN(update['username'])}" title="${update['username']}">
           $ avatar = update['user_media']['avatar'][0]
-          <img src="${avatar['display_url']}" alt="avatar of ${update['username']}" />
+          <img src="${avatar['display_url']}" alt="avatar of ${update['username']}" loading="lazy" />
         </a>
         <figcaption class="caption">
           <h4 class="title"><i>Posted by</i> <a class="username" href="/~${LOGIN(update['username'])}">${update['username']}</a></h4>
@@ -116,7 +116,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
             <figure class="thumb">
               <a class="thumb-bounds" href="/submission/${i['submitid']}/${SLUG(i['title'])}" title="${i['title']}">
                 $:{_RATING(i['rating'])}
-                <img src="${thumb['display_url']}" alt="thumbnail" />
+                <img src="${thumb['display_url']}" alt="thumbnail" loading="lazy" />
               </a>
               <figcaption class="caption">
                 <h6 class="title"><a href="/submission/${i['submitid']}/${SLUG(i['title'])}" title="${i['title']}">${SUMMARIZE(i['title'], 52)}</a></h6>
@@ -140,7 +140,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
             <figure class="thumbnail thumbnail-left">
               <a class="avatar" href="${i['stream_url']}" title="${i['username']}">
                 $ avatar = i['user_media']['avatar'][0]
-                <img src="${avatar['display_url']}" alt="avatar of ${i['username']}" />
+                <img src="${avatar['display_url']}" alt="avatar of ${i['username']}" loading="lazy" />
               </a>
               <figcaption class="caption">
                 <h4 class="title"><a class="username" href="/~${LOGIN(i['username'])}">${i['username']}</a> <i>since</i> ${TIME(i['stream_time'])}</h4>

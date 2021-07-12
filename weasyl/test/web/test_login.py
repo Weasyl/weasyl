@@ -27,7 +27,7 @@ def test_user_change_changes_token(app):
     sessionid = d.engine.scalar("SELECT sessionid FROM sessions WHERE userid = %(user)s", user=user)
     assert sessionid is not None
 
-    resp = app.get('/signout?token=' + new_csrf[:8])
+    resp = app.post('/signout', {'token': new_csrf})
     new_cookie_2 = app.cookies['WZL']
     resp = resp.follow()
     new_csrf_2 = resp.html.find('html')['data-csrf-token']

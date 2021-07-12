@@ -182,10 +182,8 @@ def signin_2fa_auth_post_(request):
 
 @login_required
 @disallow_api
+@token_checked
 def signout_(request):
-    if request.web_input(token="").token != define.get_token()[:8]:
-        raise WeasylError('token')
-
     login.signout(request)
 
     raise HTTPSeeOther(location="/", headers=request.response.headers)

@@ -15,6 +15,8 @@ from .images import THUMB_HEIGHT
 
 ThumbnailFormats = namedtuple('ThumbnailFormats', ['compatible', 'webp'])
 
+_BACKGROUND_COLOR = (0x1f, 0x2b, 0x33, 0xff)
+
 
 def get_thumbnail_spec(size, height):
     """
@@ -64,6 +66,11 @@ def _fit_inside(rect, size):
     )
 
 
+def _has_transparency(image):
+    assert image.mode in ('RGB', 'RGBA')
+    return image.mode == 'RGBA' and image.getextrema()[3][0] != 255
+
+
 def get_thumbnail(image_file, bounds=None):
     """
     Get an iterable of (bytes, file_type, attributes) tuples, each a
@@ -71,10 +78,16 @@ def get_thumbnail(image_file, bounds=None):
     path or a file object.
     """
     image = Image.open(image_file)
-    image_format = image.format
 
-    if image.mode in ('1', 'L', 'LA', 'I', 'P'):
-        image = image.convert(mode='RGBA' if image.mode == 'LA' or 'transparency' in image.info else 'RGB')
+    # this is checked before getting to the point of creating a thumbnail
+    assert image.format in ('JPEG', 'MPO', 'PNG', 'GIF')
+
+    # JPEG/MPO: L, RGB, CMYK
+    # PNG: 1, L, LA, I, P, RGB, RGBA
+    # GIF: L, P
+    if image.mode in ('1', 'L', 'LA', 'I', 'P', 'CMYK'):
+        with image:
+            image = image.convert(mode='RGBA' if image.mode == 'LA' or 'transparency' in image.info else 'RGB')
 
     if bounds is None:
         source_rect, result_size = get_thumbnail_spec(image.size, THUMB_HEIGHT)
@@ -85,33 +98,31 @@ def get_thumbnail(image_file, bounds=None):
 
     if source_rect == (0, 0, image.width, image.height):
         image.draft(None, result_size)
-        image = image.resize(result_size, resample=Image.LANCZOS)
+        with image:
+            image = image.resize(result_size, resample=Image.LANCZOS)
     else:
         # TODO: draft and adjust rectangle?
-        image = image.resize(result_size, resample=Image.LANCZOS, box=source_rect)
+        with image:
+            image = image.resize(result_size, resample=Image.LANCZOS, box=source_rect)
 
     thumbnail_attributes = {'width': image.width, 'height': image.height}
 
-    if image_format in ('JPEG', 'MPO'):
-        with BytesIO() as f:
-            image.save(f, format='JPEG', quality=95, optimize=True, progressive=True, subsampling='4:2:2')
-            compatible = (f.getvalue(), 'jpg', thumbnail_attributes)
-
-        lossless = False
-    elif image_format in ('PNG', 'GIF'):
-        with BytesIO() as f:
-            image.save(f, format='PNG', optimize=True)
-            compatible = (f.getvalue(), 'png', thumbnail_attributes)
-
-        lossless = True
-    else:
-        raise Exception("Unexpected image format: %r" % (image_format,))
-
     with BytesIO() as f:
-        image.save(f, format='WebP', lossless=lossless, quality=100 if lossless else 90, method=6)
+        image.save(f, format='WebP', quality=90, method=6)
         webp = (f.getvalue(), 'webp', thumbnail_attributes)
 
-    if len(webp[0]) >= len(compatible[0]):
-        webp = None
+    if _has_transparency(image):
+        # IE11, only relevant browser not to support WebP, gets no transparency in thumbnails
+        background = Image.new('RGBA', image.size, color=_BACKGROUND_COLOR)
+        with image:
+            image = Image.alpha_composite(background, image)
+
+    if image.mode == 'RGBA':
+        with image:
+            image = image.convert('RGB')
+
+    with image, BytesIO() as f:
+        image.save(f, format='JPEG', quality=90, optimize=True, progressive=True, subsampling='4:2:2')
+        compatible = (f.getvalue(), 'jpg', thumbnail_attributes)
 
     return ThumbnailFormats(compatible, webp)

@@ -13,6 +13,21 @@ COPY assets assets
 RUN node build.js
 
 
+FROM docker.io/library/alpine:3.13 AS mozjpeg
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    musl-dev gcc make \
+    cmake nasm
+RUN adduser -S build -h /mozjpeg-build
+WORKDIR /mozjpeg-build
+USER build
+RUN wget https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.0.3.tar.gz
+RUN echo '59c2d65af28d4ef68b9e5c85215cf3b26f4ac5c98e3ae76ba5febceec97fa5ab28cc13496e3f039f11cae767c5466bbf798038f83b310134c13d2e9a6bf5467e  v4.0.3.tar.gz' | sha512sum -c && tar xf v4.0.3.tar.gz
+WORKDIR /mozjpeg-build/mozjpeg-4.0.3
+RUN cmake -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-build/package-root .
+RUN cmake --build . --parallel --target install
+
+
 FROM docker.io/library/python:3.9-alpine3.13 AS bdist-lxml
 # libxml2-dev, libxslt-dev: lxml
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
@@ -46,8 +61,10 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
 RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
+COPY --from=mozjpeg --chown=root:root /mozjpeg-build/package-root/include/ /usr/include/
+COPY --from=mozjpeg --chown=root:root /mozjpeg-build/package-root/lib64/ /usr/lib/
 COPY etc/requirements.txt requirements.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r requirements.txt
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist --no-binary Pillow -r requirements.txt
 
 
 FROM docker.io/library/python:3.9-alpine3.13 AS bdist-pytest
@@ -63,7 +80,6 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     imagemagick6-libs \
     libffi \
-    libjpeg-turbo \
     libmemcached-libs \
     libpq \
     libwebp \
@@ -71,6 +87,7 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
 RUN adduser -S weasyl -h /weasyl
 WORKDIR /weasyl
 USER weasyl
+COPY --from=mozjpeg --chown=root:root /mozjpeg-build/package-root/lib64/ /usr/lib/
 RUN python3 -m venv .venv
 COPY etc/requirements.txt etc/requirements.txt
 

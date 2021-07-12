@@ -65,7 +65,7 @@ def test_gif_thumbnail_static(app, submission_user):
     )
 
     [thumb_compat] = app.get('/~submissiontest').html.select('#user-thumbs img')
-    assert thumb_compat['src'].endswith('.png')
+    assert thumb_compat['src'].endswith('.jpg')
 
     [thumb] = app.get('/~submissiontest').html.select('#user-thumbs .thumb-bounds')
     assert thumb.picture is not None

@@ -4,7 +4,7 @@ from libweasyl import ratings
 from weasyl.test import db_utils
 
 
-@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+@pytest.mark.usefixtures('db', 'cache')
 def test_blacklist_homepage(app):
     """
     Assert that changes to the blacklist apply to the home page immediately.
@@ -40,7 +40,7 @@ def test_blacklist_homepage(app):
     assert len(resp.html.select('#home-art > .thumbnail-grid .thumb')) == 2
 
 
-@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+@pytest.mark.usefixtures('db', 'cache')
 def test_block_user_homepage(app):
     """
     Assert that changes to blocked users apply to the home page immediately.

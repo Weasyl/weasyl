@@ -633,7 +633,6 @@ sessions = Table(
     Column('sessionid', String(length=64), primary_key=True, nullable=False),
     Column('created_at', ArrowColumn(), nullable=False, server_default=text('now()')),
     Column('userid', Integer()),
-    Column('csrf_token', String(length=64)),
     Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     Column('ip_address', String(length=39), nullable=True),
     Column('user_agent_id', Integer(), nullable=True),

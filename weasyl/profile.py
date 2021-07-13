@@ -1,5 +1,6 @@
 import pytz
 import sqlalchemy as sa
+from pyramid.threadlocal import get_current_request
 
 from libweasyl import ratings
 from libweasyl import security
@@ -607,7 +608,7 @@ def invalidate_other_sessions(userid):
 
     Returns: Nothing.
     """
-    sess = d.get_weasyl_session()
+    sess = get_current_request().weasyl_session
     d.engine.execute("""
         DELETE FROM sessions
         WHERE userid = %(userid)s

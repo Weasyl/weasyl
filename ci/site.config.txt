@@ -3,6 +3,9 @@ allow_submit = true
 # Whether currency exchange rates should be fetched for /marketplace
 convert_currency = false
 
+# value checked against the Origin header to prevent CSRF
+origin = http://weasyl-ci.invalid
+
 [backend]
 profile_responses = false
 

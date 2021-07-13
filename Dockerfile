@@ -49,7 +49,7 @@ FROM docker.io/library/python:3.9-alpine3.13 AS bdist
 # postgresql-dev: psycopg2cffi
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    musl-dev gcc make \
+    musl-dev gcc g++ make \
     imagemagick6-dev \
     libffi-dev \
     libjpeg-turbo-dev \

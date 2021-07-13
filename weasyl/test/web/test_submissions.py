@@ -26,7 +26,7 @@ def _image_hash(image):
 
 
 @pytest.mark.parametrize('age', [17, 19])
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_rating_accessibility(app, age):
     submission_user = db_utils.create_user('submission_test', birthday=arrow.utcnow().shift(years=-age))
     cookie = db_utils.create_session(submission_user)
@@ -57,7 +57,7 @@ def test_rating_accessibility(app, age):
     _post_expecting(form, 'General')
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_gif_thumbnail_static(app, submission_user):
     create_visual(
         app, submission_user,
@@ -72,7 +72,7 @@ def test_gif_thumbnail_static(app, submission_user):
     assert thumb.picture.source['srcset'].endswith('.webp')
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     # resized to be larger than COVER_SIZE so a cover is created
     with BytesIO() as f:
@@ -127,7 +127,7 @@ class CrosspostHandler(BaseHTTPRequestHandler):
         self.wfile.write(read_asset('img/wesley1.png'))
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_crosspost(app, submission_user, monkeypatch):
     monkeypatch.setattr(submission, '_ALLOWED_CROSSPOST_HOST', re.compile(r'\Alocalhost:[0-9]+\Z'))
 

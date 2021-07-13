@@ -312,7 +312,7 @@ def control_editpreferences_get_(request):
         current_sfw_rating,
         age,
         allowed_ratings,
-        request.weasyl_session.timezone.timezone,
+        define.request_timezone(request.weasyl_session).timezone,
         define.timezones(),
     ], title="Site Preferences"))
 
@@ -795,7 +795,8 @@ def sfw_toggle_(request):
 
     currentstate = request.cookies.get('sfwmode', "nsfw")
     newstate = "sfw" if currentstate == "nsfw" else "nsfw"
-    request.set_cookie_on_response("sfwmode", newstate, 60 * 60 * 24 * 365)
     # release the index page's cache so it shows the new ratings if they visit it
     index.template_fields.invalidate(request.userid)
-    raise HTTPSeeOther(location=form.redirect)
+    response = HTTPSeeOther(location=form.redirect)
+    response.set_cookie("sfwmode", newstate, max_age=60 * 60 * 24 * 365)
+    return response

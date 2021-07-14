@@ -1716,7 +1716,7 @@ blockquote + blockquote {
     .modal-login #login-top #login-box {
         max-height: 9999px;
         width: 30em;
-        height: 32em;
+        height: 28em;
         padding: 0 2em;
         position: absolute;
         left: 50%;
@@ -1726,10 +1726,6 @@ blockquote + blockquote {
         border-radius: 4px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         z-index: 200;
-    }
-
-    .modal-login #login-top #login-box.short {
-        height: 28em;
     }
 
     .modal-login #modal-loader {

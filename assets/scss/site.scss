@@ -1571,10 +1571,6 @@ blockquote + blockquote {
     padding-top: 0;
 }
 
-#login-content h3, #lb-close {
-    display: none;
-}
-
 #login-box {
     margin: 0 auto;
     padding: 24px 16px 16px;
@@ -1635,7 +1631,7 @@ blockquote + blockquote {
     position: relative;
 }
 
-.modal-login #login-top, .modal-login #login-top #login-content h3, .modal-login #login-top #lb-close {
+.modal-login #login-top {
     display: block;
 }
 
@@ -1644,8 +1640,7 @@ blockquote + blockquote {
     padding-bottom: 1.5rem;
 }
 
-.modal-login #login-top #lb-close {
-    display: block;
+#lb-close {
     position: absolute;
     top: 20px;
     top: 1.25rem;
@@ -1725,7 +1720,7 @@ blockquote + blockquote {
         z-index: 200;
     }
 
-    .modal-login #login-top #lb-close {
+    #lb-close {
         padding-right: 32px;
         padding-right: 2rem;
     }

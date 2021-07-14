@@ -1,8 +1,10 @@
-$def with (error, referer, autofocus)
+$def with (error, referer, login_page)
 
 <div id="login-box" class="clear content">
-  <h3>Sign In</h3>
-  <a id="lb-close" class="color-c" href="#">Close</a>
+  $if not login_page:
+    <h3>Sign In</h3>
+
+    <a id="lb-close" class="color-c" href="#">Close</a>
 
   $if error:
     <div id="signin_error"><strong>Whoops!</strong> The login information you entered was not correct.</div>
@@ -11,7 +13,7 @@ $def with (error, referer, autofocus)
     $:{CSRF()}
 
     <label for="login-user">Username</label>
-    <input type="text" id="login-user" class="input" name="username" placeholder="Username"$:{" autofocus" if autofocus else ""} />
+    <input type="text" id="login-user" class="input" name="username" placeholder="Username"$:{" autofocus" if login_page else ""} />
 
     <label for="login-pass">Password</label>
     <input type="password" id="login-pass" class="input" name="password" placeholder="Password" />

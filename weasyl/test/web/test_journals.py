@@ -131,10 +131,12 @@ def test_api_messages_journals(app):
     app.post('/submit/journal', {'title': u'Restricted journal', 'rating': str(ratings.MATURE.code), 'content': u'J3'}, headers={'Cookie': cookie_user})
     app.post('/submit/journal', {'title': u'Friends only journal', 'rating': '10', 'content': u'J4', "friends": "1"}, headers={'Cookie': cookie_user})
 
-    resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
-    journals = resp.json["journals"]
+    initial_resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
+    journals = initial_resp.json["journals"]
+    journal_id = int(journals[0]["welcomeid"])
     assert len(journals) == 2 # public, test
     assert str(journals[0]["title"]) == u'Public journal'
+    assert str(journals[1]["title"]) == u'Test journal'
 
     # make the users friends, and try a friend-only journal again.
     db_utils.create_friendship(user, follower)
@@ -155,3 +157,10 @@ def test_api_messages_journals(app):
     journals = resp.json["journals"]
     assert len(journals) == 4 # restricted, friendonly, public, test
     assert str(journals[0]["title"]) == u'Restricted journal 2'
+
+    resp = app.get(f'/api/messages/journals?count=1&nextid={journal_id + 1}', headers={'Cookie': cookie_follower})
+    journals = resp.json["journals"]
+    assert len(journals) == 1 # public, test
+    assert str(journals[0]["title"]) == u'Public journal'
+    assert int(resp.json["backid"]) == journal_id
+    assert int(resp.json["nextid"]) == journal_id

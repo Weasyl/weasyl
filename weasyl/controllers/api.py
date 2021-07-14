@@ -160,9 +160,8 @@ def get_tidy_journal(journal):
     new_journal['owner'] = journal['username']
     new_journal['owner_login'] = d.get_sysname(journal['username'])
     journalid = journal['journalid']
-    if journalid > 0:
-        new_journal['link'] = d.absolutify_url(
-            "/%s/%d/%s" % ("journal", journalid, slug_for(journal['title'])))
+    new_journal['link'] = d.absolutify_url(
+        "/%s/%d/%s" % ("journal", journalid, slug_for(journal['title'])))
     return new_journal
 
 

@@ -103,7 +103,7 @@ def select_journals(userid, backtime=None, nexttime=None, limit=None, include_ta
             rating <= %(rating)s
             {time_filter}
         {tags_groupby}
-        ORDER BY we.unixtime DESC
+        ORDER BY we.welcomeid DESC
         {limit_filter}
     """.format(
         tags_select=tags_select,

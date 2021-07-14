@@ -134,7 +134,7 @@ def test_api_messages_journals(app):
     resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
     journals = resp.json["journals"]
     assert len(journals) == 2 # public, test
-    assert unicode(journals[0]["title"]) == u'Public journal'
+    assert str(journals[0]["title"]) == u'Public journal'
 
     # make the users friends, and try a friend-only journal again.
     db_utils.create_friendship(user, follower)
@@ -143,7 +143,7 @@ def test_api_messages_journals(app):
     resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
     journals = resp.json["journals"]
     assert len(journals) == 3 # friendonly, test, public
-    assert unicode(journals[0]["title"]) == u'Friends only journal 2'
+    assert str(journals[0]["title"]) == u'Friends only journal 2'
 
     # change the follower's rating, and try a restricted journal again.
     config = profile.Config.from_code(d.get_config(follower))
@@ -154,4 +154,4 @@ def test_api_messages_journals(app):
     resp = app.get('/api/messages/journals', headers={'Cookie': cookie_follower})
     journals = resp.json["journals"]
     assert len(journals) == 4 # restricted, friendonly, public, test
-    assert unicode(journals[0]["title"]) == u'Restricted journal 2'
+    assert str(journals[0]["title"]) == u'Restricted journal 2'

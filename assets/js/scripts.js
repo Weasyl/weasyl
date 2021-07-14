@@ -172,9 +172,9 @@
 
             $('body').addClass('modal-login');
 
-            $('#login-box-container').empty().append(
+            $('#login-top').empty().append(
                 $('<div>', { id: 'login-box', class: 'content' }).append(
-                    $('<img>', { id: 'modal-loader', src: $('#login-box-container').data('loader'), alt: '' })
+                    $('<img>', { id: 'modal-loader', src: $('#login-top').data('loader'), alt: '' })
                 )
             ).load('/signin #login-box', function () {
                 $('#login-user').focus();

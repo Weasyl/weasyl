@@ -1703,9 +1703,8 @@ blockquote + blockquote {
         padding-top: 3rem;
     }
 
-    .modal-login #login-box-container {
+    .modal-login #login-top {
         background-color: rgba(128,128,128,0.5);
-        display: block;
         width: 100%;
         height: 100%;
         position: absolute;
@@ -1714,7 +1713,7 @@ blockquote + blockquote {
         z-index: 101;
     }
 
-    .modal-login #login-box-container #login-box {
+    .modal-login #login-top #login-box {
         max-height: 9999px;
         width: 30em;
         height: 32em;
@@ -1729,7 +1728,7 @@ blockquote + blockquote {
         z-index: 200;
     }
 
-    .modal-login #login-box-container #login-box.short {
+    .modal-login #login-top #login-box.short {
         height: 28em;
     }
 

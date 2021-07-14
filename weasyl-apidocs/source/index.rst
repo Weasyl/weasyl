@@ -162,18 +162,18 @@ Basic endpoints
    :query count: If specified, no more than this many submissions will be
       returned.
 
-   :query backtime: If specified, only return submissions with a ``unixtime``
-      greater (newer) than the ``backtime``. This is used in pagination.
+   :query backid: If specified, only return submissions with a ``welcomeid``
+      greater (newer) than the ``backid``. This is used in pagination.
 
-   :query nexttime: If specified, only return submissions with a ``unixtime``
-      less (older) than the ``nexttime``. This is used in pagination.
+   :query nextid: If specified, only return submissions with a ``welcomeid``
+      less (older) than the ``nextid``. This is used in pagination.
 
    This will return at most 100 journals. If *count* is more than 100, at
    most 100 submissions will be returned.
 
-   The result will be a JSON object with three keys: *journals*, *backtime*,
-   and *nexttime*. *journals* will be a JSON array of basic :ref:`journal
-   objects <journals>`. *backtime* and *nexttime* are used in
+   The result will be a JSON object with three keys: *journals*, *backid*,
+   and *nextid*. *journals* will be a JSON array of basic :ref:`journal
+   objects <journals>`. *backid* and *nextid* are used in
    :ref:`pagination <pagination>`.
 
 

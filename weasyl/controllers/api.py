@@ -153,9 +153,7 @@ def get_tidy_journal(journal):
     new_journal = {x: journal[x] for x in journal if x in ["title", "content", "journalid", "tags"]}
     new_journal['welcomeid'] = journal['id']
     new_journal['posted_at'] = d.iso8601(journal['unixtime'])
-    contype = journal['contype'] if 'contype' in journal else None
-    if contype:
-        new_journal['type'] = m.CONTYPE_PARSABLE_MAP[contype]
+    new_journal['type'] = m.CONTYPE_PARSABLE_MAP[journal['contype']]
     new_journal['rating'] = ratings.CODE_TO_NAME[journal['rating']]
     new_journal['owner'] = journal['username']
     new_journal['owner_login'] = d.get_sysname(journal['username'])

@@ -180,6 +180,10 @@
         }
 
         $('#hg-login').on('click', function (ev) {
+            if (ev.metaKey || ev.altKey || ev.ctrlKey || ev.shiftKey) {
+                return;
+            }
+
             ev.preventDefault();
 
             if (!$('body').hasClass('modal-login')) {

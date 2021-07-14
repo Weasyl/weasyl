@@ -1631,7 +1631,6 @@ blockquote + blockquote {
 #login-top #login-box {
     padding-top: 0;
     padding-bottom: 0;
-    max-height: 0;
     overflow: hidden;
     position: relative;
 }
@@ -1641,7 +1640,6 @@ blockquote + blockquote {
 }
 
 .modal-login #login-top #login-box {
-    max-height: 28em;
     padding-bottom: 24px;
     padding-bottom: 1.5rem;
 }
@@ -1714,7 +1712,6 @@ blockquote + blockquote {
     }
 
     .modal-login #login-top #login-box {
-        max-height: 9999px;
         width: 30em;
         height: 28em;
         padding: 0 2em;

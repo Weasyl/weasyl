@@ -1536,7 +1536,7 @@ blockquote + blockquote {
 
 /* ------------------------------------ =forms -- */
 
-#login-top, #lt-modal {
+#login-top {
     display: none;
 }
 
@@ -1703,7 +1703,8 @@ blockquote + blockquote {
         padding-top: 3rem;
     }
 
-    .modal-login #login-box-container, .modal-login #lt-modal {
+    .modal-login #login-box-container {
+        background-color: rgba(128,128,128,0.5);
         display: block;
         width: 100%;
         height: 100%;
@@ -1711,10 +1712,6 @@ blockquote + blockquote {
         left: 0;
         top: 0;
         z-index: 101;
-    }
-
-    .modal-login #lt-modal {
-        background-color: rgba(128,128,128,0.5);
     }
 
     .modal-login #login-box-container #login-box {

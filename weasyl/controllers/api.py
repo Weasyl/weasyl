@@ -416,11 +416,11 @@ def api_messages_submissions_(request):
 @api_login_required
 @api_method
 def api_messages_journals_(request):
-    form = request.web_input(count=0, backtime=0, nexttime=0)
+    form = request.web_input(count=0, backid=0, nextid=0)
     try:
         count = int(form.count)
-        backtime = int(form.backtime)
-        nexttime = int(form.nexttime)
+        backid = int(form.backid)
+        nextid = int(form.nextid)
     except ValueError:
         raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
     else:
@@ -428,18 +428,18 @@ def api_messages_journals_(request):
 
     journals = message.select_journals(
         request.userid,
-        backtime=backtime,
-        nexttime=nexttime,
+        backid=backid,
+        nextid=nextid,
         limit=count + 1,
         include_tags=True,
         include_content=True,
     )
-    backtime, nexttime = d.paginate(journals, backtime, nexttime, count, 'unixtime')
+    backid, nextid = d.paginate(journals, backid, nextid, count, 'id')
 
     ret = [get_tidy_journal(jrn) for jrn in journals]
 
     return {
-        'backtime': backtime, 'nexttime': nexttime,
+        'backid': backid, 'nextid': nextid,
         'journals': ret,
     }
 

@@ -28,10 +28,7 @@ from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 @guest_required
 def signin_get_(request):
-    return Response(define.webpage(request.userid, "etc/signin.html", [
-        False,
-        request.environ.get('HTTP_REFERER', ''),
-    ], title="Sign In"))
+    return Response(define.webpage(request.userid, "etc/signin.html", (False, ""), title="Sign In"))
 
 
 @guest_required

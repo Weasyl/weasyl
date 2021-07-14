@@ -52,7 +52,9 @@ $code:
 
 <div id="page-container">
   $if query is None:
-    <div id="login-top" data-loader="${resource_path('img/loader.gif')}"></div>
+    <div id="login-top">
+      $:{RENDER("etc/login_box.html", (False, PATH(), False))}
+    </div>
 
   <header><div id="header" class="clear">
 

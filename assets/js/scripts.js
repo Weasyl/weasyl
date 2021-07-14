@@ -167,29 +167,32 @@
         });
 
         // modal login
+        function closeLogin() {
+            $('body').removeClass('modal-login');
+            $(document).off('keyup', closeLoginIfEscape);
+        }
+
+        function closeLoginIfEscape(e) {
+            if (e.key === 'Escape' && !e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
+                e.preventDefault();
+                closeLogin();
+            }
+        }
+
         $('#hg-login').on('click', function (ev) {
             ev.preventDefault();
 
-            $('body').addClass('modal-login');
+            if (!$('body').hasClass('modal-login')) {
+                $('body').addClass('modal-login');
+                $(document).on('keyup', closeLoginIfEscape);
+            }
 
-            $('#login-top').empty().append(
-                $('<div>', { id: 'login-box', class: 'content' }).append(
-                    $('<img>', { id: 'modal-loader', src: $('#login-top').data('loader'), alt: '' })
-                )
-            ).load('/signin #login-box', function () {
-                $('#login-user').focus();
+            $('#login-user').focus();
+        });
 
-                $('#lb-close').on('click', function (ev) {
-                    ev.preventDefault();
-                    $('body').removeClass('modal-login');
-                });
-
-                $(document).keyup(function (e) {
-                    if (e.keyCode === 27) {
-                        $('body').removeClass('modal-login');
-                    }
-                });
-            });
+        $('#lb-close').on('click', function (ev) {
+            ev.preventDefault();
+            closeLogin();
         });
 
         // submission notifs buttons

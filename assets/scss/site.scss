@@ -1725,15 +1725,6 @@ blockquote + blockquote {
         z-index: 200;
     }
 
-    .modal-login #modal-loader {
-        display: block;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -12px;
-        margin-top: -12px;
-    }
-
     .modal-login #login-top #lb-close {
         padding-right: 32px;
         padding-right: 2rem;

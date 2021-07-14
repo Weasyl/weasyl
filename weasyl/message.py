@@ -67,18 +67,18 @@ def remove_all_submissions(userid, only_before=None):
     d._page_header_info.invalidate(userid)
 
 
-def select_journals(userid, backtime=None, nexttime=None, limit=None, include_tags=False, include_content=False):
+def select_journals(userid, backid=None, nextid=None, limit=None, include_tags=False, include_content=False):
     if limit:
         limit_filter = "LIMIT %(limit)s"
     else:
         limit_filter = ""
 
-    if backtime:
-        time_filter = "AND we.unixtime > %(backtime)s"
-    elif nexttime:
-        time_filter = "AND we.unixtime < %(nexttime)s"
+    if backid:
+        id_filter = "AND we.welcomeid > %(backid)s"
+    elif nextid:
+        id_filter = "AND we.welcomeid < %(nextid)s"
     else:
-        time_filter = ""
+        id_filter = ""
 
     if include_tags:
         tags_select = ", COALESCE(array_agg(tagid) FILTER (WHERE tagid IS NOT NULL), '{}') AS tags"
@@ -101,7 +101,7 @@ def select_journals(userid, backtime=None, nexttime=None, limit=None, include_ta
         WHERE
             (we.userid, we.type) = (%(user)s, 1010) AND
             rating <= %(rating)s
-            {time_filter}
+            {id_filter}
         {tags_groupby}
         ORDER BY we.welcomeid DESC
         {limit_filter}
@@ -110,7 +110,7 @@ def select_journals(userid, backtime=None, nexttime=None, limit=None, include_ta
         tags_join=tags_join,
         tags_groupby=tags_groupby,
         content_select=content_select,
-        time_filter=time_filter,
+        id_filter=id_filter,
         limit_filter=limit_filter,
     )
 
@@ -118,8 +118,8 @@ def select_journals(userid, backtime=None, nexttime=None, limit=None, include_ta
         statement,
         user=userid,
         rating=d.get_rating(userid),
-        backtime=backtime,
-        nexttime=nexttime,
+        backid=backid,
+        nextid=nextid,
         limit=limit,
     ).fetchall()
 

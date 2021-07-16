@@ -252,30 +252,25 @@
         $('#note-compose-staff-note #mod-copy').change(function () {
             staffNoteArea.slideToggle(400);
         });
-
-        var addContactButton = $('#add-contact-button');
-        addContactButton.click(function (ev) {
-            ev.preventDefault();
-            ev.stopPropagation();
-            var group = $('<div>', { class: 'group' });
-            var siteField = $('<input>', {
-                type: 'text',
-                class: 'input site-name',
-                placeholder: 'Site',
-                name: 'site_names',
-                list: 'known-social-sites',
-            });
-            group.append(siteField);
-            group.append(
-                $('<input>', {
-                    type: 'text',
-                    class: 'input',
-                    placeholder: 'Username or URL',
-                    name: 'site_values',
-                }));
-            addContactButton.parent().before(group);
-        });
     });
+
+    var newSocialGroup = document.getElementById('new-social-group');
+
+    function addNewSocialGroupIfNeeded() {
+        if (this.children[0].value || this.children[1].value) {
+            newSocialGroup = this.cloneNode(true);
+            newSocialGroup.children[0].value = newSocialGroup.children[1].value = '';
+            this.insertAdjacentElement('afterend', newSocialGroup);
+            this.removeEventListener('input', addNewSocialGroupIfNeeded);
+            newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
+        }
+    }
+
+    if (newSocialGroup) {
+        newSocialGroup.removeAttribute('id');
+        newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
+        addNewSocialGroupIfNeeded.call(newSocialGroup);
+    }
 
     $('#detail-flash a').click(function (ev) {
         var $parent = $(this).parent();

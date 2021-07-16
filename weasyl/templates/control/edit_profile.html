@@ -111,14 +111,9 @@ $code:
             <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site" list="known-social-sites">
             <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
           </div>
-      <div class="group">
+      <div class="group" id="new-social-group">
         <input type="text" class="input site-name" name="site_names" placeholder="Site" list="known-social-sites">
         <input type="text" class="input" name="site_values" placeholder="Username or URL">
-      </div>
-      <div class="group">
-        <button type="submit" class="button postitive" name="more" id="add-contact-button">
-          New
-        </button>
       </div>
       $# This is used for the auto-completion.
       <datalist id="known-social-sites">

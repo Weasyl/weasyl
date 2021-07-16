@@ -53,11 +53,7 @@ $code:
 <div id="page-container">
   $if query is None:
     <div id="login-top">
-      <div id="lt-modal">
-        <iframe src="javascript:false;"></iframe>
-      </div>
-      <div id="login-box-container" data-loader="${resource_path('img/loader.gif')}">
-      </div>
+      $:{RENDER("etc/login_box.html", (False, PATH(), False))}
     </div>
 
   <header><div id="header" class="clear">
@@ -77,7 +73,7 @@ $code:
         <a class="avatar" href="/~${LOGIN(query['username'])}"><img id="avatar" src="${avatar['display_url']}" alt="${query['username']}"></a>
         <h2><i>Welcome,</i> <a id="username" class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h2>
         <div id="header-utility">
-          <form class="sfw-toggle" action="/control/sfwtoggle" method="POST">
+          <form class="user-nav-form sfw-toggle" action="/control/sfwtoggle" method="POST">
             $:{CSRF()}
             <input type="hidden" name="redirect" value="${PATH()}">
             <button class="link-button ${query['sfw']}">sfw ${_SFWTOGGLE(query['sfw'])}</button>
@@ -92,7 +88,10 @@ $code:
           $elif query['userid'] in staff.MODS:
             <a href="/modcontrol">mod</a> <span>|</span>
 
-          <a href="/signout?token=${TOKEN()[:8]}">log&#160;out</a>
+          <form class="user-nav-form" method="POST" action="/signout">
+            $:{CSRF()}
+            <button class="link-button">log out</button>
+          </form>
         </div>
       </div>
 

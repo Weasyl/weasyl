@@ -74,7 +74,7 @@ def test_index(app, site_updates):
 @pytest.mark.usefixtures('db')
 def test_list_empty(app):
     resp = app.get('/site-updates/')
-    assert resp.html.find(None, 'content').p.string == u'No site updates to show.'
+    assert resp.html.find(None, 'text-post-list').p.string == u'No site updates to show.'
 
 
 @pytest.mark.usefixtures('db')
@@ -100,7 +100,7 @@ def test_create(app, monkeypatch):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
     resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}).follow()
-    assert resp.html.find(None, 'content').h3.string == _FORM['title']
+    assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
@@ -114,7 +114,7 @@ def test_create_strip(app, monkeypatch):
         dict(_FORM, title=' test title \t '),
         headers={'Cookie': cookie},
     ).follow()
-    assert resp.html.find(None, 'content').h3.string == u'test title'
+    assert resp.html.find(id='home-content').h3.string == u'test title'
 
 
 @pytest.mark.usefixtures('db')
@@ -177,7 +177,7 @@ def test_create_notifications(app, monkeypatch):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
 
     resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': admin_cookie}).follow()
-    assert resp.html.find(None, 'content').h3.string == _FORM['title']
+    assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
@@ -194,7 +194,7 @@ def test_edit(app, monkeypatch, site_updates):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
     resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie}).follow()
-    assert resp.html.find(None, 'content').h3.string == _FORM['title']
+    assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
@@ -210,7 +210,7 @@ def test_edit_strip(app, monkeypatch, site_updates):
         dict(_FORM, title=' test title \t '),
         headers={'Cookie': cookie},
     ).follow()
-    assert resp.html.find(None, 'content').h3.string == u'test title'
+    assert resp.html.find(id='home-content').h3.string == u'test title'
 
 
 @pytest.mark.usefixtures('db', 'no_csrf')
@@ -290,7 +290,7 @@ def test_edit_notifications(app, monkeypatch):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
 
     resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': admin_cookie}).follow()
-    assert resp.html.find(None, 'content').h3.string == _FORM['title']
+    assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
@@ -302,7 +302,7 @@ def test_edit_notifications(app, monkeypatch):
         dict(_FORM, title=u'New title'),
         headers={'Cookie': admin_cookie},
     ).follow()
-    assert resp.html.find(None, 'content').h3.string == u'New title'
+    assert resp.html.find(id='home-content').h3.string == u'New title'
 
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'

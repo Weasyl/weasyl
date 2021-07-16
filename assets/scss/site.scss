@@ -1536,7 +1536,7 @@ blockquote + blockquote {
 
 /* ------------------------------------ =forms -- */
 
-#login-top, #lt-modal {
+#login-top {
     display: none;
 }
 
@@ -1569,10 +1569,6 @@ blockquote + blockquote {
 
 #login-box .form {
     padding-top: 0;
-}
-
-#login-content h3, #lb-close {
-    display: none;
 }
 
 #login-box {
@@ -1631,23 +1627,20 @@ blockquote + blockquote {
 #login-top #login-box {
     padding-top: 0;
     padding-bottom: 0;
-    max-height: 0;
     overflow: hidden;
     position: relative;
 }
 
-.modal-login #login-top, .modal-login #login-top #login-content h3, .modal-login #login-top #lb-close {
+.modal-login #login-top {
     display: block;
 }
 
 .modal-login #login-top #login-box {
-    max-height: 28em;
     padding-bottom: 24px;
     padding-bottom: 1.5rem;
 }
 
-.modal-login #login-top #lb-close {
-    display: block;
+#lb-close {
     position: absolute;
     top: 20px;
     top: 1.25rem;
@@ -1703,8 +1696,8 @@ blockquote + blockquote {
         padding-top: 3rem;
     }
 
-    .modal-login #login-box-container, .modal-login #lt-modal, .modal-login #lt-modal iframe {
-        display: block;
+    .modal-login #login-top {
+        background-color: rgba(128,128,128,0.5);
         width: 100%;
         height: 100%;
         position: absolute;
@@ -1713,18 +1706,9 @@ blockquote + blockquote {
         z-index: 101;
     }
 
-    .modal-login #lt-modal {
-        background-color: rgba(128,128,128,0.5);
-    }
-
-    .modal-login #lt-modal iframe {
-        opacity: 0;
-    }
-
-    .modal-login #login-box-container #login-box {
-        max-height: 9999px;
+    .modal-login #login-top #login-box {
         width: 30em;
-        height: 32em;
+        height: 28em;
         padding: 0 2em;
         position: absolute;
         left: 50%;
@@ -1736,20 +1720,7 @@ blockquote + blockquote {
         z-index: 200;
     }
 
-    .modal-login #login-box-container #login-box.short {
-        height: 28em;
-    }
-
-    .modal-login #modal-loader {
-        display: block;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -12px;
-        margin-top: -12px;
-    }
-
-    .modal-login #login-top #lb-close {
+    #lb-close {
         padding-right: 32px;
         padding-right: 2rem;
     }
@@ -2187,11 +2158,11 @@ blockquote + blockquote {
     }
 }
 
-.sfw-toggle {
+.user-nav-form {
     display: inline;
 }
 
-.sfw-toggle button {
+.user-nav-form button {
     color: #999;
 }
 

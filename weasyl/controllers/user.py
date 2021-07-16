@@ -28,10 +28,7 @@ from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 @guest_required
 def signin_get_(request):
-    return Response(define.webpage(request.userid, "etc/signin.html", [
-        False,
-        request.environ.get('HTTP_REFERER', ''),
-    ], title="Sign In"))
+    return Response(define.webpage(request.userid, "etc/signin.html", (False, ""), title="Sign In"))
 
 
 @guest_required
@@ -180,15 +177,18 @@ def signin_2fa_auth_post_(request):
              "2fa"], title="Sign In - 2FA"))
 
 
-@login_required
-@disallow_api
-def signout_(request):
-    if request.web_input(token="").token != define.get_token()[:8]:
-        raise WeasylError('token')
-
+# TODO: simplify after CSRF tokens removed
+@token_checked
+def _signout_user(request):
     login.signout(request)
 
-    raise HTTPSeeOther(location="/", headers=request.response.headers)
+
+@disallow_api
+def signout_(request):
+    if request.userid != 0:
+        _signout_user(request)
+
+    return HTTPSeeOther(location="/", headers=request.response.headers)
 
 
 @guest_required

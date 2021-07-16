@@ -102,6 +102,16 @@ def test_forum_whitelist():
         '<p><a href="https://forums.weasyl.com/foo">https://forums.weasyl.com/foo</a></p>\n')
 
 
+def test_markdown_no_autolink_in_html_link():
+    assert markdown('[https://foo.test/](https://bar.test/)') == '<p><a href="https://bar.test/" rel="nofollow ugc">https://foo.test/</a></p>\n'
+    assert markdown('[@foo@bar.test](https://baz.test/)') == '<p><a href="https://baz.test/" rel="nofollow ugc">@foo@bar.test</a></p>\n'
+    assert markdown('<a href="https://bar.test/">https://foo.test/</a>') == '<p><a href="https://bar.test/" rel="nofollow ugc">https://foo.test/</a></p>\n'
+    assert markdown('<A href="https://baz.test/">@foo@bar.test</A>') == '<p><a href="https://baz.test/" rel="nofollow ugc">@foo@bar.test</a></p>\n'
+    assert markdown('<a href="https://baz.test/">@foo@bar.test</a>') == '<p><a href="https://baz.test/" rel="nofollow ugc">@foo@bar.test</a></p>\n'
+    assert markdown('<b>https://foo.test/</b>') == '<p><b><a href="https://foo.test/" rel="nofollow ugc">https://foo.test/</a></b></p>\n'
+    assert markdown('<b>@foo@bar.test</b>') == '<p><b>@<a href="mailto:foo@bar.test">foo@bar.test</a></b></p>\n'
+
+
 def test_markdown_unordered_list():
     assert markdown('- five\n- six\n- seven') == '<ul><li>five</li>\n<li>six</li>\n<li>seven</li>\n</ul>'
 

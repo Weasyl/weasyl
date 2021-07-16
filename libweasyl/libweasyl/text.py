@@ -1,4 +1,5 @@
 # encoding: utf-8
+from html import escape as html_escape
 import re
 
 from lxml import etree, html
@@ -82,6 +83,13 @@ class WeasylRenderer(misaka.HtmlRenderer):
             return raw_html
         start, stripped, end = strip_outer_tag(raw_html)
         return u''.join([start, _markdown(stripped).rstrip(), end])
+
+    def autolink(self, link, is_email):
+        # default implementation from sundown’s `rndr_autolink`, with the tag name replaced
+        html_href = html_escape("mailto:" + link if is_email else link)
+        html_text = html_escape(link.removeprefix("mailto:"))
+
+        return f'<wzl-autolink href="{html_href}">{html_text}</wzl-autolink>'
 
     # Respect start of ordered lists
     def list(self, text, ordered, prefix):
@@ -205,31 +213,40 @@ def add_user_links(fragment, parent, can_contain):
             _nonlocal["previous"].tail = "".join(previous_text)
 
 
+def _convert_autolinks(fragment):
+    for child in fragment:
+        if child.tag in ("a", "wzl-autolink"):
+            child.tag = "a"
+            link = child
+            href = link.get("href")
+
+            if href:
+                t, _, user = href.partition(":")
+
+                if t == "user":
+                    link.set("href", u"/~{user}".format(user=get_sysname(user)))
+                elif t == "da":
+                    link.set("href", u"https://www.deviantart.com/{user}".format(user=_deviantart(user)))
+                elif t == "ib":
+                    link.set("href", u"https://inkbunny.net/{user}".format(user=_inkbunny(user)))
+                elif t == "fa":
+                    link.set("href", u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user)))
+                elif t == "sf":
+                    link.set("href", u"https://{user}.sofurry.com/".format(user=_sofurry(user)))
+                else:
+                    continue
+
+                if not link.text or link.text == href:
+                    link.text = user
+        else:
+            _convert_autolinks(child)
+
+
 def _markdown_fragment(target):
     rendered = _markdown(target)
     fragment = html.fragment_fromstring(rendered, create_parent=True)
 
-    for link in fragment.iter("a"):
-        href = link.get("href")
-
-        if href:
-            t, _, user = href.partition(":")
-
-            if t == "user":
-                link.set("href", u"/~{user}".format(user=get_sysname(user)))
-            elif t == "da":
-                link.set("href", u"https://www.deviantart.com/{user}".format(user=_deviantart(user)))
-            elif t == "ib":
-                link.set("href", u"https://inkbunny.net/{user}".format(user=_inkbunny(user)))
-            elif t == "fa":
-                link.set("href", u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user)))
-            elif t == "sf":
-                link.set("href", u"https://{user}.sofurry.com/".format(user=_sofurry(user)))
-            else:
-                continue
-
-            if not link.text or link.text == href:
-                link.text = user
+    _convert_autolinks(fragment)
 
     for image in list(fragment.iter("img")):
         src = image.get("src", "")

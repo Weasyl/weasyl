@@ -1,4 +1,4 @@
-/* global marked, Bloodhound, socialSiteList */
+/* global marked */
 
 (function () {
     'use strict';
@@ -253,51 +253,28 @@
             staffNoteArea.slideToggle(400);
         });
 
-        if (window.socialSiteList) {
-            // social media autocomplete
-            var socialMedia = new Bloodhound({
-                datumTokenizer: Bloodhound.tokenizers.obj.whitespace('val'),
-                queryTokenizer: Bloodhound.tokenizers.whitespace,
-                local: socialSiteList,
+        var addContactButton = $('#add-contact-button');
+        addContactButton.click(function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            var group = $('<div>', { class: 'group' });
+            var siteField = $('<input>', {
+                type: 'text',
+                class: 'input site-name',
+                placeholder: 'Site',
+                name: 'site_names',
+                list: 'known-social-sites',
             });
-
-            socialMedia.initialize();
-
-            var typeaheadOptions = {
-                hint: true,
-                highlight: true,
-                minlength: 1,
-            };
-            var typeaheadDataset = {
-                name: 'social-media',
-                displayKey: 'val',
-                source: socialMedia.ttAdapter(),
-            };
-            $('.social input.site-name').typeahead(typeaheadOptions, typeaheadDataset);
-
-            var addContactButton = $('#add-contact-button');
-            addContactButton.click(function (ev) {
-                ev.preventDefault();
-                ev.stopPropagation();
-                var group = $('<div>', { class: 'group' });
-                var siteField = $('<input>', {
+            group.append(siteField);
+            group.append(
+                $('<input>', {
                     type: 'text',
-                    class: 'input site-name',
-                    placeholder: 'Site',
-                    name: 'site_names',
-                });
-                group.append(siteField);
-                group.append(
-                    $('<input>', {
-                        type: 'text',
-                        class: 'input',
-                        placeholder: 'Username or URL',
-                        name: 'site_values',
-                    }));
-                addContactButton.parent().before(group);
-                siteField.typeahead(typeaheadOptions, typeaheadDataset);
-            });
-        }
+                    class: 'input',
+                    placeholder: 'Username or URL',
+                    name: 'site_values',
+                }));
+            addContactButton.parent().before(group);
+        });
     });
 
     $('#detail-flash a').click(function (ev) {

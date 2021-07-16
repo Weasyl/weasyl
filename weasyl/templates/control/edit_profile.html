@@ -108,11 +108,11 @@ $code:
       $for site, values in userinfo['sorted_user_links']:
         $for value in values:
           <div class="group">
-            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site">
+            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site" list="known-social-sites">
             <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
           </div>
       <div class="group">
-        <input type="text" class="input site-name" name="site_names" placeholder="Site">
+        <input type="text" class="input site-name" name="site_names" placeholder="Site" list="known-social-sites">
         <input type="text" class="input" name="site_values" placeholder="Username or URL">
       </div>
       <div class="group">
@@ -120,13 +120,11 @@ $code:
           New
         </button>
       </div>
-      <script>
-        /* This is used for the auto-completion. */
-        var socialSiteList = [
-        $for site in M.SOCIAL_SITES_BY_NAME:
-          {val: $:{INLINE_JSON(site)}},
-        ];
-      </script>
+      $# This is used for the auto-completion.
+      <datalist id="known-social-sites">
+        $for site in M.SOCIAL_SITES.values():
+          <option value="${site['name']}"></option>
+      </datalist>
     </div>
 
     <div class="buttons">

@@ -61,48 +61,6 @@ dl.leaders dd {
     text-align: right;
 }
 
-/* Typeahead
---------------------------------*/
-.typeahead {
-    background-color: white;
-}
-
-.typeahead:focus {
-    border: 2px solid #0097cf;
-}
-
-.tt-hint {
-    color: #999;
-}
-
-.tt-dropdown-menu {
-    margin-top: 12px;
-    background-color: white;
-    border: 1px solid #ccc;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-}
-
-.tt-suggestion {
-    padding: 3px;
-}
-
-.tt-suggestion.tt-cursor {
-    color: white;
-    background-color: #0097cf;
-}
-
-.tt-suggestion p {
-    margin: 0;
-}
-
-.social .group .tt-dropdown-menu {
-    margin-top: 0;
-}
-
-.social .group .twitter-typeahead {
-    width: 100%;
-}
-
 .social .group input {
     margin-bottom: 6px;
 }

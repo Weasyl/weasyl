@@ -67,9 +67,6 @@ $def with (options=None)
 
 <script src="${resource_path('js/jquery-2.2.4.min.js')}"></script>
 
-$if options and "typeahead" in options:
-  <script src="${resource_path('js/typeahead.bundle.min.js')}"></script>
-
 <script id="scripts" src="${resource_path('js/scripts.js')}" data-marked-src="${resource_path('js/marked.js')}"></script>
 
 $if options and "imageselect" in options:

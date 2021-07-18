@@ -241,17 +241,19 @@ MutableDict.associate_with(JSONValuesColumn)
 
 class IntegerEnumColumn(types.TypeDecorator):
     impl = types.INTEGER
+    cache_ok = True
 
     def __init__(self, enum_values):
         super().__init__()
-        self.enum_values = enum_values
-        self.reverse_enum_values = reverse_dict(enum_values)
+        self.enum_values = tuple(enum_values.items())
+        self._enum_values = enum_values
+        self._reverse_enum_values = reverse_dict(enum_values)
 
     def process_bind_param(self, value, dialect):
-        return self.reverse_enum_values.get(value, value)
+        return self._reverse_enum_values.get(value, value)
 
     def process_result_value(self, value, dialect):
-        return self.enum_values.get(value, value)
+        return self._enum_values.get(value, value)
 
 
 RatingColumn = IntegerEnumColumn({rating.code: rating for rating in ratings.ALL_RATINGS})

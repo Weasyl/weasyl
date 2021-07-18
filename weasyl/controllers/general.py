@@ -13,7 +13,17 @@ from weasyl import comment, define, index, macro, search, profile, siteupdate, s
 def index_(request):
     page = define.common_page_start(request.userid, title="Home", canonical_url="/")
     page.append(define.render("etc/index.html", index.template_fields(request.userid)))
-    return Response(define.common_page_end(request.userid, page))
+
+    if request.userid == 0:
+        cache_control = "public, max-age=60, stale-while-revalidate=600"
+    else:
+        cache_control = "private, max-age=60"
+
+    return Response(
+        define.common_page_end(request.userid, page),
+        cache_control=cache_control,
+        vary=["Cookie"],  # SFW mode, sign in/out, account changes
+    )
 
 
 _BROWSE = {

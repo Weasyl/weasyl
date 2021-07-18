@@ -1,12 +1,12 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
     Integer, String, Text, text, DateTime, func, Boolean)
-from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB, TIMESTAMP
 from sqlalchemy.schema import ForeignKey
 
 
 from libweasyl.models.helpers import (
-    ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn, enum_column)
+    ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn)
 from libweasyl import constants
 
 
@@ -492,9 +492,11 @@ report = Table(
     Column('reportid', Integer(), primary_key=True, nullable=False),
     Column('closed_at', ArrowColumn(), nullable=True),
     Column('closure_reason',
-           enum_column(constants.ReportClosureReason,
-                       name='report_closure_reason',
-                       metadata=metadata),
+           ENUM(constants.ReportClosureReason,
+                name='report_closure_reason',
+                metadata=metadata,
+                validate_strings=True,
+                values_callable=lambda enum_cls: [e.value for e in enum_cls]),
            nullable=True),
     Column('closure_explanation', Text(), nullable=True),
     default_fkey(['target_user'], ['login.userid'], name='report_target_user_fkey'),

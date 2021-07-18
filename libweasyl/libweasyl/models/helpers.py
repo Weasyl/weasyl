@@ -2,7 +2,7 @@ import contextlib
 
 import json
 import arrow
-from sqlalchemy.dialects.postgresql import ENUM, HSTORE
+from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import Mutable, MutableDict
 from sqlalchemy import types
@@ -255,34 +255,6 @@ class IntegerEnumColumn(types.TypeDecorator):
 
 
 RatingColumn = IntegerEnumColumn({rating.code: rating for rating in ratings.ALL_RATINGS})
-
-
-class _BaseEnumColumn(types.TypeDecorator):
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        elif value not in self.enum_cls:
-            raise ValueError(value, 'does not belong to', self.enum_cls)
-        return value.value
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return self.reverse_enum_values[value]
-
-
-def enum_column(enum_cls, name, metadata):
-    class EnumColumn(_BaseEnumColumn):
-        pass
-
-    EnumColumn.enum_cls = enum_cls
-
-    # Just as tables do, enum columns require metadata to bind to.
-    EnumColumn.impl = ENUM(*(e.value for e in enum_cls), name=name, metadata=metadata)
-
-    EnumColumn.reverse_enum_values = {e.value: e for e in enum_cls}
-    EnumColumn.__name__ = 'EnumColumn_' + name
-    return EnumColumn()
 
 
 def clauses_for(table, column='settings'):

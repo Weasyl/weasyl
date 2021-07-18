@@ -215,6 +215,7 @@ class WeasylTimestampColumn(types.TypeDecorator):
 
 class ArrowColumn(types.TypeDecorator):
     impl = types.TIMESTAMP
+    cache_ok = True
 
     def process_result_value(self, value, dialect):
         if value is None:

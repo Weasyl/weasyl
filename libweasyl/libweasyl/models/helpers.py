@@ -78,6 +78,7 @@ class CharSettings(Mutable):
 
 class CharSettingsColumn(types.TypeDecorator):
     impl = types.String
+    cache_ok = True
 
     file_type_things = {
         '~': 'cover',
@@ -106,12 +107,18 @@ class CharSettingsColumn(types.TypeDecorator):
 
     def __init__(self, settings_map, enums=(), **kwargs):
         super().__init__(**kwargs)
-        self.settings_map = {k: (None, v) for k, v in settings_map.items()}
-        self.enums = dict(enums)
-        for name, enum_settings in self.enums.items():
+
+        enums = dict(enums)
+
+        # SQLAlchemy cache keys
+        self.settings_map = tuple(settings_map.items())
+        self.enums = tuple((k, tuple(v.items())) for k, v in enums.items())
+
+        self._settings_map = {k: (None, v) for k, v in settings_map.items()}
+        for name, enum_settings in enums.items():
             for char, setting in enum_settings.items():
-                self.settings_map[char] = name, setting
-        self.reverse_settings_map = reverse_dict(self.settings_map)
+                self._settings_map[char] = name, setting
+        self._reverse_settings_map = reverse_dict(self._settings_map)
 
     def process_bind_param(self, value, dialect):
         if not isinstance(value, CharSettings):
@@ -119,8 +126,8 @@ class CharSettingsColumn(types.TypeDecorator):
         ret = []
         for thing, kind in value._file_types.items():
             ret.append(self.reverse_file_type_things[thing] + self.reverse_file_type_kinds[kind])
-        ret.extend(self.reverse_settings_map[None, s] for s in value._settings)
-        ret.extend(self.reverse_settings_map[ev] for ev in value._enum_values.items())
+        ret.extend(self._reverse_settings_map[None, s] for s in value._settings)
+        ret.extend(self._reverse_settings_map[ev] for ev in value._enum_values.items())
         ret.sort()
         return ''.join(ret)
 
@@ -140,9 +147,9 @@ class CharSettingsColumn(types.TypeDecorator):
                     raise ValueError(filetype, 'not found among', self.file_type_kinds)
             else:
                 try:
-                    enum, value = self.settings_map[char]
+                    enum, value = self._settings_map[char]
                 except KeyError:
-                    raise ValueError(char, 'not found among', self.settings_map)
+                    raise ValueError(char, 'not found among', self._settings_map)
                 if enum is None:
                     settings.add(value)
                 else:
@@ -182,7 +189,7 @@ class CharSettingsColumn(types.TypeDecorator):
 
             @clause.expression
             def clause(cls):
-                return getattr(cls, column).op('~')(self.reverse_settings_map[enum, value])
+                return getattr(cls, column).op('~')(self._reverse_settings_map[enum, value])
 
             return clause
 

@@ -2,7 +2,6 @@ import contextlib
 
 import json
 import arrow
-import six
 from sqlalchemy.dialects.postgresql import ENUM, HSTORE
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import Mutable, MutableDict
@@ -33,7 +32,7 @@ class CharSettings(Mutable):
         elif isinstance(value, cls):
             return value
         else:
-            return super(CharSettings, cls).coerce(key, value)
+            return super().coerce(key, value)
 
     @property
     def mutable_settings(self):
@@ -105,9 +104,9 @@ class CharSettingsColumn(types.TypeDecorator):
 
     reverse_file_type_kinds = reverse_dict(file_type_kinds)
 
-    def __init__(self, settings_map, enums=(), **kw):
-        super(CharSettingsColumn, self).__init__(**kw)
-        self.settings_map = dict((k, (None, v)) for k, v in settings_map.items())
+    def __init__(self, settings_map, enums=(), **kwargs):
+        super().__init__(**kwargs)
+        self.settings_map = {k: (None, v) for k, v in settings_map.items()}
         self.enums = dict(enums)
         for name, enum_settings in self.enums.items():
             for char, setting in enum_settings.items():
@@ -126,7 +125,7 @@ class CharSettingsColumn(types.TypeDecorator):
         return ''.join(ret)
 
     def process_result_value(self, original_value, dialect):
-        if not isinstance(original_value, six.string_types):
+        if not isinstance(original_value, str):
             return original_value
         chars = iter(original_value)
         settings = set()
@@ -244,7 +243,7 @@ class IntegerEnumColumn(types.TypeDecorator):
     impl = types.INTEGER
 
     def __init__(self, enum_values):
-        super(IntegerEnumColumn, self).__init__()
+        super().__init__()
         self.enum_values = enum_values
         self.reverse_enum_values = reverse_dict(enum_values)
 
@@ -282,7 +281,7 @@ def enum_column(enum_cls, name, metadata):
     EnumColumn.impl = ENUM(*(e.value for e in enum_cls), name=name, metadata=metadata)
 
     EnumColumn.reverse_enum_values = {e.value: e for e in enum_cls}
-    EnumColumn.__name__ = str('EnumColumn_' + name)
+    EnumColumn.__name__ = 'EnumColumn_' + name
     return EnumColumn()
 
 

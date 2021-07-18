@@ -5,7 +5,7 @@ import weasyl.define as d
 from weasyl.test.web.common import create_visual, read_asset
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_submission_view(app, submission_user):
     submission = create_visual(
         app,

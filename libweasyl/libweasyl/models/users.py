@@ -46,8 +46,6 @@ class Session(Base):
     """
 
     __table__ = tables.sessions
-    save = False
-    create = False
 
     user = orm.relationship(Login)
 
@@ -57,21 +55,9 @@ class Session(Base):
     @reify
     def timezone(self):
         if not self.userid:
-            return _server_time
+            return DEFAULT_TIMEZONE
         else:
-            return UserTimezone.load_from_memcached_or_database(self.userid) or _server_time
-
-
-class GuestSession(object):
-    __slots__ = ('sessionid', 'csrf_token', 'create')
-
-    userid = None
-    additional_data = None
-
-    def __init__(self, sessionid):
-        self.sessionid = sessionid
-        self.csrf_token = sessionid
-        self.create = False
+            return UserTimezone.load_from_memcached_or_database(self.userid) or DEFAULT_TIMEZONE
 
 
 class UserTimezone(Base):
@@ -140,4 +126,4 @@ class Follow(Base):
     __table__ = tables.watchuser
 
 
-_server_time = GuestSession.timezone = UserTimezone(timezone='America/Denver')
+DEFAULT_TIMEZONE = UserTimezone(timezone='America/Denver')

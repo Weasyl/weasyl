@@ -8,8 +8,6 @@
         'August', 'September', 'October', 'November', 'December', 'Smarch'
     ];
 
-    var csrfToken = document.documentElement.getAttribute('data-csrf-token');
-
     function forEach(list, callback) {
         for (var i = 0, l = list.length; i < l; i++) {
             callback(list[i]);
@@ -865,7 +863,6 @@
 
                 rq.send(
                     'format=json&feature=' + commentInfo.feature +
-                    '&token=' + encodeURIComponent(csrfToken) +
                     '&commentid=' + commentInfo.id);
 
                 comment.classList.add('removing');
@@ -1075,7 +1072,6 @@
 
                     rq.send(
                         'format=json' +
-                        '&token=' + encodeURIComponent(csrfToken) +
                         '&' + targetIdField.name + '=' + targetId +
                         '&parentid=' + commentInfo.id +
                         '&content=' + encodeURIComponent(contentField.value)
@@ -1270,7 +1266,7 @@
                 favoriteForm.submit();
             };
 
-            rq.send('token=' + encodeURIComponent(csrfToken));
+            rq.send(null);
 
             favoriteButton.classList.add('pending');
 

@@ -9,13 +9,12 @@ import sqlalchemy
 
 from libweasyl import security
 from libweasyl import staff
-from libweasyl.models.users import GuestSession
 
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
 from weasyl.error import WeasylError
-from weasyl.sessions import create_session, create_guest_session
+from weasyl.sessions import create_session
 
 
 _EMAIL = 100
@@ -57,22 +56,21 @@ def clean_display_name(text):
 
 
 def signin(request, userid, ip_address=None, user_agent=None):
-    # Update the last login record for the user
-    d.execute("UPDATE login SET last_login = NOW() WHERE userid = %i", [userid])
+    if request.userid:
+        raise WeasylError("Unexpected")  # pragma: no cover
 
     # Log the successful login and increment the login count
     d.append_to_log('login.success', userid=userid, ip=d.get_address())
     d.metric('increment', 'logins')
 
-    # set the userid on the session
-    sess = create_session(userid)
-    sess.ip_address = ip_address
-    sess.user_agent_id = get_user_agent_id(user_agent)
-    sess.create = True
+    with d.sessionmaker_future.begin() as tx:
+        # Update the last login record for the user
+        tx.execute("UPDATE login SET last_login = NOW() WHERE userid = :user", {"user": userid})
 
-    if not isinstance(request.weasyl_session, GuestSession):
-        request.pg_connection.delete(request.weasyl_session)
-        request.pg_connection.flush()
+        sess = create_session(userid)
+        sess.ip_address = ip_address
+        sess.user_agent_id = get_user_agent_id(user_agent)
+        tx.add(sess)
 
     request.weasyl_session = sess
 
@@ -97,12 +95,10 @@ def get_user_agent_id(ua_string=None):
 
 
 def signout(request):
-    request.pg_connection.delete(request.weasyl_session)
-    request.pg_connection.flush()
-    request.weasyl_session = create_guest_session()
+    with d.sessionmaker_future.begin() as tx:
+        tx.delete(request.weasyl_session)
 
-    # unset SFW-mode cookie on logout
-    request.delete_cookie_on_response("sfwmode")
+    request.weasyl_session = None
 
 
 def authenticate_bcrypt(username, password, request, ip_address=None, user_agent=None):
@@ -178,11 +174,6 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     if request is not None:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
-            if not isinstance(request.weasyl_session, GuestSession):
-                request.pg_connection.delete(request.weasyl_session)
-                request.pg_connection.flush()
-            request.weasyl_session = create_session(None)
-            request.weasyl_session.additional_data = {}
             return USERID, "2fa"
         else:
             signin(request, USERID, ip_address=ip_address, user_agent=user_agent)

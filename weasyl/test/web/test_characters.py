@@ -34,7 +34,7 @@ def _character_user(db):
 
 
 @pytest.fixture(name='character')
-def _character(app, db, character_user, no_csrf):
+def _character(app, db, character_user):
     cookie = db_utils.create_session(character_user)
 
     form = dict(
@@ -64,7 +64,7 @@ def test_create_default_thumbnail(app, character):
     assert _read_character_image(image_url).tobytes() == read_asset_image('img/wesley1.png').tobytes()
 
 
-@pytest.mark.usefixtures('db', 'character_user', 'character', 'no_csrf')
+@pytest.mark.usefixtures('db', 'character_user', 'character')
 def test_owner_edit_details(app, character_user, character):
     cookie = db_utils.create_session(character_user)
 
@@ -78,7 +78,7 @@ def test_owner_edit_details(app, character_user, character):
     assert resp.html.find(id='detail-bar-title').string == u'Edited name'
 
 
-@pytest.mark.usefixtures('db', 'character_user', 'character', 'no_csrf')
+@pytest.mark.usefixtures('db', 'character_user', 'character')
 def test_owner_reupload(app, character_user, character):
     cookie = db_utils.create_session(character_user)
 

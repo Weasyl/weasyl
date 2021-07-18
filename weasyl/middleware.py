@@ -14,12 +14,10 @@ from web.utils import storify
 
 from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy
-from libweasyl.models.users import GuestSession
 from weasyl import define as d
 from weasyl import errorcode
 from weasyl import orm
 from weasyl.error import WeasylError
-from weasyl.sessions import create_guest_session, is_guest_token
 
 
 def cache_clear_tween_factory(handler, registry):
@@ -60,45 +58,29 @@ def session_tween_factory(handler, registry):
     """
     A tween that sets a weasyl_session on a request.
     """
-    def callback(request, response):
-        sess_obj = request.weasyl_session
-
-        if isinstance(sess_obj, GuestSession):
-            if sess_obj.create:
-                response.set_cookie('WZL', sess_obj.sessionid, max_age=None,
-                                    secure=request.scheme == 'https', httponly=True)
-        elif sess_obj.save:
-            session = request.pg_connection
-
-            if sess_obj.create:
-                session.add(sess_obj)
-                response.set_cookie('WZL', sess_obj.sessionid, max_age=60 * 60 * 24 * 365,
-                                    secure=request.scheme == 'https', httponly=True)
-            session.flush()
+    def remove_session_cookie_callback(request, response):
+        if request.weasyl_session is None:
+            response.delete_cookie('WZL')
 
     # TODO(hyena): Investigate a pyramid session_factory implementation instead.
     def session_tween(request):
         sess_obj = None
-        cookie = request.cookies.get('WZL')
 
-        if cookie is not None:
-            if is_guest_token(cookie):
-                sess_obj = GuestSession(cookie)
+        if cookie := request.cookies.get('WZL'):
+            sess_obj = request.pg_connection.query(orm.Session).get(cookie)
+
+            if sess_obj is None:
+                # remove the invalid cookie as part of the response, if the request didn’t result in a new session being created
+                request.add_response_callback(remove_session_cookie_callback)
             else:
-                sess_obj = request.pg_connection.query(orm.Session).get(cookie)
-
-        if sess_obj is None:
-            sess_obj = create_guest_session()
+                request.pg_connection.expunge(sess_obj)
 
         request.weasyl_session = sess_obj
 
         set_user(
-            {"id": sess_obj.userid} if sess_obj.userid
+            {"id": sess_obj.userid} if sess_obj
             else {"ip_address": request.client_addr})
 
-        # Register a response callback to set the session cookies before returning.
-        # Note that this requires that exceptions are handled properly by our exception view.
-        request.add_response_callback(callback)
         return handler(request)
 
     return session_tween
@@ -109,7 +91,7 @@ def query_debug_tween_factory(handler, registry):
     A tween that allows developers to view timing per query.
     """
     def callback(request, response):
-        if not hasattr(request, 'weasyl_session') or request.weasyl_session.userid not in staff.DEVELOPERS:
+        if not hasattr(request, 'weasyl_session') or request.userid not in staff.DEVELOPERS:
             return
 
         class ParameterCounter(object):
@@ -250,8 +232,11 @@ def userid_request_property(request):
         return userid
 
     else:
-        userid = request.weasyl_session.userid
-        return 0 if userid is None else userid
+        sess = request.weasyl_session
+        # session is None for a guest
+        userid = sess and sess.userid
+        # session’s userid is None for 2FA in progress
+        return userid or 0
 
 
 def web_input_request_method(request, *required, **kwargs):
@@ -268,31 +253,6 @@ def web_input_request_method(request, *required, **kwargs):
     return storify(request.params.mixed(), *required, **kwargs)
 
 
-# Methods to add response callbacks to a request. The callbacks run in the order they
-# were registered. Note that these will not run if an exception is thrown that isn't handled by
-# our exception view.
-def set_cookie_on_response(request, name=None, value='', max_age=None, path='/', domain=None,
-                           secure=False, httponly=False, comment=None, overwrite=False):
-    """
-    Registers a callback on the request to set a cookie in the response.
-    Parameters have the same meaning as ``pyramid.response.Response.set_cookie``.
-    """
-    def callback(request, response):
-        response.set_cookie(name, value, max_age, path, domain, secure, httponly, comment,
-                            overwrite)
-    request.add_response_callback(callback)
-
-
-def delete_cookie_on_response(request, name, path='/', domain=None):
-    """
-    Register a callback on the request to delete a cookie from the client.
-    Parameters have the same meaning as ``pyramid.response.Response.delete_cookie``.
-    """
-    def callback(request, response):
-        response.delete_cookie(name, path, domain)
-    request.add_response_callback(callback)
-
-
 def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.
@@ -300,7 +260,7 @@ def weasyl_exception_view(exc, request):
     # Avoid using the reified request.userid property here. It might not be set and it might
     # have changed due to signin/out.
     if hasattr(request, 'weasyl_session'):
-        userid = request.weasyl_session.userid
+        userid = request.userid
     else:
         userid = 0
         request.userid = 0  # To keep templates happy.

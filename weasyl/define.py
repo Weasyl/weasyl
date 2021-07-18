@@ -2,7 +2,6 @@ import os
 import time
 import random
 import hashlib
-import hmac
 import itertools
 import json
 import numbers
@@ -16,6 +15,7 @@ import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from pyramid.response import Response
 from sentry_sdk import capture_exception
 from sqlalchemy.exc import OperationalError
 from web.template import Template
@@ -24,7 +24,8 @@ import libweasyl.constants
 from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
-from libweasyl import html, text, ratings, security, staff
+from libweasyl.models.users import DEFAULT_TIMEZONE
+from libweasyl import html, text, ratings, staff
 
 from weasyl import config
 from weasyl import errorcode
@@ -59,6 +60,7 @@ _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
 if config._in_test:
     _sqlalchemy_url += '_test'
 engine = meta.bind = sa.create_engine(_sqlalchemy_url, max_overflow=25, pool_size=10)
+sessionmaker_future = sa.orm.sessionmaker(bind=engine, expire_on_commit=False)
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 
 
@@ -149,8 +151,7 @@ def _compile(template_name):
             globals={
                 "STR": str,
                 "LOGIN": get_sysname,
-                "TOKEN": get_token,
-                "CSRF": _get_csrf_input,
+                "CSRF": (lambda: ""),
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
                 "ISO8601_DATE": iso8601_date,
@@ -222,14 +223,6 @@ def webpage(userid, template, argv=None, options=None, **extras):
     return common_page_end(userid, page, options=options)
 
 
-def get_weasyl_session():
-    """
-    Gets the weasyl_session for the current request. Most code shouldn't have to use this.
-    """
-    # TODO: This method is inelegant. Remove this logic after updating login.signin().
-    return get_current_request().weasyl_session
-
-
 def get_userid():
     """
     Returns the userid corresponding to the current request, if any.
@@ -237,33 +230,11 @@ def get_userid():
     return get_current_request().userid
 
 
-def is_csrf_valid(request, token):
-    expected = request.weasyl_session.csrf_token
-    return expected is not None and hmac.compare_digest(str(token), str(expected))
+_ORIGIN = config_obj.get('general', 'origin')
 
 
-def get_token():
-    from weasyl import api
-
-    request = get_current_request()
-
-    if api.is_api_user(request):
-        return ''
-
-    # allow error pages with $:{TOKEN()} in the template to be rendered even
-    # when the error occurred before the session middleware set a session
-    if not hasattr(request, 'weasyl_session'):
-        return security.generate_key(20)
-
-    sess = request.weasyl_session
-    if sess.csrf_token is None:
-        sess.csrf_token = security.generate_key(64)
-        sess.save = True
-    return sess.csrf_token
-
-
-def _get_csrf_input():
-    return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
+def is_csrf_valid(request):
+    return request.headers.get('origin') == _ORIGIN
 
 
 @region.cache_on_arguments(namespace='v3')
@@ -545,13 +516,17 @@ def text_fix_url(target):
     return "http://" + target
 
 
+def request_timezone(request):
+    return request.weasyl_session.timezone if request.weasyl_session is not None else DEFAULT_TIMEZONE
+
+
 def local_arrow(dt):
-    tz = get_current_request().weasyl_session.timezone
+    tz = request_timezone(get_current_request())
     return arrow.Arrow.fromdatetime(tz.localtime(dt))
 
 
 def convert_to_localtime(target):
-    tz = get_current_request().weasyl_session.timezone
+    tz = request_timezone(get_current_request())
     if isinstance(target, arrow.Arrow):
         return tz.localtime(target.datetime)
     elif isinstance(target, datetime.datetime):
@@ -728,26 +703,31 @@ def common_status_page(userid, status):
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
-    if status in ('banned', 'suspended'):
-        from weasyl import moderation, login
+    assert status in ('banned', 'suspended')
 
-        login.signout(get_current_request())
-        if status == 'banned':
-            reason = moderation.get_ban_reason(userid)
-            return errorpage(
-                userid,
-                "Your account has been permanently banned and you are no longer allowed "
-                "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-                "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
+    from weasyl import moderation, login
 
-        elif status == 'suspended':
-            suspension = moderation.get_suspension(userid)
-            return errorpage(
-                userid,
-                "Your account has been temporarily suspended and you are not allowed to "
-                "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
-                "%s.\n\nIf you believe this suspension is in error, please contact "
-                "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
+    if status == 'banned':
+        reason = moderation.get_ban_reason(userid)
+        message = (
+            "Your account has been permanently banned and you are no longer allowed "
+            "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
+            "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
+
+    elif status == 'suspended':
+        suspension = moderation.get_suspension(userid)
+        message = (
+            "Your account has been temporarily suspended and you are not allowed to "
+            "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
+            "%s.\n\nIf you believe this suspension is in error, please contact "
+            "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
+
+    login.signout(get_current_request())
+
+    response = Response(errorpage(userid, message))
+    response.delete_cookie('WZL')
+    response.delete_cookie('sfwmode')
+    return response
 
 
 _content_types = {

@@ -93,7 +93,7 @@ def test_list(app, monkeypatch, site_updates):
     assert resp.html.find(None, 'text-post-actions').a['href'] == '/site-updates/%d/edit' % (updates[-1].updateid,)
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_create(app, monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -103,7 +103,7 @@ def test_create(app, monkeypatch):
     assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_create_strip(app, monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -115,16 +115,6 @@ def test_create_strip(app, monkeypatch):
         headers={'Cookie': cookie},
     ).follow()
     assert resp.html.find(id='home-content').h3.string == u'test title'
-
-
-@pytest.mark.usefixtures('db')
-def test_create_csrf(app, monkeypatch):
-    user = db_utils.create_user()
-    cookie = db_utils.create_session(user)
-    monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
-
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}, status=403)
-    assert resp.html.find(id='error_content').p.string == errorcode.token
 
 
 @pytest.mark.usefixtures('db')
@@ -156,7 +146,7 @@ def test_create_restricted(app, monkeypatch):
     assert resp.html.find(id='error_content') is None
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_create_validation(app, monkeypatch):
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -169,7 +159,7 @@ def test_create_validation(app, monkeypatch):
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['contentInvalid']
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_create_notifications(app, monkeypatch):
     admin_user = db_utils.create_user()
     normal_user = db_utils.create_user()
@@ -185,7 +175,7 @@ def test_create_notifications(app, monkeypatch):
     assert resp.html.find(id='site_updates').find(None, 'item').a.string == _FORM['title']
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_edit(app, monkeypatch, site_updates):
     _, updates = site_updates
 
@@ -197,7 +187,7 @@ def test_edit(app, monkeypatch, site_updates):
     assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_edit_strip(app, monkeypatch, site_updates):
     _, updates = site_updates
 
@@ -213,7 +203,7 @@ def test_edit_strip(app, monkeypatch, site_updates):
     assert resp.html.find(id='home-content').h3.string == u'test title'
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_edit_nonexistent(app, monkeypatch, site_updates):
     _, updates = site_updates
 
@@ -222,18 +212,6 @@ def test_edit_nonexistent(app, monkeypatch, site_updates):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
     app.post('/site-updates/%d' % (updates[-1].updateid + 1,), _FORM, headers={'Cookie': cookie}, status=404)
-
-
-@pytest.mark.usefixtures('db')
-def test_edit_csrf(app, monkeypatch, site_updates):
-    _, updates = site_updates
-
-    user = db_utils.create_user()
-    cookie = db_utils.create_session(user)
-    monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
-
-    resp = app.post('/site-updates/%d' % (updates[-1].updateid,), _FORM, headers={'Cookie': cookie}, status=403)
-    assert resp.html.find(id='error_content').p.text.strip() == errorcode.token
 
 
 @pytest.mark.usefixtures('db')
@@ -267,7 +245,7 @@ def test_edit_restricted(app, monkeypatch, site_updates):
     assert resp.html.find(id='error_content') is None
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_edit_validation(app, monkeypatch, site_updates):
     _, updates = site_updates
 
@@ -282,7 +260,7 @@ def test_edit_validation(app, monkeypatch, site_updates):
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['contentInvalid']
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_edit_notifications(app, monkeypatch):
     admin_user = db_utils.create_user()
     normal_user = db_utils.create_user()

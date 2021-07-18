@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:893c70251e56e2d443a132602c6f22d1d58fdf3f14fb77443d0d0d71a959e3b3
+      image: ghcr.io/weasyl/ci-base-image@sha256:7d9187051aa04f2e8947a197ee6ab815f1c9dd93089c380bb6d5b76f29447e51
       options: --user 1001
 
     services:

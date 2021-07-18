@@ -312,7 +312,7 @@ def control_editpreferences_get_(request):
         current_sfw_rating,
         age,
         allowed_ratings,
-        define.request_timezone(request.weasyl_session).timezone,
+        define.request_timezone(request).timezone,
         define.timezones(),
     ], title="Site Preferences"))
 

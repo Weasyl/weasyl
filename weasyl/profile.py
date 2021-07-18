@@ -613,7 +613,7 @@ def invalidate_other_sessions(userid):
         DELETE FROM sessions
         WHERE userid = %(userid)s
           AND sessionid != %(currentsession)s
-    """, userid=userid, currentsession=sess.sessionid)
+    """, userid=userid, currentsession=sess.sessionid if sess is not None else "")
 
 
 def edit_preferences(userid, timezone=None,

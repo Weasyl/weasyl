@@ -901,44 +901,55 @@ def select_featured(userid, otherid, rating):
 
 def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
-               pr.username, su.subtype
+        SELECT su.submitid, su.title, su.rating, su.unixtime, su.subtype
           FROM submission su
-         INNER JOIN profile pr ON su.userid = pr.userid
-         WHERE su.userid = %i
+         WHERE su.userid = %(owner)s
                AND su.settings !~ 'h'
-    """ % (otherid,)]
+    """]
 
     if userid:
         if d.is_sfw_mode():
-            statement.append(" AND su.rating <= %i" % (rating,))
+            statement.append(" AND su.rating <= %(rating)s")
         else:
             # Outside of SFW mode, users always see their own content.
-            statement.append(" AND (su.rating <= %i OR su.userid = %i)" % (rating, userid))
+            statement.append(" AND (su.rating <= %%(rating)s OR su.userid = %i)" % (userid,))
         statement.append(m.MACRO_IGNOREUSER % (userid, "su"))
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.rating <= %i AND su.settings !~ 'f'" % (rating,))
+        statement.append(" AND su.rating <= %(rating)s AND su.settings !~ 'f'")
 
     if folderid:
         statement.append(" AND su.folderid = %i" % folderid)
 
+    statement = "".join(statement)
+    statement = (
+        f"SELECT * FROM ({statement} AND su.submitid < %(submitid)s ORDER BY su.submitid DESC LIMIT 1) AS older"
+        f" UNION ALL SELECT * FROM ({statement} AND su.submitid > %(submitid)s ORDER BY su.submitid LIMIT 1) AS newer"
+    )
+
+    username = d.get_display_name(otherid)
+
     query = [{
         "contype": 10,
+        "userid": otherid,
+        "username": username,
         "submitid": i[0],
         "title": i[1],
         "rating": i[2],
         "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "subtype": i[6],
-    } for i in d.execute("".join(statement))]
+        "subtype": i[4],
+    } for i in d.engine.execute(statement, {
+        "owner": otherid,
+        "submitid": submitid,
+        "rating": rating,
+    })]
+
+    media.populate_with_submission_media(query)
 
     query.sort(key=lambda i: i['submitid'])
-    older = [i for i in query if i["submitid"] < submitid][-limit:]
-    newer = [i for i in query if i["submitid"] > submitid][:limit]
-    media.populate_with_submission_media(older + newer)
+    older = [i for i in query if i["submitid"] < submitid]
+    newer = [i for i in query if i["submitid"] > submitid]
 
     return {
         "older": older,

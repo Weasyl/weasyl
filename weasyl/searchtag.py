@@ -112,7 +112,7 @@ def tag_array(tagids):
     return sa.func.array(
         sa.select([st.c.title])
         .where(st.c.tagid == any_(list(tagids)))
-        .as_scalar())
+        .scalar_subquery())
 
 
 def parse_tags(text):

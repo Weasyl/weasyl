@@ -266,6 +266,8 @@ def weasyl_exception_view(exc, request):
         request.userid = 0  # To keep templates happy.
     errorpage_kwargs = {}
     if isinstance(exc, WeasylError):
+        if exc.level is not None:
+            capture_exception(exc, level=exc.level)
         status_code = errorcode.error_status_code.get(exc.value, 422)
         if exc.render_as_json:
             return Response(json={'error': {'name': exc.value}},

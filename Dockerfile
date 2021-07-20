@@ -109,8 +109,8 @@ COPY setup.py setup.py
 RUN .venv/bin/pip install --no-deps -e .
 
 COPY --from=assets /weasyl-build/build build
-COPY libweasyl libweasyl
-COPY weasyl weasyl
+COPY --chown=weasyl:root libweasyl libweasyl
+COPY --chown=weasyl:root weasyl weasyl
 
 ARG version
 RUN test -n "$version" && printf '%s\n' "$version" > version.txt

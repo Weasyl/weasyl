@@ -75,10 +75,10 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
             ~friends.c.otherid.in_(d.sa.select([iu.c.otherid]).where(iu.c.userid == userid)))
     if backid:
         query = query.where(
-            friends.c.username < d.sa.select([pr.c.username]).where(pr.c.userid == backid))
+            friends.c.username < d.sa.select([pr.c.username]).where(pr.c.userid == backid).scalar_subquery())
     elif nextid:
         query = query.where(
-            friends.c.username > d.sa.select([pr.c.username]).where(pr.c.userid == nextid))
+            friends.c.username > d.sa.select([pr.c.username]).where(pr.c.userid == nextid).scalar_subquery())
 
     query = query.order_by(
         friends.c.username.desc() if backid else friends.c.username.asc())

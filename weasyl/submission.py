@@ -39,6 +39,8 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
+COUNT_LIMIT = 250
+
 _MEGABYTE = 1048576
 
 _LIMITS = {
@@ -823,10 +825,11 @@ def select_count(userid, rating, otherid=None, folderid=None,
     if options not in [[], ['critique'], ['randomize']]:
         raise ValueError("Unexpected options: %r" % (options,))
 
-    statement = ["SELECT COUNT(submitid) "]
+    statement = ["SELECT count(*) FROM (SELECT "]
     statement.extend(select_query(
         userid, rating, otherid, folderid, backid, nextid, subcat, options, profile_page_filter,
         index_page_filter, featured_filter))
+    statement.append(" LIMIT %i) t" % (COUNT_LIMIT,))
     return d.execute("".join(statement))[0][0]
 
 

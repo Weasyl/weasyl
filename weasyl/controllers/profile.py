@@ -161,7 +161,8 @@ def submissions_(request):
     result = pagination.PaginatedResult(
         submission.select_list, submission.select_count, 'submitid', url_format, request.userid, rating,
         limit=60, otherid=otherid, folderid=folderid, backid=define.get_int(backid),
-        nextid=define.get_int(nextid), profile_page_filter=not folderid)
+        nextid=define.get_int(nextid), profile_page_filter=not folderid,
+        count_limit=submission.COUNT_LIMIT)
 
     page.append(define.render('user/submissions.html', [
         # Profile information

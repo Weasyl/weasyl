@@ -743,9 +743,9 @@ submission = Table(
 )
 
 Index('ind_submission_folderid', submission.c.folderid)
+Index('ind_submission_userid_submitid', submission.c.userid, submission.c.submitid)
+Index('ind_submission_userid_folderid_submitid', submission.c.userid, submission.c.folderid, submission.c.submitid, postgresql_where=submission.c.folderid.isnot(None))
 Index('ind_submission_userid_unixtime', submission.c.userid, submission.c.unixtime.desc())
-Index('ind_submission_userid', submission.c.userid)
-Index('ind_submission_userid_folderid', submission.c.userid, submission.c.folderid)
 
 
 submission_media_links = Table(

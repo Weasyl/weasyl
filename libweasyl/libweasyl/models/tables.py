@@ -793,6 +793,8 @@ tag_updates = Table(
     default_fkey(['userid'], ['login.userid'], name='tag_updates_userid_fkey'),
 )
 
+Index('ind_tag_updates_submitid', tag_updates.c.submitid)
+
 
 user_media_links = Table(
     'user_media_links', metadata,

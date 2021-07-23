@@ -1095,7 +1095,6 @@ def select_recently_popular():
             INNER JOIN profile ON submission.userid = profile.userid
         WHERE
             submission.settings !~ '[hf]'
-            AND submission.favorites IS NOT NULL
         ORDER BY score DESC
         LIMIT 128
     """)

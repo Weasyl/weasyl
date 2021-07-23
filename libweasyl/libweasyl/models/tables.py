@@ -738,7 +738,6 @@ submission = Table(
                 + log(page_views + 1) / 2
                 + unixtime / 180000.0
         )"""),
-        postgresql_where=text("favorites IS NOT NULL"),
     ),
 )
 

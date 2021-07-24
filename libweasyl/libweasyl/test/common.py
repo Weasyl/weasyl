@@ -87,7 +87,7 @@ def make_submission(db):
     owner = make_user(db)
     sub = content.Submission(
         owner=owner, title='', content='', subtype=1, rating=ratings.GENERAL,
-        unixtime=arrow.get(0), settings=None, favorites=0)
+        unixtime=arrow.get(0), favorites=0)
     db.add(sub)
     db.flush()
     return sub

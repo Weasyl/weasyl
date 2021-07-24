@@ -84,7 +84,7 @@ class Journal(Base):
     owner = relationship(Login)
 
     with clauses_for(__table__) as c:
-        is_hidden = c('hidden')
+        hidden = c('hidden')
 
     def legacy_path(self, mod=False):
         """
@@ -113,7 +113,7 @@ class Character(Base):
     owner = relationship(Login)
 
     with clauses_for(__table__) as c:
-        is_hidden = c('hidden')
+        hidden = c('hidden')
 
     @property
     def title(self):

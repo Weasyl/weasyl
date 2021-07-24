@@ -466,7 +466,7 @@ def reupload(userid, submitid, submitfile):
 
     # Select submission data
     query = d.engine.execute(
-        "SELECT userid, subtype, settings FROM submission WHERE submitid = %(id)s AND NOT hidden",
+        "SELECT userid, subtype, embed_type FROM submission WHERE submitid = %(id)s AND NOT hidden",
         id=submitid,
     ).first()
 
@@ -474,7 +474,7 @@ def reupload(userid, submitid, submitfile):
         raise WeasylError("Unexpected")
     elif userid != query[0]:
         raise WeasylError("Unexpected")
-    elif "v" in query[2] or "D" in query[2]:
+    elif query[2] is not None:
         raise WeasylError("Unexpected")
 
     subcat = query[1] // 1000 * 1000

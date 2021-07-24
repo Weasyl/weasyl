@@ -2,7 +2,6 @@ import os
 
 from libweasyl import ratings
 
-from weasyl.error import WeasylError
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
 MACRO_SUPPORT_ADDRESS = "support@weasyl.dev"
@@ -84,11 +83,6 @@ MACRO_MOD_ACTIONS = [
 def MACRO_MOD_ACTIONS_FOR_SETTINGS(settings, submission_type):
     # We start with the complete list of mod actions, then filter it based on submission_type
     valid_list = MACRO_MOD_ACTIONS
-
-    # NOTE(hyena): After my changes to submission settings, this code is no longer valid for
-    # submissions.
-    if "submission" == submission_type:
-        raise WeasylError('logicalError')
 
     # Journals and characters can't have the critique flag set
     if submission_type in ("journal", "character"):

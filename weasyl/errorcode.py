@@ -89,9 +89,6 @@ error_messages = {
     "InsufficientPermissions": permission,
     "insufficientActionPermissions": "You do not have permission to perform this action.",
     "journalRecordMissing": journalid,
-    "logicalError": (
-        "An unexpected error occurred. This is probably a bug! Please contact a member of staff with a description "
-        "of what you were doing when you received this error."),
     "logincreateRecordMissing": "That's not a valid token!",
     "loginInvalid": "The login credentials you entered were not correct.",
     "loginRecordMissing": (
@@ -146,7 +143,6 @@ error_messages = {
     "titleTooLong": "That title is too long.",
     "token": token,
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
-    # TODO(hyena): The pointer on this could be more explicit. HOW should the user report the bug? To WHOM?
     "TwoFactorAuthenticationAuthenticationAttemptsExceeded": (
         "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),
     "TwoFactorAuthenticationAuthenticationTimeout": "Your authentication session has timed out. Please try logging in again.",

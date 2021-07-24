@@ -1,21 +1,14 @@
-from __future__ import unicode_literals
-
 import contextlib
-import logging
 
-import anyjson as json
+import json
 import arrow
-import six
-from sqlalchemy.dialects.postgresql import ENUM, HSTORE
+from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.mutable import Mutable, MutableDict
-from sqlalchemy import event, types
+from sqlalchemy import types
 
 from ..legacy import UNIXTIME_OFFSET
 from .. import ratings
-
-
-log = logging.getLogger(__name__)
 
 
 def reverse_dict(d):
@@ -39,7 +32,7 @@ class CharSettings(Mutable):
         elif isinstance(value, cls):
             return value
         else:
-            return super(CharSettings, cls).coerce(key, value)
+            return super().coerce(key, value)
 
     @property
     def mutable_settings(self):
@@ -85,11 +78,11 @@ class CharSettings(Mutable):
 
 class CharSettingsColumn(types.TypeDecorator):
     impl = types.String
+    cache_ok = True
 
     file_type_things = {
         '~': 'cover',
         '-': 'thumb',
-        '+': 'popup',
         '=': 'submit',
         '>': 'avatar',
         '<': 'banner',
@@ -112,14 +105,20 @@ class CharSettingsColumn(types.TypeDecorator):
 
     reverse_file_type_kinds = reverse_dict(file_type_kinds)
 
-    def __init__(self, settings_map, enums=(), **kw):
-        super(CharSettingsColumn, self).__init__(**kw)
-        self.settings_map = dict((k, (None, v)) for k, v in settings_map.items())
-        self.enums = dict(enums)
-        for name, enum_settings in self.enums.items():
+    def __init__(self, settings_map, enums=(), **kwargs):
+        super().__init__(**kwargs)
+
+        enums = dict(enums)
+
+        # SQLAlchemy cache keys
+        self.settings_map = tuple(settings_map.items())
+        self.enums = tuple((k, tuple(v.items())) for k, v in enums.items())
+
+        self._settings_map = {k: (None, v) for k, v in settings_map.items()}
+        for name, enum_settings in enums.items():
             for char, setting in enum_settings.items():
-                self.settings_map[char] = name, setting
-        self.reverse_settings_map = reverse_dict(self.settings_map)
+                self._settings_map[char] = name, setting
+        self._reverse_settings_map = reverse_dict(self._settings_map)
 
     def process_bind_param(self, value, dialect):
         if not isinstance(value, CharSettings):
@@ -127,13 +126,13 @@ class CharSettingsColumn(types.TypeDecorator):
         ret = []
         for thing, kind in value._file_types.items():
             ret.append(self.reverse_file_type_things[thing] + self.reverse_file_type_kinds[kind])
-        ret.extend(self.reverse_settings_map[None, s] for s in value._settings)
-        ret.extend(self.reverse_settings_map[ev] for ev in value._enum_values.items())
+        ret.extend(self._reverse_settings_map[None, s] for s in value._settings)
+        ret.extend(self._reverse_settings_map[ev] for ev in value._enum_values.items())
         ret.sort()
         return ''.join(ret)
 
     def process_result_value(self, original_value, dialect):
-        if not isinstance(original_value, six.string_types):
+        if not isinstance(original_value, str):
             return original_value
         chars = iter(original_value)
         settings = set()
@@ -148,9 +147,9 @@ class CharSettingsColumn(types.TypeDecorator):
                     raise ValueError(filetype, 'not found among', self.file_type_kinds)
             else:
                 try:
-                    enum, value = self.settings_map[char]
+                    enum, value = self._settings_map[char]
                 except KeyError:
-                    raise ValueError(char, 'not found among', self.settings_map)
+                    raise ValueError(char, 'not found among', self._settings_map)
                 if enum is None:
                     settings.add(value)
                 else:
@@ -190,11 +189,12 @@ class CharSettingsColumn(types.TypeDecorator):
 
             @clause.expression
             def clause(cls):
-                return getattr(cls, column).op('~')(self.reverse_settings_map[enum, value])
+                return getattr(cls, column).op('~')(self._reverse_settings_map[enum, value])
 
             return clause
 
         yield clause_for
+
 
 CharSettings.associate_with(CharSettingsColumn)
 
@@ -215,6 +215,7 @@ class WeasylTimestampColumn(types.TypeDecorator):
 
 class ArrowColumn(types.TypeDecorator):
     impl = types.TIMESTAMP
+    cache_ok = True
 
     def process_result_value(self, value, dialect):
         if value is None:
@@ -248,66 +249,23 @@ MutableDict.associate_with(JSONValuesColumn)
 
 class IntegerEnumColumn(types.TypeDecorator):
     impl = types.INTEGER
+    cache_ok = True
 
     def __init__(self, enum_values):
-        super(IntegerEnumColumn, self).__init__()
-        self.enum_values = enum_values
-        self.reverse_enum_values = reverse_dict(enum_values)
+        super().__init__()
+        self.enum_values = tuple(enum_values.items())
+        self._enum_values = enum_values
+        self._reverse_enum_values = reverse_dict(enum_values)
 
     def process_bind_param(self, value, dialect):
-        return self.reverse_enum_values.get(value, value)
+        return self._reverse_enum_values.get(value, value)
 
     def process_result_value(self, value, dialect):
-        return self.enum_values.get(value, value)
+        return self._enum_values.get(value, value)
 
 
 RatingColumn = IntegerEnumColumn({rating.code: rating for rating in ratings.ALL_RATINGS})
 
 
-class _BaseEnumColumn(types.TypeDecorator):
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        elif value not in self.enum_cls:
-            raise ValueError(value, 'does not belong to', self.enum_cls)
-        return value.value
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return self.reverse_enum_values[value]
-
-
-def enum_column(enum_cls, name, metadata):
-    class EnumColumn(_BaseEnumColumn):
-        pass
-
-    EnumColumn.enum_cls = enum_cls
-
-    # Just as tables do, enum columns require metadata to bind to.
-    EnumColumn.impl = ENUM(*(e.value for e in enum_cls), name=name, metadata=metadata)
-
-    EnumColumn.reverse_enum_values = {e.value: e for e in enum_cls}
-    EnumColumn.__name__ = str('EnumColumn_' + name)
-    return EnumColumn()
-
-
 def clauses_for(table, column='settings'):
     return table.c[column].type.clauses_for(column)
-
-
-def validator(**kwargs):
-    def deco(f):
-        f.__validator_params = kwargs
-        return f
-    return deco
-
-
-def apply_validators(cls):
-    for name, value in vars(cls).items():
-        _, _, validate_attr = name.partition('validate_')
-        if not validate_attr:
-            continue
-        params = getattr(value, '__validator_params', {})
-        event.listen(getattr(cls, validate_attr), 'set', value, **params)
-    return cls

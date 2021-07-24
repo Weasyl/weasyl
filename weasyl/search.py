@@ -1,10 +1,6 @@
-# encoding: utf-8
-
-from __future__ import absolute_import
-
 import re
 
-from libweasyl.ratings import GENERAL, MODERATE, MATURE, EXPLICIT
+from libweasyl.ratings import GENERAL, MATURE, EXPLICIT
 
 from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
@@ -19,7 +15,6 @@ _QUERY_FIND_MODIFIERS = {
 
 _QUERY_RATING_MODIFIERS = {
     "#general": GENERAL.code,
-    "#moderate": MODERATE.code,
     "#mature": MATURE.code,
     "#explicit": EXPLICIT.code,
 }
@@ -37,7 +32,7 @@ _TABLE_INFORMATION = {
 COUNT_LIMIT = 10000
 
 
-class Query:
+class Query(object):
     def __init__(self):
         self.possible_includes = set()
         self.required_includes = set()
@@ -83,7 +78,7 @@ class Query:
             tag = d.get_search_tag(criterion)
             add_nonempty(self.required_includes, tag)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(
             self.possible_includes or
             self.required_includes or
@@ -118,7 +113,7 @@ class Query:
 def select_users(q):
     terms = q.lower().split()
     statement = """
-        SELECT userid, full_name, unixtime, username FROM profile
+        SELECT userid, full_name, created_at, username FROM profile
         WHERE LOWER(username) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
             OR LOWER(full_name) SIMILAR TO ('%%(' || %(terms)s || ')%%') ESCAPE ''
         ORDER BY username
@@ -132,7 +127,7 @@ def select_users(q):
         "userid": i.userid,
         "title": i.full_name,
         "rating": "",
-        "unixtime": i.unixtime,
+        "unixtime": i.created_at,
         "username": i.username,
     } for i in query]
     media.populate_with_user_media(ret)
@@ -211,14 +206,12 @@ def _find_without_media(userid, rating, limit,
             statement_with = """
                 WITH
                     bg AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 10),
-                    bm AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 20),
                     ba AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 30),
                     bp AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 40)
             """
 
             statement_where.append("""
                 AND NOT submission_tags.tags && (SELECT tags FROM bg)
-                AND (content.rating < 20 OR NOT submission_tags.tags && (SELECT tags FROM bm))
                 AND (content.rating < 30 OR NOT submission_tags.tags && (SELECT tags FROM ba))
                 AND (content.rating < 40 OR NOT submission_tags.tags && (SELECT tags FROM bp))
             """)
@@ -400,29 +393,11 @@ def select(**kwargs):
     return results, next_count, back_count
 
 
-# form
-#   find    backid
-#   cat     nextid
-
-def browse(userid, rating, limit, form, find=None, config=None):
-    backid = d.get_int(form.backid)
-    nextid = d.get_int(form.nextid)
-
-    if find:
-        form.find = find
-
-    if form.find == "char":
-        query = character.select_list(userid, rating, limit, backid=backid, nextid=nextid, config=config)
-    elif form.find == "journal":
-        query = journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid, config=config)
+def browse(userid, rating, limit, find, cat, backid, nextid):
+    if find == "char":
+        return character.select_list(userid, rating, limit, backid=backid, nextid=nextid)
+    elif find == "journal":
+        return journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid)
     else:
-        query = submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
-                                       subcat=d.get_int(form.cat) if d.get_int(form.cat) in [1000, 2000, 3000] else None,
-                                       config=config)
-
-    if query and not backid:
-        backid = query[0][form.find + "id"]
-    if query and not nextid:
-        nextid = query[-1][form.find + "id"]
-
-    return query
+        return submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
+                                      subcat=d.get_int(cat) if d.get_int(cat) in [1000, 2000, 3000] else None)

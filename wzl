@@ -1,0 +1,54 @@
+#!/bin/sh
+set -eu
+
+export DOCKER_BUILDKIT=1
+export WEASYL_VERSION="$(git rev-parse --short HEAD)"
+
+if test $# -eq 0; then
+    exec docker-compose
+fi
+
+head="$1"
+shift
+
+case "$head" in
+
+assets)
+    exec docker-compose --profile copy-assets up --no-log-prefix "$@" copy-assets
+    ;;
+
+build-all)
+    exec docker-compose --profile migrate --profile test build "$@"
+    ;;
+
+check)
+    exec docker-compose --profile flake8 up --no-log-prefix --build flake8 "$@"
+    ;;
+
+configure)
+    c='docker-compose run --rm -T configure'
+    set -x
+    $c "$@" alembic.ini < libweasyl/libweasyl/alembic/alembic.ini.example
+    $c "$@" site.config.txt < config/site.config.txt.example
+    $c "$@" weasyl-staff.py < config/weasyl-staff.example.py
+    $c "$@" disposable-domains.txt < config/disposable-domains.txt
+    ;;
+
+migrate)
+    # `up` with `tty` and `--no-log-prefix` instead of `run` because the latter doesn’t use buildkit
+    exec docker-compose --profile migrate up --no-log-prefix "$@" migrate
+    ;;
+
+revision)
+    docker-compose --profile revision build revision
+    exec docker-compose run --rm -T revision "$@" | tar x libweasyl/libweasyl/alembic/versions
+    ;;
+
+test)
+    exec docker-compose --profile test up --no-log-prefix "$@" test
+    ;;
+
+*)
+    exec docker-compose "$head" "$@"
+
+esac

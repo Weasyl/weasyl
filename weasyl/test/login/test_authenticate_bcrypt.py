@@ -1,15 +1,11 @@
-# encoding: utf-8
-from __future__ import absolute_import
-
 import pytest
 import json
-
-from weasyl.test import db_utils
 
 from libweasyl import staff
 from weasyl import define as d
 from weasyl import login
 from weasyl import macro
+from weasyl.test import db_utils
 
 
 user_name = "test"
@@ -18,27 +14,21 @@ user_name = "test"
 raw_password = "0123456789"
 
 
-class Bag(object):
-    def __init__(self, **kw):
-        for kv in kw.items():
-            setattr(self, *kv)
-
-
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_no_username_provided():
-    result = login.authenticate_bcrypt(username='', password='password')
+    result = login.authenticate_bcrypt(username='', password='password', request=None)
     assert result == (0, 'invalid')
 
 
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_no_password_provided():
-    result = login.authenticate_bcrypt(username=user_name, password='')
+    result = login.authenticate_bcrypt(username=user_name, password='', request=None)
     assert result == (0, 'invalid')
 
 
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_incorrect_username_is_provided():
-    result = login.authenticate_bcrypt(username=user_name, password=raw_password)
+    result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (0, 'invalid')
 
 
@@ -47,14 +37,14 @@ def test_login_fails_for_incorrect_credentials():
     random_password = "ThisIsARandomPassword"
     db_utils.create_user(password=random_password, username=user_name)
     another_random_password = "ThisIsNotTheSamePassword"
-    result = login.authenticate_bcrypt(username=user_name, password=another_random_password)
+    result = login.authenticate_bcrypt(username=user_name, password=another_random_password, request=None)
     assert result == (0, 'invalid')
 
 
 @pytest.mark.usefixtures('db')
-def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, monkeypatch):
+def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmp_path, monkeypatch):
     # Required: Monkeypatch the log directory, and the staff.MODS frozenset
-    monkeypatch.setenv(macro.MACRO_SYS_LOG_PATH, tmpdir + "/")
+    monkeypatch.setattr(macro, 'MACRO_SYS_LOG_PATH', f"{tmp_path}/")
     log_path = '%s%s.%s.log' % (macro.MACRO_SYS_LOG_PATH, 'login.fail', d.get_timestamp())
     user_id = db_utils.create_user(username='ikani', password=raw_password)
     # Set the moderators in libweasyl/staff.py via monkeypatch
@@ -71,7 +61,7 @@ def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, mo
         pass
     postrun_loglines = 0
     # Item under test
-    result = login.authenticate_bcrypt(username='ikani', password='FakePassword')
+    result = login.authenticate_bcrypt(username='ikani', password='FakePassword', request=None)
     # Verify we are writing to the log file as expected
     with open(log_path, 'r') as log:
         for line in log:
@@ -87,46 +77,53 @@ def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmpdir, mo
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_user_is_banned():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    d.engine.execute("UPDATE login SET settings = 'b' WHERE userid = %(id)s", id=user_id)
-    result = login.authenticate_bcrypt(username=user_name, password=raw_password)
+    db_utils.create_banuser(userid=user_id, reason="Testing")
+    result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, 'banned')
 
 
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_user_is_suspended():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    d.engine.execute("UPDATE login SET settings = 's' WHERE userid = %(id)s", id=user_id)
     release_date = d.get_time() + 60
-    d.engine.execute("INSERT INTO suspension VALUES (%(id)s, %(reason)s, %(rel)s)",
-                     id=user_id, reason='test', rel=release_date)
-    result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
+    db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
+    result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, 'suspended')
 
 
 @pytest.mark.usefixtures('db')
 def test_login_succeeds_if_suspension_duration_has_expired():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    d.engine.execute("UPDATE login SET settings = 's' WHERE userid = %(id)s", id=user_id)
     release_date = d.convert_unixdate(31, 12, 2015)
-    d.engine.execute("INSERT INTO suspension VALUES (%(id)s, %(reason)s, %(rel)s)",
-                     id=user_id, reason='test', rel=release_date)
-    result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
+    db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
+    result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == (user_id, None)
-
-
-@pytest.mark.usefixtures('db')
-def test_logins_with_unicode_failures_succeed_with_corresponding_status():
-    user_id = db_utils.create_user(password=raw_password, username=user_name)
-    # This hash corresponds to "password"
-    old_2a_bcrypt_hash = '$2a$04$uOBx2JziJoxjq/F88NjQZ.8mRGE8FgLi3q0Rm3QUlBZnhhInXCb9K'
-    d.engine.execute("UPDATE authbcrypt SET hashsum = %(hash)s WHERE userid = %(id)s",
-                     hash=old_2a_bcrypt_hash, id=user_id)
-    result = login.authenticate_bcrypt(user_name, u"passwordé", session=False)
-    assert result == (user_id, 'unicode-failure')
 
 
 @pytest.mark.usefixtures('db')
 def test_login_succeeds_for_valid_username_and_password():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    result = login.authenticate_bcrypt(username=user_name, password=raw_password, session=False)
+    result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
+    assert result == (user_id, None)
+
+
+@pytest.mark.usefixtures('db')
+def test_unicode_password():
+    user_id = db_utils.create_user(password=u"passwordé", username=user_name)
+    result = login.authenticate_bcrypt(username=user_name, password=u"passwordé", request=None)
+    assert result == (user_id, None)
+    result = login.authenticate_bcrypt(username=user_name, password=u"passworde", request=None)
+    assert result == (0, 'invalid')
+    result = login.authenticate_bcrypt(username=user_name, password=u"password", request=None)
+    assert result == (0, 'invalid')
+
+
+@pytest.mark.usefixtures('db')
+def test_unicode_attempts():
+    user_id = db_utils.create_user(password=u"password", username=user_name)
+    result = login.authenticate_bcrypt(username=user_name, password=u"passwordé", request=None)
+    assert result == (0, 'invalid')
+    result = login.authenticate_bcrypt(username=user_name, password=u"passwörd", request=None)
+    assert result == (0, 'invalid')
+    result = login.authenticate_bcrypt(username=user_name, password=u"password", request=None)
     assert result == (user_id, None)

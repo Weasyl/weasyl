@@ -1,0 +1,6 @@
+$def with (error, referer)
+$:{RENDER("common/stage_title.html", ["Sign In"])}
+
+<div id="login-content" class="content">
+  $:{RENDER("etc/login_box.html", (error, referer, True))}
+</div>

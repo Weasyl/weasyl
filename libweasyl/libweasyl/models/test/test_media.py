@@ -1,14 +1,13 @@
 import pytest
 
 from libweasyl.models import media
-from libweasyl.test.common import media_item, make_user, make_submission, make_media
+from libweasyl.test.common import media_item, make_user, make_submission
 
 
 link_types_names = 'cls', 'linked_attr', 'link_attr', 'media_attr', 'generator'
 link_types = [
     (media.UserMediaLink, 'userid', 'userid', 'mediaid', make_user),
     (media.SubmissionMediaLink, 'submitid', 'submitid', 'mediaid', make_submission),
-    (media.MediaMediaLink, 'mediaid', 'describee_id', 'described_with_id', make_media),
 ]
 
 
@@ -72,16 +71,3 @@ def test_clearing_media_links(db, cls, linked_attr, link_attr, media_attr, gener
     cls.make_or_replace_link(getattr(linked, linked_attr), 'test', item)
     cls.clear_link(getattr(linked, linked_attr), 'test')
     assert cls.query.count() == 0
-
-
-def test_self_media_links(db):
-    """
-    Media items can be linked to themselves.
-    """
-    item = media_item(db, '1200x6566.png')
-    media.MediaMediaLink.make_or_replace_link(item.mediaid, 'test', item)
-    [link] = media.MediaMediaLink.query.all()
-    assert link.link_type == 'test'
-    assert link.described_with_id == item.mediaid
-    assert link.describee_id == item.mediaid
-    assert link.media_item is link.describee

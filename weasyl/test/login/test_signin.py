@@ -1,21 +1,21 @@
-from __future__ import absolute_import
-
+from datetime import datetime
+import pytz
 import pytest
 
 from pyramid.threadlocal import get_current_request
 
-from weasyl.test import db_utils
-from weasyl.test.utils import Bag
 from weasyl import login
 from weasyl import define as d
+from weasyl.test import db_utils
 
 
 @pytest.mark.usefixtures('db')
 def test_verify_login_record_is_updated():
     # Use a fake session for this test.
-    get_current_request().weasyl_session = Bag()
     user_id = db_utils.create_user()
-    d.engine.execute("UPDATE login SET last_login = -1 WHERE userid = %(id)s", id=user_id)
-    login.signin(user_id)
+    get_current_request().weasyl_session = None
+    time = datetime(2020, 1, 1, 00, 00, 1, tzinfo=pytz.UTC)  # Arbitrary date that should be earlier than now.
+    d.engine.execute("UPDATE login SET last_login = %(timestamp)s WHERE userid = %(id)s", id=user_id, timestamp=time)
+    login.signin(get_current_request(), user_id)
     last_login = d.engine.scalar("SELECT last_login FROM login WHERE userid = %(id)s", id=user_id)
-    assert last_login > -1
+    assert last_login > time

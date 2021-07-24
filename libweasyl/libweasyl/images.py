@@ -18,12 +18,6 @@ COVER_SIZE = 1024, 3000
 THUMB_HEIGHT = 250
 "The maximum height of a thumbnail, in pixels."
 
-POPUP_MIN_EDGE = 100
-"The minimum edge length or width for a popup image, in pixels."
-
-POPUP_MAX_SIZE = 300, 300
-"The maximum size of a popup image, in pixels."
-
 
 read = Image.read
 """
@@ -130,7 +124,7 @@ def correct_image_and_call(f, im, *a, **kw):
         **kw: Keyword arguments with which to call *f*.
 
     Returns:
-        *im*, if *f* returned ``None``, or the ``Image`` returned by *f* after
+        ``None``, if *f* returned ``None``, or the ``Image`` returned by *f* after
         post-processing.
     """
 
@@ -149,6 +143,11 @@ def correct_image_and_call(f, im, *a, **kw):
 
 
 def _resize(im, width, height):
+    """
+    Resize an image to fit within the specified height and width; aspect ratio
+    is preserved. Images always preserve animation and might even result in a
+    better-optimized animated gif.
+    """
     # resize only if we need to; return None if we don't
     if im.size.width > width or im.size.height > height:
         im = im.resized(im.size.fit_inside((width, height)))
@@ -166,7 +165,7 @@ def resize_image(im, width, height):
         height: The maximum height, in pixels.
 
     Returns:
-        *im*, if the image is smaller than the given *width* and *height*.
+        ``None`` if the image is smaller than the given *width* and *height*.
         Otherwise, a new ``Image`` resized to fit.
     """
     return correct_image_and_call(_resize, im, width, height) or im
@@ -189,59 +188,11 @@ def make_cover_image(im):
     return resize_image(im, *COVER_SIZE)
 
 
-def _shrinkcrop(im, size, bounds=None):
-    if bounds is not None:
-        ret = im
-        if bounds.position != geometry.origin or bounds.size != ret.size:
-            ret = ret.cropped(bounds)
-        if ret.size != size:
-            ret = ret.resized(size)
-        return ret
-    elif im.size == size:
-        return im
-    shrunk_size = im.size.fit_around(size)
-    shrunk = im
-    if shrunk.size != shrunk_size:
-        shrunk = shrunk.resized(shrunk_size)
-    if shrunk.size == size:
-        return shrunk
-    x1 = (shrunk.size.width - size.width) // 2
-    y1 = (shrunk.size.height - size.height) // 2
-    bounds = geometry.Rectangle(x1, y1, x1 + size.width, y1 + size.height)
-    return shrunk.cropped(bounds)
-
-
-def shrinkcrop(im, size, bounds=None):
-    """
-    Resize and crop an image so that it is exactly a particular size.
-
-    If *im* is larger than the given size, it will first be resized so that its
-    smaller dimension is equal to *size*'s larger dimension. Then, the
-    remaining image that 'overflows' *size* will be cropped equally from both
-    sides so that the size is exactly *size*.
-
-    Parameters:
-        im: A sanpera ``Image``.
-        size: The desired exact size of the resulting image, as a ``(width,
-            height)`` 2-tuple.
-        bounds: Optionally, a sanpera ``Rectangle`` to use to crop *im* before
-            resizing it.
-
-    Returns:
-        *im*, if it is exactly *size*. Otherwise, a new ``Image`` with a size
-        of exactly *size*.
-    """
-    ret = correct_image_and_call(_shrinkcrop, im, size, bounds)
-    if ret.size != size or (len(ret) == 1 and ret[0].size != size):
-        raise ThumbnailingError(ret.size, ret[0].size)
-    return ret
-
-
 def _height_resize(im, height, bounds=None):
     """Creates an image scaled to no more than the specified height with 0.5 <= aspect ratio <= 2."""
     def crop_image_to_width(image, width):  # Crops from both sides equally.
         overflow = image.size.width - width
-        border = overflow / 2
+        border = overflow // 2
         crop_rect = geometry.Rectangle(border, 0, border + width, image.size.height)
         return image.cropped(crop_rect)
 
@@ -250,7 +201,7 @@ def _height_resize(im, height, bounds=None):
         return image.cropped(crop_rect)
 
     def scale_image_to_height(image, height):
-        new_width = (image.size.width * height) / image.size.height
+        new_width = (image.size.width * height) // image.size.height
         return image.resized((new_width, height))
 
     if bounds is not None:
@@ -320,7 +271,7 @@ def make_thumbnail(im, bounds=None):
     Make a thumbnail.
 
     That is, resize an image to be no taller than :py:data:`THUMB_HEIGHT` if
-    necessary after unanimating it and maintain a reasonable aspect ration (2x)
+    necessary after unanimating it and maintain a reasonable aspect ratio (2x)
     if possible.
 
     Parameters:
@@ -334,30 +285,3 @@ def make_thumbnail(im, bounds=None):
         a new single-frame ``Image`` resized to fit within the bounds.
     """
     return height_resize(unanimate(im), THUMB_HEIGHT, bounds)
-
-
-def _determine_popup_size(size):
-    shrunk = size.fit_inside(POPUP_MAX_SIZE)
-    return geometry.Size(
-        max(shrunk.width, POPUP_MIN_EDGE), max(shrunk.height, POPUP_MIN_EDGE))
-
-
-def make_popup(im):
-    """
-    Make a popup image.
-
-    That is, resize an image so that it's equal to or smaller than
-    :py:data:`POPUP_MAX_SIZE`, ensuring that no edge is smaller than
-    :py:data:`POPUP_MIN_EDGE`. Images which, when proportionally resized so
-    that their size fits within :py:data:`POPUP_MAX_SIZE`, have an edge smaller
-    than :py:data:`POPUP_MIN_EDGE` will be cropped along their greater edge.
-
-    Parameters:
-        im: A sanpera ``Image``.
-
-    Returns:
-        *im*, if the image's size fits within the constraints. Otherwise, a new
-        ``Image`` resized and possibly cropped to fit.
-    """
-    im = unanimate(im)
-    return shrinkcrop(im, _determine_popup_size(im.size))

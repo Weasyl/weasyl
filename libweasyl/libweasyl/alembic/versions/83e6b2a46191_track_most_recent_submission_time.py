@@ -14,8 +14,8 @@ Create Date: 2017-01-07 03:21:10.114125
 revision = '83e6b2a46191'
 down_revision = 'a49795aa2584'
 
-from alembic import op
-import sqlalchemy as sa
+from alembic import op   # lgtm[py/unused-import]
+import sqlalchemy as sa  # lgtm[py/unused-import]
 import libweasyl
 
 
@@ -31,4 +31,3 @@ def upgrade():
 
 def downgrade():
     op.drop_column('profile', 'latest_submission_time')
-    pass

@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from libweasyl import ratings
+from libweasyl.cache import region
 
 from weasyl import define as d
 from weasyl import profile
 from weasyl import searchtag
-from weasyl.cache import region
 
 # For blocked tags, `rating` refers to the lowest rating for which that tag is
 # blocked; for example, (X, Y, 10) would block tag Y for all ratings, whereas
@@ -87,12 +85,18 @@ def insert(userid, title, rating):
 
     select_ids.invalidate(userid)
 
+    from weasyl import index
+    index.template_fields.invalidate(userid)
 
-def remove(userid, tagid=None, title=None):
-    if tagid:
-        d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, %i)", [userid, tagid])
-    elif title:
-        d.execute("DELETE FROM blocktag WHERE (userid, tagid) = (%i, (SELECT tagid FROM searchtag WHERE title = '%s'))",
-                  [userid, d.get_search_tag(title)])
+
+def remove(userid, title):
+    d.engine.execute(
+        "DELETE FROM blocktag WHERE (userid, tagid) = (%(user)s, (SELECT tagid FROM searchtag WHERE title = %(tag)s))",
+        user=userid,
+        tag=d.get_search_tag(title),
+    )
 
     select_ids.invalidate(userid)
+
+    from weasyl import index
+    index.template_fields.invalidate(userid)

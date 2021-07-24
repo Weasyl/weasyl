@@ -1,0 +1,114 @@
+$def with (folders, subtypes, ratings)
+$:{TITLE("Literary Artwork", "Submit", "/submit")}
+
+<div id="submit-literary-content" class="content">
+
+  <form id="submit-form" name="submitliterary" class="form clear" action="/submit/literary" method="post" enctype="multipart/form-data">
+    $:{CSRF()}
+
+    <div class="column files">
+      <h3>Files</h3>
+
+      <label for="submitfile">Submission File</label>
+      <input type="file" name="submitfile" id="submitfile" />
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>Allowed filetypes:</i></p>
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>UTF-8 <a href="/help/markdown">Markdown-formatted text</a> (.MD/.TXT): 2 MB</i></p>
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>PDF: 10 MB</i></p>
+
+      <h3 class="or color-lighter"><i>&mdash; Or &mdash;</i></h3>
+
+      <label for="embedlink">
+        Embed Link
+        <span style="font-size: 0.8em">
+          [<a href="https://docs.google.com/document/create" target="_blank" rel="noreferrer noopener">Create new document</a>]
+          [<a href="/help/google-drive-embed" target="_blank">Help</a>]
+        </span>
+      </label>
+      <input type="url" class="input" name="embedlink" id="embedlink" />
+      <p class="supported" style="padding-top: 0.5em">
+        <i class="color-lighter">Allowed: Google Drive Documents</i>
+      </p>
+
+      <label for="coverfile">Cover Artwork</label>
+      <input type="file" name="coverfile" id="coverfile" accept="image/*" />
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (JPG): 10 MB</i></p>
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (PNG): 10 MB</i></p>
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (GIF): 10 MB</i></p>
+
+      <label for="thumbfile">Thumbnail</label>
+      <input type="file" name="thumbfile" id="thumbfile" accept="image/*" />
+    </div>
+
+    <div class="column info">
+      <h3>Information</h3>
+
+      <label for="submissiontitle">Title</label>
+      <input type="text" class="input" name="title" id="submissiontitle" maxlength="200" required />
+
+      <label for="submissioncat">Subcategory</label>
+      <select name="subtype" class="input" id="submissioncat">
+        <option value="" selected="selected">&nbsp;</option>
+        $for i in subtypes:
+          <option value="${i[0]}">${i[1]}</option>
+      </select>
+
+      <label for="submissionfolder">Folder</label>
+      <select name="folderid" class="input" id="submissionfolder">
+        <option value="" selected="selected">&nbsp;</option>
+        $for i in folders:
+          <option value="${i['folderid']}">${i['title']}</option>
+      </select>
+
+      <label for="submissionrating">Rating</label>
+      <select name="rating" class="input" id="submissionrating" required>
+        <option value="" selected="selected">&nbsp;</option>
+        $for rating in ratings:
+          <option value="${rating.code}">${rating.name_with_age}</option>
+      </select>
+      <p class="color-lighter tags-help"><i>Please apply a rating to this submission according to our <a href="/help/ratings" target="_blank">ratings guidelines</a>.</i></p>
+      <p class="tags-help"><i>
+        Note that at most three submissions per user will be shown on the
+        Weasyl homepage. If a user has more than three submissions that would
+        be shown, the most recently submitted three will be displayed.
+      </i></p>
+    </div>
+
+    <div class="column description">
+      <h3>Description</h3>
+      <label for="submissiondesc">Description</label>
+      <textarea name="content" class="markdown input expanding" rows="9" id="submissiondesc"></textarea>
+    </div>
+
+    <div class="column tagging">
+      <h3>Tags</h3>
+      <textarea name="tags" class="input tags-textarea" rows="3"></textarea>
+      <p class="color-lighter tags-help"><i>When tagging, make sure to describe your submission thoroughly. Separate tags with a space. Use an underscore for multiple words in a tag, ex. red_fox</i></p>
+    </div>
+
+    <div class="column options">
+      <h3>Additional Options</h3>
+
+      <label for="submit-critique" class="input-checkbox">
+        <input type="checkbox" name="critique" id="submit-critique" />
+        Flag this submission for critique
+      </label>
+
+      <label for="submit-friends" class="input-checkbox">
+        <input type="checkbox" name="friends" id="submit-friends" />
+        Make this submission visible only to my friends
+      </label>
+
+      <label for="nonotifcation" class="input-checkbox last-input">
+        <input type="checkbox" name="nonotification" id="nonotifcation" />
+        Don't generate notifications for my followers for this submission
+      </label>
+
+    </div>
+
+    <div class="buttons clear">
+      <button type="submit" class="button positive" style="float: right;">Continue</button>
+      <a class="button" href="/">Return Home</a>
+    </div>
+
+  </form>
+</div>

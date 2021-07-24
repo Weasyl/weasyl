@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
 charid = "This character doesn't seem to be in our database."
@@ -8,9 +6,6 @@ journalid = "This journal doesn't seem to be in our database."
 signed = "You cannot perform this operation while signed in."
 unsigned = "You must be signed in to perform this operation."
 permission = "You do not have permission to access this page."
-
-"""DEPRECATED"""
-permissions = "You do not have permission to access this page."
 
 token = (
     "This action appears to have been performed illegitimately; for your "
@@ -29,16 +24,6 @@ unexpected = (
     "An unexpected error occurred and your request could not be "
     "fully processed.")
 
-admin_mode = (
-    "An administrator has placed the site in administrative mode "
-    "and this page cannot be accessed at this time.")
-local_mode = (
-    "An administrator has placed the site in local access mode and "
-    "this page cannot be accessed at this time.")
-offline_mode = (
-    "An administrator has placed the site in offline mode and "
-    "this page cannot be accessed at this time.")
-
 error_messages = {
     "addressInvalid": "Your IP address does not match the location from which this request was made.",
     "ArtistTags": "You cannot remove tags that have been added by the artist.",
@@ -47,10 +32,16 @@ error_messages = {
         "level you entered. Please choose a lower rating level."),
     "birthdayInvalid": "The date of birth you entered does not appear to be valid.",
     "CannotSelfFavorite": "You cannot favorite your own content.",
+    "cannotSelfFollow": "You cannot follow yourself.",
+    'cannotSelfFriend': "You cannot friend yourself.",
     "cannotSelfCollect": "You cannot collect a submission you have created",
     "CannotSelfReport": "You cannot report your own content.",
     "cannotIgnoreSelf": "You cannot ignore yourself.",
     "cannotIgnoreStaff": "You are not allowed to ignore this site staff member.",
+    "ChangeEmailVerificationTokenIncorrect": (
+        "The verification token submitted was either incorrect, or the time frame "
+        "for verifying the pending email change has expired. Please attempt to change "
+        "your email address once again if you still wish to change it."),
     "characterNameInvalid": "You did not enter a character name.",
     "classidInvalid": "You must select a valid commission class.",
     "collectionExists": "This submission has already been collected.",
@@ -69,6 +60,9 @@ error_messages = {
         "The cover art file you uploaded exceeds the allowed filesize for this submission category."),
     "coverType": (
         "The cover art file you uploaded is not a valid filetype for this submission category."),
+    "crosspostInvalid": (
+        "The image you crossposted was from an unsupported source. "
+        "Please report this bug to the creator of the crossposting tool."),
     "duplicateSubmission": "You have already made a submission with this submission file.",
     "emailBlacklisted": (
         "The domain of the email you entered has been associated with a high volume of spam. "
@@ -88,6 +82,7 @@ error_messages = {
     "FriendsOnly": friends,
     "characterRecordMissing": charid,
     "googleDocsEmbedLinkInvalid": "The Google Drive link you provided is invalid.",
+    "hiddenFavorites": "You cannot view this page because the owner does not allow anyone to see their favorites.",
     "httpError": "An error occurred while making an HTTP request on your behalf.",
     "IgnoredYou": "This user has ignored you.",
     "imageDecodeError": "The image you uploaded was unable to be decoded.",
@@ -104,6 +99,7 @@ error_messages = {
         "name correctly and that the account you are trying to recover the password for actually exists."),
     "maxamountInvalid": "The maximum amount you entered is not valid.",
     "minamountInvalid": "The minimum amount you entered is not valid.",
+    'noGuests': no_guest_access,
     "noCover": "No cover exists for that submission.",
     "noImageSource": "No image exists from which to create a thumbnail.",
     "not-utf8": "Text submissions must be encoded in UTF-8.",
@@ -130,6 +126,7 @@ error_messages = {
     "replyRecipientIgnoredYou": "The user you're replying to has ignored you.",
     "ReportCommentRequired": "This report type requires a comment",
     "shoutRecordMissing": "This shout doesn't seem to exist in our database.",
+    "signed": signed,
     "streamDurationNotSet": "Please set a stream length.",
     "streamDurationOutOfRange": "Please enter a number up to 360 minutes for stream length.",
     "streamLocationNotSet": "Please set a stream location.",
@@ -147,18 +144,29 @@ error_messages = {
     "titleExists": "That title is already being used.",
     "titleInvalid": "You did not enter a title.",
     "titleTooLong": "That title is too long.",
-    "tokenInvalid": (
-        "The link you followed does not appear to be valid. You may have already added these premium terms "
-        "to your account, or you may have copied the link incorrectly."),
+    "token": token,
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
     # TODO(hyena): The pointer on this could be more explicit. HOW should the user report the bug? To WHOM?
+    "TwoFactorAuthenticationAuthenticationAttemptsExceeded": (
+        "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),
+    "TwoFactorAuthenticationAuthenticationTimeout": "Your authentication session has timed out. Please try logging in again.",
+    "TwoFactorAuthenticationRequireEnabled": "Two-Factor Authentication must be enabled to access this page.",
+    "TwoFactorAuthenticationRequireDisbled": "Two-Factor Authentication must not be enabled to access this page.",
+    "TwoFactorAuthenticationZeroRecoveryCodesRemaining": (
+        "Your account had zero recovery codes remaining, and as such 2FA was disabled to prevent "
+        "you from being permanently unable to log into your account. You may re-enable 2FA if you desire to do so."),
+    "unsigned": unsigned,
     "unknownMessageFolder": "The specified message folder does not exist.",
     "UserIgnored": "This content was posted by a user you have chosen to ignore.",
     "userRecordMissing": userid,
+    "usernameChangedTooRecently": "You can't change your username within 30 days of a previous change.",
     "usernameExists": "The username you entered is already registered by another user.",
     "usernameIncorrect": "The username you entered does not match the account for which this request was made.",
     "usernameInvalid": (
         "The username you entered is not valid. Usernames must contain one or more alphanumeric characters."),
+    "vouchRequired": (
+        "Your account has to be verified to do that."
+        " [How do I verify my account?](/help/verification)"),
     "watchuserRecordMissing": "You are not following the specified user.",
     "YouIgnored": "You have this user ignored.",
     "youIgnoredPageOwner": "You have the owner of this page ignored.",
@@ -169,10 +177,15 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
+    'InsufficientPermissions': 403,
     "userRecordMissing": 404,
     "submissionRecordMissing": 404,
     "journalRecordMissing": 404,
     "characterRecordMissing": 404,
+    "vouchRequired": 403,
+    "signed": 403,
+    "unsigned": 403,
+    "token": 403
 }
 
 
@@ -180,5 +193,4 @@ login_errors = {
     "invalid": "The username or password provided was incorrect.",
     "banned": "Your account has been permanently banned.",
     "suspended": "Your account has been temporarily suspended.",
-    "unicode-failure": "Your password was stored poorly. You must reset it using the forgotten password page.",
 }

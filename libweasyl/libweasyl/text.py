@@ -1,22 +1,17 @@
 # encoding: utf-8
-from __future__ import unicode_literals
-
+from html import escape as html_escape
 import re
 
 from lxml import etree, html
 import misaka
 
-from .compat import unicode
 from .defang import defang
-from .legacy import login_name
+from .legacy import get_sysname
 
 try:
-    from html.parser import locatestarttagend
+    from html.parser import locatestarttagend_tolerant as locatestarttagend
 except ImportError:
-    try:
-        from html.parser import locatestarttagend_tolerant as locatestarttagend
-    except ImportError:
-        from HTMLParser import locatestarttagend
+    from html.parser import locatestarttagend
 
 
 def slug_for(title):
@@ -25,17 +20,16 @@ def slug_for(title):
 
 
 AUTOLINK_URL = (
-    r"(?P<url>(?isu)\b(?:https?://|www\d{,3}\.|[a-z0-9.-]+\.[a-z]{2,4}/)[^\s()"
+    r"(?P<url>\b(?:https?://|www\d{,3}\.|[a-z0-9.-]+\.[a-z]{2,4}/)[^\s()"
     r"<>\[\]\x02]+(?![^\s`!()\[\]{};:'\".,<>?\x02\xab\xbb\u201c\u201d\u2018"
     r"\u2019]))"
 )
 
-url_regexp = re.compile(AUTOLINK_URL)
+url_regexp = re.compile(AUTOLINK_URL, re.I | re.S)
 
 USER_LINK = re.compile(r"""
     \\(?P<escaped>[\\<])
 | <(?P<type>!~|[!~])(?P<username>[a-z0-9_]+)>
-| .
 """, re.I | re.X)
 
 NON_USERNAME_CHARACTERS = re.compile("[^a-z0-9]+", re.I)
@@ -90,6 +84,13 @@ class WeasylRenderer(misaka.HtmlRenderer):
         start, stripped, end = strip_outer_tag(raw_html)
         return u''.join([start, _markdown(stripped).rstrip(), end])
 
+    def autolink(self, link, is_email):
+        # default implementation from sundown’s `rndr_autolink`, with the tag name replaced
+        html_href = html_escape("mailto:" + link if is_email else link)
+        html_text = html_escape(link.removeprefix("mailto:"))
+
+        return f'<wzl-autolink href="{html_href}">{html_text}</wzl-autolink>'
+
     # Respect start of ordered lists
     def list(self, text, ordered, prefix):
         if prefix:
@@ -111,7 +112,7 @@ def _markdown(target):
 
 def create_link(t, username):
     link = etree.Element(u"a")
-    link.set(u"href", u"/~" + login_name(username))
+    link.set(u"href", u"/~" + get_sysname(username))
 
     if t == "~":
         link.text = username
@@ -119,7 +120,7 @@ def create_link(t, username):
         link.set(u"class", u"user-icon")
 
         image = etree.SubElement(link, u"img")
-        image.set(u"src", u"/~{username}/avatar".format(username=login_name(username)))
+        image.set(u"src", u"/~{username}/avatar".format(username=get_sysname(username)))
         image.set(u"alt", username)
 
         if t != "!":
@@ -134,18 +135,30 @@ def add_user_links(fragment, parent, can_contain):
     _nonlocal = {}
 
     def add_matches(text, got_link):
+        text_start = 0
+
         for m in USER_LINK.finditer(text):
+            match_start = m.start()
+
+            if match_start > text_start:
+                previous_text.append(text[text_start:match_start])
+
+            text_start = m.end()
+
             escaped, t, username = m.group("escaped", "type", "username")
 
             if escaped:
                 previous_text.append(escaped)
-                continue
+            else:
+                got_link(t, username)
 
-            if not t:
-                previous_text.append(m.group())
-                continue
+        if text_start == 0:
+            return False
 
-            got_link(t, username)
+        if text_start < len(text):
+            previous_text.append(text[text_start:])
+
+        return True
 
     def got_text_link(t, username):
         previous = _nonlocal["previous"]
@@ -182,101 +195,90 @@ def add_user_links(fragment, parent, can_contain):
             _nonlocal["previous"] = None
             _nonlocal["insert_index"] = 0
             previous_text = []
-            add_matches(fragment.text, got_text_link)
 
-            previous = _nonlocal["previous"]
+            if add_matches(fragment.text, got_text_link):
+                previous = _nonlocal["previous"]
 
-            if previous is None:
-                fragment.text = "".join(previous_text)
-            else:
-                previous.tail = "".join(previous_text)
+                if previous is None:
+                    fragment.text = "".join(previous_text)
+                else:
+                    previous.tail = "".join(previous_text)
 
     if fragment.tail:
         _nonlocal["previous"] = fragment
-        _nonlocal["insert_index"] = list(parent).index(fragment)
+        _nonlocal["insert_index"] = parent.index(fragment)
         previous_text = []
-        add_matches(fragment.tail, got_tail_link)
-        _nonlocal["previous"].tail = "".join(previous_text)
+
+        if add_matches(fragment.tail, got_tail_link):
+            _nonlocal["previous"].tail = "".join(previous_text)
 
 
-def _markdown_fragment(target, image):
-    if not image:
-        images_left = 0
-    elif type(image) is int:
-        images_left = image
-    else:
-        images_left = 5
+def _convert_autolinks(fragment):
+    for child in fragment:
+        if child.tag in ("a", "wzl-autolink"):
+            child.tag = "a"
+            link = child
+            href = link.get("href")
 
+            if href:
+                t, _, user = href.partition(":")
+
+                if t == "user":
+                    link.set("href", u"/~{user}".format(user=get_sysname(user)))
+                elif t == "da":
+                    link.set("href", u"https://www.deviantart.com/{user}".format(user=_deviantart(user)))
+                elif t == "ib":
+                    link.set("href", u"https://inkbunny.net/{user}".format(user=_inkbunny(user)))
+                elif t == "fa":
+                    link.set("href", u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user)))
+                elif t == "sf":
+                    link.set("href", u"https://{user}.sofurry.com/".format(user=_sofurry(user)))
+                else:
+                    continue
+
+                if not link.text or link.text == href:
+                    link.text = user
+        else:
+            _convert_autolinks(child)
+
+
+def _markdown_fragment(target):
     rendered = _markdown(target)
     fragment = html.fragment_fromstring(rendered, create_parent=True)
 
-    for link in fragment.findall(".//a"):
-        href = link.attrib.get("href")
+    _convert_autolinks(fragment)
 
-        if href:
-            t, _, user = href.partition(":")
+    for image in list(fragment.iter("img")):
+        src = image.get("src", "")
 
-            if t == "user":
-                link.attrib["href"] = u"/~{user}".format(user=login_name(user))
-            elif t == "da":
-                link.attrib["href"] = u"https://{user}.deviantart.com/".format(user=_deviantart(user))
-            elif t == "ib":
-                link.attrib["href"] = u"https://inkbunny.net/{user}".format(user=_inkbunny(user))
-            elif t == "fa":
-                link.attrib["href"] = u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user))
-            elif t == "sf":
-                link.attrib["href"] = u"https://{user}.sofurry.com/".format(user=_sofurry(user))
-            else:
-                continue
+        t, _, user = src.partition(":")
 
-            if not link.text or link.text == href:
-                link.text = user
+        if t != "user":
+            link = etree.Element(u"a")
+            link.tail = image.tail
+            link.set(u"href", src)
+            link.text = image.get("alt", src)
+            image.getparent().replace(image, link)
+            continue
 
-    for parent in fragment.findall(".//*[img]"):
-        for image in list(parent):
-            if image.tag != "img":
-                continue
+        image.set(u"src", u"/~{user}/avatar".format(user=get_sysname(user)))
 
-            src = image.get("src")
+        link = etree.Element(u"a")
+        link.set(u"href", u"/~{user}".format(user=get_sysname(user)))
+        link.set(u"class", u"user-icon")
+        link.tail = image.tail
+        image.getparent().replace(image, link)
+        link.append(image)
 
-            if src:
-                t, _, user = src.partition(":")
-
-                if t != "user":
-                    if images_left:
-                        images_left -= 1
-                    else:
-                        i = list(parent).index(image)
-                        link = etree.Element(u"a")
-                        link.tail = image.tail
-                        src = image.get("src")
-
-                        if src:
-                            link.set(u"href", src)
-                            link.text = image.attrib.get("alt", src)
-
-                        parent[i] = link
-
-                    continue
-
-                image.set(u"src", u"/~{user}/avatar".format(user=login_name(user)))
-
-                link = etree.Element(u"a")
-                link.set(u"href", u"/~{user}".format(user=login_name(user)))
-                link.set(u"class", u"user-icon")
-                parent.insert(list(parent).index(image), link)
-                parent.remove(image)
-                link.append(image)
-                link.tail = image.tail
-
-                if "alt" in image.attrib and image.attrib["alt"]:
-                    image.tail = u" "
-                    label = etree.SubElement(link, u"span")
-                    label.text = image.attrib["alt"]
-                    del image.attrib["alt"]
-                else:
-                    image.tail = None
-                    image.set(u"alt", user)
+        alt = image.get("alt")
+        if alt:
+            image.tail = u" "
+            label = etree.SubElement(link, u"span")
+            label.text = alt
+            del image.attrib["alt"]
+        else:
+            image.tail = None
+            image.set("alt", user)
 
     add_user_links(fragment, None, True)
 
@@ -285,12 +287,9 @@ def _markdown_fragment(target, image):
     return fragment
 
 
-def markdown(target, image=False):
-    if target is None:
-        return ""
-
-    fragment = _markdown_fragment(target, image)
-    return html.tostring(fragment, encoding=unicode)[5:-6]  # <div>...</div>
+def markdown(target):
+    fragment = _markdown_fragment(target)
+    return html.tostring(fragment, encoding="unicode")[5:-6]  # <div>...</div>
 
 
 def _itertext_spaced(element):
@@ -318,7 +317,7 @@ def _normalize_whitespace(text):
 
 
 def markdown_excerpt(markdown_text, length=300):
-    fragment = _markdown_fragment(markdown_text, image=False)
+    fragment = _markdown_fragment(markdown_text)
     text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
 
     if len(text) <= length:

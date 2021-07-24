@@ -4,19 +4,19 @@ Note that there are some characters in a settings column that didn't seem code-r
 downgrading will not restore these.
 
 Revision ID: 30ddd5fc6d26
-Revises: 40c00abab5f9
+Revises: af3b8d60b7ba
 Create Date: 2017-01-16 20:33:02.166099
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '30ddd5fc6d26'
-down_revision = '40c00abab5f9'
+down_revision = 'af3b8d60b7ba'
 
 from alembic import op
 import sqlalchemy as sa
 
-import libweasyl
+import libweasyl.models.helpers
 
 embed_types = sa.Enum('google-drive', 'other', name="embed_types")
 

@@ -1,14 +1,15 @@
-# encoding: utf-8
-from __future__ import absolute_import, division
-
 import re
-import urllib
 from collections import namedtuple
 from decimal import Decimal
+from urllib.parse import quote as urlquote
 
+from sentry_sdk import capture_message
+
+from libweasyl.cache import region
+
+from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
-from weasyl.cache import region
 from weasyl.error import PostgresError, WeasylError
 
 _MAX_PRICE = 99999999
@@ -55,21 +56,43 @@ def parse_currency(target):
     return int(Decimal(digits) * (10 ** CURRENCY_PRECISION))
 
 
-@region.cache_on_arguments(expiration_time=60 * 60 * 24)
-def _fetch_rates():
+@region.cache_on_arguments(expiration_time=60 * 60 * 24, should_cache_fn=bool)
+def _fetch_rates_no_cache_failure():
     """
-    Retrieves most recent currency exchange rates from fixer.io, which uses
-    the European Central Bank as its upstream source.
+    Retrieve most recent currency exchange rates from the European Central Bank.
 
-    This value is cached with a 24h expiry period
-
-    :return: see http://fixer.io/
+    This value is cached with a 24h expiry period. Failures are cached for one hour.
     """
-    try:
-        return d.http_get("http://api.fixer.io/latest?base=USD").json()
-    except WeasylError:
-        # There was an HTTP error while fetching from the API
+    if not config.config_read_bool('convert_currency'):
         return None
+
+    try:
+        response = d.http_get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+    except WeasylError:
+        # http_get already logged the exception
+        return None
+    else:
+        capture_message("Fetched exchange rates")
+
+    rates = {'EUR': 1.0}
+
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.text):
+        code, rate = match.groups()
+
+        try:
+            rate = float(rate)
+        except ValueError:
+            pass
+        else:
+            if 0.0 < rate < float('inf'):
+                rates[code] = rate
+
+    return rates
+
+
+@region.cache_on_arguments(expiration_time=60 * 60)
+def _fetch_rates():
+    return _fetch_rates_no_cache_failure()
 
 
 def _charmap_to_currency_code(charmap):
@@ -115,22 +138,16 @@ def currency_ratio(valuecode, targetcode):
     valuecode = _charmap_to_currency_code(valuecode)
     targetcode = _charmap_to_currency_code(targetcode)
     rates = _fetch_rates()
-    if not rates:
-        # in the unlikely event of an error, invalidate our rates
-        # (to try fetching again) and return value unaltered
-        _fetch_rates.invalidate()
+
+    if rates is None:
         return None
-    rates = rates["rates"]
-    rates["USD"] = 1.0
-    try:
-        r1 = float(rates.get(valuecode))
-        r2 = float(rates.get(targetcode))
-    except ValueError:
-        # something is very wrong with our data source
-        _fetch_rates.invalidate()
+
+    r1 = rates.get(valuecode)
+    r2 = rates.get(targetcode)
+
+    if r1 is None or r2 is None:
         return None
-    if not (r1 and r2):
-        raise WeasylError("Unexpected")
+
     return r2 / r1
 
 
@@ -145,22 +162,22 @@ def select_list(userid):
         WHERE userid = %(id)s ORDER BY title
     """, id=userid)
 
-    content = d.engine.execute("""
+    content = d.engine.scalar("""
         SELECT content FROM commishdesc
         WHERE userid = %(id)s
-    """, id=userid).scalar()
+    """, id=userid)
 
     preference_tags = d.engine.execute("""
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_preferred_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     optout_tags = d.engine.execute("""
         SELECT DISTINCT tag.title FROM searchtag tag
         JOIN artist_optout_tags pref ON pref.tagid = tag.tagid
         WHERE pref.targetid = %(userid)s
-   """, userid=userid).fetchall()
+    """, userid=userid).fetchall()
 
     return {
         "userid": userid,
@@ -184,7 +201,7 @@ def select_list(userid):
 
 def select_commissionable(userid, q, commishclass, min_price, max_price, currency, offset, limit):
     """
-    Select a list of artists whom are open for commissions
+    Select a list of artists who are open for commissions
     and have defined at least one commission class.
 
     This query sorts primarily by how many matching tags in the "content" field match
@@ -242,7 +259,9 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
 
         WHERE LOWER(cc.title) LIKE %(cclasslike)s
         AND p.settings ~ '^[os]'
-        AND login.settings !~ '[bs]'
+        AND NOT EXISTS (SELECT FROM permaban WHERE permaban.userid = login.userid)
+        AND NOT EXISTS (SELECT FROM suspension WHERE suspension.userid = login.userid)
+        AND login.voucher IS NOT NULL
         AND NOT EXISTS (
             SELECT 0
             FROM searchtag tag
@@ -295,8 +314,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if tags:
-            terms = ["user:" + info.username] + ["|" + tag for tag in tags]
-            dinfo['searchquery'] = "q=" + urllib.quote(" ".join(terms))
+            terms = ["user:" + d.get_sysname(info.username)] + ["|" + tag for tag in tags]
+            dinfo['searchquery'] = "q=" + urlquote(u" ".join(terms).encode("utf-8"))
         else:
             dinfo['searchquery'] = ""
         return dinfo
@@ -312,11 +331,16 @@ def create_commission_class(userid, title):
     if not title:
         raise WeasylError("titleInvalid")
 
-    classid = d.execute("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %i", [userid], ["element"])
+    classid = d.engine.scalar("SELECT MAX(classid) + 1 FROM commishclass WHERE userid = %(user)s", user=userid)
     if not classid:
         classid = 1
     try:
-        d.execute("INSERT INTO commishclass VALUES (%i, %i, '%s')", [classid, userid, title])
+        d.engine.execute(
+            "INSERT INTO commishclass VALUES (%(class_)s, %(user)s, %(title)s)",
+            class_=classid,
+            user=userid,
+            title=title,
+        )
         return classid
     except PostgresError:
         raise WeasylError("commishclassExists")
@@ -331,10 +355,10 @@ def create_price(userid, price, currency="", settings=""):
         raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
         raise WeasylError("maxamountInvalid")
-    elif not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                       [price.classid, userid], ["bool"]):
-        raise WeasylError("classidInvalid")
     elif not price.classid:
+        raise WeasylError("classidInvalid")
+    elif not d.engine.scalar("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%(class_)s, %(user)s))",
+                             class_=price.classid, user=userid):
         raise WeasylError("classidInvalid")
 
     # Settings are at most one currency class, and optionally an 'a' to indicate an add-on price.
@@ -343,88 +367,106 @@ def create_price(userid, price, currency="", settings=""):
                          "a" if "a" in settings else "")
 
     # TODO: should have an auto-increment ID
-    priceid = d.execute("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %i", [userid], ["element"])
+    priceid = d.engine.scalar("SELECT MAX(priceid) + 1 FROM commishprice WHERE userid = %(user)s", user=userid)
 
     try:
-        d.execute(
-            "INSERT INTO commishprice VALUES (%i, %i, %i, '%s', %i, %i, '%s')",
-            [priceid if priceid else 1, price.classid, userid, price.title, price.amount_min, price.amount_max, settings])
+        d.engine.execute(
+            "INSERT INTO commishprice VALUES (%(newid)s, %(class_)s, %(user)s, %(title)s, %(amount_min)s, %(amount_max)s, %(settings)s)",
+            newid=priceid if priceid else 1,
+            class_=price.classid,
+            user=userid,
+            title=price.title,
+            amount_min=price.amount_min,
+            amount_max=price.amount_max,
+            settings=settings,
+        )
     except PostgresError:
         return WeasylError("titleExists")
 
 
 def edit_class(userid, commishclass):
-
     if not commishclass.title:
         raise WeasylError("titleInvalid")
 
     try:
-        d.execute("UPDATE commishclass SET title = '%s' WHERE (classid, userid) = (%i, %i)",
-                  [commishclass.title, commishclass.classid, userid])
+        d.engine.execute(
+            "UPDATE commishclass SET title = %(title)s WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            title=commishclass.title,
+            class_=commishclass.classid,
+            user=userid,
+        )
     except PostgresError:
         raise WeasylError("titleExists")
 
 
-def edit_price(userid, price, currency="", settings="", edit_prices=False):
-    currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
-    settings = "".join(i for i in settings if i in "a")
-
-    query = d.execute("SELECT amount_min, amount_max, settings, classid FROM commishprice"
-                      " WHERE (priceid, userid) = (%i, %i)", [price.priceid, userid], options="single")
-
-    if not query:
-        raise WeasylError("priceidInvalid")
-    elif price.amount_min > _MAX_PRICE:
+def edit_price(userid, price, currency, settings, edit_prices):
+    if price.amount_min > _MAX_PRICE:
         raise WeasylError("minamountInvalid")
     elif price.amount_max > _MAX_PRICE:
         raise WeasylError("maxamountInvalid")
     elif price.amount_max and price.amount_max < price.amount_min:
         raise WeasylError("maxamountInvalid")
 
-    argv = []
-    statement = ["UPDATE commishprice SET "]
+    currency = "".join(i for i in currency if i in CURRENCY_CHARMAP)
+    settings = "".join(i for i in settings if i in "a")
+
+    updates = {
+        'settings': currency + settings,
+    }
 
     if price.title:
-        statement.append("%s title = '%%s'" % ("," if argv else ""))
-        argv.append(price.title)
+        updates['title'] = price.title
 
     if edit_prices:
-        if price.amount_min != query[0]:
-            statement.append("%s amount_min = %%i" % ("," if argv else ""))
-            argv.append(price.amount_min)
+        updates['amount_min'] = price.amount_min
+        updates['amount_max'] = price.amount_max
 
-        if price.amount_max != query[1]:
-            statement.append("%s amount_max = %%i" % ("," if argv else ""))
-            argv.append(price.amount_max)
+    cpt = d.meta.tables['commishprice']
+    result = d.engine.execute(
+        cpt.update()
+        .where(cpt.c.priceid == price.priceid)
+        .where(cpt.c.userid == userid)
+        .values(updates)
+    )
 
-    statement.append("%s settings = '%%s'" % ("," if argv else ""))
-    argv.append("%s%s" % (currency, settings))
-
-    if not argv:
-        return
-
-    statement.append(" WHERE (priceid, userid) = (%i, %i)")
-    argv.extend([price.priceid, userid])
-
-    d.execute("".join(statement), argv)
+    if result.rowcount != 1:
+        raise WeasylError("priceidInvalid")
 
 
 def edit_content(userid, content):
-    if not d.execute("UPDATE commishdesc SET content = '%s' WHERE userid = %i RETURNING userid",
-                     [content, userid], ["element"]):
-        d.execute("INSERT INTO commishdesc VALUES (%i, '%s')", [userid, content])
+    d.engine.execute(
+        "INSERT INTO commishdesc (userid, content)"
+        " VALUES (%(user)s, %(content)s)"
+        " ON CONFLICT (userid) DO UPDATE SET content = %(content)s",
+        user=userid,
+        content=content,
+    )
 
 
 def remove_class(userid, classid):
-    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishclass WHERE (classid, userid) = (%i, %i))",
-                     [d.get_int(classid), userid], ["bool"]):
-        raise WeasylError("classidInvalid")
-    d.execute("DELETE FROM commishclass WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
-    d.execute("DELETE FROM commishprice WHERE (classid, userid) = (%i, %i)", [d.get_int(classid), userid])
+    with d.engine.begin() as db:
+        result = db.execute(
+            "DELETE FROM commishclass WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            class_=classid,
+            user=userid,
+        )
+
+        if result.rowcount != 1:
+            raise WeasylError("classidInvalid")
+
+        db.execute(
+            "DELETE FROM commishprice WHERE (classid, userid) = (%(class_)s, %(user)s)",
+            class_=classid,
+            user=userid,
+        )
 
 
 def remove_price(userid, priceid):
-    if not d.execute("SELECT EXISTS (SELECT 0 FROM commishprice WHERE (priceid, userid) = (%i, %i))",
-                     [d.get_int(priceid), userid], ["bool"]):
+    result = d.engine.execute(
+        "DELETE FROM commishprice WHERE (priceid, userid) = (%(price)s, %(user)s)",
+        price=priceid,
+        user=userid,
+    )
+
+    if result.rowcount != 1:
         raise WeasylError("priceidInvalid")
-    d.execute("DELETE FROM commishprice WHERE (priceid, userid) = (%i, %i)", [d.get_int(priceid), userid])

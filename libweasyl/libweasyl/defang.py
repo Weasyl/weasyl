@@ -4,14 +4,8 @@ HTML defanging.
 :py:func:`.defang` is the primary export of this module.
 """
 
-from __future__ import unicode_literals
-
 import re
-
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
 allowed_tags = {
     "section", "nav", "article", "aside",
@@ -23,6 +17,7 @@ allowed_tags = {
     "abbr", "time", "code", "var", "samp", "kbd",
     "sub", "sup", "i", "b", "u", "mark",
     "ruby", "rt", "rp", "bdi", "bdo", "span", "br", "wbr",
+    "del",
     "table", "caption",
     "tbody", "thead", "tfoot", "tr", "td", "th",
     "a", "img"
@@ -49,7 +44,7 @@ Otherwise, any HTML tag attributes in the *fragment* passed to
 """
 
 allowed_schemes = {
-    "", "http", "https", "mailto", "irc", "magnet"
+    "", "http", "https", "mailto", "irc", "ircs", "magnet"
 }
 """
 All allowed URL schemes.
@@ -108,7 +103,7 @@ def defang(fragment):
     - Each descendant element's tag must be in a whitelist of tags.
     - ``a`` tags with an ``href`` attribute must have their ``href`` URL's
       scheme in a whitelist of URL schemes. Additionally, links to non-Weasyl
-      websites will have a ``rel="nofollow"`` attribute added to the tag.
+      websites will have a ``rel="nofollow ugc"`` attribute added to the tag.
     - ``img`` tags with an ``src`` attribute must have their ``src`` URL's
       scheme in a whitelist of URL schemes.
     - Any element with a ``style`` attribute is only permitted a CSS ``color``
@@ -124,39 +119,33 @@ def defang(fragment):
     Returns:
         ``None``, as modification is done in-place on *fragment*.
     """
-    remove = []
+    unwrap = []
 
     for child in fragment:
         if child.tag not in allowed_tags:
-            remove.append(child)
-            continue
+            unwrap.append(child)
 
-        for key, value in child.attrib.items():
+        extend_attributes = []
+
+        for key, value in child.items():
             if key == "href" and child.tag == "a" and get_scheme(value) in allowed_schemes:
                 url = urlparse(value)
 
-                if url.scheme and url.hostname not in ("www.weasyl.com", "weasyl.com", "forums.weasyl.com"):
-                    child.attrib[u"rel"] = "nofollow"
+                if url.hostname not in (None, "www.weasyl.com", "weasyl.com", "forums.weasyl.com"):
+                    extend_attributes.append(("rel", "nofollow ugc"))
             elif key == "src" and child.tag == "img" and get_scheme(value) in allowed_schemes:
                 pass
             elif key == "style" and ALLOWED_STYLE.match(value):
                 pass
             elif key == "class":
-                child.attrib["class"] = " ".join(set(value.split()) & allowed_classes)
+                child.set("class", " ".join(set(value.split()) & allowed_classes))
             elif key not in allowed_attributes:
                 del child.attrib[key]
 
+        for key, value in extend_attributes:
+            child.set(key, value)
+
         defang(child)
 
-    for child in remove:
-        i = list(fragment).index(child)
-        fragment.remove(child)
-
-        if child.tail:
-            if i > 0:
-                if fragment[i - 1].tail:
-                    fragment[i - 1].tail += child.tail
-            elif fragment.text:
-                fragment.text += child.tail
-            else:
-                fragment.text = child.tail
+    for child in unwrap:
+        child.drop_tag()

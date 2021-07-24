@@ -1,0 +1,196 @@
+version: '3.9'
+
+volumes:
+  assets:
+  config:
+  database:
+  storage:
+  logs:
+  profile-stats:
+  test-cache:
+
+networks:
+  external-web:
+  external-nginx:
+  nginx-web:
+    internal: true
+  web-memcached:
+    internal: true
+  web-postgres:
+    internal: true
+  test-postgres:
+    internal: true
+
+services:
+  nginx:
+    build: containers/nginx
+    volumes:
+      - assets:/weasyl/build:ro
+      - storage:/weasyl/static:ro
+      - type: tmpfs
+        target: /var/cache/nginx
+      - type: tmpfs
+        target: /run
+    networks:
+      - external-nginx
+      - nginx-web
+    ports:
+      - ${WEASYL_BIND:-127.0.0.1}:8080:8080/tcp
+    read_only: true
+
+  web:
+    image: weasyl
+    build: &weasyl-build
+      context: .
+      args:
+        version: '${WEASYL_VERSION:-}'
+    environment:
+      WEASYL_STORAGE_ROOT: storage
+      WEB_CONCURRENCY: 8
+      PYTHONWARNINGS: d
+    volumes:
+      - config:/run/config:ro
+      - storage:/weasyl/storage/static
+      - logs:/weasyl/storage/log
+      - profile-stats:/weasyl/storage/profile-stats
+      - type: tmpfs
+        target: /tmp
+    networks:
+      - external-web
+      - nginx-web
+      - web-memcached
+      - web-postgres
+    read_only: true
+
+  memcached:
+    image: docker.io/library/memcached:1.5-alpine
+    command: --memory-limit=64
+    networks:
+      - web-memcached
+    read_only: true
+
+  postgres:
+    build: containers/postgres
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: weasyl
+      POSTGRES_DB: weasyl
+    volumes:
+      - database:/var/lib/postgresql/data
+      - type: tmpfs
+        target: /run/postgresql
+      - type: tmpfs
+        target: /tmp
+    networks:
+      - web-postgres
+      # TODO: separate postgres service for tests
+      - test-postgres
+    read_only: true
+
+  configure:
+    profiles: [ configure ]
+    image: docker.io/library/alpine:3.14
+    entrypoint:
+      - sh
+      - -c
+      - cat >| "/run/config/$$1"
+      - sh
+    volumes:
+      - config:/run/config
+    network_mode: none
+    read_only: true
+
+  copy-assets:
+    profiles: [ copy-assets ]
+    image: weasyl
+    build: *weasyl-build
+    command: cp -RT /weasyl/build /weasyl-assets
+    volumes:
+      - assets:/weasyl-assets
+    network_mode: none
+    read_only: true
+    user: root
+
+  migrate:
+    profiles: [ migrate ]
+    image: weasyl
+    build: *weasyl-build
+    command:
+      - ash
+      - -c
+      - |
+        i=0
+        while true; do
+          if test $$i -ge 8; then
+            exit 1
+          fi
+          if test -n "$$(.venv/bin/alembic -c /run/config/alembic.ini current 2> /dev/null)"; then
+            break
+          fi
+          i=$$((i + 1))
+          printf 'checking if postgres is up in %i seconds...\n' $$i
+          sleep $$i
+        done
+        exec .venv/bin/alembic -c /run/config/alembic.ini upgrade head
+    environment:
+      # needed for revision f30dc3b5856a
+      WEASYL_STORAGE_ROOT: /fakepath
+    volumes:
+      - config:/run/config:ro
+    networks:
+      - web-postgres
+    read_only: true
+    depends_on:
+      - postgres
+    tty: true
+
+  revision:
+    profiles: [ revision ]
+    image: weasyl
+    build: *weasyl-build
+    entrypoint:
+      - ash
+      - -euc
+      - |
+        rev_id="$$(python3 -c 'import secrets; print(secrets.token_hex(6))')"
+        .venv/bin/alembic -c /run/config/alembic.ini revision --rev-id "$$rev_id" "$$@" >&2
+        tar c libweasyl/libweasyl/alembic/versions/"$$rev_id"_*
+      - ash
+    volumes:
+      - config:/run/config:ro
+    networks:
+      - web-postgres
+    depends_on:
+      - postgres
+    tty: true
+
+  test:
+    profiles: [ test ]
+    build:
+      context: .
+      target: test
+      args:
+        version: '${WEASYL_VERSION:-}'
+    environment:
+      WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2cffi://weasyl@postgres/weasyl_test
+    volumes:
+      - config:/run/config:ro
+      - test-cache:/weasyl/.pytest_cache
+      - type: tmpfs
+        target: /weasyl/testing
+      - type: tmpfs
+        target: /tmp
+    networks:
+      - test-postgres
+    read_only: true
+    depends_on:
+      - postgres
+    tty: true
+
+  flake8:
+    profiles: [ flake8 ]
+    build:
+      context: .
+      target: flake8
+    network_mode: none
+    tty: true

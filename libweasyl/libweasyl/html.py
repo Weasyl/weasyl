@@ -4,12 +4,8 @@ Utilities for dealing with HTML.
 Specifically, utilities for creating HTML and utilities for removing HTML.
 """
 
-import anyjson as json
-
-try:
-    from html.parser import HTMLParser
-except ImportError:
-    from HTMLParser import HTMLParser
+import json
+from html.parser import HTMLParser
 
 
 def strip_html(markdown):

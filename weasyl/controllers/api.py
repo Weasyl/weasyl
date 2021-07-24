@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPUnprocessableEntity
@@ -89,7 +87,7 @@ def api_login_required(view_callable):
 @api_method
 def api_useravatar_(request):
     form = request.web_input(username="")
-    userid = profile.resolve_by_login(form.username)
+    userid = profile.resolve_by_username(form.username)
 
     if userid:
         media_items = media.get_user_media(userid)
@@ -149,7 +147,6 @@ def tidy_submission(submission):
             linktype = submission['type']
         submission['link'] = d.absolutify_url(
             "/%s/%d/%s" % (linktype, submitid, slug_for(submission['title'])))
-    return submission
 
 
 @view_config(route_name='api_frontpage', renderer='json')
@@ -226,11 +223,10 @@ def api_user_view_(request):
             return None
 
     userid = request.userid
-    otherid = profile.resolve_by_login(request.matchdict['login'])
+    otherid = profile.resolve_by_username(request.matchdict['login'])
     user = profile.select_profile(otherid)
 
     rating = d.get_rating(userid)
-    u_config = d.get_config(userid)
     o_config = user.pop('config')
     o_settings = user.pop('settings')
 
@@ -242,37 +238,15 @@ def api_user_view_(request):
             },
         })
 
-    user.pop('userid', None)
-    user.pop('commish_slots', None)
+    del user['userid']
+    del user['commish_slots']
 
     user['created_at'] = d.iso8601(user.pop('unixtime'))
     user['media'] = api.tidy_all_media(user.pop('user_media'))
     user['login_name'] = d.get_sysname(user['username'])
     user['profile_text'] = markdown(user['profile_text'])
 
-    folders = folder.select_list(otherid, "api/all")
-    if folders:
-        old_folders = folders
-        folders = list()
-        for fldr in (i for i in old_folders if 'parentid' not in i):
-            newfolder = {
-                "folder_id": fldr['folderid'],
-                "title": fldr['title']
-            }
-
-            if fldr['haschildren']:
-                subfolders = list()
-                for sub in (i for i in old_folders if 'parentid' in i and i['parentid'] == fldr['folderid']):
-                    subfolders.append({
-                        "folder_id": sub['folderid'],
-                        "title": sub['title']
-                    })
-
-                newfolder['subfolders'] = subfolders
-
-            folders.append(newfolder)
-
-    user['folders'] = folders
+    user['folders'] = folder.select_list(otherid)
 
     commissions = {
         "details": None,
@@ -283,80 +257,73 @@ def api_user_view_(request):
     }
 
     commission_list = commishinfo.select_list(otherid)
-    if commission_list:
-        commissions['details'] = commission_list['content']
+    commissions['details'] = commission_list['content']
 
-        if len(commission_list['class']) > 0:
-            classes = list()
-            for cclass in commission_list['class']:
-                commission_class = {
-                    "title": cclass['title']
-                }
+    if len(commission_list['class']) > 0:
+        classes = list()
+        for cclass in commission_list['class']:
+            commission_class = {
+                "title": cclass['title']
+            }
 
-                if len(commission_list['price']) > 0:
-                    prices = list()
-                    for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
-                        if 'a' in cprice['settings']:
-                            ptype = 'additional'
-                        else:
-                            ptype = 'base'
+            if len(commission_list['price']) > 0:
+                prices = list()
+                for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
+                    if 'a' in cprice['settings']:
+                        ptype = 'additional'
+                    else:
+                        ptype = 'base'
 
-                        price = {
-                            "title": cprice['title'],
-                            "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                            "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                            'price_type': ptype
-                        }
-                        prices.append(price)
-                    commission_class['prices'] = prices
+                    price = {
+                        "title": cprice['title'],
+                        "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
+                        "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
+                        'price_type': ptype
+                    }
+                    prices.append(price)
+                commission_class['prices'] = prices
 
-                classes.append(commission_class)
-            commissions['price_classes'] = classes
+            classes.append(commission_class)
+        commissions['price_classes'] = classes
 
     user['commission_info'] = commissions
 
     user['relationship'] = profile.select_relation(userid, otherid) if userid else None
 
     if 'O' in o_config:
-        submissions = collection.select_list(
-            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
+        submissions = collection.select_list(userid, rating, 11, otherid=otherid)
         more_submissions = 'collections'
         featured = None
     elif 'A' in o_config:
-        submissions = character.select_list(
-            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config)
+        submissions = character.select_list(userid, rating, 11, otherid=otherid)
         more_submissions = 'characters'
         featured = None
     else:
-        submissions = submission.select_list(
-            userid, rating, 11, otherid=otherid, options=["cover"], config=u_config,
-            profile_page_filter=True)
+        submissions = submission.select_list(userid, rating, 11, otherid=otherid, profile_page_filter=True)
         more_submissions = 'submissions'
         featured = submission.select_featured(userid, otherid, rating)
 
-    if submissions:
-        submissions = map(tidy_submission, submissions)
+    for sub in submissions:
+        tidy_submission(sub)
 
     user['recent_submissions'] = submissions
     user['recent_type'] = more_submissions
 
     if featured:
-        featured = tidy_submission(featured)
+        tidy_submission(featured)
 
     user['featured_submission'] = featured
 
-    statistics = profile.select_statistics(otherid)
-    if statistics:
-        statistics.pop('staff_notes')
-    user['statistics'] = statistics
+    statistics, show_statistics = profile.select_statistics(otherid)
+    del statistics['staff_notes']
+    user['statistics'] = statistics if show_statistics else None
 
-    user_info = profile.select_userinfo(otherid)
-    if user_info:
-        if not user_info['show_age']:
-            user_info['age'] = None
-        user_info.pop('show_age', None)
-        user_info.pop('birthday', None)
-        user_info['location'] = user_info.pop('country', None)
+    user_info = profile.select_userinfo(otherid, config=o_config)
+    if not user_info['show_age']:
+        user_info['age'] = None
+    del user_info['show_age']
+    del user_info['birthday']
+    user_info['location'] = user_info.pop('country')
     user['user_info'] = user_info
     user['link'] = d.absolutify_url("/~" + user['login_name'])
 
@@ -366,7 +333,7 @@ def api_user_view_(request):
 @view_config(route_name='api_user_gallery', renderer='json')
 @api_method
 def api_user_gallery_(request):
-    userid = profile.resolve_by_login(request.matchdict['login'])
+    userid = profile.resolve_by_username(request.matchdict['login'])
     if not userid:
         raise WeasylError('userRecordMissing')
 
@@ -417,7 +384,7 @@ def api_messages_submissions_(request):
         count = min(count or 100, 100)
 
     submissions = message.select_submissions(
-        request.userid, count + 1, backtime=backtime, nexttime=nexttime)
+        request.userid, count + 1, include_tags=True, backtime=backtime, nexttime=nexttime)
     backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
 
     ret = []

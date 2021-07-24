@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid import httpexceptions
 from pyramid.response import Response
 
@@ -15,36 +13,51 @@ def submission_(request):
     username = request.matchdict.get('name')
     submitid = request.matchdict.get('submitid')
 
-    form = request.web_input(submitid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
+    submitid = define.get_int(submitid) if submitid else define.get_int(request.params.get('submitid'))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
-    extras = {
-        "pdf": True,
-    }
+    extras = {}
 
-    if define.user_is_twitterbot():
-        extras['twitter_card'] = submission.twitter_card(submitid)
+    if not request.userid:
+        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
+        twit_card = submission.twitter_card(request, submitid)
+        if define.user_is_twitterbot():
+            extras['twitter_card'] = twit_card
+        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+        extras['ogp'] = {
+            'title': twit_card['title'],
+            'site_name': "Weasyl",
+            'type': "website",
+            'url': twit_card['url'],
+            'description': twit_card['description'],
+            # >> BUG AVOIDANCE: https://trello.com/c/mBx51jfZ/1285-any-image-link-with-in-it-wont-preview-up-it-wont-show-up-in-embeds-too
+            #    Image URLs with '~' in it will not be displayed by Discord, so replace ~ with the URL encoded char code %7E
+            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.get_resource_url(
+                'img/logo-mark-light.svg'),
+        }
 
     try:
         item = submission.select_view(
             request.userid, submitid, rating,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         we.errorpage_kwargs = extras
-        if 'twitter_card' in extras:
-            extras['options'] = ['nocache']
         if we.value in ("UserIgnored", "TagBlocked"):
             extras['links'] = [
                 ("View Submission", "?ignore=false"),
-                ("Return to the Home Page", "/index"),
+                ("Return to the Home Page", "/"),
             ]
         raise
 
     login = define.get_sysname(item['username'])
     canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
+
+    if request.GET.get('anyway'):
+        canonical_path += '?anyway=true'
+
     if login != username:
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
     extras["canonical_url"] = canonical_path
@@ -52,6 +65,7 @@ def submission_(request):
 
     page = define.common_page_start(request.userid, **extras)
     page.append(define.render('detail/submission.html', [
+        request,
         # Myself
         profile.select_myself(request.userid),
         # Submission detail
@@ -99,21 +113,21 @@ def submission_tag_history_(request):
 
 
 def character_(request):
-    form = request.web_input(charid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    charid = define.get_int(request.matchdict.get('charid', form.charid))
+    charid = define.get_int(request.matchdict.get('charid', request.params.get('charid')))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     try:
         item = character.select_view(
             request.userid, charid, rating,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
             we.errorpage_kwargs['links'] = [
                 ("View Character", "?ignore=false"),
-                ("Return to the Home Page", "/index"),
+                ("Return to the Home Page", "/"),
             ]
         raise
 
@@ -133,27 +147,27 @@ def character_(request):
 
 
 def journal_(request):
-    form = request.web_input(journalid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    journalid = define.get_int(request.matchdict.get('journalid', form.journalid))
+    journalid = define.get_int(request.matchdict.get('journalid', request.params.get('journalid')))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     try:
         item = journal.select_view(
             request.userid, rating, journalid,
-            ignore=define.text_bool(form.ignore, True), anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
             we.errorpage_kwargs['links'] = [
                 ("View Journal", "?ignore=false"),
-                ("Return to the Home Page", "/index"),
+                ("Return to the Home Page", "/"),
             ]
         raise
 
     canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
 
-    page = define.common_page_start(request.userid, options=["pager"], canonical_url=canonical_url, title=item["title"])
+    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
     page.append(define.render('detail/journal.html', [
         # Myself
         profile.select_myself(request.userid),

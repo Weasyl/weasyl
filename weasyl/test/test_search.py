@@ -1,6 +1,5 @@
-from __future__ import absolute_import
+from unittest import mock
 
-import mock
 import pytest
 
 from libweasyl.models.helpers import CharSettings
@@ -14,14 +13,14 @@ def test_query_parsing():
     assert not search.Query.parse('#character', 'submit')
     assert search.Query.parse('tag_that_does_not_exist', 'submit')
 
-    query = search.Query.parse('one, two +three & -four |five |six user:a +user:b -user:c #general #moderate #submission', 'journal')
+    query = search.Query.parse('one, two +three & -four |five |six user:a +user:b -user:c #general #mature #submission', 'journal')
 
     assert query.possible_includes == {'five', 'six'}
     assert query.required_includes == {'one', 'two', 'three'}
     assert query.required_excludes == {'four'}
     assert query.required_user_includes == {'a', 'b'}
     assert query.required_user_excludes == {'c'}
-    assert query.ratings == {ratings.GENERAL.code, ratings.MODERATE.code}
+    assert query.ratings == {ratings.GENERAL.code, ratings.MATURE.code}
     assert query.find == 'submit'
 
 
@@ -33,7 +32,7 @@ def test_query_parsing():
     (u'walrus penguin', 1),
     (u'walrus -penguin', 1),
     (u'walrus -penguin #general #explicit', 1),
-    (u'walrus -penguin #general #moderate #mature', 0),
+    (u'walrus -penguin #general #mature', 0),
     (u'-walrus +penguin', 2),
     (u'|walrus |penguin', 4),
     (u'+nothing |walrus |penguin', 0),
@@ -156,7 +155,7 @@ def test_search_pagination(db):
     (u"Marth", 1),
 ])
 def test_user_search(db, term, n_results):
-    config = CharSettings({'use-only-tag-blacklist'}, {}, {})
+    config = CharSettings({}, {}, {})
     db_utils.create_user("Sam Peacock", username="sammy", config=config)
     db_utils.create_user("LionCub", username="spammer2800", config=config)
     db_utils.create_user("Samantha Wildlife", username="godall", config=config)
@@ -172,7 +171,7 @@ def test_user_search(db, term, n_results):
 
 
 def test_user_search_ordering(db):
-    config = CharSettings({'use-only-tag-blacklist'}, {}, {})
+    config = CharSettings({}, {}, {})
     db_utils.create_user("user_aa", username="useraa", config=config)
     db_utils.create_user("user_ba", username="userba", config=config)
     db_utils.create_user("user_Ab", username="userab", config=config)

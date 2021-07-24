@@ -9,8 +9,8 @@ from libweasyl import ratings
     (-1, [ratings.GENERAL]),
     (0, [ratings.GENERAL]),
     (12, [ratings.GENERAL]),
-    (13, [ratings.GENERAL, ratings.MODERATE]),
-    (17, [ratings.GENERAL, ratings.MODERATE]),
+    (13, [ratings.GENERAL]),
+    (17, [ratings.GENERAL]),
     (18, ratings.ALL_RATINGS),
     (21, ratings.ALL_RATINGS),
 ])
@@ -20,7 +20,6 @@ def test_get_ratings_for_age(age, expected):
 
 @pytest.mark.parametrize(('rating', 'expected'), [
     (ratings.GENERAL, "General"),
-    (ratings.MODERATE, "Moderate (13+)"),
     (ratings.MATURE, "Mature (18+ non-sexual)"),
     (ratings.EXPLICIT, "Explicit (18+ sexual)"),
 ])
@@ -34,9 +33,9 @@ def test_equality(rating):
 
 
 @pytest.mark.parametrize(('r1', 'op', 'r2'), [
-    (ratings.GENERAL, ne, ratings.MODERATE),
-    (ratings.GENERAL, lt, ratings.MODERATE),
-    (ratings.MODERATE, gt, ratings.GENERAL),
+    (ratings.GENERAL, ne, ratings.MATURE),
+    (ratings.GENERAL, lt, ratings.MATURE),
+    (ratings.MATURE, gt, ratings.GENERAL),
     (ratings.GENERAL, ge, ratings.GENERAL),
     (ratings.GENERAL, le, ratings.GENERAL),
 ])
@@ -45,4 +44,4 @@ def test_comparisons(r1, op, r2):
 
 
 def test_hashability():
-    assert hash(ratings.GENERAL) != hash(ratings.MODERATE)
+    assert hash(ratings.GENERAL) != hash(ratings.MATURE)

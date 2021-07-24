@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-import anyjson as json
+import json
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
 from pyramid.response import Response
 from oauthlib.oauth2 import FatalClientError, OAuth2Error
@@ -16,7 +14,7 @@ class OAuthResponse(Response):
         super(OAuthResponse, self).__init__(
             body=body,
             status_code=status,
-            headers={k.encode('utf-8'): v.encode('utf-8') for k, v in headers.iteritems()},
+            headers={k.encode('utf-8'): v.encode('utf-8') for k, v in headers.items()},
         )
 
 
@@ -64,7 +62,7 @@ def authorize_post_(request):
     scopes = credentials.pop('scopes')
     error = None
     if form.not_me and form.username:
-        userid, error = login.authenticate_bcrypt(form.username, form.password, bool(form.remember_me))
+        userid, error = login.authenticate_bcrypt(form.username, form.password, request=request if form.remember_me else None)
         if error:
             error = errorcode.login_errors.get(error, 'Unknown error.')
     elif not request.userid:
@@ -96,5 +94,5 @@ def get_userid_from_authorization(request, scopes=['wholesite']):
 
 
 __all__ = [
-    'get_consumers_for_user', 'revoke_consumers_for_user',
+    'get_consumers_for_user', 'revoke_consumers_for_user', 'get_userid_from_authorization',
 ]

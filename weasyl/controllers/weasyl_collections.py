@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
@@ -15,7 +13,7 @@ def collection_options_get_(request):
         "allow_request": jsonb_settings.allow_collection_requests,
         "allow_notification": jsonb_settings.allow_collection_notifs,
     }
-    return Response(define.webpage(request.userid, "manage/collection_options.html", [form_settings]))
+    return Response(define.webpage(request.userid, "manage/collection_options.html", [form_settings], title="Collection Options"))
 
 
 @login_required
@@ -48,12 +46,15 @@ def collection_offer_(request):
         request.userid,
         "**Success!** Your collection offer has been sent "
         "and the recipient may now add this submission to their gallery.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/index"]]))
+        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/"]]))
 
 
 @login_required
 @token_checked
 def collection_request_(request):
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     form = request.web_input(submitid="")
     form.submitid = int(form.submitid)
     form.otherid = define.get_ownerid(submitid=form.submitid)
@@ -68,7 +69,7 @@ def collection_request_(request):
         request.userid,
         "**Success!** Your collection request has been sent. "
         "The submission author may approve or reject this request.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/index"]]))
+        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/"]]))
 
 
 @login_required

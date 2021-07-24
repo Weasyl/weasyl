@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -22,7 +20,7 @@ def messages_remove_(request):
     elif form.get('remove-all-submissions'):
         message.remove_all_submissions(request.userid, define.get_int(form['remove-all-submissions']))
     else:
-        message.remove(request.userid, map(int, form.remove))
+        message.remove(request.userid, list(map(int, form.remove)))
 
     if form.recall:
         raise HTTPSeeOther(location="/messages/submissions")
@@ -71,6 +69,6 @@ def messages_submissions_(request):
         # Feature
         form.feature,
         # Submissions
-        message.select_submissions(request.userid, 66,
+        message.select_submissions(request.userid, 66, include_tags=False,
                                    backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
     ]))

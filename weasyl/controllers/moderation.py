@@ -1,28 +1,23 @@
-# encoding: utf-8
-
-from __future__ import absolute_import
-
-import anyjson as json
 import arrow
 
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
+from weasyl import define, macro, moderation, note, profile, report
 from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
-from weasyl import define, macro, moderation, note, report
 
 
 # Moderator control panel functions
 @moderator_only
 def modcontrol_(request):
-    return Response(define.webpage(request.userid, "modcontrol/modcontrol.html"))
+    return Response(define.webpage(request.userid, "modcontrol/modcontrol.html", title="Moderator Control Panel"))
 
 
 @moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
-                                   [moderation.BAN_TEMPLATES, json.dumps(moderation.BAN_TEMPLATES)]))
+                                   (moderation.BAN_TEMPLATES,), title="User Suspensions"))
 
 
 @moderator_only
@@ -45,7 +40,7 @@ def modcontrol_report_(request):
         request.userid,
         r,
         blacklisted_tags,
-    ]))
+    ], title="View Reported " + r.target_type.title()))
 
 
 @moderator_only
@@ -57,7 +52,7 @@ def modcontrol_reports_(request):
         # Reports
         report.select_list(request.userid, form),
         macro.MACRO_REPORT_VIOLATION,
-    ]))
+    ], title="Reported Content"))
 
 
 @moderator_only
@@ -72,14 +67,19 @@ def modcontrol_closereport_(request):
 def modcontrol_contentbyuser_(request):
     form = request.web_input(name='', features=[])
 
-    submissions = moderation.submissionsbyuser(request.userid, form) if 's' in form.features else []
-    characters = moderation.charactersbyuser(request.userid, form) if 'c' in form.features else []
-    journals = moderation.journalsbyuser(request.userid, form) if 'j' in form.features else []
+    # Does the target user exist? There's no sense in displaying a blank page if not.
+    target_userid = profile.resolve(None, None, form.name)
+    if not target_userid:
+        raise WeasylError("userRecordMissing")
+
+    submissions = moderation.submissionsbyuser(target_userid) if 's' in form.features else []
+    characters = moderation.charactersbyuser(target_userid) if 'c' in form.features else []
+    journals = moderation.journalsbyuser(target_userid) if 'j' in form.features else []
 
     return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
         form.name,
         sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
-    ]))
+    ], title=form.name + "'s Content"))
 
 
 @moderator_only
@@ -108,9 +108,9 @@ def modcontrol_massaction_(request):
         body=moderation.bulk_edit(
             request.userid,
             form.action,
-            map(int, form.submissions),
-            map(int, form.characters),
-            map(int, form.journals),
+            list(map(int, form.submissions)),
+            list(map(int, form.characters)),
+            list(map(int, form.journals)),
         ),
     )
 
@@ -147,7 +147,7 @@ def modcontrol_manageuser_(request):
 
     return Response(define.webpage(request.userid, "modcontrol/manageuser.html", [
         moderation.manageuser(request.userid, form),
-    ]))
+    ], title="User Management"))
 
 
 @moderator_only
@@ -184,15 +184,6 @@ def modcontrol_editcatchphrase_(request):
 
     moderation.editcatchphrase(request.userid, define.get_int(form.userid), form.content)
     raise HTTPSeeOther(location="/modcontrol")
-
-
-@moderator_only
-@token_checked
-def modcontrol_edituserconfig_(request):
-    form = request.web_input(userid="")
-
-    moderation.edituserconfig(form)
-    raise HTTPSeeOther("/modcontrol")
 
 
 @moderator_only

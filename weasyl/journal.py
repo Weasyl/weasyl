@@ -1,21 +1,20 @@
-from __future__ import absolute_import
-
 import arrow
 
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
+from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import api
 from weasyl import blocktag
 from weasyl import comment
 from weasyl import define as d
 from weasyl import favorite
-from weasyl import files
 from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
+from weasyl import moderation
 from weasyl import profile
 from weasyl import report
 from weasyl import searchtag
@@ -42,15 +41,13 @@ def create(userid, journal, friends_only=False, tags=None):
     journalid = d.engine.scalar(jo.insert().returning(jo.c.journalid), {
         "userid": userid,
         "title": journal.title,
+        "content": journal.content,
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
+        "submitter_ip_address": journal.submitter_ip_address,
+        "submitter_user_agent_id": journal.submitter_user_agent_id,
     })
-
-    # Write journal file
-    files.make_path(journalid, "journal")
-    files.write(files.make_resource(userid, journalid, "journal/submit"),
-                journal.content)
 
     # Assign search tags
     searchtag.associate(userid, tags, journalid=journalid)
@@ -81,12 +78,15 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     """
 
     query = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.rating, jo.settings, jo.page_views, pr.config
+        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
 
-    if journalid and userid in staff.MODS and anyway:
+    if not query:
+        # If there's no query result, there's no record, so fast-fail.
+        raise WeasylError('journalRecordMissing')
+    elif journalid and userid in staff.MODS and anyway:
         pass
     elif not query or 'h' in query.settings:
         raise WeasylError('journalRecordMissing')
@@ -119,7 +119,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'mine': userid == journal['userid'],
         'unixtime': journal['unixtime'],
         'title': journal['title'],
-        'content': files.read(files.make_resource(userid, journalid, 'journal/submit')),
+        'content': journal['content'],
         'rating': journal['rating'],
         'settings': journal['settings'],
         'page_views': journal['page_views'],
@@ -140,8 +140,6 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         userid, journalid,
         rating=rating, ignore=anyway, anyway=anyway, increment_views=increment_views)
 
-    content = files.read(files.make_resource(userid, journalid, 'journal/submit'))
-
     return {
         'journalid': journalid,
         'title': journal['title'],
@@ -149,7 +147,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'owner_login': d.get_sysname(journal['username']),
         'owner_media': api.tidy_all_media(
             media.get_user_media(journal['userid'])),
-        'content': text.markdown(content),
+        'content': text.markdown(journal['content']),
         'tags': searchtag.select(journalid=journalid),
         'link': d.absolutify_url('/journal/%d/%s' % (journalid, text.slug_for(journal['title']))),
         'type': 'journal',
@@ -163,18 +161,12 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
     }
 
 
-def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_user_list(userid, rating, limit, backid=None, nextid=None):
     statement = [
-        "SELECT jo.journalid, jo.title, jo.userid, pr.username, pr.config, jo.rating, jo.unixtime"
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
         " WHERE jo.settings !~ 'h'"]
-
-    if otherid:
-        statement.append(" AND jo.userid = %i")
 
     if userid:
         # filter own content in SFW mode
@@ -183,10 +175,7 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
         else:
             statement.append(" AND (jo.userid = %i OR jo.rating <= %i)" % (userid, rating))
         statement.append(m.MACRO_FRIENDUSER_JOURNAL % (userid, userid, userid))
-
-        if not otherid:
-            statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
-
+        statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
         statement.append(" AND jo.rating <= %i AND jo.settings !~ 'f'" % (rating,))
@@ -204,19 +193,16 @@ def select_user_list(userid, rating, limit, otherid=None, backid=None, nextid=No
         "title": i[1],
         "userid": i[2],
         "username": i[3],
-        "rating": i[5],
-        "unixtime": i[6],
+        "rating": i[4],
+        "unixtime": i[5],
     } for i in d.execute("".join(statement))]
     media.populate_with_user_media(query)
 
     return query[::-1] if backid else query
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
+def select_list(userid, rating, otherid):
+    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
 
     if userid:
         # filter own content in SFW mode
@@ -224,61 +210,51 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, c
             statement.append(" (jo.rating <= %i)" % (rating,))
         else:
             statement.append(" (jo.userid = %i OR jo.rating <= %i)" % (userid, rating))
-        if not otherid:
-            statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
         statement.append(" jo.rating <= %i" % (rating,))
 
-    if otherid:
-        statement.append(
-            " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
-    else:
-        statement.append(" AND jo.settings !~ 'h'")
+    statement.append(
+        " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
-    statement.append("ORDER BY jo.journalid DESC LIMIT %i" % limit)
+    statement.append("ORDER BY jo.journalid DESC")
 
-    query = [{
+    return [{
         "journalid": i[0],
         "title": i[1],
-        "unixtime": i[2],
+        "created_at": arrow.get(i[2] - UNIXTIME_OFFSET),
+        "content": i[3],
     } for i in d.execute("".join(statement))]
 
-    return query[::-1] if backid else query
 
-
-def select_latest(userid, rating, otherid=None, config=None):
-    if config is None:
-        config = d.get_config(userid)
-
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime FROM journal jo WHERE"]
+def select_latest(userid, rating, otherid):
+    statement = ["SELECT jo.journalid, jo.title, jo.content, jo.unixtime FROM journal jo WHERE"]
 
     if userid:
         if d.is_sfw_mode():
             statement.append(" (jo.rating <= %i)" % (rating,))
         else:
             statement.append(" (jo.userid = %i OR jo.rating <= %i)" % (userid, rating))
-        if not otherid:
-            statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
         statement.append(" jo.rating <= %i" % (rating,))
 
-    if otherid:
-        statement.append(
-            " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
+    statement.append(
+        " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
 
     statement.append("ORDER BY jo.journalid DESC LIMIT 1")
-    query = d.execute("".join(statement), options="single")
+    query = d.engine.execute("".join(statement)).first()
 
     if query:
         return {
             "journalid": query[0],
             "title": query[1],
-            "unixtime": query[2],
-            "content": files.read("%s%s%i.txt" % (m.MACRO_SYS_JOURNAL_PATH, d.get_hash_path(query[0]), query[0])),
-            "comments": d.execute("SELECT COUNT(*) FROM journalcomment WHERE targetid = %i AND settings !~ 'h'",
-                                  [query[0]], ["element"]),
+            "content": query[2],
+            "unixtime": query[3],
+            "comments": d.engine.scalar(
+                "SELECT count(*) FROM journalcomment WHERE targetid = %(journal)s AND settings !~ 'h'",
+                journal=query[0],
+            ),
         }
 
 
@@ -291,30 +267,35 @@ def edit(userid, journal, friends_only=False):
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, journal.rating)
 
-    query = d.execute("SELECT userid, settings FROM journal WHERE journalid = %i", [journal.journalid], options="single")
+    query = d.engine.execute(
+        "SELECT userid, settings FROM journal WHERE journalid = %(id)s",
+        id=journal.journalid,
+    ).first()
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    settings = [query[1].replace("f", "")]
-    settings.append("f" if friends_only else "")
-    settings = "".join(settings)
+    settings = query[1].replace("f", "")
 
-    if "f" in settings:
+    if friends_only:
+        settings += "f"
         welcome.journal_remove(journal.journalid)
 
-    # TODO(kailys): use ORM
-    d.execute("UPDATE journal SET (title, rating, settings) = ('%s', %i, '%s') WHERE journalid = %i",
-              [journal.title, journal.rating.code, settings, journal.journalid])
-
-    # Write journal file
-    files.write(files.make_resource(userid, journal.journalid, "journal/submit"),
-                journal.content)
+    jo = d.meta.tables['journal']
+    d.engine.execute(
+        jo.update()
+        .where(jo.c.journalid == journal.journalid)
+        .values({
+            'title': journal.title,
+            'content': journal.content,
+            'rating': journal.rating,
+            'settings': settings,
+        })
+    )
 
     if userid != query[0]:
-        from weasyl import moderation
         moderation.note_about(
             userid, query[0], 'The following journal was edited:',
             '- ' + text.markdown_link(journal.title, '/journal/%s?anyway=true' % (journal.journalid,)))

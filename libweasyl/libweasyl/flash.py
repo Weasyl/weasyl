@@ -1,16 +1,8 @@
-from __future__ import division, unicode_literals
-
 import itertools
+import lzma
 import struct
 import os
 import zlib
-
-from libweasyl.compat import iterbytes
-
-try:
-    import lzma
-except ImportError:
-    from backports import lzma
 
 
 def iter_decompressed_zlib(fobj, chunksize=1024):
@@ -30,11 +22,9 @@ def iter_decompressed_zlib(fobj, chunksize=1024):
     while True:
         chunk = fobj.read(chunksize)
         if not chunk:
-            for b in iterbytes(decompressor.flush()):
-                yield b
+            yield from decompressor.flush()
             break
-        for b in iterbytes(decompressor.decompress(chunk)):
-            yield b
+        yield from decompressor.decompress(chunk)
 
 
 SIZES = 'xmin', 'xmax', 'ymin', 'ymax'
@@ -91,18 +81,18 @@ def parse_flash_header(fobj):
         }]
         lzma_fobj = lzma.LZMAFile(
             fobj, 'rb', format=lzma.FORMAT_RAW, filters=filters)
-        stream = iter(lambda: lzma_fobj.read(1), b'')
+        stream = iter(lambda: ord(lzma_fobj.read(1)), b'')
     else:
-        stream = iter(lambda: fobj.read(1), b'')
+        stream = iter(lambda: ord(fobj.read(1)), b'')
 
-    first_byte = ord(next(stream))
+    first_byte = next(stream)
     bits_per_value = first_byte >> 3
     mask = (1 << bits_per_value) - 1
     nbits = 5 + bits_per_value * len(SIZES)
     bytes_to_read = (nbits + 7) // 8 - 1
     value_buffer = first_byte & 0b111
     for byte in itertools.islice(stream, bytes_to_read):
-        value_buffer = (value_buffer << 8) | ord(byte)
+        value_buffer = (value_buffer << 8) | byte
     stray_bits = 8 - nbits % 8
     if stray_bits != 8:
         value_buffer >>= stray_bits

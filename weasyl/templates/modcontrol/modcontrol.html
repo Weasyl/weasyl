@@ -1,0 +1,29 @@
+$:{RENDER("common/stage_title.html", ["Moderator Control Panel"])}
+
+<div id="modcontrol_content" class="content" style="padding-top:2em;">
+  <div class="form skinny">
+    <p style="font-size:1.3em;"><a href="/modcontrol/suspenduser">User Suspensions</a></p>
+    <br />
+
+    <p style="font-size:1.3em;"><a href="/modcontrol/reports">Reported content</a></p>
+    <br />
+
+    <form action="/modcontrol/contentbyuser">
+      <input type="text" name="name" class="input" style="margin-bottom: 1em" placeholder="Username" />
+      $for feature in ['submissions', 'characters', 'journals']:
+        <label class="input-checkbox">
+          <input type="checkbox" name="features" value="${feature[0]}" checked>
+          Select ${feature}
+        </label>
+      <button type="submit" class="button" style="margin-top:5px;">Get Items by User</button>
+    </form>
+    <br />
+
+    <form action="/modcontrol/manageuser">
+      <input type="text" name="name" class="input" /><br />
+      <button type="submit" class="button" style="margin-top:5px;">Manage User</button>
+    </form>
+    <br />
+
+  </div>
+</div>

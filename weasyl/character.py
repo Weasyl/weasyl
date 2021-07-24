@@ -1,8 +1,7 @@
-from __future__ import absolute_import
-
 import arrow
 import re
 
+from libweasyl import images
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
@@ -27,6 +26,7 @@ from weasyl.error import PostgresError, WeasylError
 
 
 _MEGABYTE = 1048576
+_MAIN_IMAGE_SIZE_LIMIT = 50 * _MEGABYTE
 
 
 def create(userid, character, friends, tags, thumbfile, submitfile):
@@ -47,7 +47,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Write temporary thumbnail file
     if thumbsize:
-        files.easyupload(tempthumb, thumbfile, "image")
+        files.write(tempthumb, thumbfile)
         thumbextension = files.get_extension_for_category(
             thumbfile, macro.ART_SUBMISSION_CATEGORY)
     else:
@@ -55,7 +55,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Write temporary submission file
     if submitsize:
-        files.easyupload(tempsubmit, submitfile, "image")
+        files.write(tempsubmit, submitfile)
         submitextension = files.get_extension_for_category(
             submitfile, macro.ART_SUBMISSION_CATEGORY)
     else:
@@ -65,7 +65,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     if not submitsize:
         files.clear_temporary(userid)
         raise WeasylError("submitSizeZero")
-    elif submitsize > 10 * _MEGABYTE:
+    elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         files.clear_temporary(userid)
         raise WeasylError("submitSizeExceedsLimit")
     elif thumbsize > 10 * _MEGABYTE:
@@ -110,7 +110,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     searchtag.associate(userid, tags, charid=charid)
 
     # Make submission file
-    files.make_path(charid, "char")
+    files.make_character_directory(charid)
     files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
 
     # Make cover file
@@ -121,7 +121,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
         image.make_cover(
             tempthumb, files.make_resource(userid, charid, "char/.thumb"))
 
-    thumbnail.create(userid, 0, 0, 0, 0, charid=charid, remove=False)
+    thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
@@ -139,7 +139,7 @@ def reupload(userid, charid, submitdata):
     submitsize = len(submitdata)
     if not submitsize:
         raise WeasylError("submitSizeZero")
-    elif submitsize > 10 * _MEGABYTE:
+    elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         raise WeasylError("submitSizeExceedsLimit")
 
     # Select character data
@@ -151,7 +151,7 @@ def reupload(userid, charid, submitdata):
         raise WeasylError("Unexpected")
 
     im = image.from_string(submitdata)
-    submitextension = image.image_extension(im)
+    submitextension = images.image_extension(im)
 
     # Check invalid file data
     if not submitextension:
@@ -175,14 +175,6 @@ def reupload(userid, charid, submitdata):
            SET settings = %(settings)s
          WHERE charid = %(character)s
     """, settings=settings, character=charid)
-
-
-def is_hidden(charid):
-    db = define.connect()
-    ch = define.meta.tables['character']
-    q = define.sa.select([ch.c.settings.op('~')('h')]).where(ch.c.charid == charid)
-    results = db.execute(q).fetchall()
-    return bool(results and results[0][0])
 
 
 def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway=False, increment_views=True):
@@ -303,8 +295,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
     }
 
 
-def select_query(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
-
+def select_query(userid, rating, otherid=None, backid=None, nextid=None):
     statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE ch.settings !~ '[h]'"]
 
     # Ignored users and blocked tags
@@ -334,17 +325,15 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None, options
     return statement
 
 
-def select_count(userid, rating, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_count(userid, rating, otherid=None, backid=None, nextid=None):
     statement = ["SELECT count(ch.charid)"]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
     return define.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, options=[], config=None):
+def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
-    statement.extend(select_query(userid, rating, otherid, backid, nextid,
-                                  options, config))
+    statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY ch.charid%s LIMIT %i" % ("" if backid else " DESC", limit))
 
@@ -365,8 +354,8 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None, o
 
 
 def edit(userid, character, friends_only):
-    query = define.execute("SELECT userid, settings FROM character WHERE charid = %i",
-                           [character.charid], options="single")
+    query = define.engine.execute("SELECT userid, settings FROM character WHERE charid = %(id)s",
+                                  id=character.charid).first()
 
     if not query or "h" in query[1]:
         raise WeasylError("Unexpected")
@@ -379,22 +368,28 @@ def edit(userid, character, friends_only):
     profile.check_user_rating_allowed(userid, character.rating)
 
     # Assign settings
-    settings = [query[1].replace("f", "")]
-    settings.append("f" if friends_only else "")
-    settings = "".join(settings)
+    settings = query[1].replace("f", "")
 
-    if "f" in settings:
+    if friends_only:
+        settings += "f"
         welcome.character_remove(character.charid)
 
-    define.execute(
-        """
-            UPDATE character
-            SET (char_name, age, gender, height, weight, species, content, rating, settings) =
-                ('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s')
-            WHERE charid = %i
-        """,
-        [character.char_name, character.age, character.gender, character.height, character.weight, character.species,
-         character.content, character.rating.code, settings, character.charid])
+    ch = define.meta.tables["character"]
+    define.engine.execute(
+        ch.update()
+        .where(ch.c.charid == character.charid)
+        .values({
+            'char_name': character.char_name,
+            'age': character.age,
+            'gender': character.gender,
+            'height': character.height,
+            'weight': character.weight,
+            'species': character.species,
+            'content': character.content,
+            'rating': character.rating,
+            'settings': settings,
+        })
+    )
 
     if userid != query[0]:
         from weasyl import moderation
@@ -430,21 +425,11 @@ def fake_media_items(charid, userid, login, settings):
     return {
         "submission": [{
             "display_url": submission_url,
-            "described": {
-                "cover": [{
-                    "display_url": cover_url,
-                }],
-            },
         }],
         "thumbnail-generated": [{
             "display_url": thumbnail_url,
         }],
         "cover": [{
             "display_url": cover_url,
-            "described": {
-                "submission": [{
-                    "display_url": submission_url,
-                }],
-            },
         }],
     }

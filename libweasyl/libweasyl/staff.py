@@ -17,8 +17,11 @@ MODS = frozenset()
 DEVELOPERS = frozenset()
 """ Purely cosmetic group for users who contribute to site development. """
 
+WESLEY = None
+""" The site mascot. Option for the owner of a site update. """
 
-def _init_staff(directors=(), technical_staff=(), admins=(), mods=(), developers=()):
+
+def _init_staff(directors=(), technical_staff=(), admins=(), mods=(), developers=(), wesley=None):
     """
     Populates staff members from passed kwargs.
 
@@ -43,3 +46,6 @@ def _init_staff(directors=(), technical_staff=(), admins=(), mods=(), developers
 
     global DEVELOPERS
     DEVELOPERS = frozenset(developers)
+
+    global WESLEY
+    WESLEY = wesley

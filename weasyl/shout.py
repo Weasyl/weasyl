@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import arrow
 
 from libweasyl import staff
@@ -10,18 +8,17 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
 from weasyl import welcome
-from weasyl.comment import _thread
+from weasyl.comment import thread
 from weasyl.error import WeasylError
 
 
 def select(userid, ownerid, limit=None, staffnotes=False):
-    result = []
     statement = ["""
-        SELECT sh.commentid, sh.parentid, sh.userid, pr.username, lo.settings, sh.content, sh.unixtime,
-               sh.settings, sh.indent, pr.config, sh.hidden_by
+        SELECT
+            sh.commentid, sh.parentid, sh.userid, pr.username,
+            sh.content, sh.unixtime, sh.settings, sh.hidden_by
         FROM comments sh
-            INNER JOIN profile pr ON sh.userid = pr.userid
-            INNER JOIN login lo ON sh.userid = lo.userid
+            INNER JOIN profile pr USING (userid)
         WHERE sh.target_user = %i
             AND sh.settings %s~ 's'
     """ % (ownerid, "" if staffnotes else "!")]
@@ -33,34 +30,15 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     if userid:
         statement.append(m.MACRO_IGNOREUSER % (userid, "sh"))
 
-    statement.append(" ORDER BY COALESCE(sh.parentid, 0), sh.unixtime")
+    statement.append(" ORDER BY sh.commentid")
     query = d.execute("".join(statement))
-
-    for i in range(len(query) - 1, -1, -1):
-        if not query[i][1]:
-            result.append({
-                "commentid": query[i][0],
-                "parentid": query[i][1],
-                "userid": query[i][2],
-                "username": query[i][3],
-                "status": "".join(c for c in query[i][4] if c in "bs"),
-                "content": query[i][5],
-                "unixtime": query[i][6],
-                "settings": query[i][7],
-                "indent": query[i][8],
-                "hidden": 'h' in query[i][7],
-                "hidden_by": query[i][10],
-            })
-
-            _thread(query, result, i)
+    result = thread(query, reverse_top_level=True)
 
     if limit:
-        ret = result[:limit]
-    else:
-        ret = result
+        result = result[:limit]
 
-    media.populate_with_user_media(ret)
-    return ret
+    media.populate_with_user_media(result)
+    return result
 
 
 def count(ownerid, staffnotes=False):
@@ -76,41 +54,40 @@ def count(ownerid, staffnotes=False):
     return ret
 
 
-def insert(userid, shout, staffnotes=False):
+def insert(userid, target_user, parentid, content, staffnotes):
     # Check invalid content
-    if not shout.content:
+    if not content:
         raise WeasylError("commentInvalid")
-    elif not shout.userid:
+    elif not target_user or (not d.is_vouched_for(target_user) and not staffnotes):
         raise WeasylError("Unexpected")
 
-    # Determine indent and parentuserid
-    if shout.parentid:
-        query = d.execute("SELECT userid, indent FROM comments WHERE commentid = %i",
-                          [shout.parentid], options="single")
+    # Determine parent userid
+    if parentid:
+        parentuserid = d.engine.scalar(
+            "SELECT userid FROM comments WHERE commentid = %(parent)s",
+            parent=parentid,
+        )
 
-        if not query:
+        if parentuserid is None:
             raise WeasylError("shoutRecordMissing")
-
-        indent, parentuserid = query[1] + 1, query[0]
     else:
-        indent, parentuserid = 0, None
+        parentuserid = None
 
     # Check permissions
     if userid not in staff.MODS:
-        if ignoreuser.check(shout.userid, userid):
+        if ignoreuser.check(target_user, userid):
             raise WeasylError("pageOwnerIgnoredYou")
-        elif ignoreuser.check(userid, shout.userid):
+        elif ignoreuser.check(userid, target_user):
             raise WeasylError("youIgnoredPageOwner")
         elif ignoreuser.check(parentuserid, userid):
             raise WeasylError("replyRecipientIgnoredYou")
         elif ignoreuser.check(userid, parentuserid):
             raise WeasylError("youIgnoredReplyRecipient")
 
-        settings = d.execute("SELECT lo.settings, pr.config FROM login lo"
-                             " INNER JOIN profile pr ON lo.userid = pr.userid"
-                             " WHERE lo.userid = %i", [shout.userid], options="single")
+        is_banned, _ = d.get_login_settings(target_user)
+        profile_config = d.get_config(target_user)
 
-        if "b" in settings[0] or "w" in settings[1] or "x" in settings[1] and not frienduser.check(userid, shout.userid):
+        if is_banned or "w" in profile_config or "x" in profile_config and not frienduser.check(userid, target_user):
             raise WeasylError("insufficientActionPermissions")
 
     # Create comment
@@ -119,16 +96,16 @@ def insert(userid, shout, staffnotes=False):
     db = d.connect()
     commentid = db.scalar(
         co.insert()
-        .values(userid=userid, target_user=shout.userid, parentid=shout.parentid or None, content=shout.content,
-                unixtime=arrow.utcnow(), indent=indent, settings=settings)
+        .values(userid=userid, target_user=target_user, parentid=parentid or None, content=content,
+                unixtime=arrow.utcnow(), settings=settings)
         .returning(co.c.commentid))
 
     # Create notification
-    if shout.parentid and userid != parentuserid:
+    if parentid and userid != parentuserid:
         if not staffnotes or parentuserid in staff.MODS:
-            welcome.shoutreply_insert(userid, commentid, parentuserid, shout.parentid, staffnotes)
-    elif not staffnotes and shout.userid and userid != shout.userid:
-        welcome.shout_insert(userid, commentid, otherid=shout.userid)
+            welcome.shoutreply_insert(userid, commentid, parentuserid, parentid, staffnotes)
+    elif not staffnotes and target_user and userid != target_user:
+        welcome.shout_insert(userid, commentid, otherid=target_user)
 
     d.metric('increment', 'shouts')
 
@@ -136,9 +113,10 @@ def insert(userid, shout, staffnotes=False):
 
 
 def remove(userid, commentid=None):
-    query = d.execute(
-        "SELECT userid, target_user, settings FROM comments WHERE commentid = %i AND settings !~ 'h'",
-        [commentid], ["single"])
+    query = d.engine.execute(
+        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND settings !~ 'h'",
+        id=commentid,
+    ).first()
 
     if not query or ('s' in query[2] and userid not in staff.MODS):
         raise WeasylError("shoutRecordMissing")

@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import datetime
 
 import arrow
 import pytest
 from weasyl.test import db_utils
-from weasyl import commishinfo, orm, profile, searchtag
+from weasyl import commishinfo, define as d, orm, profile, searchtag
 
 
 @pytest.mark.usefixtures('db')
@@ -98,7 +96,7 @@ def test_commish_search_invalid():
 
     # user meets all requirements, but is suspended
     u4 = create_commish_searchable_user("u4")
-    db_utils.create_suspenduser(u4, "", arrow.now() + datetime.timedelta(days=7))
+    db_utils.create_suspenduser(u4, "", d.get_time() + 604800)
 
     # user meets all requirements, but is banned
     u5 = create_commish_searchable_user("u5")

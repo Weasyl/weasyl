@@ -36,8 +36,7 @@ def upgrade():
     )
     op.add_column(
         'submission',
-        sa.Column('embed_type', embed_types, nullable='f'),
-
+        sa.Column('embed_type', embed_types, nullable=True),
     )
     op.execute(
         """

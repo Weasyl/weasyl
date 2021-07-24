@@ -641,10 +641,10 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
     rating = d.get_rating(userid)
     db = d.connect()
     sub = db.query(orm.Submission).get(submitid)
-    if sub is None or 'hidden' in sub.settings:
+    if sub is None or sub.hidden:
         raise WeasylError("submissionRecordMissing")
     sub_rating = sub.rating.code
-    if 'friends-only' in sub.settings and not frienduser.check(userid, sub.userid):
+    if sub.friends_only and not frienduser.check(userid, sub.userid):
         raise WeasylError("submissionRecordMissing")
     elif sub_rating > rating and userid != sub.userid:
         raise WeasylError("RatingExceeded")
@@ -655,9 +655,9 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
 
     description = sub.content
     embedlink = None
-    if 'embedded-content' in sub.settings:
+    if sub.embed_type == 'other':
         embedlink, _, description = description.partition('\n')
-    elif 'gdocs-embed' in sub.settings:
+    elif sub.embed_type == 'google-drive':
         embedlink = sub.google_doc_embed.embed_url
 
     views = sub.page_views
@@ -687,7 +687,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         'favorites': favorite.count(submitid),
         'comments': comment.count(submitid),
         'favorited': favorite.check(userid, submitid=submitid),
-        'friends_only': 'friends-only' in sub.settings,
+        'friends_only': sub.friends_only,
     }
 
 

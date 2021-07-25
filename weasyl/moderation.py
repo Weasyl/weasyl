@@ -500,19 +500,25 @@ def charactersbyuser(targetid):
         "unixtime": item[1],
         "title": item[2],
         "rating": item[3],
-        "settings": item[4],
+        "hidden": "h" in item[4],
+        "friends_only": "f" in item[4],
+        "critique": False,
         "sub_media": character.fake_media_items(item[0], targetid, "unused", item[4]),
     } for item in query]
 
 
 def journalsbyuser(targetid):
     query = d.engine.execute("""
-        SELECT journalid, title, settings, unixtime, rating
+        SELECT journalid, title, settings ~ 'h' AS hidden, settings ~ 'f' AS friends_only, unixtime, rating
         FROM journal
         WHERE userid = %(user)s
     """, user=targetid)
 
-    return [dict(item, contype=30) for item in query]
+    return [{
+        **item,
+        "contype": 30,
+        "critique": False,
+    } for item in query]
 
 
 def gallery_blacklisted_tags(userid, otherid):

@@ -17,7 +17,6 @@ from weasyl import profile
 from weasyl import shout
 from weasyl import submission
 from weasyl import thumbnail
-from weasyl import welcome
 from weasyl.error import WeasylError
 
 
@@ -548,44 +547,6 @@ def gallery_blacklisted_tags(userid, otherid):
     """, user=userid, other=otherid)
 
     return [row.title for row in query]
-
-
-def hidesubmission(submitid):
-    d.execute("UPDATE submission SET hidden = TRUE WHERE submitid = %i", [submitid])
-    welcome.submission_remove(submitid)
-
-
-def unhidesubmission(submitid):
-    d.execute("UPDATE submission SET hidden = FALSE WHERE submitid = %i", [submitid])
-
-
-def hidecharacter(charid):
-    d.execute("UPDATE character SET settings = settings || 'h' WHERE charid = %i AND settings !~ 'h'", [charid])
-    welcome.character_remove(charid)
-
-
-def unhidecharacter(charid):
-    d.execute("UPDATE character SET settings = REPLACE(settings, 'h', '') WHERE charid = %i", [charid])
-
-
-def hidejournal(journalid):
-    """ Hides a journal item from view, and removes it from the welcome table. """
-    d.engine.execute("""
-        UPDATE journal
-        SET settings = settings || 'h'
-        WHERE journalid = %(journalid)s
-            AND settings !~ 'h'
-    """, journalid=journalid)
-    welcome.journal_remove(journalid=journalid)
-
-
-def unhidejournal(journalid):
-    """ Removes the hidden settings flag from a journal item, restoring it to view if other conditions are met (e.g., not flagged as spam) """
-    d.engine.execute("""
-        UPDATE journal
-        SET settings = REPLACE(settings, 'h', '')
-        WHERE journalid = %(journalid)s
-    """, journalid=journalid)
 
 
 def manageuser(userid, form):

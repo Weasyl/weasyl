@@ -30,7 +30,7 @@ MACRO_BLOCKTAG_JOURNAL = (
 
 # Example input (userid, userid, userid)
 MACRO_FRIENDUSER_SUBMIT = (
-    " AND (su.settings !~ 'f' OR su.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
+    " AND (NOT su.friends_only OR su.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
     " WHERE ((userid, otherid) = (%i, su.userid) OR (userid, otherid) = (su.userid, %i)) AND settings !~ 'p'))")
 
 # Example input (userid, userid, userid)
@@ -98,6 +98,32 @@ def MACRO_MOD_ACTIONS_FOR_SETTINGS(settings, submission_type):
     # Select whether we show 'Set Critique' or 'Clear Critique' depending on
     # whether the Critique Requested flag is set
     if 'q' in settings:
+        valid_list = [(a, b) for a, b in valid_list if a != 'setcritique']
+    else:
+        valid_list = [(a, b) for a, b in valid_list if a != 'clearcritique']
+
+    # Return our shiny, filtered list of mod actions
+    return valid_list
+
+
+def MACRO_MOD_ACTIONS_FOR_SUBMISSION(hidden, critique):
+    """
+    Since the change to the representation of submission settings (i.e. from char column to individual columns)
+    we need a slightly different set of macro logic for them.
+    """
+    # We start with the complete list of mod actions, then filter it based on submission_type
+    valid_list = MACRO_MOD_ACTIONS
+
+    # Select whether we show 'Show' or 'Hide' depending on whether the
+    # submission is hidden
+    if hidden:
+        valid_list = [(a, b) for a, b in valid_list if a != 'hide']
+    else:
+        valid_list = [(a, b) for a, b in valid_list if a != 'show']
+
+    # Select whether we show 'Set Critique' or 'Clear Critique' depending on
+    # whether the Critique Requested flag is set
+    if critique:
         valid_list = [(a, b) for a, b in valid_list if a != 'setcritique']
     else:
         valid_list = [(a, b) for a, b in valid_list if a != 'clearcritique']

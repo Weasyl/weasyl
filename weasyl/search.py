@@ -141,7 +141,10 @@ def _find_without_media(userid, rating, limit,
     # Begin statement
     statement_with = ""
     statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]
-    statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
+    if search.find == "submit":
+        statement_where = ["WHERE content.rating <= %(rating)s AND NOT content.friends_only AND NOT content.hidden"]
+    else:
+        statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
     statement_group = []
 
     if search.find == "submit":
@@ -278,7 +281,7 @@ def _find_without_media(userid, rating, limit,
         """
         SELECT
             content.{select}, content.{title_field} AS title, content.rating, content.unixtime, content.userid,
-            content.settings, profile.username, {subtype} as subtype
+            profile.username, {subtype} as subtype
         """,
         pagination_filter,
         "ORDER BY content.{{select}} {order} LIMIT %(limit)s".format(order="" if backid else "DESC"))
@@ -323,7 +326,6 @@ def _find_without_media(userid, rating, limit,
         "unixtime": i.unixtime,
         "userid": i.userid,
         "username": i.username,
-        "settings": i.settings,
     } for i in query]
 
     if backid:

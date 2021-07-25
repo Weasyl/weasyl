@@ -2,15 +2,15 @@ $def with (name, query)
 $:{TITLE("User Content", "Moderator Control Panel", "/modcontrol")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
-  def _PARSE_SETTINGS(settings):
+  def _PARSE_SETTINGS(i):
     names = []
-    if 'h' in settings:
+    if i['hidden']:
       names.append("Hidden")
     else:
       names.append("Not hidden")
-    if 'f' in settings:
+    if i['friends_only']:
       names.append("Friends only")
-    if 'q' in settings:
+    if i['critique']:
       names.append("Critique requested")
     return "; ".join(names)
 
@@ -56,7 +56,7 @@ $code:
             <span class="time">${DATE(i['unixtime'])} at ${TIME(i['unixtime'])}</span>
           </td>
           <td class="visibility-cell">
-            <span class="visibility">${_PARSE_SETTINGS(i['settings'])}</span>
+            <span class="visibility">${_PARSE_SETTINGS(i)}</span>
           </td>
         </tr>
     </table>

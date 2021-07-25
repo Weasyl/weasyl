@@ -303,7 +303,7 @@ def _select_statistics(userid):
                     WHERE jo.userid = %(user)s AND fa.type = 'j')),
             (SELECT COUNT(*) FROM watchuser WHERE otherid = %(user)s),
             (SELECT COUNT(*) FROM watchuser WHERE userid = %(user)s),
-            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND not hidden),
             (SELECT COUNT(*) FROM journal WHERE userid = %(user)s AND settings !~ 'h'),
             (SELECT COUNT(*) FROM comments WHERE target_user = %(user)s AND settings !~ 'h' AND settings ~ 's')
     """, user=userid).first()

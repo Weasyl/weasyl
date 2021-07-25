@@ -16,13 +16,6 @@ class Submission(Base):
 
     owner = relationship(Login)
 
-    with clauses_for(__table__) as c:
-        is_hidden = c('hidden')
-        is_friends_only = c('friends-only')
-        is_critique = c('critique')
-        is_google_doc = c('embed-type', 'google-drive')
-        is_other_embed = c('embed-type', 'other')
-
     def legacy_path(self, mod=False):
         """
         Create the weasyl-old relative URL for a submission.
@@ -91,7 +84,7 @@ class Journal(Base):
     owner = relationship(Login)
 
     with clauses_for(__table__) as c:
-        is_hidden = c('hidden')
+        hidden = c('hidden')
 
     def legacy_path(self, mod=False):
         """
@@ -120,7 +113,7 @@ class Character(Base):
     owner = relationship(Login)
 
     with clauses_for(__table__) as c:
-        is_hidden = c('hidden')
+        hidden = c('hidden')
 
     @property
     def title(self):

@@ -149,13 +149,15 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             raise WeasylError("submissionRecordMissing")
     else:
         # Determine the owner of the target
-        otherid = d.engine.scalar(
-            "SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'" % (
-                ("submission", "submitid", submitid) if submitid else
-                ("character", "charid", charid) if charid else
-                ("journal", "journalid", journalid)
+        if submitid:
+            otherid = d.engine.scalar("SELECT userid FROM submission WHERE submitid = %i AND not hidden" % (submitid,))
+        else:
+            otherid = d.engine.scalar(
+                "SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'" % (
+                    ("character", "charid", charid) if charid else
+                    ("journal", "journalid", journalid)
+                )
             )
-        )
 
         # Check permissions
         if not otherid:

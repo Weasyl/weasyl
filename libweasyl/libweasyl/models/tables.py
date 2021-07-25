@@ -1,9 +1,8 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
-    Integer, String, Text, text, DateTime, func, Boolean)
+    Boolean, DateTime, Integer, String, Text, func, text)
 from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB, TIMESTAMP
 from sqlalchemy.schema import ForeignKey
-
 
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn)
@@ -709,18 +708,11 @@ submission = Table(
     Column('content', String(length=300000), nullable=False),
     Column('subtype', Integer(), nullable=False),
     Column('rating', RatingColumn, nullable=False),
-    Column('settings', CharSettingsColumn({
-        'h': 'hidden',
-        'f': 'friends-only',
-        'q': 'critique',
-        'u': 'thumbnail-required',
-    }, {
-        'embed-type': {
-            'D': 'google-drive',
-            'v': 'other',
-        },
-    }), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
+    Column('hidden', Boolean(), nullable=False, server_default='f'),
+    Column('friends_only', Boolean(), nullable=False, server_default='f'),
+    Column('critique', Boolean(), nullable=False, server_default='f'),
+    Column('embed_type', ENUM('google-drive', 'other', name="embed_types"), nullable=True),
     Column('favorites', Integer(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),

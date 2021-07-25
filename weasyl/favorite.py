@@ -13,7 +13,7 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
         " FROM favorite fa INNER JOIN"
         " submission su ON fa.targetid = su.submitid"
         " INNER JOIN profile pr ON su.userid = pr.userid"
-        " WHERE fa.type = 's' AND su.settings !~ 'h'"]
+        " WHERE fa.type = 's' AND NOT su.hidden"]
 
     if userid:
         # filter own content in SFW mode
@@ -26,7 +26,7 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
     else:
         statement.append(" AND su.rating <= %i" % (rating,))
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
 
     statement.append(" AND fa.userid = %i" % otherid)
 
@@ -170,21 +170,25 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
 
 def insert(userid, submitid=None, charid=None, journalid=None):
     if submitid:
-        content_table, id_field, target = "submission", "submitid", submitid
-    elif charid:
-        content_table, id_field, target = "character", "charid", charid
+        query = d.engine.execute(
+            "SELECT userid, friends_only FROM submission WHERE submitid = %(submitid)s",
+            {"submitid": submitid},
+        ).first()
     else:
-        content_table, id_field, target = "journal", "journalid", journalid
+        if charid:
+            content_table, id_field, target = "character", "charid", charid
+        else:
+            content_table, id_field, target = "journal", "journalid", journalid
 
-    query = d.engine.execute(
-        "SELECT userid, settings FROM %s WHERE %s = %i" % (content_table, id_field, target),
-    ).first()
+        query = d.engine.execute(
+            "SELECT userid, settings ~ 'f' FROM %s WHERE %s = %i" % (content_table, id_field, target),
+        ).first()
 
     if not query:
         raise WeasylError("TargetRecordMissing")
     elif userid == query[0]:
         raise WeasylError("CannotSelfFavorite")
-    elif "f" in query[1] and not frienduser.check(userid, query[0]):
+    elif query[1] and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignoreuser.check(userid, query[0]):
         raise WeasylError("YouIgnored")

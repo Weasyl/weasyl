@@ -57,7 +57,7 @@ class SelectListTestCase(unittest.TestCase):
         folder = db_utils.create_folder(user1)
         db_utils.create_submission(user1, rating=ratings.GENERAL.code, folderid=folder)
         db_utils.create_submission(user1, rating=ratings.GENERAL.code, subtype=1010)
-        db_utils.create_submission(user1, rating=ratings.GENERAL.code, settings=CharSettings({'hidden'}, {}, {}))
+        db_utils.create_submission(user1, rating=ratings.GENERAL.code, hidden=True)
         db_utils.create_submission(user2, rating=ratings.GENERAL.code)
 
         self.assertEqual(3, len(submission.select_list(user1, ratings.EXPLICIT.code, 10)))
@@ -86,7 +86,7 @@ class SelectListTestCase(unittest.TestCase):
     def test_friends_only(self):
         user1 = db_utils.create_user()
         user2 = db_utils.create_user()
-        db_utils.create_submission(user1, rating=ratings.GENERAL.code, settings=CharSettings({'friends-only'}, {}, {}))
+        db_utils.create_submission(user1, rating=ratings.GENERAL.code, friends_only=True)
 
         # poster can view their submission
         self.assertEqual(
@@ -338,8 +338,8 @@ class SubmissionNotificationsTestCase(unittest.TestCase):
         """
         s = db_utils.create_submission(
             self.owner,
-            settings=CharSettings({'friends-only'}, {}, {}))
-        welcome.submission_insert(self.owner, s, settings='f')
+            friends_only=True)
+        welcome.submission_insert(self.owner, s, friends_only=True)
         self.assertEqual(1, self._notification_count(self.friend))
         self.assertEqual(0, self._notification_count(self.nonfriend))
         self.assertEqual(0, self._notification_count(self.ignored))

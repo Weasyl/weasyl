@@ -38,7 +38,7 @@ $code:
           <td>
             <a href="${report.target.legacy_path(mod=True)}">
               View ${report.target_type}
-              $if report.target.is_hidden:
+              $if report.target.hidden:
                 (Hidden)
             </a>
           </td>

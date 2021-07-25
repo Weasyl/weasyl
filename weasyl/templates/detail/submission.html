@@ -10,7 +10,7 @@ $code:
 
 <div id="detail-stage" class="stage">
   <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-  $if 'q' in query['settings']:
+  $if query['critique']:
     <i>(critique requested)</i>
   </h1>
 
@@ -171,12 +171,12 @@ $code:
         <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
     $if query['reported'] and myself and myself['userid'] in staff.MODS:
       <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
-    $elif 'h' not in query['settings']:
+    $elif not query['hidden_submission']:
       <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
     </ul>
 
     <h2 id="detail-bar-title">${query['title']}
-    $if 'q' in query['settings']:
+    $if query['critique']:
       <em style="font-size: 65%">(critique requested)</em>
     </h2>
 
@@ -223,7 +223,7 @@ $code:
         <p><a href="/manage/thumbnail?submitid=${query['submitid']}">Edit Submission Thumbnail</a></p>
         $if query['subtype'] > 1999:
           <p><a href="/reupload/cover?submitid=${query['submitid']}">Edit Cover Artwork</a></p>
-        $if 'v' not in query['settings'] and 'D' not in query['settings']:
+        $if not query['embed_type']:
           <p><a href="/reupload/submission?submitid=${query['submitid']}">Edit Submission File</a></p>
         <p><a href="/edit/submission?submitid=${query['submitid']}">Edit Submission Details</a></p>
 
@@ -279,7 +279,7 @@ $code:
           $:{CSRF()}
           <input type="hidden" name="submissions" value="${query['submitid']}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "submission"):
+            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SUBMISSION(query['hidden_submission'], query['critique']):
               <option value="${value}">${name}</option>
             <option value="zap-thumb">Remove Custom Thumbnail Art</option>
             $if query['subtype'] > 1999:

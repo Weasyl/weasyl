@@ -48,7 +48,7 @@ def submit_visual_get_(request):
 @token_checked
 def submit_visual_post_(request):
     form = request.web_input(submitfile="", thumbfile="", title="", folderid="",
-                             subtype="", rating="", friends="", critique="", content="",
+                             subtype="", rating="", content="",
                              tags="", imageURL="")
 
     tags = searchtag.parse_tags(form.tags)
@@ -73,9 +73,9 @@ def submit_visual_post_(request):
     s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     submitid = submission.create_visual(
-        request.userid, s, friends_only=form.friends, tags=tags,
+        request.userid, s, friends_only='friends' in request.POST, tags=tags,
         imageURL=form.imageURL, thumbfile=form.thumbfile, submitfile=form.submitfile,
-        critique=form.critique, create_notifications=('nonotification' not in form))
+        critique='critique' in request.POST, create_notifications=('nonotification' not in form))
 
     if 'customthumb' in form:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
@@ -101,7 +101,7 @@ def submit_literary_get_(request):
 @token_checked
 def submit_literary_post_(request):
     form = request.web_input(submitfile="", coverfile="", thumbfile="", title="",
-                             folderid="", subtype="", rating="", friends="", critique="",
+                             folderid="", subtype="", rating="",
                              content="", tags="", embedlink="")
 
     tags = searchtag.parse_tags(form.tags)
@@ -126,9 +126,9 @@ def submit_literary_post_(request):
     s.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
 
     submitid, thumb = submission.create_literary(
-        request.userid, s, embedlink=form.embedlink, friends_only=form.friends, tags=tags,
+        request.userid, s, embedlink=form.embedlink, friends_only='friends' in request.POST, tags=tags,
         coverfile=form.coverfile, thumbfile=form.thumbfile, submitfile=form.submitfile,
-        critique=form.critique, create_notifications=('nonotification' not in form))
+        critique='critique' in request.POST, create_notifications=('nonotification' not in form))
     if thumb:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
     else:
@@ -153,8 +153,8 @@ def submit_multimedia_get_(request):
 @token_checked
 def submit_multimedia_post_(request):
     form = request.web_input(submitfile="", coverfile="", thumbfile="", embedlink="",
-                             title="", folderid="", subtype="", rating="", friends="",
-                             critique="", content="", tags="")
+                             title="", folderid="", subtype="", rating="",
+                             content="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -180,9 +180,9 @@ def submit_multimedia_post_(request):
     autothumb = ('noautothumb' not in form)
 
     submitid, thumb = submission.create_multimedia(
-        request.userid, s, embedlink=form.embedlink, friends_only=form.friends, tags=tags,
+        request.userid, s, embedlink=form.embedlink, friends_only='friends' in request.POST, tags=tags,
         coverfile=form.coverfile, thumbfile=form.thumbfile, submitfile=form.submitfile,
-        critique=form.critique, create_notifications=('nonotification' not in form),
+        critique='critique' in request.POST, create_notifications=('nonotification' not in form),
         auto_thumb=autothumb)
     if thumb and not autothumb:
         raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
@@ -509,7 +509,7 @@ def edit_submission_get_(request):
 @token_checked
 def edit_submission_post_(request):
     form = request.web_input(submitid="", title="", folderid="", subtype="", rating="",
-                             content="", friends="", critique="", embedlink="")
+                             content="", embedlink="")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -524,7 +524,7 @@ def edit_submission_post_(request):
     s.subtype = define.get_int(form.subtype)
 
     submission.edit(request.userid, s, embedlink=form.embedlink,
-                    friends_only=form.friends, critique=form.critique)
+                    friends_only='friends' in request.POST, critique='critique' in request.POST)
     raise HTTPSeeOther(location="/submission/%i/%s%s" % (
         define.get_int(form.submitid),
         slug_for(form.title),

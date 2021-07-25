@@ -9,7 +9,7 @@ $code:
   def _SUBTYPE(x):
     return ' selected="selected"' if query['subtype'] == x else ''
   def _CHECKED(x):
-    return ' checked="checked"' if x in query['settings'] else ''
+    return ' checked="checked"' if query[x] else ''
 
 <div id="edit-submission-content" class="content">
 
@@ -22,11 +22,11 @@ $code:
     <label for="editsubmissiontitle">Title</label>
     <input type="text" name="title" class="input" value="${query['title']}" id="editsubmissiontitle" maxlength="200" />
 
-    $if 'v' in query['settings']:
+    $if 'other' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
       <input type="text" name="embedlink" class="input" value="${query['embedlink']}" id="embedlink" />
 
-    $if 'D' in query['settings']:
+    $if 'google-drive' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
       <input type="url" class="input" name="embedlink" id="embedlink"
              value="${query['google_doc_embed'].embed_url}" />
@@ -59,11 +59,11 @@ $code:
     <h3>Additional Options</h3>
 
     <label for="editsubmissionfriends" class="input-checkbox">
-      <input type="checkbox" id="editsubmissionfriends" name="friends"$:{_CHECKED("f")} />
+      <input type="checkbox" id="editsubmissionfriends" name="friends"$:{_CHECKED("friends_only")} />
       Make this submission visible only to my friends
     </label>
     <label for="editsubmissioncrit" class="input-checkbox">
-      <input type="checkbox" id="editsubmissioncrit" name="critique"$:{_CHECKED("q")} />
+      <input type="checkbox" id="editsubmissioncrit" name="critique"$:{_CHECKED("critique")} />
       Flag this submission for critique
     </label>
 

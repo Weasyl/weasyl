@@ -194,19 +194,7 @@ def signout_(request):
 
 @guest_required
 def signup_get_(request):
-    form = request.web_input(email="")
-
-    return Response(define.webpage(request.userid, "etc/signup.html", [
-        # Signup data
-        {
-            "email": form.email,
-            "username": None,
-            "day": None,
-            "month": None,
-            "year": None,
-            "error": None,
-        },
-    ], title="Create a Weasyl Account"))
+    return Response(define.webpage(request.userid, "etc/signup.html", (), title="Create a Weasyl Account"))
 
 
 @guest_required

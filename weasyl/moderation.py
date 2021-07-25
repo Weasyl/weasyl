@@ -740,10 +740,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     elif action == 'clearcritique':
         # Clear the "critique requested" flag
         def action(tbl):
-            return (
-                tbl.update()
-                .values(settings=sa.func.replace(tbl.c.settings, 'q', ''))
-                .where(tbl.c.settings.op('~')('q')))
+            raise WeasylError("Unexpected")  # pragma: no cover
 
         def split_columns_action(tbl):
             return (
@@ -757,10 +754,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     elif action == 'setcritique':
         # Set the "critique requested" flag
         def action(tbl):
-            return (
-                tbl.update()
-                .values(settings=tbl.c.settings.op('||')('q'))
-                .where(tbl.c.settings.op('!~')('q')))
+            raise WeasylError("Unexpected")  # pragma: no cover
 
         def split_columns_action(tbl):
             return (

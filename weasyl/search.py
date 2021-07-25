@@ -269,7 +269,8 @@ def _find_without_media(userid, rating, limit,
             find=search.find,
             select=select,
             subtype=subtype,
-            title_field="char_name" if search.find == "char" else "title"
+            title_field="char_name" if search.find == "char" else "title",
+            extra_fields=", content.settings" if search.find == "char" else ""
         )
 
     pagination_filter = (
@@ -282,6 +283,7 @@ def _find_without_media(userid, rating, limit,
         SELECT
             content.{select}, content.{title_field} AS title, content.rating, content.unixtime, content.userid,
             profile.username, {subtype} as subtype
+            {extra_fields}
         """,
         pagination_filter,
         "ORDER BY content.{{select}} {order} LIMIT %(limit)s".format(order="" if backid else "DESC"))
@@ -317,16 +319,7 @@ def _find_without_media(userid, rating, limit,
 
     query = d.engine.execute(statement, params)
 
-    ret = [{
-        "contype": type_code,
-        select: i[select],
-        "title": i.title,
-        "subtype": i.subtype,
-        "rating": i.rating,
-        "unixtime": i.unixtime,
-        "userid": i.userid,
-        "username": i.username,
-    } for i in query]
+    ret = [{"contype": type_code, **i} for i in query]
 
     if backid:
         # backid is the item after the last item (display-order-wise) on the

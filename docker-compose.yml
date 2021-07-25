@@ -54,6 +54,8 @@ services:
       - logs:/weasyl/storage/log
       - profile-stats:/weasyl/storage/profile-stats
       - type: tmpfs
+        target: /weasyl/storage/temp
+      - type: tmpfs
         target: /tmp
     networks:
       - external-web

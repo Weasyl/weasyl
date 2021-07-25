@@ -5,9 +5,11 @@ from urllib.parse import urlparse
 
 import arrow
 import sqlalchemy as sa
+from sqlalchemy import bindparam
 
 from libweasyl.cache import region
 from libweasyl.models.media import MediaItem
+from libweasyl.models.tables import google_doc_embeds
 from libweasyl import (
     html,
     images,
@@ -536,6 +538,24 @@ def reupload(userid, submitid, submitfile):
             orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated-webp', thumb_generated_media_item_webp)
 
 
+_GOOGLE_DOCS_EMBED_URL_QUERY = (
+    sa.select([google_doc_embeds.c.embed_url])
+    .where(google_doc_embeds.c.submitid == bindparam('submitid'))
+)
+
+
+def get_google_docs_embed_url(submitid):
+    embed_url = d.engine.scalar(
+        _GOOGLE_DOCS_EMBED_URL_QUERY,
+        {"submitid": submitid},
+    )
+
+    if embed_url is None:
+        raise WeasylError("Unexpected")  # pragma: no cover
+
+    return embed_url
+
+
 def select_view(userid, submitid, rating, ignore=True, anyway=None):
     # TODO(hyena): This `query[n]` stuff is monstrous. Use named fields.
     # Also some of these don't appear to be used? e.g. pr.config
@@ -577,14 +597,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
 
     google_doc_embed = None
     if query[11] == 'google-drive':
-        db = d.connect()
-        gde = d.meta.tables['google_doc_embeds']
-        q = (sa.select([gde.c.embed_url])
-             .where(gde.c.submitid == submitid))
-        results = db.execute(q).fetchall()
-        if not results:
-            raise WeasylError("can't find embed information")
-        google_doc_embed = results[0]
+        google_doc_embed = get_google_docs_embed_url(submitid)
 
     tags, artist_tags = searchtag.select_with_artist_tags(submitid)
     settings = d.get_profile_settings(query[0])
@@ -658,7 +671,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
     if sub.embed_type == 'other':
         embedlink, _, description = description.partition('\n')
     elif sub.embed_type == 'google-drive':
-        embedlink = sub.google_doc_embed.embed_url
+        embedlink = get_google_docs_embed_url(submitid)
 
     views = sub.page_views
     if increment_views and d.common_view_content(userid, submitid, 'submit'):

@@ -200,21 +200,14 @@ def _delete_expired():
     d.engine.execute("DELETE FROM logincreate WHERE created_at < now() - INTERVAL '2 days'")
 
 
-# form
-#   username     email         month
-#   password     emailcheck    year
-#   passcheck    day
-
 def create(form):
     # Normalize form data
     username = clean_display_name(form.username)
     sysname = d.get_sysname(username)
 
     email = emailer.normalize_address(form.email)
-    emailcheck = emailer.normalize_address(form.emailcheck)
 
     password = form.password
-    passcheck = form.passcheck
     if form.day and form.month and form.year:
         try:
             birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
@@ -222,12 +215,6 @@ def create(form):
             raise WeasylError("birthdayInvalid")
     else:
         birthday = None
-
-    # Check mismatched form data
-    if password != passcheck:
-        raise WeasylError("passwordMismatch")
-    if email != emailcheck:
-        raise WeasylError("emailMismatch")
 
     # Check invalid form data
     if birthday is None or d.age_in_years(birthday) < 13:
@@ -492,6 +479,25 @@ def is_email_blacklisted(address):
         "SELECT EXISTS (SELECT FROM emailblacklist WHERE domain_name = %(domain)s)",
         domain=private_suffix,
     )
+
+
+def authenticate_account_change(*, userid, password):
+    """
+    Check a password against an account, throwing WeasylError('passwordIncorrect') if it doesn’t match.
+
+    Bans/suspensions and two-factor authentication aren’t checked.
+
+    Returns the account’s e-mail address, because it’s convenient.
+    """
+    row = d.engine.execute(
+        "SELECT email, hashsum FROM login INNER JOIN authbcrypt USING (userid) WHERE userid = %(user)s",
+        {"user": userid},
+    ).first()
+
+    if not bcrypt.checkpw(password.encode('utf-8'), row.hashsum.encode('ascii')):
+        raise WeasylError('passwordIncorrect')
+
+    return row.email
 
 
 def verify_email_change(userid, token):

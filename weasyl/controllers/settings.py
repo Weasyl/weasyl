@@ -259,10 +259,12 @@ def control_username_post_(request):
 @login_required
 @disallow_api
 def control_editemailpassword_get_(request):
+    profile_info = profile.select_manage(request.userid)
+
     return Response(define.webpage(
         request.userid,
         "control/edit_emailpassword.html",
-        [profile.select_manage(request.userid)["email"]],
+        (profile_info["email"], profile_info["username"]),
         title="Edit Password and Email Address"
     ))
 
@@ -271,18 +273,16 @@ def control_editemailpassword_get_(request):
 @disallow_api
 @token_checked
 def control_editemailpassword_post_(request):
-    form = request.web_input(newemail="", newemailcheck="", newpassword="", newpasscheck="", password="")
+    newemail = emailer.normalize_address(request.POST["newemail"])
 
-    newemail = emailer.normalize_address(form.newemail)
-    newemailcheck = emailer.normalize_address(form.newemailcheck)
-
-    # Check if the email was invalid; Both fields must be valid (not None), and have the form fields set
-    if not newemail and not newemailcheck and form.newemail != "" and form.newemailcheck != "":
+    if not newemail and request.POST["newemail"] != "":
         raise WeasylError("emailInvalid")
 
     return_message = profile.edit_email_password(
-        request.userid, form.username, form.password, newemail, newemailcheck,
-        form.newpassword, form.newpasscheck
+        userid=request.userid,
+        password=request.POST["password"],
+        newemail=newemail,
+        newpassword=request.POST["newpassword"],
     )
 
     if not return_message:  # No changes were made

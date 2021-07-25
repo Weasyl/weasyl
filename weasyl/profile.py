@@ -508,8 +508,7 @@ def edit_userinfo(userid, form):
     d._get_all_config.invalidate(userid)
 
 
-def edit_email_password(userid, username, password, newemail, newemailcheck,
-                        newpassword, newpasscheck):
+def edit_email_password(*, userid, password, newemail, newpassword):
     """
     Edit the email address and/or password for a given Weasyl account.
 
@@ -519,40 +518,27 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
 
     Parameters:
         userid: The `userid` of the Weasyl account to modify.
-        username: User-entered username for password-based authentication.
         password: The user's current plaintext password.
         newemail: If changing the email on the account, the new email address. Optional.
-        newemailcheck: A verification field for the above to serve as a typo-check. Optional,
-        but mandatory if `newemail` provided.
         newpassword: If changing the password, the user's new password. Optional.
-        newpasscheck: Verification field for `newpassword`. Optional, but mandatory if
-        `newpassword` provided.
     """
     from weasyl import login
+
+    # Check that credentials are correct
+    current_email = login.authenticate_account_change(
+        userid=userid,
+        password=password,
+    )
 
     # Track if any changes were made for later display back to the user.
     changes_made = ""
 
-    # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
-
-    # Run checks prior to modifying anything...
-    if userid != logid or logerror is not None:
-        raise WeasylError("loginInvalid")
-
-    if newemail:
-        if newemail != newemailcheck:
-            raise WeasylError("emailMismatch")
-
-    if newpassword:
-        if newpassword != newpasscheck:
-            raise WeasylError("passwordMismatch")
-        elif not login.password_secure(newpassword):
-            raise WeasylError("passwordInsecure")
+    if newpassword and not login.password_secure(newpassword):
+        raise WeasylError("passwordInsecure")
 
     # If we are setting a new email, then write the email into a holding table pending confirmation
     #   that the email is valid.
-    if newemail:
+    if newemail and newemail.lower() != current_email.lower():
         # Only actually attempt to change the email if unused; prevent finding out if an email is already registered
         if not login.email_exists(newemail):
             token = security.generate_key(40)

@@ -87,14 +87,12 @@ def prepare(token):
     return reset_target
 
 
-def reset(token, password, passcheck, expect_userid, address):
+def reset(*, token, password, expect_userid, address):
     from weasyl import login
 
     token_sha256 = _hash_token(token)
 
-    if password != passcheck:
-        raise WeasylError("passwordMismatch")
-    elif not login.password_secure(password):
+    if not login.password_secure(password):
         raise WeasylError("passwordInsecure")
 
     with d.engine.begin() as db:

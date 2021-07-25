@@ -7,32 +7,16 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
     $:{CSRF()}
 
     <label for="signup-username">Username</label>
-    <input type="text" id="signup-username" class="input" name="username" autofocus required maxlength="25" />
+    <input type="text" id="signup-username" class="input" name="username" autofocus required maxlength="25" autocomplete="username" />
 
-    <div class="form-2up clear">
-      <div class="form-2up-1">
-        <label for="signup-password">Password</label>
-        <input type="password" id="signup-password" class="input" name="password" maxlength="72" required />
-      </div>
-      <div class="form-2up-2">
-        <label for="signup-passcheck" class="color-lighter">Confirm</label>
-        <input type="password" id="signup-passcheck" class="input" name="passcheck" maxlength="72" required />
-      </div>
-    </div>
+    <label for="signup-password">Password</label>
+    <input type="password" id="signup-password" class="input" name="password" minlength="10" maxlength="72" required autocomplete="new-password" />
     <p class="color-lighter" style="padding-top: 0.5em;"><i>Passwords must be a minimum of 10 characters.</i></p>
 
     <div id="password-strength" class="password-strength password-strength-empty" data-password-input="signup-password" data-personal-inputs="signup-username,signup-email,year"></div>
 
-    <div class="form-2up clear">
-      <div class="form-2up-1">
-        <label for="signup-email">Email Address</label>
-        <input type="email" id="signup-email" class="input" name="email" placeholder="john@doe.com" required="required" />
-      </div>
-      <div class="form-2up-2">
-        <label for="signup-emailcheck" class="color-lighter">Confirm</label>
-        <input type="email" id="signup-emailcheck" class="input" name="emailcheck" placeholder="john@doe.com" required="required" />
-      </div>
-    </div>
+    <label for="signup-email">Email Address</label>
+    <input type="email" id="signup-email" class="input" name="email" placeholder="john@doe.com" required autocomplete="email" />
 
     <label for="signup-birthday">Date of Birth</label>
     <div class="form-date clear">
@@ -83,7 +67,7 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
       By registering an account on Weasyl, you agree that you have fully read and will abide by both the
       <a href="/policy/tos">Terms of Service</a> and the <a href="/policy/community">Community Guidelines</a>,
       and that you agree to the terms outlined in the <a href="/policy/privacy">Privacy Policy</a>.
-      If you accept these policies and conditions, click the <strong>Create Account</strong> button to register;
+      If you accept these policies and conditions, click the <strong>Join Weasyl</strong> button to register;
       otherwise, click <strong>Cancel</strong> to continue browsing as a guest.
     </div>
 

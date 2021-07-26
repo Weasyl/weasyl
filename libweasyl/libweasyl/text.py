@@ -289,7 +289,8 @@ def _markdown_fragment(target):
 
 def markdown(target):
     fragment = _markdown_fragment(target)
-    return html.tostring(fragment, encoding="unicode")[5:-6]  # <div>...</div>
+    start, stripped, end = strip_outer_tag(html.tostring(fragment, encoding="unicode"))
+    return stripped
 
 
 def _itertext_spaced(element):

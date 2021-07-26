@@ -86,6 +86,8 @@ class Journal(Base):
     with clauses_for(__table__) as c:
         hidden = c('hidden')
 
+    new_hidden = __table__.c.hidden
+
     def legacy_path(self, mod=False):
         """
         Create the weasyl-old relative URL for a journal.
@@ -114,6 +116,8 @@ class Character(Base):
 
     with clauses_for(__table__) as c:
         hidden = c('hidden')
+
+    new_hidden = __table__.c.hidden
 
     @property
     def title(self):

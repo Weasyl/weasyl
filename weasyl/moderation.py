@@ -698,7 +698,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=sa.func.replace(tbl.c.settings, 'h', ''))
+                .values(settings=sa.func.replace(tbl.c.settings, 'h', ''), hidden=False)
                 .where(tbl.c.settings.op('~')('h')))
 
         # TODO(hyena): When we live in a world without settings columns, just call these `action()`.
@@ -716,7 +716,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=tbl.c.settings.op('||')('h'))
+                .values(settings=tbl.c.settings.op('||')('h'), hidden=True)
                 .where(tbl.c.settings.op('!~')('h')))
 
         def split_columns_action(tbl):

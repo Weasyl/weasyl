@@ -45,6 +45,8 @@ def create(userid, journal, friends_only=False, tags=None):
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
         "settings": settings,
+        "hidden": False,
+        "friends_only": friends_only,
         "submitter_ip_address": journal.submitter_ip_address,
         "submitter_user_agent_id": journal.submitter_user_agent_id,
     })
@@ -292,6 +294,7 @@ def edit(userid, journal, friends_only=False):
             'content': journal.content,
             'rating': journal.rating,
             'settings': settings,
+            'friends_only': friends_only,
         })
     )
 
@@ -307,7 +310,7 @@ def remove(userid, journalid):
     if userid not in staff.MODS and userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    query = d.execute("UPDATE journal SET settings = settings || 'h'"
+    query = d.execute("UPDATE journal SET settings = settings || 'h', hidden = TRUE"
                       " WHERE journalid = %i AND settings !~ 'h' RETURNING journalid", [journalid])
 
     if query:

@@ -101,6 +101,8 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
             "content": character.content,
             "rating": character.rating.code,
             "settings": settings,
+            "hidden": False,
+            "friends_only": friends,
         })
     except PostgresError:
         files.clear_temporary(userid)
@@ -388,6 +390,7 @@ def edit(userid, character, friends_only):
             'content': character.content,
             'rating': character.rating,
             'settings': settings,
+            'friends_only': friends_only,
         })
     )
 
@@ -404,7 +407,7 @@ def remove(userid, charid):
     if userid not in staff.MODS and userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    query = define.execute("UPDATE character SET settings = settings || 'h'"
+    query = define.execute("UPDATE character SET settings = settings || 'h', hidden = TRUE"
                            " WHERE charid = %i AND settings !~ 'h'"
                            " RETURNING charid", [charid])
 

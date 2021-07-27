@@ -139,7 +139,7 @@ def status_check_tween_factory(handler, registry):
     def status_check_tween(request):
         status = d.common_status_check(request.userid)
         if status:
-            return Response(d.common_status_page(request.userid, status))
+            return d.common_status_page(request.userid, status)
         return handler(request)
     return status_check_tween
 

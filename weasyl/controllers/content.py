@@ -204,7 +204,7 @@ def submit_character_get_(request):
 @token_checked
 def submit_character_post_(request):
     form = request.web_input(submitfile="", thumbfile="", title="", age="", gender="",
-                             height="", weight="", species="", rating="", friends="",
+                             height="", weight="", species="", rating="",
                              content="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
@@ -229,7 +229,7 @@ def submit_character_post_(request):
     c.content = form.content
     c.rating = rating
 
-    charid = character.create(request.userid, c, form.friends, tags,
+    charid = character.create(request.userid, c, 'friends' in request.POST, tags,
                               form.thumbfile, form.submitfile)
     raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
 
@@ -246,7 +246,7 @@ def submit_journal_get_(request):
 @login_required
 @token_checked
 def submit_journal_post_(request):
-    form = request.web_input(title="", rating="", friends="", members="", content="", tags="")
+    form = request.web_input(title="", rating="", members="", content="", tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -266,7 +266,7 @@ def submit_journal_post_(request):
     j.content = form.content
     j.submitter_ip_address = request.client_addr
     j.submitter_user_agent_id = get_user_agent_id(ua_string=request.user_agent)
-    journalid = journal.create(request.userid, j, friends_only=form.friends,
+    journalid = journal.create(request.userid, j, friends_only='friends' in request.POST,
                                tags=tags)
     raise HTTPSeeOther(location="/journal/%i/%s" % (journalid, slug_for(form.title)))
 
@@ -553,7 +553,7 @@ def edit_character_get_(request):
 @token_checked
 def edit_character_post_(request):
     form = request.web_input(charid="", title="", age="", gender="", height="",
-                             weight="", species="", rating="", content="", friends="")
+                             weight="", species="", rating="", content="")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -570,7 +570,7 @@ def edit_character_post_(request):
     c.content = form.content
     c.rating = rating
 
-    character.edit(request.userid, c, friends_only=form.friends)
+    character.edit(request.userid, c, friends_only='friends' in request.POST)
     raise HTTPSeeOther(location="/character/%i/%s%s" % (
         define.get_int(form.charid),
         slug_for(form.title),
@@ -598,7 +598,7 @@ def edit_journal_get_(request):
 @login_required
 @token_checked
 def edit_journal_post_(request):
-    form = request.web_input(journalid="", title="", rating="", friends="", content="")
+    form = request.web_input(journalid="", title="", rating="", content="")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating))
     if not rating:
@@ -609,7 +609,7 @@ def edit_journal_post_(request):
     j.title = form.title
     j.rating = rating
     j.content = form.content
-    journal.edit(request.userid, j, friends_only=form.friends)
+    journal.edit(request.userid, j, friends_only='friends' in request.POST)
     raise HTTPSeeOther(location="/journal/%i/%s%s" % (
         define.get_int(form.journalid),
         slug_for(form.title),

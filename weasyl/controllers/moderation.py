@@ -116,32 +116,6 @@ def modcontrol_massaction_(request):
 
 
 @moderator_only
-@token_checked
-def modcontrol_hide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.hidesubmission(int(form.submission))
-    elif form.character:
-        moderation.hidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
-
-
-@moderator_only
-@token_checked
-def modcontrol_unhide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.unhidesubmission(int(form.submission))
-    elif form.character:
-        moderation.unhidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
-
-
-@moderator_only
 def modcontrol_manageuser_(request):
     form = request.web_input(name="")
 

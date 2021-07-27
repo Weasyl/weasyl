@@ -85,8 +85,8 @@ def MACRO_MOD_ACTIONS_FOR_SETTINGS(settings, submission_type):
     valid_list = MACRO_MOD_ACTIONS
 
     # Journals and characters can't have the critique flag set
-    if submission_type in ("journal", "character"):
-        valid_list = [(a, b) for a, b in valid_list if not a.endswith('critique')]
+    assert submission_type in ("journal", "character")
+    valid_list = [(a, b) for a, b in valid_list if not a.endswith('critique')]
 
     # Select whether we show 'Show' or 'Hide' depending on whether the
     # submission is hidden
@@ -94,13 +94,6 @@ def MACRO_MOD_ACTIONS_FOR_SETTINGS(settings, submission_type):
         valid_list = [(a, b) for a, b in valid_list if a != 'hide']
     else:
         valid_list = [(a, b) for a, b in valid_list if a != 'show']
-
-    # Select whether we show 'Set Critique' or 'Clear Critique' depending on
-    # whether the Critique Requested flag is set
-    if 'q' in settings:
-        valid_list = [(a, b) for a, b in valid_list if a != 'setcritique']
-    else:
-        valid_list = [(a, b) for a, b in valid_list if a != 'clearcritique']
 
     # Return our shiny, filtered list of mod actions
     return valid_list

@@ -487,7 +487,7 @@ def submissionsbyuser(targetid):
 
 def charactersbyuser(targetid):
     query = d.engine.execute("""
-        SELECT charid, unixtime, char_name, rating, settings
+        SELECT charid, unixtime, char_name, rating, settings, hidden, friends_only
         FROM character
         WHERE userid = %(user)s
     """, user=targetid)
@@ -495,20 +495,20 @@ def charactersbyuser(targetid):
     return [{
         "contype": 20,
         "userid": targetid,
-        "charid": item[0],
-        "unixtime": item[1],
-        "title": item[2],
-        "rating": item[3],
-        "hidden": "h" in item[4],
-        "friends_only": "f" in item[4],
+        "charid": item.charid,
+        "unixtime": item.unixtime,
+        "title": item.char_name,
+        "rating": item.rating,
+        "hidden": item.hidden,
+        "friends_only": item.friends_only,
         "critique": False,
-        "sub_media": character.fake_media_items(item[0], targetid, "unused", item[4]),
+        "sub_media": character.fake_media_items(item.charid, targetid, "unused", item.settings),
     } for item in query]
 
 
 def journalsbyuser(targetid):
     query = d.engine.execute("""
-        SELECT journalid, title, settings ~ 'h' AS hidden, settings ~ 'f' AS friends_only, unixtime, rating
+        SELECT journalid, title, hidden, friends_only, unixtime, rating
         FROM journal
         WHERE userid = %(user)s
     """, user=targetid)
@@ -631,16 +631,11 @@ def editcatchphrase(userid, otherid, content):
         '%s\n\n## Catchphrase was:\n\n%s' % (content, previous_catchphrase))
 
 
-_settings_column_tables = [
+_tables = [
+    (d.meta.tables['submission'], 'submitid', 'title', 'submission'),
     (d.meta.tables['character'], 'charid', 'char_name', 'character'),
     (d.meta.tables['journal'], 'journalid', 'title', 'journal'),
 ]
-
-_split_settings_tables = [
-    (d.meta.tables['submission'], 'submitid', 'title', 'submission'),
-]
-
-_tables = _split_settings_tables + _settings_column_tables
 
 
 def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals=()):
@@ -698,13 +693,6 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=sa.func.replace(tbl.c.settings, 'h', ''), hidden=False)
-                .where(tbl.c.settings.op('~')('h')))
-
-        # TODO(hyena): When we live in a world without settings columns, just call these `action()`.
-        def split_columns_action(tbl):
-            return (
-                tbl.update()
                 .values(hidden=False)
                 .where(tbl.c.hidden))
 
@@ -716,14 +704,8 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=tbl.c.settings.op('||')('h'), hidden=True)
-                .where(tbl.c.settings.op('!~')('h')))
-
-        def split_columns_action(tbl):
-            return (
-                tbl.update()
                 .values(hidden=True)
-                .where(tbl.c.hidden.isnot(True)))
+                .where(~tbl.c.hidden))
 
         action_string = 'hidden'
         # There's no value in giving the user a link to the submission as they
@@ -740,9 +722,6 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     elif action == 'clearcritique':
         # Clear the "critique requested" flag
         def action(tbl):
-            raise WeasylError("Unexpected")  # pragma: no cover
-
-        def split_columns_action(tbl):
             return (
                 tbl.update()
                 .values(critique=False)
@@ -754,13 +733,10 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     elif action == 'setcritique':
         # Set the "critique requested" flag
         def action(tbl):
-            raise WeasylError("Unexpected")  # pragma: no cover
-
-        def split_columns_action(tbl):
             return (
                 tbl.update()
                 .values(critique=True)
-                .where(tbl.c.critique.isnot(True)))
+                .where(~tbl.c.critique))
 
         action_string = 'marked as "critique requested"'
         provide_link = True
@@ -772,24 +748,10 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     affected = collections.defaultdict(list)
     copyable = []
 
-    # Some tables still use character string settings columns. Others are split individual columns. While we
-    # transition to the latter, we have to support both.
-    for (tbl, col, title_col, urlpart), values in zip(_settings_column_tables, [characters, journals]):
+    for (tbl, col, title_col, urlpart), values in zip(_tables, [submissions, characters, journals]):
         if values:
             results = db.execute(
                 action(tbl)
-                .where(tbl.c[col].in_(values))
-                .returning(tbl.c[col], tbl.c[title_col], tbl.c.userid))
-            for thingid, title, ownerid in results:
-                affected[ownerid].append('- ' + text.markdown_link(title, '/%s/%s?anyway=true' % (urlpart, thingid)))
-                if provide_link:
-                    copyable.append('- ' + text.markdown_link(title, '/%s/%s' % (urlpart, thingid)))
-                else:
-                    copyable.append('- %s' % (title,))
-    for (tbl, col, title_col, urlpart), values in zip(_split_settings_tables, [submissions]):
-        if values:
-            results = db.execute(
-                split_columns_action(tbl)
                 .where(tbl.c[col].in_(values))
                 .returning(tbl.c[col], tbl.c[title_col], tbl.c.userid))
             for thingid, title, ownerid in results:

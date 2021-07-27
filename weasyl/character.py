@@ -1,5 +1,4 @@
 import arrow
-import re
 
 from libweasyl import images
 from libweasyl import ratings
@@ -79,11 +78,10 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
         raise WeasylError("thumbType")
 
     # Assign settings
-    settings = []
-    settings.append("f" if friends else "")
-    settings.append(files.typeflag("submit", submitextension))
-    settings.append(files.typeflag("cover", submitextension))
-    settings = "".join(settings)
+    settings = (
+        files.typeflag("submit", submitextension)
+        + files.typeflag("cover", submitextension)
+    )
 
     # Insert submission data
     ch = define.meta.tables["character"]
@@ -127,7 +125,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
-                             settings=settings)
+                             friends_only=friends)
 
     # Clear temporary files
     files.clear_temporary(userid)
@@ -146,7 +144,7 @@ def reupload(userid, charid, submitdata):
 
     # Select character data
     query, = define.engine.execute("""
-        SELECT userid, settings FROM character WHERE charid = %(character)s AND settings !~ 'h'
+        SELECT userid, settings FROM character WHERE charid = %(character)s AND NOT hidden
     """, character=charid)
 
     if userid != query.userid:
@@ -169,9 +167,10 @@ def reupload(userid, charid, submitdata):
         submitfile, files.make_resource(userid, charid, "char/cover", submitextension))
 
     # Update settings
-    settings = re.sub(r'[~=].', '', query.settings)
-    settings += files.typeflag("submit", submitextension)
-    settings += files.typeflag("cover", submitextension)
+    settings = (
+        files.typeflag("submit", submitextension)
+        + files.typeflag("cover", submitextension)
+    )
     define.engine.execute("""
         UPDATE character
            SET settings = %(settings)s
@@ -179,25 +178,24 @@ def reupload(userid, charid, submitdata):
     """, settings=settings, character=charid)
 
 
-def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway=False, increment_views=True):
+def _select_character_and_check(userid, charid, *, rating, ignore, anyway, increment_views=True):
     """Selects a character, after checking if the user is authorized, etc.
 
     Args:
         userid (int): Currently authenticating user ID.
         charid (int): Character ID to fetch.
-        rating (int): Maximum rating to display. Defaults to None.
-        ignore (bool): Whether to respect ignored or blocked tags. Defaults to True.
-        anyway (bool): Whether to ignore checks and display anyway. Defaults to False.
+        rating (int): Maximum rating to display.
+        ignore (bool): Whether to respect ignored or blocked tags
+        anyway (bool): Whether to ignore checks and display anyway.
         increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
 
     Returns:
         A character and all needed data as a dict.
     """
-
     query = define.engine.execute("""
         SELECT
             ch.userid, pr.username, ch.unixtime, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
-            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
+            ch.content, ch.rating, ch.settings, ch.hidden, ch.friends_only, ch.page_views
         FROM character ch
             INNER JOIN profile pr USING (userid)
         WHERE ch.charid = %(charid)s
@@ -205,11 +203,11 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
     if query and userid in staff.MODS and anyway:
         pass
-    elif not query or 'h' in query.settings:
+    elif not query or query.hidden:
         raise WeasylError('characterRecordMissing')
     elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or define.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
-    elif 'f' in query.settings and not frienduser.check(userid, query.userid):
+    elif query.friends_only and not frienduser.check(userid, query.userid):
         raise WeasylError('FriendsOnly')
     elif ignore and ignoreuser.check(userid, query.userid):
         raise WeasylError('UserIgnored')
@@ -245,12 +243,11 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
         'species': query['species'],
         'content': query['content'],
         'rating': query['rating'],
-        'settings': query['settings'],
         'reported': report.check(charid=charid),
         'favorited': favorite.check(userid, charid=charid),
         'page_views': query['page_views'],
-        'friends_only': 'f' in query['settings'],
-        'hidden_submission': 'h' in query['settings'],
+        'friends_only': query['friends_only'],
+        'hidden': query['hidden'],
         'fave_count': favorite.count(charid, 'character'),
         'comments': comment.select(userid, charid=charid),
         'sub_media': fake_media_items(
@@ -285,7 +282,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         'rating': ratings.CODE_TO_NAME[query['rating']],
         'favorited': favorite.check(userid, charid=charid),
         'views': query['page_views'],
-        'friends_only': 'f' in query['settings'],
+        'friends_only': query['friends_only'],
         'favorites': favorite.count(charid, 'character'),
         'comments': comment.count(charid, 'character'),
         'media': api.tidy_all_media(fake_media_items(
@@ -298,7 +295,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
 
 
 def select_query(userid, rating, otherid=None, backid=None, nextid=None):
-    statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE ch.settings !~ '[h]'"]
+    statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE NOT ch.hidden"]
 
     # Ignored users and blocked tags
     if userid:
@@ -312,7 +309,7 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None):
         statement.append(macro.MACRO_BLOCKTAG_CHAR % (userid, userid))
         statement.append(macro.MACRO_FRIENDUSER_CHARACTER % (userid, userid, userid))
     else:
-        statement.append(" AND ch.rating <= %i AND ch.settings !~ 'f'" % (rating,))
+        statement.append(" AND ch.rating <= %i AND NOT ch.friends_only" % (rating,))
 
     # Content owner
     if otherid:
@@ -356,12 +353,12 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
 
 
 def edit(userid, character, friends_only):
-    query = define.engine.execute("SELECT userid, settings FROM character WHERE charid = %(id)s",
+    query = define.engine.execute("SELECT userid, hidden FROM character WHERE charid = %(id)s",
                                   id=character.charid).first()
 
-    if not query or "h" in query[1]:
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
-    elif userid != query[0] and userid not in staff.MODS:
+    elif userid != query.userid and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     elif not character.char_name:
         raise WeasylError("characterNameInvalid")
@@ -369,11 +366,7 @@ def edit(userid, character, friends_only):
         raise WeasylError("Unexpected")
     profile.check_user_rating_allowed(userid, character.rating)
 
-    # Assign settings
-    settings = query[1].replace("f", "")
-
     if friends_only:
-        settings += "f"
         welcome.character_remove(character.charid)
 
     ch = define.meta.tables["character"]
@@ -389,15 +382,14 @@ def edit(userid, character, friends_only):
             'species': character.species,
             'content': character.content,
             'rating': character.rating,
-            'settings': settings,
             'friends_only': friends_only,
         })
     )
 
-    if userid != query[0]:
+    if userid != query.userid:
         from weasyl import moderation
         moderation.note_about(
-            userid, query[0], 'The following character was edited:',
+            userid, query.userid, 'The following character was edited:',
             '- ' + text.markdown_link(character.char_name, '/character/%s?anyway=true' % (character.charid,)))
 
 
@@ -407,11 +399,12 @@ def remove(userid, charid):
     if userid not in staff.MODS and userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    query = define.execute("UPDATE character SET settings = settings || 'h', hidden = TRUE"
-                           " WHERE charid = %i AND settings !~ 'h'"
-                           " RETURNING charid", [charid])
+    result = define.engine.execute(
+        "UPDATE character SET hidden = TRUE WHERE charid = %(charid)s AND NOT hidden",
+        {"charid": charid},
+    )
 
-    if query:
+    if result.rowcount != 0:
         welcome.character_remove(charid)
 
     return ownerid

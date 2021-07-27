@@ -32,9 +32,6 @@ def create(userid, journal, friends_only=False, tags=None):
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, journal.rating)
 
-    # Assign settings
-    settings = "f" if friends_only else ""
-
     # Create journal
     jo = d.meta.tables["journal"]
 
@@ -44,7 +41,6 @@ def create(userid, journal, friends_only=False, tags=None):
         "content": journal.content,
         "rating": journal.rating.code,
         "unixtime": arrow.now(),
-        "settings": settings,
         "hidden": False,
         "friends_only": friends_only,
         "submitter_ip_address": journal.submitter_ip_address,
@@ -55,23 +51,22 @@ def create(userid, journal, friends_only=False, tags=None):
     searchtag.associate(userid, tags, journalid=journalid)
 
     # Create notifications
-    if "m" not in settings:
-        welcome.journal_insert(userid, journalid, rating=journal.rating.code,
-                               settings=settings)
+    welcome.journal_insert(userid, journalid, rating=journal.rating.code,
+                           friends_only=friends_only)
 
     d.metric('increment', 'journals')
 
     return journalid
 
 
-def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anyway=False, increment_views=True):
+def _select_journal_and_check(userid, journalid, *, rating, ignore, anyway, increment_views=True):
     """Selects a journal, after checking if the user is authorized, etc.
 
     Args:
         userid (int): Currently authenticating user ID.
-        journalid (int): Character ID to fetch.
-        rating (int): Maximum rating to display. Defaults to None.
-        ignore (bool): Whether to respect ignored or blocked tags. Defaults to True.
+        journalid (int): Journal ID to fetch.
+        rating (int): Maximum rating to display.
+        ignore (bool): Whether to respect ignored or blocked tags.
         anyway (bool): Whether ignore checks and display anyway. Defaults to False.
         increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
 
@@ -80,21 +75,18 @@ def _select_journal_and_check(userid, journalid, rating=None, ignore=True, anywa
     """
 
     query = d.engine.execute("""
-        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.settings, jo.page_views, pr.config
+        SELECT jo.userid, pr.username, jo.unixtime, jo.title, jo.content, jo.rating, jo.hidden, jo.friends_only, jo.page_views
         FROM journal jo JOIN profile pr ON jo.userid = pr.userid
         WHERE jo.journalid = %(id)s
     """, id=journalid).first()
 
-    if not query:
-        # If there's no query result, there's no record, so fast-fail.
-        raise WeasylError('journalRecordMissing')
-    elif journalid and userid in staff.MODS and anyway:
+    if query and userid in staff.MODS and anyway:
         pass
-    elif not query or 'h' in query.settings:
+    elif not query or query.hidden:
         raise WeasylError('journalRecordMissing')
     elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or d.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
-    elif 'f' in query.settings and not frienduser.check(userid, query.userid):
+    elif query.friends_only and not frienduser.check(userid, query.userid):
         raise WeasylError('FriendsOnly')
     elif ignore and ignoreuser.check(userid, query.userid):
         raise WeasylError('UserIgnored')
@@ -123,12 +115,11 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'title': journal['title'],
         'content': journal['content'],
         'rating': journal['rating'],
-        'settings': journal['settings'],
         'page_views': journal['page_views'],
         'reported': report.check(journalid=journalid),
         'favorited': favorite.check(userid, journalid=journalid),
-        'friends_only': 'f' in journal['settings'],
-        'hidden_submission': 'h' in journal['settings'],
+        'friends_only': journal['friends_only'],
+        'hidden': journal['hidden'],
         'fave_count': favorite.count(journalid, 'journal'),
         'tags': searchtag.select(journalid=journalid),
         'comments': comment.select(userid, journalid=journalid),
@@ -140,7 +131,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
 
     journal = _select_journal_and_check(
         userid, journalid,
-        rating=rating, ignore=anyway, anyway=anyway, increment_views=increment_views)
+        rating=rating, ignore=False, anyway=anyway, increment_views=increment_views)
 
     return {
         'journalid': journalid,
@@ -158,7 +149,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
         'favorites': favorite.count(journalid, 'journal'),
         'comments': comment.count(journalid, 'journal'),
         'favorited': favorite.check(userid, journalid=journalid),
-        'friends_only': 'f' in journal['settings'],
+        'friends_only': journal['friends_only'],
         'posted_at': d.iso8601(journal['unixtime']),
     }
 
@@ -168,7 +159,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
         "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
-        " WHERE jo.settings !~ 'h'"]
+        " WHERE NOT jo.hidden"]
 
     if userid:
         # filter own content in SFW mode
@@ -180,7 +171,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
         statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
-        statement.append(" AND jo.rating <= %i AND jo.settings !~ 'f'" % (rating,))
+        statement.append(" AND jo.rating <= %i AND NOT jo.friends_only" % (rating,))
 
     if backid:
         statement.append(" AND jo.journalid > %i" % backid)
@@ -216,17 +207,19 @@ def select_list(userid, rating, otherid):
     else:
         statement.append(" jo.rating <= %i" % (rating,))
 
-    statement.append(
-        " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
+    statement.append(" AND jo.userid = %i AND NOT jo.hidden" % (otherid,))
 
-    statement.append("ORDER BY jo.journalid DESC")
+    if not frienduser.check(userid, otherid):
+        statement.append(" AND NOT jo.friends_only")
+
+    statement.append(" ORDER BY jo.journalid DESC")
 
     return [{
-        "journalid": i[0],
-        "title": i[1],
-        "created_at": arrow.get(i[2] - UNIXTIME_OFFSET),
-        "content": i[3],
-    } for i in d.execute("".join(statement))]
+        "journalid": i.journalid,
+        "title": i.title,
+        "created_at": arrow.get(i.unixtime - UNIXTIME_OFFSET),
+        "content": i.content,
+    } for i in d.engine.execute("".join(statement)).fetchall()]
 
 
 def select_latest(userid, rating, otherid):
@@ -241,21 +234,23 @@ def select_latest(userid, rating, otherid):
     else:
         statement.append(" jo.rating <= %i" % (rating,))
 
-    statement.append(
-        " AND jo.userid = %i AND jo.settings !~ '[%sh]'" % (otherid, "" if frienduser.check(userid, otherid) else "f"))
+    statement.append(" AND jo.userid = %i AND NOT jo.hidden" % (otherid,))
 
-    statement.append("ORDER BY jo.journalid DESC LIMIT 1")
+    if not frienduser.check(userid, otherid):
+        statement.append(" AND NOT jo.friends_only")
+
+    statement.append(" ORDER BY jo.journalid DESC LIMIT 1")
     query = d.engine.execute("".join(statement)).first()
 
     if query:
         return {
-            "journalid": query[0],
-            "title": query[1],
-            "content": query[2],
-            "unixtime": query[3],
+            "journalid": query.journalid,
+            "title": query.title,
+            "content": query.content,
+            "unixtime": query.unixtime,
             "comments": d.engine.scalar(
                 "SELECT count(*) FROM journalcomment WHERE targetid = %(journal)s AND settings !~ 'h'",
-                journal=query[0],
+                journal=query.journalid,
             ),
         }
 
@@ -270,19 +265,16 @@ def edit(userid, journal, friends_only=False):
     profile.check_user_rating_allowed(userid, journal.rating)
 
     query = d.engine.execute(
-        "SELECT userid, settings FROM journal WHERE journalid = %(id)s",
+        "SELECT userid, hidden FROM journal WHERE journalid = %(id)s",
         id=journal.journalid,
     ).first()
 
-    if not query or "h" in query[1]:
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    settings = query[1].replace("f", "")
-
     if friends_only:
-        settings += "f"
         welcome.journal_remove(journal.journalid)
 
     jo = d.meta.tables['journal']
@@ -293,7 +285,6 @@ def edit(userid, journal, friends_only=False):
             'title': journal.title,
             'content': journal.content,
             'rating': journal.rating,
-            'settings': settings,
             'friends_only': friends_only,
         })
     )
@@ -310,10 +301,12 @@ def remove(userid, journalid):
     if userid not in staff.MODS and userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    query = d.execute("UPDATE journal SET settings = settings || 'h', hidden = TRUE"
-                      " WHERE journalid = %i AND settings !~ 'h' RETURNING journalid", [journalid])
+    result = d.engine.execute(
+        "UPDATE journal SET hidden = TRUE WHERE journalid = %(journalid)s AND NOT hidden",
+        {"journalid": journalid},
+    )
 
-    if query:
+    if result.rowcount != 0:
         welcome.journal_remove(journalid)
 
     return ownerid

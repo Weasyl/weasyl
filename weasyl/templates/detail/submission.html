@@ -171,7 +171,7 @@ $code:
         <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
     $if query['reported'] and myself and myself['userid'] in staff.MODS:
       <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
-    $elif not query['hidden_submission']:
+    $elif not query['hidden']:
       <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
     </ul>
 
@@ -272,14 +272,14 @@ $code:
     $if not query['mine'] and myself and myself['userid'] in staff.MODS:
       <div id="detail-mod">
         <h3>Submission Moderation</h3>
-        $if query['hidden_submission']:
+        $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/submission?submitid=${query['submitid']}&amp;anyway=true">Edit Submission Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
           $:{CSRF()}
           <input type="hidden" name="submissions" value="${query['submitid']}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SUBMISSION(query['hidden_submission'], query['critique']):
+            $for value, name in M.get_mod_actions(query, "submission").items():
               <option value="${value}">${name}</option>
             <option value="zap-thumb">Remove Custom Thumbnail Art</option>
             $if query['subtype'] > 1999:

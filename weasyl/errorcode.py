@@ -70,7 +70,6 @@ error_messages = {
     "emailExists": "The email you entered is already taken by another user.",
     "emailIncorrect": "The email you entered is not associated with the account you specified.",
     "emailInvalid": "The email you entered does not appear to be valid.",
-    "emailMismatch": "The email you entered did not match the email confirmation.",
     "embedlinkInvalid": "The embed link you entered does not point to a valid resource or supported service.",
     "FeatureDisabled": "This feature has been temporarily disabled.",
     "FileType": "The file you uploaded is not of a valid type.",
@@ -90,7 +89,6 @@ error_messages = {
     "insufficientActionPermissions": "You do not have permission to perform this action.",
     "journalRecordMissing": journalid,
     "logincreateRecordMissing": "That's not a valid token!",
-    "loginInvalid": "The login credentials you entered were not correct.",
     "loginRecordMissing": (
         "The username you entered does not appear to be correct. Check to make sure that you entered the "
         "name correctly and that the account you are trying to recover the password for actually exists."),
@@ -110,7 +108,6 @@ error_messages = {
     "parentidInvalid": "The specified parent folder does not exist.",
     "passwordIncorrect": "The password you entered was incorrect.",
     "passwordInsecure": "Passwords must be at least 10 characters in length.",
-    "passwordMismatch": "The password you entered did not match the password confirmation.",
     "priceidInvalid": "You did not specify a price to edit.",
     "RatingExceeded": rating,
     "ratingInvalid": "The specified rating is invalid.",

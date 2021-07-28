@@ -194,26 +194,14 @@ def signout_(request):
 
 @guest_required
 def signup_get_(request):
-    form = request.web_input(email="")
-
-    return Response(define.webpage(request.userid, "etc/signup.html", [
-        # Signup data
-        {
-            "email": form.email,
-            "username": None,
-            "day": None,
-            "month": None,
-            "year": None,
-            "error": None,
-        },
-    ], title="Create a Weasyl Account"))
+    return Response(define.webpage(request.userid, "etc/signup.html", (), title="Create a Weasyl Account"))
 
 
 @guest_required
 @token_checked
 def signup_post_(request):
     form = request.web_input(
-        username="", password="", passcheck="", email="", emailcheck="",
+        username="", password="", email="",
         day="", month="", year="")
 
     login.create(form)
@@ -288,7 +276,6 @@ def resetpassword_post_(request):
     resetpassword.reset(
         token=request.POST['token'],
         password=request.POST['password'],
-        passcheck=request.POST['passcheck'],
         expect_userid=expect_userid,
         address=request.client_addr,
     )

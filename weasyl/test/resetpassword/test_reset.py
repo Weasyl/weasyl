@@ -13,20 +13,6 @@ token = "a" * 25
 
 
 @pytest.mark.usefixtures('db')
-def test_passwordMismatch_WeasylError_if_supplied_passwords_dont_match():
-    user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
-    with pytest.raises(WeasylError) as err:
-        resetpassword.reset(
-            token=token,
-            password='qwe',
-            passcheck='asd',
-            expect_userid=user_id,
-            address=None,
-        )
-    assert 'passwordMismatch' == err.value.value
-
-
-@pytest.mark.usefixtures('db')
 def test_passwordInsecure_WeasylError_if_password_length_insufficient():
     user_id = db_utils.create_user(email_addr=email_addr, username=user_name)
     password = ''
@@ -36,7 +22,6 @@ def test_passwordInsecure_WeasylError_if_password_length_insufficient():
             resetpassword.reset(
                 token=token,
                 password=password,
-                passcheck=password,
                 expect_userid=user_id,
                 address=None,
             )
@@ -49,7 +34,6 @@ def test_passwordInsecure_WeasylError_if_password_length_insufficient():
         resetpassword.reset(
             token=token,
             password=password,
-            passcheck=password,
             expect_userid=user_id,
             address=None,
         )
@@ -65,7 +49,6 @@ def test_forgotpasswordRecordMissing_WeasylError_if_reset_record_not_found():
         resetpassword.reset(
             token=token,
             password=password,
-            passcheck=password,
             expect_userid=user_id,
             address=None,
         )
@@ -85,7 +68,6 @@ def test_verify_success_if_correct_information_supplied(captured_tokens):
     resetpassword.reset(
         token=pw_reset_token,
         password=password,
-        passcheck=password,
         expect_userid=user_id,
         address=None,
     )

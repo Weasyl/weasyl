@@ -32,7 +32,7 @@ def send(mailto, subject, content):
     """
     message = MIMEText(content.strip())
     message["To"] = mailto
-    message["From"] = macro.MACRO_EMAIL_ADDRESS
+    message["From"] = f"Weasyl <{macro.MACRO_EMAIL_ADDRESS}>"
     message["Subject"] = subject
 
     # smtp.sendmail() only converts CR and LF (produced by MIMEText and our templates) to CRLF in Python 3. In Python 2, we need this:

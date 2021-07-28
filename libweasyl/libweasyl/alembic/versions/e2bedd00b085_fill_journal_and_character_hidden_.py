@@ -81,3 +81,52 @@ def downgrade():
                existing_type=sa.BOOLEAN(),
                server_default=None,
                nullable=True)
+
+    context = op.get_context()
+
+    with context.autocommit_block():
+        max_charid = context.bind.scalar(text("SELECT max(charid) FROM character"))
+
+        for i in range(1, max_charid + 1, BATCH_SIZE):
+            context.bind.execute(
+                text(
+                    "UPDATE character SET settings = regexp_replace(settings, '[hf]', '', 'g')"
+                    " || (CASE WHEN hidden THEN 'h' ELSE '' END)"
+                    " || (CASE WHEN friends_only THEN 'f' ELSE '' END)"
+                    " WHERE ((settings ~ 'h') != hidden OR (settings ~ 'f') != friends_only)"
+                    " AND (charid BETWEEN :start AND :end)"
+                ),
+                {"start": i, "end": i + BATCH_SIZE - 1},
+            )
+
+        context.bind.execute(
+            text(
+                "UPDATE character SET settings = regexp_replace(settings, '[hf]', '', 'g')"
+                " || (CASE WHEN hidden THEN 'h' ELSE '' END)"
+                " || (CASE WHEN friends_only THEN 'f' ELSE '' END)"
+                " WHERE ((settings ~ 'h') != hidden OR (settings ~ 'f') != friends_only)"
+            ),
+        )
+
+        max_journalid = context.bind.scalar(text("SELECT max(journalid) FROM journal"))
+
+        for i in range(1, max_journalid + 1, BATCH_SIZE):
+            context.bind.execute(
+                text(
+                    "UPDATE journal SET settings = regexp_replace(settings, '[hf]', '', 'g')"
+                    " || (CASE WHEN hidden THEN 'h' ELSE '' END)"
+                    " || (CASE WHEN friends_only THEN 'f' ELSE '' END)"
+                    " WHERE ((settings ~ 'h') != hidden OR (settings ~ 'f') != friends_only)"
+                    " AND (journalid BETWEEN :start AND :end)"
+                ),
+                {"start": i, "end": i + BATCH_SIZE - 1},
+            )
+
+        context.bind.execute(
+            text(
+                "UPDATE journal SET settings = regexp_replace(settings, '[hf]', '', 'g')"
+                " || (CASE WHEN hidden THEN 'h' ELSE '' END)"
+                " || (CASE WHEN friends_only THEN 'f' ELSE '' END)"
+                " WHERE ((settings ~ 'h') != hidden OR (settings ~ 'f') != friends_only)"
+            ),
+        )

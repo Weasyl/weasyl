@@ -76,7 +76,7 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
             INNER JOIN character ch ON fa.targetid = ch.charid
             INNER JOIN profile pr ON ch.userid = pr.userid
         WHERE fa.type = 'f'
-            AND ch.settings !~ 'h'
+            AND NOT ch.hidden
     """]
 
     if userid:
@@ -89,7 +89,7 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
         statement.append(m.MACRO_IGNOREUSER % (userid, "ch"))
         statement.append(m.MACRO_BLOCKTAG_CHAR % (userid, userid))
     else:
-        statement.append(" AND ch.rating <= %i AND ch.settings !~ 'f'" % (rating,))
+        statement.append(" AND ch.rating <= %i AND NOT ch.friends_only" % (rating,))
 
     statement.append(" AND fa.userid = %i" % (otherid,))
 
@@ -126,7 +126,7 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
             INNER JOIN journal jo ON fa.targetid = jo.journalid
             INNER JOIN profile pr ON jo.userid = pr.userid
         WHERE fa.type = 'j'
-            AND jo.settings !~ 'h'
+            AND NOT jo.hidden
     """]
 
     if userid:
@@ -139,7 +139,7 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
         statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
-        statement.append(" AND jo.rating <= %i AND jo.settings !~ 'f'" % (rating,))
+        statement.append(" AND jo.rating <= %i AND NOT jo.friends_only" % (rating,))
 
     statement.append(" AND fa.userid = %i" % (otherid,))
 
@@ -170,25 +170,21 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
 
 def insert(userid, submitid=None, charid=None, journalid=None):
     if submitid:
-        query = d.engine.execute(
-            "SELECT userid, friends_only FROM submission WHERE submitid = %(submitid)s",
-            {"submitid": submitid},
-        ).first()
+        content_table, id_field, target = "submission", "submitid", submitid
+    elif charid:
+        content_table, id_field, target = "character", "charid", charid
     else:
-        if charid:
-            content_table, id_field, target = "character", "charid", charid
-        else:
-            content_table, id_field, target = "journal", "journalid", journalid
+        content_table, id_field, target = "journal", "journalid", journalid
 
-        query = d.engine.execute(
-            "SELECT userid, settings ~ 'f' FROM %s WHERE %s = %i" % (content_table, id_field, target),
-        ).first()
+    query = d.engine.execute(
+        "SELECT userid, friends_only FROM %s WHERE %s = %i" % (content_table, id_field, target),
+    ).first()
 
     if not query:
         raise WeasylError("TargetRecordMissing")
     elif userid == query[0]:
         raise WeasylError("CannotSelfFavorite")
-    elif query[1] and not frienduser.check(userid, query[0]):
+    elif query.friends_only and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignoreuser.check(userid, query[0]):
         raise WeasylError("YouIgnored")

@@ -5,7 +5,7 @@ $code:
   def _RATING(x):
     return ' selected="selected"' if query['rating'] == x else ''
   def _CHECKED(x):
-    return ' checked="checked"' if x in query['settings'] else ''
+    return ' checked="checked"' if x else ''
 
 <div id="edit-journal-content" class="content">
 
@@ -30,7 +30,7 @@ $code:
     <h3>Additional Options</h3>
 
     <label for="editjournalfriends" class="input-checkbox">
-      <input type="checkbox" id="editjournalfriends" name="friends"${_CHECKED("f")} />
+      <input type="checkbox" id="editjournalfriends" name="friends"${_CHECKED(query['friends_only'])} />
       Make this journal visible only to my friends
     </label>
 

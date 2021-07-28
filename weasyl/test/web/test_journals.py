@@ -16,9 +16,9 @@ def _journal_user(db, cache):
 def _journals(journal_user):
     db_utils.create_journal(journal_user, title=u'Test journal', unixtime=arrow.get(1), content=u'A test journal')
     db_utils.create_journal(journal_user, title=u'Public journal', unixtime=arrow.get(2), content=u'A public journal')
-    db_utils.create_journal(journal_user, title=u'Hidden journal', unixtime=arrow.get(3), content=u'A hidden journal', settings=CharSettings({'hidden'}, {}, {}))
+    db_utils.create_journal(journal_user, title=u'Hidden journal', unixtime=arrow.get(3), content=u'A hidden journal', hidden=True)
     db_utils.create_journal(journal_user, title=u'Restricted journal', rating=ratings.MATURE.code, unixtime=arrow.get(4), content=u'A journal with a non-General rating')
-    db_utils.create_journal(journal_user, title=u'Recent journal', unixtime=arrow.get(5), content=u'The most recent journal', settings=CharSettings({'friends-only'}, {}, {}))
+    db_utils.create_journal(journal_user, title=u'Recent journal', unixtime=arrow.get(5), content=u'The most recent journal', friends_only=True)
 
 
 @pytest.mark.usefixtures('db', 'journal_user')

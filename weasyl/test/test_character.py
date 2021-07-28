@@ -1,7 +1,6 @@
 import unittest
 import pytest
 
-from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
 
 from weasyl.test import db_utils
@@ -34,7 +33,7 @@ class SelectCountTestCase(unittest.TestCase):
         """
         Should be able to see a friend's friends-only character in a listing.
         """
-        c = db_utils.create_character(self.friend1, settings=CharSettings({"friends-only"}, {}, {}))
+        c = db_utils.create_character(self.friend1, friends_only=True)
         self.assertEqual(
             self.count + 1,
             character.select_count(self.user1, ratings.GENERAL.code))
@@ -46,7 +45,7 @@ class SelectCountTestCase(unittest.TestCase):
         """
         Should not be able to see a non-friend's friends-ony character in a listing.
         """
-        db_utils.create_character(self.user2, settings=CharSettings({"friends-only"}, {}, {}))
+        db_utils.create_character(self.user2, friends_only=True)
         self.assertEqual(
             self.count,
             character.select_count(self.user1, ratings.GENERAL.code))

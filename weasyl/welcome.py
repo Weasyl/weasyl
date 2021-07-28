@@ -125,9 +125,9 @@ def submission_became_friends_only(submitid, ownerid):
 # notifications
 #   2050 user posted character
 
-def character_insert(userid, charid, rating=ratings.GENERAL.code, settings=''):
+def character_insert(userid, charid, rating=ratings.GENERAL.code, *, friends_only):
     _insert(userid, 0, charid, 2050,
-            followuser.list_followed(userid, "f", rating=rating, friends='f' in settings))
+            followuser.list_followed(userid, "f", rating=rating, friends=friends_only))
 
 
 # notifications
@@ -199,10 +199,10 @@ def collection_remove(userid, remove):
 # notifications
 #   1010 user posted journal
 
-def journal_insert(userid, journalid, rating=ratings.GENERAL.code, settings=''):
+def journal_insert(userid, journalid, *, rating, friends_only):
     _insert(
         userid, 0, journalid, 1010,
-        followuser.list_followed(userid, "j", rating=rating, friends='f' in settings))
+        followuser.list_followed(userid, "j", rating=rating, friends=friends_only))
 
 
 # notifications

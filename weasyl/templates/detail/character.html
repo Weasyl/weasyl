@@ -33,7 +33,7 @@ $def with (myself, query, violations)
       <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
       $if query['reported'] and myself and myself['userid'] in staff.MODS:
         <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
-      $elif 'h' not in query['settings']:
+      $elif not query['hidden']:
         <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
     </ul>
     <h2 id="detail-bar-title">${query['title']}</h2>
@@ -106,14 +106,14 @@ $def with (myself, query, violations)
     $if myself and myself['userid'] in staff.MODS:
       <div id="detail-mod">
         <h3>Character Moderation</h3>
-        $if query['hidden_submission']:
+        $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/character?charid=${query['charid']}&amp;anyway=true">Edit Character Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
           $:{CSRF()}
           <input type="hidden" name="characters" value="${query['charid']}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "character"):
+            $for value, name in M.get_mod_actions(query, "character").items():
               <option value="${value}">${name}</option>
           </select>
           <br>

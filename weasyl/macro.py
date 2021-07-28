@@ -35,12 +35,12 @@ MACRO_FRIENDUSER_SUBMIT = (
 
 # Example input (userid, userid, userid)
 MACRO_FRIENDUSER_JOURNAL = (
-    " AND (jo.settings !~ 'f' OR jo.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
+    " AND (NOT jo.friends_only OR jo.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
     " WHERE ((userid, otherid) = (%i, jo.userid) OR (userid, otherid) = (jo.userid, %i)) AND settings !~ 'p'))")
 
 # Example input (userid, userid, userid)
 MACRO_FRIENDUSER_CHARACTER = (
-    " AND (ch.settings !~ 'f' or ch.userid = %i OR EXISTS (SELECT 0 from frienduser"
+    " AND (NOT ch.friends_only or ch.userid = %i OR EXISTS (SELECT 0 from frienduser"
     " WHERE ((userid, otherid) = (%i, ch.userid) OR (userid, otherid) = (ch.userid, %i)) AND settings !~ 'p'))")
 
 MACRO_SUBCAT_LIST = [
@@ -69,60 +69,28 @@ MACRO_SUBCAT_LIST = [
 
 
 # Mod actions which apply to all submissions
-MACRO_MOD_ACTIONS = [
+MACRO_MOD_ACTIONS = {
     # Line below is so default mod action is 'nothing'. Intentional behavior.
-    ('null', ''),
-    ('hide', 'Hide'),
-    ('show', 'Show'),
-] + [('rate-%s' % (r.code,), 'Rate %s' % (r.name,)) for r in ratings.ALL_RATINGS] + [
-    ('clearcritique', 'Remove critique-requested flag'),
-    ('setcritique', 'Set critique-requested flag'),
-]
+    'null': '',
+    'hide': 'Hide',
+    'show': 'Show',
+    **{f'rate-{r.code}': f'Rate {r.name}' for r in ratings.ALL_RATINGS},
+    'clearcritique': 'Remove critique-requested flag',
+    'setcritique': 'Set critique-requested flag',
+}
 
 
-def MACRO_MOD_ACTIONS_FOR_SETTINGS(settings, submission_type):
-    # We start with the complete list of mod actions, then filter it based on submission_type
-    valid_list = MACRO_MOD_ACTIONS
+def get_mod_actions(item, content_type):
+    actions = MACRO_MOD_ACTIONS.copy()
 
-    # Journals and characters can't have the critique flag set
-    assert submission_type in ("journal", "character")
-    valid_list = [(a, b) for a, b in valid_list if not a.endswith('critique')]
+    del actions['hide' if item['hidden'] else 'show']
 
-    # Select whether we show 'Show' or 'Hide' depending on whether the
-    # submission is hidden
-    if 'h' in settings:
-        valid_list = [(a, b) for a, b in valid_list if a != 'hide']
-    else:
-        valid_list = [(a, b) for a, b in valid_list if a != 'show']
+    if content_type != 'submission' or item['critique']:
+        del actions['setcritique']
+    if content_type != 'submission' or not item['critique']:
+        del actions['clearcritique']
 
-    # Return our shiny, filtered list of mod actions
-    return valid_list
-
-
-def MACRO_MOD_ACTIONS_FOR_SUBMISSION(hidden, critique):
-    """
-    Since the change to the representation of submission settings (i.e. from char column to individual columns)
-    we need a slightly different set of macro logic for them.
-    """
-    # We start with the complete list of mod actions, then filter it based on submission_type
-    valid_list = MACRO_MOD_ACTIONS
-
-    # Select whether we show 'Show' or 'Hide' depending on whether the
-    # submission is hidden
-    if hidden:
-        valid_list = [(a, b) for a, b in valid_list if a != 'hide']
-    else:
-        valid_list = [(a, b) for a, b in valid_list if a != 'show']
-
-    # Select whether we show 'Set Critique' or 'Clear Critique' depending on
-    # whether the Critique Requested flag is set
-    if critique:
-        valid_list = [(a, b) for a, b in valid_list if a != 'setcritique']
-    else:
-        valid_list = [(a, b) for a, b in valid_list if a != 'clearcritique']
-
-    # Return our shiny, filtered list of mod actions
-    return valid_list
+    return actions
 
 
 MACRO_REPORT_URGENCY = [

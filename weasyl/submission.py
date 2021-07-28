@@ -614,7 +614,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "content": (d.text_first_line(query[5], strip=True) if 'other' == query[11] else query[5]),
         "subtype": query[6],
         "rating": query[7],
-        "hidden_submission": query[8],
+        "hidden": query[8],
         "friends_only": query[9],
         "critique": query[10],
         "embed_type": query[11],

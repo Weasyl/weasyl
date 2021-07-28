@@ -66,10 +66,10 @@ def create(userid, form):
         raise WeasylError("ReportCommentRequired")
 
     is_hidden = d.engine.scalar(
-        "SELECT %s FROM %s WHERE %s = %i" % (
-            ("hidden", "submission", "submitid", form.submitid) if form.submitid else
-            ("settings ~ 'h'", "character", "charid", form.charid) if form.charid else
-            ("settings ~ 'h'", "journal", "journalid", form.journalid)
+        "SELECT hidden FROM %s WHERE %s = %i" % (
+            ("submission", "submitid", form.submitid) if form.submitid else
+            ("character", "charid", form.charid) if form.charid else
+            ("journal", "journalid", form.journalid)
         )
     )
 

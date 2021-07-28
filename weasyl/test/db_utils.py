@@ -152,36 +152,37 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, content=''):
+def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False):
     journal = add_entity(Journal(
-        userid=userid, title=title, rating=rating, unixtime=unixtime, settings=settings, content=content))
+        userid=userid, title=title, rating=rating, unixtime=unixtime, content=content,
+        hidden=hidden, friends_only=friends_only))
     update_last_submission_time(userid, unixtime)
     return journal.journalid
 
 
-def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), *, friends_only=False):
     results = []
     for i in range(count):
-        results.append(create_journal(userid, title, rating, unixtime, settings))
+        results.append(create_journal(userid, title, rating, unixtime, friends_only=friends_only))
     return results
 
 
 def create_character(userid, name='', age='', gender='', height='', weight='', species='',
-                     description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                     description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, *, friends_only=False):
     character = add_entity(content.Character(
         userid=userid, char_name=name, age=age, gender=gender, height=height, weight=weight,
-        species=species, content=description, rating=rating, unixtime=unixtime, settings=settings))
+        species=species, content=description, rating=rating, unixtime=unixtime, settings=settings, friends_only=friends_only))
     update_last_submission_time(userid, unixtime)
     return character.charid
 
 
 def create_characters(count, userid, name='', age='', gender='', height='', weight='', species='',
-                      description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                      description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, *, friends_only=False):
     results = []
     for i in range(count):
         results.append(create_character(
             userid, name, age, gender, height, weight, species, description,
-            rating, unixtime, settings))
+            rating, unixtime, settings, friends_only=friends_only))
     return results
 
 

@@ -41,6 +41,7 @@ def send(mailto, subject, content):
     smtp = SMTP(config_read_setting('host', "localhost", section='smtp'))
 
     try:
+        smtp.starttls()
         smtp.sendmail(
             from_addr=macro.MACRO_EMAIL_ADDRESS,
             to_addrs=[mailto],

@@ -1077,14 +1077,10 @@ def select_recently_popular():
     """
     query = d.engine.execute("""
         SELECT
-            log(submission.favorites + 1) +
-                log(submission.page_views + 1) / 2 +
-                submission.unixtime / 180000.0 AS score,
             submission.submitid,
             submission.title,
             submission.rating,
             submission.subtype,
-            submission.unixtime,
             submission_tags.tags,
             submission.userid,
             profile.username
@@ -1094,10 +1090,14 @@ def select_recently_popular():
         WHERE
             NOT submission.hidden AND
             NOT submission.friends_only
-        ORDER BY score DESC
+        ORDER BY
+            log(submission.favorites + 1) +
+                log(submission.page_views + 1) / 2 +
+                submission.unixtime / 180000.0
+                DESC
         LIMIT 128
     """)
 
-    submissions = [dict(row, contype=10) for row in query]
+    submissions = [{**row, "contype": 10} for row in query]
     media.populate_with_submission_media(submissions)
     return submissions

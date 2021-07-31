@@ -10,7 +10,6 @@ $code:
 <div id="search-stage" class="stage clear">
   <ul class="thumbnail-grid">
     $for index, item in enumerate(submissions):
-      <!-- score: ${item['score']} -->
       $if index < 10:
         $:{_GRID_ITEM(item, lazy_load=False)}
       $else:

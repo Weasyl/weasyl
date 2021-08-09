@@ -91,10 +91,7 @@ $code:
           </p>
         <ul class="thumbnail-grid sectioned">
           $for index, result in enumerate(results):
-            $if index < 10:
-              $:{_GRID_ITEM(result, lazy_load=False)}
-            $else:
-              $:{_GRID_ITEM(result)}
+            $:{_GRID_ITEM(result, lazy_load=index >= 10)}
         </ul>
 
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
@@ -124,10 +121,7 @@ $code:
     $if results:
       <ul class="thumbnail-grid">
         $for index, result in enumerate(results):
-          $if index < 10:
-            $:{_GRID_ITEM(result, lazy_load=False)}
-          $else:
-            $:{_GRID_ITEM(result)}
+          $:{_GRID_ITEM(result, lazy_load=index >= 10)}
       </ul>
 
       <div style="padding-top: 1.4em;" class="pad-left pad-right">

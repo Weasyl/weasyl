@@ -299,7 +299,7 @@ def api_user_view_(request):
         more_submissions = 'characters'
         featured = None
     else:
-        submissions = submission.select_list(userid, rating, 11, otherid=otherid, profile_page_filter=True)
+        submissions = submission.select_list(userid, rating, limit=11, otherid=otherid, profile_page_filter=True)
         more_submissions = 'submissions'
         featured = submission.select_featured(userid, otherid, rating)
 
@@ -352,7 +352,7 @@ def api_user_gallery_(request):
         count = min(count or 100, 100)
 
     submissions = submission.select_list(
-        request.userid, d.get_rating(request.userid), count + 1,
+        request.userid, d.get_rating(request.userid), limit=count + 1,
         otherid=userid, folderid=folderid, backid=backid, nextid=nextid)
     backid, nextid = d.paginate(submissions, backid, nextid, count, 'submitid')
 

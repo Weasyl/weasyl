@@ -769,10 +769,20 @@ def twitter_card(request, submitid):
     return ret
 
 
-def select_query(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None,
-                 options=[], profile_page_filter=False,
-                 index_page_filter=False, featured_filter=False):
+def _select_query(
+    *,
+    userid,
+    rating,
+    otherid,
+    folderid,
+    backid,
+    nextid,
+    subcat,
+    profile_page_filter,
+    index_page_filter,
+    featured_filter,
+    critique_only
+):
     statement = [
         "FROM submission su "
         "INNER JOIN profile pr ON su.userid = pr.userid "
@@ -801,8 +811,8 @@ def select_query(userid, rating, otherid=None, folderid=None,
     if subcat:
         statement.append(" AND su.subtype >= %i AND su.subtype < %i" % (subcat, subcat + 1000))
 
-    if "critique" in options:
-        statement.append(" AND su.critique AND su.unixtime > %i" % (d.get_time() - 259200,))
+    if critique_only:
+        statement.append(" AND su.critique")
 
     if backid:
         statement.append(" AND su.submitid > %i" % (backid,))
@@ -821,25 +831,55 @@ def select_query(userid, rating, otherid=None, folderid=None,
     return statement
 
 
-def select_count(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None,
-                 options=[], profile_page_filter=False,
-                 index_page_filter=False, featured_filter=False):
-    if options not in [[], ['critique'], ['randomize']]:
-        raise ValueError("Unexpected options: %r" % (options,))
+def select_count(
+    userid,
+    rating,
+    *,
+    otherid=None,
+    folderid=None,
+    backid=None,
+    nextid=None,
+    subcat=None,
+    profile_page_filter=False,
+    index_page_filter=False,
+    featured_filter=False,
+    critique_only=False,
+):
+    statement = "".join((
+        "SELECT count(*) FROM (SELECT ",
+        *_select_query(
+            userid=userid,
+            rating=rating,
+            otherid=otherid,
+            folderid=folderid,
+            backid=backid,
+            nextid=nextid,
+            subcat=subcat,
+            profile_page_filter=profile_page_filter,
+            index_page_filter=index_page_filter,
+            featured_filter=featured_filter,
+            critique_only=critique_only,
+        ),
+        " LIMIT %i) t" % (COUNT_LIMIT,),
+    ))
+    return d.engine.scalar(statement)
 
-    statement = ["SELECT count(*) FROM (SELECT "]
-    statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, options, profile_page_filter,
-        index_page_filter, featured_filter))
-    statement.append(" LIMIT %i) t" % (COUNT_LIMIT,))
-    return d.execute("".join(statement))[0][0]
 
-
-def select_list(userid, rating, limit, otherid=None, folderid=None,
-                backid=None, nextid=None, subcat=None,
-                options=[], profile_page_filter=False,
-                index_page_filter=False, featured_filter=False):
+def select_list(
+    userid,
+    rating,
+    *,
+    limit,
+    otherid=None,
+    folderid=None,
+    backid=None,
+    nextid=None,
+    subcat=None,
+    profile_page_filter=False,
+    index_page_filter=False,
+    featured_filter=False,
+    critique_only=False,
+):
     """
     Selects a list from the submissions table.
 
@@ -853,56 +893,50 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         nextid: Select the IDs that are greater than this value
         subcat: Select submissions whose subcategory is within this range
             (this value + 1000)
-        options: List that can contain the following values:
-            "critique": Submissions flagged for critique; additionally selects
-                submissions newer than 3 days old
-            "randomize": Randomize the ordering of the results
         profile_page_filter: Do not select from folders that should not appear
             on the profile page.
         index_page_filter: Do not select from folders that should not appear on
             the front page.
-        featured_filter: Select from folders marked as featured submissions.
+        featured_filter: Select from folders marked as featured submissions and randomize the order of results.
+        critique_only: Select only submissions for which critique is requested.
 
     Returns:
         An array with the following keys: "contype", "submitid", "title",
         "rating", "unixtime", "userid", "username", "subtype", "sub_media"
     """
-    if options not in [[], ['critique'], ['randomize']]:
-        raise ValueError("Unexpected options: %r" % (options,))
+    statement = "".join((
+        "SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.subtype ",
+        *_select_query(
+            userid=userid,
+            rating=rating,
+            otherid=otherid,
+            folderid=folderid,
+            backid=backid,
+            nextid=nextid,
+            subcat=subcat,
+            profile_page_filter=profile_page_filter,
+            index_page_filter=index_page_filter,
+            featured_filter=featured_filter,
+            critique_only=critique_only,
+        ),
+        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if featured_filter else "su.submitid", "" if backid else " DESC", limit),
+    ))
 
-    randomize = bool(options)
+    submissions = [{**row, "contype": 10} for row in d.engine.execute(statement)]
+    media.populate_with_submission_media(submissions)
 
-    statement = [
-        "SELECT su.submitid, su.title, su.rating, su.unixtime, "
-        "su.userid, pr.username, su.subtype "]
-
-    statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, options, profile_page_filter,
-        index_page_filter, featured_filter))
-
-    statement.append(
-        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if randomize else "su.submitid", "" if backid else " DESC", limit))
-
-    query = [{
-        "contype": 10,
-        "submitid": i[0],
-        "title": i[1],
-        "rating": i[2],
-        "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "subtype": i[6],
-    } for i in d.execute("".join(statement))]
-    media.populate_with_submission_media(query)
-
-    return query[::-1] if backid else query
+    return submissions[::-1] if backid else submissions
 
 
 def select_featured(userid, otherid, rating):
     submissions = select_list(
-        userid, rating, limit=1, otherid=otherid,
-        options=['randomize'], featured_filter=True)
-    return None if not submissions else submissions[0]
+        userid=userid,
+        rating=rating,
+        limit=1,
+        otherid=otherid,
+        featured_filter=True,
+    )
+    return submissions[0] if submissions else None
 
 
 def select_near(userid, rating, limit, otherid, folderid, submitid):
@@ -1088,8 +1122,8 @@ def select_recently_popular():
             INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
             INNER JOIN profile ON submission.userid = profile.userid
         WHERE
-            NOT submission.hidden AND
-            NOT submission.friends_only
+            NOT submission.hidden
+            AND NOT submission.friends_only
         ORDER BY
             log(submission.favorites + 1) +
                 log(submission.page_views + 1) / 2 +
@@ -1100,4 +1134,35 @@ def select_recently_popular():
 
     submissions = [{**row, "contype": 10} for row in query]
     media.populate_with_submission_media(submissions)
+    media.strip_non_thumbnail_media(submissions)
+
+    return submissions
+
+
+@region.cache_on_arguments(expiration_time=600)
+def select_critique():
+    query = d.engine.execute("""
+        SELECT
+            submission.submitid,
+            submission.title,
+            submission.rating,
+            submission.subtype,
+            submission_tags.tags,
+            submission.userid,
+            profile.username
+        FROM submission
+            INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
+            INNER JOIN profile ON submission.userid = profile.userid
+        WHERE
+            NOT submission.hidden
+            AND NOT submission.friends_only
+            AND submission.critique
+        ORDER BY submission.submitid DESC
+        LIMIT 128
+    """)
+
+    submissions = [{**row, "contype": 10} for row in query]
+    media.populate_with_submission_media(submissions)
+    media.strip_non_thumbnail_media(submissions)
+
     return submissions

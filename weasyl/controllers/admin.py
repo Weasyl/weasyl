@@ -2,7 +2,6 @@ from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from libweasyl import staff
-from libweasyl.models.site import SiteUpdate
 
 from weasyl import login, moderation, profile, siteupdate
 from weasyl.error import WeasylError
@@ -19,17 +18,25 @@ def admincontrol_(request):
     return Response(d.webpage(request.userid, "admincontrol/admincontrol.html", title="Admin Control Panel"))
 
 
+_BLANK_SITE_UPDATE = {
+    'updateid': None,
+    'title': "",
+    'content': "",
+    'wesley': False,
+}
+
+
 @admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (SiteUpdate(),), title="Submit Site Update"))
+    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (_BLANK_SITE_UPDATE,), title="Submit Site Update"))
 
 
 @admin_only
 @token_checked
 def admincontrol_siteupdate_post_(request):
-    title = request.params["title"].strip()
-    content = request.params["content"].strip()
-    wesley = "wesley" in request.params
+    title = request.POST["title"].strip()
+    content = request.POST["content"].strip()
+    wesley = "wesley" in request.POST
 
     if not title:
         raise WeasylError("titleInvalid")
@@ -37,14 +44,20 @@ def admincontrol_siteupdate_post_(request):
     if not content:
         raise WeasylError("contentInvalid")
 
-    update = siteupdate.create(request.userid, title, content, wesley=wesley)
-    raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
+    updateid = siteupdate.create(
+        userid=request.userid,
+        title=title,
+        content=content,
+        wesley=wesley,
+    )
+
+    raise HTTPSeeOther(location="/site-updates/%d" % (updateid,))
 
 
 @admin_only
 def site_update_edit_(request):
     updateid = int(request.matchdict['update_id'])
-    update = SiteUpdate.query.get_or_404(updateid)
+    update = siteupdate.select_view(updateid)
     return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,), title="Edit Site Update"))
 
 
@@ -52,9 +65,9 @@ def site_update_edit_(request):
 @token_checked
 def site_update_put_(request):
     updateid = int(request.matchdict['update_id'])
-    title = request.params["title"].strip()
-    content = request.params["content"].strip()
-    wesley = "wesley" in request.params
+    title = request.POST["title"].strip()
+    content = request.POST["content"].strip()
+    wesley = "wesley" in request.POST
 
     if not title:
         raise WeasylError("titleInvalid")
@@ -62,13 +75,14 @@ def site_update_put_(request):
     if not content:
         raise WeasylError("contentInvalid")
 
-    update = SiteUpdate.query.get_or_404(updateid)
-    update.title = title
-    update.content = content
-    update.wesley = wesley
-    update.dbsession.flush()
+    siteupdate.edit(
+        updateid=updateid,
+        title=title,
+        content=content,
+        wesley=wesley,
+    )
 
-    raise HTTPSeeOther(location="/site-updates/%d" % (update.updateid,))
+    return HTTPSeeOther(location="/site-updates/%d" % (updateid,))
 
 
 @admin_only

@@ -740,7 +740,7 @@ submission = Table(
 Index('ind_submission_folderid', submission.c.folderid)
 Index('ind_submission_userid_submitid', submission.c.userid, submission.c.submitid)
 Index('ind_submission_userid_folderid_submitid', submission.c.userid, submission.c.folderid, submission.c.submitid, postgresql_where=submission.c.folderid.isnot(None))
-Index('ind_submission_userid_unixtime', submission.c.userid, submission.c.unixtime.desc())
+Index('ind_submission_submitid_critique', submission.c.submitid, postgresql_where=submission.c.critique & ~submission.c.hidden)
 
 
 submission_media_links = Table(
@@ -822,8 +822,8 @@ Index('ind_user_links_userid', user_links.c.userid)
 user_streams = Table(
     'user_streams', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('start_time', WeasylTimestampColumn(), nullable=False),
-    Column('end_time', WeasylTimestampColumn(), nullable=False),
+    Column('start_time', Integer(), nullable=False),
+    Column('end_time', Integer(), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='user_streams_userid_fkey'),
 )
 

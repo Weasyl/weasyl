@@ -35,7 +35,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
         <ul class="grid avatar-grid">
           $for i in result['char']:
             $:{_GRID_ITEM(i, lazy_load=False)}
-          </li><li class="clear more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=char"><i>More</i> <span>Characters</span></a></li>
+          <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=char"><i>More</i> <span>Characters</span></a></li>
         </ul>
 
       $if(result['submit']):
@@ -44,7 +44,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
         <ul class="thumbnail-grid medium-footprint">
           $for i in result['submit']:
             $:{_GRID_ITEM(i, lazy_load=False)}
-          </li><li class="clear more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=submit"><i>More</i> <span>Submissions</span></a></li>
+          <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=submit"><i>More</i> <span>Submissions</span></a></li>
         </ul>
 
       $if(result['journal']):
@@ -53,7 +53,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
         <ul class="grid avatar-grid">
           $for i in result['journal']:
             $:{_GRID_ITEM(i, lazy_load=False)}
-          </li><li class="clear more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></li>
+          <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></li>
         </ul>
 
     $else:

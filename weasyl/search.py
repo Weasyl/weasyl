@@ -392,5 +392,6 @@ def browse(userid, rating, limit, find, cat, backid, nextid):
     elif find == "journal":
         return journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid)
     else:
-        return submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
-                                      subcat=d.get_int(cat) if d.get_int(cat) in [1000, 2000, 3000] else None)
+        return submission.select_list(userid, rating, limit=limit, backid=backid, nextid=nextid,
+                                      subcat=d.get_int(cat) if d.get_int(cat) in [1000, 2000, 3000] else None,
+                                      critique_only=find == "critique")

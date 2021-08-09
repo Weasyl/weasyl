@@ -11,7 +11,7 @@ from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, folder, followuser, frienduser, ignoreuser,
-    index, login, oauth2, profile, searchtag, thumbnail, useralias, orm)
+    login, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -353,8 +353,6 @@ def control_editpreferences_post_(request):
 
     profile.edit_preferences(request.userid, timezone=form.timezone,
                              preferences=preferences, jsonb_settings=jsonb_settings)
-    # release the cache on the index page in case the Maximum Viewable Content Rating changed.
-    index.template_fields.invalidate(request.userid)
     raise HTTPSeeOther(location="/control")
 
 
@@ -795,8 +793,6 @@ def sfw_toggle_(request):
 
     currentstate = request.cookies.get('sfwmode', "nsfw")
     newstate = "sfw" if currentstate == "nsfw" else "nsfw"
-    # release the index page's cache so it shows the new ratings if they visit it
-    index.template_fields.invalidate(request.userid)
     response = HTTPSeeOther(location=form.redirect)
     response.set_cookie("sfwmode", newstate, max_age=60 * 60 * 24 * 365)
     return response

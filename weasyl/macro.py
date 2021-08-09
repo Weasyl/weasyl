@@ -1,6 +1,9 @@
 import os
 
+import sqlalchemy as sa
+
 from libweasyl import ratings
+from libweasyl.models import tables as t
 
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
@@ -10,6 +13,18 @@ MACRO_BCRYPT_ROUNDS = 13
 
 # Example input (userid, "su")
 MACRO_IGNOREUSER = " AND NOT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%i, %s.userid))"
+
+
+def not_ignored(otherid_expr):
+    ignore_match = (
+        sa.select()
+        .select_from(t.ignoreuser)
+        .where(t.ignoreuser.c.userid == sa.bindparam('userid'))
+        .where(t.ignoreuser.c.otherid == otherid_expr)
+    )
+
+    return ~ignore_match.exists()
+
 
 # Example input (userid, userid)
 MACRO_BLOCKTAG_SUBMIT = (

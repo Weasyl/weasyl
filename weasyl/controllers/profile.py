@@ -76,7 +76,7 @@ def profile_(request):
         featured = None
     else:
         submissions = submission.select_list(
-            request.userid, rating, 11, otherid=otherid,
+            request.userid, rating, limit=11, otherid=otherid,
             profile_page_filter=True)
         more_submissions = 'submissions'
         featured = submission.select_featured(request.userid, otherid, rating)

@@ -154,6 +154,7 @@ def _compile(template_name):
                 "CSRF": (lambda: ""),
                 "USER_TYPE": user_type,
                 "DATE": convert_date,
+                "ISO8601": iso8601,
                 "ISO8601_DATE": iso8601_date,
                 "TIME": _convert_time,
                 "LOCAL_ARROW": local_arrow,
@@ -521,8 +522,11 @@ def request_timezone(request):
 
 
 def local_arrow(dt):
+    if isinstance(dt, int):
+        dt = arrow.get(dt - _UNIXTIME_OFFSET)
+
     tz = request_timezone(get_current_request())
-    return arrow.Arrow.fromdatetime(tz.localtime(dt))
+    return dt.to(tz.timezone)
 
 
 def convert_to_localtime(target):

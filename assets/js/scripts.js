@@ -79,7 +79,7 @@
                 }
 
                 var row = [],
-                    rowWidth = 0,
+                    rowWidth = thumbnailOptions.itemGap,
                     difference = 1;
 
                 // construct a row
@@ -94,11 +94,12 @@
 
                 // fit row
                 if (rowWidth > containerWidth) {
-                    difference = containerWidth / rowWidth;
+                    var totalGap = (row.length + 1) * thumbnailOptions.itemGap;
+                    difference = (containerWidth - totalGap) / (rowWidth - totalGap);
                 }
                 forEach(row, function (item) {
-                    var width = getWidthAttr(item) * thumbRatio * difference - thumbnailOptions.itemGap;
-                    var height = startHeight * difference - thumbnailOptions.itemGap;
+                    var width = getWidthAttr(item) * thumbRatio * difference;
+                    var height = startHeight * difference;
 
                     item.style.width = width + 'px';
                     item.style.height = height + 'px';
@@ -1282,31 +1283,35 @@
             } catch (consoleError) {}
         }
 
-        var homePaneLinks = $('.home-pane-link');
-        var homePanes = $('#home-panes .pane');
-        var homePaneGrids = homePanes.find('.thumbnail-grid');
+        var homeTabs = document.getElementById('home-tabs');
+        var homePanes = document.getElementById('home-panes');
 
-        $('#home-art').on('click', '.home-pane-link', function (e) {
+        if (!homePanes) {
+            return;
+        }
+
+        var currentTab = homeTabs.getElementsByClassName('current')[0];
+        var currentPane = homePanes.getElementsByClassName('current')[0];
+
+        $(homeTabs).on('click touchstart', '.home-pane-link', function (e) {
             e.preventDefault();
 
             var paneId = this.getAttribute('href').substring(1);
+            var pane = document.getElementById(paneId);
 
-            homePaneLinks.removeClass('current');
-            homePanes.removeClass('current');
-            homePaneGrids.removeClass('current');
+            if (pane === currentPane) {
+                return;
+            }
 
-            // Select this tab or disclosure button and the corresponding
-            // disclosure button or tab. This approach works for both the tabs
-            // and disclosures. It relies on the fact that there are n tabs and
-            // n corresponding disclosure buttons selected by .home-pane-link
-            // in the same order.
-            $(this).addClass('current');
-            homePaneLinks
-                .eq((homePaneLinks.index(this) + homePanes.length) % homePaneLinks.length)
-                .addClass('current');
+            if (currentPane) {
+                currentTab.classList.remove('current');
+                currentPane.classList.remove('current');
+            }
 
-            $(document.getElementById(paneId)).addClass('current')
-                .children('.thumbnail-grid').addClass('current loaded');
+            currentTab = this;
+            currentPane = pane;
+            this.classList.add('current');
+            pane.classList.add('current');
 
             calculateThumbnailLayout();
 
@@ -1325,10 +1330,10 @@
             logStorageError(error);
         }
 
-        var savedTab = savedTabId && document.getElementById(savedTabId);
+        var savedTab = savedTabId && homeTabs.querySelector('.home-pane-link[href="#' + savedTabId + '"]');
 
         if (savedTab) {
-            savedTab.children[0].click();
+            savedTab.click();
         }
     })();
 

@@ -7,6 +7,7 @@ from weasyl import define as d
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
+from weasyl import siteupdate
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -191,6 +192,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             parent=parentid,
             content=content,
         )
+        siteupdate.select_last.invalidate()
     else:
         commentid = d.engine.scalar(
             "INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
@@ -277,8 +279,10 @@ def remove(userid, feature=None, commentid=None):
         # user is commenter
         comment_table = (
             "comments" if feature == 'submit' else feature + "comment")
+        comment_visible = (
+            "hidden_at IS NULL" if feature == 'siteupdate' else "settings !~ 'h'")
         has_replies = d.engine.scalar(
-            "SELECT EXISTS (SELECT FROM {table} WHERE parentid = %(comment)s AND settings !~ 'h')".format(table=comment_table),
+            f"SELECT EXISTS (SELECT FROM {comment_table} WHERE parentid = %(comment)s AND {comment_visible})",
             comment=commentid)
         if has_replies:
             # a commenter cannot remove their comment if it has replies
@@ -301,6 +305,7 @@ def remove(userid, feature=None, commentid=None):
             comment=commentid,
             hidden_by=userid,
         )
+        siteupdate.select_last.invalidate()
     else:
         d.engine.execute(
             "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),

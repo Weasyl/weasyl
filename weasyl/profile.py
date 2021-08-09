@@ -1,13 +1,16 @@
 import pytz
 import sqlalchemy as sa
 from pyramid.threadlocal import get_current_request
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import aggregate_order_by
 
 from libweasyl import ratings
 from libweasyl import security
 from libweasyl import staff
 from libweasyl.cache import region
 from libweasyl.html import strip_html
-from libweasyl.models import tables
+from libweasyl.legacy import UNIXTIME_NOW_SQL
+from libweasyl.models import tables as t
 
 from weasyl import define as d
 from weasyl import emailer
@@ -325,30 +328,79 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, limit, order_by=None):
-    statement = [
-        "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
-        "FROM profile pr "
-        "JOIN user_streams USING (userid) "
-        "JOIN login USING (userid) "
-        "WHERE login.voucher IS NOT NULL AND end_time > %i" % (d.get_time(),)
-    ]
+_SELECT_STREAMING_BASE = (
+    sa.select(
+        t.profile.c.userid,
+        t.profile.c.username,
+        t.profile.c.stream_url,
+        t.profile.c.stream_text,
+        t.user_streams.c.start_time.label('stream_time'),
+    )
+    .select_from(
+        t.profile
+        .join(t.user_streams, t.profile.c.userid == t.user_streams.c.userid)
+        .join(t.login, t.profile.c.userid == t.login.c.userid),
+    )
+    .where(t.login.c.voucher.is_not(None))
+    .where(t.user_streams.c.end_time > UNIXTIME_NOW_SQL)
+    .where(t.profile.c.stream_url != sa.text("''"))
+)
+
+
+def select_streaming_sample(userid):
+    query = _SELECT_STREAMING_BASE
 
     if userid:
-        statement.append(m.MACRO_IGNOREUSER % (userid, "pr"))
-    if order_by:
-        statement.append(" ORDER BY %s LIMIT %i" % (order_by, limit))
-    else:
-        statement.append(" ORDER BY RANDOM() LIMIT %i" % limit)
+        query = query.where(
+            m.not_ignored(t.profile.c.userid)
+            .unique_params({'userid': userid})
+        )
 
-    ret = [{
-        "userid": i[0],
-        "username": i[1],
-        "stream_url": i[2],
-        "stream_text": i[4],
-        "stream_time": i[5],
-    } for i in d.execute("".join(statement)) if i[2]]
+    sample_subquery = (
+        query
+        .order_by(func.random())
+        .limit(3)
+        .subquery()
+    )
 
+    sample_and_count = sa.select(
+        func.coalesce(
+            sa.select(
+                func.jsonb_agg(
+                    aggregate_order_by(
+                        sample_subquery.table_valued(),
+                        sample_subquery.c.stream_time.desc(),
+                    )
+                ),
+            )
+            .select_from(sample_subquery)
+            .scalar_subquery(),
+            sa.text("'[]'::jsonb"),
+        ).label('sample'),
+        (sa.select(func.count())
+            .select_from(query.subquery())
+            .scalar_subquery()
+            .label('total')),
+    )
+
+    ret = d.engine.execute(sample_and_count).one()
+    media.populate_with_user_media(ret.sample)
+    return ret
+
+
+def select_streaming(userid):
+    query = (
+        _SELECT_STREAMING_BASE
+        .order_by(t.user_streams.c.start_time.desc())
+    )
+
+    if userid:
+        query = query.where(
+            m.not_ignored(t.profile.c.userid)
+            .unique_params({'userid': userid})
+        )
+
+    ret = [row._asdict() for row in d.engine.execute(query)]
     media.populate_with_user_media(ret)
     return ret
 
@@ -643,7 +695,7 @@ def edit_preferences(userid, timezone=None,
         d._get_all_config.invalidate(userid)
 
     d.engine.execute(
-        tables.profile.update().where(tables.profile.c.userid == userid),
+        t.profile.update().where(t.profile.c.userid == userid),
         updates
     )
 

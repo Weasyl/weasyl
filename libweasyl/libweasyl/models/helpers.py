@@ -201,6 +201,7 @@ CharSettings.associate_with(CharSettingsColumn)
 
 class WeasylTimestampColumn(types.TypeDecorator):
     impl = types.INTEGER
+    cache_ok = True
 
     def process_result_value(self, value, dialect):
         if value is None:

@@ -86,14 +86,6 @@ $def with (query, notifications=False, lazy_load=True)
         <a href="/~${LOGIN(query['username'])}" class="username">${query['username']}</a>
       </p>
     </figcaption>
-
-    $if 'subcat' in query:
-      $if query['subcat'] in [3010, 3020, 3030]:
-        <span class="icon icon-20 icon-music"></span>
-      $elif 4000 > query['subcat'] >= 3000:
-        <span class="icon icon-20 icon-multi"></span>
-      $elif 3000 > query['subcat'] >= 2000:
-        <span class="icon icon-20 icon-lit"></span>
   </figure>
 
   $if notifications:

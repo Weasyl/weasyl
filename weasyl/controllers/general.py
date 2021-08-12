@@ -96,7 +96,7 @@ def search_(request):
             search.COUNT_LIMIT,
         )
     elif find:
-        if find not in ("submit", "char", "journal", "user", "critique"):
+        if find not in ("submit", "char", "journal", "critique"):
             raise HTTPNotFound()
 
         query = search.browse(

@@ -8,7 +8,6 @@ from sqlalchemy.orm.attributes import flag_modified
 from weasyl import (
     define,
     emailer,
-    index,
     login,
     moderation,
     profile,
@@ -47,8 +46,6 @@ def signin_post_(request):
                             secure=request.scheme == 'https', httponly=True)
         if form.sfwmode == "sfw":
             response.set_cookie("sfwmode", "sfw", max_age=31536000)
-        # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
-        index.template_fields.invalidate(logid)
         return response
     elif logid and logerror == "2fa":
         # Password authentication passed, but user has 2FA set, so verify second factor
@@ -82,8 +79,6 @@ def signin_post_(request):
                             secure=request.scheme == 'https', httponly=True)
         if form.sfwmode == "sfw":
             response.set_cookie("sfwmode", "sfw", max_age=31536000)
-        # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
-        index.template_fields.invalidate(logid)
         return response
     elif logerror == "invalid":
         return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))

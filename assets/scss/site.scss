@@ -89,9 +89,13 @@ textarea {
     font-weight: normal !important;
 }
 
-i, #header-guest {
+@mixin serif {
     font-family: Georgia, serif;
     font-weight: 400;
+}
+
+i, #header-guest {
+    @include serif;
 }
 
 .formatted-content i {
@@ -101,14 +105,17 @@ i, #header-guest {
 
 /* Colors
 --------------------------------*/
+$color-a: #069bc0;
+$color-b: #8cad47;
+
 .color-a, .username, .content .username, .page-title, #header-nav .current,
-#user-nav .current, #home-tabs a.current,
-#submissions-stage .sectioned-sidebar .current, #home-art h3 {
-    color: #069bc0;
+#user-nav .current,
+#submissions-stage .sectioned-sidebar .current, #hc-streams h3 {
+    color: $color-a;
 }
 
-.color-b, a.more span, #header-messages a, .page-title a {
-    color: #8cad47;
+a.more span, #header-messages a, .page-title a {
+    color: $color-b;
 }
 
 .color-c, .title, .content a {
@@ -135,7 +142,7 @@ i, #header-guest {
     color: #687a89;
 }
 
-#header-nav ul a, #user-nav a, #home-tabs a {
+#header-nav ul a, #user-nav a, .home-pane-link {
     color: #9eb9bc;
 }
 
@@ -174,6 +181,10 @@ li.more, div.more, a.more-block {
 li.more {
     margin: 0.75em 0 0;
     border-top: 1px dashed #334047;
+
+    &.more-joined {
+        border-top: none;
+    }
 }
 
 hr.more {
@@ -973,7 +984,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     color: #3ad;
 }
 .content .avatar-grid .username {
-    color: #069bc0;
+    color: $color-a;
 }
 .avatar-grid .button {
     padding: 4px 0;
@@ -1000,27 +1011,23 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 /* ------------------------------------ =thumbnails -- */
 
 .thumbnail-grid {
-    margin-right: -8px;
-    letter-spacing: -0.31em;
-    text-rendering: optimizeSpeed;
-    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
 }
-.thumbnail-grid .item, .thumbnail-grid .more {
-    letter-spacing: normal;
-    text-rendering: auto;
+.thumbnail-grid .more {
+    width: 100%;
 }
 .thumbnail-grid .item {
     box-sizing: border-box;
     display: inline-block;
     vertical-align: bottom;
     max-width: 43.5%;
-    padding: 0 8px 8px 0;
-    margin: 0 8px;
-    text-align: left;
+    margin: 0 4px 8px 4px;
 }
 .enhanced-thumbnails .thumbnail-grid .item {
-    margin: 0;
     max-width: 100%;
+    padding-left: 0;
 }
 .thumbnail-grid .thumb {
     display: block;
@@ -1039,8 +1046,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .thumbnail-grid figcaption {
     box-sizing: border-box;
     width: 100%;
-}
-.enhanced-thumbnails .thumbnail-grid figcaption {
     position: absolute;
     bottom: 5px;
     left: 0;
@@ -1085,7 +1090,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     color: #3ad;
 }
 .content .thumbnail-grid .username {
-    color: #069bc0;
+    color: $color-a;
 }
 .thumbnail-grid .username:hover {
     opacity: 1;
@@ -2141,67 +2146,201 @@ blockquote + blockquote {
 
 /* ------------------------------------ =homepage --*/
 
-#home-art {
-    padding-bottom: 8px;
-    padding-bottom: 0.5rem;
+.home-latest {
+    margin: 8px 0;
 }
 
-#home-art h3 {
-    font-size: 21px;
-    font-size: 1.3rem;
-    padding-top: 20px;
-    padding-top: 1.25rem;
-    padding-bottom: 8px;
-    padding-bottom: 0.5rem;
-    font-weight: 400;
+.home-tab-collapse {
+    display: none;
 }
 
-#home-tabs, #home-panes {
-    clear: both;
+#home-panes > .pane > .thumbnail-grid {
+    display: none;
+    padding: 8px 0;
+}
+
+#home-panes > .pane.current > .thumbnail-grid {
+    display: flex;
 }
 
 #home-tabs {
-    display: none;
+    display: flex;
+    flex-wrap: wrap;
 }
 
-.home-disclosure {
-    position: relative;
+.home-pane-link {
+    @extend .typeface-a;
+    @extend .color-c;
+    display: block;
+    padding: 0 16px;
+    line-height: 48px;
+    margin: 0;
+    font-size: 16px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    @media (min-width: 53em) {
+        padding: 0 32px;
+    }
+
+    &:hover {
+        text-decoration: none;
+        color: #ddd;
+    }
+
+    &.current {
+        color: $color-a;
+    }
 }
 
-.home-disclosure .icon {
-    position: absolute;
-    right: 16px;
-    right: 1rem;
-    top: 50%;
-    margin-top: -10px;
-    transition: transform 0.2s linear;
-}
+@media (max-width: 500px) {
+    #home-tabs > li {
+        flex-grow: 1;
+    }
 
-.home-disclosure.loaded .icon {
-    transform: rotate(90deg);
+    .home-pane-link {
+        font-size: 14px;
+        padding: 0;
+        text-align: center;
+    }
 }
 
 #home-panes .thumbnail-grid {
-    display: none;
-    padding: 16px 0;
-    padding: 1rem 0;
-}
-
-#home-panes .thumbnail-grid.loaded {
-    display: block;
+    padding-bottom: 8px;
+    padding-bottom: 0.5rem;
 }
 
 #home-content {
     padding-bottom: 24px;
-    padding-bottom: 1.5rem;
 }
 
-#hc-critique li + li, #hc-streams li + li {
-    padding-top: 1rem;
+#hc-streams {
+    @extend .pad-left;
+    @extend .pad-right;
+    color: rgba(235, 234, 233, 0.8);
+    display: flex;
+    flex-direction: column;
+    padding-top: 24px;
+    padding-bottom: 24px;
 }
 
-#hc-streams .title {
-    color: #808080;
+#hc-streams a {
+    color: $color-a;
+}
+
+#hc-streams > h3 {
+    color: #ddd;
+    font-size: 19px;
+    font-weight: 400;
+    padding-bottom: 24px;
+    text-align: center;
+}
+
+#hc-streams > .streams-empty {
+    text-align: center;
+}
+
+.streams {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 100%;
+
+    > li {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.stream {
+    display: flex;
+    max-width: 50em;
+    margin-bottom: 32px;
+}
+
+.stream-detail {
+    border-left: 3px solid rgba(235, 234, 233, 0.07);
+    display: flex;
+    flex-direction: column;
+    margin-left: 16px;
+    min-width: 0;
+    padding-left: 16px;
+}
+
+.stream-header {
+    @include serif;
+    color: scale-color($color-a, $saturation: -75%, $lightness: 15%);
+    font-style: italic;
+}
+
+.stream-header > .username {
+    font-size: 16px;
+    font-style: normal;
+    margin-right: 4px;
+}
+
+.stream-link {
+    font-size: 14px;
+    margin-top: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.streams-footer {
+    text-align: center;
+}
+
+.streams-all {
+    font-size: 16px;
+
+    &::after {
+        content: ' ›';
+    }
+}
+
+@supports (column-gap: 40px) {
+    @media (min-width: 1280px) {
+        .streams-sample {
+            display: inline-grid;
+            grid-auto-columns: 1fr;
+            grid-auto-flow: column;
+            column-gap: 40px;
+            padding: 0 40px;
+        }
+    }
+}
+
+.hc-update-header {
+    padding-bottom: 24px;
+}
+
+#hc-update .hc-update-title {
+    padding-bottom: 4px;
+    text-align: center;
+}
+
+.hc-update-footer {
+    margin-top: 8px;
+}
+
+.hc-update-attribution {
+    @include serif;
+    font-style: italic;
+    text-align: center;
+
+    > .username {
+        font-style: normal;
+        text-decoration: none;
+    }
+
+    > .username > img {
+        vertical-align: middle;
+        width: 25px;
+        height: 25px;
+    }
 }
 
 #view-streams-link {
@@ -2210,89 +2349,16 @@ blockquote + blockquote {
 }
 
 @media (min-width: 45em) {
-    #home-art h3 {
-        font-size: 24px;
-        font-size: 1.5rem;
-    }
-
-    .home-disclosure {
-        display: none;
-    }
-
-    #home-tabs {
-        display: block;
-        margin-top: 8px;
-        margin-top: 0.5rem;
-    }
-
-    #home-tabs li a {
-        display: block;
-        float: left;
-        height: 48px;
-        height: 3rem;
-        line-height: 48px;
-        line-height: 3rem;
-        margin: 0;
-        font-size: 16px;
-        font-size: 1rem;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-    }
-
-    #home-tabs li a:hover {
-        text-decoration: none;
-        color: #ddd;
-    }
-
-    #home-panes .thumbnail-grid {
-        padding-bottom: 8px;
-        padding-bottom: 0.5rem;
-    }
-
-    #home-panes .thumbnail-grid.loaded {
-        display: none;
-    }
-
-    #home-panes .thumbnail-grid.current {
-        display: block !important;
-    }
-
-    #hc-update .avatar {
-        max-width: 75px;
-        margin-bottom: 1em;
-    }
-
-    #hc-critique, #hc-streams {
-        width: 48%;
-        float: left;
-    }
-
-    #hc-streams.fullpage {
-        width: auto;
-        float: none;
+    .home-tab-collapse {
+        display: inline;
     }
 
     #hc-streams {
-        padding-left: 4%;
-    }
-}
-
-@media (min-width: 53em) {
-    #home-art {
-        padding-bottom: 16px;
-        padding-bottom: 1rem;
-    }
-}
-
-@media (min-width: 70em) {
-    #hc-update, #hc-critique, #hc-streams {
-        width: 30%;
-        float: left;
+        padding: 28px 0;
     }
 
-    #hc-critique, #hc-streams {
-        padding-left: 5%;
+    #hc-streams > h3 {
+        font-size: 24px;
     }
 }
 
@@ -3090,7 +3156,7 @@ img + #detail-art-text {
     opacity: 0.5;
 }
 .detail-folder-nav a {
-    color: #069bc0;
+    color: $color-a;
 }
 .detail-folder-nav a:hover {
     text-decoration: none;
@@ -4448,38 +4514,12 @@ a.user-icon:hover > span, a.user-icon:focus > span {
     opacity: 0.5;
 }
 
-/* Thumbnail stacks
+/* Streams page
 --------------------------------*/
-.thumbnail-stack .thumb-bounds {
-    max-width: 40%;
-    float: left;
-    margin-right: 10px;
-    position: relative;
+#streams .streams > li:last-child > .stream {
+    margin-bottom: 0;
 }
 
-.thumbnail-stack .thumb-bounds img {
-    max-width: 100%;
-    vertical-align: top;
-}
-
-.thumbnail-stack .rating {
-    width: 60px;
-    height: 60px;
-    border-style: solid;
-    border-width: 0 4px 4px 0;
-    position: absolute;
-    right: -2px;
-    bottom: -2px;
-    color: transparent;
-    overflow: hidden;
-    text-indent: 150%;
-    z-index: 3;
-}
-
-.thumbnail-stack .caption {
-    margin-top: 10px;
-}
-
-.thumbnail-stack .caption .title {
-    font-size: 13px;
+#streams .stream-detail {
+    border-left-color: rgba(0, 0, 0, 0.07);
 }

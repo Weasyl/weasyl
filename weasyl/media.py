@@ -73,3 +73,16 @@ def format_media_link(media, link):
         return define.cdnify_url(media.display_url)
     else:
         return None
+
+
+def strip_non_thumbnail_media(submissions):
+    """
+    Remove all media from a submission dict except what’s necessary to render its thumbnail.
+
+    Useful for reducing the size of JSON in cache.
+    """
+    for sub in submissions:
+        sub_media = sub["sub_media"]
+        sub_media.pop("thumbnail-source", None)
+        sub_media.pop("cover", None)
+        sub_media.pop("submission", None)

@@ -10,11 +10,17 @@ to use them.
 import string
 import unicodedata
 
+import sqlalchemy as sa
+from sqlalchemy import func
+
 
 UNIXTIME_OFFSET = -18000
 """
 The offset added to UNIX timestamps before storing them in the database.
 """
+
+
+UNIXTIME_NOW_SQL = func.extract('epoch', func.now()).cast(sa.BigInteger()) + sa.bindparam('offset', UNIXTIME_OFFSET, literal_execute=True)
 
 
 _SYSNAME_CHARACTERS = frozenset(string.ascii_lowercase + string.digits)

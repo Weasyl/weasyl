@@ -25,13 +25,13 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission(user1, rating=ratings.GENERAL.code)
         db_utils.create_submission(user1, rating=ratings.MATURE.code)
         db_utils.create_submission(user1, rating=ratings.EXPLICIT.code)
-        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
-        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, 10)))
-        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, limit=10)))
+        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, limit=10)))
+        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # A user sees their own submissions regardless of the rating level
         self.assertEqual(3, len(submission.select_list(
-            user1, ratings.GENERAL.code, 10, otherid=user1)))
+            user1, ratings.GENERAL.code, limit=10, otherid=user1)))
 
     def test_ratings_twittercard(self):
         user = db_utils.create_user()
@@ -60,27 +60,27 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission(user1, rating=ratings.GENERAL.code, hidden=True)
         db_utils.create_submission(user2, rating=ratings.GENERAL.code)
 
-        self.assertEqual(3, len(submission.select_list(user1, ratings.EXPLICIT.code, 10)))
-        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, 10, otherid=user2)))
-        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, 10, folderid=folder)))
-        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, 10, subcat=1010)))
+        self.assertEqual(3, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10)))
+        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, otherid=user2)))
+        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, folderid=folder)))
+        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, subcat=1010)))
 
     def test_select_list_limits(self):
         user1 = db_utils.create_user()
         submissions = db_utils.create_submissions(
             20, user1, rating=ratings.GENERAL.code)
 
-        results = submission.select_list(user1, ratings.EXPLICIT.code, 10)
+        results = submission.select_list(user1, ratings.EXPLICIT.code, limit=10)
         # submissions are descending, so we get the highest numbers first
         self.assertEqual(submissions[19], results[0]['submitid'])
         self.assertEqual(10, len(results))
 
         results = submission.select_list(
-            user1, ratings.EXPLICIT.code, 10, nextid=submissions[10])
+            user1, ratings.EXPLICIT.code, limit=10, nextid=submissions[10])
         self.assertEqual(submissions[9], results[0]['submitid'])
 
         results = submission.select_list(
-            user1, ratings.EXPLICIT.code, 10, backid=submissions[10])
+            user1, ratings.EXPLICIT.code, limit=10, backid=submissions[10])
         self.assertEqual(submissions[19], results[0]['submitid'])
 
     def test_friends_only(self):
@@ -90,24 +90,24 @@ class SelectListTestCase(unittest.TestCase):
 
         # poster can view their submission
         self.assertEqual(
-            1, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
 
         # but a non-friend or a non-logged in user cannot
         self.assertEqual(
-            0, len(submission.select_list(None, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(None, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # user with a pending friendship cannot view
         db_utils.create_friendship(user1, user2, settings=CharSettings({'pending'}, {}, {}))
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # but a friend can
         d.sessionmaker().query(users.Friendship).delete()
         db_utils.create_friendship(user1, user2)
         self.assertEqual(
-            1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
     def test_ignored_user(self):
         user1 = db_utils.create_user()
@@ -115,15 +115,15 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission(user1, rating=ratings.GENERAL.code)
         # can view the submission
         self.assertEqual(
-            1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
         # user2 blocks user1
         db_utils.create_ignoreuser(user2, user1)
         # user2 can no longer view the submission
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
         # but a non-logged in user can
         self.assertEqual(
-            1, len(submission.select_list(None, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(None, ratings.GENERAL.code, limit=10)))
 
     def test_blocked_tag(self):
         user1 = db_utils.create_user()
@@ -135,7 +135,7 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission_tag(tag1, s1)
         db_utils.create_blocktag(user2, tag1, ratings.GENERAL.code)
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # submission s2 has a penguin in it. user2 does not want to see penguins in
         # adult circumstances, but s2 is general, so visibility is OK
@@ -144,14 +144,14 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission_tag(tag2, s2)
         db_utils.create_blocktag(user2, tag2, ratings.EXPLICIT.code)
         self.assertEqual(
-            1, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
+            1, len(submission.select_list(user2, ratings.EXPLICIT.code, limit=10)))
 
         # submission s3 has penguins on it in adult situations, but User2
         # is okay with that if it's one of User2's own submissions.
         s3 = db_utils.create_submission(user2, rating=ratings.EXPLICIT.code)
         db_utils.create_submission_tag(tag2, s3)
         self.assertEqual(
-            2, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
+            2, len(submission.select_list(user2, ratings.EXPLICIT.code, limit=10)))
 
     def test_duplicate_blocked_tag(self):
         user = db_utils.create_user()
@@ -165,9 +165,9 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submissions(9, user1, ratings.GENERAL.code)
         db_utils.create_submission(user1, ratings.GENERAL.code, folderid=folder)
         self.assertEqual(
-            10, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            10, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            9, len(submission.select_list(user1, ratings.GENERAL.code, 10,
+            9, len(submission.select_list(user1, ratings.GENERAL.code, limit=10,
                                           profile_page_filter=True)))
 
     def test_index_page_filter(self):
@@ -177,9 +177,9 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submissions(9, user1, ratings.GENERAL.code)
         db_utils.create_submission(user1, ratings.GENERAL.code, folderid=folder)
         self.assertEqual(
-            10, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            10, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            9, len(submission.select_list(user1, ratings.GENERAL.code, 10,
+            9, len(submission.select_list(user1, ratings.GENERAL.code, limit=10,
                                           index_page_filter=True)))
 
     def test_feature_page_filter(self):
@@ -189,9 +189,9 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submissions(9, user1, ratings.GENERAL.code)
         db_utils.create_submission(user1, ratings.GENERAL.code, folderid=folder)
         self.assertEqual(
-            10, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            10, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            1, len(submission.select_list(user1, ratings.GENERAL.code, 10,
+            1, len(submission.select_list(user1, ratings.GENERAL.code, limit=10,
                                           featured_filter=True)))
 
     def test_retag(self):

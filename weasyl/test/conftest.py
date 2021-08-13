@@ -139,6 +139,8 @@ def cache_(request):
         wrap=[ThreadCacheProxy],
         replace_existing_backend=True,
     )
+    yield
+    ThreadCacheProxy.zap_cache()
 
 
 @pytest.fixture(autouse=True)

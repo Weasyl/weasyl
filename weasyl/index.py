@@ -104,7 +104,7 @@ def partition_submissions(submissions):
 
 @d.record_timing
 def template_fields(userid):
-    submissions = list(filter_submissions(userid, recent_submissions()))
+    submissions = list(filter_submissions(userid, recent_submissions(), incidence_limit=1))
     ret = partition_submissions(submissions)
 
     critique = submission.select_critique()

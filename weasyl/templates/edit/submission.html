@@ -13,7 +13,7 @@ $code:
 
 <div id="edit-submission-content" class="content">
 
-  <form name="editsubmission" action="/edit/submission" method="post" class="form skinny">
+  <form id="editsubmission" action="/edit/submission" method="post" class="form skinny">
     $:{CSRF()}
     <input type="hidden" name="submitid" value="${query['submitid']}" />
 

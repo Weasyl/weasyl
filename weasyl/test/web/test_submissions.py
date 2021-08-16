@@ -125,15 +125,13 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
         'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
         'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
     ),
-    pytest.param(
+    (
         'docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub',
         'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
-        marks=pytest.mark.xfail(reason='not implemented', strict=True),
     ),
-    pytest.param(
+    (
         '<iframe src="https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true"></iframe>',
         'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
-        marks=pytest.mark.xfail(reason='not implemented', strict=True),
     ),
     (
         'javascript:alert(1)//https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',

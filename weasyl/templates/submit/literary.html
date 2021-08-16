@@ -17,23 +17,15 @@ $:{TITLE("Literary Artwork", "Submit", "/submit")}
 
       <h3 class="or color-lighter"><i>&mdash; Or &mdash;</i></h3>
 
-      <label for="embedlink">
-        Embed Link
-        <span style="font-size: 0.8em">
-          [<a href="https://docs.google.com/document/create" target="_blank" rel="noreferrer noopener">Create new document</a>]
-          [<a href="/help/google-drive-embed" target="_blank">Help</a>]
-        </span>
-      </label>
-      <input type="url" class="input" name="embedlink" id="embedlink" />
-      <p class="supported" style="padding-top: 0.5em">
-        <i class="color-lighter">Allowed: Google Drive Documents</i>
+      <label for="embedlink">Google Docs</label>
+      <input type="url" class="input" name="embedlink" id="embedlink" placeholder="https://docs.google.com/document/d/e/2PACX-…/pub" />
+      <p style="padding-top: 0.5em">
+        <i class="color-lighter"><a href="/help/google-drive-embed" target="_blank">How do I find the embed link?</a></i>
       </p>
 
       <label for="coverfile">Cover Artwork</label>
       <input type="file" name="coverfile" id="coverfile" accept="image/*" />
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (JPG): 10 MB</i></p>
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (PNG): 10 MB</i></p>
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (GIF): 10 MB</i></p>
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>JPEG, PNG, or GIF up to 10 MB</i></p>
 
       <label for="thumbfile">Thumbnail</label>
       <input type="file" name="thumbfile" id="thumbfile" accept="image/*" />

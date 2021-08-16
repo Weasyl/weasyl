@@ -72,6 +72,7 @@ def help_about_(request):
 
 def help_collections_(request):
     return Response(define.webpage(request.userid, "help/collections.html",
+                                   options=("help",),
                                    title="Collections"))
 
 
@@ -82,12 +83,14 @@ def help_faq_(request):
 
 def help_folders_(request):
     return Response(define.webpage(request.userid, "help/folder-options.html",
+                                   options=("help",),
                                    title="Folder Options"))
 
 
 def help_gdocs_(request):
     return Response(define.webpage(request.userid, "help/gdocs.html",
-                                   title="Google Drive Embedding"))
+                                   options=("help",),
+                                   title="Google Docs Embedding"))
 
 
 def help_markdown_(request):
@@ -97,6 +100,7 @@ def help_markdown_(request):
 
 def help_marketplace_(request):
     return Response(define.webpage(request.userid, "help/marketplace.html",
+                                   options=("help",),
                                    title="Marketplace"))
 
 
@@ -119,11 +123,13 @@ def help_searching_(request):
 
 def help_tagging_(request):
     return Response(define.webpage(request.userid, "help/tagging.html",
+                                   options=("help",),
                                    title="Tagging"))
 
 
 def help_two_factor_authentication_(request):
     return Response(define.webpage(request.userid, "help/two_factor_authentication.html",
+                                   options=("help",),
                                    title="Two-Factor Authentication"))
 
 
@@ -131,4 +137,5 @@ def help_verification_(request):
     username = define.get_display_name(request.userid)
 
     return Response(define.webpage(request.userid, "help/verification.html", [username],
+                                   options=("help",),
                                    title="Account Verification"))

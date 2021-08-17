@@ -11,9 +11,11 @@ const ASSETS = path.join(__dirname, 'assets');
 const BUILD = path.join(__dirname, 'build');
 
 const autoprefixerOptions = {
-    env: [
+    overrideBrowserslist: [
         'last 2 versions',
-        'Android >= 4.4',
+        'Firefox ESR',
+        'Android >= 8',
+        'not dead',
     ],
 };
 

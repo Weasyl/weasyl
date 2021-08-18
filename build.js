@@ -262,6 +262,7 @@ const main = async () => {
         fs.promises.mkdir(path.join(BUILD, 'css'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'fonts'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'img', 'help'), {recursive: true}),
+        fs.promises.mkdir(path.join(BUILD, 'js', 'mod'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'js', 'ruffle'), {recursive: true}),
     ]);
 
@@ -294,6 +295,7 @@ const main = async () => {
             banner: {},
         }),
         esbuildFile('js/signup.js', 'js/signup.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/mod/suspenduser.js', 'js/mod/suspenduser.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
         copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,

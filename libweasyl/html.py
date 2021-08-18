@@ -11,4 +11,4 @@ def inline_json(obj):
     Returns:
         An escaped :term:`native string` of JSON.
     """
-    return json.dumps(obj).replace("</", r"<\/").replace("<!--", r"<\!--")
+    return json.dumps(obj).replace("<", r"\u003c")

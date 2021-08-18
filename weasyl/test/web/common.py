@@ -34,14 +34,27 @@ def read_storage_image(image_url):
 
 
 BASE_VISUAL_FORM = {
-    'submitfile': u'',
-    'thumbfile': u'',
-    'title': u'Test title',
-    'subtype': u'1030',
-    'folderid': u'',
-    'rating': u'10',
-    'content': u'Description',
-    'tags': u'foo bar ',
+    'submitfile': '',
+    'thumbfile': '',
+    'title': 'Test title',
+    'subtype': '1030',
+    'folderid': '',
+    'rating': '10',
+    'content': 'Description',
+    'tags': 'foo bar ',
+}
+
+BASE_LITERARY_FORM = {
+    'submitfile': '',
+    'embedlink': '',
+    'coverfile': '',
+    'thumbfile': '',
+    'title': 'Test title',
+    'subtype': '2010',
+    'folderid': '',
+    'rating': '10',
+    'content': 'Description',
+    'tags': 'foo bar',
 }
 
 

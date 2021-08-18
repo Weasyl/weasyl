@@ -13,7 +13,7 @@ $code:
 
 <div id="edit-submission-content" class="content">
 
-  <form name="editsubmission" action="/edit/submission" method="post" class="form skinny">
+  <form id="editsubmission" action="/edit/submission" method="post" class="form skinny">
     $:{CSRF()}
     <input type="hidden" name="submitid" value="${query['submitid']}" />
 
@@ -29,9 +29,9 @@ $code:
     $if 'google-drive' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
       <input type="url" class="input" name="embedlink" id="embedlink"
-             value="${query['google_doc_embed']}" />
+             value="${query['google_doc_embed']}" required />
       <p class="supported" style="padding-top: 0.5em">
-        <i class="color-lighter">Allowed: Google Drive Documents</i>
+        <i class="color-lighter"><a href="/help/google-drive-embed" target="_blank">How do I find the embed link?</a></i>
       </p>
 
     <label for="editsubmissionfolder">Folder</label>

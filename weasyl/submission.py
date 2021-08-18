@@ -263,14 +263,19 @@ def create_visual(userid, submission,
     return submitid
 
 
-def check_google_doc_embed_data(embedlink):
-    m = text.url_regexp.search(embedlink)
-    if not m:
-        raise WeasylError('googleDocsEmbedLinkInvalid')
-    embedlink = m.group()
-    parsed = urlparse(embedlink)
-    if parsed.scheme != 'https' or parsed.netloc != 'docs.google.com':
-        raise WeasylError('googleDocsEmbedLinkInvalid')
+_GOOGLE_DOCS_EMBED = re.compile(
+    r"\bdocs\.google\.com/document/d/e/([0-9a-z_\-]+)/pub\b",
+    re.IGNORECASE,
+)
+
+
+def _normalize_google_docs_embed(embedlink):
+    match = _GOOGLE_DOCS_EMBED.search(embedlink.strip())
+
+    if match is None:
+        raise WeasylError('googleDocsEmbedLinkInvalid', level='info')
+
+    return f"https://docs.google.com/document/d/e/{match.group(1)}/pub?embedded=true"
 
 
 @_create_submission(expected_type=2)
@@ -278,7 +283,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
                     coverfile=None, thumbfile=None, submitfile=None, critique=False,
                     create_notifications=True):
     if embedlink:
-        check_google_doc_embed_data(embedlink)
+        embedlink = _normalize_google_docs_embed(embedlink)
 
     # Determine filesizes
     coversize = len(coverfile)
@@ -1017,7 +1022,7 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
     elif 'other' == query[3] and not embed.check_valid(embedlink):
         raise WeasylError("embedlinkInvalid")
     elif 'google-drive' == query[3]:
-        check_google_doc_embed_data(embedlink)
+        embedlink = _normalize_google_docs_embed(embedlink)
     profile.check_user_rating_allowed(userid, submission.rating)
 
     if 'other' == query[3]:

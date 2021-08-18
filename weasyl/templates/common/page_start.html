@@ -31,6 +31,9 @@ $code:
   <link rel="icon" type="image/svg+xml" sizes="any" href="${resource_path('img/favicon.svg')}" />
   <link rel="mask-icon" color="#970000" href="${resource_path('img/favicon-mask.svg')}" />
 
+  $if "help" in options:
+    <link rel="stylesheet" href="${resource_path('css/help.css')}" />
+
   $if "imageselect" in options:
     <link rel="stylesheet" href="${resource_path('js/imageselect.css')}" />
 

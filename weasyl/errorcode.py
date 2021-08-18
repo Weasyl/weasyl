@@ -80,7 +80,10 @@ error_messages = {
         "forgot password page and resubmit the form, or you may have copied the link incorrectly."),
     "FriendsOnly": friends,
     "characterRecordMissing": charid,
-    "googleDocsEmbedLinkInvalid": "The Google Drive link you provided is invalid.",
+    "googleDocsEmbedLinkInvalid": (
+        "The link you provided isn’t a valid Google Docs embed link."
+        " If you’re not sure which link to use, we have [a guide on publishing documents from Google Docs](/help/google-drive-embed) that might help."
+    ),
     "hiddenFavorites": "You cannot view this page because the owner does not allow anyone to see their favorites.",
     "httpError": "An error occurred while making an HTTP request on your behalf.",
     "IgnoredYou": "This user has ignored you.",

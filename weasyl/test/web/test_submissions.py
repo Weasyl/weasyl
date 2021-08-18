@@ -12,6 +12,7 @@ from libweasyl import ratings
 from weasyl import submission
 from weasyl.test import db_utils
 from weasyl.test.web.common import (
+    BASE_LITERARY_FORM,
     BASE_VISUAL_FORM,
     create_visual,
     get_storage_path,
@@ -117,6 +118,70 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     # The reupload of submission 1 should look like submission 2
     assert _image_hash(read_storage_image(v1_new_thumbnail_url)) == _image_hash(read_storage_image(v2_thumbnail_url))
     assert _image_hash(read_storage_image(v2_cover_url)) == _image_hash(read_storage_image(v1_new_cover_url))
+
+
+@pytest.mark.parametrize('link,normalized', [
+    (
+        'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
+        'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
+    ),
+    (
+        'docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub',
+        'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
+    ),
+    (
+        '<iframe src="https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true"></iframe>',
+        'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
+    ),
+    (
+        'javascript:alert(1)//https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
+        'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
+    ),
+    (
+        'https://docs.google.com/document/d/e/1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli/edit?usp=sharing',
+        None,
+    ),
+])
+@pytest.mark.usefixtures('db')
+def test_google_docs_embed_create(app, submission_user, link, normalized):
+    app.set_cookie(*db_utils.create_session(submission_user).split("=", 1))
+
+    form = {
+        **BASE_LITERARY_FORM,
+        'embedlink': link,
+    }
+    resp = app.post('/submit/literary', form, status=303 if normalized else 422).maybe_follow()
+
+    if normalized:
+        assert resp.html.select_one('iframe.gdoc')['src'] == normalized
+    else:
+        assert resp.html.find(id='error_content').p.decode_contents() == 'The link you provided isn’t a valid Google Docs embed link. If you’re not sure which link to use, we have <a href="/help/google-drive-embed">a guide on publishing documents from Google Docs</a> that might help.'
+
+
+@pytest.mark.usefixtures('db')
+def test_google_docs_embed_edit(app, submission_user):
+    make_link = 'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr{}5/pub?embedded=true'.format
+
+    app.set_cookie(*db_utils.create_session(submission_user).split("=", 1))
+
+    form = {
+        **BASE_LITERARY_FORM,
+        'embedlink': make_link(1),
+    }
+    resp = app.post('/submit/literary', form, status=303).maybe_follow()
+    resp = resp.click('Edit Submission Details')
+    form = resp.forms['editsubmission']
+
+    form['embedlink'] = 'https://docs.google.com/document/d/1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli/edit?usp=sharing'
+    form.submit(status=422)
+
+    form['embedlink'] = 'javascript:alert(1)//' + make_link(2)
+    resp = form.submit(status=303).maybe_follow()
+    assert resp.html.select_one('iframe.gdoc')['src'] == make_link(2)
+
+    form['embedlink'] = make_link(3)
+    resp = form.submit(status=303).maybe_follow()
+    assert resp.html.select_one('iframe.gdoc')['src'] == make_link(3)
 
 
 class CrosspostHandler(BaseHTTPRequestHandler):

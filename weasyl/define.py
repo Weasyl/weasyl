@@ -59,7 +59,7 @@ def record_timing(func):
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
 if config._in_test:
     _sqlalchemy_url += '_test'
-engine = meta.bind = sa.create_engine(_sqlalchemy_url, max_overflow=25, pool_size=10)
+engine = meta.bind = sa.create_engine(_sqlalchemy_url, pool_use_lifo=True, pool_size=2)
 sessionmaker_future = sa.orm.sessionmaker(bind=engine, expire_on_commit=False)
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 

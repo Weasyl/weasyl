@@ -61,6 +61,7 @@ def make_wsgi_app(*, configure_cache=True):
     if config_obj.has_option('sentry', 'dsn'):
         sentry_sdk.init(
             dsn=config_obj.get('sentry', 'dsn'),
+            ca_certs=config_obj.get('sentry', 'ca_certs', fallback=None),
             release=d.CURRENT_SHA,
             traces_sample_rate=float(config_obj.get('sentry', 'traces_sample_rate')),
             integrations=[PyramidIntegration()],

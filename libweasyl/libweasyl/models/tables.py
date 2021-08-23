@@ -637,6 +637,7 @@ sessions = Table(
     'sessions', metadata,
     Column('sessionid', String(length=64), primary_key=True, nullable=False),
     Column('created_at', ArrowColumn(), nullable=False, server_default=text('now()')),
+    Column('last_active', TIMESTAMP(timezone=True), nullable=True, server_default=func.now()),
     Column('userid', Integer()),
     Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
     Column('ip_address', String(length=39), nullable=True),
@@ -647,6 +648,7 @@ sessions = Table(
 )
 
 Index('ind_sessions_created_at', sessions.c.created_at)
+Index('ind_sessions_last_active', sessions.c.last_active)
 Index('ind_sessions_userid', sessions.c.userid)
 
 

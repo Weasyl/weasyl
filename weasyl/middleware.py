@@ -3,6 +3,7 @@ import re
 import secrets
 import time
 import traceback
+from datetime import datetime, timedelta, timezone
 
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
@@ -62,6 +63,8 @@ def session_tween_factory(handler, registry):
         if request.weasyl_session is None:
             response.delete_cookie('WZL')
 
+    _SESSION_LAST_ACTIVE_UPDATE_THRESHOLD = timedelta(minutes=10)
+
     # TODO(hyena): Investigate a pyramid session_factory implementation instead.
     def session_tween(request):
         sess_obj = None
@@ -74,6 +77,12 @@ def session_tween_factory(handler, registry):
                 request.add_response_callback(remove_session_cookie_callback)
             else:
                 request.pg_connection.expunge(sess_obj)
+
+                if sess_obj.last_active is None or datetime.now(timezone.utc) - sess_obj.last_active > _SESSION_LAST_ACTIVE_UPDATE_THRESHOLD:
+                    d.engine.execute(
+                        "UPDATE sessions SET last_active = now() WHERE sessionid = %(sessionid)s",
+                        {"sessionid": sess_obj.sessionid},
+                    )
 
         request.weasyl_session = sess_obj
 

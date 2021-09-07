@@ -8,10 +8,7 @@ unsigned = "You must be signed in to perform this operation."
 permission = "You do not have permission to access this page."
 
 token = (
-    "This action appears to have been performed illegitimately; for your "
-    "security, this request was not fully processed. If you believe you are "
-    "receiving this message in error, return to the previous page, refresh, "
-    "and try again.")
+    "We weren’t able to process your request for security reasons. If you’re seeing this error after trying to perform an action on Weasyl, your web browser may not be compatible with this website. We recommend [Firefox](https://www.mozilla.org/firefox/) or [Chrome](https://www.google.com/chrome/).")
 rating = (
     "This page contains content that you cannot view according to your "
     "current allowed ratings.")

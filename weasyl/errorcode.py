@@ -89,9 +89,6 @@ error_messages = {
     "insufficientActionPermissions": "You do not have permission to perform this action.",
     "journalRecordMissing": journalid,
     "logincreateRecordMissing": "That's not a valid token!",
-    "loginRecordMissing": (
-        "The username you entered does not appear to be correct. Check to make sure that you entered the "
-        "name correctly and that the account you are trying to recover the password for actually exists."),
     "maxamountInvalid": "The maximum amount you entered is not valid.",
     "minamountInvalid": "The minimum amount you entered is not valid.",
     'noGuests': no_guest_access,

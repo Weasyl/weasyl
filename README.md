@@ -74,7 +74,7 @@ Weasyl should now be running at <http://weasyl:8080/>!
 ## Running tests
 
 ```shell
-./wzl test
+./wzl test --build
 ```
 
 

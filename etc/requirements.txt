@@ -13,7 +13,7 @@ publicsuffixlist==0.6.13    # For extracting the base domain for the email black
 
 
 # libweasyl
-alembic==1.7.4
+alembic==1.7.5
 arrow==1.2.1
 bcrypt==3.2.0
 dogpile.cache==1.1.3

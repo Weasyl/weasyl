@@ -191,26 +191,29 @@ class CrosspostHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(read_asset('img/wesley1.png'))
 
+    def log_message(self, format, *args):
+        pass
+
 
 @pytest.mark.usefixtures('db')
 def test_crosspost(app, submission_user, monkeypatch):
     monkeypatch.setattr(submission, '_ALLOWED_CROSSPOST_HOST', re.compile(r'\Alocalhost:[0-9]+\Z'))
 
-    crosspost_test_server = HTTPServer(('127.0.0.1', 0), CrosspostHandler)
-    image_url = 'http://localhost:%i/wesley1.png' % (crosspost_test_server.server_port,)
+    with HTTPServer(('127.0.0.1', 0), CrosspostHandler) as crosspost_test_server:
+        image_url = 'http://localhost:%i/wesley1.png' % (crosspost_test_server.server_port,)
 
-    test_server_thread = threading.Thread(
-        target=crosspost_test_server.serve_forever,
-        kwargs={'poll_interval': 0.1},
-    )
-    test_server_thread.start()
+        test_server_thread = threading.Thread(
+            target=crosspost_test_server.serve_forever,
+            kwargs={'poll_interval': 0.1},
+        )
+        test_server_thread.start()
 
-    # Crossposting from a supported source works
-    try:
-        v1 = create_visual(app, submission_user, imageURL=image_url)
-    finally:
-        crosspost_test_server.shutdown()
-        test_server_thread.join()
+        # Crossposting from a supported source works
+        try:
+            v1 = create_visual(app, submission_user, imageURL=image_url)
+        finally:
+            crosspost_test_server.shutdown()
+            test_server_thread.join()
 
     v1_image_url = app.get('/~submissiontest/submissions/%i/test-title' % (v1,)).html.find(id='detail-art').img['src']
 

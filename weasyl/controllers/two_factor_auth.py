@@ -34,7 +34,7 @@ def _set_recovery_codes_on_session(request, recovery_codes):
 
     with define.sessionmaker_future.begin() as tx:
         sess.additional_data['2fa_recovery_codes'] = recovery_codes
-        sess.additional_data['2fa_recovery_codes_timestamp'] = arrow.now().timestamp
+        sess.additional_data['2fa_recovery_codes_timestamp'] = arrow.now().int_timestamp
         flag_modified(sess, 'additional_data')
         tx.add(sess)
 
@@ -250,7 +250,7 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
         if '2fa_recovery_codes_timestamp' in sess.additional_data:
             # Are the codes on the current session < 30 minutes old?
             tstamp = sess.additional_data['2fa_recovery_codes_timestamp']
-            if arrow.now().timestamp - tstamp < 1800:
+            if arrow.now().int_timestamp - tstamp < 1800:
                 # We have recent codes on the session, use them instead of generating fresh codes.
                 recovery_codes = sess.additional_data['2fa_recovery_codes'].split(',')
                 gen_rec_codes = False

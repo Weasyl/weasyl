@@ -211,7 +211,7 @@ class WeasylTimestampColumn(types.TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return None
-        return value.timestamp + UNIXTIME_OFFSET
+        return value.int_timestamp + UNIXTIME_OFFSET
 
 
 class ArrowColumn(types.TypeDecorator):

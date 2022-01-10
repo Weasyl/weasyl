@@ -986,7 +986,7 @@ def iso8601(unixtime):
 
 
 def parse_iso8601(s):
-    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').timestamp + _UNIXTIME_OFFSET
+    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').int_timestamp + _UNIXTIME_OFFSET
 
 
 def paginate(results, backid, nextid, limit, key):

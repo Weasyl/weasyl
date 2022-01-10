@@ -61,7 +61,7 @@ def signin_post_(request):
             sess = request.weasyl_session = create_session(None)
             sess.additional_data = {
                 # The timestamp at which password authentication succeeded
-                '2fa_pwd_auth_timestamp': arrow.now().timestamp,
+                '2fa_pwd_auth_timestamp': arrow.now().int_timestamp,
                 # The userid of the user attempting authentication
                 '2fa_pwd_auth_userid': logid,
                 # The number of times the user has attempted to authenticate via 2FA
@@ -112,7 +112,7 @@ def signin_2fa_auth_get_(request):
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     # Maximum secondary authentication time: 5 minutes
-    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    session_life = arrow.now().int_timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
         login.signout(request)
         raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
@@ -136,7 +136,7 @@ def signin_2fa_auth_post_(request):
         raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
-    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    session_life = arrow.now().int_timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
         # Maximum secondary authentication time: 5 minutes
         login.signout(request)

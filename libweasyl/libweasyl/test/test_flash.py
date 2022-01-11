@@ -89,42 +89,42 @@ def test_read_uncompressed_flash_header():
     """
     parse_flash_header can parse the header of uncompressed flash files.
     """
-    infile = datadir.join('test.swf').open(mode='rb')
-    header = flash.parse_flash_header(infile)
-    assert header == {
-        'compression': None,
-        'size': 153,
-        'version': 5,
-        'width': 550,
-        'height': 400,
-    }
+    with datadir.join('test.swf').open(mode='rb') as infile:
+        header = flash.parse_flash_header(infile)
+        assert header == {
+            'compression': None,
+            'size': 153,
+            'version': 5,
+            'width': 550,
+            'height': 400,
+        }
 
 
 def test_read_zlib_compressed_flash_header():
     """
     parse_flash_header can parse the header of zlib compressed flash files.
     """
-    infile = datadir.join('flash_eyes.swf').open(mode='rb')
-    header = flash.parse_flash_header(infile)
-    assert header == {
-        'compression': 'zlib',
-        'size': 15900,
-        'version': 6,
-        'width': 300,
-        'height': 300,
-    }
+    with datadir.join('flash_eyes.swf').open(mode='rb') as infile:
+        header = flash.parse_flash_header(infile)
+        assert header == {
+            'compression': 'zlib',
+            'size': 15900,
+            'version': 6,
+            'width': 300,
+            'height': 300,
+        }
 
 
 def test_read_lzma_compressed_flash_header():
     """
     parse_flash_header can parse the header of lzma compressed flash files.
     """
-    infile = datadir.join('lzma.swf').open(mode='rb')
-    header = flash.parse_flash_header(infile)
-    assert header == {
-        'compression': 'lzma',
-        'size': 3294,
-        'version': 25,
-        'width': 550,
-        'height': 400,
-    }
+    with datadir.join('lzma.swf').open(mode='rb') as infile:
+        header = flash.parse_flash_header(infile)
+        assert header == {
+            'compression': 'lzma',
+            'size': 3294,
+            'version': 25,
+            'width': 550,
+            'height': 400,
+        }

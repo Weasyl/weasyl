@@ -217,7 +217,8 @@ def test_crosspost(app, submission_user, monkeypatch):
 
     v1_image_url = app.get('/~submissiontest/submissions/%i/test-title' % (v1,)).html.find(id='detail-art').img['src']
 
-    assert open(get_storage_path(v1_image_url), 'rb').read() == read_asset('img/wesley1.png')
+    with open(get_storage_path(v1_image_url), 'rb') as f:
+        assert f.read() == read_asset('img/wesley1.png')
 
     # Crossposting from an unsupported source doesn’t work
     form = dict(

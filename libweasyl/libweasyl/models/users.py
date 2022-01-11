@@ -1,7 +1,5 @@
 import datetime
 
-import arrow
-from dateutil.relativedelta import relativedelta
 import pytz
 from pyramid.decorator import reify
 from sqlalchemy import orm
@@ -95,20 +93,6 @@ class UserTimezone(Base):
         if inst is not None:
             inst.cache()
         return inst
-
-
-class UserInfo(Base):
-    """
-    A user's personal information.
-    """
-
-    __table__ = tables.userinfo
-
-    user = orm.relationship(Login, backref=orm.backref('info', uselist=False))
-
-    @property
-    def age(self):
-        return relativedelta(arrow.get().datetime, self.birthday.datetime).years
 
 
 class Friendship(Base):

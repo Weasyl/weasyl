@@ -5,7 +5,7 @@ import arrow
 from dateutil.relativedelta import relativedelta
 import py.path
 
-from libweasyl.models import content, users
+from libweasyl.models import content, tables, users
 from libweasyl import media, ratings
 
 
@@ -22,24 +22,6 @@ class NotFound(Exception):
 
 def dummy_format_media_link(media, link):
     return None
-
-
-def user_with_age(age):
-    """
-    Create a Login, UserInfo, and Profile with the provided age.
-
-    Note that the new model objects are not added to the session.
-
-    Returns:
-        Login: The user Login object created.
-    """
-    birthday = arrow.get(datetime.datetime.utcnow() - relativedelta(years=age))
-    login_name = 'user%d' % next(_user_counter)
-    return users.Login(
-        info=users.UserInfo(birthday=birthday),
-        profile=users.Profile(username=login_name, full_name=login_name, created_at=arrow.get(0).datetime),
-        last_login=arrow.get(0).datetime,
-        login_name=login_name)
 
 
 def media_item(db, filename, file_type=None):
@@ -68,9 +50,19 @@ def make_user(db):
     Returns:
         Login: The user Login object created.
     """
-    user = user_with_age(42)
+    age = 42
+    birthday = arrow.get(datetime.datetime.utcnow() - relativedelta(years=age))
+    login_name = 'user%d' % next(_user_counter)
+    user = users.Login(
+        profile=users.Profile(username=login_name, full_name=login_name, created_at=arrow.get(0).datetime),
+        last_login=arrow.get(0).datetime,
+        login_name=login_name)
     db.add(user)
     db.flush()
+    db.execute(tables.userinfo.insert(), {
+        'userid': user.userid,
+        'birthday': birthday,
+    })
     return user
 
 

@@ -2,6 +2,7 @@ from collections import namedtuple
 
 from weasyl.controllers import (
     admin,
+    api,
     content,
     detail,
     director,
@@ -369,4 +370,4 @@ def setup_routes_and_views(config):
     config.add_route("api_favorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite")
     config.add_route("api_unfavorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite")
 
-    config.scan("weasyl.controllers")
+    config.scan(api)

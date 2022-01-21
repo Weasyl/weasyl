@@ -23,7 +23,7 @@ Pillow==9.0.0
 psycopg2cffi==2.9.0
 #pyramid ...
 pytz==2021.1
-sqlalchemy==1.4.23
+sqlalchemy==1.4.31
 
 # https://github.com/Weasyl/misaka
 misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz#sha224=cc3767d791466c857ec0b147e8c4809eb09948a7a6a72278d49427bb

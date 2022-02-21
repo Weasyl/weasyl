@@ -239,7 +239,6 @@ def api_user_view_(request):
         })
 
     del user['userid']
-    del user['commish_slots']
 
     user['created_at'] = d.iso8601(user.pop('unixtime'))
     user['media'] = api.tidy_all_media(user.pop('user_media'))

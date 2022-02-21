@@ -155,7 +155,6 @@ def select_profile(userid, viewer=None):
         "config": query[7],
         "show_favorites_bar": "u" not in query[7] and "v" not in query[7],
         "show_favorites_tab": userid == viewer or "v" not in query[7],
-        "commish_slots": 0,
         "banned": is_banned,
         "suspended": is_suspended,
         "streaming_status": streaming_status,

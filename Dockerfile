@@ -24,7 +24,7 @@ USER build
 RUN wget https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.0.3.tar.gz
 RUN echo '59c2d65af28d4ef68b9e5c85215cf3b26f4ac5c98e3ae76ba5febceec97fa5ab28cc13496e3f039f11cae767c5466bbf798038f83b310134c13d2e9a6bf5467e  v4.0.3.tar.gz' | sha512sum -c && tar xf v4.0.3.tar.gz
 WORKDIR /mozjpeg-build/mozjpeg-4.0.3
-RUN cmake -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-build/package-root .
+RUN cmake -DENABLE_STATIC=0 -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-build/package-root .
 RUN cmake --build . --parallel --target install
 
 

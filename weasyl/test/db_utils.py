@@ -261,9 +261,11 @@ def create_submission_tag(tagid, targetid, settings=None):
 
 
 def create_blocktag(userid, tagid, rating):
-    db = d.connect()
-    db.add(content.Blocktag(userid=userid, tagid=tagid, rating=rating))
-    db.flush()
+    d.engine.execute(d.meta.tables['blocktag'].insert(), {
+        'userid': userid,
+        'tagid': tagid,
+        'rating': rating,
+    })
 
 
 def create_favorite(userid, **kwargs):

@@ -1,7 +1,6 @@
 from pyramid.decorator import reify
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship
-import sqlalchemy as sa
 
 from libweasyl.media import get_submission_media
 from libweasyl.models.helpers import clauses_for
@@ -132,17 +131,6 @@ class Character(Base):
 
 class CharacterComment(Base):
     __table__ = tables.charcomment
-
-
-class Blocktag(Base):
-    __table__ = tables.blocktag
-
-    @classmethod
-    def blocked_tags(cls, userid, rating):
-        return (
-            sa.select([cls.tagid])
-            .where(cls.userid == userid)
-            .where(cls.rating <= rating))
 
 
 class Favorite(Base):

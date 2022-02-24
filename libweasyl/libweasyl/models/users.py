@@ -17,16 +17,6 @@ class Login(Base):
 
     __table__ = tables.login
 
-    @reify
-    def media(self):
-        from libweasyl.media import get_user_media
-        return get_user_media(self.userid)
-
-    @reify
-    def avatar_display_url(self):
-        avatar = self.media.get('avatar')
-        return avatar and avatar[0]['display_url']
-
 
 class Profile(Base):
     """

@@ -11,18 +11,25 @@ fi
 head="$1"
 shift
 
+check_nobuild() {
+    if test "$2" = --nobuild; then
+        return 0
+    fi
+
+    docker-compose build "$1" || exit $?
+    return 1
+}
+
 case "$head" in
 
 assets)
-    exec docker-compose --profile copy-assets up --no-log-prefix "$@" copy-assets
-    ;;
-
-build-all)
-    exec docker-compose --profile migrate --profile test build "$@"
+    if check_nobuild copy-assets "${1:-}"; then shift; fi
+    exec docker-compose run --rm -T copy-assets "$@"
     ;;
 
 check)
-    exec docker-compose --profile flake8 up --no-log-prefix --build flake8 "$@"
+    if check_nobuild flake8 "${1:-}"; then shift; fi
+    exec docker-compose run --rm -T flake8 "$@"
     ;;
 
 configure)
@@ -35,17 +42,18 @@ configure)
     ;;
 
 migrate)
-    # `up` with `tty` and `--no-log-prefix` instead of `run` because the latter doesn’t use buildkit
-    exec docker-compose --profile migrate up --no-log-prefix "$@" migrate
+    if check_nobuild migrate "${1:-}"; then shift; fi
+    exec docker-compose run --rm -T migrate "$@"
     ;;
 
 revision)
-    docker-compose --profile revision build revision
+    if check_nobuild revision "${1:-}"; then shift; fi
     exec docker-compose run --rm -T revision "$@" | tar x libweasyl/libweasyl/alembic/versions
     ;;
 
 test)
-    exec docker-compose --profile test up --no-log-prefix "$@" test
+    if check_nobuild test "${1:-}"; then shift; fi
+    exec docker-compose run --rm test "$@"
     ;;
 
 *)

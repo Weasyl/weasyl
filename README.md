@@ -35,16 +35,12 @@ This copies the sample configuration into the `config` volume, and only needs to
 ./wzl migrate
 ```
 
-Future changes to migrations can be applied with `./wzl migrate --build`.
-
 
 ### Copy assets
 
 ```shell
 ./wzl assets
 ```
-
-Future changes to assets can be applied with `./wzl assets --build`.
 
 
 ### Start Weasyl
@@ -74,7 +70,7 @@ Weasyl should now be running at <http://weasyl:8080/>!
 ## Running tests
 
 ```shell
-./wzl test --build
+./wzl test
 ```
 
 

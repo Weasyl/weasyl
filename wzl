@@ -56,6 +56,19 @@ test)
     exec docker-compose run --rm test "$@"
     ;;
 
+test-coverage)
+    if check_nobuild test "${1:-}"; then shift; fi
+
+    if test $# -eq 0; then
+        set -- sh -c '
+            pytest --cov=libweasyl --cov=weasyl --cov-report= libweasyl.test libweasyl.models.test
+            pytest --cov-append --cov=libweasyl --cov=weasyl --cov-report=html:coverage weasyl.test
+        '
+    fi
+
+    exec docker-compose run --rm test "$@"
+    ;;
+
 *)
     exec docker-compose "$head" "$@"
 

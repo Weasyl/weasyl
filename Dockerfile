@@ -72,7 +72,7 @@ RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
 COPY requirements/test.txt test.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest pytest-cov
 
 
 FROM docker.io/library/python:3.9-alpine3.13 AS package
@@ -117,7 +117,7 @@ RUN test -n "$version" && printf '%s\n' "$version" > version.txt
 
 FROM package AS test
 RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-pytest .venv/bin/pip install --no-deps install-wheels/*
-RUN mkdir .pytest_cache \
+RUN mkdir .pytest_cache coverage \
     && ln -s /run/config config
 ENV WEASYL_APP_ROOT=.
 ENV WEASYL_STORAGE_ROOT=testing/storage

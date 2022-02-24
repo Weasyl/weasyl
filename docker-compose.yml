@@ -8,6 +8,7 @@ volumes:
   logs:
   profile-stats:
   test-cache:
+  test-coverage:
 
 networks:
   external-web:
@@ -27,6 +28,7 @@ services:
     volumes:
       - assets:/weasyl/build:ro
       - storage:/weasyl/static:ro
+      - test-coverage:/weasyl/coverage:ro
       - type: tmpfs
         target: /var/cache/nginx
       - type: tmpfs
@@ -178,6 +180,7 @@ services:
     volumes:
       - config:/run/config:ro
       - test-cache:/weasyl/.pytest_cache
+      - test-coverage:/weasyl/coverage
       - type: tmpfs
         target: /weasyl/testing
       - type: tmpfs

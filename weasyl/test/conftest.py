@@ -9,7 +9,7 @@ import shutil
 import pytest
 import pyramid.testing
 from sqlalchemy.dialects.postgresql import psycopg2
-from webtest import TestApp
+from webtest import TestApp as TestApp_
 
 from weasyl import config
 config._in_test = True  # noqa
@@ -164,6 +164,14 @@ def deterministic_marketplace_tests(monkeypatch):
 @pytest.fixture(scope='session')
 def wsgi_app():
     return make_wsgi_app(configure_cache=False)
+
+
+class TestApp(TestApp_):
+
+    def do_request(self, req, status=None, expect_errors=None):
+        if 'wsgi.input' in req.environ:
+            req.environ['wsgi.input_terminated'] = True
+        return super().do_request(req, status, expect_errors)
 
 
 @pytest.fixture()

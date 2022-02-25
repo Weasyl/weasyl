@@ -121,7 +121,7 @@ def query_debug_tween_factory(handler, registry):
 
         for statement, t in request.query_debug:
             statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
-            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></p>' % (t * 1000, html.escape(statement)))
+            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></tr>' % (t * 1000, html.escape(statement)))
 
         response.text += u''.join(
             [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']

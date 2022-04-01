@@ -19,7 +19,7 @@ bcrypt==3.2.0
 dogpile.cache==1.1.5
 #lxml ...
 oauthlib==2.1.0
-Pillow==9.0.0
+Pillow==9.1.0
 psycopg2cffi==2.9.0
 #pyramid ...
 pytz==2021.1

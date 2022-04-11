@@ -99,11 +99,11 @@ def get_thumbnail(image_file, bounds=None):
     if source_rect == (0, 0, image.width, image.height):
         image.draft(None, result_size)
         with image:
-            image = image.resize(result_size, resample=Image.LANCZOS)
+            image = image.resize(result_size, resample=Image.Resampling.LANCZOS)
     else:
         # TODO: draft and adjust rectangle?
         with image:
-            image = image.resize(result_size, resample=Image.LANCZOS, box=source_rect)
+            image = image.resize(result_size, resample=Image.Resampling.LANCZOS, box=source_rect)
 
     thumbnail_attributes = {'width': image.width, 'height': image.height}
 

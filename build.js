@@ -181,6 +181,7 @@ const main = async () => {
     const tasks = await Promise.all([
         sasscFile('scss/site.scss', 'css/site.css', touch, copyImages),
         sasscFile('scss/help.scss', 'css/help.css', touch, copyImages),
+        sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
         copyStaticFiles('img/help', touch),
         copyImages,
         copyStaticFiles('js', touch),

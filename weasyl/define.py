@@ -58,7 +58,14 @@ def record_timing(func):
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
 if config._in_test:
     _sqlalchemy_url += '_test'
-engine = meta.bind = sa.create_engine(_sqlalchemy_url, pool_use_lifo=True, pool_size=2)
+engine = meta.bind = sa.create_engine(
+    _sqlalchemy_url,
+    pool_use_lifo=True,
+    pool_size=2,
+    connect_args={
+        'options': '-c TimeZone=UTC',
+    },
+)
 sessionmaker_future = sa.orm.sessionmaker(bind=engine, expire_on_commit=False)
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 
@@ -969,8 +976,9 @@ def metric(*a, **kw):
 
 
 def iso8601(unixtime):
-    if isinstance(unixtime, arrow.Arrow) or isinstance(unixtime, datetime.datetime):
-        return unixtime.isoformat().partition('.')[0] + 'Z'
+    if isinstance(unixtime, (arrow.Arrow, datetime.datetime)):
+        assert unixtime.tzinfo is not None
+        return unixtime.isoformat(timespec='seconds').replace('+00:00', 'Z')
     else:
         return datetime.datetime.utcfromtimestamp(unixtime - _UNIXTIME_OFFSET).isoformat() + 'Z'
 

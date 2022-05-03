@@ -58,7 +58,7 @@ def test_list_empty(app):
 def test_create_default_thumbnail(app, character):
     resp = app.get('/character/%d/test-name' % (character,))
     assert resp.html.find(id='detail-bar-title').string == u'Test name'
-    assert resp.html.find(id='char-stats').find('dt', text=u'Gender:').findNext('dd').string == u'🦊'
+    assert resp.html.find(id='char-stats').find('dt', string='Gender:').findNext('dd').string == '🦊'
 
     image_url = resp.html.find(id='detail-art').a['href']
     assert _read_character_image(image_url).tobytes() == read_asset_image('img/wesley1.png').tobytes()

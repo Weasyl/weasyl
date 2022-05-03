@@ -1580,7 +1580,7 @@ blockquote + blockquote {
     padding-right: 2em;
 }
 
-#login-recover, #login-register {
+.lb-link {
     display: block;
     float: right;
     clear: right;
@@ -1688,7 +1688,7 @@ blockquote + blockquote {
         padding-right: 2rem;
     }
 
-    #login-recover, #login-register {
+    .lb-link {
         clear: none;
     }
 }

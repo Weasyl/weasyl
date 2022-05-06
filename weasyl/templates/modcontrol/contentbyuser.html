@@ -16,7 +16,6 @@ $code:
 <div class="content content-by-user-page">
   <form action="/modcontrol/massaction" method="post">
     $:{CSRF()}
-    <input type="hidden" name="name" value="${name}">
     <table class="content-by-user">
 
       $for i in query:

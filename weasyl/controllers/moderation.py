@@ -85,7 +85,7 @@ def modcontrol_contentbyuser_(request):
 @moderator_only
 @token_checked
 def modcontrol_massaction_(request):
-    form = request.web_input(action='', name='', submissions=[], characters=[], journals=[])
+    form = request.web_input(action='', submissions=[], characters=[], journals=[])
     if form.action.startswith("zap-"):
         # "Zapping" cover art or thumbnails is not a bulk edit.
         if not form.submissions:

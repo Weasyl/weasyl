@@ -97,9 +97,9 @@ def test_markdown_image_replacement():
     assert markdown('<img alt="broken">') == '<p><a href="">broken</a></p>\n'
 
 
-def test_forum_whitelist():
-    assert markdown('https://forums.weasyl.com/foo') == (
-        '<p><a href="https://forums.weasyl.com/foo">https://forums.weasyl.com/foo</a></p>\n')
+def test_internal_links_without_nofollow():
+    assert markdown('https://www.weasyl.com/search?q=foo') == (
+        '<p><a href="https://www.weasyl.com/search?q=foo">https://www.weasyl.com/search?q=foo</a></p>\n')
 
 
 def test_markdown_no_autolink_in_html_link():

@@ -34,7 +34,6 @@ setup(
         'Pillow==9.1.0',
         'psycopg2cffi==2.9.0',
         'pyramid~=2.0',
-        'pytz==2021.1',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
         'sqlalchemy==1.4.31',
     ],

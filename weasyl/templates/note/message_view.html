@@ -24,7 +24,7 @@ $:{RENDER("common/stage_title.html", ["View Private Message", "Notes", "/notes?f
       </dd>
 
       <dt>Date:</dt>
-      <dd>${DATE(query['unixtime'])} ${TIME(query['unixtime'])}</dd>
+      <dd>$:{LOCAL_TIME(query['unixtime'], '{date} {time}')}</dd>
 
       <dt>Subject:</dt>
       <dd>${query['title']}</dd>

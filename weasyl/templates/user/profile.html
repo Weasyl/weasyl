@@ -102,7 +102,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     <div id="user-journal" class="clear on-side">
       <h3>Latest Journal</h3>
       <h4><a class="color-c" href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a></h4>
-      <h5><i>on</i> ${DATE(journal['unixtime'])} <i>at</i> ${TIME(journal['unixtime'])}</h5>
+      <h5>$:{LOCAL_TIME(journal['unixtime'], '<i>on</i> {date} <i>at</i> {time}')}</h5>
 
       <div class="formatted-content">
         $:{MARKDOWN(journal['content'])}
@@ -141,7 +141,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
   $if show_statistics:
     <div id="user-stats" class="clear on-side">
       <h3>Statistics</h3>
-      <p>Joined ${DATE(profile['unixtime'])}</p>
+      <p>Joined $:{LOCAL_TIME(profile['unixtime'], '{date}')}</p>
       <dl>
         <dt>${statistics['page_views']}</dt> <dd>Pageviews</dd>
         <dt>${statistics['followed']}</dt> <dd>Followers</dd>

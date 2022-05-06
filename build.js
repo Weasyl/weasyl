@@ -225,6 +225,12 @@ const main = async () => {
         sasscFile('scss/help.scss', 'css/help.css', touch, copyImages),
         sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
+        esbuildFile('js/main.js', 'js/main.js', touch, {
+            target: 'es6',
+            banner: {
+                js: 'export {}',
+            },
+        }),
         copyStaticFiles('img/help', touch),
         copyImages,
 
@@ -237,7 +243,6 @@ const main = async () => {
         // site
         copyStaticFile('js/notification-list.js', touch),
         copyStaticFile('js/search.js', touch),
-        copyStaticFile('js/tz-autodetect.js', touch),
         copyStaticFile('js/zxcvbn-check.js', touch),
     ]);
 

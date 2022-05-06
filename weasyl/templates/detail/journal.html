@@ -39,7 +39,7 @@ $def with (myself, query, violations)
     $ avatar = query['user_media']['avatar'][0]
     <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
     <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-    <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
+    <p class="date">$:{LOCAL_TIME(query['unixtime'], '{date} <i>at</i> {time}')}</p>
   </div>
 
 </div>

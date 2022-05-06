@@ -247,7 +247,7 @@ class SelectListTestCase(unittest.TestCase):
 
     def test_recently_popular(self):
         owner = db_utils.create_user()
-        now = arrow.now()
+        now = arrow.utcnow()
 
         sub1 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=6))
         sub2 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=4))

@@ -12,7 +12,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
     <span class="label">Email</span>
     <p>${profile['email']}</p>
     <span class="label">Registration Date</span>
-    <p>${DATE(profile['unixtime'])} ${TIME(profile['unixtime'])}</p>
+    <p>$:{LOCAL_TIME(profile['unixtime'], '{date} {time}')}</p>
     <span class="label">IP Address at Registration</span>
     $if profile['ip_address_at_signup']:
       <p>${profile['ip_address_at_signup']}</p>

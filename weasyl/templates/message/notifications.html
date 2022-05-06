@@ -199,7 +199,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the site update $:{item_link}.
             $else:
               ${i}
-            <span class="date color-lighter">${DATE(i['unixtime'])} <em>at</em> ${TIME(i['unixtime'])}</span>
+            <span class="date color-lighter">$:{LOCAL_TIME(i['unixtime'], '{date} <i>at</i> {time}')}</span>
           </label>
         </div>
       </div>$# close last group div

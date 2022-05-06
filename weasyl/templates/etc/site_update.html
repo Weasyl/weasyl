@@ -11,7 +11,7 @@ $def with (myself, update, comments)
           <img src="${avatar['display_url']}" alt="" loading="lazy">
           ${update['username']}
         </a>
-        <time datetime="${ISO8601(update['unixtime'])}">${DATE(update['unixtime'])} at ${TIME(update['unixtime'])}</time>
+        $:{LOCAL_TIME(update['unixtime'], '{date} at {time}')}
       </p>
     </header>
 

@@ -51,7 +51,7 @@ $code:
             <span class="rating ${R.CODE_TO_NAME[i['rating']]}">${R.CODE_TO_NAME[i['rating']]}</span>
           </td>
           <td class="time-cell">
-            <span class="time">${DATE(i['unixtime'])} at ${TIME(i['unixtime'])}</span>
+            <span class="time">$:{LOCAL_TIME(i['unixtime'], '{date} at {time}')}</span>
           </td>
           <td class="visibility-cell">
             <span class="visibility">${_PARSE_SETTINGS(i)}</span>

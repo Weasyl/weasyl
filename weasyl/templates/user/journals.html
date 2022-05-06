@@ -9,7 +9,7 @@ $def with (profile, userinfo, relationship, journals)
     $code:
       avatar = profile['user_media']['avatar'][0]
 
-      avatar_html = u'<img class="text-post-image text-post-image-small" src="{avatar_url_html}" title="{username_html}" alt="{username_html}’s avatar">'.format(
+      avatar_html = '<img class="text-post-image" src="{avatar_url_html}" title="{username_html}" alt="{username_html}’s avatar">'.format(
         avatar_url_html=escape_(avatar['display_url'], True),
         username_html=escape_(profile['username'], True),
       )

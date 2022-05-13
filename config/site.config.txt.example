@@ -16,10 +16,6 @@ url = postgresql+psycopg2cffi://weasyl@postgres/weasyl
 [memcached]
 servers = memcached
 
-[sentry]
-# dsn = http://...
-traces_sample_rate = 1.0
-
 [smtp]
 host = localhost
 

@@ -3,8 +3,6 @@ from collections import namedtuple
 from decimal import Decimal
 from urllib.parse import quote as urlquote
 
-from sentry_sdk import capture_message
-
 from libweasyl.cache import region
 
 from weasyl import config
@@ -71,8 +69,6 @@ def _fetch_rates_no_cache_failure():
     except WeasylError:
         # http_get already logged the exception
         return None
-    else:
-        capture_message("Fetched exchange rates")
 
     rates = {'EUR': 1.0}
 

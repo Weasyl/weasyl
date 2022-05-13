@@ -1,5 +1,3 @@
-from sentry_sdk import capture_message
-
 from weasyl import blocktag
 from weasyl import define as d
 from weasyl import ignoreuser
@@ -151,7 +149,6 @@ def offer(userid, submitid, otherid):
         raise WeasylError("collectionExists")
 
     welcome.collectoffer_insert(userid, otherid, submitid)
-    capture_message("Collection offer")
 
 
 def _check_throttle(userid, otherid):
@@ -208,7 +205,6 @@ def request(userid, submitid, otherid):
         raise WeasylError("collectionExists")
 
     welcome.collectrequest_insert(userid, otherid, submitid)
-    capture_message("Collection request")
 
 
 def pending_accept(userid, submissions):
@@ -228,7 +224,6 @@ def pending_accept(userid, submissions):
         welcome.collectrequest_remove(userid, s[1], s[0])
 
     d._page_header_info.invalidate(userid)
-    capture_message("Collection request accepted")
 
 
 def pending_reject(userid, submissions):
@@ -242,7 +237,6 @@ def pending_reject(userid, submissions):
         welcome.collectrequest_remove(userid, s[1], s[0])
 
     d._page_header_info.invalidate(userid)
-    capture_message("Collection request rejected")
 
 
 def remove(userid, submissions):

@@ -15,7 +15,6 @@ import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
 from pyramid.response import Response
-from sentry_sdk import capture_exception
 from sqlalchemy.exc import OperationalError
 from web.template import Template
 
@@ -952,8 +951,7 @@ def _requests_wrapper(func_name):
         try:
             return func(*a, **kw)
         except Exception as e:
-            capture_exception(e, level='info')
-            w = WeasylError('httpError')
+            w = WeasylError('httpError', level='info')
             w.error_suffix = 'The original error was: %s' % (e,)
             raise w from e
 

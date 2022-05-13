@@ -1,5 +1,4 @@
 import html
-import re
 import secrets
 import time
 import traceback
@@ -8,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
-from sentry_sdk import capture_exception, push_scope, set_user
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from web.utils import storify
@@ -85,10 +83,6 @@ def session_tween_factory(handler, registry):
                     )
 
         request.weasyl_session = sess_obj
-
-        set_user(
-            {"id": sess_obj.userid} if sess_obj
-            else {"ip_address": request.client_addr})
 
         return handler(request)
 
@@ -276,7 +270,7 @@ def weasyl_exception_view(exc, request):
     errorpage_kwargs = {}
     if isinstance(exc, WeasylError):
         if exc.level is not None:
-            capture_exception(exc, level=exc.level)
+            traceback.print_exception(exc)
         status_code = errorcode.error_status_code.get(exc.value, 422)
         if exc.render_as_json:
             return Response(json={'error': {'name': exc.value}},
@@ -289,30 +283,12 @@ def weasyl_exception_view(exc, request):
             return Response(d.errorpage(userid, message, **errorpage_kwargs),
                             status_code=status_code)
     request_id = secrets.token_urlsafe(6)
-    with push_scope() as scope:
-        scope.set_tag('request_id', request_id)
-        event_id = capture_exception(exc)
-    if event_id is not None:
-        request_id = '%s-%s' % (event_id, request_id)
     print("unhandled error (request id %s) in %r" % (request_id, request.environ))
-    traceback.print_exc()
+    traceback.print_exception(exc)
     if getattr(exc, "__render_as_json", False):
         return Response(json={'error': {}}, status_code=500)
     else:
         return Response(d.errorpage(userid, request_id=request_id, **errorpage_kwargs), status_code=500)
-
-
-def strip_session_cookie(event, hint):
-    if request := event.get('request'):
-        if (headers := request.get('headers')) and 'Cookie' in headers:
-            headers['Cookie'] = re.sub(
-                r'(WZL="?)([^";]+)',
-                lambda match: match.group(1) + '*' * len(match.group(2)),
-                headers['Cookie']
-            )
-        if (cookies := request.get('cookies')) and 'WZL' in cookies:
-            cookies['WZL'] = '*' * len(cookies['WZL'])
-    return event
 
 
 @event.listens_for(Engine, 'before_cursor_execute')

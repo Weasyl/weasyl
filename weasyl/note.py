@@ -1,5 +1,4 @@
 import arrow
-from sentry_sdk import capture_message
 
 from libweasyl import staff
 
@@ -200,9 +199,6 @@ def send(userid, form):
         user=userid,
         recipients=list(users),
     )
-
-    if len(users) > 1:
-        capture_message("Note with multiple recipients")
 
     if form.mod_copy and userid in staff.MODS:
         mod_content = (

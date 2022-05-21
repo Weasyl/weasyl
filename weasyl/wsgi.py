@@ -1,8 +1,6 @@
-import sentry_sdk
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
-from sentry_sdk.integrations.pyramid import PyramidIntegration
 
 from libweasyl import cache
 from libweasyl.configuration import configure_libweasyl
@@ -10,7 +8,7 @@ from weasyl.cache import RequestMemcachedStats
 from weasyl.controllers.routes import setup_routes_and_views
 import weasyl.define as d
 import weasyl.macro as m
-from weasyl.config import config_obj, config_read_bool, config_read_setting
+from weasyl.config import config_read_bool, config_read_setting
 from weasyl.media import format_media_link
 import weasyl.middleware as mw
 from weasyl import staff_config
@@ -56,17 +54,6 @@ def make_wsgi_app(*, configure_cache=True):
             wsgi_app,
             stream=None,
             profile_dir=m.MACRO_STORAGE_ROOT + 'profile-stats',
-        )
-
-    if config_obj.has_option('sentry', 'dsn'):
-        sentry_sdk.init(
-            dsn=config_obj.get('sentry', 'dsn'),
-            ca_certs=config_obj.get('sentry', 'ca_certs', fallback=None),
-            release=d.CURRENT_SHA,
-            traces_sample_rate=float(config_obj.get('sentry', 'traces_sample_rate')),
-            integrations=[PyramidIntegration()],
-            send_default_pii=False,  # can’t be enabled as long as `before_send` doesn’t run for performance tracing!
-            before_send=mw.strip_session_cookie,
         )
 
     configure_libweasyl(

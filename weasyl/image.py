@@ -3,7 +3,6 @@ import os
 from sanpera.exception import SanperaError
 from sanpera.image import Image
 from sanpera import geometry
-from sentry_sdk import capture_exception
 
 from libweasyl import images
 from weasyl import files
@@ -17,16 +16,14 @@ def read(filename):
     try:
         return Image.read(filename)
     except SanperaError as e:
-        capture_exception(e, level='info')
-        raise WeasylError('imageDecodeError') from e
+        raise WeasylError('imageDecodeError', level='info') from e
 
 
 def from_string(filedata):
     try:
         return Image.from_buffer(filedata)
     except SanperaError as e:
-        capture_exception(e, level='info')
-        raise WeasylError('imageDecodeError') from e
+        raise WeasylError('imageDecodeError', level='info') from e
 
 
 def image_setting(im):
@@ -113,7 +110,5 @@ def _shrinkcrop(im, size, bounds=None):
 def shrinkcrop(im, size, bounds=None):
     ret = images.correct_image_and_call(_shrinkcrop, im, size, bounds)
     if ret.size != size or (len(ret) == 1 and ret[0].size != size):
-        ignored_sizes = ret.size, ret[0].size  # to log these locals
         raise WeasylError('thumbnailingMessedUp')
-        ignored_sizes  # to shut pyflakes up
     return ret

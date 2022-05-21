@@ -1,7 +1,6 @@
 import functools
 import time
 
-import sentry_sdk
 from dogpile.cache.proxy import ProxyBackend
 from pyramid.threadlocal import get_current_request
 
@@ -14,10 +13,9 @@ def _increments(func):
             ', '.join(list(map(repr, args)) + ['%s=%r' % kv for kv in kwargs.items()]),
         )
 
-        with sentry_sdk.start_span(op="memcached", description=query):
-            start = time.perf_counter()
-            result = func(self, *args, **kwargs)
-            end = time.perf_counter()
+        start = time.perf_counter()
+        result = func(self, *args, **kwargs)
+        end = time.perf_counter()
 
         request = get_current_request()
         if hasattr(request, 'memcached_times'):

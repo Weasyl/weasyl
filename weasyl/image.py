@@ -53,7 +53,7 @@ def check_type(filename):
     except SanperaError:
         return False
     else:
-        return im.original_format in ['JPEG', 'PNG', 'GIF']
+        return im.original_format in [b'JPEG', b'PNG', b'GIF']
 
 
 def _resize(filename, width, height, destination=None):

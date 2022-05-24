@@ -171,7 +171,7 @@ def twitter_card(userid):
 
     ret = {
         'card': 'summary',
-        'url': d.absolutify_url('/~%s' % (username,)),
+        'url': d.absolutify_url('/~%s' % (d.get_sysname(username),)),
         'title': '%s on Weasyl' % (full_name,),
     }
 

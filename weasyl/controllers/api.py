@@ -230,6 +230,14 @@ def api_user_view_(request):
     o_config = user.pop('config')
     o_settings = user.pop('settings')
 
+    if not d.is_vouched_for(otherid):
+        raise HTTPForbidden(json={
+            "error": {
+                "code": 201,
+                "text": "Unverified accounts are hidden to reduce spam.",
+            },
+        })
+
     if not userid and "h" in o_config:
         raise HTTPForbidden(json={
             "error": {

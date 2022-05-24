@@ -137,6 +137,18 @@ def test_user_view_missing(app):
 
 
 @pytest.mark.usefixtures('db', 'cache')
+def test_user_view_unverified(app):
+    unverified_user = db_utils.create_user(username='unverified_test', verified=False)
+    resp = app.get('/api/users/unverifiedtest/view', status=403)
+    assert resp.json == {
+        'error': {
+            'code': 201,
+            'text': 'Unverified accounts are hidden to reduce spam.',
+        },
+    }
+
+
+@pytest.mark.usefixtures('db', 'cache')
 def test_user_view_no_guests(app):
     private_user = db_utils.create_user(
         username='private_test',

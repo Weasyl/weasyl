@@ -1,14 +1,15 @@
+import re
+
 import pytz
 import sqlalchemy as sa
 from pyramid.threadlocal import get_current_request
-from sqlalchemy import func
+from sqlalchemy import bindparam, func
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 
 from libweasyl import ratings
 from libweasyl import security
 from libweasyl import staff
 from libweasyl.cache import region
-from libweasyl.html import strip_html
 from libweasyl.legacy import UNIXTIME_NOW_SQL
 from libweasyl.models import tables as t
 
@@ -119,6 +120,47 @@ def resolve_by_username(username):
     return d.get_userids([username])[username]
 
 
+_TWITTER_USERNAME = re.compile(r"@?(\w{4,15})", re.ASCII)
+
+_TWITTER_USER_LINK = re.compile(
+    r"(?:https?://)(?:(?:www|m|mobile)\.)?twitter.com/@?(\w{4,15})(?:\Z|[?#/])",
+    re.ASCII | re.IGNORECASE
+)
+
+
+def _parse_twitter_username(twitter_link_value):
+    """
+    Get a Twitter username from a user-provided link if possible, or `None` if not.
+
+    Preserves case.
+    """
+    twitter_link_value = twitter_link_value.strip()
+
+    if m := _TWITTER_USERNAME.fullmatch(twitter_link_value):
+        twitter_username = m.group(1)
+    elif m := _TWITTER_USER_LINK.match(twitter_link_value):
+        twitter_username = m.group(1)
+    else:
+        return None
+
+    return twitter_username if twitter_username.lower() != "twitter" else None
+
+
+_TWITTER_LINK_QUERY = (
+    sa.select(t.user_links.c.link_value)
+    .where(t.user_links.c.userid == bindparam("userid"))
+    .where(t.user_links.c.link_type.ilike(sa.text("'twitter'")))
+    .order_by(t.user_links.c.link_value)
+    .limit(1)
+).compile()
+
+
+@region.cache_on_arguments()
+def get_twitter_username(userid):
+    link_value = d.engine.scalar(_TWITTER_LINK_QUERY, {"userid": userid})
+    return _parse_twitter_username(link_value) if link_value else None
+
+
 def select_profile(userid, viewer=None):
     query = d.engine.execute("""
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.created_at, pr.profile_text,
@@ -159,37 +201,6 @@ def select_profile(userid, viewer=None):
         "suspended": is_suspended,
         "streaming_status": streaming_status,
     }
-
-
-def twitter_card(userid):
-    username, full_name, catchphrase, profile_text, config, twitter = d.engine.execute(
-        "SELECT pr.username, pr.full_name, pr.catchphrase, pr.profile_text, pr.config, ul.link_value "
-        "FROM profile pr "
-        "LEFT JOIN user_links ul ON pr.userid = ul.userid AND ul.link_type = 'twitter' "
-        "WHERE pr.userid = %(user)s",
-        user=userid).first()
-
-    ret = {
-        'card': 'summary',
-        'url': d.absolutify_url('/~%s' % (d.get_sysname(username),)),
-        'title': '%s on Weasyl' % (full_name,),
-    }
-
-    if catchphrase:
-        description = '"%s"' % (catchphrase,)
-    elif profile_text:
-        description = strip_html(profile_text)
-    else:
-        description = "[%s has an empty profile, but is eggcelent!]" % (full_name,)
-    ret['description'] = d.summarize(description)
-
-    media_items = media.get_user_media(userid)
-    ret['image:src'] = d.absolutify_url(media_items['avatar'][0]['display_url'])
-
-    if twitter:
-        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
-
-    return ret
 
 
 def select_myself(userid):
@@ -557,6 +568,7 @@ def edit_userinfo(userid, form):
         """, userid=userid)
 
     d._get_all_config.invalidate(userid)
+    get_twitter_username.invalidate(userid)
 
 
 def edit_email_password(*, userid, password, newemail, newpassword):

@@ -230,11 +230,11 @@ def api_user_view_(request):
     o_config = user.pop('config')
     o_settings = user.pop('settings')
 
-    if not otherid and "h" in o_config:
+    if not userid and "h" in o_config:
         raise HTTPForbidden(json={
             "error": {
                 "code": 200,
-                "text": "Profile hidden from unlogged users.",
+                "text": "Profile hidden from guests.",
             },
         })
 

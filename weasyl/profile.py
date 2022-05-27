@@ -166,7 +166,6 @@ def select_profile(userid, viewer=None):
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.created_at, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
         FROM profile pr
-            INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
         WHERE userid = %(user)s
     """, user=userid).first()

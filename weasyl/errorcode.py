@@ -22,8 +22,6 @@ unexpected = (
     "fully processed.")
 
 error_messages = {
-    "addressInvalid": "Your IP address does not match the location from which this request was made.",
-    "ArtistTags": "You cannot remove tags that have been added by the artist.",
     "birthdayInsufficient": (
         "Your date of birth indicates that you are not allowed to set your content rating settings to the "
         "level you entered. Please choose a lower rating level."),
@@ -64,7 +62,6 @@ error_messages = {
     "emailBlacklisted": (
         "The domain of the email you entered has been associated with a high volume of spam. "
         "Consequently, registrations from this domain have been blacklisted."),
-    "emailExists": "The email you entered is already taken by another user.",
     "emailIncorrect": "The email you entered is not associated with the account you specified.",
     "emailInvalid": "The email you entered does not appear to be valid.",
     "embedlinkInvalid": "The embed link you entered does not point to a valid resource or supported service.",
@@ -94,7 +91,6 @@ error_messages = {
     'noGuests': no_guest_access,
     "noCover": "No cover exists for that submission.",
     "noImageSource": "No image exists from which to create a thumbnail.",
-    "not-utf8": "Text submissions must be encoded in UTF-8.",
     "notEnoughTags": (
         "You must maintain at least two tags on this content in order to sufficiently describe it "
         "for our search system."),
@@ -131,7 +127,6 @@ error_messages = {
     "thumbSizeExceedsLimit": (
         "The thumbnail file you uploaded exceeds the allowed filesize for this submission category."),
     "thumbType": "The thumbnail file you uploaded is not a valid image filetype.",
-    "TimeLimitExceeded": "You can't edit that any longer.",
     "titleExists": "That title is already being used.",
     "titleInvalid": "You did not enter a title.",
     "titleTooLong": "That title is too long.",
@@ -151,7 +146,6 @@ error_messages = {
     "userRecordMissing": userid,
     "usernameChangedTooRecently": "You can't change your username within 30 days of a previous change.",
     "usernameExists": "The username you entered is already registered by another user.",
-    "usernameIncorrect": "The username you entered does not match the account for which this request was made.",
     "usernameInvalid": (
         "The username you entered is not valid. Usernames must contain one or more alphanumeric characters."),
     "vouchRequired": (

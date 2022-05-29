@@ -1,18 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Query
 
 from libweasyl.models.tables import metadata
-
-
-class BaseQuery(Query):
-    # set by configure_libweasyl
-    _not_found_exception = None
-
-    def get_or_404(self, ident):
-        ret = self.get(ident)
-        if ret is None:
-            raise self._not_found_exception()
-        return ret
 
 
 registry = {}
@@ -26,4 +14,4 @@ def _configure_dbsession(dbsession):
     session object.
     """
     Base.dbsession = dbsession
-    Base.query = dbsession.query_property(BaseQuery)
+    Base.query = dbsession.query_property()

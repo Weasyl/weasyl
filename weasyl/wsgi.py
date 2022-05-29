@@ -1,5 +1,4 @@
 from pyramid.config import Configurator
-from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 
 from libweasyl import cache
@@ -58,7 +57,6 @@ def make_wsgi_app(*, configure_cache=True):
 
     configure_libweasyl(
         dbsession=d.sessionmaker,
-        not_found_exception=HTTPNotFound,
         base_file_path=m.MACRO_STORAGE_ROOT,
         staff_config_dict=staff_config.load(),
         media_link_formatter_callback=format_media_link,

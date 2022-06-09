@@ -8,7 +8,6 @@ import shutil
 
 import pytest
 import pyramid.testing
-from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import psycopg2
 from webtest import TestApp
 
@@ -40,7 +39,6 @@ define.metric = lambda *a, **kw: None
 
 configure_libweasyl(
     dbsession=define.sessionmaker,
-    not_found_exception=HTTPNotFound,
     base_file_path=macro.MACRO_STORAGE_ROOT,
     staff_config_dict={},
     media_link_formatter_callback=media.format_media_link,

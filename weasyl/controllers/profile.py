@@ -2,6 +2,7 @@ from pyramid import httpexceptions
 from pyramid.response import Response
 
 from libweasyl import staff
+from libweasyl.html import strip_html
 
 from weasyl import (
     character, collection, commishinfo, define, favorite, folder,
@@ -38,32 +39,33 @@ def profile_(request):
             status=403,
         )
 
-    extras = {
-        "canonical_url": "/~" + define.get_sysname(userprofile['username'])
-    }
-
-    if not request.userid:
-        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
-        twit_card = profile.twitter_card(otherid)
-        if define.user_is_twitterbot():
-            extras['twitter_card'] = twit_card
-        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
-        extras['ogp'] = {
-            'title': twit_card['title'],
-            'site_name': "Weasyl",
-            'type': "website",
-            'url': twit_card['url'],
-            'description': twit_card['description'],
-            'image': twit_card['image:src'] if 'image:src' in twit_card else define.get_resource_url('img/logo-mark-light.svg'),
-        }
-
     if not request.userid and "h" in userprofile['config']:
         raise WeasylError('noGuests')
 
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    extras['title'] = u"%s's profile" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    username = userprofile["username"]
+    canonical_path = request.route_path("profile_tilde", name=define.get_sysname(username))
+    title = f"{username}’s profile"
+    meta_description = define.summarize(strip_html(userprofile["profile_text"]).strip())
+    avatar_url = define.absolutify_url(userprofile['user_media']['avatar'][0]['display_url'])
+    twitter_meta = {
+        "card": "summary",
+        "title": title,
+        "image": avatar_url,
+    }
+    ogp = {
+        "title": title,
+        "type": "profile",
+        "url": define.absolutify_url(canonical_path),
+        "image": avatar_url,
+        "username": username,
+    }
 
-    page = define.common_page_start(request.userid, **extras)
+    if twitter_username := profile.get_twitter_username(otherid):
+        twitter_meta["creator"] = "@" + twitter_username
+
+    if meta_description:
+        twitter_meta["description"] = ogp["description"] = meta_description
+
     define.common_view_content(request.userid, otherid, "profile")
 
     if 'O' in userprofile['config']:
@@ -88,38 +90,44 @@ def profile_(request):
 
     statistics, show_statistics = profile.select_statistics(otherid)
 
-    page.append(define.render('user/profile.html', [
-        request,
-        # Profile information
-        userprofile,
-        # User information
-        profile.select_userinfo(otherid, config=userprofile['config']),
-        macro.SOCIAL_SITES,
-        # Relationship
-        profile.select_relation(request.userid, otherid),
-        # Myself
-        profile.select_myself(request.userid),
-        # Recent submissions
-        submissions, more_submissions,
-        favorites,
-        featured,
-        # Folders preview
-        folder.select_preview(request.userid, otherid, rating),
-        # Latest journal
-        journal.select_latest(request.userid, rating, otherid=otherid),
-        # Recent shouts
-        shout.select(request.userid, ownerid=otherid, limit=8),
-        # Statistics information
-        statistics,
-        show_statistics,
-        # Commission information
-        commishinfo.select_list(otherid),
-        # Friends
-        lambda: frienduser.has_friends(otherid),
-        is_unverified,
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+    return Response(define.webpage(
+        request.userid,
+        "user/profile.html",
+        (
+            request,
+            # Profile information
+            userprofile,
+            # User information
+            profile.select_userinfo(otherid, config=userprofile['config']),
+            macro.SOCIAL_SITES,
+            # Relationship
+            profile.select_relation(request.userid, otherid),
+            # Myself
+            profile.select_myself(request.userid),
+            # Recent submissions
+            submissions, more_submissions,
+            favorites,
+            featured,
+            # Folders preview
+            folder.select_preview(request.userid, otherid, rating),
+            # Latest journal
+            journal.select_latest(request.userid, rating, otherid=otherid),
+            # Recent shouts
+            shout.select(request.userid, ownerid=otherid, limit=8),
+            # Statistics information
+            statistics,
+            show_statistics,
+            # Commission information
+            commishinfo.select_list(otherid),
+            # Friends
+            lambda: frienduser.has_friends(otherid),
+            is_unverified,
+        ),
+        twitter_card=twitter_meta,
+        ogp=ogp,
+        canonical_url=canonical_path,
+        title=title,
+    ))
 
 
 def profile_media_(request):

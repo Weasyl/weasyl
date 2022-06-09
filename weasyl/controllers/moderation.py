@@ -32,8 +32,7 @@ def modcontrol_suspenduser_post_(request):
 
 @moderator_only
 def modcontrol_report_(request):
-    form = request.web_input(reportid='')
-    r = report.select_view(request.userid, form)
+    r = report.select_view(request.userid, reportid=int(request.GET["reportid"]))
     blacklisted_tags = moderation.gallery_blacklisted_tags(request.userid, r.target.userid)
 
     return Response(define.webpage(request.userid, "modcontrol/report.html", [

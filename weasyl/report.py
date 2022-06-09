@@ -1,4 +1,5 @@
 import arrow
+from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import aliased, contains_eager, joinedload
 import sqlalchemy as sa
@@ -159,11 +160,15 @@ def select_list(userid, form):
             for report, _, report_count, violations in q.all()]
 
 
-def select_view(userid, form):
+def select_view(userid, *, reportid):
     report = (
         Report.query
         .options(joinedload('comments', innerjoin=True).joinedload('poster', innerjoin=True))
-        .get_or_404(int(form.reportid)))
+        .get(reportid))
+
+    if report is None:
+        raise HTTPNotFound()
+
     report.old_style_comments = [
         {
             'userid': c.userid,

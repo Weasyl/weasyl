@@ -1,7 +1,10 @@
 import pytest
 import webtest
 
+from libweasyl.models.helpers import CharSettings
+
 import weasyl.define as d
+from weasyl.test import db_utils
 from weasyl.test.web.common import create_visual, read_asset
 
 
@@ -131,6 +134,33 @@ def test_user_view(app, submission_user):
 def test_user_view_missing(app):
     resp = app.get('/api/users/foo/view', status=404)
     assert resp.json == {'error': {'name': 'userRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_user_view_unverified(app):
+    db_utils.create_user(username='unverified_test', verified=False)
+    resp = app.get('/api/users/unverifiedtest/view', status=403)
+    assert resp.json == {
+        'error': {
+            'code': 201,
+            'text': 'Unverified accounts are hidden to reduce spam.',
+        },
+    }
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_user_view_no_guests(app):
+    db_utils.create_user(
+        username='private_test',
+        config=CharSettings({'hide-profile-from-guests'}, {}, {}),
+    )
+    resp = app.get('/api/users/privatetest/view', status=403)
+    assert resp.json == {
+        'error': {
+            'code': 200,
+            'text': 'Profile hidden from guests.',
+        },
+    }
 
 
 @pytest.mark.usefixtures('db', 'cache')

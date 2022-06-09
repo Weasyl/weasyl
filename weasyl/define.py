@@ -865,10 +865,6 @@ def absolutify_url(url):
     return urljoin(get_current_request().application_url, url)
 
 
-def user_is_twitterbot():
-    return get_current_request().environ.get('HTTP_USER_AGENT', '').startswith('Twitterbot')
-
-
 def summarize(s, max_length=200):
     if len(s) > max_length:
         return s[:max_length - 1].rstrip() + u'\N{HORIZONTAL ELLIPSIS}'

@@ -11,10 +11,8 @@ from libweasyl.cache import region
 from libweasyl.models.media import MediaItem
 from libweasyl.models.tables import google_doc_embeds
 from libweasyl import (
-    html,
     images,
     images_new,
-    ratings,
     staff,
     text,
 )
@@ -707,71 +705,6 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         'favorited': favorite.check(userid, submitid=submitid),
         'friends_only': sub.friends_only,
     }
-
-
-def twitter_card(request, submitid):
-    query = d.engine.execute("""
-        SELECT
-            su.title, su.hidden, su.friends_only, su.embed_type, su.content, su.subtype, su.userid,
-            pr.username, pr.full_name, pr.config, ul.link_value, su.rating
-        FROM submission su
-            INNER JOIN profile pr USING (userid)
-            LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
-        WHERE submitid = %(id)s
-        LIMIT 1
-    """, id=submitid).first()
-
-    if not query:
-        raise WeasylError("submissionRecordMissing")
-    (title, hidden, friends_only, embed_type, content, subtype, userid,
-     username, full_name, config, twitter, rating) = query
-    if hidden:
-        raise WeasylError("submissionRecordMissing")
-    elif friends_only:
-        raise WeasylError("FriendsOnly")
-
-    if 'other' == embed_type:
-        content = d.text_first_line(content, strip=True)
-    content = d.summarize(html.strip_html(content))
-    if not content:
-        content = "[This submission has no description.]"
-
-    ret = {
-        'url': d.absolutify_url(
-            request.route_path(
-                'submission_detail_profile',
-                name=d.get_sysname(username),
-                submitid=submitid,
-                slug=text.slug_for(title),
-            )
-        ),
-    }
-
-    if twitter:
-        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
-        ret['title'] = title
-    else:
-        ret['title'] = '%s by %s' % (title, full_name)
-
-    if ratings.CODE_MAP[rating].minimum_age >= 18:
-        ret['card'] = 'summary'
-        ret['description'] = 'This image is rated 18+ and only viewable on weasyl.com'
-        return ret
-
-    ret['description'] = content
-
-    subcat = subtype // 1000 * 1000
-    media_items = media.get_submission_media(submitid)
-    if subcat == m.ART_SUBMISSION_CATEGORY and media_items.get('submission'):
-        ret['card'] = 'photo'
-        ret['image:src'] = d.absolutify_url(media_items['submission'][0]['display_url'])
-    else:
-        ret['card'] = 'summary'
-        thumb = media_items.get('thumbnail-custom') or media_items.get('thumbnail-generated')
-        if thumb:
-            ret['image:src'] = d.absolutify_url(thumb[0]['display_url'])
-
-    return ret
 
 
 def _select_query(

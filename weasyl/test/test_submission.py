@@ -3,7 +3,6 @@ import unittest
 import pytest
 
 import arrow
-from pyramid.threadlocal import get_current_request
 
 from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
@@ -32,22 +31,6 @@ class SelectListTestCase(unittest.TestCase):
         # A user sees their own submissions regardless of the rating level
         self.assertEqual(3, len(submission.select_list(
             user1, ratings.GENERAL.code, limit=10, otherid=user1)))
-
-    def test_ratings_twittercard(self):
-        user = db_utils.create_user()
-
-        sub1 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
-        sub2 = db_utils.create_submission(user, rating=ratings.MATURE.code)
-        sub3 = db_utils.create_submission(user, rating=ratings.EXPLICIT.code)
-
-        request = get_current_request()
-        card1 = submission.twitter_card(request, sub1)
-        card2 = submission.twitter_card(request, sub2)
-        card3 = submission.twitter_card(request, sub3)
-
-        self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card1['description'])
-        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
-        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card3['description'])
 
     def test_filters(self):
         # Test filters of the following:

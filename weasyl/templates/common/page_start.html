@@ -28,7 +28,7 @@ $code:
   <link rel="stylesheet" href="${resource_path('css/site.css')}" />
 
   <link rel="icon" type="image/png" sizes="16x16" href="${resource_path('img/favicon.png')}" />
-  <link rel="icon" type="image/svg+xml" sizes="any" href="${resource_path('img/favicon.svg')}" />
+  <link rel="icon" type="image/svg+xml" sizes="any 16x16" href="${resource_path('img/favicon.svg')}" />
   <link rel="mask-icon" color="#970000" href="${resource_path('img/favicon-mask.svg')}" />
 
   $if "help" in options:
@@ -39,10 +39,10 @@ $code:
 
   $if 'twitter_card' in extended_options:
     <meta name="twitter:site" content="@weasyl" />
-    <meta name="twitter:domain" content="weasyl.com" />
     $for k, v in extended_options['twitter_card'].items():
-      <meta name="twitter:${k}" content="$v" />
+      <meta name="twitter:${k}" content="${v}" />
   $if 'ogp' in extended_options:
+    <meta property="og:site_name" content="Weasyl" />
     $for k, v in extended_options['ogp'].items():
       <meta property="og:${k}" content="${v}" />
 

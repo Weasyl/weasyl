@@ -13,13 +13,6 @@ datadir = py.path.local(__file__).dirpath('data')
 _user_counter = itertools.count()
 
 
-class NotFound(Exception):
-    """
-    A fake 'not found' exception to be raised in place of a web framework's
-    'not found' exception.
-    """
-
-
 def dummy_format_media_link(media, link):
     return None
 

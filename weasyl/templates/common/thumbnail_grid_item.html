@@ -12,7 +12,12 @@ $def with (query, *, notifications=False, include_byline=True, lazy_load=True)
       else:
         thumb = THUMB(query)
         webp_thumb = WEBP_THUMB(query)
-        width = thumb['attributes']['width'] if 'attributes' in thumb else ""
+
+        if 'attributes' in thumb:
+          width = thumb['attributes']['width']
+          height = thumb['attributes']['height']
+        else:
+          width = height = ''
 
         display_url = thumb['display_url']
 
@@ -25,11 +30,6 @@ $def with (query, *, notifications=False, include_byline=True, lazy_load=True)
             display_url = resource_path('img/default-music.png')
           elif 3040 <= subtype < 4000:
             display_url = resource_path('img/default-multi.png')
-
-        if width:
-          spacer = '<svg class="img-space" width="%i" height="%i"></svg>' % (int(width), int(thumb['attributes']['height']))
-        else:
-          spacer = None
 
     <a class="thumb-bounds" data-width="${width}"
       $if query['contype'] == 20:
@@ -53,12 +53,10 @@ $def with (query, *, notifications=False, include_byline=True, lazy_load=True)
       $elif webp_thumb is not None:
         <picture>
           <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-          <img src="${display_url}" alt=""$:{' loading="lazy"' if lazy_load else ''}$:{' class="has-space"' if spacer else ''} />
+          <img src="${display_url}" alt="" width="${width}" height="${height}"$:{' loading="lazy"' if lazy_load else ''} />
         </picture>
-        $:{spacer}
       $else:
-        <img src="${display_url}" alt=""$:{' loading="lazy"' if lazy_load else ''}$:{' class="has-space"' if spacer else ''} />
-        $:{spacer}
+        <img src="${display_url}" alt="" width="${width}" height="${height}"$:{' loading="lazy"' if lazy_load else ''} />
 
     </a>
 

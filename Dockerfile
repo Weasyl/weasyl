@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM docker.io/library/node:16-alpine AS assets
+FROM docker.io/library/node:16-alpine3.16 AS assets
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     sassc
@@ -13,7 +13,7 @@ COPY assets assets
 RUN node build.js
 
 
-FROM docker.io/library/alpine:3.13 AS mozjpeg
+FROM docker.io/library/alpine:3.16 AS mozjpeg
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     musl-dev gcc make \
@@ -28,7 +28,7 @@ RUN cmake -DENABLE_STATIC=0 -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-bu
 RUN cmake --build . --parallel --target install
 
 
-FROM docker.io/library/python:3.10-alpine3.13 AS bdist-lxml
+FROM docker.io/library/python:3.10-alpine3.16 AS bdist-lxml
 # libxml2-dev, libxslt-dev: lxml
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
@@ -41,7 +41,7 @@ COPY requirements/lxml.txt lxml.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r lxml.txt
 
 
-FROM docker.io/library/python:3.10-alpine3.13 AS bdist
+FROM docker.io/library/python:3.10-alpine3.16 AS bdist
 # imagemagick6-dev: sanpera
 # libjpeg-turbo-dev, libwebp-dev, zlib-dev: Pillow
 # libffi-dev, openssl-dev: cryptography
@@ -67,7 +67,7 @@ COPY etc/requirements.txt requirements.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist --no-binary Pillow -r requirements.txt
 
 
-FROM docker.io/library/python:3.10-alpine3.13 AS bdist-pytest
+FROM docker.io/library/python:3.10-alpine3.16 AS bdist-pytest
 RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
@@ -75,7 +75,7 @@ COPY requirements/test.txt test.txt
 RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest pytest-cov
 
 
-FROM docker.io/library/python:3.10-alpine3.13 AS package
+FROM docker.io/library/python:3.10-alpine3.16 AS package
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     imagemagick6-libs \
@@ -127,7 +127,7 @@ COPY assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
 STOPSIGNAL SIGINT
 
-FROM docker.io/library/alpine:3.14 AS flake8
+FROM docker.io/library/alpine:3.16 AS flake8
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     py3-flake8

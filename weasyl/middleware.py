@@ -1,15 +1,20 @@
 import html
+import itertools
 import secrets
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
 
+import multipart
+from pyramid.decorator import reify
 from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.request import Request as Request_
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from web.utils import storify
+from webob.multidict import MultiDict, NoVars
 
 from libweasyl import staff
 from libweasyl.cache import ThreadCacheProxy
@@ -17,6 +22,105 @@ from weasyl import define as d
 from weasyl import errorcode
 from weasyl import orm
 from weasyl.error import WeasylError
+
+
+# should match Nginx configuration
+_CLIENT_MAX_BODY_SIZE = 55 * 1024 * 1024
+
+
+class FieldStorage:
+    """
+    Wraps a `multipart.MultipartPart` to look like a `cgi.FieldStorage`, which it almost does already.
+    """
+
+    def __init__(self, multipart_part, /):
+        self._wrapped = multipart_part
+
+    def __getattr__(self, name):
+        return getattr(self._wrapped, name)
+
+    @property
+    def value(self):
+        return self._wrapped.raw
+
+
+class Request(Request_):
+
+    @property
+    def request_body_tempfile_limit(self):
+        raise NotImplementedError
+
+    def decode(self):
+        raise NotImplementedError
+
+    @property
+    def body_file(self):
+        return self.body_file_raw
+
+    @property
+    def body_file_seekable(self):
+        raise NotImplementedError
+
+    @property
+    def body(self):
+        r = self.body_file_raw.read()
+        self.body_file_raw = None
+        return r
+
+    @reify
+    def POST(self):
+        # derived from WebOb code
+        # https://github.com/Pylons/webob/blob/259230aa2b8b9cf675c996e157c5cf021c256059/src/webob/request.py#L773
+        # licenses/webob.txt
+        """
+        Return a MultiDict containing all the variables from a form request.
+        """
+        if self.method not in ("POST", "PUT"):
+            return NoVars("not POST or PUT request")
+
+        environ = self.environ
+
+        if not environ.get("wsgi.input_terminated", False):
+            raise Exception("need wsgi.input_terminated to use multipart")
+
+        # Let MultiDict throw if content with no Content-Type.
+        # An empty request with no Content-Type is produced by WebTest, at least.
+        if not environ.get("CONTENT_TYPE") and environ.get("CONTENT_LENGTH") == "0":
+            return NoVars("empty request body")
+
+        # XXX: multipart.parse_form_data moves fields to files when they’re too large.
+        # this could cause the values of a field to spontaneously reorder.
+        # luckily, they also change type when that happens, which should cause an error.
+        forms, files = multipart.parse_form_data(
+            environ,
+            strict=True,
+            # never buffer to disk. for malicious requests, 55 MiB * 12 concurrent requests = 660 MiB.
+            # for legitimate requests, we’re loading the entire image into memory anyway.
+            mem_limit=_CLIENT_MAX_BODY_SIZE,
+            memfile_limit=_CLIENT_MAX_BODY_SIZE,  # ≥ mem_limit in order to never create a temporary file
+        )
+        return MultiDict(
+            itertools.chain(
+                forms.iterallitems(),
+                ((k, FieldStorage(v)) for k, v in files.iterallitems()),
+            )
+        )
+
+    def copy(self):
+        raise NotImplementedError
+
+    @property
+    def is_body_seekable(self):
+        return False
+
+    def make_body_seekable(self):
+        raise NotImplementedError
+
+    def copy_body(self):
+        raise NotImplementedError
+
+    def make_tempfile(self):
+        raise NotImplementedError
 
 
 def cache_clear_tween_factory(handler, registry):

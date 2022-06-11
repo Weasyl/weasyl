@@ -40,7 +40,7 @@ def create(userid, journal, friends_only=False, tags=None):
         "title": journal.title,
         "content": journal.content,
         "rating": journal.rating.code,
-        "unixtime": arrow.now(),
+        "unixtime": arrow.utcnow(),
         "hidden": False,
         "friends_only": friends_only,
         "submitter_ip_address": journal.submitter_ip_address,

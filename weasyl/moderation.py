@@ -18,6 +18,7 @@ from weasyl import shout
 from weasyl import submission
 from weasyl import thumbnail
 from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 BAN_TEMPLATES = {
@@ -282,6 +283,26 @@ def get_ban_reason(userid):
 def get_suspension(userid):
     return d.engine.execute("SELECT reason, release FROM suspension WHERE userid = %(user)s",
                             user=userid).first()
+
+
+def get_ban_message(userid):
+    reason = get_ban_reason(userid)
+    return (
+        "Your account has been permanently banned and you are no longer allowed "
+        "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
+        "contact %s for assistance."
+    ) % (reason, MACRO_SUPPORT_ADDRESS)
+
+
+def get_suspension_message(userid):
+    suspension = get_suspension(userid)
+    release = d.get_arrow(suspension.release)
+    return (
+        "Your account has been temporarily suspended and you are not allowed to "
+        "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
+        "%s.\n\nIf you believe this suspension is in error, please contact "
+        "%s for assistance."
+    ) % (suspension.reason, release.date(), MACRO_SUPPORT_ADDRESS)
 
 
 def finduser(targetid, username, email, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,

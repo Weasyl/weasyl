@@ -14,16 +14,16 @@ $def with (profile, userinfo, relationship, journals)
         username_html=escape_(profile['username'], True),
       )
 
-      last_date = None
+      last_created = None
 
     $for journal in journals:
-      $ created = LOCAL_ARROW(journal['created_at'])
-      $ date = created.date()
-      $if date != last_date:
-        $ last_date = date
-        <div class="text-post-group-header">
-          <time datetime="${date.isoformat()}" title="${created.format()}">${created.format(u"MMMM Do, YYYY")}</time>
-        </div>
+      $ created = journal['created_at']
+      <div is="date-group-header" class="text-post-group-header"
+        $if last_created is not None:
+          data-compare="${last_created.int_timestamp},${created.int_timestamp}"
+        >
+        $:{LOCAL_TIME(created, '{date}')}
+      </div>
 
       <article class="text-post-item">
         $:{avatar_html}
@@ -36,6 +36,7 @@ $def with (profile, userinfo, relationship, journals)
           <p class="text-post-excerpt">${MARKDOWN_EXCERPT(journal['content'])}</p>
         </div>
       </article>
+      $ last_created = created
 
     $if not journals:
       <p>No journals to show.</p>

@@ -833,14 +833,6 @@ Index('ind_user_streams_end', user_streams.c.end_time)
 Index('ind_user_streams_end_time', user_streams.c.end_time)
 
 
-user_timezones = Table(
-    'user_timezones', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('timezone', String(length=255), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='user_timezones_userid_fkey'),
-)
-
-
 useralias = Table(
     'useralias', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),

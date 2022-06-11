@@ -1,6 +1,5 @@
 import re
 
-import pytz
 import sqlalchemy as sa
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import bindparam, func
@@ -18,7 +17,6 @@ from weasyl import emailer
 from weasyl import login
 from weasyl import macro as m
 from weasyl import media
-from weasyl import orm
 from weasyl import shout
 from weasyl import welcome
 from weasyl.configuration_builder import create_configuration, BoolOption, ConfigOption
@@ -664,12 +662,11 @@ def invalidate_other_sessions(userid):
     """, userid=userid, currentsession=sess.sessionid if sess is not None else "")
 
 
-def edit_preferences(userid, timezone=None,
+def edit_preferences(userid,
                      preferences=None, jsonb_settings=None):
     """
     Apply changes to stored preferences for a given user.
     :param userid: The userid to apply changes to
-    :param timezone: (optional) new Timezone to set for user
     :param preferences: (optional) old-style char preferences, overwrites all previous settings
     :param jsonb_settings: (optional) JSON preferences, overwrites all previous settings
     :return: None
@@ -686,10 +683,7 @@ def edit_preferences(userid, timezone=None,
 
     if tooyoung:
         raise WeasylError("birthdayInsufficient")
-    if timezone is not None and timezone not in pytz.all_timezones:
-        raise WeasylError('invalidTimezone')
 
-    db = d.connect()
     updates = {}
     if preferences is not None:
         # update legacy preferences
@@ -708,18 +702,6 @@ def edit_preferences(userid, timezone=None,
         t.profile.update().where(t.profile.c.userid == userid),
         updates
     )
-
-    # update TZ
-    if timezone is not None:
-        tz = db.query(orm.UserTimezone).get(userid)
-        if tz is None:
-            tz = orm.UserTimezone(userid=userid)
-            db.add(tz)
-        tz.timezone = timezone
-        db.flush()
-        tz.cache()
-    else:
-        db.flush()
 
 
 def select_manage(userid):

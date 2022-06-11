@@ -10,7 +10,12 @@ from libweasyl.test.common import dummy_format_media_link
 from libweasyl import cache
 
 
-engine = sa.create_engine(os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgresql+psycopg2cffi:///weasyl_test'))
+engine = sa.create_engine(
+    os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgresql+psycopg2cffi:///weasyl_test'),
+    connect_args={
+        'options': '-c TimeZone=UTC',
+    },
+)
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
 
 

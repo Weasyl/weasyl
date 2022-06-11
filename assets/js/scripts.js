@@ -3,11 +3,6 @@
 (function () {
     'use strict';
 
-    var monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June', 'July',
-        'August', 'September', 'October', 'November', 'December', 'Smarch'
-    ];
-
     function forEach(list, callback) {
         for (var i = 0, l = list.length; i < l; i++) {
             callback(list[i]);
@@ -772,16 +767,20 @@
     }
 
     function formatDate(date) {
-        function pad(n) {
-            return n < 10 ? '0' + n : '' + n;
-        }
+        var formattedDate = date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hourCycle: 'h23',
+        });
 
-        var formattedDate = date.getUTCDate() + ' ' + monthNames[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
-
-        var formattedHour = pad(date.getUTCHours());
-        var formattedMinute = pad(date.getUTCMinutes());
-        var formattedSecond = pad(date.getUTCSeconds());
-        var formattedTime = formattedHour + ':' + formattedMinute + ':' + formattedSecond + ' UTC';
+        var formattedTime = date.toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hourCycle: 'h23',
+            timeZoneName: 'short',
+        });
 
         var timeElement = document.createElement('time');
         timeElement.dateTime = date.toISOString();

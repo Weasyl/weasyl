@@ -10,7 +10,6 @@ from urllib.parse import urlencode, urljoin
 
 import arrow
 from pyramid.threadlocal import get_current_request
-import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
@@ -22,7 +21,6 @@ import libweasyl.constants
 from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
-from libweasyl.models.users import DEFAULT_TIMEZONE
 from libweasyl import html, text, ratings, staff
 
 from weasyl import config
@@ -30,7 +28,6 @@ from weasyl import errorcode
 from weasyl import macro
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
-from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -57,7 +54,14 @@ def record_timing(func):
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
 if config._in_test:
     _sqlalchemy_url += '_test'
-engine = meta.bind = sa.create_engine(_sqlalchemy_url, pool_use_lifo=True, pool_size=2)
+engine = meta.bind = sa.create_engine(
+    _sqlalchemy_url,
+    pool_use_lifo=True,
+    pool_size=2,
+    connect_args={
+        'options': '-c TimeZone=UTC',
+    },
+)
 sessionmaker_future = sa.orm.sessionmaker(bind=engine, expire_on_commit=False)
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 
@@ -151,11 +155,9 @@ def _compile(template_name):
                 "LOGIN": get_sysname,
                 "CSRF": (lambda: ""),
                 "USER_TYPE": user_type,
-                "DATE": convert_date,
-                "ISO8601": iso8601,
+                "ARROW": get_arrow,
+                "LOCAL_TIME": _get_local_time_html,
                 "ISO8601_DATE": iso8601_date,
-                "TIME": _convert_time,
-                "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
@@ -506,37 +508,25 @@ def text_fix_url(target):
     return "http://" + target
 
 
-def request_timezone(request):
-    return request.weasyl_session.timezone if request.weasyl_session is not None else DEFAULT_TIMEZONE
-
-
-def local_arrow(dt):
-    if isinstance(dt, int):
-        dt = arrow.get(dt - _UNIXTIME_OFFSET)
-
-    tz = request_timezone(get_current_request())
-    return dt.to(tz.timezone)
-
-
-def convert_to_localtime(target):
-    tz = request_timezone(get_current_request())
-    if isinstance(target, arrow.Arrow):
-        return tz.localtime(target.datetime)
-    elif isinstance(target, datetime.datetime):
-        return tz.localtime(target)
-    else:
-        target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
-        return tz.localtime_from_timestamp(target)
-
-
-def convert_date(target=None):
+def get_arrow(unixtime):
     """
-    Returns the date in the format 1 January 1970. If no target is passed, the
-    current date is returned.
+    Get an `Arrow` from a Weasyl timestamp, time-zone-aware `datetime`, or `Arrow`.
     """
-    dt = convert_to_localtime(target)
-    result = dt.strftime("%d %B %Y")
-    return result[1:] if result and result[0] == "0" else result
+    if isinstance(unixtime, (int, float)):
+        unixtime -= _UNIXTIME_OFFSET
+    elif not isinstance(unixtime, (arrow.Arrow, datetime.datetime)) or unixtime.tzinfo is None:
+        raise ValueError("unixtime must be supported numeric or datetime")  # pragma: no cover
+
+    return arrow.get(unixtime)
+
+
+def _get_local_time_html(target, template):
+    target = get_arrow(target)
+    content = template.format(
+        date=f'<span class="local-time-date">{target.format("MMMM D, YYYY")}</span>',
+        time=f'<span class="local-time-time">{target.format("HH:mm:ss ZZZ")}</span>',
+    )
+    return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
 
 
 def iso8601_date(target):
@@ -548,21 +538,7 @@ def iso8601_date(target):
     :param target: The target Weasyl timestamp to convert.
     :return: An ISO 8601 string representing the date of `target`.
     """
-    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
-    return arrow.get(date).format("YYYY-MM-DD")
-
-
-def _convert_time(target=None):
-    """
-    Returns the time in the format 16:00:00. If no target is passed, the
-    current time is returned.
-    """
-    dt = convert_to_localtime(target)
-    config = get_config(get_userid())
-    if '2' in config:
-        return dt.strftime("%I:%M:%S %p %Z")
-    else:
-        return dt.strftime("%H:%M:%S %Z")
+    return arrow.get(target - _UNIXTIME_OFFSET).format("YYYY-MM-DD")
 
 
 def convert_unixdate(day, month, year):
@@ -591,7 +567,7 @@ def age_in_years(birthdate):
     Determines an age in years based off of the given arrow.Arrow birthdate
     and the current date.
     """
-    now = arrow.now()
+    now = arrow.utcnow()
     is_upcoming = (now.month, now.day) < (birthdate.month, birthdate.day)
 
     return now.year - birthdate.year - int(is_upcoming)
@@ -701,19 +677,9 @@ def common_status_page(userid, status):
     from weasyl import moderation, login
 
     if status == 'banned':
-        reason = moderation.get_ban_reason(userid)
-        message = (
-            "Your account has been permanently banned and you are no longer allowed "
-            "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-            "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
-
+        message = moderation.get_ban_message(userid)
     elif status == 'suspended':
-        suspension = moderation.get_suspension(userid)
-        message = (
-            "Your account has been temporarily suspended and you are not allowed to "
-            "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
-            "%s.\n\nIf you believe this suspension is in error, please contact "
-            "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
+        message = moderation.get_suspension_message(userid)
 
     login.signout(get_current_request())
 
@@ -909,24 +875,6 @@ def clamp(val, lower_bound, upper_bound):
     return min(max(val, lower_bound), upper_bound)
 
 
-def timezones():
-    ct = datetime.datetime.now(pytz.utc)
-    timezones_by_country = [
-        (pytz.country_names[cc], [
-            (int(ct.astimezone(pytz.timezone(tzname)).strftime("%z")), tzname)
-            for tzname in timezones
-        ])
-        for cc, timezones in pytz.country_timezones.items()]
-    timezones_by_country.sort()
-    ret = []
-    for country, timezones in timezones_by_country:
-        ret.append(('- %s -' % (country,), None))
-        ret.extend(
-            ("[UTC%+05d] %s" % (offset, tzname.replace('_', ' ')), tzname)
-            for offset, tzname in timezones)
-    return ret
-
-
 def query_string(query):
     pairs = []
 
@@ -963,10 +911,11 @@ def metric(*a, **kw):
 
 
 def iso8601(unixtime):
-    if isinstance(unixtime, arrow.Arrow) or isinstance(unixtime, datetime.datetime):
-        return unixtime.isoformat().partition('.')[0] + 'Z'
-    else:
-        return datetime.datetime.utcfromtimestamp(unixtime - _UNIXTIME_OFFSET).isoformat() + 'Z'
+    return (
+        get_arrow(unixtime)
+        .isoformat(timespec='seconds')
+        .replace('+00:00', 'Z')
+    )
 
 
 def parse_iso8601(s):

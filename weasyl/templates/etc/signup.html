@@ -50,7 +50,7 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
         <label for="year" class="color-lighter">Year</label>
         <select class="input last-input" name="year" id="year">
           <option value=""></option>
-          $ current_year = arrow.now().year
+          $ current_year = arrow.utcnow().year
           $for i in range(current_year, current_year - 101, -1):
             <option value="$i">$i</option>
         </select>

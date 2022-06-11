@@ -32,7 +32,7 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
     $for related in report.related_reports():
       <ul>
         <a href="/modcontrol/report?reportid=${related.reportid}">
-          Opened on ${DATE(related.opened_at)} at ${TIME(related.opened_at)}; status: ${related.status}.
+          Opened $:{LOCAL_TIME(related.opened_at, 'on {date} at {time}')}; status: ${related.status}.
           $if related.is_closed:
             (resolution: ${related.closure_reason.value.replace('-', ' ')})
         </a>
@@ -47,7 +47,7 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
     <h2>Report is closed</h2>
     <p>
       <strong>
-        Closed by ${report.owner.profile.username} on ${DATE(report.closed_at)} at ${TIME(report.closed_at)}.
+        Closed by ${report.owner.profile.username} $:{LOCAL_TIME(report.closed_at, 'on {date} at {time}')}
       </strong>
       The resolution was: ${report.closure_reason.value.replace('-', ' ')}.
     </p>

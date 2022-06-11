@@ -18,7 +18,7 @@ raw_password = "0123456789"
 def test_acct_verif_token_returned_if_email_provided_to_function():
     form = Bag(username=user_name, password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
         "token": token,
         "username": form.username,
@@ -35,7 +35,7 @@ def test_acct_verif_token_returned_if_email_provided_to_function():
 def test_acct_verif_token_returned_if_username_provided_to_function():
     form = Bag(username=user_name, password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
         "token": token,
         "username": form.username,

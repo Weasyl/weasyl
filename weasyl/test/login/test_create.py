@@ -101,7 +101,7 @@ def test_under_13_age_raises_birthdayInvalid_WeasylError():
     # Check for failure state if computed birthday is <13 years old
     form = Bag(username=user_name, password='',
                email='test@weasyl.com',
-               day='12', month='12', year=arrow.now().year - 11)
+               day='12', month='12', year=arrow.utcnow().year - 11)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'birthdayInvalid' == err.value.value
@@ -112,7 +112,7 @@ def test_passwords_must_be_of_sufficient_length():
     password = "tooShort"
     form = Bag(username=user_name, password=password,
                email='foo',
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     # Insecure length
     with pytest.raises(WeasylError) as err:
         login.create(form)
@@ -130,7 +130,7 @@ def test_passwords_must_be_of_sufficient_length():
 def test_create_fails_if_email_is_invalid():
     form = Bag(username=user_name, password='0123456789',
                email=';--',
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'emailInvalid' == err.value.value
@@ -146,7 +146,7 @@ def test_create_fails_if_another_account_has_email_linked_to_their_account():
     db_utils.create_user(username=user_name, email_addr=email_addr)
     form = Bag(username="user", password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     login.create(form)
     query = d.engine.scalar("""
         SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS TRUE
@@ -171,7 +171,7 @@ def test_create_fails_if_pending_account_has_same_email():
     })
     form = Bag(username="test", password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     login.create(form)
     query = d.engine.scalar("""
         SELECT username FROM logincreate WHERE username = %(username)s AND invalid IS TRUE
@@ -183,7 +183,7 @@ def test_create_fails_if_pending_account_has_same_email():
 def test_username_cant_be_blank_or_have_semicolon():
     form = Bag(username='...', password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameInvalid' == err.value.value
@@ -199,7 +199,7 @@ def test_username_cant_be_blank_or_have_semicolon():
 def test_create_fails_if_username_is_a_prohibited_name():
     form = Bag(username='testloginsuite', password='0123456789',
                email='test@weasyl.com',
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     prohibited_names = ["admin", "administrator", "mod", "moderator", "weasyl",
                         "weasyladmin", "weasylmod", "staff", "security"]
     for name in prohibited_names:
@@ -214,7 +214,7 @@ def test_usernames_must_be_unique():
     db_utils.create_user(username=user_name, email_addr="test_2@weasyl.com")
     form = Bag(username=user_name, password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' == err.value.value
@@ -232,7 +232,7 @@ def test_usernames_cannot_match_pending_account_usernames():
     })
     form = Bag(username=user_name, password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' == err.value.value
@@ -244,7 +244,7 @@ def test_username_cannot_match_an_active_alias():
     d.engine.execute("INSERT INTO useralias VALUES (%(userid)s, %(username)s, 'p')", userid=user_id, username=user_name)
     form = Bag(username=user_name, password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     with pytest.raises(WeasylError) as err:
         login.create(form)
     assert 'usernameExists' == err.value.value
@@ -254,7 +254,7 @@ def test_username_cannot_match_an_active_alias():
 def test_verify_correct_information_creates_account():
     form = Bag(username=user_name, password='0123456789',
                email=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+               day='12', month='12', year=arrow.utcnow().year - 19)
     login.create(form)
     # This record should exist when this function completes successfully
     assert d.engine.scalar(
@@ -278,7 +278,7 @@ class TestAccountCreationBlacklist(object):
         blacklisted_email = "test@blacklisted.com"
         form = Bag(username=user_name, password='0123456789',
                    email=blacklisted_email,
-                   day='12', month='12', year=arrow.now().year - 19)
+                   day='12', month='12', year=arrow.utcnow().year - 19)
         with pytest.raises(WeasylError) as err:
             login.create(form)
         assert 'emailBlacklisted' == err.value.value
@@ -299,7 +299,7 @@ class TestAccountCreationBlacklist(object):
         blacklisted_email = "test@subdomain.blacklisted.com"
         form = Bag(username=user_name, password='0123456789',
                    email=blacklisted_email,
-                   day='12', month='12', year=arrow.now().year - 19)
+                   day='12', month='12', year=arrow.utcnow().year - 19)
         with pytest.raises(WeasylError) as err:
             login.create(form)
         assert 'emailBlacklisted' == err.value.value
@@ -308,7 +308,7 @@ class TestAccountCreationBlacklist(object):
         blacklisted_email = "test@mail.sub.sharklasers.com"
         form = Bag(username=user_name, password='0123456789',
                    email=blacklisted_email,
-                   day='12', month='12', year=arrow.now().year - 19)
+                   day='12', month='12', year=arrow.utcnow().year - 19)
         with pytest.raises(WeasylError) as err:
             login.create(form)
         assert 'emailBlacklisted' == err.value.value
@@ -317,7 +317,7 @@ class TestAccountCreationBlacklist(object):
         blacklisted_email = "test@sharklasers.com.sharklasers.com"
         form = Bag(username=user_name, password='0123456789',
                    email=blacklisted_email,
-                   day='12', month='12', year=arrow.now().year - 19)
+                   day='12', month='12', year=arrow.utcnow().year - 19)
         with pytest.raises(WeasylError) as err:
             login.create(form)
         assert 'emailBlacklisted' == err.value.value
@@ -337,17 +337,17 @@ class TestAccountCreationBlacklist(object):
         mail = "test@notblacklisted.com"
         form = Bag(username=user_name, password='0123456789',
                    email=mail,
-                   day='12', month='12', year=arrow.now().year - 19)
+                   day='12', month='12', year=arrow.utcnow().year - 19)
         login.create(form)
 
         mail = "test@also.notblacklisted.com"
         form = Bag(username=user_name + "1", password='0123456789',
                    email=mail,
-                   day='12', month='12', year=arrow.now().year - 19)
+                   day='12', month='12', year=arrow.utcnow().year - 19)
         login.create(form)
 
         mail = "test@blacklisted.com.notblacklisted.com"
         form = Bag(username=user_name + "2", password='0123456789',
                    email=mail,
-                   day='12', month='12', year=arrow.now().year - 19)
+                   day='12', month='12', year=arrow.utcnow().year - 19)
         login.create(form)

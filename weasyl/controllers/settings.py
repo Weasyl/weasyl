@@ -312,8 +312,6 @@ def control_editpreferences_get_(request):
         current_sfw_rating,
         age,
         allowed_ratings,
-        define.request_timezone(request).timezone,
-        define.timezones(),
     ], title="Site Preferences"))
 
 
@@ -325,7 +323,7 @@ def control_editpreferences_post_(request):
         hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
         shouts="", notes="", filter="",
         follow_s="", follow_c="", follow_f="", follow_t="",
-        follow_j="", timezone="", twelvehour="")
+        follow_j="", twelvehour="")
 
     rating = ratings.CODE_MAP[define.get_int(form.rating)]
     jsonb_settings = define.get_profile_settings(request.userid)
@@ -351,7 +349,7 @@ def control_editpreferences_post_(request):
     preferences.follow_t = bool(form.follow_t)
     preferences.follow_j = bool(form.follow_j)
 
-    profile.edit_preferences(request.userid, timezone=form.timezone,
+    profile.edit_preferences(request.userid,
                              preferences=preferences, jsonb_settings=jsonb_settings)
     raise HTTPSeeOther(location="/control")
 

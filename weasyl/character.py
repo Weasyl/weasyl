@@ -89,7 +89,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     try:
         charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
             "userid": userid,
-            "unixtime": arrow.now(),
+            "unixtime": arrow.utcnow(),
             "char_name": character.char_name,
             "age": character.age,
             "gender": character.gender,

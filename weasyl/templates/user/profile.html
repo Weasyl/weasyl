@@ -8,8 +8,14 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   $# The submissions/favorite grids are above/straddling the fold, so omit lazy load.
   $if(submissions):
     <ul id="user-thumbs" class="thumbnail-grid small-footprint">
+      $code:
+        include_byline = {
+          'submissions': False,
+          'characters': False,
+          'collections': True,
+        }[more_submissions]
       $for i in submissions:
-        $:{_GRID_ITEM(i, lazy_load=False)}
+        $:{_GRID_ITEM(i, include_byline=include_byline, lazy_load=False)}
       <li class="more more-joined"><a class="more" href="/${more_submissions}/${LOGIN(profile['username'])}"><span>${profile['username']}'s ${more_submissions.title()}</span></a></li>
     </ul>
 

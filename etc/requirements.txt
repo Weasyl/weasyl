@@ -12,16 +12,16 @@ publicsuffixlist==0.6.13    # For extracting the base domain for the email black
 
 
 # libweasyl
-alembic==1.7.4
-arrow==1.2.1
-bcrypt==3.2.0
+alembic==1.8.0
+arrow==1.2.2
+bcrypt==3.2.2
 dogpile.cache==1.1.5
 #lxml ...
 oauthlib==2.1.0
 Pillow==9.1.1
 psycopg2cffi==2.9.0
 #pyramid ...
-sqlalchemy==1.4.31
+sqlalchemy==1.4.37
 
 # https://github.com/Weasyl/misaka
 misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz#sha224=cc3767d791466c857ec0b147e8c4809eb09948a7a6a72278d49427bb

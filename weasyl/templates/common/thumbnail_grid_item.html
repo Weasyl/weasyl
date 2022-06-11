@@ -1,10 +1,10 @@
-$def with (query, notifications=False, lazy_load=True)
+$def with (query, *, notifications=False, include_byline=True, lazy_load=True)
 
 <li class="item">
   $if notifications:
     <label class="input-checkbox">
 
-  <figure class="thumb${' collection' if query['contype'] == 40 else ''}">
+  <figure class="thumb$:{'' if include_byline else ' thumb-no-byline'}">
     $code:
       if query['contype'] in (30, 50):
         width = "120"
@@ -75,16 +75,17 @@ $def with (query, notifications=False, lazy_load=True)
         $else:
           href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
       </a></h6>
-      $code:
-        byline_prefix = (
-          'collected by' if query['contype'] == 40 else
-          'character of' if query['contype'] == 20 else
-          'by'
-        )
-      <p class="byline" title="$:{byline_prefix} ${query['username']}">
-        <i>$:{byline_prefix}</i>
-        <a href="/~${LOGIN(query['username'])}" class="username">${query['username']}</a>
-      </p>
+      $if include_byline:
+        $code:
+          byline_prefix = (
+            'collected by' if query['contype'] == 40 else
+            'character of' if query['contype'] == 20 else
+            'by'
+          )
+        <p class="byline" title="$:{byline_prefix} ${query['username']}">
+          <i>$:{byline_prefix}</i>
+          <a href="/~${LOGIN(query['username'])}" class="username">${query['username']}</a>
+        </p>
     </figcaption>
   </figure>
 

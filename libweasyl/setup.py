@@ -24,17 +24,17 @@ setup(
         ],
     },
     install_requires=[
-        'alembic==1.7.4',
-        'arrow==1.2.1',
-        'bcrypt==3.2.0',
+        'alembic==1.8.0',
+        'arrow==1.2.2',
+        'bcrypt==3.2.2',
         'dogpile.cache==1.1.5',
-        'lxml==4.8.0',
+        'lxml==4.9.0',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
         'Pillow==9.1.1',
         'psycopg2cffi==2.9.0',
         'pyramid~=2.0',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.4.31',
+        'sqlalchemy==1.4.37',
     ],
 )

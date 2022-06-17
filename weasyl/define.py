@@ -473,7 +473,7 @@ def get_address():
 
 
 def _get_path():
-    return get_current_request().url
+    return get_current_request().path_qs
 
 
 def text_price_amount(target):

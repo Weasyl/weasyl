@@ -1,5 +1,6 @@
 import html
 import itertools
+import re
 import secrets
 import time
 import traceback
@@ -361,6 +362,31 @@ def web_input_request_method(request, *required, **kwargs):
     return storify(request.params.mixed(), *required, **kwargs)
 
 
+def _log_request(request, *, request_id=None):
+    env = {}
+
+    if request_id is not None:
+        env["request_id"] = request_id
+
+    env["user_id"] = request.userid
+
+    env.update(request.environ)
+
+    # remove redundant data
+    env.pop("webob._parsed_cookies", None)
+    env.pop("webob._parsed_query_vars", None)
+
+    # don't log session cookies
+    if "HTTP_COOKIE" in env:
+        env["HTTP_COOKIE"] = re.sub(
+            r'(WZL="?)([^";]+)',
+            lambda match: match.group(1) + "*" * len(match.group(2)),
+            env["HTTP_COOKIE"],
+        )
+
+    print(repr(env))
+
+
 def weasyl_exception_view(exc, request):
     """
     A view for general exceptions thrown by weasyl code.
@@ -375,7 +401,8 @@ def weasyl_exception_view(exc, request):
     errorpage_kwargs = {}
     if isinstance(exc, WeasylError):
         if exc.level is not None:
-            traceback.print_exception(exc)
+            _log_request(request)
+            traceback.print_exception(exc, limit=1)
         status_code = errorcode.error_status_code.get(exc.value, 422)
         if exc.render_as_json:
             return Response(json={'error': {'name': exc.value}},
@@ -388,7 +415,7 @@ def weasyl_exception_view(exc, request):
             return Response(d.errorpage(userid, message, **errorpage_kwargs),
                             status_code=status_code)
     request_id = secrets.token_urlsafe(6)
-    print("unhandled error (request id %s) in %r" % (request_id, request.environ))
+    _log_request(request, request_id=request_id)
     traceback.print_exception(exc)
     if getattr(exc, "__render_as_json", False):
         return Response(json={'error': {}}, status_code=500)

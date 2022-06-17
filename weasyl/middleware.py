@@ -247,7 +247,7 @@ def query_debug_tween_factory(handler, registry):
         )
 
     def query_debug_tween(request):
-        if 'query_debug' in request.params:
+        if 'query_debug' in request.GET:
             request.query_debug = []
             request.add_response_callback(callback)
 

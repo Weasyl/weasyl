@@ -8,7 +8,10 @@ from datetime import datetime, timedelta, timezone
 
 import multipart
 from pyramid.decorator import reify
-from pyramid.httpexceptions import HTTPUnauthorized
+from pyramid.httpexceptions import (
+    HTTPBadRequest,
+    HTTPUnauthorized,
+)
 from pyramid.request import Request as Request_
 from pyramid.response import Response
 from pyramid.threadlocal import get_current_request
@@ -122,6 +125,21 @@ class Request(Request_):
 
     def make_tempfile(self):
         raise NotImplementedError
+
+
+def utf8_path_tween_factory(handler, registry):
+    """
+    A tween to reject requests with invalid UTF-8 in the path early.
+    """
+    def utf8_path_tween(request):
+        try:
+            request.path_info
+        except UnicodeDecodeError:
+            return HTTPBadRequest()
+
+        return handler(request)
+
+    return utf8_path_tween
 
 
 def cache_clear_tween_factory(handler, registry):

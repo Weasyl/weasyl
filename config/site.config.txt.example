@@ -4,7 +4,7 @@ allow_submit = true
 convert_currency = false
 
 # value checked against the Origin header to prevent CSRF
-origin = http://weasyl:8080
+origin = http://weasyl.localhost:8080
 
 [backend]
 profile_responses = false

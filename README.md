@@ -56,15 +56,7 @@ Future changes to the application server can be applied with `./wzl up -d --buil
 You can check its logs with `./wzl logs web`, or attach to it with `./wzl up web`. Detaching can be done from another shell with `pkill -x -HUP docker-compose`.
 
 
-### Configure the `weasyl` hostname
-
-Add this entry to `/etc/hosts`:
-
-```
-127.0.0.1 weasyl
-```
-
-Weasyl should now be running at <http://weasyl:8080/>!
+Weasyl should now be running at <http://weasyl.localhost:8080/>!
 
 
 ## Running tests

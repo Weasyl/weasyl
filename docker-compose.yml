@@ -50,6 +50,7 @@ services:
       WEASYL_STORAGE_ROOT: storage
       WEB_CONCURRENCY: 8
       PYTHONWARNINGS: d
+      PYTHONUNBUFFERED: 1
     volumes:
       - config:/run/config:ro
       - storage:/weasyl/storage/static

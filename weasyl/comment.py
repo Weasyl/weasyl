@@ -1,7 +1,9 @@
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import staff
 from libweasyl.legacy import UNIXTIME_OFFSET
+from libweasyl.models import tables as t
 
 from weasyl import define as d
 from weasyl import ignoreuser
@@ -150,15 +152,20 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             raise WeasylError("submissionRecordMissing")
     else:
         # Determine the owner of the target
-        if submitid:
-            otherid = d.engine.scalar("SELECT userid FROM submission WHERE submitid = %i AND not hidden" % (submitid,))
-        else:
-            otherid = d.engine.scalar(
-                "SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'" % (
-                    ("character", "charid", charid) if charid else
-                    ("journal", "journalid", journalid)
-                )
-            )
+        content_table, content_table_filter = (
+            (t.submission, t.submission.c.submitid == submitid) if submitid
+            else (t.character, t.character.c.charid == charid) if charid
+            else (t.journal, t.journal.c.journalid == journalid)
+        )
+
+        query = (
+            sa.select([content_table.c.userid])
+            .select_from(content_table)
+            .where(content_table_filter)
+            .where(~content_table.c.hidden)
+        )
+
+        otherid = d.engine.scalar(query)
 
         # Check permissions
         if not otherid:

@@ -231,10 +231,7 @@ character = Table(
     Column('species', String(length=100), nullable=False, server_default=''),
     Column('content', String(length=100000), nullable=False, server_default=u""),
     Column('rating', RatingColumn, nullable=False),
-    Column('settings', CharSettingsColumn({
-        'h': 'hidden',
-        'f': 'friends-only',
-    }, length=20), nullable=False, server_default=''),
+    Column('settings', CharSettingsColumn({}, length=20), nullable=False, server_default=''),
     Column('hidden', Boolean(), nullable=False, server_default='f'),
     Column('friends_only', Boolean(), nullable=False, server_default='f'),
     Column('page_views', Integer(), nullable=False, server_default='0'),
@@ -271,10 +268,6 @@ journal = Table(
     Column('content', String(length=100000), nullable=False),
     Column('rating', RatingColumn, nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    Column('settings', CharSettingsColumn({
-        'h': 'hidden',
-        'f': 'friends-only',
-    }, length=20), nullable=False, server_default=''),
     Column('hidden', Boolean(), nullable=False, server_default='f'),
     Column('friends_only', Boolean(), nullable=False, server_default='f'),
     Column('page_views', Integer(), nullable=False, server_default='0'),

@@ -27,7 +27,7 @@ setup(
         'alembic==1.8.0',
         'arrow==1.2.2',
         'bcrypt==3.2.2',
-        'dogpile.cache==1.1.5',
+        'dogpile.cache==1.1.7',
         'lxml==4.9.1',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',

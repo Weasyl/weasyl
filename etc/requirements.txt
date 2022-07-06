@@ -16,7 +16,7 @@ publicsuffixlist==0.6.13    # For extracting the base domain for the email black
 alembic==1.8.0
 arrow==1.2.2
 bcrypt==3.2.2
-dogpile.cache==1.1.5
+dogpile.cache==1.1.7
 #lxml ...
 oauthlib==2.1.0
 Pillow==9.1.1

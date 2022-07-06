@@ -6,6 +6,7 @@ from libweasyl.legacy import UNIXTIME_OFFSET
 from libweasyl.models import tables as t
 
 from weasyl import define as d
+from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
@@ -158,22 +159,22 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             else (t.journal, t.journal.c.journalid == journalid)
         )
 
-        query = (
-            sa.select([content_table.c.userid])
+        target = d.engine.execute(
+            sa.select([content_table.c.userid, content_table.c.friends_only])
             .select_from(content_table)
             .where(content_table_filter)
             .where(~content_table.c.hidden)
-        )
-
-        otherid = d.engine.scalar(query)
+        ).first()
 
         # Check permissions
-        if not otherid:
+        if target is None or (target.friends_only and not frienduser.check(userid, target.userid)):
             raise WeasylError("submissionRecordMissing")
-        elif ignoreuser.check(otherid, userid):
+        elif ignoreuser.check(target.userid, userid):
             raise WeasylError("pageOwnerIgnoredYou")
-        elif ignoreuser.check(userid, otherid):
+        elif ignoreuser.check(userid, target.userid):
             raise WeasylError("youIgnoredPageOwner")
+
+        otherid = target.userid
 
     if parentuserid and ignoreuser.check(parentuserid, userid):
         raise WeasylError("replyRecipientIgnoredYou")

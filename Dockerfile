@@ -145,5 +145,4 @@ ENV WEASYL_APP_ROOT=/weasyl
 ENV PORT=8080
 CMD [".venv/bin/gunicorn"]
 EXPOSE 8080
-STOPSIGNAL SIGINT
 COPY gunicorn.conf.py ./

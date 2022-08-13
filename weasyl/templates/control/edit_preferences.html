@@ -12,10 +12,6 @@ $code:
   <form name="controleditpreferences" class="form skinny" action="/control/editpreferences" method="post">
     $:{CSRF()}
 
-    $# TODO: remove when time zone preference is removed from database
-    $if "2" in config:
-      <input type="hidden" name="twelvehour" value="on">
-
     <label for="custom_thumbs">Custom Thumbnails</label>
     <select name="custom_thumbs" class="input" id="custom_thumbs">
       <option value="enable"$:{' selected' if not jsonb_settings.disable_custom_thumbs else ''}>

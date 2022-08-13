@@ -323,7 +323,7 @@ def control_editpreferences_post_(request):
         hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
         shouts="", notes="", filter="",
         follow_s="", follow_c="", follow_f="", follow_t="",
-        follow_j="", twelvehour="")
+        follow_j="")
 
     rating = ratings.CODE_MAP[define.get_int(form.rating)]
     jsonb_settings = define.get_profile_settings(request.userid)
@@ -331,7 +331,6 @@ def control_editpreferences_post_(request):
     jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
 
     preferences = profile.Config()
-    preferences.twelvehour = bool(form.twelvehour)
     preferences.rating = rating
     preferences.tagging = bool(form.tagging)
     preferences.hideprofile = bool(form.hideprofile)

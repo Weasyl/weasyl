@@ -26,7 +26,7 @@ setup(
     install_requires=[
         'alembic==1.8.1',
         'arrow==1.2.2',
-        'bcrypt==3.2.2',
+        'bcrypt==4.0.0',
         'dogpile.cache==1.1.8',
         'lxml==4.9.1',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka

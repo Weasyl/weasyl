@@ -11,7 +11,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
     <div class="commish-row">
       <div class="info">
         <form name="controleditcommishtext" action="/control/editcommishinfo" method="post" class="clear">
-          $:{CSRF()}
           <!-- Copied from edit_profile.html. TODO(hyena): Only put this in one place, probably here. -->
           <label for="editprofile-setcommish">Commissions</label>
           <p>
@@ -114,7 +113,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
     <p>Creates a new type of commission with a base price</p>
     <form name="controlcreatecommishclass" action="/control/createcommishclass" method="post" class="clear">
       <div class="commish-row">
-        $:{CSRF()}
         <div class="half">
           <label for="commishprices-addclass-preset">Type Presets</label>
           <select class="input last-input" name="titlepreset" id="commishprices-addclass-preset">
@@ -157,7 +155,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
       <h3>Add a Price to a Type</h3>
       <p>Add a new base or add-on cost to a commission type</p>
       <form name="controlcreatecommishprice" action="/control/createcommishprice" method="post" class="clear">
-        $:{CSRF()}
         <div class="commish-row">
           <div class="half">
             <label for="commish-classselect">Type</label>
@@ -204,7 +201,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <h3>Edit/Remove a Type</h3>
           <p>Rename or remove an existing commission type</p>
           <form name="controleditcommishclass" method="post" class="clear">
-            $:{CSRF()}
             <label for="commishprices-editclass">Type Name</label>
             <select id="commishprices-editclass" class="input" required="required" name="classid">
               <option value="">Select type:</option>
@@ -235,7 +231,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           $for price in query['price']:
             <form name="controleditcommishprice" method="post" class="clear select-priceid"
                   data-priceid="${price['priceid']}" style="display:none;">
-              $:{CSRF()}
               <input type="hidden" name="priceid" value="${price['priceid']}">
               <label for="commish-edit-title">Rename To</label>
               <input type="text" class="input" name="title" required="required" id="commish-edit-title"

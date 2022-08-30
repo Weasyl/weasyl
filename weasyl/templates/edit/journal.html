@@ -10,7 +10,6 @@ $code:
 <div id="edit-journal-content" class="content">
 
   <form name="editjournal" action="/edit/journal" method="post" class="form skinny clear">
-    $:{CSRF()}
     <input type="hidden" name="journalid" value="${query['journalid']}" />
 
     <h3>Journal Composition</h3>

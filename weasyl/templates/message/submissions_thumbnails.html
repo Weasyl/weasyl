@@ -4,7 +4,6 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <div class="content">
   <form action="/messages/remove" method="post">
-    $:{CSRF()}
     <input type="hidden" id="recall" name="recall" value="submissions" />
     <input type="hidden" id="content" name="content" />
 

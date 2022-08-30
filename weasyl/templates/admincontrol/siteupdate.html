@@ -4,8 +4,6 @@ $:{TITLE("Submit Site Update" if is_new else "Edit Site Update", "Administrator 
 
 <div class="content">
   <form id="submit-form" class="form wide" action="${'/admincontrol/siteupdate' if is_new else '/site-updates/%d' % (update['updateid'],)}" method="post">
-    $:{CSRF()}
-
     <h3>Content</h3>
 
     <label for="siteupdatetitle">Title</label>

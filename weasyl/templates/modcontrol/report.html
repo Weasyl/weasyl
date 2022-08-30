@@ -57,7 +57,6 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
   $else:
     <h2>Add a comment</h2>
     <form class="form" action="/submit/report" method="post" style="margin-bottom: 2em">
-      $:{CSRF()}
       <input type="hidden" name="reportid" value="${report.reportid}">
       <input type="hidden" name="${feature}id" value="${getattr(report.target, feature + 'id')}">
       <input type="hidden" name="violation" value="0">
@@ -69,7 +68,6 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
 
     <h2>Close this report</h2>
     <form name="closereport" class="form" action="/modcontrol/closereport" method="post">
-      $:{CSRF()}
       <input type="hidden" name="reportid" value="${report.reportid}" />
       <input type="hidden" name="feature" value="${feature}" />
       <label for="report-closure-action">Action</label>

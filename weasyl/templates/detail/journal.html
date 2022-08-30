@@ -15,7 +15,6 @@ $def with (myself, query, violations)
   <div id="db-main">
     <ul id="detail-actions" class="toolset clear">
       <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/journals/${query['journalid']}/" method="post">
-        $:{CSRF()}
         <input type="hidden" name="journalid" value="${query['journalid']}" />
         $if not query['mine']:
           $if query['favorited']:
@@ -67,7 +66,6 @@ $def with (myself, query, violations)
 
     $if query['mine'] or myself and myself['userid'] in staff.MODS:
       <form name="removejournal" action="/remove/journal" method="post">
-        $:{CSRF()}
         <input type="hidden" name="journalid" value="${query['journalid']}" />
       </form>
 
@@ -78,7 +76,6 @@ $def with (myself, query, violations)
         <p><a href="/edit/journal?journalid=${query['journalid']}">Edit Journal Details</a></p>
 
         <form action="/remove/journal" method="POST" data-confirm="Are you sure you want to remove this journal?">
-          $:{CSRF()}
           <input type="hidden" name="journalid" value="${query['journalid']}" />
 
           <button class="link-button">Remove Journal Entry</button>
@@ -92,7 +89,6 @@ $def with (myself, query, violations)
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/journal?journalid=${query['journalid']}&amp;anyway=true">Edit Journal Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
-          $:{CSRF()}
           <input type="hidden" name="journals" value="${query['journalid']}">
           <select name="action" class="input">
             $for value, name in M.get_mod_actions(query, "journal").items():

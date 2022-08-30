@@ -4,7 +4,6 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
 <div class="content">
 
   <form name="admincontrolmanageuser" class="form constrained clear" action="/admincontrol/manageuser" method="post">
-    $:{CSRF()}
     <input type="hidden" name="userid" value="${profile['userid']}" />
 
     <span class="label">UserID</span>

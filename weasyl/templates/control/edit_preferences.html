@@ -10,8 +10,6 @@ $code:
 
 <div class="content">
   <form name="controleditpreferences" class="form skinny" action="/control/editpreferences" method="post">
-    $:{CSRF()}
-
     <label for="custom_thumbs">Custom Thumbnails</label>
     <select name="custom_thumbs" class="input" id="custom_thumbs">
       <option value="enable"$:{' selected' if not jsonb_settings.disable_custom_thumbs else ''}>

@@ -52,8 +52,6 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Final Step", "Two-Factor Auth
     <input type="text" id="tfa-init-verify" maxlength="7" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
     <label><input class="checkbox" type="checkbox" name="verify" required /> I have printed or saved the above recovery codes and want to enable 2FA.</label>
 
-    $:{CSRF()}
-
     <div style="padding-top: 1em;">
       <a class="button negative" href="/control/2fa/status">Cancel</a>
       <button class="button positive">Enable 2FA</button>

@@ -7,7 +7,6 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
     <h3>Add API Key</h3>
 
     <form name="add-api-key" action="" method="post" class="clear">
-      $:{CSRF()}
       <label for="add-key-description">Key Description</label>
       <input type="text" id="add-key-description" class="input last-input" name="add-key-description"
              placeholder="optional" />
@@ -31,8 +30,6 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
     <h3>Manage API Keys</h3>
 
     <form name="manage-api-keys" action="" method="post" class="clear">
-      $:{CSRF()}
-
       $if api_keys:
         <ul id="api-token-list">
           $for token, description in api_keys:
@@ -63,7 +60,6 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
     <h3>Manage OAuth2 Consumers</h3>
 
     <form action="" method="post" class="clear">
-      $:{CSRF()}
       $if consumers:
         $for consumer in consumers:
           <label class="input-checkbox">

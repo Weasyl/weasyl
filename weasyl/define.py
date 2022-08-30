@@ -153,7 +153,6 @@ def _compile(template_name):
             globals={
                 "STR": str,
                 "LOGIN": get_sysname,
-                "CSRF": (lambda: ""),
                 "USER_TYPE": user_type,
                 "ARROW": get_arrow,
                 "LOCAL_TIME": _get_local_time_html,

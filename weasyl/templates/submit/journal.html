@@ -4,7 +4,6 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
 <div id="submit-journal-content" class="content">
 
   <form id="submit-form" name="submitjournal" class="form clear journal" action="/submit/journal" method="post">
-    $:{CSRF()}
     <div class="column info">
       <h3>Information</h3>
 

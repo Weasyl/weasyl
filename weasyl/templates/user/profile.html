@@ -45,7 +45,6 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       </p>
 
       <form id="error_buttons" method="POST" action="${request.route_path('vouch')}">
-        $:{CSRF()}
         <input type="hidden" name="targetid" value="${profile['userid']}">
         <button class="button positive">Vouch for ${profile['username']}</button>
       </form>

@@ -15,7 +15,6 @@ $:{TITLE("Users You Follow", "Settings", "/control")}
             <h5><a class="username one-line" href="/~${LOGIN(i['username'])}" title="${i['username']}">${i['username']}</a></h5>
             <a class="button positive" href="/manage/following?userid=${i['userid']}">Edit Settings</a>
             <form action="/unfollowuser" method="post" data-confirm="Unfollow this user?">
-              $:{CSRF()}
               <input type="hidden" name="userid" value="${i['userid']}" />
               <button class="button negative">Unfollow</button>
             </form>

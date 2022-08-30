@@ -5,8 +5,6 @@ $ _LIST_ITEM = COMPILE("common/thumbnail_list_item.html")
 <div id="manage-collections" class="content">
   $if query:
     <form method="POST">
-      $:{CSRF()}
-
       <div id="messages-checkboxes">
         $for i in query:
           $:{_LIST_ITEM(i, caption="collection_pending" if i["collectorid"] == userid else "collection_requested")}

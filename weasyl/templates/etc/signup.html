@@ -4,8 +4,6 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
 <div id="signup-content" class="content">
 
   <form name="signup" action="/signup" method="post" class="form skinny clear">
-    $:{CSRF()}
-
     <label for="signup-username">Username</label>
     <input type="text" id="signup-username" class="input" name="username" autofocus required maxlength="25" autocomplete="username" />
 

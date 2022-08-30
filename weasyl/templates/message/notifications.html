@@ -47,8 +47,6 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
     There are no notifications to display.
 
   <form action="/messages/remove" method="post">
-    $:{CSRF()}
-
     $if query:
       <div class="notifs-actions" id="notification-global-actions-top">
         <div class="notifs-remove-buttons">

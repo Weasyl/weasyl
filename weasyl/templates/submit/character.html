@@ -4,8 +4,6 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
 <div id="submit-character-content" class="content">
 
   <form id="submit-form" name="submitcharacter" class="form clear" action="/submit/character" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
-
     <div class="column files">
         <h3>Files</h3>
 

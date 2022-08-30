@@ -10,7 +10,6 @@ $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
 <div id="notes-content" class="content">
   $if notes:
     <form action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
-      $:{CSRF()}
       <input type="hidden" name="folder" value="${folder}" />
 
       <table>

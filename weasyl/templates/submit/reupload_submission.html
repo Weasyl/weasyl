@@ -6,7 +6,6 @@ $:{RENDER("common/stage_title.html", ["Submission File", "Manage"])}
   <h3>Choose Submission File</h3>
 
   <form action="/reupload/${feature}" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
     <input type="hidden" name="targetid" value="${targetid}" />
 
     <div style="width:350px;margin:auto;">

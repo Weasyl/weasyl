@@ -10,7 +10,6 @@ $code:
 <div id="edit-character-content" class="content">
 
   <form name="editcharacter" action="/edit/character" method="post" class="form skinny clear">
-    $:{CSRF()}
     <input type="hidden" name="charid" value="${query['charid']}" />
 
     <h3>Character Information</h3>

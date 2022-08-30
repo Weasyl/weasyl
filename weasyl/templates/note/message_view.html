@@ -36,13 +36,10 @@ $:{RENDER("common/stage_title.html", ["View Private Message", "Notes", "/notes?f
       <form action="/modcontrol/copynotetostaffnotes" method="post" class="form clear">
         <button class="button" style="float: right;">Copy Note to Staff Notes</button>
         <input type="hidden" name="noteid" value="${query['noteid']}" />
-        $:{CSRF()}
       </form>
 
     $if not query['mine']:
       <form name="notescompose" action="/notes/compose" method="post" class="form clear">
-        $:{CSRF()}
-
         <h3>Send Reply</h3>
 
         <label for="notereplyrecipient">Recipient</label>

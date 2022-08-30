@@ -1,9 +1,4 @@
 $def with (query, options, extended_options={})
-
-$code:
-  def _SFWTOGGLE(mode):
-    return 'on' if mode == 'sfw' else 'off'
-
 <!DOCTYPE html>
 <html class="no-js">
 <head>
@@ -79,9 +74,9 @@ $code:
         <h2><i>Welcome,</i> <a id="username" class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h2>
         <div id="header-utility">
           <form class="user-nav-form sfw-toggle" action="/control/sfwtoggle" method="POST">
-            $:{CSRF()}
+            $ sfw = query['sfw']
             <input type="hidden" name="redirect" value="${PATH()}">
-            <button class="link-button ${query['sfw']}">sfw ${_SFWTOGGLE(query['sfw'])}</button>
+            <button class="link-button ${'sfw' if sfw else 'nsfw'}">sfw ${'on' if sfw else 'off'}</button>
           </form> <span>|</span>
           <a href="/notes">inbox</a> <span>|</span>
           <a href="/control">settings</a> <span>|</span>

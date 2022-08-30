@@ -619,7 +619,7 @@ def _page_header_info(userid):
 
 def page_header_info(userid):
     from weasyl import media
-    sfw = get_current_request().cookies.get('sfwmode', 'nsfw')
+    sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
     return {
         "welcome": _page_header_info(userid),
         "userid": userid,

@@ -58,7 +58,6 @@ ALLOWABLE_EXCHANGE_CODES = {
 
 
 Config = create_configuration([
-    BoolOption("twelvehour", "2"),
     ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "a", "p"]))),
     BoolOption("tagging", "k"),
     BoolOption("hideprofile", "h"),

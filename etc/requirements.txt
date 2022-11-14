@@ -22,7 +22,7 @@ oauthlib==2.1.0
 Pillow==9.2.0
 psycopg2cffi==2.9.0
 #pyramid ...
-sqlalchemy==1.4.40
+sqlalchemy==1.4.44
 
 # https://github.com/Weasyl/misaka
 misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz#sha224=cc3767d791466c857ec0b147e8c4809eb09948a7a6a72278d49427bb

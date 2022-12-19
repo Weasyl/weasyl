@@ -1,8 +1,0 @@
-extraction:
-  python:
-    python_setup:
-      version: 3
-  javascript:
-    index:
-      filters:
-        - exclude: weasyl/templates

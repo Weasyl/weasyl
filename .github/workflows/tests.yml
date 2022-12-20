@@ -5,6 +5,8 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     container:
       image: ghcr.io/weasyl/ci-base-image@sha256:d6e6b99cb6c00bc5aaed1017ee389b9d18b12d39cae082c16e664ab20ff9e8b7

@@ -72,7 +72,7 @@ RUN adduser -S build -h /weasyl-build -u 1000
 WORKDIR /weasyl-build
 USER build
 COPY requirements/test.txt test.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest pytest-cov
+RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest coverage
 
 
 FROM docker.io/library/python:3.10-alpine3.16 AS package

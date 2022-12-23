@@ -61,8 +61,10 @@ test-coverage)
 
     if test $# -eq 0; then
         set -- sh -c '
-            pytest --cov=libweasyl --cov=weasyl --cov-report= libweasyl.test libweasyl.models.test
-            pytest --cov-append --cov=libweasyl --cov=weasyl --cov-report=html:coverage weasyl.test
+            coverage run -m pytest libweasyl.test libweasyl.models.test
+            coverage run -m pytest weasyl.test
+            coverage combine
+            coverage html -d coverage
         '
     fi
 

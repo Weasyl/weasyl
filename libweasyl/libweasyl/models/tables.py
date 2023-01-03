@@ -57,7 +57,12 @@ charcomment = Table(
     Column('hidden_by', Integer(), nullable=True),
     default_fkey(['targetid'], ['character.charid'], name='charcomment_targetid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='charcomment_userid_fkey'),
-    default_fkey(['hidden_by'], ['login.userid'], name='charcomment_hidden_by_fkey'),
+    ForeignKeyConstraint(
+        ['hidden_by'],
+        ['login.userid'],
+        name='charcomment_hidden_by_fkey',
+        ondelete='SET NULL',
+    ),
 )
 
 Index('ind_charcomment_targetid_commentid', charcomment.c.targetid, charcomment.c.commentid)
@@ -93,8 +98,13 @@ comments = Table(
     default_fkey(['userid'], ['login.userid'], name='comments_userid_fkey'),
     default_fkey(['target_user'], ['login.userid'], name='comments_target_user_fkey'),
     default_fkey(['target_sub'], ['submission.submitid'], name='comments_target_sub_fkey'),
-    default_fkey(['parentid'], ['comments.commentid'], name='comments_parentid_fkey'),
-    default_fkey(['hidden_by'], ['login.userid'], name='comments_hidden_by_fkey'),
+    ForeignKeyConstraint(['parentid'], ['comments.commentid'], name='comments_parentid_fkey'),
+    ForeignKeyConstraint(
+        ['hidden_by'],
+        ['login.userid'],
+        name='comments_hidden_by_fkey',
+        ondelete='SET NULL',
+    ),
     CheckConstraint('(target_user IS NOT NULL) != (target_sub IS NOT NULL)', name='comments_target_check'),
 )
 
@@ -143,7 +153,7 @@ emailblacklist = Table(
     Column('added_by', Integer(), nullable=False),
     Column('domain_name', String(length=252), nullable=False, unique=True),
     Column('reason', Text(), nullable=False),
-    default_fkey(['added_by'], ['login.userid'], name='emailblacklist_userid_fkey'),
+    ForeignKeyConstraint(['added_by'], ['login.userid'], name='emailblacklist_userid_fkey'),
 )
 
 
@@ -296,7 +306,12 @@ journalcomment = Table(
     Column('hidden_by', Integer(), nullable=True),
     default_fkey(['targetid'], ['journal.journalid'], name='journalcomment_targetid_fkey'),
     default_fkey(['userid'], ['login.userid'], name='journalcomment_userid_fkey'),
-    default_fkey(['hidden_by'], ['login.userid'], name='journalcomment_hidden_by_fkey'),
+    ForeignKeyConstraint(
+        ['hidden_by'],
+        ['login.userid'],
+        name='journalcomment_hidden_by_fkey',
+        ondelete='SET NULL',
+    ),
 )
 
 Index('ind_journalcomment_targetid_commentid', journalcomment.c.targetid, journalcomment.c.commentid)
@@ -500,7 +515,12 @@ report = Table(
     default_fkey(['target_char'], ['character.charid'], name='report_target_char_fkey'),
     default_fkey(['target_journal'], ['journal.journalid'], name='report_target_journal_fkey'),
     default_fkey(['target_comment'], ['comments.commentid'], name='report_target_comment_fkey'),
-    default_fkey(['closerid'], ['login.userid'], name='report_closerid_fkey'),
+    ForeignKeyConstraint(
+        ['closerid'],
+        ['login.userid'],
+        name='report_closerid_fkey',
+        ondelete='SET NULL',
+    ),
     CheckConstraint(
         '((target_user IS NOT NULL)::int + (target_sub IS NOT NULL)::int '
         '  + (target_char IS NOT NULL)::int + (target_journal IS NOT NULL)::int '
@@ -521,7 +541,7 @@ reportcomment = Table(
     Column('content', String(length=2000), nullable=False, server_default=''),
     Column('commentid', Integer(), primary_key=True, nullable=False),
     Column('reportid', Integer(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='reportcomment_userid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='reportcomment_userid_fkey'),
     default_fkey(['reportid'], ['report.reportid'], name='reportcomment_reportid_fkey'),
 )
 
@@ -636,7 +656,7 @@ sessions = Table(
     Column('ip_address', String(length=39), nullable=True),
     Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
-    default_fkey(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
+    ForeignKeyConstraint(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
     CheckConstraint("userid IS NOT NULL OR additional_data != ''", name='sessions_no_guest_check'),
 )
 
@@ -671,7 +691,7 @@ siteupdate = Table(
     Column('title', String(length=100), nullable=False),
     Column('content', Text(), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='siteupdate_userid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdate_userid_fkey'),
 )
 
 
@@ -716,7 +736,12 @@ submission = Table(
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
-    default_fkey(['folderid'], ['folder.folderid'], name='submission_folderid_fkey'),
+    ForeignKeyConstraint(
+        ['folderid'],
+        ['folder.folderid'],
+        name='submission_folderid_fkey',
+        ondelete='SET NULL',
+    ),
     ForeignKeyConstraint(
         ['submitter_user_agent_id'],
         ['user_agents.user_agent_id'],
@@ -781,7 +806,7 @@ tag_updates = Table(
     Column('updated_at', Integer(), nullable=False,
            server_default=text(u"(date_part('epoch'::text, now()) - (18000)::double precision)")),
     default_fkey(['submitid'], ['submission.submitid'], name='tag_updates_submitid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='tag_updates_userid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='tag_updates_userid_fkey'),
 )
 
 Index('ind_tag_updates_submitid', tag_updates.c.submitid)

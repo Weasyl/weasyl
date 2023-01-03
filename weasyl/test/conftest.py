@@ -117,9 +117,7 @@ def db(request):
     def tear_down():
         """ Clears all rows from the test database. """
         db.flush()
-        db.execute(metadata.tables['user_events'].delete())
-        db.execute(metadata.tables['username_history'].delete())
-        for table in metadata.tables.values():
+        for table in reversed(metadata.sorted_tables):
             db.execute(table.delete())
 
     request.addfinalizer(tear_down)

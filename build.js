@@ -226,10 +226,14 @@ const main = async () => {
         sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
         esbuildFile('js/main.js', 'js/main.js', touch, {
-            target: 'es6',
-            banner: {
-                js: 'export {}',
-            },
+            format: 'esm',
+            target: [
+                'chrome84',
+                'firefox90',
+                'ios15',
+                'safari15',
+            ],
+            banner: {},
         }),
         copyStaticFiles('img/help', touch),
         copyImages,

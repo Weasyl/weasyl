@@ -9,7 +9,7 @@ $def with (container, query, additional=None)
       <div class="comment-content">
         <p class="byline">
           <a href="/~${LOGIN(i['username'])}" class="username">${i['username']}</a>
-          $:{LOCAL_TIME(i['unixtime'], '<i>on</i> <b>{date}</b> <i>at</i> {time}')}
+          $:{LOCAL_TIME(i['unixtime'], '<i>on</i> <b class="local-time-date">{date_text}</b> <i>at</i> {time}')}
         </p>
         <div class="formatted-content">
           $:{MARKDOWN(i['content'])}

@@ -521,9 +521,12 @@ def get_arrow(unixtime):
 
 def _get_local_time_html(target, template):
     target = get_arrow(target)
+    date_text = target.format("MMMM D, YYYY")
+    time_text = target.format("HH:mm:ss ZZZ")
     content = template.format(
-        date=f'<span class="local-time-date">{target.format("MMMM D, YYYY")}</span>',
-        time=f'<span class="local-time-time">{target.format("HH:mm:ss ZZZ")}</span>',
+        date=f'<span class="local-time-date">{date_text}</span>',
+        time=f'<span class="local-time-time">{time_text}</span>',
+        date_text=date_text,
     )
     return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
 

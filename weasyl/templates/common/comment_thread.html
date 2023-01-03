@@ -30,7 +30,7 @@ $ can_remove = is_owner or (myself and myself['userid'] in staff.MODS)
           $ user_type = USER_TYPE(comment['userid'])
           $if user_type:
             <strong class="user-type-${user_type}">(${user_type})</strong>
-          $:{LOCAL_TIME(comment['unixtime'], '<i>on</i> <b>{date}</b> <i>at</i> {time}')}
+          $:{LOCAL_TIME(comment['unixtime'], '<i>on</i> <b class="local-time-date">{date_text}</b> <i>at</i> {time}')}
           $if hidden and comment['hidden_by']:
             $if comment['hidden_by'] == page_owner:
               <strong>[hidden by page owner]</strong>

@@ -304,11 +304,16 @@ def _generate_http2_server_push_headers():
         '<' + item + '>; rel=preload; as=script' for item in [
             d.get_resource_path('js/jquery-2.2.4.min.js'),
             d.get_resource_path('js/scripts.js'),
+        ]
+    ]
+
+    esm_preload = [
+        '<' + item + '>; rel=modulepreload' for item in [
             d.get_resource_path('js/main.js'),
         ]
     ]
 
-    return ", ".join(css_preload + js_preload)
+    return ", ".join(css_preload + js_preload + esm_preload)
 
 
 # Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below

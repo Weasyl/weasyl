@@ -315,9 +315,6 @@ def verify(token, ip_address=None):
             "userid": userid,
             "birthday": query.birthday,
         })
-        db.execute(d.meta.tables["welcomecount"].insert(), {
-            "userid": userid,
-        })
 
         # Update logincreate records
         db.execute(lc.delete().where(lc.c.token == token))

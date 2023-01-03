@@ -947,17 +947,3 @@ Index('ind_welcome_targetid', welcome.c.targetid)
 Index('ind_welcome_type', welcome.c.type)
 Index('ind_welcome_unixtime', welcome.c.unixtime)
 Index('ind_welcome_userid_type', welcome.c.userid, welcome.c.type)
-
-
-welcomecount = Table(
-    'welcomecount', metadata,
-    Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('journal', Integer(), nullable=False, server_default='0'),
-    Column('submit', Integer(), nullable=False, server_default='0'),
-    Column('notify', Integer(), nullable=False, server_default='0'),
-    Column('comment', Integer(), nullable=False, server_default='0'),
-    Column('note', Integer(), nullable=False, server_default='0'),
-    default_fkey(['userid'], ['login.userid'], name='welcomecount_userid_fkey'),
-)
-
-Index('ind_welcomecount_userid', welcomecount.c.userid)

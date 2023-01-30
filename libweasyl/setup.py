@@ -31,7 +31,7 @@ setup(
         'lxml==4.9.2',
         'misaka==1.0.3+weasyl.6',    # https://github.com/Weasyl/misaka
         'oauthlib==2.1.0',
-        'Pillow==9.3.0',
+        'Pillow==9.4.0',
         'psycopg2cffi==2.9.0',
         'pyramid~=2.0',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera

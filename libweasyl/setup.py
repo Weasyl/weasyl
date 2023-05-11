@@ -35,6 +35,6 @@ setup(
         'psycopg2cffi==2.9.0',
         'pyramid~=2.0',
         'sanpera==0.1.1+weasyl.6',   # https://github.com/Weasyl/sanpera
-        'sqlalchemy==1.4.45',
+        'sqlalchemy==2.0.13',
     ],
 )

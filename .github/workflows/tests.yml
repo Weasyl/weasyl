@@ -9,7 +9,7 @@ jobs:
       contents: read
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:d6e6b99cb6c00bc5aaed1017ee389b9d18b12d39cae082c16e664ab20ff9e8b7
+      image: ghcr.io/weasyl/ci-base-image@sha256:9a366824361bf3123b28364ab6a4bd039ac765fafd5a1baab07f5c7c4485c007
       options: --user 1001
 
     services:
@@ -40,13 +40,13 @@ jobs:
           restore-keys: |
             cache-${{ runner.os }}-npm-
 
-      - name: Cache pip dependencies
+      - name: Cache Poetry dependencies
         uses: actions/cache@v3
         with:
-          path: ~/.cache/pip
-          key: cache-${{ runner.os }}-pip-${{ hashFiles('etc/requirements.txt', 'requirements/test.txt', 'requirements/lxml.txt') }}
+          path: ~/.cache/pypoetry
+          key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
           restore-keys: |
-            cache-${{ runner.os }}-pip-
+            cache-${{ runner.os }}-poetry-
 
       - name: Create virtualenv
         run: python3 -m venv --system-site-packages .venv
@@ -54,14 +54,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Install pip dependencies
-        run: .venv/bin/pip install -r etc/requirements.txt -r requirements/lxml.txt -r requirements/test.txt
-
-      - name: Install libweasyl
-        run: .venv/bin/pip install --no-deps -e libweasyl
-
-      - name: Install Weasyl
-        run: .venv/bin/pip install --no-deps -e .
+      - name: Install Poetry dependencies
+        run: poetry install
 
       - name: Configure Weasyl
         run: |

@@ -35,7 +35,7 @@ check)
 configure)
     c='docker-compose run --rm -T configure'
     set -x
-    $c "$@" alembic.ini < libweasyl/libweasyl/alembic/alembic.ini.example
+    $c "$@" alembic.ini < libweasyl/alembic/alembic.ini.example
     $c "$@" site.config.txt < config/site.config.txt.example
     $c "$@" weasyl-staff.py < config/weasyl-staff.example.py
     $c "$@" disposable-domains.txt < config/disposable-domains.txt
@@ -48,7 +48,7 @@ migrate)
 
 revision)
     if check_nobuild revision "${1:-}"; then shift; fi
-    exec docker-compose run --rm -T revision "$@" | tar x libweasyl/libweasyl/alembic/versions
+    exec docker-compose run --rm -T revision "$@" | tar x libweasyl/alembic/versions
     ;;
 
 test)

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:experimental
+# syntax=docker/dockerfile:1
 FROM docker.io/library/node:16-alpine3.16 AS assets
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
@@ -28,24 +28,12 @@ RUN cmake -DENABLE_STATIC=0 -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-bu
 RUN cmake --build . --parallel --target install
 
 
-FROM docker.io/library/python:3.10-alpine3.16 AS bdist-lxml
-# libxml2-dev, libxslt-dev: lxml
-RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
-    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    musl-dev gcc make \
-    libxml2-dev libxslt-dev
-RUN adduser -S build -h /weasyl-build -u 1000
-WORKDIR /weasyl-build
-USER build
-COPY requirements/lxml.txt lxml.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -r lxml.txt
-
-
 FROM docker.io/library/python:3.10-alpine3.16 AS bdist
 # imagemagick6-dev: sanpera
 # libjpeg-turbo-dev, libwebp-dev, zlib-dev: Pillow
 # libffi-dev, openssl-dev: cryptography
 # libmemcached-dev: pylibmc
+# libxml2-dev, libxslt-dev: lxml
 # postgresql-dev: psycopg2cffi
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
@@ -55,24 +43,41 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     libjpeg-turbo-dev \
     libmemcached-dev \
     libwebp-dev \
+    libxml2-dev libxslt-dev \
     openssl-dev \
     postgresql-dev \
     zlib-dev
-RUN adduser -S build -h /weasyl-build -u 1000
-WORKDIR /weasyl-build
-USER build
+RUN adduser -S weasyl -h /weasyl -u 1000
+WORKDIR /weasyl
+USER weasyl
 COPY --from=mozjpeg --chown=root:root /mozjpeg-build/package-root/include/ /usr/include/
 COPY --from=mozjpeg --chown=root:root /mozjpeg-build/package-root/lib64/ /usr/lib/
-COPY etc/requirements.txt requirements.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist --no-binary Pillow -r requirements.txt
+COPY poetry-requirements.txt ./
+RUN --network=none python3 -m venv .poetry-venv
+RUN --mount=type=cache,id=pip,target=/weasyl/.cache/pip,sharing=locked,uid=1000 \
+    .poetry-venv/bin/pip install --require-hashes --only-binary :all: -r poetry-requirements.txt
+RUN --network=none python3 -m venv .venv
+COPY pyproject.toml poetry.lock setup.py ./
+RUN --network=none .poetry-venv/bin/poetry lock --check
+RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,uid=1000 \
+    .poetry-venv/bin/poetry install --only=main --no-root
+RUN dirs=' \
+        libweasyl/models/test \
+        libweasyl/test \
+        weasyl/controllers \
+        weasyl/test/login \
+        weasyl/test/resetpassword \
+        weasyl/test/useralias \
+        weasyl/test/web \
+    '; \
+    mkdir -p $dirs \
+    && for dir in $dirs; do touch "$dir/__init__.py"; done
+RUN .poetry-venv/bin/poetry install --only-root
 
 
-FROM docker.io/library/python:3.10-alpine3.16 AS bdist-pytest
-RUN adduser -S build -h /weasyl-build -u 1000
-WORKDIR /weasyl-build
-USER build
-COPY requirements/test.txt test.txt
-RUN --mount=type=cache,id=pip,target=/weasyl-build/.cache/pip,sharing=private,uid=1000 pip wheel -w dist -c test.txt pytest coverage
+FROM bdist AS bdist-pytest
+RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,uid=1000 \
+    .poetry-venv/bin/poetry install --only=dev
 
 
 FROM docker.io/library/python:3.10-alpine3.16 AS package
@@ -88,26 +93,8 @@ RUN adduser -S weasyl -h /weasyl
 WORKDIR /weasyl
 USER weasyl
 COPY --from=mozjpeg --chown=root:root /mozjpeg-build/package-root/lib64/ /usr/lib/
-RUN python3 -m venv .venv
-COPY etc/requirements.txt etc/requirements.txt
 
-RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-lxml .venv/bin/pip install --no-deps install-wheels/*
-RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist .venv/bin/pip install --no-deps install-wheels/*
-
-RUN mkdir -p \
-    libweasyl/libweasyl/models/test \
-    libweasyl/libweasyl/test \
-    weasyl/controllers \
-    weasyl/test/login \
-    weasyl/test/resetpassword \
-    weasyl/test/useralias \
-    weasyl/test/web
-COPY libweasyl/setup.py libweasyl/setup.py
-RUN .venv/bin/pip install --no-deps -e libweasyl
-
-COPY setup.py setup.py
-RUN .venv/bin/pip install --no-deps -e .
-
+COPY --from=bdist /weasyl/.venv .venv
 COPY --from=assets /weasyl-build/build build
 COPY --chown=weasyl:root libweasyl libweasyl
 COPY --chown=weasyl:root weasyl weasyl
@@ -116,7 +103,7 @@ ARG version
 RUN test -n "$version" && printf '%s\n' "$version" > version.txt
 
 FROM package AS test
-RUN --mount=type=bind,target=install-wheels,source=/weasyl-build/dist,from=bdist-pytest .venv/bin/pip install --no-deps install-wheels/*
+COPY --from=bdist-pytest /weasyl/.venv .venv
 RUN mkdir .pytest_cache coverage \
     && ln -s /run/config config
 ENV WEASYL_APP_ROOT=.

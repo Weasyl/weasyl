@@ -99,7 +99,6 @@ def profile_(request):
             userprofile,
             # User information
             profile.select_userinfo(otherid, config=userprofile['config']),
-            macro.SOCIAL_SITES,
             # Relationship
             profile.select_relation(request.userid, otherid),
             # Myself

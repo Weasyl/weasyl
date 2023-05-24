@@ -71,6 +71,19 @@ test-coverage)
     exec docker-compose run --rm test "$@"
     ;;
 
+poetry)
+    docker build --target bdist -t weasyl-poetry .
+    exit_code=1
+    if docker run --name=weasyl-poetry --init -it weasyl-poetry .poetry-venv/bin/poetry "$@"; then
+        docker cp weasyl-poetry:/weasyl/pyproject.toml ./
+        docker cp weasyl-poetry:/weasyl/poetry.lock ./
+        exit_code=0
+    fi
+    docker container rm weasyl-poetry
+    docker image rm weasyl-poetry
+    exit $exit_code
+    ;;
+
 *)
     exec docker-compose "$head" "$@"
 

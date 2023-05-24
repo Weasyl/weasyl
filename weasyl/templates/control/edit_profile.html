@@ -88,7 +88,7 @@ $code:
       <h3>Contact and Social Media</h3>
       <p>
         For frequently used social media sites
-        $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site)
+        $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site and not site.get('hidden', False))
         ($:{', '.join('<strong>%s</strong>' % site for site in sorted(sites, key=lambda s: s.lower()))}),
         fill in the site as displayed, and your username in the second blank.
         Weasyl will do the rest.
@@ -116,7 +116,8 @@ $code:
       $# This is used for the auto-completion.
       <datalist id="known-social-sites">
         $for site in M.SOCIAL_SITES.values():
-          <option value="${site['name']}"></option>
+          $if not site.get('hidden'):
+            <option value="${site['name']}"></option>
       </datalist>
     </div>
 

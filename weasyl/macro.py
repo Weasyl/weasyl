@@ -195,6 +195,7 @@ SOCIAL_SITES = {
     "googleplus": {
         "name": "Google+",
         "url": "https://plus.google.com/+%s",
+        "hidden": True,
     },
     "inkbunny": {
         "name": "Inkbunny",

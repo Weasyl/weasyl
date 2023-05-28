@@ -833,6 +833,13 @@ select.input {
     margin: -0.3em 0 0 0;
 }
 
+.icon-svg-20 {
+    width: 20px;
+    height: 20px;
+    margin: -0.3em 0 0 0;
+    fill: currentColor;
+}
+
 .icon-status {
     width: 20px;
     height: 20px;
@@ -1803,6 +1810,24 @@ blockquote + blockquote {
 
 #header-messages li a:hover {
     text-decoration: none;
+}
+
+$notifs-color-inactive: rgba(185, 185, 185, 0.7);
+$notifs-color-active: #b9b9b9;
+
+#header-messages > li > a {
+    &.messages-none,
+    > .icon {
+        color: $notifs-color-inactive;
+    }
+
+    &:hover,
+    &:focus-visible {
+        &.messages-none,
+        > .icon {
+            color: $notifs-color-active;
+        }
+    }
 }
 
 #header-guest {

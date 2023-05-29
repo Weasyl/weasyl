@@ -1718,16 +1718,16 @@ blockquote + blockquote {
 }
 
 #header::before, #footer::before {
-    content: ".";
+    content: "";
     display: block;
     width: 100%;
     height: 4px;
     position: absolute;
     left: 0;
     top: 100%;
-    text-indent: -999em;
     background-color: #344347;
     background-image: linear-gradient(to right, #344347, #234142, #19354e, #303552, #344347);
+    z-index: -1;
 }
 
 #footer::before {

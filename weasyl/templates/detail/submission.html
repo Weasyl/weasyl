@@ -297,7 +297,8 @@ $code:
           $for i in query['tags']:
             <a href="/search?q=${i}"
                class="${'artist' if i in query['artist_tags'] else ''}
-                      ${'removable' if query['can_remove_tags'] else ''}">
+                      ${'removable' if query['can_remove_tags'] else ''}"
+               rel="tag">
               ${i}
             </a>
         $else:

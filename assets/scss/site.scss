@@ -781,7 +781,7 @@ select.input {
     padding-bottom: 0.3rem;
 }
 
-.input:hover, input:focus {
+.input:hover, .input:focus {
     background-color: #eee;
 }
 
@@ -4310,7 +4310,6 @@ templates/modcontrol/reports.html
 }
 
 .link-button:hover, .link-button:focus {
-    background: none;
     outline: none;
     text-decoration: underline;
 }

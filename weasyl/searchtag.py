@@ -337,17 +337,13 @@ def tag_history(submitid):
 
 def add_and_get_searchtags(tags):
     """
-    Handles addition of--and getting existing--searchtags, abstracting the logic
-    for addition of such from editing functions. Serves to consolidate otherwise
-    duplicated code.
+    Get tag ids for the provided tag names, creating ids for new tags as necessary.
 
     Parameters:
-        tags: A set of tags.
+        tags: A set of tag names, already validated and normalized.
 
     Returns:
-        query: The results of a SQL query which contains tagids and titles for
-        tags which either currently exist, or were added as a result
-        of this function.
+        A list of `(tagid, title)` `RowProxy` objects: one for each tag name.
     """
     # Get the tag titles/ids out of the searchtag table
     query = d.engine.execute("""

@@ -6,7 +6,7 @@ from libweasyl.html import strip_html
 
 from weasyl import (
     character, collection, commishinfo, define, favorite, folder,
-    followuser, frienduser, journal, macro, media, profile, shout, submission,
+    followuser, frienduser, journal, media, profile, shout, submission,
     pagination)
 from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError

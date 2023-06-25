@@ -322,30 +322,30 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
     permaban = d.meta.tables['permaban']
     suspension = d.meta.tables['suspension']
 
-    is_banned = d.sa.exists(
-        d.sa.select([])
+    is_banned = sa.exists(
+        sa.select([])
         .select_from(permaban)
         .where(permaban.c.userid == lo.c.userid)
     ).label('is_banned')
 
-    is_suspended = d.sa.exists(
-        d.sa.select([])
+    is_suspended = sa.exists(
+        sa.select([])
         .select_from(suspension)
         .where(suspension.c.userid == lo.c.userid)
     ).label('is_suspended')
 
-    q = d.sa.select([
+    q = sa.select([
         lo.c.userid,
         lo.c.login_name,
         lo.c.email,
-        (d.sa.select([d.sa.func.count()])
+        (sa.select([sa.func.count()])
          .select_from(sh)
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
         is_banned,
         is_suspended,
         lo.c.ip_address_at_signup,
-        (d.sa.select([sess.c.ip_address])
+        (sa.select([sess.c.ip_address])
             .select_from(sess)
             .where(lo.c.userid == sess.c.userid)
             .limit(1)
@@ -365,7 +365,7 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
     elif username:
         q = q.where(lo.c.login_name.op('~')(username))
     elif email:
-        q = q.where(d.sa.or_(
+        q = q.where(sa.or_(
             lo.c.email.op('~')(email),
             lo.c.email.op('ilike')('%%%s%%' % email),
         ))
@@ -380,14 +380,14 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
 
     # Filter for IP address
     if ipaddr:
-        q = q.where(d.sa.or_(
+        q = q.where(sa.or_(
             lo.c.ip_address_at_signup.op('ilike')('%s%%' % ipaddr),
             sess.c.ip_address.op('ilike')('%s%%' % ipaddr)
         ))
 
     # Filter for date-time
     if dateafter and datebefore:
-        q = q.where(d.sa.between(pr.c.created_at, arrow.get(dateafter).datetime, arrow.get(datebefore).datetime))
+        q = q.where(sa.between(pr.c.created_at, arrow.get(dateafter).datetime, arrow.get(datebefore).datetime))
     elif dateafter:
         q = q.where(pr.c.created_at >= arrow.get(dateafter).datetime)
     elif datebefore:

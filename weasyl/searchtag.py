@@ -69,8 +69,8 @@ def select_list(map_table, targetids):
 
     mt = map_table
     q = (
-        d.sa
-        .select([mt.c.targetid, d.sa.func.array_agg(mt.c.tagid)])
+        sa
+        .select([mt.c.targetid, sa.func.array_agg(mt.c.tagid)])
         .select_from(mt)
         .where(mt.c.targetid == any_(targetids))
         .group_by(mt.c.targetid))

@@ -1,11 +1,99 @@
-$def with (targetid, feature, query)
-<form class="tags-form" action="/submit/tags" method="post">
-  <input type="hidden" name="${feature}id" value="${targetid}" />
+$def with (targetid, feature, query, myself)
+<div class="di-tags">
+  <h3>Tags</h3>
 
-  <label for="detail_tag_form_content">Add or Remove Tags:</label><br />
-  <textarea class="input tags-textarea" name="tags">${" ".join(query)}</textarea>
+  $code:
+    edit_type = 'none'
 
-  <div id="detail_tag_form_buttons">
-    <button class="button" type="submit">Submit</button>
+    if not myself:
+      pass
+    elif query['mine'] or myself['userid'] in staff.MODS:
+      edit_type = 'edit'
+    elif myself['is_verified']:
+      # TODO: also check if has permission to suggest tags?
+      edit_type = 'suggest'
+
+    tags = query['tags']
+
+  <div class="tags-with-actions clear" data-tag-edit-type="${edit_type}">
+    $if tags.artist or tags.suggested:
+      <ul class="tags">
+        $for tag in tags.artist:
+          <li><a class="tag" href="/search?q=${tag}" rel="tag">${tag}</a></li>
+        $if myself:
+          $for tag in tags.suggested:
+            <li><a class="tag tag-suggested" href="/search?q=${tag}" rel="tag">${tag}</a></li>
+      </ul>
+    $else:
+      <p class="color-lighter">(No tags)</p>
+
+    $if feature == 'submit' and myself and myself['userid'] in staff.MODS:
+      <span class="tag-actions">
+        <a class="typeface-default color-c" href="/submission/tag-history/${query['submitid']}">History</a>
+      </span>
   </div>
-</form>
+
+  $if edit_type != 'none':
+    <div class="tags-manage" hidden>
+      <form class="tags-form" action="/submit/tags" method="POST">
+        <input type="hidden" name="${feature}id" value="${targetid}" />
+
+        <textarea class="input tags-textarea" name="tags">${" ".join(tags.artist if edit_type == 'edit' else tags.own_suggested)}</textarea>
+
+        <div class="tags-actions">
+          <button class="button">Save tags</button>
+        </div>
+      </form>
+
+      $if edit_type == 'edit':
+        <ul class="suggested-tags">
+          $for tag in tags.suggested:
+            <li data-tag="${tag}">
+              <a class="tag tag-suggested" href="/search?q=${tag}">${tag}</a>
+              <fieldset class="suggested-tag-actions">
+                <button class="button positive" data-tag-action="approve">Approve</button>
+                <button class="button negative" data-tag-action="reject">Reject</button>
+                $#Suggestion rejected. <button class="link-button" data-tag-action="undo">Undo</button>
+              </fieldset>
+            </li>
+        </ul>
+
+        <form class="tag-reject-feedback" data-target="${feature}/${targetid}" hidden>
+          <h4>Rejection feedback on <a class="tag tag-suggested"></a> <span class="optional-indicator">(optional)</span></h4>
+
+          <label>
+            <input id="tag-reject-reason-incorrect" type="checkbox" name="reason" value="incorrect">
+
+            <span class="tag-reject-label">
+              Incorrect
+
+              <p>People <strong>searching for</strong> or <strong>blocking</strong> the tag won’t expect to find or block this.</p>
+            </span>
+          </label>
+
+          <label>
+            <input id="tag-reject-reason-unwanted" type="checkbox" name="reason" value="unwanted">
+
+            <span class="tag-reject-label">
+              Unwanted
+
+              <p>The tag could be accurate, but I don’t want to use it.</p>
+            </span>
+          </label>
+
+          <label>
+            <input id="tag-reject-reason-abusive" type="checkbox" name="reason" value="abusive">
+
+            <span class="tag-reject-label">
+              Abusive
+
+              <p>The tag was added maliciously; report it to Weasyl staff.</p>
+            </span>
+          </label>
+
+          <output class="tag-reject-feedback-status" role="status" for="tag-reject-reason-incorrect tag-reject-reason-unwanted tag-reject-reason-abusive">
+            Feedback will be saved automatically.
+          </output>
+        </form>
+    </div>
+</div>

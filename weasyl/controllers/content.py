@@ -1,5 +1,7 @@
 from urllib.parse import urljoin
 
+from pyramid.httpexceptions import HTTPConflict
+from pyramid.httpexceptions import HTTPNoContent
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
@@ -13,6 +15,8 @@ from weasyl import (
 from weasyl.config import config_read_bool
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError
+from weasyl.forms import expect_id
+from weasyl.forms import only
 from weasyl.login import get_user_agent_id
 
 
@@ -357,50 +361,149 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
+    # TODO: remove preferred/opt-out tag handling here when corresponding changes to `/control/editcommissionsettings` have been deployed for a while
+    target_key, targetid = only(
+        (key, expect_id(request.POST[key]))
+        for key in (
+            "preferred_tags_userid",
+            "optout_tags_userid",
+            "submitid",
+            "charid",
+            "journalid",
+        )
+        if key in request.POST
+    )
+    tags = searchtag.parse_tags(request.POST["tags"])
+
+    match target_key:
+        case "preferred_tags_userid":
+            if targetid != request.userid:
+                raise WeasylError("Unexpected")
+            searchtag.set_commission_preferred_tags(
+                userid=request.userid,
+                tag_names=tags,
+            )
+            raise HTTPSeeOther(location="/control/editcommissionsettings")
+
+        case "optout_tags_userid":
+            if targetid != request.userid:
+                raise WeasylError("Unexpected")
+            searchtag.set_commission_optout_tags(
+                userid=request.userid,
+                tag_names=tags,
+            )
+            raise HTTPSeeOther(location="/control/editcommissionsettings")
+
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(submitid="", charid="", journalid="", preferred_tags_userid="", optout_tags_userid="", tags="")
+    match target_key:
+        case "submitid":
+            target = searchtag.SubmissionTarget(targetid)
+        case "charid":
+            target = searchtag.CharacterTarget(targetid)
+        case "journalid":
+            target = searchtag.JournalTarget(targetid)
+        case _:
+            assert False
 
-    tags = searchtag.parse_tags(form.tags)
+    restricted_tags = searchtag.associate(
+        userid=request.userid,
+        target=target,
+        tag_names=tags,
+    )
 
-    submitid = define.get_int(form.submitid)
-    charid = define.get_int(form.charid)
-    journalid = define.get_int(form.journalid)
-    preferred_tags_userid = define.get_int(form.preferred_tags_userid)
-    optout_tags_userid = define.get_int(form.optout_tags_userid)
+    location = f"/{target.path_component}/{target.id}"
 
-    result = searchtag.associate(request.userid, tags, submitid, charid, journalid, preferred_tags_userid, optout_tags_userid)
-    if result:
-        failed_tag_message = ""
-        if result["add_failure_restricted_tags"] is not None:
-            failed_tag_message += "The following tags have been restricted from being added to this item by the content owner, or Weasyl staff: **" + result["add_failure_restricted_tags"] + "**. \n"
-        if result["remove_failure_owner_set_tags"] is not None:
-            failed_tag_message += "The following tags were not removed from this item as the tag was added by the owner: **" + result["remove_failure_owner_set_tags"] + "**.\n"
-        failed_tag_message += "Any other changes to this item's tags were completed."
-    if submitid:
-        location = "/submission/%i" % (submitid,)
-        if not result:
-            raise HTTPSeeOther(location=location)
-        else:
-            return Response(define.errorpage(request.userid, failed_tag_message,
-                                             [["Return to Content", location]]))
-    elif charid:
-        location = "/character/%i" % (charid,)
-        if not result:
-            raise HTTPSeeOther(location=location)
-        else:
-            return Response(define.errorpage(request.userid, failed_tag_message,
-                                             [["Return to Content", location]]))
-    elif journalid:
-        location = "/journal/%i" % (journalid,)
-        if not result:
-            raise HTTPSeeOther(location=location)
-        else:
-            return Response(define.errorpage(request.userid, failed_tag_message,
-                                             [["Return to Content", location]]))
-    else:
-        raise HTTPSeeOther(location="/control/editcommissionsettings")
+    if restricted_tags:
+        failed_tag_message = (
+            f"The following tags have been restricted from being added to this item by the content owner, or Weasyl staff: **{' '.join(restricted_tags)}**. \n"
+            "Any other changes to this item's tags were completed."
+        )
+        return Response(define.errorpage(request.userid, failed_tag_message,
+                                         [("Return to Content", location)]))
+
+    raise HTTPSeeOther(location=location)
+
+
+@login_required
+@token_checked
+def tag_status_put(request):
+    feature = request.matchdict["feature"]
+    targetid = expect_id(request.matchdict["targetid"])
+    tag_name = request.matchdict["tag"]
+
+    target = searchtag.get_target(feature, targetid)
+
+    match request.body:
+        case b"approve":
+            action = searchtag.SuggestionAction.APPROVE
+        case b"reject":
+            action = searchtag.SuggestionAction.REJECT
+        case _:
+            raise WeasylError("Unexpected")
+
+    result = searchtag.suggestion_arbitrate(
+        userid=request.userid,
+        target=target,
+        tag_name=tag_name,
+        action=action,
+    )
+
+    match result:
+        case searchtag.SuggestionActionFailure():
+            return HTTPConflict(b"\x00")
+        case searchtag.SuggestionActionSuccess():
+            return Response(b"\x01" + (result.undo_token or b""))
+
+
+@login_required
+@token_checked
+def tag_status_delete(request):
+    feature = request.matchdict["feature"]
+    targetid = expect_id(request.matchdict["targetid"])
+    tag_name = request.matchdict["tag"]
+
+    target = searchtag.get_target(feature, targetid)
+
+    try:
+        searchtag.suggestion_action_undo(
+            userid=request.userid,
+            target=target,
+            tag_name=tag_name,
+            undo_token=request.body,
+        )
+    except searchtag.UndoExpired:
+        return HTTPConflict()
+
+    return HTTPNoContent()
+
+
+@login_required
+@token_checked
+def tag_feedback_put(request):
+    feature = request.matchdict["feature"]
+    targetid = expect_id(request.matchdict["targetid"])
+    tag_name = request.matchdict["tag"]
+    reasons = request.POST.getall("reason")
+
+    if not tag_name or define.get_search_tag(tag_name) != tag_name:
+        raise WeasylError("Unexpected")
+
+    target = searchtag.get_target(feature, targetid)
+
+    searchtag.set_tag_feedback(
+        userid=request.userid,
+        target=target,
+        tag_name=tag_name,
+        feedback=searchtag.SuggestionFeedback(
+            incorrect="incorrect" in reasons,
+            unwanted="unwanted" in reasons,
+            abusive="abusive" in reasons,
+        ),
+    )
+
+    return HTTPNoContent()
 
 
 @login_required

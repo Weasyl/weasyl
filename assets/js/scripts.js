@@ -132,12 +132,6 @@
             $('#header-nav, #nav-toggle').toggleClass('open');
         });
 
-        // tags
-        $('.di-tags .modify').on('click', function (ev) {
-            ev.preventDefault();
-            $(this).closest('.di-tags').find('.tags-form, .tags').toggleClass('open');
-        });
-
         // report
         $('#detail-report-button').on('click', function (ev) {
             ev.preventDefault();

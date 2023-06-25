@@ -220,21 +220,24 @@ const main = async () => {
 
     const copyImages = copyStaticFiles('img', touch);
 
+    const PRIVATE_FIELDS_ESM = {
+        format: 'esm',
+        target: [
+            'chrome84',
+            'firefox90',
+            'ios15',
+            'safari15',
+        ],
+        banner: {},
+    };
+
     const tasks = await Promise.all([
         sasscFile('scss/site.scss', 'css/site.css', touch, copyImages),
         sasscFile('scss/help.scss', 'css/help.css', touch, copyImages),
         sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
-        esbuildFile('js/main.js', 'js/main.js', touch, {
-            format: 'esm',
-            target: [
-                'chrome84',
-                'firefox90',
-                'ios15',
-                'safari15',
-            ],
-            banner: {},
-        }),
+        esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
         copyImages,
 

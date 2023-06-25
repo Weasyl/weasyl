@@ -76,5 +76,8 @@ $if options and "imageselect" in options:
 $if options and 'search' in options:
   <script src="${resource_path('js/search.js')}"></script>
 
+$if options and 'tags-edit' in options:
+  <script type="module" src="${resource_path('js/tags-edit.js')}" async></script>
+
 </body>
 </html>

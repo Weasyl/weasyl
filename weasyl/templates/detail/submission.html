@@ -284,31 +284,7 @@ $code:
         </form>
       </div>
 
-
-    <div class="di-tags">
-      <h3>
-        Tags
-        <a class="modify typeface-default color-c" href="#">Modify</a>
-        <a class="typeface-default color-c" href="/submission/tag-history/${query['submitid']}">History</a>
-      </h3>
-
-      <div class="tags open clear">
-        $if query['tags']:
-          $for i in query['tags']:
-            <a href="/search?q=${i}"
-               class="${'artist' if i in query['artist_tags'] else ''}
-                      ${'removable' if query['can_remove_tags'] else ''}"
-               rel="tag">
-              ${i}
-            </a>
-        $else:
-          <p class="color-lighter">There are no tags associated with this submission</p>
-      </div>
-
-      <h3 class="edit">Edit Tags</h3>
-
-      $:{RENDER("common/detail_tag_form.html", [query['submitid'], "submit", query['removable_tags']])}
-    </div>
+    $:{RENDER("common/detail_tag_form.html", [query['submitid'], "submit", query, myself])}
 
   </div>
 

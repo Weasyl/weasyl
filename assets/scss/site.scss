@@ -107,6 +107,7 @@ i, #header-guest {
 --------------------------------*/
 $color-a: #069bc0;
 $color-b: #8cad47;
+$link-color: #336979;
 
 .color-a, .username, .content .username, .page-title, #header-nav .current,
 #user-nav .current,
@@ -119,7 +120,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .color-c, .title, .content a {
-    color: #336979;
+    color: $link-color;
 }
 
 .color-on {
@@ -134,8 +135,10 @@ a.more span, #header-messages a, .page-title a {
     color: #943522;
 }
 
+$content-color-lighter: #777;
+
 .content .color-lighter {
-    color: #777;
+    color: $content-color-lighter;
 }
 
 .stage .color-lighter {
@@ -1477,27 +1480,111 @@ blockquote + blockquote {
     width: 100% !important;
 }
 
-.tags a {
-    display: block;
-    float: left;
-    position: relative;
-    height: 28px;
-    height: 1.75rem;
-    line-height: 28px;
+.tags-with-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;  // for “(No tags)”
+}
+
+.tags {
+    // fallback if `display: contents` not supported
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    display: contents;
+}
+
+$tag-background: #eee;
+
+.tag {
+    display: inline-block;
     line-height: 1.75rem;
     padding: 0 1em;
-    margin: 0 0.3em 0.3em 0;
     border: 1px solid #ccc;
     border-radius: 4px;
-    background-color: #eee;
+    background-color: $tag-background;
+    font-weight: normal;
 }
 
-.tags a.artist {
-    background-color: #ecc;
+.tag-suggested,
+.content .tag-suggested {
+    background-color: scale-color($tag-background, $alpha: -30%);
+    border-style: dashed;
+    color: scale-color($link-color, $alpha: -20%);
 }
 
-.tags a.artist.removable {
-    background-color: #cec;
+.tag-actions {
+    display: flex;
+    align-items: center;
+    height: 1.75rem;
+    padding-left: 1em;
+    gap: 16px;
+}
+
+.suggested-tags {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+    gap: 8px;
+
+    > li {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+}
+
+.suggested-tag-actions {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 4px;
+}
+
+$tag-reject-deemphasize-size: 11px;
+
+.tag-reject-feedback {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+    gap: 4px;
+
+    > label {
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    > output {
+        font-size: $tag-reject-deemphasize-size;
+    }
+}
+
+.tag-reject-feedback[hidden] {
+    display: none;
+}
+
+.tag-reject-label {
+    flex: 1;
+
+    > p {
+        font-size: $tag-reject-deemphasize-size;
+        color: $content-color-lighter;
+    }
+}
+
+@keyframes pulse {
+    from {
+    }
+    to {
+        color: #777;
+    }
+}
+
+.tag-form-status-saving {
+    animation: pulse 0.75s linear alternate infinite;
 }
 
 /* ------------------------------------ =forms -- */
@@ -1544,10 +1631,15 @@ blockquote + blockquote {
     max-width: 30em;
 }
 
-.label, .form label:not(.input-checkbox) {
+.label,
+.form label:not(.input-checkbox),
+.form-actions {
     display: block;
     padding: 16px 0 4px;
     padding: 1rem 0 0.25rem;
+}
+
+.label, .form label:not(.input-checkbox) {
     font-size: 14px;
     font-size: 0.9rem;
     font-weight: 700;
@@ -1558,6 +1650,11 @@ blockquote + blockquote {
     font-size: 12px;
     font-size: 0.75rem;
     font-weight: 400;
+}
+
+.optional-indicator {
+    font-weight: normal;
+    color: $content-color-lighter;
 }
 
 .form:not(.wide) .form-2up-1, .form:not(.wide) .form-2up-2 {
@@ -2844,7 +2941,7 @@ $notifs-color-active: #b9b9b9;
         box-shadow: inset 5px 0 15px -5px #b2b2b2;
     }
 
-    #user-content .on-side {
+    .on-side {
         width: 34%;
         float: right;
         clear: right;
@@ -2940,7 +3037,7 @@ $notifs-color-active: #b9b9b9;
         width: 32.5%;
     }
 
-    #user-content .on-side {
+    .on-side {
         width: 30%;
     }
 
@@ -3113,28 +3210,12 @@ img + #detail-art-text {
     font-weight: 400;
 }
 
-.di-tags h3 a.modify, .js .di-tags h3.edit {
-    display: none;
+.tags-manage {
+    margin-top: 12px;
 }
 
-.js .di-tags h3 a {
-    display: inline-block;
-    font-size: 12px;
-    font-size: 0.75rem;
-    padding: 0 1em;
-}
-
-.di-tags .button {
+.tags-actions {
     margin-top: 8px;
-    margin-top: 0.5rem;
-}
-
-.di-tags .tags-form {
-    display: none;
-}
-
-.di-tags .tags-form.open {
-    display: block;
 }
 
 #detail-comments {
@@ -3558,10 +3639,6 @@ img + #detail-art-text {
     margin-bottom: 10px;
     flex-direction: column;  /* Overridden at larger sizes */
     justify-content: space-around;
-}
-
-#commishprices-content .di-tags {
-    width: 100%;
 }
 
 #commishprices-content .commish-row .half {
@@ -4309,8 +4386,7 @@ templates/modcontrol/reports.html
     padding: 0;
 }
 
-.link-button:hover, .link-button:focus {
-    outline: none;
+.link-button:hover {
     text-decoration: underline;
 }
 

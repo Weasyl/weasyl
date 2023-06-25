@@ -138,6 +138,16 @@ routes = (
     Route("/submit/comment", "submit_comment", {'POST': content.submit_comment_}),
     Route("/submit/report", "submit_report", {'POST': content.submit_report_}),
     Route("/submit/tags", "submit_tags", {'POST': content.submit_tags_}),
+    Route(
+        "/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/status",
+        "suggested_tag_status",
+        {
+            "PUT": content.tag_status_put,
+            "DELETE": content.tag_status_delete,
+        },
+    ),
+    Route("/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/feedback", "suggested_tag_feedback",
+          {'PUT': content.tag_feedback_put}),
     Route("/reupload/submission", "reupload_submission",
           {'GET': content.reupload_submission_get_, 'POST': content.reupload_submission_post_}),
     Route("/reupload/character", "reupload_character",

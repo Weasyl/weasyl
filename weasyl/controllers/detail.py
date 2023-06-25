@@ -6,7 +6,12 @@ from libweasyl.models.content import Submission
 from libweasyl.text import slug_for
 from weasyl import (
     character, define, journal, macro, media, profile, searchtag, submission)
+from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
+
+
+def _can_edit_tags(userid: int) -> bool:
+    return bool(userid) and define.is_vouched_for(userid)
 
 
 # Content detail functions
@@ -92,6 +97,7 @@ def submission_(request):
         ogp=ogp,
         canonical_url=canonical_path,
         title=item["title"],
+        options=("tags-edit",) if _can_edit_tags(request.userid) else None,
     ))
 
 
@@ -116,6 +122,7 @@ def submission_media_(request):
     ])
 
 
+@moderator_only
 def submission_tag_history_(request):
     submitid = int(request.matchdict['submitid'])
 
@@ -159,7 +166,13 @@ def character_(request):
         [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
     ]))
 
-    return Response(define.common_page_end(request.userid, page))
+    return Response(
+        define.common_page_end(
+            request.userid,
+            page,
+            options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+        )
+    )
 
 
 def journal_(request):
@@ -193,4 +206,10 @@ def journal_(request):
         [i for i in macro.MACRO_REPORT_VIOLATION if 3000 <= i[0] < 4000],
     ]))
 
-    return Response(define.common_page_end(request.userid, page))
+    return Response(
+        define.common_page_end(
+            request.userid,
+            page,
+            options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+        )
+    )

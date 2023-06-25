@@ -1,4 +1,3 @@
-import arrow
 import sqlalchemy as sa
 
 from libweasyl.models import content, site, users
@@ -469,24 +468,6 @@ def frienduseraccept_insert(userid, otherid):
 def frienduseraccept_remove(userid, otherid):
     d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085",
               [userid, otherid, userid, otherid])
-
-
-# notifications
-#   3140 tags updated
-
-def tag_update_insert(userid, submitid):
-    we = d.meta.tables['welcome']
-    db = d.connect()
-    q = sa.select([sa.exists(
-        sa.select([1])
-        .where(we.c.userid == userid)
-        .where(we.c.otherid == submitid)
-        .where(we.c.type == 3140))])
-    if db.scalar(q):
-        return
-    db.execute(
-        we.insert()
-        .values(userid=userid, otherid=submitid, unixtime=arrow.utcnow(), type=3140))
 
 
 # notifications

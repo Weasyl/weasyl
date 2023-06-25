@@ -249,7 +249,11 @@ def create_visual(userid, submission,
             submitid, 'thumbnail-custom', thumb_custom_media_item)
 
     # Assign search tags
-    searchtag.associate(userid, tags, submitid=submitid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.SubmissionTarget(submitid),
+        tag_names=tags,
+    )
 
     # Create notifications
     if create_notifications:
@@ -340,7 +344,11 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
         db.execute(q)
 
     # Assign search tags
-    searchtag.associate(userid, tags, submitid=submitid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.SubmissionTarget(submitid),
+        tag_names=tags,
+    )
 
     if submit_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
@@ -444,7 +452,11 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
     submitid = db.scalar(q)
 
     # Assign search tags
-    searchtag.associate(userid, tags, submitid=submitid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.SubmissionTarget(submitid),
+        tag_names=tags,
+    )
 
     if submit_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
@@ -602,7 +614,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     if query[11] == 'google-drive':
         google_doc_embed = get_google_docs_embed_url(submitid)
 
-    tags, artist_tags = searchtag.select_with_artist_tags(submitid)
+    grouped_tags = searchtag.select_grouped(userid, searchtag.SubmissionTarget(submitid))
     settings = d.get_profile_settings(query[0])
 
     sub_media = media.get_submission_media(submitid)
@@ -641,10 +653,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "google_doc_embed": google_doc_embed,
 
 
-        "tags": tags,
-        "artist_tags": artist_tags,
-        "removable_tags": searchtag.removable_tags(userid, query[0], tags, artist_tags),
-        "can_remove_tags": searchtag.can_remove_tags(userid, query[0]),
+        "tags": grouped_tags,
         "folder_more": select_near(userid, rating, 1, query[0], query[2], submitid),
         "folder_title": query[13] if query[13] else "Root",
 

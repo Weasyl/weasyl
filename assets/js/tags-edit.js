@@ -193,103 +193,105 @@ if (tagEditType !== 'none') {
 
     tagActions.insertAdjacentElement('afterbegin', editButton);
 
-    const tagRejectFeedback = byClass('tag-reject-feedback');
-    const statusOutput = byClass('tag-reject-feedback-status', tagRejectFeedback);
-    let activeTag = null;
-    let abortController = null;
+    if (tagEditType === 'edit') {
+        const tagRejectFeedback = byClass('tag-reject-feedback');
+        const statusOutput = byClass('tag-reject-feedback-status', tagRejectFeedback);
+        let activeTag = null;
+        let abortController = null;
 
-    const feedbackReporter = new StatusReporter({
-        showProgress: () => {
-            statusOutput.classList.add('tag-form-status-saving');
-            statusOutput.value = 'Saving…';
-        },
-        stopProgress: () => {
-            statusOutput.classList.remove('tag-form-status-saving');
-        },
-        showSuccess: () => {
-            statusOutput.value = 'Feedback saved.';
-            animateFlash(statusOutput, SUCCESS_COLOR);
-        },
-        showFailure: () => {
-            statusOutput.value = 'Error saving feedback.';
-            animateFlash(statusOutput, FAILURE_COLOR);
-        },
-    });
+        const feedbackReporter = new StatusReporter({
+            showProgress: () => {
+                statusOutput.classList.add('tag-form-status-saving');
+                statusOutput.value = 'Saving…';
+            },
+            stopProgress: () => {
+                statusOutput.classList.remove('tag-form-status-saving');
+            },
+            showSuccess: () => {
+                statusOutput.value = 'Feedback saved.';
+                animateFlash(statusOutput, SUCCESS_COLOR);
+            },
+            showFailure: () => {
+                statusOutput.value = 'Error saving feedback.';
+                animateFlash(statusOutput, FAILURE_COLOR);
+            },
+        });
 
-    tagRejectFeedback.addEventListener('change', () => {
-        if (abortController !== null) {
-            abortController.abort();
-        }
-        abortController = new AbortController();
-
-        fetch(`/api-unstable/tag-suggestions/${tagRejectFeedback.dataset.target}/${activeTag}/feedback`, {
-            method: 'PUT',
-            body: new URLSearchParams(new FormData(tagRejectFeedback)),
-            signal: abortController.signal,
-        })
-            .then((response) => {
-                if (!hasSuccessStatus(response)) {
-                    return Promise.reject({});
-                }
-
-                feedbackReporter.reportSuccess();
-            })
-            .catch((err) => {
-                if (err.name !== 'AbortError') {
-                    feedbackReporter.reportFailure();
-                    return Promise.reject(err);
-                }
-            });
-        feedbackReporter.start();
-    });
-
-    byClass('suggested-tags', manage).addEventListener('click', (e) => {
-        const {tagAction} = e.target.dataset;
-
-        if (!tagAction) {
-            return;
-        }
-
-        const actionsFieldset = e.target.parentNode;
-        const {tag} = actionsFieldset.parentNode.dataset;
-        const {target} = tagRejectFeedback.dataset;
-
-        switch (tagAction) {
-            case 'approve':
-                if (!parseTags(tagsField.value).includes(tag)) {
-                    tagsField.value += (/(?:^|\s)$/.test(tagsField.value) ? '' : ' ') + tag;
-                }
-
-                applyTagAction(target, tag, actionsFieldset, true);
-                tagRejectFeedback.hidden = true;
-                break;
-
-            case 'reject':
-                activeTag = tag;
-                Object.assign(byClass('tag-suggested', tagRejectFeedback), {
-                    textContent: tag,
-                    href: `/search?q=${tag}`,
-                });
-
-                applyTagAction(target, tag, actionsFieldset, false);
-
-                // TODO: is resetting `<output>` value reliable across browsers?
-                tagRejectFeedback.reset();
-                tagRejectFeedback.hidden = false;
-
-                break;
-
-            case 'undo': {
-                const initialValue = tagsField.value;
-                let valueRemoved;
-                if (initialValue.endsWith(tag) && /(?:^|\s)$/.test(valueRemoved = initialValue.slice(0, -tag.length))) {
-                    tagsField.value = valueRemoved.trimEnd();
-                }
-
-                undoTagAction(target, tag, actionsFieldset);
-                tagRejectFeedback.hidden = true;
-                break;
+        tagRejectFeedback.addEventListener('change', () => {
+            if (abortController !== null) {
+                abortController.abort();
             }
-        }
-    });
+            abortController = new AbortController();
+
+            fetch(`/api-unstable/tag-suggestions/${tagRejectFeedback.dataset.target}/${activeTag}/feedback`, {
+                method: 'PUT',
+                body: new URLSearchParams(new FormData(tagRejectFeedback)),
+                signal: abortController.signal,
+            })
+                .then((response) => {
+                    if (!hasSuccessStatus(response)) {
+                        return Promise.reject({});
+                    }
+
+                    feedbackReporter.reportSuccess();
+                })
+                .catch((err) => {
+                    if (err.name !== 'AbortError') {
+                        feedbackReporter.reportFailure();
+                        return Promise.reject(err);
+                    }
+                });
+            feedbackReporter.start();
+        });
+
+        byClass('suggested-tags', manage).addEventListener('click', (e) => {
+            const {tagAction} = e.target.dataset;
+
+            if (!tagAction) {
+                return;
+            }
+
+            const actionsFieldset = e.target.parentNode;
+            const {tag} = actionsFieldset.parentNode.dataset;
+            const {target} = tagRejectFeedback.dataset;
+
+            switch (tagAction) {
+                case 'approve':
+                    if (!parseTags(tagsField.value).includes(tag)) {
+                        tagsField.value += (/(?:^|\s)$/.test(tagsField.value) ? '' : ' ') + tag;
+                    }
+
+                    applyTagAction(target, tag, actionsFieldset, true);
+                    tagRejectFeedback.hidden = true;
+                    break;
+
+                case 'reject':
+                    activeTag = tag;
+                    Object.assign(byClass('tag-suggested', tagRejectFeedback), {
+                        textContent: tag,
+                        href: `/search?q=${tag}`,
+                    });
+
+                    applyTagAction(target, tag, actionsFieldset, false);
+
+                    // TODO: is resetting `<output>` value reliable across browsers?
+                    tagRejectFeedback.reset();
+                    tagRejectFeedback.hidden = false;
+
+                    break;
+
+                case 'undo': {
+                    const initialValue = tagsField.value;
+                    let valueRemoved;
+                    if (initialValue.endsWith(tag) && /(?:^|\s)$/.test(valueRemoved = initialValue.slice(0, -tag.length))) {
+                        tagsField.value = valueRemoved.trimEnd();
+                    }
+
+                    undoTagAction(target, tag, actionsFieldset);
+                    tagRejectFeedback.hidden = true;
+                    break;
+                }
+            }
+        });
+    }
 }

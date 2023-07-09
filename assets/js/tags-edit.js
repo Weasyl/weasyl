@@ -197,7 +197,6 @@ if (tagEditType !== 'none') {
     const statusOutput = byClass('tag-reject-feedback-status', tagRejectFeedback);
     let activeTag = null;
     let abortController = null;
-    let savingTimer = null;
 
     const feedbackReporter = new StatusReporter({
         showProgress: () => {

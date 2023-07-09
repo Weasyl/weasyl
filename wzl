@@ -23,8 +23,10 @@ check_nobuild() {
 case "$head" in
 
 assets)
-    if check_nobuild copy-assets "${1:-}"; then shift; fi
-    exec docker-compose run --rm -T copy-assets "$@"
+    docker-compose create "$@" build-assets
+    docker-compose cp ./assets build-assets:/weasyl-build/
+    container_id="$(docker-compose ps -a --format=json build-assets | grep -o '"ID":"[^"]*"' | cut -d '"' -f 4)"
+    exec docker start -ai "$container_id"
     ;;
 
 check)
@@ -82,6 +84,10 @@ poetry)
     docker container rm weasyl-poetry
     docker image rm weasyl-poetry
     exit $exit_code
+    ;;
+
+push-templates)
+    docker cp weasyl/templates weasyl-web-1:/weasyl/weasyl/
     ;;
 
 *)

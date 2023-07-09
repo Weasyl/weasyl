@@ -48,10 +48,13 @@ services:
         version: '${WEASYL_VERSION:-}'
     environment:
       WEASYL_STORAGE_ROOT: storage
+      WEASYL_RELOAD_ASSETS: true
+      WEASYL_RELOAD_TEMPLATES: true
       WEB_CONCURRENCY: 8
       PYTHONWARNINGS: d
       PYTHONUNBUFFERED: 1
     volumes:
+      - assets:/weasyl/build:ro
       - config:/run/config:ro
       - storage:/weasyl/storage/static
       - logs:/weasyl/storage/log
@@ -65,7 +68,7 @@ services:
       - nginx-web
       - web-memcached
       - web-postgres
-    read_only: true
+    read_only: false
 
   memcached:
     image: docker.io/library/memcached:1.6-alpine3.16
@@ -105,15 +108,20 @@ services:
     network_mode: none
     read_only: true
 
-  copy-assets:
-    profiles: [ copy-assets ]
-    image: weasyl
-    build: *weasyl-build
-    command: cp -RT /weasyl/build /weasyl-assets
+  build-assets:
+    profiles: [ build-assets ]
+    build:
+      context: .
+      target: asset-builder
+    command:
+      - sh
+      - -ec
+      - |
+        chpst -u node node build.js
+        cp -R build/* /weasyl-assets/
     volumes:
       - assets:/weasyl-assets
     network_mode: none
-    read_only: true
     user: root
 
   migrate:

@@ -1,14 +1,17 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/library/node:16-alpine3.16 AS assets
+FROM docker.io/library/node:16-alpine3.16 AS asset-builder
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    sassc
+    sassc runit
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
 USER node
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,id=npm,target=/home/node/.npm/_cacache,uid=1000 npm ci --no-audit --ignore-scripts
 COPY build.js build.js
+
+
+FROM asset-builder AS assets
 COPY assets assets
 RUN node build.js
 

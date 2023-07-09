@@ -22,3 +22,8 @@ host = localhost
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
 secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
+
+# These keys MUST be changed when in production
+[secret_keys]
+# can be generated with `secrets.token_urlsafe(32) + "="`
+suggested_tag_undo = 5Bf8KDzoCGyv6Cfbb7P6wI70bEwYd5EFGiBYa1hdxUc=

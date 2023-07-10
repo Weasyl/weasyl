@@ -582,11 +582,14 @@ def suggestion_arbitrate(
             case _:
                 raise TypeError()
 
-    undo_token = _undo_token_create(
-        target=target,
-        tagid=tagid,
-        added_by=check.added_by,
-    )
+    if check.added_by is None:
+        undo_token = None
+    else:
+        undo_token = _undo_token_create(
+            target=target,
+            tagid=tagid,
+            added_by=check.added_by,
+        )
 
     match action:
         case SuggestionAction.APPROVE:

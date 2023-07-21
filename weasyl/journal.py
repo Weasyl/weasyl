@@ -48,7 +48,11 @@ def create(userid, journal, friends_only=False, tags=None):
     })
 
     # Assign search tags
-    searchtag.associate(userid, tags, journalid=journalid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.JournalTarget(journalid),
+        tag_names=tags,
+    )
 
     # Create notifications
     welcome.journal_insert(userid, journalid, rating=journal.rating.code,
@@ -121,7 +125,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'friends_only': journal['friends_only'],
         'hidden': journal['hidden'],
         'fave_count': favorite.count(journalid, 'journal'),
-        'tags': searchtag.select(journalid=journalid),
+        'tags': searchtag.select_grouped(userid, searchtag.JournalTarget(journalid)),
         'comments': comment.select(userid, journalid=journalid),
     }
 

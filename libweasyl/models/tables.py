@@ -551,6 +551,7 @@ searchmapchar = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
     default_fkey(['targetid'], ['character.charid'], name='searchmapchar_targetid_fkey'),
     default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapchar_tagid_fkey'),
 )
@@ -564,6 +565,7 @@ searchmapjournal = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
     default_fkey(['targetid'], ['journal.journalid'], name='searchmapjournal_targetid_fkey'),
     default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapjournal_tagid_fkey'),
 )
@@ -579,6 +581,7 @@ searchmapsubmit = Table(
     Column('settings', CharSettingsColumn({
         'a': 'artist-tag',
     }), nullable=False, server_default=''),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
     default_fkey(['targetid'], ['submission.submitid'], name='searchmapsubmit_targetid_fkey'),
     default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapsubmit_tagid_fkey'),
 )
@@ -794,6 +797,24 @@ suspension = Table(
     Column('release', Integer(), nullable=False),
     default_fkey(['userid'], ['login.userid'], name='suspension_userid_fkey'),
 )
+
+
+def _tag_suggestion_feedback_table(content_table, id_column):
+    return Table(
+        f'tag_suggestion_feedback_{content_table.name}', metadata,
+        Column('targetid', ForeignKey(id_column, ondelete='CASCADE'), primary_key=True),
+        Column('tagid', ForeignKey(searchtag.c.tagid), primary_key=True),
+        Column('userid', ForeignKey(login.c.userid, ondelete='CASCADE'), primary_key=True),
+        Column('last_modified', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+        Column('incorrect', Boolean(), nullable=False),
+        Column('unwanted', Boolean(), nullable=False),
+        Column('abusive', Boolean(), nullable=False),
+    )
+
+
+tag_suggestion_feedback_submission = _tag_suggestion_feedback_table(submission, submission.c.submitid)
+tag_suggestion_feedback_character = _tag_suggestion_feedback_table(character, character.c.charid)
+tag_suggestion_feedback_journal = _tag_suggestion_feedback_table(journal, journal.c.journalid)
 
 
 tag_updates = Table(

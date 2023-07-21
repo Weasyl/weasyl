@@ -107,7 +107,11 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
         raise
 
     # Assign search tags
-    searchtag.associate(userid, tags, charid=charid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.CharacterTarget(charid),
+        tag_names=tags,
+    )
 
     # Make submission file
     files.make_character_directory(charid)
@@ -252,7 +256,7 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
         'comments': comment.select(userid, charid=charid),
         'sub_media': fake_media_items(
             charid, query['userid'], login, query['settings']),
-        'tags': searchtag.select(charid=charid),
+        'tags': searchtag.select_grouped(userid, searchtag.CharacterTarget(charid)),
     }
 
 

@@ -155,8 +155,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $:{item_user} favorited your journal titled $:{item_link}.
             $elif i['type'] == 3140:
               $# tag update
-              <a href="/submission/tag-history/${i['submitid']}">The tags were changed</a>
-              on your submission $:{item_link}.
+              Tags were suggested on your submission $:{item_link}.
             $elif i['type'] == 3150:
               <a href="/site-updates/${i['updateid']}">${i['title']}</a>
             $elif i['type'] == 4010:

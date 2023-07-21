@@ -10,6 +10,7 @@ from libweasyl import ratings
 from libweasyl.models import site, users
 import weasyl.define as d
 from weasyl import blocktag, searchtag, submission, welcome
+from weasyl.searchtag import GroupedTags
 from weasyl.test import db_utils
 
 
@@ -181,52 +182,27 @@ class SelectListTestCase(unittest.TestCase):
         owner = db_utils.create_user()
         tagger = db_utils.create_user()
         s = db_utils.create_submission(owner, rating=ratings.GENERAL.code)
+        target = searchtag.SubmissionTarget(s)
 
-        searchtag.associate(owner, {'orange'}, submitid=s)
+        searchtag.associate(userid=owner, target=target, tag_names={'orange'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['orange'])
+            GroupedTags(artist=['orange'], suggested=[], own_suggested=[]))
 
-        searchtag.associate(tagger, {'apple', 'tomato'}, submitid=s)
+        searchtag.associate(userid=tagger, target=target, tag_names={'apple', 'tomato'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['apple', 'tomato'])
+            GroupedTags(artist=['orange'], suggested=['apple', 'tomato'], own_suggested=[]))
 
-        searchtag.associate(tagger, {'tomato'}, submitid=s)
+        searchtag.associate(userid=tagger, target=target, tag_names={'tomato'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['tomato'])
+            GroupedTags(artist=['orange'], suggested=['tomato'], own_suggested=[]))
 
-        searchtag.associate(owner, {'kale'}, submitid=s)
+        searchtag.associate(userid=owner, target=target, tag_names={'kale'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['kale'])
-
-    def test_retag_no_owner_remove(self):
-        config = CharSettings({'disallow-others-tag-removal'}, {}, {})
-        owner = db_utils.create_user(config=config)
-        tagger = db_utils.create_user()
-        s = db_utils.create_submission(owner, rating=ratings.GENERAL.code)
-
-        searchtag.associate(owner, {'orange'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['orange'])
-
-        searchtag.associate(tagger, {'apple', 'tomato'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['apple', 'orange', 'tomato'])
-
-        searchtag.associate(tagger, {'tomato'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['orange', 'tomato'])
-
-        searchtag.associate(owner, {'kale'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['kale'])
+            GroupedTags(artist=['kale'], suggested=['tomato'], own_suggested=[]))
 
     def test_recently_popular(self):
         owner = db_utils.create_user()

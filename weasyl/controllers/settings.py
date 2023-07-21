@@ -104,6 +104,19 @@ def control_editcommishinfo_(request):
 
     profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
     commishinfo.edit_content(request.userid, form.content)
+
+    if "preferred-tags" in request.POST:
+        preferred_tags = searchtag.parse_tags(request.POST["preferred-tags"])
+        optout_tags = searchtag.parse_tags(request.POST["optout-tags"])
+        searchtag.set_commission_preferred_tags(
+            userid=request.userid,
+            tag_names=preferred_tags,
+        )
+        searchtag.set_commission_optout_tags(
+            userid=request.userid,
+            tag_names=optout_tags,
+        )
+
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 

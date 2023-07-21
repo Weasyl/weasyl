@@ -163,7 +163,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $:{item_user} left a <a href="/shouts/${i['ownername']}#cid${i['commentid']}">comment</a> on your shout page.
             $elif i['type'] == 4015:
               $# shout reply
-              $:{item_user} left a $:{shout_reply('shouts')} to $:{your_comment('shouts')} on $:{item_ownername}</a>'s shout page.
+              $:{item_user} left a $:{shout_reply('shouts')} to $:{your_comment('shouts')} on $:{item_ownername}'s shout page.
             $elif i['type'] == 4016:
               $# staff note reply
               $:{item_user} left a $:{shout_reply('staffnotes')} to $:{your_comment('staffnotes')} on $:{item_ownername}'s staff notes.

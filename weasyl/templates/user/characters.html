@@ -12,10 +12,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   $if result.query:
     <ul class="thumbnail-grid">
       $for index, item in enumerate(result.query):
-        $if index < 10:
-          $:{_GRID_ITEM(item, lazy_load=False)}
-        $else:
-          $:{_GRID_ITEM(item)}
+        $:{_GRID_ITEM(item, include_byline=False, lazy_load=index >= 10)}
     </ul>
     $:{RENDER("common/page_navigation.html", [result])}
   $else:

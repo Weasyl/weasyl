@@ -7,8 +7,6 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
       <h3>Search Criteria</h3>
 
       <form name="admincontrolfinduser" action="/admincontrol/finduser" method="post" class="clear">
-        $:{CSRF()}
-
         <label for="adminsearchid">UserID:</label>
         <input type="text" class="input" name="targetid" id="adminsearchid" />
 
@@ -93,7 +91,6 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
           </tr>
       </table>
       <form action="/admincontrol/finduser" method="post">
-        $:{CSRF()}
         <input type="hidden" name="targetid" value="${form['targetid'] if form['targetid'] != 0 else None}" />
         <input type="hidden" name="username" value="${form['username']}" />
         <input type="hidden" name="email" value="${form['email']}" />

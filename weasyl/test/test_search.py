@@ -1,6 +1,5 @@
-from __future__ import absolute_import
+from unittest import mock
 
-import mock
 import pytest
 
 from libweasyl.models.helpers import CharSettings
@@ -156,7 +155,7 @@ def test_search_pagination(db):
     (u"Marth", 1),
 ])
 def test_user_search(db, term, n_results):
-    config = CharSettings({'use-only-tag-blacklist'}, {}, {})
+    config = CharSettings({}, {}, {})
     db_utils.create_user("Sam Peacock", username="sammy", config=config)
     db_utils.create_user("LionCub", username="spammer2800", config=config)
     db_utils.create_user("Samantha Wildlife", username="godall", config=config)
@@ -172,7 +171,7 @@ def test_user_search(db, term, n_results):
 
 
 def test_user_search_ordering(db):
-    config = CharSettings({'use-only-tag-blacklist'}, {}, {})
+    config = CharSettings({}, {}, {})
     db_utils.create_user("user_aa", username="useraa", config=config)
     db_utils.create_user("user_ba", username="userba", config=config)
     db_utils.create_user("user_Ab", username="userab", config=config)

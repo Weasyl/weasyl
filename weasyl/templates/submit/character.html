@@ -4,19 +4,17 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
 <div id="submit-character-content" class="content">
 
   <form id="submit-form" name="submitcharacter" class="form clear" action="/submit/character" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
-
     <div class="column files">
         <h3>Files</h3>
 
         <label>Picture</label>
-        <input type="file" name="submitfile" id="submitfile" class="styled-input" accept="image/*" required />
+        <input type="file" name="submitfile" id="submitfile" accept="image/*" required />
         <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (JPG): 50 MB</i></p>
         <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (PNG): 50 MB</i></p>
         <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (GIF): 50 MB</i></p>
 
         <label>Thumbnail</label>
-        <input type="file" name="thumbfile" id="thumbfile" class="styled-input" accept="image/*" />
+        <input type="file" name="thumbfile" id="thumbfile" accept="image/*" />
     </div>
 
     <div class="column info">
@@ -73,7 +71,7 @@ $:{RENDER("common/stage_title.html", ["Character Profile", "Submit", "/submit"])
 
     <div class="buttons clear">
       <button type="submit" class="button positive" style="float: right;">Continue</button>
-      <a class="button" href="/index">Return Home</a>
+      <a class="button" href="/">Return Home</a>
     </div>
 
   </form>

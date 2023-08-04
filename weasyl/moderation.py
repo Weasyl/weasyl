@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import collections
 import datetime
 
@@ -19,8 +17,8 @@ from weasyl import profile
 from weasyl import shout
 from weasyl import submission
 from weasyl import thumbnail
-from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 BAN_TEMPLATES = {
@@ -287,6 +285,26 @@ def get_suspension(userid):
                             user=userid).first()
 
 
+def get_ban_message(userid):
+    reason = get_ban_reason(userid)
+    return (
+        "Your account has been permanently banned and you are no longer allowed "
+        "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
+        "contact %s for assistance."
+    ) % (reason, MACRO_SUPPORT_ADDRESS)
+
+
+def get_suspension_message(userid):
+    suspension = get_suspension(userid)
+    release = d.get_arrow(suspension.release)
+    return (
+        "Your account has been temporarily suspended and you are not allowed to "
+        "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
+        "%s.\n\nIf you believe this suspension is in error, please contact "
+        "%s for assistance."
+    ) % (suspension.reason, release.date(), MACRO_SUPPORT_ADDRESS)
+
+
 def finduser(targetid, username, email, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,
              row_offset):
     targetid = d.get_int(targetid)
@@ -304,30 +322,30 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
     permaban = d.meta.tables['permaban']
     suspension = d.meta.tables['suspension']
 
-    is_banned = d.sa.exists(
-        d.sa.select([])
+    is_banned = sa.exists(
+        sa.select([])
         .select_from(permaban)
         .where(permaban.c.userid == lo.c.userid)
     ).label('is_banned')
 
-    is_suspended = d.sa.exists(
-        d.sa.select([])
+    is_suspended = sa.exists(
+        sa.select([])
         .select_from(suspension)
         .where(suspension.c.userid == lo.c.userid)
     ).label('is_suspended')
 
-    q = d.sa.select([
+    q = sa.select([
         lo.c.userid,
         lo.c.login_name,
         lo.c.email,
-        (d.sa.select([d.sa.func.count()])
+        (sa.select([sa.func.count()])
          .select_from(sh)
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
         is_banned,
         is_suspended,
         lo.c.ip_address_at_signup,
-        (d.sa.select([sess.c.ip_address])
+        (sa.select([sess.c.ip_address])
             .select_from(sess)
             .where(lo.c.userid == sess.c.userid)
             .limit(1)
@@ -347,7 +365,7 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
     elif username:
         q = q.where(lo.c.login_name.op('~')(username))
     elif email:
-        q = q.where(d.sa.or_(
+        q = q.where(sa.or_(
             lo.c.email.op('~')(email),
             lo.c.email.op('ilike')('%%%s%%' % email),
         ))
@@ -362,14 +380,14 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
 
     # Filter for IP address
     if ipaddr:
-        q = q.where(d.sa.or_(
+        q = q.where(sa.or_(
             lo.c.ip_address_at_signup.op('ilike')('%s%%' % ipaddr),
             sess.c.ip_address.op('ilike')('%s%%' % ipaddr)
         ))
 
     # Filter for date-time
     if dateafter and datebefore:
-        q = q.where(d.sa.between(pr.c.created_at, arrow.get(dateafter).datetime, arrow.get(datebefore).datetime))
+        q = q.where(sa.between(pr.c.created_at, arrow.get(dateafter).datetime, arrow.get(datebefore).datetime))
     elif dateafter:
         q = q.where(pr.c.created_at >= arrow.get(dateafter).datetime)
     elif datebefore:
@@ -468,7 +486,7 @@ def setusermode(userid, form):
 
 def submissionsbyuser(targetid):
     query = d.engine.execute("""
-        SELECT submitid, title, rating, unixtime, settings
+        SELECT submitid, title, rating, unixtime, hidden, friends_only, critique
         FROM submission
         WHERE userid = %(user)s
     """, user=targetid)
@@ -480,7 +498,9 @@ def submissionsbyuser(targetid):
         "title": i[1],
         "rating": i[2],
         "unixtime": i[3],
-        "settings": i[4],
+        "hidden": i[4],
+        "friends_only": i[5],
+        "critique": i[6],
     } for i in query]
     media.populate_with_submission_media(ret)
     return ret
@@ -488,7 +508,7 @@ def submissionsbyuser(targetid):
 
 def charactersbyuser(targetid):
     query = d.engine.execute("""
-        SELECT charid, unixtime, char_name, rating, settings
+        SELECT charid, unixtime, char_name, rating, settings, hidden, friends_only
         FROM character
         WHERE userid = %(user)s
     """, user=targetid)
@@ -496,23 +516,29 @@ def charactersbyuser(targetid):
     return [{
         "contype": 20,
         "userid": targetid,
-        "charid": item[0],
-        "unixtime": item[1],
-        "title": item[2],
-        "rating": item[3],
-        "settings": item[4],
-        "sub_media": character.fake_media_items(item[0], targetid, "unused", item[4]),
+        "charid": item.charid,
+        "unixtime": item.unixtime,
+        "title": item.char_name,
+        "rating": item.rating,
+        "hidden": item.hidden,
+        "friends_only": item.friends_only,
+        "critique": False,
+        "sub_media": character.fake_media_items(item.charid, targetid, "unused", item.settings),
     } for item in query]
 
 
 def journalsbyuser(targetid):
     query = d.engine.execute("""
-        SELECT journalid, title, settings, unixtime, rating
+        SELECT journalid, title, hidden, friends_only, unixtime, rating
         FROM journal
         WHERE userid = %(user)s
     """, user=targetid)
 
-    return [dict(item, contype=30) for item in query]
+    return [{
+        **item,
+        "contype": 30,
+        "critique": False,
+    } for item in query]
 
 
 def gallery_blacklisted_tags(userid, otherid):
@@ -542,44 +568,6 @@ def gallery_blacklisted_tags(userid, otherid):
     """, user=userid, other=otherid)
 
     return [row.title for row in query]
-
-
-def hidesubmission(submitid):
-    d.execute("UPDATE submission SET settings = settings || 'h' WHERE submitid = %i AND settings !~ 'h'", [submitid])
-    welcome.submission_remove(submitid)
-
-
-def unhidesubmission(submitid):
-    d.execute("UPDATE submission SET settings = REPLACE(settings, 'h', '') WHERE submitid = %i", [submitid])
-
-
-def hidecharacter(charid):
-    d.execute("UPDATE character SET settings = settings || 'h' WHERE charid = %i AND settings !~ 'h'", [charid])
-    welcome.character_remove(charid)
-
-
-def unhidecharacter(charid):
-    d.execute("UPDATE character SET settings = REPLACE(settings, 'h', '') WHERE charid = %i", [charid])
-
-
-def hidejournal(journalid):
-    """ Hides a journal item from view, and removes it from the welcome table. """
-    d.engine.execute("""
-        UPDATE journal
-        SET settings = settings || 'h'
-        WHERE journalid = %(journalid)s
-            AND settings !~ 'h'
-    """, journalid=journalid)
-    welcome.journal_remove(journalid=journalid)
-
-
-def unhidejournal(journalid):
-    """ Removes the hidden settings flag from a journal item, restoring it to view if other conditions are met (e.g., not flagged as spam) """
-    d.engine.execute("""
-        UPDATE journal
-        SET settings = REPLACE(settings, 'h', '')
-        WHERE journalid = %(journalid)s
-    """, journalid=journalid)
 
 
 def manageuser(userid, form):
@@ -633,7 +621,7 @@ def removethumbnail(userid, submitid):
     thumbnail.clear_thumbnail(userid, submitid)
     # Thumbnails may be cached on the front page, so invalidate that cache.
     index.recent_submissions.invalidate()
-    index.template_fields.invalidate(userid)
+    submission.select_critique.invalidate(userid)
     otherid = sub.owner.userid
     title = sub.title
     note_about(userid, otherid, 'Thumbnail was removed for ' +
@@ -702,7 +690,7 @@ def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals
 
         now = arrow.utcnow()
         values = []
-        for target, target_affected in affected.iteritems():
+        for target, target_affected in affected.items():
             staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
             values.append({
                 'userid': userid,
@@ -726,8 +714,9 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=sa.func.replace(tbl.c.settings, 'h', ''))
-                .where(tbl.c.settings.op('~')('h')))
+                .values(hidden=False)
+                .where(tbl.c.hidden))
+
         action_string = 'unhidden'
         provide_link = True
 
@@ -736,8 +725,9 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=tbl.c.settings.op('||')('h'))
-                .where(tbl.c.settings.op('!~')('h')))
+                .values(hidden=True)
+                .where(~tbl.c.hidden))
+
         action_string = 'hidden'
         # There's no value in giving the user a link to the submission as they
         # won't be able to see it.
@@ -755,8 +745,9 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=sa.func.replace(tbl.c.settings, 'q', ''))
-                .where(tbl.c.settings.op('~')('q')))
+                .values(critique=False)
+                .where(tbl.c.critique))
+
         action_string = 'unmarked as "critique requested"'
         provide_link = True
 
@@ -765,8 +756,9 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=tbl.c.settings.op('||')('q'))
-                .where(tbl.c.settings.op('!~')('q')))
+                .values(critique=True)
+                .where(~tbl.c.critique))
+
         action_string = 'marked as "critique requested"'
         provide_link = True
 
@@ -776,6 +768,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     db = d.connect()
     affected = collections.defaultdict(list)
     copyable = []
+
     for (tbl, col, title_col, urlpart), values in zip(_tables, [submissions, characters, journals]):
         if values:
             results = db.execute(
@@ -791,7 +784,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
 
     now = arrow.utcnow()
     values = []
-    for target, target_affected in affected.iteritems():
+    for target, target_affected in affected.items():
         staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
         values.append({
             'userid': userid,

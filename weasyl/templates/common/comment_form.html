@@ -14,7 +14,6 @@ $code:
 
 $if myself['is_verified']:
   <form class="comment-form" action="/submit/${'shout' if feature in ['userid', 'staffnotes'] else 'comment'}" method="post">
-    $:{CSRF()}
     <input type="hidden" class="form-target-id" name="${feature}" value="${targetid}" />
     <input type="hidden" name="parentid" />
 

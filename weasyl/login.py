@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 from io import open
 
@@ -11,13 +9,12 @@ import sqlalchemy
 
 from libweasyl import security
 from libweasyl import staff
-from libweasyl.models.users import GuestSession
 
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
 from weasyl.error import WeasylError
-from weasyl.sessions import create_session, create_guest_session
+from weasyl.sessions import create_session
 
 
 _EMAIL = 100
@@ -35,13 +32,6 @@ _BANNED_SYSNAMES = frozenset([
     "staff",
     "security",
 ])
-
-
-def _legacy_plaintext(password):
-    """
-    Returns password stripped of non-ASCII characters, but not of control characters.
-    """
-    return "".join([c for c in password if ord(c) < 128])
 
 
 def clean_display_name(text):
@@ -66,22 +56,21 @@ def clean_display_name(text):
 
 
 def signin(request, userid, ip_address=None, user_agent=None):
-    # Update the last login record for the user
-    d.execute("UPDATE login SET last_login = NOW() WHERE userid = %i", [userid])
+    if request.userid:
+        raise WeasylError("Unexpected")  # pragma: no cover
 
     # Log the successful login and increment the login count
     d.append_to_log('login.success', userid=userid, ip=d.get_address())
     d.metric('increment', 'logins')
 
-    # set the userid on the session
-    sess = create_session(userid)
-    sess.ip_address = ip_address
-    sess.user_agent_id = get_user_agent_id(user_agent)
-    sess.create = True
+    with d.sessionmaker_future.begin() as tx:
+        # Update the last login record for the user
+        tx.execute("UPDATE login SET last_login = NOW() WHERE userid = :user", {"user": userid})
 
-    if not isinstance(request.weasyl_session, GuestSession):
-        request.pg_connection.delete(request.weasyl_session)
-        request.pg_connection.flush()
+        sess = create_session(userid)
+        sess.ip_address = ip_address
+        sess.user_agent_id = get_user_agent_id(user_agent)
+        tx.add(sess)
 
     request.weasyl_session = sess
 
@@ -106,12 +95,10 @@ def get_user_agent_id(ua_string=None):
 
 
 def signout(request):
-    request.pg_connection.delete(request.weasyl_session)
-    request.pg_connection.flush()
-    request.weasyl_session = create_guest_session()
+    with d.sessionmaker_future.begin() as tx:
+        tx.delete(request.weasyl_session)
 
-    # unset SFW-mode cookie on logout
-    request.delete_cookie_on_response("sfwmode")
+    request.weasyl_session = None
 
 
 def authenticate_bcrypt(username, password, request, ip_address=None, user_agent=None):
@@ -152,12 +139,11 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
 
     USERID, HASHSUM, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
-    _, IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
+    IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
 
     d.metric('increment', 'attemptedlogins')
 
-    unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
-    if not unicode_success and not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), HASHSUM):
+    if not bcrypt.checkpw(password.encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:
@@ -188,25 +174,16 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     if request is not None:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
-            if not isinstance(request.weasyl_session, GuestSession):
-                request.pg_connection.delete(request.weasyl_session)
-                request.pg_connection.flush()
-            request.weasyl_session = create_session(None)
-            request.weasyl_session.additional_data = {}
             return USERID, "2fa"
         else:
             signin(request, USERID, ip_address=ip_address, user_agent=user_agent)
 
-    status = None
-    if not unicode_success:
-        # Oops; the user's password was stored badly, but they did successfully authenticate.
-        status = 'unicode-failure'
     # Either way, authentication succeeded, so return the userid and a status.
-    return USERID, status
+    return USERID, None
 
 
 def passhash(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS))
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS)).decode('ascii')
 
 
 def password_secure(password):
@@ -216,10 +193,12 @@ def password_secure(password):
     return len(password) >= _PASSWORD
 
 
-# form
-#   username     email         month
-#   password     emailcheck    year
-#   passcheck    day
+def _delete_expired():
+    """
+    Delete expired logincreate records.
+    """
+    d.engine.execute("DELETE FROM logincreate WHERE created_at < now() - INTERVAL '2 days'")
+
 
 def create(form):
     # Normalize form data
@@ -227,10 +206,8 @@ def create(form):
     sysname = d.get_sysname(username)
 
     email = emailer.normalize_address(form.email)
-    emailcheck = emailer.normalize_address(form.emailcheck)
 
     password = form.password
-    passcheck = form.passcheck
     if form.day and form.month and form.year:
         try:
             birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
@@ -238,12 +215,6 @@ def create(form):
             raise WeasylError("birthdayInvalid")
     else:
         birthday = None
-
-    # Check mismatched form data
-    if password != passcheck:
-        raise WeasylError("passwordMismatch")
-    if email != emailcheck:
-        raise WeasylError("emailMismatch")
 
     # Check invalid form data
     if birthday is None or d.age_in_years(birthday) < 13:
@@ -254,6 +225,10 @@ def create(form):
         raise WeasylError("emailInvalid")
     if is_email_blacklisted(email):
         raise WeasylError("emailBlacklisted")
+
+    # Delete stale logincreate records before checking for colliding ones or trying to insert more
+    _delete_expired()
+
     if username_exists(sysname):
         raise WeasylError("usernameExists")
 
@@ -286,7 +261,7 @@ def create(form):
             "login_name": sysname,
             "hashpass": passhash(password),
             "email": token,
-            "birthday": arrow.now(),
+            "birthday": arrow.utcnow(),
             "invalid": True,
             # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
             "invalid_email_addr": email,
@@ -300,6 +275,9 @@ def create(form):
 
 
 def verify(token, ip_address=None):
+    # Delete stale logincreate records before verifying against them
+    _delete_expired()
+
     lo = d.meta.tables["login"]
     lc = d.meta.tables["logincreate"]
     query = d.engine.execute(lc.select().where(lc.c.token == token)).first()
@@ -337,9 +315,6 @@ def verify(token, ip_address=None):
             "userid": userid,
             "birthday": query.birthday,
         })
-        db.execute(d.meta.tables["welcomecount"].insert(), {
-            "userid": userid,
-        })
 
         # Update logincreate records
         db.execute(lc.delete().where(lc.c.token == token))
@@ -366,15 +341,18 @@ def username_exists(login_name):
 
 
 def release_username(db, acting_user, target_user):
-    db.execute(
+    old_sysname = db.scalar(
         "UPDATE username_history SET"
         " active = FALSE,"
         " deactivated_at = now(),"
         " deactivated_by = %(acting)s"
-        " WHERE userid = %(target)s AND active",
+        " WHERE userid = %(target)s AND active"
+        " RETURNING login_name",
         acting=acting_user,
         target=target_user,
     )
+
+    d._get_userids.invalidate(old_sysname)
 
 
 def change_username(acting_user, target_user, bypass_limit, new_username):
@@ -454,26 +432,8 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
     d.serializable_retry(change_username_transaction)
     d._get_display_name.invalidate(target_user)
 
-
-def update_unicode_password(userid, password, password_confirm):
-    if password != password_confirm:
-        raise WeasylError('passwordMismatch')
-    if not password_secure(password):
-        raise WeasylError('passwordInsecure')
-
-    hashpw = d.engine.scalar("""
-        SELECT hashsum FROM authbcrypt WHERE userid = %(userid)s
-    """, userid=userid).encode('utf-8')
-
-    if bcrypt.checkpw(password.encode('utf-8'), hashpw):
-        return
-
-    if not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), hashpw):
-        raise WeasylError('passwordIncorrect')
-
-    d.engine.execute("""
-        UPDATE authbcrypt SET hashsum = %(hashsum)s WHERE userid = %(userid)s
-    """, userid=userid, hashsum=passhash(password))
+    if not cosmetic:
+        d._get_userids.invalidate(old_sysname)
 
 
 def get_account_verification_token(email=None, username=None):
@@ -518,6 +478,25 @@ def is_email_blacklisted(address):
     )
 
 
+def authenticate_account_change(*, userid, password):
+    """
+    Check a password against an account, throwing WeasylError('passwordIncorrect') if it doesn’t match.
+
+    Bans/suspensions and two-factor authentication aren’t checked.
+
+    Returns the account’s e-mail address, because it’s convenient.
+    """
+    row = d.engine.execute(
+        "SELECT email, hashsum FROM login INNER JOIN authbcrypt USING (userid) WHERE userid = %(user)s",
+        {"user": userid},
+    ).first()
+
+    if not bcrypt.checkpw(password.encode('utf-8'), row.hashsum.encode('ascii')):
+        raise WeasylError('passwordIncorrect')
+
+    return row.email
+
+
 def verify_email_change(userid, token):
     """
     Verify a user's email change request, updating the `login` record if it validates.
@@ -535,6 +514,10 @@ def verify_email_change(userid, token):
     # Sanity checks: Must have userid and token
     if not userid or not token:
         raise WeasylError("Unexpected")
+    d.engine.execute("""
+        DELETE FROM emailverify
+        WHERE createtimestamp < (NOW() - INTERVAL '2 days')
+    """)
     query_result = d.engine.scalar("""
         DELETE FROM emailverify
         WHERE userid = %(userid)s AND token = %(token)s

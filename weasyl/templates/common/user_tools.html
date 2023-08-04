@@ -45,7 +45,6 @@ $def with (profile, userinfo, relationship)
 
         $if not relationship['is_self']:
           <li><form name="followuser" action="/followuser" method="post">
-            $:{CSRF()}
             <input type="hidden" name="userid" value="${profile['userid']}" />
             $if(relationship['follow']):
               <input type="hidden" name="action" value="unfollow" />
@@ -56,7 +55,6 @@ $def with (profile, userinfo, relationship)
           </form></li>
 
           <li><form name="frienduser" action="/frienduser" method="post">
-            $:{CSRF()}
             <input type="hidden" name="userid" value="${profile['userid']}" />
             <input type="hidden" name="feature" value="user" />
             $if(relationship['friendreq']):
@@ -73,7 +71,6 @@ $def with (profile, userinfo, relationship)
           <li><a href="/notes/compose?recipient=${LOGIN(profile['username'])}"><span class="icon icon-20 icon-pencil"></span> Message</a></li>
 
           <li><form name="ignoreuser" action="/ignoreuser" method="post">
-            $:{CSRF()}
             <input type="hidden" name="userid" value="${profile['userid']}" />
             $if(relationship['ignore']):
               <input type="hidden" name="action" value="unignore" />

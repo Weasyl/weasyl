@@ -1,6 +1,6 @@
 # Style
 
-In general, code should follow [PEP 8]; `make check` can be used to automatically check changes in the working tree against it.
+In general, code should follow [PEP 8]; `./wzl check` can be used to automatically check changes in the working tree against it.
 
 Miscellaneous other guidelines follow.
 

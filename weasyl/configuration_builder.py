@@ -1,17 +1,14 @@
 # TODO(kailys): Doc and create examples
 
-from __future__ import absolute_import
-
-
 class ConfigOption(object):
     "A class representing options for ``Config``."
 
     def __init__(self, name, value_map):
         self.name = name
         self.value_to_code_map = value_map
-        self.code_to_value_map = {v: k for k, v in value_map.iteritems()}
-        self.values = value_map.viewkeys()
-        self.codes = value_map.viewvalues()
+        self.code_to_value_map = {v: k for k, v in value_map.items()}
+        self.values = value_map.keys()
+        self.codes = value_map.values()
 
     def get_code(self, value):
         """
@@ -75,7 +72,7 @@ class BaseConfig(object):
         Render into character codes.
         """
         result = []
-        for key, value in self._values.iteritems():
+        for key, value in self._values.items():
             result.append(self._options[key].get_code(value))
         result.sort()
         return "".join(result)

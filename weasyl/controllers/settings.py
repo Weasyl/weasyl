@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -13,7 +11,7 @@ from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, folder, followuser, frienduser, ignoreuser,
-    index, login, oauth2, profile, searchtag, thumbnail, useralias, orm)
+    login, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -40,13 +38,14 @@ def control_uploadavatar_(request):
 
 @login_required
 def control_editprofile_get_(request):
-    userinfo = profile.select_userinfo(request.userid)
+    query = profile.select_profile(request.userid)
+    userinfo = profile.select_userinfo(request.userid, config=query["config"])
     return Response(define.webpage(request.userid, "control/edit_profile.html", [
         # Profile
-        profile.select_profile(request.userid),
+        query,
         # User information
         userinfo,
-    ], title="Edit Profile", options=["typeahead"]))
+    ], title="Edit Profile"))
 
 
 @login_required
@@ -66,7 +65,7 @@ def control_editprofile_put_(request):
         form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
         form.settings = form.set_commish + form.set_trade + form.set_request
         form.config = form.profile_display
-        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form], title="Edit Profile", options=["typeahead"]))
+        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form], title="Edit Profile"))
 
     p = orm.Profile()
     p.full_name = form.full_name
@@ -105,6 +104,19 @@ def control_editcommishinfo_(request):
 
     profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
     commishinfo.edit_content(request.userid, form.content)
+
+    if "preferred-tags" in request.POST:
+        preferred_tags = searchtag.parse_tags(request.POST["preferred-tags"])
+        optout_tags = searchtag.parse_tags(request.POST["optout-tags"])
+        searchtag.set_commission_preferred_tags(
+            userid=request.userid,
+            tag_names=preferred_tags,
+        )
+        searchtag.set_commission_optout_tags(
+            userid=request.userid,
+            tag_names=optout_tags,
+        )
+
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
@@ -260,10 +272,12 @@ def control_username_post_(request):
 @login_required
 @disallow_api
 def control_editemailpassword_get_(request):
+    profile_info = profile.select_manage(request.userid)
+
     return Response(define.webpage(
         request.userid,
         "control/edit_emailpassword.html",
-        [profile.select_manage(request.userid)["email"]],
+        (profile_info["email"], profile_info["username"]),
         title="Edit Password and Email Address"
     ))
 
@@ -272,18 +286,16 @@ def control_editemailpassword_get_(request):
 @disallow_api
 @token_checked
 def control_editemailpassword_post_(request):
-    form = request.web_input(newemail="", newemailcheck="", newpassword="", newpasscheck="", password="")
+    newemail = emailer.normalize_address(request.POST["newemail"])
 
-    newemail = emailer.normalize_address(form.newemail)
-    newemailcheck = emailer.normalize_address(form.newemailcheck)
-
-    # Check if the email was invalid; Both fields must be valid (not None), and have the form fields set
-    if not newemail and not newemailcheck and form.newemail != "" and form.newemailcheck != "":
+    if not newemail and request.POST["newemail"] != "":
         raise WeasylError("emailInvalid")
 
     return_message = profile.edit_email_password(
-        request.userid, form.username, form.password, newemail, newemailcheck,
-        form.newpassword, form.newpasscheck
+        userid=request.userid,
+        password=request.POST["password"],
+        newemail=newemail,
+        newpassword=request.POST["newpassword"],
     )
 
     if not return_message:  # No changes were made
@@ -313,8 +325,6 @@ def control_editpreferences_get_(request):
         current_sfw_rating,
         age,
         allowed_ratings,
-        request.weasyl_session.timezone.timezone,
-        define.timezones(),
     ], title="Site Preferences"))
 
 
@@ -326,7 +336,7 @@ def control_editpreferences_post_(request):
         hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
         shouts="", notes="", filter="",
         follow_s="", follow_c="", follow_f="", follow_t="",
-        follow_j="", timezone="", twelvehour="")
+        follow_j="")
 
     rating = ratings.CODE_MAP[define.get_int(form.rating)]
     jsonb_settings = define.get_profile_settings(request.userid)
@@ -334,7 +344,6 @@ def control_editpreferences_post_(request):
     jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
 
     preferences = profile.Config()
-    preferences.twelvehour = bool(form.twelvehour)
     preferences.rating = rating
     preferences.tagging = bool(form.tagging)
     preferences.hideprofile = bool(form.hideprofile)
@@ -352,10 +361,8 @@ def control_editpreferences_post_(request):
     preferences.follow_t = bool(form.follow_t)
     preferences.follow_j = bool(form.follow_j)
 
-    profile.edit_preferences(request.userid, timezone=form.timezone,
+    profile.edit_preferences(request.userid,
                              preferences=preferences, jsonb_settings=jsonb_settings)
-    # release the cache on the index page in case the Maximum Viewable Content Rating changed.
-    index.template_fields.invalidate(request.userid)
     raise HTTPSeeOther(location="/control")
 
 
@@ -792,11 +799,10 @@ def manage_alias_post_(request):
 @token_checked
 @disallow_api
 def sfw_toggle_(request):
-    form = request.web_input(redirect="/index")
+    form = request.web_input(redirect="/")
 
     currentstate = request.cookies.get('sfwmode', "nsfw")
     newstate = "sfw" if currentstate == "nsfw" else "nsfw"
-    request.set_cookie_on_response("sfwmode", newstate, 60 * 60 * 24 * 365)
-    # release the index page's cache so it shows the new ratings if they visit it
-    index.template_fields.invalidate(request.userid)
-    raise HTTPSeeOther(location=form.redirect)
+    response = HTTPSeeOther(location=form.redirect)
+    response.set_cookie("sfwmode", newstate, max_age=60 * 60 * 24 * 365)
+    return response

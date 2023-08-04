@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
@@ -24,7 +22,7 @@ def directorcontrol_emailblacklist_get_(request):
         INNER JOIN login AS lo ON added_by = lo.userid
         ORDER BY domain_name
     """)
-    blacklist_information = map(dict, query)
+    blacklist_information = list(map(dict, query))
     return Response(d.webpage(request.userid, "directorcontrol/emailblacklist.html", [blacklist_information],
                               title="Edit Account Creation Email Blacklist"))
 

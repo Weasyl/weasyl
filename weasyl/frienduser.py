@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+import sqlalchemy as sa
 
 from weasyl import define as d
 from weasyl import ignoreuser
@@ -59,28 +59,28 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
     pr = d.meta.tables['profile']
     iu = d.meta.tables['ignoreuser']
 
-    friends = d.sa.union(
-        (d.sa
+    friends = sa.union(
+        (sa
          .select([fr.c.otherid, pr.c.username, pr.c.config])
          .select_from(fr.join(pr, fr.c.otherid == pr.c.userid))
-         .where(d.sa.and_(fr.c.userid == otherid, fr.c.settings.op('!~')('p')))),
-        (d.sa
+         .where(sa.and_(fr.c.userid == otherid, fr.c.settings.op('!~')('p')))),
+        (sa
          .select([fr.c.userid, pr.c.username, pr.c.config])
          .select_from(fr.join(pr, fr.c.userid == pr.c.userid))
-         .where(d.sa.and_(fr.c.otherid == otherid, fr.c.settings.op('!~')('p')))))
+         .where(sa.and_(fr.c.otherid == otherid, fr.c.settings.op('!~')('p')))))
     friends = friends.alias('friends')
 
-    query = d.sa.select(friends.c)
+    query = sa.select(friends.c)
 
     if userid:
         query = query.where(
-            ~friends.c.otherid.in_(d.sa.select([iu.c.otherid]).where(iu.c.userid == userid)))
+            ~friends.c.otherid.in_(sa.select([iu.c.otherid]).where(iu.c.userid == userid)))
     if backid:
         query = query.where(
-            friends.c.username < d.sa.select([pr.c.username]).where(pr.c.userid == backid))
+            friends.c.username < sa.select([pr.c.username]).where(pr.c.userid == backid).scalar_subquery())
     elif nextid:
         query = query.where(
-            friends.c.username > d.sa.select([pr.c.username]).where(pr.c.userid == nextid))
+            friends.c.username > sa.select([pr.c.username]).where(pr.c.userid == nextid).scalar_subquery())
 
     query = query.order_by(
         friends.c.username.desc() if backid else friends.c.username.asc())

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from itertools import chain
 
 from weasyl import character
@@ -145,7 +143,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 we.unixtime,
                 we.otherid AS userid,
                 pr.username,
-                su.settings,
+                ''::text AS settings,
                 we.welcomeid,
                 su.subtype
                 {submission_tags_select}
@@ -169,7 +167,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 we.unixtime,
                 su.userid,
                 pr.username,
-                su.settings,
+                ''::text AS settings,
                 we.welcomeid,
                 su.subtype
                 {submission_tags_select}

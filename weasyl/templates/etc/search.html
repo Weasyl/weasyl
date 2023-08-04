@@ -1,9 +1,10 @@
-$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None)
+$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None)
 $#:{TITLE("Weasyl Search")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
   id_fields = {
     'submit': 'submitid',
+    'critique': 'submitid',
     'char': 'charid',
     'journal': 'journalid',
     'user': 'userid',
@@ -11,7 +12,7 @@ $code:
 
 <div id="search-stage" class="stage clear">
 
-  $if method['method'] == "search":
+  $if method == "search":
     <h2 class="page-title">Search Weasyl</h2>
 
     <div id="search-parameters" class="content sectioned-sidebar">
@@ -81,7 +82,7 @@ $code:
     </div>
 
     <div class="sectioned-main clear">
-      <!-- SEARCH RESULTS (user performed a search) -->
+      $# SEARCH RESULTS (user performed a search)
 
       $if results:
         $if meta['find'] == 'user' and len(results) == 100:
@@ -90,10 +91,7 @@ $code:
           </p>
         <ul class="thumbnail-grid sectioned">
           $for index, result in enumerate(results):
-            $if index < 10:
-              $:{_GRID_ITEM(result, lazy_load=False)}
-            $else:
-              $:{_GRID_ITEM(result)}
+            $:{_GRID_ITEM(result, lazy_load=index >= 10)}
         </ul>
 
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
@@ -106,12 +104,15 @@ $code:
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>
     </div>
 
-  $elif method['method'] == "browse":
-    <h2 class="page-title">Browse Content</h2>
-    <!-- BROWSE RESULTS (user is browsing a specific content type) -->
+  $elif method == "browse":
+    $# BROWSE RESULTS (user is browsing a specific content type)
+    <h2 class="page-title">${browse_header}</h2>
 
-    <div id="browse-search-top" class="content"><!-- there are multiple instances of search-backup-search in this template! -->
+    <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
       <form id="search-backup-search" action="/search" method="GET" class="form">
+        $if meta['find'] not in ('submit', 'critique'):
+          <input type="hidden" name="find" value="${meta['find']}">
+
         <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="2" class="input" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
       </form>
@@ -120,10 +121,7 @@ $code:
     $if results:
       <ul class="thumbnail-grid">
         $for index, result in enumerate(results):
-          $if index < 10:
-            $:{_GRID_ITEM(result, lazy_load=False)}
-          $else:
-            $:{_GRID_ITEM(result)}
+          $:{_GRID_ITEM(result, lazy_load=index >= 10)}
       </ul>
 
       <div style="padding-top: 1.4em;" class="pad-left pad-right">
@@ -131,13 +129,13 @@ $code:
         <a class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]]))}" rel="next">Next</a>
       </div>
     $else:
-      <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>
+      <p class="pad-left pad-right" style="padding-top: 2em;">There is no more content to display in this category. You may want to <a class="color-a" href="/search">browse all content</a>.</p>
 
   $else:
-    <!-- BROWSE SUMMARY (user hit the "Browse" tab or didn't specify a content type) -->
+    $# BROWSE SUMMARY (user hit the "Browse" tab or didn't specify a content type)
     <h2 class="page-title">Browse Content</h2>
 
-    <div id="browse-search-top" class="content"><!-- there are multiple instances of search-backup-search in this template! -->
+    <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
       <form id="search-backup-search" action="/search" method="GET" class="form">
         <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="2" class="input" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
@@ -149,7 +147,7 @@ $code:
       <ul class="thumbnail-grid medium-footprint">
         $for i in results['submit']:
           $:{_GRID_ITEM(i, lazy_load=False)}
-        </li><li class="clear more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
+        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
       </ul>
     $else:
       There are no submissions to display.
@@ -159,7 +157,7 @@ $code:
       <ul class="grid avatar-grid">
         $for i in results['char']:
           $:{_GRID_ITEM(i)}
-        </li><li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
+        <li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
       </ul>
     $else:
       There are no characters to display.
@@ -169,7 +167,7 @@ $code:
       <ul class="grid avatar-grid">
         $for i in results['journal']:
           $:{_GRID_ITEM(i)}
-        </li><li class="clear more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></li>
+        <li class="clear more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></li>
       </ul>
     $else:
       There are no journals to display.

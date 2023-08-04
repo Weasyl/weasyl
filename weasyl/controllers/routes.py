@@ -1,9 +1,8 @@
-from __future__ import absolute_import
-
 from collections import namedtuple
 
 from weasyl.controllers import (
     admin,
+    api,
     content,
     detail,
     director,
@@ -43,10 +42,7 @@ routes = (
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),
     Route("/signin/2fa-auth", "signin_2fa_auth", {'GET': user.signin_2fa_auth_get_, 'POST': user.signin_2fa_auth_post_}),
-    Route("/signin/unicode-failure", "signin-unicode-failure", {
-        'GET': user.signin_unicode_failure_get_, 'POST': user.signin_unicode_failure_post_
-    }),
-    Route("/signout", "signout", user.signout_),
+    Route("/signout", "signout", {'POST': user.signout_}),
     Route("/signup", "signup", {'GET': user.signup_get_, 'POST': user.signup_post_}),
 
     # Verification and password management views.
@@ -55,7 +51,6 @@ routes = (
           {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
     Route("/resetpassword", "reset_password",
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
-    Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
     Route("/vouch", "vouch", {'POST': user.vouch_}),
 
@@ -143,6 +138,16 @@ routes = (
     Route("/submit/comment", "submit_comment", {'POST': content.submit_comment_}),
     Route("/submit/report", "submit_report", {'POST': content.submit_report_}),
     Route("/submit/tags", "submit_tags", {'POST': content.submit_tags_}),
+    Route(
+        "/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/status",
+        "suggested_tag_status",
+        {
+            "PUT": content.tag_status_put,
+            "DELETE": content.tag_status_delete,
+        },
+    ),
+    Route("/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/feedback", "suggested_tag_feedback",
+          {'PUT': content.tag_feedback_put}),
     Route("/reupload/submission", "reupload_submission",
           {'GET': content.reupload_submission_get_, 'POST': content.reupload_submission_post_}),
     Route("/reupload/character", "reupload_character",
@@ -260,8 +265,6 @@ routes = (
     Route("/modcontrol/closereport", "modcontrol_closereport", {'POST': moderation.modcontrol_closereport_}),
     Route("/modcontrol/contentbyuser", "modcontrol_contentbyuser", moderation.modcontrol_contentbyuser_),
     Route("/modcontrol/massaction", "modcontrol_massaction", {'POST': moderation.modcontrol_massaction_}),
-    Route("/modcontrol/hide", "modcontrol_hide", {'POST': moderation.modcontrol_hide_}),
-    Route("/modcontrol/unhide", "modcontrol_unhide", {'POST': moderation.modcontrol_unhide_}),
     Route("/modcontrol/manageuser", "modcontrol_manageuser", moderation.modcontrol_manageuser_),
     Route("/modcontrol/removeavatar", "modcontrol_removeavatar", {'POST': moderation.modcontrol_removeavatar_}),
     Route("/modcontrol/removebanner", "modcontrol_removebanner", {'POST': moderation.modcontrol_removebanner_}),
@@ -377,4 +380,4 @@ def setup_routes_and_views(config):
     config.add_route("api_favorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite")
     config.add_route("api_unfavorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite")
 
-    config.scan("weasyl.controllers")
+    config.scan(api)

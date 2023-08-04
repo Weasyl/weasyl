@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -23,7 +21,7 @@ def messages_remove_(request):
     elif request.params.get('remove-all-submissions'):
         message.remove_all_submissions(request.userid, define.get_int(request.params.get('remove-all-submissions')))
     else:
-        message.remove(request.userid, map(int, remove))
+        message.remove(request.userid, list(map(int, remove)))
 
     if recall:
         raise HTTPSeeOther(location="/messages/submissions")

@@ -1,30 +1,38 @@
 $def with (myself, update, comments)
-$ owner = update.get_display_owner()
 <div id="home-content" class="content">
-  <div class="constrained">
-    <h3>${update.title}</h3>
+  <article id="hc-update" class="constrained">
+    <header class="hc-update-header">
+      <h3 class="hc-update-title">${update['title']}</h3>
 
-    <figure class="thumbnail thumbnail-left clear">
-      <a class="avatar" href="/~${owner.login_name}" title="${owner.profile.username}">
-        <img src="${owner.avatar_display_url or resource_path('img/default-avatar.jpg')}" alt="avatar of ${owner.profile.username}" />
-      </a>
-      <figcaption class="caption">
-        <h4 class="title"><i>Posted by</i> <a class="username" href="/~${owner.login_name}">${owner.profile.username}</a></h4>
-        <h5 class="date">${DATE(update.unixtime)} <i>at</i> ${TIME(update.unixtime)}</h5>
-      </figcaption>
-    </figure>
+      <p class="hc-update-attribution">
+        Posted by
+        <a class="username" href="/~${LOGIN(update['username'])}">
+          $ avatar = update['user_media']['avatar'][0]
+          <img src="${avatar['display_url']}" alt="" loading="lazy">
+          ${update['username']}
+        </a>
+        $:{LOCAL_TIME(update['unixtime'], '{date} at {time}')}
+      </p>
+    </header>
 
-    <div class="formatted-content" style="margin-top: 1em">
-      $:{MARKDOWN(update.content)}
+    <div class="formatted-content">
+      $:{MARKDOWN(update['content'])}
     </div>
-  </div>
 
-  <div id="site-update-comments">
-    $if comments:
-      <div class="constrained"><h3>Comments</h3></div>
-      $:{RENDER("common/comment_thread.html", ["detail_comments", comments, "siteupdate", myself, update.updateid, update.userid])}
-    $if myself:
-      <div class="constrained"><h3>Leave a Comment</h3></div>
-      $:{RENDER("common/comment_form.html", [myself, update.updateid, "siteupdate"])}
-  </div>
+    $if comments is None:
+      <footer class="hc-update-footer">
+        $ comment_count = update['comment_count']
+        <a href="/site-updates/${update['updateid']}" class="more more-block"><i>View</i> <span>This Update</span> <i>and</i> <span>${comment_count} Comment${'' if comment_count == 1 else 's'}</span></a>
+      </footer>
+  </article>
+
+  $if comments is not None:
+    <div id="site-update-comments">
+      $if comments:
+        <div class="constrained"><h3>Comments</h3></div>
+        $:{RENDER("common/comment_thread.html", ["detail_comments", comments, "siteupdate", myself, update['updateid'], update['userid']])}
+      $if myself:
+        <div class="constrained"><h3>Leave a Comment</h3></div>
+        $:{RENDER("common/comment_form.html", [myself, update['updateid'], "siteupdate"])}
+    </div>
 </div>

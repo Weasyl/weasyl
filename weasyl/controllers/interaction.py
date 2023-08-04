@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
@@ -176,7 +174,7 @@ def notes_remove_(request):
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
 
-    note.remove_list(request.userid, map(int, form.notes))
+    note.remove_list(request.userid, list(map(int, form.notes)))
     link = "/notes?folder=" + form.folder
 
     if backid:

@@ -1,13 +1,17 @@
-from __future__ import absolute_import
-
 from pyramid import httpexceptions
 from pyramid.response import Response
 
+from libweasyl.html import strip_html
 from libweasyl.models.content import Submission
 from libweasyl.text import slug_for
 from weasyl import (
     character, define, journal, macro, media, profile, searchtag, submission)
+from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
+
+
+def _can_edit_tags(userid: int) -> bool:
+    return bool(userid) and define.is_vouched_for(userid)
 
 
 # Content detail functions
@@ -15,70 +19,86 @@ def submission_(request):
     username = request.matchdict.get('name')
     submitid = request.matchdict.get('submitid')
 
-    form = request.web_input(submitid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    submitid = define.get_int(submitid) if submitid else define.get_int(form.submitid)
-
-    extras = {}
-
-    if not request.userid:
-        # Only generate the Twitter/OGP meta headers if not authenticated (the UA viewing is likely automated).
-        twit_card = submission.twitter_card(request, submitid)
-        if define.user_is_twitterbot():
-            extras['twitter_card'] = twit_card
-        # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
-        extras['ogp'] = {
-            'title': twit_card['title'],
-            'site_name': "Weasyl",
-            'type': "website",
-            'url': twit_card['url'],
-            'description': twit_card['description'],
-            # >> BUG AVOIDANCE: https://trello.com/c/mBx51jfZ/1285-any-image-link-with-in-it-wont-preview-up-it-wont-show-up-in-embeds-too
-            #    Image URLs with '~' in it will not be displayed by Discord, so replace ~ with the URL encoded char code %7E
-            'image': twit_card['image:src'].replace('~', '%7E') if 'image:src' in twit_card else define.get_resource_url(
-                'img/logo-mark-light.svg'),
-        }
+    submitid = define.get_int(submitid) if submitid else define.get_int(request.params.get('submitid'))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     try:
         item = submission.select_view(
             request.userid, submitid, rating,
-            ignore=form.ignore != 'false', anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
-        we.errorpage_kwargs = extras
         if we.value in ("UserIgnored", "TagBlocked"):
-            extras['links'] = [
+            we.errorpage_kwargs['links'] = [
                 ("View Submission", "?ignore=false"),
-                ("Return to the Home Page", "/index"),
+                ("Return to the Home Page", "/"),
             ]
         raise
 
     login = define.get_sysname(item['username'])
     canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
 
+    title_with_attribution = f"{item['title']} by {item['username']}"
+    twitter_meta = {}
+
+    # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+    ogp = {
+        'title': title_with_attribution,
+        'type': "website",
+        'url': define.absolutify_url(canonical_path),
+    }
+
+    media_items = item['sub_media']
+    cover = media_items.get('cover')
+    if cover:
+        twitter_meta['card'] = 'summary_large_image'
+        twitter_meta['image'] = ogp['image'] = define.absolutify_url(cover[0]['display_url'])
+    else:
+        twitter_meta['card'] = 'summary'
+        thumb = media_items.get('thumbnail-custom') or media_items.get('thumbnail-generated')
+        if thumb:
+            twitter_meta['image'] = ogp['image'] = define.absolutify_url(thumb[0]['display_url'])
+        else:
+            ogp['image'] = define.get_resource_url('img/logo-mark-light.svg')
+
+    if twitter_username := profile.get_twitter_username(item['userid']):
+        twitter_meta['creator'] = "@" + twitter_username
+        twitter_meta['title'] = item['title']
+    else:
+        twitter_meta['title'] = title_with_attribution
+
+    meta_description = define.summarize(strip_html(item['content']).strip())
+    if meta_description:
+        twitter_meta['description'] = ogp['description'] = meta_description
+
     if request.GET.get('anyway'):
         canonical_path += '?anyway=true'
 
     if login != username:
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
-    extras["canonical_url"] = canonical_path
-    extras["title"] = item["title"]
 
-    page = define.common_page_start(request.userid, **extras)
-    page.append(define.render('detail/submission.html', [
-        request,
-        # Myself
-        profile.select_myself(request.userid),
-        # Submission detail
-        item,
-        # Subtypes
-        macro.MACRO_SUBCAT_LIST,
-        # Violations
-        [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
-    ]))
-
-    return Response(define.common_page_end(request.userid, page))
+    return Response(define.webpage(
+        request.userid,
+        "detail/submission.html",
+        (
+            request,
+            # Myself
+            profile.select_myself(request.userid),
+            # Submission detail
+            item,
+            # Subtypes
+            macro.MACRO_SUBCAT_LIST,
+            # Violations
+            [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
+        ),
+        twitter_card=twitter_meta,
+        ogp=ogp,
+        canonical_url=canonical_path,
+        title=item["title"],
+        options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+    ))
 
 
 def submission_media_(request):
@@ -90,7 +110,7 @@ def submission_media_(request):
     submission = Submission.query.get(submitid)
     if submission is None:
         raise httpexceptions.HTTPForbidden()
-    elif submission.is_hidden or submission.is_friends_only:
+    elif submission.hidden or submission.friends_only:
         raise httpexceptions.HTTPForbidden()
     media_items = media.get_submission_media(submitid)
     if not media_items.get(link_type):
@@ -102,6 +122,7 @@ def submission_media_(request):
     ])
 
 
+@moderator_only
 def submission_tag_history_(request):
     submitid = int(request.matchdict['submitid'])
 
@@ -115,21 +136,21 @@ def submission_tag_history_(request):
 
 
 def character_(request):
-    form = request.web_input(charid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    charid = define.get_int(request.matchdict.get('charid', form.charid))
+    charid = define.get_int(request.matchdict.get('charid', request.params.get('charid')))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     try:
         item = character.select_view(
             request.userid, charid, rating,
-            ignore=form.ignore != 'false', anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
             we.errorpage_kwargs['links'] = [
                 ("View Character", "?ignore=false"),
-                ("Return to the Home Page", "/index"),
+                ("Return to the Home Page", "/"),
             ]
         raise
 
@@ -145,25 +166,31 @@ def character_(request):
         [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
     ]))
 
-    return Response(define.common_page_end(request.userid, page))
+    return Response(
+        define.common_page_end(
+            request.userid,
+            page,
+            options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+        )
+    )
 
 
 def journal_(request):
-    form = request.web_input(journalid="", ignore="", anyway="")
-
     rating = define.get_rating(request.userid)
-    journalid = define.get_int(request.matchdict.get('journalid', form.journalid))
+    journalid = define.get_int(request.matchdict.get('journalid', request.params.get('journalid')))
+    ignore = request.params.get('ignore', '')
+    anyway = request.params.get('anyway', '')
 
     try:
         item = journal.select_view(
             request.userid, rating, journalid,
-            ignore=form.ignore != 'false', anyway=form.anyway
+            ignore=ignore != 'false', anyway=anyway
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
             we.errorpage_kwargs['links'] = [
                 ("View Journal", "?ignore=false"),
-                ("Return to the Home Page", "/index"),
+                ("Return to the Home Page", "/"),
             ]
         raise
 
@@ -179,4 +206,10 @@ def journal_(request):
         [i for i in macro.MACRO_REPORT_VIOLATION if 3000 <= i[0] < 4000],
     ]))
 
-    return Response(define.common_page_end(request.userid, page))
+    return Response(
+        define.common_page_end(
+            request.userid,
+            page,
+            options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+        )
+    )

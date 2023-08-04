@@ -1,8 +1,9 @@
-from __future__ import absolute_import
-
 import os
 
+import sqlalchemy as sa
+
 from libweasyl import ratings
+from libweasyl.models import tables as t
 
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
@@ -12,6 +13,18 @@ MACRO_BCRYPT_ROUNDS = 13
 
 # Example input (userid, "su")
 MACRO_IGNOREUSER = " AND NOT EXISTS (SELECT 0 FROM ignoreuser WHERE (userid, otherid) = (%i, %s.userid))"
+
+
+def not_ignored(otherid_expr):
+    ignore_match = (
+        sa.select()
+        .select_from(t.ignoreuser)
+        .where(t.ignoreuser.c.userid == sa.bindparam('userid'))
+        .where(t.ignoreuser.c.otherid == otherid_expr)
+    )
+
+    return ~ignore_match.exists()
+
 
 # Example input (userid, userid)
 MACRO_BLOCKTAG_SUBMIT = (
@@ -32,17 +45,17 @@ MACRO_BLOCKTAG_JOURNAL = (
 
 # Example input (userid, userid, userid)
 MACRO_FRIENDUSER_SUBMIT = (
-    " AND (su.settings !~ 'f' OR su.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
+    " AND (NOT su.friends_only OR su.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
     " WHERE ((userid, otherid) = (%i, su.userid) OR (userid, otherid) = (su.userid, %i)) AND settings !~ 'p'))")
 
 # Example input (userid, userid, userid)
 MACRO_FRIENDUSER_JOURNAL = (
-    " AND (jo.settings !~ 'f' OR jo.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
+    " AND (NOT jo.friends_only OR jo.userid = %i OR EXISTS (SELECT 0 FROM frienduser"
     " WHERE ((userid, otherid) = (%i, jo.userid) OR (userid, otherid) = (jo.userid, %i)) AND settings !~ 'p'))")
 
 # Example input (userid, userid, userid)
 MACRO_FRIENDUSER_CHARACTER = (
-    " AND (ch.settings !~ 'f' or ch.userid = %i OR EXISTS (SELECT 0 from frienduser"
+    " AND (NOT ch.friends_only or ch.userid = %i OR EXISTS (SELECT 0 from frienduser"
     " WHERE ((userid, otherid) = (%i, ch.userid) OR (userid, otherid) = (ch.userid, %i)) AND settings !~ 'p'))")
 
 MACRO_SUBCAT_LIST = [
@@ -71,41 +84,28 @@ MACRO_SUBCAT_LIST = [
 
 
 # Mod actions which apply to all submissions
-MACRO_MOD_ACTIONS = [
+MACRO_MOD_ACTIONS = {
     # Line below is so default mod action is 'nothing'. Intentional behavior.
-    ('null', ''),
-    ('hide', 'Hide'),
-    ('show', 'Show'),
-] + [('rate-%s' % (r.code,), 'Rate %s' % (r.name,)) for r in ratings.ALL_RATINGS] + [
-    ('clearcritique', 'Remove critique-requested flag'),
-    ('setcritique', 'Set critique-requested flag'),
-]
+    'null': '',
+    'hide': 'Hide',
+    'show': 'Show',
+    **{f'rate-{r.code}': f'Rate {r.name}' for r in ratings.ALL_RATINGS},
+    'clearcritique': 'Remove critique-requested flag',
+    'setcritique': 'Set critique-requested flag',
+}
 
 
-def MACRO_MOD_ACTIONS_FOR_SETTINGS(settings, submission_type):
-    # We start with the complete list of mod actions, then filter it based on submission_type
-    valid_list = MACRO_MOD_ACTIONS
+def get_mod_actions(item, content_type):
+    actions = MACRO_MOD_ACTIONS.copy()
 
-    # Journals and characters can't have the critique flag set
-    if submission_type in ("journal", "character"):
-        valid_list = [(a, b) for a, b in valid_list if not a.endswith('critique')]
+    del actions['hide' if item['hidden'] else 'show']
 
-    # Select whether we show 'Show' or 'Hide' depending on whether the
-    # submission is hidden
-    if 'h' in settings:
-        valid_list = [(a, b) for a, b in valid_list if a != 'hide']
-    else:
-        valid_list = [(a, b) for a, b in valid_list if a != 'show']
+    if content_type != 'submission' or item['critique']:
+        del actions['setcritique']
+    if content_type != 'submission' or not item['critique']:
+        del actions['clearcritique']
 
-    # Select whether we show 'Set Critique' or 'Clear Critique' depending on
-    # whether the Critique Requested flag is set
-    if 'q' in settings:
-        valid_list = [(a, b) for a, b in valid_list if a != 'setcritique']
-    else:
-        valid_list = [(a, b) for a, b in valid_list if a != 'clearcritique']
-
-    # Return our shiny, filtered list of mod actions
-    return valid_list
+    return actions
 
 
 MACRO_REPORT_URGENCY = [
@@ -195,6 +195,7 @@ SOCIAL_SITES = {
     "googleplus": {
         "name": "Google+",
         "url": "https://plus.google.com/+%s",
+        "hidden": True,
     },
     "inkbunny": {
         "name": "Inkbunny",
@@ -230,7 +231,7 @@ SOCIAL_SITES = {
     },
 }
 
-SOCIAL_SITES_BY_NAME = {v['name']: v for v in SOCIAL_SITES.itervalues()}
+SOCIAL_SITES_BY_NAME = {v['name']: v for v in SOCIAL_SITES.values()}
 
 
 ART_SUBMISSION_CATEGORY = 1000

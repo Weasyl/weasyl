@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import staff
 
@@ -48,7 +47,7 @@ def count(ownerid, staffnotes=False):
     sh = d.meta.tables['comments']
     op = '~' if staffnotes else '!~'
     q = (
-        d.sa.select([d.sa.func.count()])
+        sa.select([sa.func.count()])
         .select_from(sh)
         .where(sh.c.settings.op(op)('s'))
         .where(sh.c.target_user == ownerid))
@@ -60,7 +59,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
     # Check invalid content
     if not content:
         raise WeasylError("commentInvalid")
-    elif not target_user or not d.is_vouched_for(target_user):
+    elif not target_user or (not d.is_vouched_for(target_user) and not staffnotes):
         raise WeasylError("Unexpected")
 
     # Determine parent userid
@@ -86,7 +85,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
         elif ignoreuser.check(userid, parentuserid):
             raise WeasylError("youIgnoredReplyRecipient")
 
-        _, is_banned, _ = d.get_login_settings(target_user)
+        is_banned, _ = d.get_login_settings(target_user)
         profile_config = d.get_config(target_user)
 
         if is_banned or "w" in profile_config or "x" in profile_config and not frienduser.check(userid, target_user):

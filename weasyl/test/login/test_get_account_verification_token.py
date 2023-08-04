@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import arrow
 
@@ -18,9 +16,9 @@ raw_password = "0123456789"
 
 @pytest.mark.usefixtures('db')
 def test_acct_verif_token_returned_if_email_provided_to_function():
-    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
-               email=email_addr, emailcheck=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+    form = Bag(username=user_name, password='0123456789',
+               email=email_addr,
+               day='12', month='12', year=arrow.utcnow().year - 19)
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
         "token": token,
         "username": form.username,
@@ -35,9 +33,9 @@ def test_acct_verif_token_returned_if_email_provided_to_function():
 
 @pytest.mark.usefixtures('db')
 def test_acct_verif_token_returned_if_username_provided_to_function():
-    form = Bag(username=user_name, password='0123456789', passcheck='0123456789',
-               email=email_addr, emailcheck=email_addr,
-               day='12', month='12', year=arrow.now().year - 19)
+    form = Bag(username=user_name, password='0123456789',
+               email=email_addr,
+               day='12', month='12', year=arrow.utcnow().year - 19)
     d.engine.execute(d.meta.tables["logincreate"].insert(), {
         "token": token,
         "username": form.username,

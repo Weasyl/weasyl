@@ -4,39 +4,29 @@ $:{TITLE("Literary Artwork", "Submit", "/submit")}
 <div id="submit-literary-content" class="content">
 
   <form id="submit-form" name="submitliterary" class="form clear" action="/submit/literary" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
-
     <div class="column files">
       <h3>Files</h3>
 
       <label for="submitfile">Submission File</label>
-      <input type="file" name="submitfile" id="submitfile" class="styled-input" />
+      <input type="file" name="submitfile" id="submitfile" />
       <p class="color-lighter" style="padding-top: 0.5em;"><i>Allowed filetypes:</i></p>
       <p class="color-lighter" style="padding-top: 0.5em;"><i>UTF-8 <a href="/help/markdown">Markdown-formatted text</a> (.MD/.TXT): 2 MB</i></p>
       <p class="color-lighter" style="padding-top: 0.5em;"><i>PDF: 10 MB</i></p>
 
       <h3 class="or color-lighter"><i>&mdash; Or &mdash;</i></h3>
 
-      <label for="embedlink">
-        Embed Link
-        <span style="font-size: 0.8em">
-          [<a href="https://docs.google.com/document/create" target="_blank" rel="noreferrer noopener">Create new document</a>]
-          [<a href="/help/google-drive-embed" target="_blank">Help</a>]
-        </span>
-      </label>
-      <input type="url" class="input" name="embedlink" id="embedlink" />
-      <p class="supported" style="padding-top: 0.5em">
-        <i class="color-lighter">Allowed: Google Drive Documents</i>
+      <label for="embedlink">Google Docs</label>
+      <input type="url" class="input" name="embedlink" id="embedlink" placeholder="https://docs.google.com/document/d/e/2PACX-…/pub" />
+      <p style="padding-top: 0.5em">
+        <i class="color-lighter"><a href="/help/google-drive-embed" target="_blank">How do I find the embed link?</a></i>
       </p>
 
       <label for="coverfile">Cover Artwork</label>
-      <input type="file" name="coverfile" id="coverfile" class="styled-input" accept="image/*" />
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (JPG): 10 MB</i></p>
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (PNG): 10 MB</i></p>
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (GIF): 10 MB</i></p>
+      <input type="file" name="coverfile" id="coverfile" accept="image/*" />
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>JPEG, PNG, or GIF up to 10 MB</i></p>
 
       <label for="thumbfile">Thumbnail</label>
-      <input type="file" name="thumbfile" id="thumbfile" class="styled-input" accept="image/*" />
+      <input type="file" name="thumbfile" id="thumbfile" accept="image/*" />
     </div>
 
     <div class="column info">
@@ -66,11 +56,6 @@ $:{TITLE("Literary Artwork", "Submit", "/submit")}
           <option value="${rating.code}">${rating.name_with_age}</option>
       </select>
       <p class="color-lighter tags-help"><i>Please apply a rating to this submission according to our <a href="/help/ratings" target="_blank">ratings guidelines</a>.</i></p>
-      <p class="tags-help"><i>
-        Note that at most three submissions per user will be shown on the
-        Weasyl homepage. If a user has more than three submissions that would
-        be shown, the most recently submitted three will be displayed.
-      </i></p>
     </div>
 
     <div class="column description">
@@ -107,7 +92,7 @@ $:{TITLE("Literary Artwork", "Submit", "/submit")}
 
     <div class="buttons clear">
       <button type="submit" class="button positive" style="float: right;">Continue</button>
-      <a class="button" href="/index">Return Home</a>
+      <a class="button" href="/">Return Home</a>
     </div>
 
   </form>

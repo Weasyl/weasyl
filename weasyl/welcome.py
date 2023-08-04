@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import arrow
 import sqlalchemy as sa
 
 from libweasyl.models import content, site, users
@@ -38,7 +35,7 @@ def _insert(sender, referid, targetid, type, notify_users):
 # notifications
 #   2010 user posted submission
 
-def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''):
+def submission_insert(userid, submitid, rating=ratings.GENERAL.code, friends_only=False):
     if folder.submission_has_folder_flag(submitid, 'n'):
         return
 
@@ -46,7 +43,7 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, settings=''
                  " INNER JOIN profile pr USING (userid)"
                  " WHERE wu.otherid = %(sender)s AND wu.settings ~ 's'"]
 
-    if 'f' in settings:
+    if friends_only:
         statement.append(
             " AND (wu.userid IN (SELECT fu.userid FROM frienduser fu WHERE "
             "fu.otherid = wu.otherid AND fu.settings !~ 'p') "
@@ -127,9 +124,9 @@ def submission_became_friends_only(submitid, ownerid):
 # notifications
 #   2050 user posted character
 
-def character_insert(userid, charid, rating=ratings.GENERAL.code, settings=''):
+def character_insert(userid, charid, rating=ratings.GENERAL.code, *, friends_only):
     _insert(userid, 0, charid, 2050,
-            followuser.list_followed(userid, "f", rating=rating, friends='f' in settings))
+            followuser.list_followed(userid, "f", rating=rating, friends=friends_only))
 
 
 # notifications
@@ -201,10 +198,10 @@ def collection_remove(userid, remove):
 # notifications
 #   1010 user posted journal
 
-def journal_insert(userid, journalid, rating=ratings.GENERAL.code, settings=''):
+def journal_insert(userid, journalid, *, rating, friends_only):
     _insert(
         userid, 0, journalid, 1010,
-        followuser.list_followed(userid, "j", rating=rating, friends='f' in settings))
+        followuser.list_followed(userid, "j", rating=rating, friends=friends_only))
 
 
 # notifications
@@ -471,24 +468,6 @@ def frienduseraccept_insert(userid, otherid):
 def frienduseraccept_remove(userid, otherid):
     d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085",
               [userid, otherid, userid, otherid])
-
-
-# notifications
-#   3140 tags updated
-
-def tag_update_insert(userid, submitid):
-    we = d.meta.tables['welcome']
-    db = d.connect()
-    q = sa.select([sa.exists(
-        sa.select([1])
-        .where(we.c.userid == userid)
-        .where(we.c.otherid == submitid)
-        .where(we.c.type == 3140))])
-    if db.scalar(q):
-        return
-    db.execute(
-        we.insert()
-        .values(userid=userid, otherid=submitid, unixtime=arrow.utcnow(), type=3140))
 
 
 # notifications

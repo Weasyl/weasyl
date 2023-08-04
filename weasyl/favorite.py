@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from weasyl import collection
 from weasyl import define as d
 from weasyl import frienduser
@@ -15,7 +13,7 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
         " FROM favorite fa INNER JOIN"
         " submission su ON fa.targetid = su.submitid"
         " INNER JOIN profile pr ON su.userid = pr.userid"
-        " WHERE fa.type = 's' AND su.settings !~ 'h'"]
+        " WHERE fa.type = 's' AND NOT su.hidden"]
 
     if userid:
         # filter own content in SFW mode
@@ -28,7 +26,7 @@ def select_submit_query(userid, rating, otherid=None, backid=None, nextid=None):
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
     else:
         statement.append(" AND su.rating <= %i" % (rating,))
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
 
     statement.append(" AND fa.userid = %i" % otherid)
 
@@ -78,7 +76,7 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
             INNER JOIN character ch ON fa.targetid = ch.charid
             INNER JOIN profile pr ON ch.userid = pr.userid
         WHERE fa.type = 'f'
-            AND ch.settings !~ 'h'
+            AND NOT ch.hidden
     """]
 
     if userid:
@@ -91,7 +89,7 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
         statement.append(m.MACRO_IGNOREUSER % (userid, "ch"))
         statement.append(m.MACRO_BLOCKTAG_CHAR % (userid, userid))
     else:
-        statement.append(" AND ch.rating <= %i AND ch.settings !~ 'f'" % (rating,))
+        statement.append(" AND ch.rating <= %i AND NOT ch.friends_only" % (rating,))
 
     statement.append(" AND fa.userid = %i" % (otherid,))
 
@@ -128,7 +126,7 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
             INNER JOIN journal jo ON fa.targetid = jo.journalid
             INNER JOIN profile pr ON jo.userid = pr.userid
         WHERE fa.type = 'j'
-            AND jo.settings !~ 'h'
+            AND NOT jo.hidden
     """]
 
     if userid:
@@ -141,7 +139,7 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
         statement.append(m.MACRO_IGNOREUSER % (userid, "jo"))
         statement.append(m.MACRO_BLOCKTAG_JOURNAL % (userid, userid))
     else:
-        statement.append(" AND jo.rating <= %i AND jo.settings !~ 'f'" % (rating,))
+        statement.append(" AND jo.rating <= %i AND NOT jo.friends_only" % (rating,))
 
     statement.append(" AND fa.userid = %i" % (otherid,))
 
@@ -179,14 +177,14 @@ def insert(userid, submitid=None, charid=None, journalid=None):
         content_table, id_field, target = "journal", "journalid", journalid
 
     query = d.engine.execute(
-        "SELECT userid, settings FROM %s WHERE %s = %i" % (content_table, id_field, target),
+        "SELECT userid, friends_only FROM %s WHERE %s = %i" % (content_table, id_field, target),
     ).first()
 
     if not query:
         raise WeasylError("TargetRecordMissing")
     elif userid == query[0]:
         raise WeasylError("CannotSelfFavorite")
-    elif "f" in query[1] and not frienduser.check(userid, query[0]):
+    elif query.friends_only and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignoreuser.check(userid, query[0]):
         raise WeasylError("YouIgnored")

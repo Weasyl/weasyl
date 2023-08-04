@@ -1,5 +1,3 @@
-from __future__ import absolute_import, unicode_literals
-
 import pytest
 import arrow
 
@@ -60,9 +58,6 @@ def test_verify_success_if_valid_token_provided():
         userid=userid)
     assert d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM userinfo WHERE userid = %(userid)s)",
-        userid=userid)
-    assert d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM welcomecount WHERE userid = %(userid)s)",
         userid=userid)
 
     # The 'logincreate' record gets deleted on successful execution; verify this

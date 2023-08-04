@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import absolute_import, division
-
 import os
 from io import BytesIO
 
@@ -27,20 +24,37 @@ def read_asset_image(path):
     return Image.open(BytesIO(read_asset(path))).convert('RGBA')
 
 
+def get_storage_path(url):
+    return os.path.join(MACRO_STORAGE_ROOT, url[1:])
+
+
 def read_storage_image(image_url):
-    full_path = os.path.join(MACRO_STORAGE_ROOT, image_url[1:])
+    full_path = get_storage_path(image_url)
     return Image.open(full_path).convert('RGBA')
 
 
 BASE_VISUAL_FORM = {
-    'submitfile': u'',
-    'thumbfile': u'',
-    'title': u'Test title',
-    'subtype': u'1030',
-    'folderid': u'',
-    'rating': u'10',
-    'content': u'Description',
-    'tags': u'foo bar ',
+    'submitfile': '',
+    'thumbfile': '',
+    'title': 'Test title',
+    'subtype': '1030',
+    'folderid': '',
+    'rating': '10',
+    'content': 'Description',
+    'tags': 'foo bar ',
+}
+
+BASE_LITERARY_FORM = {
+    'submitfile': '',
+    'embedlink': '',
+    'coverfile': '',
+    'thumbfile': '',
+    'title': 'Test title',
+    'subtype': '2010',
+    'folderid': '',
+    'rating': '10',
+    'content': 'Description',
+    'tags': 'foo bar',
 }
 
 

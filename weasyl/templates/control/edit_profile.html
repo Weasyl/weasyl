@@ -10,8 +10,6 @@ $code:
 <div id="edit-profile" class="content">
 
   <form name="controleditprofile" class="form clear" action="/control/editprofile" method="post">
-    $:{CSRF()}
-
     <div class="column info clear">
       <h3>Profile Settings</h3>
 
@@ -90,7 +88,7 @@ $code:
       <h3>Contact and Social Media</h3>
       <p>
         For frequently used social media sites
-        $ sites = (site['name'] for site in M.SOCIAL_SITES.itervalues() if 'url' in site)
+        $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site and not site.get('hidden', False))
         ($:{', '.join('<strong>%s</strong>' % site for site in sorted(sites, key=lambda s: s.lower()))}),
         fill in the site as displayed, and your username in the second blank.
         Weasyl will do the rest.
@@ -108,25 +106,19 @@ $code:
       $for site, values in userinfo['sorted_user_links']:
         $for value in values:
           <div class="group">
-            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site">
+            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site" list="known-social-sites">
             <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
           </div>
-      <div class="group">
-        <input type="text" class="input site-name" name="site_names" placeholder="Site">
+      <div class="group" id="new-social-group">
+        <input type="text" class="input site-name" name="site_names" placeholder="Site" list="known-social-sites">
         <input type="text" class="input" name="site_values" placeholder="Username or URL">
       </div>
-      <div class="group">
-        <button type="submit" class="button postitive" name="more" id="add-contact-button">
-          New
-        </button>
-      </div>
-      <script>
-        /* This is used for the auto-completion. */
-        var socialSiteList = [
-        $for site in M.SOCIAL_SITES_BY_NAME:
-          {val: $:{INLINE_JSON(site)}},
-        ];
-      </script>
+      $# This is used for the auto-completion.
+      <datalist id="known-social-sites">
+        $for site in M.SOCIAL_SITES.values():
+          $if not site.get('hidden'):
+            <option value="${site['name']}"></option>
+      </datalist>
     </div>
 
     <div class="buttons">

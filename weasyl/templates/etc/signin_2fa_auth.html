@@ -5,7 +5,6 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
   <form method="POST" class="form skinny clear" action="/signin/2fa-auth">
     $if error == "2fa":
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.</div>
-    $:{CSRF()}
     <h3>Two-Factor Authentication</h3>
     <p><strong>Username: ${username}</strong></p>
     <p>

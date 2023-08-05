@@ -67,10 +67,8 @@ def messages_submissions_(request):
     nexttime = request.params.get('nexttime')
 
     define._page_header_info.refresh(request.userid)
-    return Response(define.webpage(request.userid, "message/submissions_thumbnails.html", [
-        # Feature
-        request.params.get('feature', ''),
+    return Response(define.webpage(request.userid, "message/submissions_thumbnails.html", (
         # Submissions
         message.select_submissions(request.userid, 66, include_tags=False,
                                    backtime=define.get_int(backtime), nexttime=define.get_int(nexttime)),
-    ]))
+    )))

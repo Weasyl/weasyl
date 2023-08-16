@@ -70,6 +70,17 @@ const addFilenameSuffix = (relativePath, suffix) => {
     });
 };
 
+const copyUnversionedStaticFile = (relativePath, touch) => {
+    const inputPath = path.join(ASSETS, relativePath);
+    const outputFullPath = path.join(BUILD, relativePath);
+
+    return {
+        entries: [],
+        work: touch.then(() =>
+            fs.promises.copyFile(inputPath, outputFullPath)),
+    };
+};
+
 const copyStaticFile = (relativePath, touch) => {
     const inputPath = path.join(ASSETS, relativePath);
     const stream = fs.createReadStream(inputPath);
@@ -239,6 +250,7 @@ const main = async () => {
         esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
+        copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,
 
         // libraries

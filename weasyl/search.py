@@ -141,7 +141,7 @@ def _find_without_media(userid, rating, limit,
     # Begin statement
     statement_with = ""
     statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]
-    statement_where = ["WHERE content.rating <= %(rating)s AND content.settings !~ '[fhm]'"]
+    statement_where = ["WHERE content.rating <= %(rating)s AND NOT content.friends_only AND NOT content.hidden"]
     statement_group = []
 
     if search.find == "submit":
@@ -203,14 +203,12 @@ def _find_without_media(userid, rating, limit,
             statement_with = """
                 WITH
                     bg AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 10),
-                    bm AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 20),
                     ba AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 30),
                     bp AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 40)
             """
 
             statement_where.append("""
                 AND NOT submission_tags.tags && (SELECT tags FROM bg)
-                AND (content.rating < 20 OR NOT submission_tags.tags && (SELECT tags FROM bm))
                 AND (content.rating < 30 OR NOT submission_tags.tags && (SELECT tags FROM ba))
                 AND (content.rating < 40 OR NOT submission_tags.tags && (SELECT tags FROM bp))
             """)
@@ -268,7 +266,8 @@ def _find_without_media(userid, rating, limit,
             find=search.find,
             select=select,
             subtype=subtype,
-            title_field="char_name" if search.find == "char" else "title"
+            title_field="char_name" if search.find == "char" else "title",
+            extra_fields=", content.settings" if search.find == "char" else ""
         )
 
     pagination_filter = (
@@ -280,7 +279,8 @@ def _find_without_media(userid, rating, limit,
         """
         SELECT
             content.{select}, content.{title_field} AS title, content.rating, content.unixtime, content.userid,
-            content.settings, profile.username, {subtype} as subtype
+            profile.username, {subtype} as subtype
+            {extra_fields}
         """,
         pagination_filter,
         "ORDER BY content.{{select}} {order} LIMIT %(limit)s".format(order="" if backid else "DESC"))
@@ -316,17 +316,7 @@ def _find_without_media(userid, rating, limit,
 
     query = d.engine.execute(statement, params)
 
-    ret = [{
-        "contype": type_code,
-        select: i[select],
-        "title": i.title,
-        "subtype": i.subtype,
-        "rating": i.rating,
-        "unixtime": i.unixtime,
-        "userid": i.userid,
-        "username": i.username,
-        "settings": i.settings,
-    } for i in query]
+    ret = [{"contype": type_code, **i} for i in query]
 
     if backid:
         # backid is the item after the last item (display-order-wise) on the
@@ -399,5 +389,6 @@ def browse(userid, rating, limit, find, cat, backid, nextid):
     elif find == "journal":
         return journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid)
     else:
-        return submission.select_list(userid, rating, limit, backid=backid, nextid=nextid,
-                                      subcat=d.get_int(cat) if d.get_int(cat) in [1000, 2000, 3000] else None)
+        return submission.select_list(userid, rating, limit=limit, backid=backid, nextid=nextid,
+                                      subcat=d.get_int(cat) if d.get_int(cat) in [1000, 2000, 3000] else None,
+                                      critique_only=find == "critique")

@@ -176,7 +176,6 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
   </header>
 
   <form method="POST" action="">
-    $:{CSRF()}
     $if myself:
       <p class="user">
         <a class="avatar" href="${request.path_for(myself)}">

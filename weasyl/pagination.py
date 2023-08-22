@@ -2,8 +2,8 @@
 class PaginatedResult(object):
     # We expect select_list to have at least the following keyword arguments:
     # limit, back_id, next_id
-    def __init__(self, select_list, select_count, id_field, url_format, *args, **kwargs):
-        limit = kwargs.pop('limit')
+    def __init__(self, select_list, select_count, id_field, url_format, *args, limit=None, count_limit=None, **kwargs):
+        self.count_limit = count_limit
         self._query = select_list(*args, limit=limit, **kwargs)
         self._url_format = url_format
 

@@ -105,6 +105,8 @@ h  Hidden
 
 ----------------------
 submission.settings ()
+**DEPRECATED**
+These codes are no longer used and appear here only for historical interest.
 ----------------------
 
 h  Hidden

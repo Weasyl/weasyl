@@ -1,4 +1,4 @@
-$def with (request, profile, userinfo, social_sites, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified)
+$def with (request, profile, userinfo, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <section><div id="user-header" class="stage clear">
@@ -8,9 +8,15 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   $# The submissions/favorite grids are above/straddling the fold, so omit lazy load.
   $if(submissions):
     <ul id="user-thumbs" class="thumbnail-grid small-footprint">
+      $code:
+        include_byline = {
+          'submissions': False,
+          'characters': False,
+          'collections': True,
+        }[more_submissions]
       $for i in submissions:
-        $:{_GRID_ITEM(i, lazy_load=False)}
-      </li><li class="clear"><a class="more" href="/${more_submissions}/${LOGIN(profile['username'])}"><span>${profile['username']}'s ${more_submissions.title()}</span></a></li>
+        $:{_GRID_ITEM(i, include_byline=include_byline, lazy_load=False)}
+      <li class="more more-joined"><a class="more" href="/${more_submissions}/${LOGIN(profile['username'])}"><span>${profile['username']}'s ${more_submissions.title()}</span></a></li>
     </ul>
 
   $if submissions and favorites:
@@ -20,7 +26,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     <ul id="fav-thumbs" class="thumbnail-grid tiny-footprint">
       $for i in favorites:
         $:{_GRID_ITEM(i, lazy_load=False)}
-      </li><li class="clear"><a class="more" href="/favorites/${LOGIN(profile['username'])}"><span>${profile['username']}'s Favorites</span></a></li>
+      <li class="more more-joined"><a class="more" href="/favorites/${LOGIN(profile['username'])}"><span>${profile['username']}'s Favorites</span></a></li>
     </ul>
 
 </div></section>
@@ -39,7 +45,6 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       </p>
 
       <form id="error_buttons" method="POST" action="${request.route_path('vouch')}">
-        $:{CSRF()}
         <input type="hidden" name="targetid" value="${profile['userid']}">
         <button class="button positive">Vouch for ${profile['username']}</button>
       </form>
@@ -102,7 +107,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     <div id="user-journal" class="clear on-side">
       <h3>Latest Journal</h3>
       <h4><a class="color-c" href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a></h4>
-      <h5><i>on</i> ${DATE(journal['unixtime'])} <i>at</i> ${TIME(journal['unixtime'])}</h5>
+      <h5>$:{LOCAL_TIME(journal['unixtime'], '<i>on</i> {date} <i>at</i> {time}')}</h5>
 
       <div class="formatted-content">
         $:{MARKDOWN(journal['content'])}
@@ -141,7 +146,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
   $if show_statistics:
     <div id="user-stats" class="clear on-side">
       <h3>Statistics</h3>
-      <p>Joined ${DATE(profile['unixtime'])}</p>
+      <p>Joined $:{LOCAL_TIME(profile['unixtime'], '{date}')}</p>
       <dl>
         <dt>${statistics['page_views']}</dt> <dd>Pageviews</dd>
         <dt>${statistics['followed']}</dt> <dd>Followers</dd>

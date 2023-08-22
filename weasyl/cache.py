@@ -8,6 +8,11 @@ from pyramid.threadlocal import get_current_request
 def _increments(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
+        query = '%s(%s)' % (
+            func.__name__,
+            ', '.join(list(map(repr, args)) + ['%s=%r' % kv for kv in kwargs.items()]),
+        )
+
         start = time.perf_counter()
         result = func(self, *args, **kwargs)
         end = time.perf_counter()
@@ -16,11 +21,6 @@ def _increments(func):
         if hasattr(request, 'memcached_times'):
             request.memcached_times.append(end - start)
         if hasattr(request, 'query_debug'):
-            query = '%s(%s)' % (
-                func.__name__,
-                ', '.join(list(map(repr, args)) + ['%s=%r' % kv for kv in kwargs.items()]),
-            )
-
             request.query_debug.append((query, end - start))
 
         return result

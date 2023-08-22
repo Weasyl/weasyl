@@ -8,10 +8,7 @@ unsigned = "You must be signed in to perform this operation."
 permission = "You do not have permission to access this page."
 
 token = (
-    "This action appears to have been performed illegitimately; for your "
-    "security, this request was not fully processed. If you believe you are "
-    "receiving this message in error, return to the previous page, refresh, "
-    "and try again.")
+    "We weren’t able to process your request for security reasons. If you’re seeing this error after trying to perform an action on Weasyl, your web browser may not be compatible with this website. We recommend [Firefox](https://www.mozilla.org/firefox/) or [Chrome](https://www.google.com/chrome/).")
 rating = (
     "This page contains content that you cannot view according to your "
     "current allowed ratings.")
@@ -25,8 +22,6 @@ unexpected = (
     "fully processed.")
 
 error_messages = {
-    "addressInvalid": "Your IP address does not match the location from which this request was made.",
-    "ArtistTags": "You cannot remove tags that have been added by the artist.",
     "birthdayInsufficient": (
         "Your date of birth indicates that you are not allowed to set your content rating settings to the "
         "level you entered. Please choose a lower rating level."),
@@ -67,10 +62,8 @@ error_messages = {
     "emailBlacklisted": (
         "The domain of the email you entered has been associated with a high volume of spam. "
         "Consequently, registrations from this domain have been blacklisted."),
-    "emailExists": "The email you entered is already taken by another user.",
     "emailIncorrect": "The email you entered is not associated with the account you specified.",
     "emailInvalid": "The email you entered does not appear to be valid.",
-    "emailMismatch": "The email you entered did not match the email confirmation.",
     "embedlinkInvalid": "The embed link you entered does not point to a valid resource or supported service.",
     "FeatureDisabled": "This feature has been temporarily disabled.",
     "FileType": "The file you uploaded is not of a valid type.",
@@ -81,7 +74,10 @@ error_messages = {
         "forgot password page and resubmit the form, or you may have copied the link incorrectly."),
     "FriendsOnly": friends,
     "characterRecordMissing": charid,
-    "googleDocsEmbedLinkInvalid": "The Google Drive link you provided is invalid.",
+    "googleDocsEmbedLinkInvalid": (
+        "The link you provided isn’t a valid Google Docs embed link."
+        " If you’re not sure which link to use, we have [a guide on publishing documents from Google Docs](/help/google-drive-embed) that might help."
+    ),
     "hiddenFavorites": "You cannot view this page because the owner does not allow anyone to see their favorites.",
     "httpError": "An error occurred while making an HTTP request on your behalf.",
     "IgnoredYou": "This user has ignored you.",
@@ -90,16 +86,11 @@ error_messages = {
     "insufficientActionPermissions": "You do not have permission to perform this action.",
     "journalRecordMissing": journalid,
     "logincreateRecordMissing": "That's not a valid token!",
-    "loginInvalid": "The login credentials you entered were not correct.",
-    "loginRecordMissing": (
-        "The username you entered does not appear to be correct. Check to make sure that you entered the "
-        "name correctly and that the account you are trying to recover the password for actually exists."),
     "maxamountInvalid": "The maximum amount you entered is not valid.",
     "minamountInvalid": "The minimum amount you entered is not valid.",
     'noGuests': no_guest_access,
     "noCover": "No cover exists for that submission.",
     "noImageSource": "No image exists from which to create a thumbnail.",
-    "not-utf8": "Text submissions must be encoded in UTF-8.",
     "notEnoughTags": (
         "You must maintain at least two tags on this content in order to sufficiently describe it "
         "for our search system."),
@@ -110,7 +101,6 @@ error_messages = {
     "parentidInvalid": "The specified parent folder does not exist.",
     "passwordIncorrect": "The password you entered was incorrect.",
     "passwordInsecure": "Passwords must be at least 10 characters in length.",
-    "passwordMismatch": "The password you entered did not match the password confirmation.",
     "priceidInvalid": "You did not specify a price to edit.",
     "RatingExceeded": rating,
     "ratingInvalid": "The specified rating is invalid.",
@@ -137,7 +127,6 @@ error_messages = {
     "thumbSizeExceedsLimit": (
         "The thumbnail file you uploaded exceeds the allowed filesize for this submission category."),
     "thumbType": "The thumbnail file you uploaded is not a valid image filetype.",
-    "TimeLimitExceeded": "You can't edit that any longer.",
     "titleExists": "That title is already being used.",
     "titleInvalid": "You did not enter a title.",
     "titleTooLong": "That title is too long.",
@@ -157,7 +146,6 @@ error_messages = {
     "userRecordMissing": userid,
     "usernameChangedTooRecently": "You can't change your username within 30 days of a previous change.",
     "usernameExists": "The username you entered is already registered by another user.",
-    "usernameIncorrect": "The username you entered does not match the account for which this request was made.",
     "usernameInvalid": (
         "The username you entered is not valid. Usernames must contain one or more alphanumeric characters."),
     "vouchRequired": (

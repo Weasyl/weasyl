@@ -1,19 +1,22 @@
-import pytz
+import re
+
 import sqlalchemy as sa
+from pyramid.threadlocal import get_current_request
+from sqlalchemy import bindparam, func
+from sqlalchemy.dialects.postgresql import aggregate_order_by
 
 from libweasyl import ratings
 from libweasyl import security
 from libweasyl import staff
 from libweasyl.cache import region
-from libweasyl.html import strip_html
-from libweasyl.models import tables
+from libweasyl.legacy import UNIXTIME_NOW_SQL
+from libweasyl.models import tables as t
 
 from weasyl import define as d
 from weasyl import emailer
 from weasyl import login
 from weasyl import macro as m
 from weasyl import media
-from weasyl import orm
 from weasyl import shout
 from weasyl import welcome
 from weasyl.configuration_builder import create_configuration, BoolOption, ConfigOption
@@ -55,7 +58,6 @@ ALLOWABLE_EXCHANGE_CODES = {
 
 
 Config = create_configuration([
-    BoolOption("twelvehour", "2"),
     ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "a", "p"]))),
     BoolOption("tagging", "k"),
     BoolOption("hideprofile", "h"),
@@ -104,17 +106,56 @@ def resolve(userid, otherid, othername):
         if result:
             return result
     elif othername:
-        return d.get_userids([othername])[othername]
+        return resolve_by_username(othername)
     elif userid:
         return userid
 
     return 0
 
 
+def resolve_by_username(username):
+    return d.get_userids([username])[username]
+
+
+_TWITTER_USERNAME = re.compile(r"@?(\w{4,15})", re.ASCII)
+
+_TWITTER_USER_LINK = re.compile(
+    r"(?:https?://)(?:(?:www|m|mobile)\.)?twitter.com/@?(\w{4,15})(?:\Z|[?#/])",
+    re.ASCII | re.IGNORECASE
+)
+
+
+def _parse_twitter_username(twitter_link_value):
+    """
+    Get a Twitter username from a user-provided link if possible, or `None` if not.
+
+    Preserves case.
+    """
+    twitter_link_value = twitter_link_value.strip()
+
+    if m := _TWITTER_USERNAME.fullmatch(twitter_link_value):
+        twitter_username = m.group(1)
+    elif m := _TWITTER_USER_LINK.match(twitter_link_value):
+        twitter_username = m.group(1)
+    else:
+        return None
+
+    return twitter_username if twitter_username.lower() != "twitter" else None
+
+
+_TWITTER_LINK_QUERY = (
+    sa.select(t.user_links.c.link_value)
+    .where(t.user_links.c.userid == bindparam("userid"))
+    .where(t.user_links.c.link_type.ilike(sa.text("'twitter'")))
+    .order_by(t.user_links.c.link_value)
+    .limit(1)
+).compile()
+
+
 @region.cache_on_arguments()
-@d.record_timing
-def resolve_by_login(login):
-    return resolve(None, None, login)
+def get_twitter_username(userid):
+    link_value = d.engine.scalar(_TWITTER_LINK_QUERY, {"userid": userid})
+    return _parse_twitter_username(link_value) if link_value else None
 
 
 def select_profile(userid, viewer=None):
@@ -122,7 +163,6 @@ def select_profile(userid, viewer=None):
         SELECT pr.username, pr.full_name, pr.catchphrase, pr.created_at, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
         FROM profile pr
-            INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
         WHERE userid = %(user)s
     """, user=userid).first()
@@ -153,42 +193,10 @@ def select_profile(userid, viewer=None):
         "config": query[7],
         "show_favorites_bar": "u" not in query[7] and "v" not in query[7],
         "show_favorites_tab": userid == viewer or "v" not in query[7],
-        "commish_slots": 0,
         "banned": is_banned,
         "suspended": is_suspended,
         "streaming_status": streaming_status,
     }
-
-
-def twitter_card(userid):
-    username, full_name, catchphrase, profile_text, config, twitter = d.engine.execute(
-        "SELECT pr.username, pr.full_name, pr.catchphrase, pr.profile_text, pr.config, ul.link_value "
-        "FROM profile pr "
-        "LEFT JOIN user_links ul ON pr.userid = ul.userid AND ul.link_type = 'twitter' "
-        "WHERE pr.userid = %(user)s",
-        user=userid).first()
-
-    ret = {
-        'card': 'summary',
-        'url': d.absolutify_url('/~%s' % (username,)),
-        'title': '%s on Weasyl' % (full_name,),
-    }
-
-    if catchphrase:
-        description = '"%s"' % (catchphrase,)
-    elif profile_text:
-        description = strip_html(profile_text)
-    else:
-        description = "[%s has an empty profile, but is eggcelent!]" % (full_name,)
-    ret['description'] = d.summarize(description)
-
-    media_items = media.get_user_media(userid)
-    ret['image:src'] = d.absolutify_url(media_items['avatar'][0]['display_url'])
-
-    if twitter:
-        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
-
-    return ret
 
 
 def select_myself(userid):
@@ -304,8 +312,8 @@ def _select_statistics(userid):
                     WHERE jo.userid = %(user)s AND fa.type = 'j')),
             (SELECT COUNT(*) FROM watchuser WHERE otherid = %(user)s),
             (SELECT COUNT(*) FROM watchuser WHERE userid = %(user)s),
-            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND settings !~ 'h'),
-            (SELECT COUNT(*) FROM journal WHERE userid = %(user)s AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND NOT hidden),
+            (SELECT COUNT(*) FROM journal WHERE userid = %(user)s AND NOT hidden),
             (SELECT COUNT(*) FROM comments WHERE target_user = %(user)s AND settings !~ 'h' AND settings ~ 's')
     """, user=userid).first()
 
@@ -326,30 +334,79 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, limit, order_by=None):
-    statement = [
-        "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
-        "FROM profile pr "
-        "JOIN user_streams USING (userid) "
-        "JOIN login USING (userid) "
-        "WHERE login.voucher IS NOT NULL AND end_time > %i" % (d.get_time(),)
-    ]
+_SELECT_STREAMING_BASE = (
+    sa.select(
+        t.profile.c.userid,
+        t.profile.c.username,
+        t.profile.c.stream_url,
+        t.profile.c.stream_text,
+        t.user_streams.c.start_time.label('stream_time'),
+    )
+    .select_from(
+        t.profile
+        .join(t.user_streams, t.profile.c.userid == t.user_streams.c.userid)
+        .join(t.login, t.profile.c.userid == t.login.c.userid),
+    )
+    .where(t.login.c.voucher.is_not(None))
+    .where(t.user_streams.c.end_time > UNIXTIME_NOW_SQL)
+    .where(t.profile.c.stream_url != sa.text("''"))
+)
+
+
+def select_streaming_sample(userid):
+    query = _SELECT_STREAMING_BASE
 
     if userid:
-        statement.append(m.MACRO_IGNOREUSER % (userid, "pr"))
-    if order_by:
-        statement.append(" ORDER BY %s LIMIT %i" % (order_by, limit))
-    else:
-        statement.append(" ORDER BY RANDOM() LIMIT %i" % limit)
+        query = query.where(
+            m.not_ignored(t.profile.c.userid)
+            .unique_params({'userid': userid})
+        )
 
-    ret = [{
-        "userid": i[0],
-        "username": i[1],
-        "stream_url": i[2],
-        "stream_text": i[4],
-        "stream_time": i[5],
-    } for i in d.execute("".join(statement)) if i[2]]
+    sample_subquery = (
+        query
+        .order_by(func.random())
+        .limit(3)
+        .subquery()
+    )
 
+    sample_and_count = sa.select(
+        func.coalesce(
+            sa.select(
+                func.jsonb_agg(
+                    aggregate_order_by(
+                        sample_subquery.table_valued(),
+                        sample_subquery.c.stream_time.desc(),
+                    )
+                ),
+            )
+            .select_from(sample_subquery)
+            .scalar_subquery(),
+            sa.text("'[]'::jsonb"),
+        ).label('sample'),
+        (sa.select(func.count())
+            .select_from(query.subquery())
+            .scalar_subquery()
+            .label('total')),
+    )
+
+    ret = d.engine.execute(sample_and_count).one()
+    media.populate_with_user_media(ret.sample)
+    return ret
+
+
+def select_streaming(userid):
+    query = (
+        _SELECT_STREAMING_BASE
+        .order_by(t.user_streams.c.start_time.desc())
+    )
+
+    if userid:
+        query = query.where(
+            m.not_ignored(t.profile.c.userid)
+            .unique_params({'userid': userid})
+        )
+
+    ret = [row._asdict() for row in d.engine.execute(query)]
     media.populate_with_user_media(ret)
     return ret
 
@@ -507,10 +564,10 @@ def edit_userinfo(userid, form):
         """, userid=userid)
 
     d._get_all_config.invalidate(userid)
+    get_twitter_username.invalidate(userid)
 
 
-def edit_email_password(userid, username, password, newemail, newemailcheck,
-                        newpassword, newpasscheck):
+def edit_email_password(*, userid, password, newemail, newpassword):
     """
     Edit the email address and/or password for a given Weasyl account.
 
@@ -520,40 +577,27 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
 
     Parameters:
         userid: The `userid` of the Weasyl account to modify.
-        username: User-entered username for password-based authentication.
         password: The user's current plaintext password.
         newemail: If changing the email on the account, the new email address. Optional.
-        newemailcheck: A verification field for the above to serve as a typo-check. Optional,
-        but mandatory if `newemail` provided.
         newpassword: If changing the password, the user's new password. Optional.
-        newpasscheck: Verification field for `newpassword`. Optional, but mandatory if
-        `newpassword` provided.
     """
     from weasyl import login
+
+    # Check that credentials are correct
+    current_email = login.authenticate_account_change(
+        userid=userid,
+        password=password,
+    )
 
     # Track if any changes were made for later display back to the user.
     changes_made = ""
 
-    # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
-
-    # Run checks prior to modifying anything...
-    if userid != logid or logerror is not None:
-        raise WeasylError("loginInvalid")
-
-    if newemail:
-        if newemail != newemailcheck:
-            raise WeasylError("emailMismatch")
-
-    if newpassword:
-        if newpassword != newpasscheck:
-            raise WeasylError("passwordMismatch")
-        elif not login.password_secure(newpassword):
-            raise WeasylError("passwordInsecure")
+    if newpassword and not login.password_secure(newpassword):
+        raise WeasylError("passwordInsecure")
 
     # If we are setting a new email, then write the email into a holding table pending confirmation
     #   that the email is valid.
-    if newemail:
+    if newemail and newemail.lower() != current_email.lower():
         # Only actually attempt to change the email if unused; prevent finding out if an email is already registered
         if not login.email_exists(newemail):
             token = security.generate_key(40)
@@ -609,20 +653,19 @@ def invalidate_other_sessions(userid):
 
     Returns: Nothing.
     """
-    sess = d.get_weasyl_session()
+    sess = get_current_request().weasyl_session
     d.engine.execute("""
         DELETE FROM sessions
         WHERE userid = %(userid)s
           AND sessionid != %(currentsession)s
-    """, userid=userid, currentsession=sess.sessionid)
+    """, userid=userid, currentsession=sess.sessionid if sess is not None else "")
 
 
-def edit_preferences(userid, timezone=None,
+def edit_preferences(userid,
                      preferences=None, jsonb_settings=None):
     """
     Apply changes to stored preferences for a given user.
     :param userid: The userid to apply changes to
-    :param timezone: (optional) new Timezone to set for user
     :param preferences: (optional) old-style char preferences, overwrites all previous settings
     :param jsonb_settings: (optional) JSON preferences, overwrites all previous settings
     :return: None
@@ -639,10 +682,7 @@ def edit_preferences(userid, timezone=None,
 
     if tooyoung:
         raise WeasylError("birthdayInsufficient")
-    if timezone is not None and timezone not in pytz.all_timezones:
-        raise WeasylError('invalidTimezone')
 
-    db = d.connect()
     updates = {}
     if preferences is not None:
         # update legacy preferences
@@ -658,21 +698,9 @@ def edit_preferences(userid, timezone=None,
         d._get_all_config.invalidate(userid)
 
     d.engine.execute(
-        tables.profile.update().where(tables.profile.c.userid == userid),
+        t.profile.update().where(t.profile.c.userid == userid),
         updates
     )
-
-    # update TZ
-    if timezone is not None:
-        tz = db.query(orm.UserTimezone).get(userid)
-        if tz is None:
-            tz = orm.UserTimezone(userid=userid)
-            db.add(tz)
-        tz.timezone = timezone
-        db.flush()
-        tz.cache()
-    else:
-        db.flush()
 
 
 def select_manage(userid):

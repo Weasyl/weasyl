@@ -21,7 +21,7 @@ $def with (detail, history)
       $for i in row.removed or []:
         -<a href="/search?q=${i}">${i}</a>
       </td>
-      <td>${DATE(row.updated_at)} <i>at</i> ${TIME(row.updated_at)}</td>
+      <td>$:{LOCAL_TIME(row.updated_at, '{date} <i>at</i> {time}')}</td>
     </tr>
   </table>
 </div>

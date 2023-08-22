@@ -4,15 +4,16 @@
 !libweasyl
 !weasyl
 
-!etc
-etc/*
-!etc/requirements.txt
-!requirements
+!poetry-requirements.txt
+!poetry.lock
+!pyproject.toml
 
 !build.js
 !package.json
 !package-lock.json
+!setup.cfg
 !setup.py
+!gunicorn.conf.py
 
 !pytest.ini
 !.coveragerc

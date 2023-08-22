@@ -57,7 +57,10 @@ def create_user(full_name="", birthday=arrow.get(586162800), config=None,
 
     add_entity(users.Profile(userid=user.userid, username=username,
                              full_name=full_name, created_at=arrow.get(0).datetime, config=config))
-    add_entity(users.UserInfo(userid=user.userid, birthday=birthday))
+    d.engine.execute(d.meta.tables['userinfo'].insert(), {
+        'userid': user.userid,
+        'birthday': birthday,
+    })
     # Verify this user
     if verified:
         d.engine.execute("UPDATE login SET voucher = userid WHERE userid = %(id)s",
@@ -95,24 +98,28 @@ def create_folder(userid, title="Folder", parentid=0, settings=None):
     return folder.folderid
 
 
-def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=arrow.get(1),
-                      description="", folderid=None, subtype=0, settings=None):
+def create_submission(userid, title="Test title", rating=ratings.GENERAL.code, unixtime=arrow.get(1),
+                      description="", folderid=None, subtype=0, hidden=False,
+                      friends_only=False, critique=False
+                      ):
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(
         userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
-        folderid=folderid, subtype=subtype, settings=settings, favorites=0))
+        folderid=folderid, subtype=subtype, hidden=hidden,
+        friends_only=friends_only, critique=critique,
+        favorites=0))
     update_last_submission_time(userid, unixtime)
     return submission.submitid
 
 
 def create_submissions(count, userid, title="", rating=ratings.GENERAL.code,
                        unixtime=arrow.get(1), description="", folderid=None, subtype=0,
-                       settings=None):
+                       hidden=False, friends_only=False, critique=False):
     """ Creates multiple submissions, and returns their IDs. """
     results = []
     for i in range(count):
         results.append(create_submission(userid, title, rating, unixtime, description,
-                                         folderid, subtype, settings))
+                                         folderid, subtype, hidden, friends_only, critique))
     return results
 
 
@@ -148,36 +155,37 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, content=''):
+def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False):
     journal = add_entity(Journal(
-        userid=userid, title=title, rating=rating, unixtime=unixtime, settings=settings, content=content))
+        userid=userid, title=title, rating=rating, unixtime=unixtime, content=content,
+        hidden=hidden, friends_only=friends_only))
     update_last_submission_time(userid, unixtime)
     return journal.journalid
 
 
-def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), *, friends_only=False):
     results = []
     for i in range(count):
-        results.append(create_journal(userid, title, rating, unixtime, settings))
+        results.append(create_journal(userid, title, rating, unixtime, friends_only=friends_only))
     return results
 
 
 def create_character(userid, name='', age='', gender='', height='', weight='', species='',
-                     description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                     description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, *, friends_only=False):
     character = add_entity(content.Character(
         userid=userid, char_name=name, age=age, gender=gender, height=height, weight=weight,
-        species=species, content=description, rating=rating, unixtime=unixtime, settings=settings))
+        species=species, content=description, rating=rating, unixtime=unixtime, settings=settings, friends_only=friends_only))
     update_last_submission_time(userid, unixtime)
     return character.charid
 
 
 def create_characters(count, userid, name='', age='', gender='', height='', weight='', species='',
-                      description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                      description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, *, friends_only=False):
     results = []
     for i in range(count):
         results.append(create_character(
             userid, name, age, gender, height, weight, species, description,
-            rating, unixtime, settings))
+            rating, unixtime, settings, friends_only=friends_only))
     return results
 
 
@@ -253,9 +261,11 @@ def create_submission_tag(tagid, targetid, settings=None):
 
 
 def create_blocktag(userid, tagid, rating):
-    db = d.connect()
-    db.add(content.Blocktag(userid=userid, tagid=tagid, rating=rating))
-    db.flush()
+    d.engine.execute(d.meta.tables['blocktag'].insert(), {
+        'userid': userid,
+        'tagid': tagid,
+        'rating': rating,
+    })
 
 
 def create_favorite(userid, **kwargs):

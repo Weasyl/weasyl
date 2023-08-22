@@ -12,7 +12,6 @@ $:{RENDER("common/stage_title.html", ["Submission Thumbnail" if feature == "subm
     <p style="padding: 0.5em 0 1em;">Press <strong>Upload</strong> to select an image from which you will create the thumbnail for this ${'submission' if feature == 'submit' else 'character'}.</p>
 
   <form name="manage_thumbnail" action="/manage/thumbnail" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
     <input type="hidden" name="${feature}id" value="${targetid}" />
     <input type="hidden" id="x1" name="x1" value="0" />
     <input type="hidden" id="y1" name="y1" value="0" />

@@ -1,7 +1,8 @@
 {
     "private": true,
     "devDependencies": {
-        "autoprefixer": "^9.1.0",
-        "postcss": "^7.0.2"
+        "autoprefixer": "^10.4.13",
+        "esbuild": "^0.16.13",
+        "postcss": "^8.4.20"
     }
 }

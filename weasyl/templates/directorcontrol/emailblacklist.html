@@ -4,7 +4,6 @@ $:{RENDER("common/stage_title.html", ["Edit Account Creation Email Blacklist", "
 <div class="content blacklisted-emails">
   $if entries:
     <form method="POST" action="/directorcontrol/emailblacklist">
-      $:{CSRF()}
       <table>
         <thead>
           <tr>
@@ -39,7 +38,6 @@ $:{RENDER("common/stage_title.html", ["Edit Account Creation Email Blacklist", "
     <label for="reason">Reason Why Blacklisted</label>
     <textarea rows="4" cols="60" class="input" name="reason" id="reason"></textarea>
 
-    $:{CSRF()}
     <div style="padding-top: 1em;">
       <button class="button negative" name="action" value="add">Blacklist Domain</button>
     </div>

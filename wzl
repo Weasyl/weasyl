@@ -1,0 +1,96 @@
+#!/bin/sh
+set -eu
+
+export DOCKER_BUILDKIT=1
+export WEASYL_VERSION="$(git rev-parse --short HEAD)"
+
+if test $# -eq 0; then
+    exec docker-compose
+fi
+
+head="$1"
+shift
+
+check_nobuild() {
+    if test "$2" = --nobuild; then
+        return 0
+    fi
+
+    docker-compose build "$1" || exit $?
+    return 1
+}
+
+case "$head" in
+
+assets)
+    docker-compose create "$@" build-assets
+    docker-compose cp ./assets build-assets:/weasyl-build/
+    container_id="$(docker-compose ps -a --format=json build-assets | grep -o '"ID":"[^"]*"' | cut -d '"' -f 4)"
+    exec docker start -ai "$container_id"
+    ;;
+
+check)
+    if check_nobuild flake8 "${1:-}"; then shift; fi
+    exec docker-compose run --rm -T flake8 "$@"
+    ;;
+
+configure)
+    c='docker-compose run --rm -T configure'
+    set -x
+    $c "$@" alembic.ini < libweasyl/alembic/alembic.ini.example
+    $c "$@" site.config.txt < config/site.config.txt.example
+    $c "$@" weasyl-staff.py < config/weasyl-staff.example.py
+    $c "$@" disposable-domains.txt < config/disposable-domains.txt
+    ;;
+
+migrate)
+    if check_nobuild migrate "${1:-}"; then shift; fi
+    exec docker-compose run --rm -T migrate "$@"
+    ;;
+
+revision)
+    if check_nobuild revision "${1:-}"; then shift; fi
+    exec docker-compose run --rm -T revision "$@" | tar x libweasyl/alembic/versions
+    ;;
+
+test)
+    if check_nobuild test "${1:-}"; then shift; fi
+    exec docker-compose run --rm test "$@"
+    ;;
+
+test-coverage)
+    if check_nobuild test "${1:-}"; then shift; fi
+
+    if test $# -eq 0; then
+        set -- sh -c '
+            coverage run -m pytest libweasyl.test libweasyl.models.test
+            coverage run -m pytest weasyl.test
+            coverage combine
+            coverage html -d coverage
+        '
+    fi
+
+    exec docker-compose run --rm test "$@"
+    ;;
+
+poetry)
+    docker build --target bdist -t weasyl-poetry .
+    exit_code=1
+    if docker run --name=weasyl-poetry --init -it weasyl-poetry .poetry-venv/bin/poetry "$@"; then
+        docker cp weasyl-poetry:/weasyl/pyproject.toml ./
+        docker cp weasyl-poetry:/weasyl/poetry.lock ./
+        exit_code=0
+    fi
+    docker container rm weasyl-poetry
+    docker image rm weasyl-poetry
+    exit $exit_code
+    ;;
+
+push-templates)
+    docker cp weasyl/templates weasyl-web-1:/weasyl/weasyl/
+    ;;
+
+*)
+    exec docker-compose "$head" "$@"
+
+esac

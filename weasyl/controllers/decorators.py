@@ -94,8 +94,9 @@ def twofactorauth_disabled_required(view_callable):
 
 def token_checked(view_callable):
     def inner(request):
-        if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request, request.params.get('token')):
-            raise WeasylError('token')
+        assert request.method in ("POST", "DELETE", "PUT", "PATCH")
+        if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request):
+            raise WeasylError('token', level='warning')
         return view_callable(request)
     return inner
 

@@ -38,14 +38,14 @@ $code:
           <td>
             <a href="${report.target.legacy_path(mod=True)}">
               View ${report.target_type}
-              $if report.target.is_hidden:
+              $if report.target.hidden:
                 (Hidden)
             </a>
           </td>
           <td><a href="/~${report.target.owner.login_name}">${report.target.owner.profile.username}</a></td>
           <td>${'; '.join(report_violations)}</td>
           <td>${report_count}</td>
-          <td>${DATE(report.opened_at)} ${TIME(report.opened_at)}</td>
+          <td>$:{LOCAL_TIME(report.opened_at, '{date} {time}')}</td>
           $ status = report.status
           $if status == 'review':
             <td class="right">
@@ -55,7 +55,7 @@ $code:
             <td class="right">
               Closed by <a href="/~${report.owner.login_name}">${report.owner.profile.username}</a>
               (${report.closure_reason.value.replace('-', ' ')}
-              on ${DATE(report.closed_at)} at ${TIME(report.closed_at)})
+              $:{LOCAL_TIME(report.closed_at, 'on {date} at {time}')})
             </td>
           $else:
             <td class="right">Open</td>

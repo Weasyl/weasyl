@@ -47,8 +47,6 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
     There are no notifications to display.
 
   <form action="/messages/remove" method="post">
-    $:{CSRF()}
-
     $if query:
       <div class="notifs-actions" id="notification-global-actions-top">
         <div class="notifs-remove-buttons">
@@ -157,8 +155,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $:{item_user} favorited your journal titled $:{item_link}.
             $elif i['type'] == 3140:
               $# tag update
-              <a href="/submission/tag-history/${i['submitid']}">The tags were changed</a>
-              on your submission $:{item_link}.
+              Tags were suggested on your submission $:{item_link}.
             $elif i['type'] == 3150:
               <a href="/site-updates/${i['updateid']}">${i['title']}</a>
             $elif i['type'] == 4010:
@@ -166,7 +163,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $:{item_user} left a <a href="/shouts/${i['ownername']}#cid${i['commentid']}">comment</a> on your shout page.
             $elif i['type'] == 4015:
               $# shout reply
-              $:{item_user} left a $:{shout_reply('shouts')} to $:{your_comment('shouts')} on $:{item_ownername}</a>'s shout page.
+              $:{item_user} left a $:{shout_reply('shouts')} to $:{your_comment('shouts')} on $:{item_ownername}'s shout page.
             $elif i['type'] == 4016:
               $# staff note reply
               $:{item_user} left a $:{shout_reply('staffnotes')} to $:{your_comment('staffnotes')} on $:{item_ownername}'s staff notes.
@@ -199,7 +196,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the site update $:{item_link}.
             $else:
               ${i}
-            <span class="date color-lighter">${DATE(i['unixtime'])} <em>at</em> ${TIME(i['unixtime'])}</span>
+            <span class="date color-lighter">$:{LOCAL_TIME(i['unixtime'], '{date} <i>at</i> {time}')}</span>
           </label>
         </div>
       </div>$# close last group div

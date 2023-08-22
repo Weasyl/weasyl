@@ -1,4 +1,3 @@
-import logging
 import os
 
 from sanpera.exception import SanperaError
@@ -7,7 +6,6 @@ from sanpera import geometry
 
 from libweasyl import images
 from weasyl import files
-from weasyl.define import log_exc
 from weasyl.error import WeasylError
 
 
@@ -17,17 +15,15 @@ COVER_SIZE = 1024, 3000
 def read(filename):
     try:
         return Image.read(filename)
-    except SanperaError:
-        log_exc(level=logging.DEBUG)
-        raise WeasylError('imageDecodeError')
+    except SanperaError as e:
+        raise WeasylError('imageDecodeError', level='info') from e
 
 
 def from_string(filedata):
     try:
         return Image.from_buffer(filedata)
-    except SanperaError:
-        log_exc(level=logging.DEBUG)
-        raise WeasylError('imageDecodeError')
+    except SanperaError as e:
+        raise WeasylError('imageDecodeError', level='info') from e
 
 
 def image_setting(im):
@@ -57,7 +53,7 @@ def check_type(filename):
     except SanperaError:
         return False
     else:
-        return im.original_format in ['JPEG', 'PNG', 'GIF']
+        return im.original_format in [b'JPEG', b'PNG', b'GIF']
 
 
 def _resize(filename, width, height, destination=None):
@@ -114,7 +110,5 @@ def _shrinkcrop(im, size, bounds=None):
 def shrinkcrop(im, size, bounds=None):
     ret = images.correct_image_and_call(_shrinkcrop, im, size, bounds)
     if ret.size != size or (len(ret) == 1 and ret[0].size != size):
-        ignored_sizes = ret.size, ret[0].size  # to log these locals
         raise WeasylError('thumbnailingMessedUp')
-        ignored_sizes  # to shut pyflakes up
     return ret

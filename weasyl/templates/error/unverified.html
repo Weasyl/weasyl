@@ -11,7 +11,6 @@ $:{RENDER("common/stage_title.html", ["Unverified Account"])}
 
   <form id="error_buttons" method="POST" action="${request.route_path('vouch')}">
     $if can_vouch:
-      $:{CSRF()}
       <input type="hidden" name="targetid" value="${targetid}">
       <button class="button positive">Vouch for ${target_username}</button>
 

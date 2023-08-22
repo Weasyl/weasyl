@@ -10,7 +10,6 @@ $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
 <div id="notes-content" class="content">
   $if notes:
     <form action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
-      $:{CSRF()}
       <input type="hidden" name="folder" value="${folder}" />
 
       <table>
@@ -46,7 +45,7 @@ $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
                 $if user_type:
                   <strong class="user-type-${user_type}">(${user_type})</strong>
               </td>
-              <td>${DATE(unixtime)} ${TIME(unixtime)}</td>
+              <td>$:{LOCAL_TIME(unixtime, '{date} {time}')}</td>
             </tr>
         </tbody>
       </table>

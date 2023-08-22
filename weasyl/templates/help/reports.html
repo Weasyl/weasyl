@@ -13,7 +13,7 @@ $:{RENDER("common/stage_title.html", ["My reports", "Settings"])}
       $for report in reports:
         <tr>
           <td><a href="${report.target.legacy_path()}">${report.target.title}</a></td>
-          <td>${DATE(report.latest_report)} at ${TIME(report.latest_report)}</td>
+          <td>$:{LOCAL_TIME(report.latest_report, '{date} at {time}')}</td>
           <td>
             ${report.status}
             $if report.is_closed and report.closure_reason != constants.ReportClosureReason.legacy:

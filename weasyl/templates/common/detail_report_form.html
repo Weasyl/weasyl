@@ -1,7 +1,6 @@
 $def with (targetid, feature, violations)
 <div id="detail-report" style="display: none;">
   <form name="submitreport" action="/submit/report" method="post" class="form clear">
-    $:{CSRF()}
     <input type="hidden" name="${feature}id" value="${targetid}" />
 
     $if(feature == "submit"):

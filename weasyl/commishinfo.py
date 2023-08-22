@@ -1,10 +1,7 @@
-import logging
 import re
 from collections import namedtuple
 from decimal import Decimal
 from urllib.parse import quote as urlquote
-
-from pyramid.threadlocal import get_current_request
 
 from libweasyl.cache import region
 
@@ -72,13 +69,10 @@ def _fetch_rates_no_cache_failure():
     except WeasylError:
         # http_get already logged the exception
         return None
-    else:
-        request = get_current_request()
-        request.environ['raven.captureMessage']("Fetched exchange rates", level=logging.INFO)
 
     rates = {'EUR': 1.0}
 
-    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.content):
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.text):
         code, rate = match.groups()
 
         try:

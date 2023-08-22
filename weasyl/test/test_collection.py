@@ -28,7 +28,8 @@ class CollectionsTestCase(unittest.TestCase):
             WHERE
                 (submission.rating <= :rating OR submission.userid = :user) AND
                 (position('p' in collection.settings) != 0) = :pending AND
-                submission.settings !~ '[fh]'
+                NOT submission.hidden AND
+                NOT submission.friends_only
             """,
             {
                 'user': self.collector,

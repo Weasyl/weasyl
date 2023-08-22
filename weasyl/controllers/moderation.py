@@ -32,8 +32,7 @@ def modcontrol_suspenduser_post_(request):
 
 @moderator_only
 def modcontrol_report_(request):
-    form = request.web_input(reportid='')
-    r = report.select_view(request.userid, form)
+    r = report.select_view(request.userid, reportid=int(request.GET["reportid"]))
     blacklisted_tags = moderation.gallery_blacklisted_tags(request.userid, r.target.userid)
 
     return Response(define.webpage(request.userid, "modcontrol/report.html", [
@@ -85,7 +84,7 @@ def modcontrol_contentbyuser_(request):
 @moderator_only
 @token_checked
 def modcontrol_massaction_(request):
-    form = request.web_input(action='', name='', submissions=[], characters=[], journals=[])
+    form = request.web_input(action='', submissions=[], characters=[], journals=[])
     if form.action.startswith("zap-"):
         # "Zapping" cover art or thumbnails is not a bulk edit.
         if not form.submissions:
@@ -113,32 +112,6 @@ def modcontrol_massaction_(request):
             list(map(int, form.journals)),
         ),
     )
-
-
-@moderator_only
-@token_checked
-def modcontrol_hide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.hidesubmission(int(form.submission))
-    elif form.character:
-        moderation.hidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
-
-
-@moderator_only
-@token_checked
-def modcontrol_unhide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.unhidesubmission(int(form.submission))
-    elif form.character:
-        moderation.unhidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only

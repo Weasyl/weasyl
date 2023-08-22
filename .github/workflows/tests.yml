@@ -5,9 +5,11 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:893c70251e56e2d443a132602c6f22d1d58fdf3f14fb77443d0d0d71a959e3b3
+      image: ghcr.io/weasyl/ci-base-image@sha256:9a366824361bf3123b28364ab6a4bd039ac765fafd5a1baab07f5c7c4485c007
       options: --user 1001
 
     services:
@@ -28,23 +30,23 @@ jobs:
         image: memcached:1.5-alpine
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Cache npm dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.npm
           key: cache-${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             cache-${{ runner.os }}-npm-
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v2
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v3
         with:
-          path: ~/.cache/pip
-          key: cache-${{ runner.os }}-pip-${{ hashFiles('etc/requirements.txt', 'requirements/test.txt', 'requirements/lxml.txt') }}
+          path: ~/.cache/pypoetry
+          key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
           restore-keys: |
-            cache-${{ runner.os }}-pip-
+            cache-${{ runner.os }}-poetry-
 
       - name: Create virtualenv
         run: python3 -m venv --system-site-packages .venv
@@ -52,14 +54,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Install pip dependencies
-        run: .venv/bin/pip install -r etc/requirements.txt -r requirements/lxml.txt -r requirements/test.txt
-
-      - name: Install libweasyl
-        run: .venv/bin/pip install --no-deps -e libweasyl
-
-      - name: Install Weasyl
-        run: .venv/bin/pip install --no-deps -e .
+      - name: Install Poetry dependencies
+        run: poetry install
 
       - name: Configure Weasyl
         run: |
@@ -73,15 +69,20 @@ jobs:
       - name: Test libweasyl
         env:
           WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl_test
-        run: .venv/bin/pytest --cov=libweasyl --cov=weasyl --cov-report= libweasyl.test libweasyl.models.test
+        run: .venv/bin/coverage run -m pytest libweasyl.test libweasyl.models.test
 
       - name: Test weasyl
         env:
           WEASYL_APP_ROOT: .
           WEASYL_STORAGE_ROOT: testing
-        run: .venv/bin/pytest --cov-append --cov=libweasyl --cov=weasyl --cov-report=xml weasyl.test
+        run: .venv/bin/coverage run -m pytest weasyl.test
+
+      - name: Create coverage report
+        run: |
+          .venv/bin/coverage combine
+          .venv/bin/coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml

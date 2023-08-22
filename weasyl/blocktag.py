@@ -85,9 +85,6 @@ def insert(userid, title, rating):
 
     select_ids.invalidate(userid)
 
-    from weasyl import index
-    index.template_fields.invalidate(userid)
-
 
 def remove(userid, title):
     d.engine.execute(
@@ -97,6 +94,3 @@ def remove(userid, title):
     )
 
     select_ids.invalidate(userid)
-
-    from weasyl import index
-    index.template_fields.invalidate(userid)

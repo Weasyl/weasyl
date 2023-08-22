@@ -10,14 +10,9 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
     <p>Information about commissioning you and preferences for commission content</p>
     <div class="commish-row">
       <div class="info">
-        <form name="controleditcommishtext" action="/control/editcommishinfo" method="post" class="clear">
-          $:{CSRF()}
+        <form action="/control/editcommishinfo" method="post" class="clear">
           <!-- Copied from edit_profile.html. TODO(hyena): Only put this in one place, probably here. -->
           <label for="editprofile-setcommish">Commissions</label>
-          <p>
-            You will not appear in <a href="/marketplace">Marketplace</a> results unless your commission status
-            is "currently accepting" or "may sometimes accept".
-          </p>
           <select id="editprofile-setcommish" class="input" name="set_commish">
             <option value="o"${_SELECTED(0, 'o')}>I am currently accepting commissions</option>
             <option value="s"${_SELECTED(0, 's')}>I may sometimes accept commissions</option>
@@ -25,6 +20,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
             <option value="c"${_SELECTED(0, 'c')}>I am not accepting commissions right now</option>
             <option value="e"${_SELECTED(0, 'e')}>This is not applicable to me</option>
           </select>
+          <p class="color-lighter tags-help"><i>You will appear in <a href="/marketplace">Marketplace</a> results if your commission status is “currently accepting” or “may sometimes accept”.</i></p>
 
           <label for="editprofile-settrade">Trades</label>
           <select id="editprofile-settrade" class="input" name="set_trade">
@@ -45,65 +41,39 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <textarea class="markdown input last-input expanding" name="content" rows="8" id="commish-info">${query['content'] if query['content'] else ''}</textarea>
           <br />
 
-          <button type="submit" class="button positive" style="float: right;">Save Info</button>
+          <div class="commish-tags">
+            <label for="preferred-tags">Preferred Tags</label>
+            <textarea id="preferred-tags" name="preferred-tags" class="input tags-textarea">${' '.join(query['tags'])}</textarea>
+            <p class="color-lighter tags-help"><i>Use these tags to indicate subject matter you prefer to create, making it easier for commissioners to find you.</i></p>
+
+            <label for="optout-tags">Opt-Out Tags</label>
+            <textarea id="optout-tags" name="optout-tags" class="input tags-textarea">${' '.join(query['opt_out'])}</textarea>
+            <p class="color-lighter tags-help"><i>You will not appear in results for commission searches containing these tags.</i></p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="button positive" style="float: right;">Save Info</button>
+          </div>
         </form>
       </div>
-      <div class="commish-tags">
-        <div class="di-tags">
-          <h3>Preferred Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
-          <p>
-            Use these tags to indicate subject matter you prefer to create, making it easier for
-            commissioners to find you.
-          </p>
-
-          <div class="tags open clear">
-            $if query['tags']:
-              $for tag in query['tags']:
-                <a href="/marketplace?q=${tag}">${tag}</a>
-            $else:
-              <p class="color-lighter">You have not defined any preferred tags.</p>
-          </div>
-
-          <h3 class="edit">Edit Tags</h3>
-          $:{RENDER("common/detail_tag_form.html", [query['userid'], "preferred_tags_user", query['tags']])}
-
-        </div>
-        <div class="di-tags">
-          <h3>Opt-Out Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
-          <p>
-            You will not appear in results for commission searches containing these tags.
-          </p>
-
-          <div class="tags open clear">
-            $if query['opt_out']:
-              $for tag in query['opt_out']:
-                <a class="artist" href="/marketplace?q=${tag}">${tag}</a>
-            $else:
-              <p class="color-lighter">You have not defined any opt-out tags.</p>
-          </div>
-
-          <h3 class="edit">Edit Tags</h3>
-          $:{RENDER("common/detail_tag_form.html", [query['userid'], "optout_tags_user", query['opt_out']])}
-        </div>
-        <div id="user-commissions" class="clear on-side">
-          <h3>Preview</h3>
-          $for i in query['class']:
-            <h4 class="color-c">${i['title']}</h4>
-            <dl class="leaders">
-            $for j in query['price']:
-              $if(j['classid'] == i['classid'] and 'a' not in j['settings']):
-                <dt>${j['title']}</dt>
-                <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-                $if(j['amount_max']):
-                  <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-            $for j in query['price']:
-              $if(j['classid'] == i['classid'] and 'a' in j['settings']):
-                <dt><i>add &#160;</i>${j['title']}</dt>
-                <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-                $if(j['amount_max']):
-                  <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-            </dl>
-        </div>
+      <div id="user-commissions" class="clear on-side">
+        <h3>Preview</h3>
+        $for i in query['class']:
+          <h4 class="color-c">${i['title']}</h4>
+          <dl class="leaders">
+          $for j in query['price']:
+            $if(j['classid'] == i['classid'] and 'a' not in j['settings']):
+              <dt>${j['title']}</dt>
+              <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
+              $if(j['amount_max']):
+                <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
+          $for j in query['price']:
+            $if(j['classid'] == i['classid'] and 'a' in j['settings']):
+              <dt><i>add &#160;</i>${j['title']}</dt>
+              <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
+              $if(j['amount_max']):
+                <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
+          </dl>
       </div>
     </div>
   </div>
@@ -114,7 +84,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
     <p>Creates a new type of commission with a base price</p>
     <form name="controlcreatecommishclass" action="/control/createcommishclass" method="post" class="clear">
       <div class="commish-row">
-        $:{CSRF()}
         <div class="half">
           <label for="commishprices-addclass-preset">Type Presets</label>
           <select class="input last-input" name="titlepreset" id="commishprices-addclass-preset">
@@ -157,7 +126,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
       <h3>Add a Price to a Type</h3>
       <p>Add a new base or add-on cost to a commission type</p>
       <form name="controlcreatecommishprice" action="/control/createcommishprice" method="post" class="clear">
-        $:{CSRF()}
         <div class="commish-row">
           <div class="half">
             <label for="commish-classselect">Type</label>
@@ -204,7 +172,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <h3>Edit/Remove a Type</h3>
           <p>Rename or remove an existing commission type</p>
           <form name="controleditcommishclass" method="post" class="clear">
-            $:{CSRF()}
             <label for="commishprices-editclass">Type Name</label>
             <select id="commishprices-editclass" class="input" required="required" name="classid">
               <option value="">Select type:</option>
@@ -235,7 +202,6 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           $for price in query['price']:
             <form name="controleditcommishprice" method="post" class="clear select-priceid"
                   data-priceid="${price['priceid']}" style="display:none;">
-              $:{CSRF()}
               <input type="hidden" name="priceid" value="${price['priceid']}">
               <label for="commish-edit-title">Rename To</label>
               <input type="text" class="input" name="title" required="required" id="commish-edit-title"

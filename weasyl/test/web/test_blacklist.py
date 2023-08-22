@@ -4,20 +4,19 @@ from libweasyl import ratings
 from weasyl.test import db_utils
 
 
-@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+@pytest.mark.usefixtures('db', 'cache')
 def test_blacklist_homepage(app):
     """
     Assert that changes to the blacklist apply to the home page immediately.
     """
-    submitting_user = db_utils.create_user()
     viewing_user = db_utils.create_user()
     tag1 = db_utils.create_tag('walrus')
     tag2 = db_utils.create_tag('penguin')
 
-    s1 = db_utils.create_submission(submitting_user, rating=ratings.GENERAL.code, subtype=1010)
+    s1 = db_utils.create_submission(db_utils.create_user(), rating=ratings.GENERAL.code, subtype=1010)
     db_utils.create_submission_tag(tag1, s1)
 
-    s2 = db_utils.create_submission(submitting_user, rating=ratings.GENERAL.code, subtype=1010)
+    s2 = db_utils.create_submission(db_utils.create_user(), rating=ratings.GENERAL.code, subtype=1010)
     db_utils.create_submission_tag(tag2, s2)
 
     cookie = db_utils.create_session(viewing_user)
@@ -40,7 +39,7 @@ def test_blacklist_homepage(app):
     assert len(resp.html.select('#home-art > .thumbnail-grid .thumb')) == 2
 
 
-@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+@pytest.mark.usefixtures('db', 'cache')
 def test_block_user_homepage(app):
     """
     Assert that changes to blocked users apply to the home page immediately.

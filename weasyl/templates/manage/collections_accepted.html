@@ -5,8 +5,6 @@ $ _LIST_ITEM = COMPILE("common/thumbnail_list_item.html")
 <div id="manage_collections_content" class="content" style="padding-top: 2.5em;">
   $if query:
     <form action="/collection/remove" method="POST" data-confirm="Are you sure you want to remove the selected collections?">
-      $:{CSRF()}
-
       $for i in query:
         $:{_LIST_ITEM(i, caption="collection_accepted")}
 

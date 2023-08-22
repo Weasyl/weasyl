@@ -24,7 +24,7 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
         " submission su ON co.submitid = su.submitid"
         " INNER JOIN profile pr ON su.userid = pr.userid"
         " INNER JOIN profile cpr ON co.userid = cpr.userid"
-        " WHERE su.settings !~ 'h'"]
+        " WHERE NOT su.hidden"]
 
     # filter own content in SFW mode
     if d.is_sfw_mode():
@@ -57,7 +57,7 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
 
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
     return statement
 
 
@@ -118,11 +118,11 @@ def owns(userid, submitid):
 
 def offer(userid, submitid, otherid):
     query = d.engine.execute(
-        "SELECT userid, rating, settings FROM submission WHERE submitid = %(id)s",
+        "SELECT userid, rating, hidden, friends_only FROM submission WHERE submitid = %(id)s",
         id=submitid,
     ).first()
 
-    if not query or "h" in query[2]:
+    if not query or query[2]:
         raise WeasylError("Unexpected")
     elif userid != query[0]:
         raise WeasylError("Unexpected")
@@ -133,7 +133,7 @@ def offer(userid, submitid, otherid):
 
         if rating < query[1]:
             raise WeasylError("collectionUnacceptable")
-        if "f" in query[2]:
+        if query[3]:
             raise WeasylError("collectionUnacceptable")
         if ignoreuser.check(otherid, userid):
             raise WeasylError("IgnoredYou")
@@ -168,13 +168,13 @@ def _check_throttle(userid, otherid):
 
 
 def request(userid, submitid, otherid):
-    query = d.engine.execute("SELECT userid, rating, settings "
+    query = d.engine.execute("SELECT userid, rating, hidden, friends_only "
                              "FROM submission WHERE submitid = %(submission)s",
                              submission=submitid).first()
 
     rating = d.get_rating(userid)
 
-    if not query or "h" in query.settings:
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
     if otherid != query.userid:
         raise WeasylError("Unexpected")
@@ -183,7 +183,7 @@ def request(userid, submitid, otherid):
     # something with a tag you don't like that's your business
     if rating < query.rating:
         raise WeasylError("RatingExceeded")
-    if "f" in query.settings:
+    if query.friends_only:
         raise WeasylError("collectionUnacceptable")
     if ignoreuser.check(otherid, userid):
         raise WeasylError("IgnoredYou")

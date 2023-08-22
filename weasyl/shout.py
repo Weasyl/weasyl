@@ -1,4 +1,5 @@
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import staff
 
@@ -46,7 +47,7 @@ def count(ownerid, staffnotes=False):
     sh = d.meta.tables['comments']
     op = '~' if staffnotes else '!~'
     q = (
-        d.sa.select([d.sa.func.count()])
+        sa.select([sa.func.count()])
         .select_from(sh)
         .where(sh.c.settings.op(op)('s'))
         .where(sh.c.target_user == ownerid))

@@ -71,9 +71,6 @@ def insert(userid, ignore):
 
     cached_list_ignoring.invalidate(userid)
 
-    from weasyl import index
-    index.template_fields.invalidate(userid)
-
 
 def remove(userid, ignore):
     if not ignore:
@@ -84,6 +81,3 @@ def remove(userid, ignore):
 
     if result.rowcount:
         cached_list_ignoring.invalidate(userid)
-
-        from weasyl import index
-        index.template_fields.invalidate(userid)

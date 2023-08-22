@@ -18,8 +18,6 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
     </div>
 
     <form name="modcontrolsuspenduser" action="/modcontrol/suspenduser" method="post">
-      $:{CSRF()}
-
       <div class="form-2up clear">
         <div class="form-2up-1">
           <label for="suspendid">UserID</label>
@@ -47,9 +45,6 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
 
       <label for="suspendreason">Reason</label>
       <textarea name="reason" class="markdown input expanding" rows="9" id="suspendreason"></textarea>
-
-      <label>Current Date</label>
-      <p>${DATE()}</p>
 
       <label>Duration/Release Date</label>
 

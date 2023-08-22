@@ -28,7 +28,6 @@ $:{TITLE("Administrator Control Panel")}
 
     <label>Get Confirmation Link</label>
     <form class="form clear" action="/admincontrol/acctverifylink" method="post">
-      $:{CSRF()}
       <p>Username</p>
       <input type="text" name="username" class="input last-input" />
       <p>Email</p>

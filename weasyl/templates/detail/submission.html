@@ -10,7 +10,7 @@ $code:
 
 <div id="detail-stage" class="stage">
   <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-  $if 'q' in query['settings']:
+  $if query['critique']:
     <i>(critique requested)</i>
   </h1>
 
@@ -25,7 +25,7 @@ $code:
       $if cover:
         <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
       <iframe
-          src="${query['google_doc_embed'].embed_url}" class="content gdoc"
+          src="${query['google_doc_embed']}" class="content gdoc"
           style="width: 100%; height: 40em; max-width: 80em; padding: 0">
       </iframe>
     </div>
@@ -78,7 +78,7 @@ $code:
 
   $elif submission['file_type'] == "mp3":
     <!-- MULTIMEDIA -->
-    <div id="detail-art" style="text-align:center;">
+    <div id="detail-art">
       $if cover:
         <img src="${cover['display_url']}" alt="${query['title']}" />
       <div id="detail_submission_media" style="display:inline-block;width:500px;">
@@ -158,7 +158,6 @@ $code:
   <div id="db-main">
     <ul id="detail-actions" class="toolset clear">
       <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/submissions/${query['submitid']}/" method="post">
-        $:{CSRF()}
         <input type="hidden" name="submitid" value="${query['submitid']}" />
         $if not query['mine']:
           $if query['favorited']:
@@ -172,12 +171,12 @@ $code:
         <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
     $if query['reported'] and myself and myself['userid'] in staff.MODS:
       <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
-    $elif 'h' not in query['settings']:
+    $elif not query['hidden']:
       <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
     </ul>
 
     <h2 id="detail-bar-title">${query['title']}
-    $if 'q' in query['settings']:
+    $if query['critique']:
       <em style="font-size: 65%">(critique requested)</em>
     </h2>
 
@@ -187,7 +186,7 @@ $code:
     $ avatar = query['user_media']['avatar'][0]
     <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
     <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-    <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
+    <p class="date">$:{LOCAL_TIME(query['unixtime'], '{date} <i>at</i> {time}')}</p>
   </div>
 
 </div>
@@ -224,12 +223,11 @@ $code:
         <p><a href="/manage/thumbnail?submitid=${query['submitid']}">Edit Submission Thumbnail</a></p>
         $if query['subtype'] > 1999:
           <p><a href="/reupload/cover?submitid=${query['submitid']}">Edit Cover Artwork</a></p>
-        $if 'v' not in query['settings'] and 'D' not in query['settings']:
+        $if not query['embed_type']:
           <p><a href="/reupload/submission?submitid=${query['submitid']}">Edit Submission File</a></p>
         <p><a href="/edit/submission?submitid=${query['submitid']}">Edit Submission Details</a></p>
 
         <form action="/remove/submission" method="POST" data-confirm="Are you sure you want to remove this submission?">
-          $:{CSRF()}
           <input type="hidden" name="submitid" value="${query['submitid']}">
 
           <input type="submit" value="Remove Submission from Gallery" class="link-button">
@@ -240,8 +238,6 @@ $code:
       <div id="detail-collection-offer">
         $if query['mine']:
           <form name="collectionoffer" action="/collection/offer" method="post" class="form clear">
-            $:{CSRF()}
-
             <h3>Send Collection Offer</h3>
 
             <input type="hidden" name="submitid" value="${query['submitid']}">
@@ -262,8 +258,6 @@ $code:
           $else:
             <i><a href="/help/collections">What are collections?</a></i>
             <form name="collectionrequest" action="/collection/request" method="post" class="form clear">
-              $:{CSRF()}
-
               <input type="hidden" name="submitid" value="${query['submitid']}" style="display:block">
 
               <button type="submit" class="button" style="display:block">Request This Submission</button>
@@ -273,14 +267,13 @@ $code:
     $if not query['mine'] and myself and myself['userid'] in staff.MODS:
       <div id="detail-mod">
         <h3>Submission Moderation</h3>
-        $if query['hidden_submission']:
+        $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/submission?submitid=${query['submitid']}&amp;anyway=true">Edit Submission Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
-          $:{CSRF()}
           <input type="hidden" name="submissions" value="${query['submitid']}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "submission"):
+            $for value, name in M.get_mod_actions(query, "submission").items():
               <option value="${value}">${name}</option>
             <option value="zap-thumb">Remove Custom Thumbnail Art</option>
             $if query['subtype'] > 1999:
@@ -292,30 +285,7 @@ $code:
         </form>
       </div>
 
-
-    <div class="di-tags">
-      <h3>
-        Tags
-        <a class="modify typeface-default color-c" href="#">Modify</a>
-        <a class="typeface-default color-c" href="/submission/tag-history/${query['submitid']}">History</a>
-      </h3>
-
-      <div class="tags open clear">
-        $if query['tags']:
-          $for i in query['tags']:
-            <a href="/search?q=${i}"
-               class="${'artist' if i in query['artist_tags'] else ''}
-                      ${'removable' if query['can_remove_tags'] else ''}">
-              ${i}
-            </a>
-        $else:
-          <p class="color-lighter">There are no tags associated with this submission</p>
-      </div>
-
-      <h3 class="edit">Edit Tags</h3>
-
-      $:{RENDER("common/detail_tag_form.html", [query['submitid'], "submit", query['removable_tags']])}
-    </div>
+    $:{RENDER("common/detail_tag_form.html", [query['submitid'], "submit", query, myself])}
 
   </div>
 

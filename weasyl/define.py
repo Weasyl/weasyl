@@ -1,11 +1,8 @@
 import os
 import time
-import random
 import hashlib
-import hmac
 import itertools
 import json
-import logging
 import numbers
 import datetime
 import pkgutil
@@ -13,10 +10,10 @@ from urllib.parse import urlencode, urljoin
 
 import arrow
 from pyramid.threadlocal import get_current_request
-import pytz
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
 from web.template import Template
 
@@ -24,14 +21,13 @@ import libweasyl.constants
 from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
-from libweasyl import html, text, ratings, security, staff
+from libweasyl import html, text, ratings, staff
 
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
-from weasyl.config import config_obj, config_read_setting, config_read_bool
+from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
-from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -58,7 +54,15 @@ def record_timing(func):
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
 if config._in_test:
     _sqlalchemy_url += '_test'
-engine = meta.bind = sa.create_engine(_sqlalchemy_url, max_overflow=25, pool_size=10)
+engine = meta.bind = sa.create_engine(
+    _sqlalchemy_url,
+    pool_use_lifo=True,
+    pool_size=2,
+    connect_args={
+        'options': '-c TimeZone=UTC',
+    },
+)
+sessionmaker_future = sa.orm.sessionmaker(bind=engine, expire_on_commit=False)
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 
 
@@ -69,19 +73,11 @@ def connect():
     request = get_current_request()
     if request is not None:
         return request.pg_connection
-    # If there's no threadlocal request, we're probably operating in a cron task or the like.
+    # If there's no threadlocal request, this could be… a manual query?
     # Return a connection from the pool. n.b. this means that multiple calls could get different
     # connections.
     # TODO(hyena): Does this clean up correctly? There's no registered 'close()' call.
     return sessionmaker()
-
-
-def log_exc(**kwargs):
-    """
-    Logs an exception. This is essentially a wrapper around the current request's log_exc.
-    It's provided for compatibility for methods that depended on web.ctx.log_exc().
-    """
-    return get_current_request().log_exc(**kwargs)
 
 
 def execute(statement, argv=None):
@@ -157,19 +153,15 @@ def _compile(template_name):
             globals={
                 "STR": str,
                 "LOGIN": get_sysname,
-                "TOKEN": get_token,
-                "CSRF": _get_csrf_input,
                 "USER_TYPE": user_type,
-                "DATE": convert_date,
+                "ARROW": get_arrow,
+                "LOCAL_TIME": _get_local_time_html,
                 "ISO8601_DATE": iso8601_date,
-                "TIME": _convert_time,
-                "LOCAL_ARROW": local_arrow,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
                 "RENDER": render,
                 "COMPILE": _compile,
-                "CAPTCHA": _captcha_public,
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
@@ -231,46 +223,6 @@ def webpage(userid, template, argv=None, options=None, **extras):
     return common_page_end(userid, page, options=options)
 
 
-def _captcha_section():
-    request = get_current_request()
-    host = request.environ.get('HTTP_HOST', '').partition(':')[0]
-    return 'recaptcha-' + host
-
-
-def _captcha_public():
-    """
-    Returns the reCAPTCHA public key, or None if CAPTCHA verification
-    is disabled.
-    """
-    if config_read_bool("captcha_disable_verification"):
-        return None
-
-    return config_obj.get(_captcha_section(), 'public_key')
-
-
-def captcha_verify(captcha_response):
-    if config_read_bool("captcha_disable_verification"):
-        return True
-    if not captcha_response:
-        return False
-
-    data = dict(
-        secret=config_obj.get(_captcha_section(), 'private_key'),
-        response=captcha_response,
-        remoteip=get_address())
-    response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
-    captcha_validation_result = response.json()
-    return captcha_validation_result['success']
-
-
-def get_weasyl_session():
-    """
-    Gets the weasyl_session for the current request. Most code shouldn't have to use this.
-    """
-    # TODO: This method is inelegant. Remove this logic after updating login.signin().
-    return get_current_request().weasyl_session
-
-
 def get_userid():
     """
     Returns the userid corresponding to the current request, if any.
@@ -278,33 +230,11 @@ def get_userid():
     return get_current_request().userid
 
 
-def is_csrf_valid(request, token):
-    expected = request.weasyl_session.csrf_token
-    return expected is not None and hmac.compare_digest(str(token), str(expected))
+_ORIGIN = config_obj.get('general', 'origin')
 
 
-def get_token():
-    from weasyl import api
-
-    request = get_current_request()
-
-    if api.is_api_user(request):
-        return ''
-
-    # allow error pages with $:{TOKEN()} in the template to be rendered even
-    # when the error occurred before the session middleware set a session
-    if not hasattr(request, 'weasyl_session'):
-        return security.generate_key(20)
-
-    sess = request.weasyl_session
-    if sess.csrf_token is None:
-        sess.csrf_token = security.generate_key(64)
-        sess.save = True
-    return sess.csrf_token
-
-
-def _get_csrf_input():
-    return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
+def is_csrf_valid(request):
+    return request.headers.get('origin') == _ORIGIN
 
 
 @region.cache_on_arguments(namespace='v3')
@@ -489,19 +419,37 @@ def get_character_directory(charid):
     return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
-def get_userids(usernames):
-    sysnames = [get_sysname(username) for username in usernames]
-
+@region.cache_multi_on_arguments(should_cache_fn=bool)
+def _get_userids(*sysnames):
     result = engine.execute(
         "SELECT login_name, userid FROM login WHERE login_name = ANY (%(names)s)"
         " UNION ALL SELECT alias_name, userid FROM useralias WHERE alias_name = ANY (%(names)s)"
         " UNION ALL SELECT login_name, userid FROM username_history WHERE active AND login_name = ANY (%(names)s)",
-        names=[sysname for sysname in sysnames if sysname],
+        names=list(sysnames),
     )
 
     sysname_userid = dict(result.fetchall())
 
-    return {username: sysname_userid.get(sysname, 0) for sysname, username in zip(sysnames, usernames)}
+    return [sysname_userid.get(sysname, 0) for sysname in sysnames]
+
+
+def get_userids(usernames):
+    ret = {}
+    lookup_usernames = []
+    sysnames = []
+
+    for username in usernames:
+        sysname = get_sysname(username)
+
+        if sysname:
+            lookup_usernames.append(username)
+            sysnames.append(sysname)
+        else:
+            ret[username] = 0
+
+    ret.update(zip(lookup_usernames, _get_userids(*sysnames)))
+
+    return ret
 
 
 def get_userid_list(target):
@@ -518,22 +466,13 @@ def get_ownerid(submitid=None, charid=None, journalid=None):
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
 
 
-def get_random_set(target, count):
-    """
-    Returns the specified number of unique items chosen at random from the target
-    list. If more items are specified than the list contains, the full contents
-    of the list will be returned in a randomized order.
-    """
-    return random.sample(target, min(count, len(target)))
-
-
 def get_address():
     request = get_current_request()
     return request.client_addr
 
 
 def _get_path():
-    return get_current_request().path_url
+    return get_current_request().path_qs
 
 
 def text_price_amount(target):
@@ -568,30 +507,28 @@ def text_fix_url(target):
     return "http://" + target
 
 
-def local_arrow(dt):
-    tz = get_current_request().weasyl_session.timezone
-    return arrow.Arrow.fromdatetime(tz.localtime(dt))
-
-
-def convert_to_localtime(target):
-    tz = get_current_request().weasyl_session.timezone
-    if isinstance(target, arrow.Arrow):
-        return tz.localtime(target.datetime)
-    elif isinstance(target, datetime.datetime):
-        return tz.localtime(target)
-    else:
-        target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
-        return tz.localtime_from_timestamp(target)
-
-
-def convert_date(target=None):
+def get_arrow(unixtime):
     """
-    Returns the date in the format 1 January 1970. If no target is passed, the
-    current date is returned.
+    Get an `Arrow` from a Weasyl timestamp, time-zone-aware `datetime`, or `Arrow`.
     """
-    dt = convert_to_localtime(target)
-    result = dt.strftime("%d %B %Y")
-    return result[1:] if result and result[0] == "0" else result
+    if isinstance(unixtime, (int, float)):
+        unixtime -= _UNIXTIME_OFFSET
+    elif not isinstance(unixtime, (arrow.Arrow, datetime.datetime)) or unixtime.tzinfo is None:
+        raise ValueError("unixtime must be supported numeric or datetime")  # pragma: no cover
+
+    return arrow.get(unixtime)
+
+
+def _get_local_time_html(target, template):
+    target = get_arrow(target)
+    date_text = target.format("MMMM D, YYYY")
+    time_text = target.format("HH:mm:ss ZZZ")
+    content = template.format(
+        date=f'<span class="local-time-date">{date_text}</span>',
+        time=f'<span class="local-time-time">{time_text}</span>',
+        date_text=date_text,
+    )
+    return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
 
 
 def iso8601_date(target):
@@ -603,21 +540,7 @@ def iso8601_date(target):
     :param target: The target Weasyl timestamp to convert.
     :return: An ISO 8601 string representing the date of `target`.
     """
-    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
-    return arrow.get(date).format("YYYY-MM-DD")
-
-
-def _convert_time(target=None):
-    """
-    Returns the time in the format 16:00:00. If no target is passed, the
-    current time is returned.
-    """
-    dt = convert_to_localtime(target)
-    config = get_config(get_userid())
-    if '2' in config:
-        return dt.strftime("%I:%M:%S %p %Z")
-    else:
-        return dt.strftime("%H:%M:%S %Z")
+    return arrow.get(target - _UNIXTIME_OFFSET).format("YYYY-MM-DD")
 
 
 def convert_unixdate(day, month, year):
@@ -646,7 +569,7 @@ def age_in_years(birthdate):
     Determines an age in years based off of the given arrow.Arrow birthdate
     and the current date.
     """
-    now = arrow.now()
+    now = arrow.utcnow()
     is_upcoming = (now.month, now.day) < (birthdate.month, birthdate.day)
 
     return now.year - birthdate.year - int(is_upcoming)
@@ -698,7 +621,7 @@ def _page_header_info(userid):
 
 def page_header_info(userid):
     from weasyl import media
-    sfw = get_current_request().cookies.get('sfwmode', 'nsfw')
+    sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
     return {
         "welcome": _page_header_info(userid),
         "userid": userid,
@@ -751,26 +674,21 @@ def common_status_page(userid, status):
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
-    if status in ('banned', 'suspended'):
-        from weasyl import moderation, login
+    assert status in ('banned', 'suspended')
 
-        login.signout(get_current_request())
-        if status == 'banned':
-            reason = moderation.get_ban_reason(userid)
-            return errorpage(
-                userid,
-                "Your account has been permanently banned and you are no longer allowed "
-                "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-                "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
+    from weasyl import moderation, login
 
-        elif status == 'suspended':
-            suspension = moderation.get_suspension(userid)
-            return errorpage(
-                userid,
-                "Your account has been temporarily suspended and you are not allowed to "
-                "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
-                "%s.\n\nIf you believe this suspension is in error, please contact "
-                "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
+    if status == 'banned':
+        message = moderation.get_ban_message(userid)
+    elif status == 'suspended':
+        message = moderation.get_suspension_message(userid)
+
+    login.signout(get_current_request())
+
+    response = Response(errorpage(userid, message))
+    response.delete_cookie('WZL')
+    response.delete_cookie('sfwmode')
+    return response
 
 
 _content_types = {
@@ -794,6 +712,8 @@ def common_view_content(userid, targetid, feature):
         viewer = 'user:%d' % (userid,)
     else:
         viewer = get_address()
+
+    engine.execute("DELETE FROM views WHERE viewed_at < now() - INTERVAL '15 minutes'")
 
     result = engine.execute(
         'INSERT INTO views (viewer, targetid, type) VALUES (%(viewer)s, %(targetid)s, %(type)s) ON CONFLICT DO NOTHING',
@@ -947,10 +867,6 @@ def absolutify_url(url):
     return urljoin(get_current_request().application_url, url)
 
 
-def user_is_twitterbot():
-    return get_current_request().environ.get('HTTP_USER_AGENT', '').startswith('Twitterbot')
-
-
 def summarize(s, max_length=200):
     if len(s) > max_length:
         return s[:max_length - 1].rstrip() + u'\N{HORIZONTAL ELLIPSIS}'
@@ -959,24 +875,6 @@ def summarize(s, max_length=200):
 
 def clamp(val, lower_bound, upper_bound):
     return min(max(val, lower_bound), upper_bound)
-
-
-def timezones():
-    ct = datetime.datetime.now(pytz.utc)
-    timezones_by_country = [
-        (pytz.country_names[cc], [
-            (int(ct.astimezone(pytz.timezone(tzname)).strftime("%z")), tzname)
-            for tzname in timezones
-        ])
-        for cc, timezones in pytz.country_timezones.items()]
-    timezones_by_country.sort()
-    ret = []
-    for country, timezones in timezones_by_country:
-        ret.append(('- %s -' % (country,), None))
-        ret.extend(
-            ("[UTC%+05d] %s" % (offset, tzname.replace('_', ' ')), tzname)
-            for offset, tzname in timezones)
-    return ret
 
 
 def query_string(query):
@@ -996,14 +894,12 @@ def _requests_wrapper(func_name):
     func = getattr(requests, func_name)
 
     def wrapper(*a, **kw):
-        request = get_current_request()
         try:
             return func(*a, **kw)
         except Exception as e:
-            request.log_exc(level=logging.DEBUG)
-            w = WeasylError('httpError')
+            w = WeasylError('httpError', level='info')
             w.error_suffix = 'The original error was: %s' % (e,)
-            raise w
+            raise w from e
 
     return wrapper
 
@@ -1017,14 +913,15 @@ def metric(*a, **kw):
 
 
 def iso8601(unixtime):
-    if isinstance(unixtime, arrow.Arrow) or isinstance(unixtime, datetime.datetime):
-        return unixtime.isoformat().partition('.')[0] + 'Z'
-    else:
-        return datetime.datetime.utcfromtimestamp(unixtime - _UNIXTIME_OFFSET).isoformat() + 'Z'
+    return (
+        get_arrow(unixtime)
+        .isoformat(timespec='seconds')
+        .replace('+00:00', 'Z')
+    )
 
 
 def parse_iso8601(s):
-    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').timestamp + _UNIXTIME_OFFSET
+    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').int_timestamp + _UNIXTIME_OFFSET
 
 
 def paginate(results, backid, nextid, limit, key):

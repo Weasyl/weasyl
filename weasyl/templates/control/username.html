@@ -2,8 +2,6 @@ $def with (username, existing_redirect, insufficient_days)
 $:{TITLE("Change Username", "Settings", "/control")}
 <div class="content">
   <form id="username_change" class="form skinny clear" action="/control/username" method="post">
-    $:{CSRF()}
-
     <label for="new_username">New username</label>
     <input id="new_username" class="input" type="text" name="new_username" value="${username}" required maxlength="25"
       $if insufficient_days is not None:
@@ -40,8 +38,6 @@ $:{TITLE("Change Username", "Settings", "/control")}
 
   $if existing_redirect is not None:
     <form id="username_release" class="form skinny clear" action="/control/username" method="post">
-      $:{CSRF()}
-
       <p style="margin-top: 2em">Your old username, <strong>${existing_redirect}</strong>, is reserved, and anyone visiting <a href="${older_link}">https://www.weasyl.com${older_link}</a> will be redirected to your current one.</p>
 
       <p style="margin-top: 1em">You can release your old username. The link will stop working and the name will be free for someone else to claim.</p>

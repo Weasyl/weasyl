@@ -87,7 +87,7 @@ def api_login_required(view_callable):
 @api_method
 def api_useravatar_(request):
     form = request.web_input(username="")
-    userid = profile.resolve_by_login(d.get_sysname(form.username))
+    userid = profile.resolve_by_username(form.username)
 
     if userid:
         media_items = media.get_user_media(userid)
@@ -223,23 +223,30 @@ def api_user_view_(request):
             return None
 
     userid = request.userid
-    otherid = profile.resolve_by_login(d.get_sysname(request.matchdict['login']))
+    otherid = profile.resolve_by_username(request.matchdict['login'])
     user = profile.select_profile(otherid)
 
     rating = d.get_rating(userid)
     o_config = user.pop('config')
     o_settings = user.pop('settings')
 
-    if not otherid and "h" in o_config:
+    if not d.is_vouched_for(otherid):
+        raise HTTPForbidden(json={
+            "error": {
+                "code": 201,
+                "text": "Unverified accounts are hidden to reduce spam.",
+            },
+        })
+
+    if not userid and "h" in o_config:
         raise HTTPForbidden(json={
             "error": {
                 "code": 200,
-                "text": "Profile hidden from unlogged users.",
+                "text": "Profile hidden from guests.",
             },
         })
 
     del user['userid']
-    del user['commish_slots']
 
     user['created_at'] = d.iso8601(user.pop('unixtime'))
     user['media'] = api.tidy_all_media(user.pop('user_media'))
@@ -299,7 +306,7 @@ def api_user_view_(request):
         more_submissions = 'characters'
         featured = None
     else:
-        submissions = submission.select_list(userid, rating, 11, otherid=otherid, profile_page_filter=True)
+        submissions = submission.select_list(userid, rating, limit=11, otherid=otherid, profile_page_filter=True)
         more_submissions = 'submissions'
         featured = submission.select_featured(userid, otherid, rating)
 
@@ -333,7 +340,7 @@ def api_user_view_(request):
 @view_config(route_name='api_user_gallery', renderer='json')
 @api_method
 def api_user_gallery_(request):
-    userid = profile.resolve_by_login(d.get_sysname(request.matchdict['login']))
+    userid = profile.resolve_by_username(request.matchdict['login'])
     if not userid:
         raise WeasylError('userRecordMissing')
 
@@ -352,7 +359,7 @@ def api_user_gallery_(request):
         count = min(count or 100, 100)
 
     submissions = submission.select_list(
-        request.userid, d.get_rating(request.userid), count + 1,
+        request.userid, d.get_rating(request.userid), limit=count + 1,
         otherid=userid, folderid=folderid, backid=backid, nextid=nextid)
     backid, nextid = d.paginate(submissions, backid, nextid, count, 'submitid')
 

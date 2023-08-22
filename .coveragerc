@@ -1,11 +1,12 @@
 [run]
 branch = True
+parallel = True
 source =
     libweasyl
     weasyl
 omit =
-    libweasyl/libweasyl/test/*
-    libweasyl/libweasyl/models/test/*
+    libweasyl/test/*
+    libweasyl/models/test/*
     weasyl/test/*
 data_file = coverage/.coverage
 

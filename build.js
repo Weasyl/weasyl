@@ -3,6 +3,7 @@
 const autoprefixer = require('autoprefixer');
 const child_process = require('child_process');
 const crypto = require('crypto');
+const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 const postcss = require('postcss');
@@ -11,9 +12,11 @@ const ASSETS = path.join(__dirname, 'assets');
 const BUILD = path.join(__dirname, 'build');
 
 const autoprefixerOptions = {
-    env: [
+    overrideBrowserslist: [
         'last 2 versions',
-        'Android >= 4.4',
+        'Firefox ESR',
+        'Android >= 8',
+        'not dead',
     ],
 };
 
@@ -75,6 +78,17 @@ const addFilenameSuffix = (relativePath, suffix) => {
         name: pathInfo.name + '-' + suffix,
         ext: pathInfo.ext,
     });
+};
+
+const copyUnversionedStaticFile = (relativePath, touch) => {
+    const inputPath = path.join(ASSETS, relativePath);
+    const outputFullPath = path.join(BUILD, relativePath);
+
+    return {
+        entries: [],
+        work: touch.then(() =>
+            fs.promises.copyFile(inputPath, outputFullPath)),
+    };
 };
 
 const copyStaticFile = (relativePath, touch) => {
@@ -174,6 +188,47 @@ const sasscFile = async (relativeInputPath, relativeOutputPath, touch, copyImage
     };
 };
 
+const esbuildFile = async (relativeInputPath, relativeOutputPath, touch, options) => {
+    const result = await esbuild.build({
+        entryPoints: [path.join(ASSETS, relativeInputPath)],
+        write: false,
+        metafile: true,
+        bundle: true,
+        minify: true,
+        target: 'es5',
+        banner: {
+            js: '"use strict";',
+        },
+        ...options,
+    });
+
+    if (result.warnings.length !== 0) {
+        for (const warning of result.warnings) {
+            console.warn(warning);
+        }
+
+        throw new Error('Unexpected warnings');
+    }
+
+    console.log(await esbuild.analyzeMetafile(result.metafile, {verbose: true}));
+
+    const bundleContents = result.outputFiles[0].contents;
+
+    const shortDigest = getShortDigest(
+        crypto.createHash('sha512')
+            .update(bundleContents)
+            .digest()
+    );
+
+    const outputPath = addFilenameSuffix(relativeOutputPath, shortDigest);
+    const outputFullPath = path.join(BUILD, outputPath);
+
+    return {
+        entries: [[relativeOutputPath, outputPath]],
+        work: touch.then(() => fs.promises.writeFile(outputFullPath, bundleContents)),
+    };
+};
+
 const main = async () => {
     const manifestPath = path.join(BUILD, 'rev-manifest.json');
 
@@ -186,11 +241,38 @@ const main = async () => {
 
     const copyImages = copyStaticFiles('img', touch);
 
+    const PRIVATE_FIELDS_ESM = {
+        format: 'esm',
+        target: [
+            'chrome84',
+            'firefox90',
+            'ios15',
+            'safari15',
+        ],
+        banner: {},
+    };
+
     const tasks = await Promise.all([
         sasscFile('scss/site.scss', 'css/site.css', touch, copyImages),
+        sasscFile('scss/help.scss', 'css/help.css', touch, copyImages),
+        sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
+        esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
+        esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
+        copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,
-        copyStaticFiles('js', touch),
+
+        // libraries
+        copyStaticFile('js/jquery-2.2.4.min.js', touch),
+        copyStaticFile('js/imageselect.js', touch),
+        copyStaticFile('js/marked.js', touch),
+        copyStaticFile('js/zxcvbn.js', touch),
+
+        // site
+        copyStaticFile('js/notification-list.js', touch),
+        copyStaticFile('js/search.js', touch),
+        copyStaticFile('js/zxcvbn-check.js', touch),
     ]);
 
     await touch;

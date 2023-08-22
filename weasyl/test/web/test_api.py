@@ -1,11 +1,14 @@
 import pytest
 import webtest
 
+from libweasyl.models.helpers import CharSettings
+
 import weasyl.define as d
+from weasyl.test import db_utils
 from weasyl.test.web.common import create_visual, read_asset
 
 
-@pytest.mark.usefixtures('db', 'no_csrf')
+@pytest.mark.usefixtures('db')
 def test_submission_view(app, submission_user):
     submission = create_visual(
         app,
@@ -30,7 +33,7 @@ def test_submission_view(app, submission_user):
         'link': 'http://localhost/submission/%i/test-title' % (submission,),
         'owner': 'submission_test',
         'owner_login': 'submissiontest',
-        'posted_at': '2020-02-07T21:15:21+00:00Z',
+        'posted_at': '2020-02-07T21:15:21Z',
         'rating': 'general',
         'submitid': submission,
         'subtype': 'visual',
@@ -41,7 +44,6 @@ def test_submission_view(app, submission_user):
     }
     assert set(media) == {'thumbnail', 'submission', 'cover', 'thumbnail-generated-webp', 'thumbnail-generated'}
     assert type(media['submission'][0].pop('mediaid')) is int
-    assert set(media['submission'][0].pop('links')) == {'cover'}
     assert media['submission'] == [{
         'url': 'http://localhost/~submissiontest/submissions/%i/ca23760d8ca4bf6c2d721f5b02e389627b6b9181d5f323001f2d5801c086407b/submissiontest-test-title.png' % (submission,),
     }]
@@ -86,7 +88,7 @@ def test_user_view(app, submission_user):
             'details': '',
             'price_classes': None,
         },
-        'created_at': '1970-01-01T00:00:00+00:00Z',
+        'created_at': '1970-01-01T00:00:00Z',
         'featured_submission': None,
         'folders': [],
         'full_name': '',
@@ -132,6 +134,33 @@ def test_user_view(app, submission_user):
 def test_user_view_missing(app):
     resp = app.get('/api/users/foo/view', status=404)
     assert resp.json == {'error': {'name': 'userRecordMissing'}}
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_user_view_unverified(app):
+    db_utils.create_user(username='unverified_test', verified=False)
+    resp = app.get('/api/users/unverifiedtest/view', status=403)
+    assert resp.json == {
+        'error': {
+            'code': 201,
+            'text': 'Unverified accounts are hidden to reduce spam.',
+        },
+    }
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_user_view_no_guests(app):
+    db_utils.create_user(
+        username='private_test',
+        config=CharSettings({'hide-profile-from-guests'}, {}, {}),
+    )
+    resp = app.get('/api/users/privatetest/view', status=403)
+    assert resp.json == {
+        'error': {
+            'code': 200,
+            'text': 'Profile hidden from guests.',
+        },
+    }
 
 
 @pytest.mark.usefixtures('db', 'cache')

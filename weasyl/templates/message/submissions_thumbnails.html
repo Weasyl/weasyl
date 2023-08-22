@@ -1,10 +1,9 @@
-$def with (feature, query)
+$def with (query)
 $:{TITLE("Submissions", "Messages", "/messages/submissions")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <div class="content">
   <form action="/messages/remove" method="post">
-    $:{CSRF()}
     <input type="hidden" id="recall" name="recall" value="submissions" />
     <input type="hidden" id="content" name="content" />
 
@@ -13,10 +12,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     $if query:
       <ul class="thumbnail-grid">
         $for index, item in enumerate(query):
-          $if index < 10:
-            $:{_GRID_ITEM(item, 1, lazy_load=False)}
-          $else:
-            $:{_GRID_ITEM(item, 1)}
+          $:{_GRID_ITEM(item, notifications=True, lazy_load=index >= 10)}
       </ul>
 
       <div class="notifs-actions sub-notifs-actions clear">

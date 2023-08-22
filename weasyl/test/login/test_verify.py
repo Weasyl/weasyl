@@ -59,9 +59,6 @@ def test_verify_success_if_valid_token_provided():
     assert d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM userinfo WHERE userid = %(userid)s)",
         userid=userid)
-    assert d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM welcomecount WHERE userid = %(userid)s)",
-        userid=userid)
 
     # The 'logincreate' record gets deleted on successful execution; verify this
     assert not d.engine.scalar(

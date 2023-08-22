@@ -1,6 +1,7 @@
 import arrow
 from pyramid.response import Response
 from pyramid.httpexceptions import HTTPSeeOther
+from sqlalchemy.orm.attributes import flag_modified
 
 from weasyl import define
 from weasyl import login
@@ -15,41 +16,42 @@ from weasyl.error import WeasylError
 from weasyl.profile import invalidate_other_sessions
 
 
-def _set_totp_code_on_session(totp_code):
-    sess = define.get_weasyl_session()
-    sess.additional_data['2fa_totp_code'] = totp_code
-    sess.save = True
+def _set_totp_code_on_session(request, totp_code):
+    sess = request.weasyl_session
+
+    with define.sessionmaker_future.begin() as tx:
+        sess.additional_data['2fa_totp_code'] = totp_code
+        flag_modified(sess, 'additional_data')
+        tx.add(sess)
 
 
-def _get_totp_code_from_session():
-    sess = define.get_weasyl_session()
-    return sess.additional_data['2fa_totp_code']
+def _get_totp_code_from_session(request):
+    return request.weasyl_session.additional_data['2fa_totp_code']
 
 
-def _set_recovery_codes_on_session(recovery_codes):
-    sess = define.get_weasyl_session()
-    sess.additional_data['2fa_recovery_codes'] = recovery_codes
-    sess.additional_data['2fa_recovery_codes_timestamp'] = arrow.now().timestamp
-    sess.save = True
+def _set_recovery_codes_on_session(request, recovery_codes):
+    sess = request.weasyl_session
+
+    with define.sessionmaker_future.begin() as tx:
+        sess.additional_data['2fa_recovery_codes'] = recovery_codes
+        sess.additional_data['2fa_recovery_codes_timestamp'] = arrow.utcnow().int_timestamp
+        flag_modified(sess, 'additional_data')
+        tx.add(sess)
 
 
-def _get_recovery_codes_from_session():
-    sess = define.get_weasyl_session()
-    if '2fa_recovery_codes' in sess.additional_data:
-        return sess.additional_data['2fa_recovery_codes']
-    else:
-        return None
+def _get_recovery_codes_from_session(request):
+    return request.weasyl_session.additional_data.get('2fa_recovery_codes')
 
 
-def _cleanup_session():
-    sess = define.get_weasyl_session()
-    if '2fa_recovery_codes' in sess.additional_data:
-        del sess.additional_data['2fa_recovery_codes']
-    if '2fa_recovery_codes_timestamp' in sess.additional_data:
-        del sess.additional_data['2fa_recovery_codes_timestamp']
-    if '2fa_totp_code' in sess.additional_data:
-        del sess.additional_data['2fa_totp_code']
-    sess.save = True
+def _cleanup_session(request):
+    sess = request.weasyl_session
+
+    with define.sessionmaker_future.begin() as tx:
+        sess.additional_data.pop('2fa_recovery_codes', None)
+        sess.additional_data.pop('2fa_recovery_codes_timestamp', None)
+        sess.additional_data.pop('2fa_totp_code', None)
+        flag_modified(sess, 'additional_data')
+        tx.add(sess)
 
 
 @login_required
@@ -83,7 +85,7 @@ def tfa_init_post_(request):
     # The user has authenticated, so continue with the initialization process.
     else:
         tfa_secret, tfa_qrcode = tfa.init(request.userid)
-        _set_totp_code_on_session(tfa_secret)
+        _set_totp_code_on_session(request, tfa_secret)
         return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
             define.get_display_name(request.userid),
             tfa_secret,
@@ -109,7 +111,7 @@ def tfa_init_qrcode_get_(request):
 def tfa_init_qrcode_post_(request):
     # Strip any spaces from the TOTP code (some authenticators display the digits like '123 456')
     tfaresponse = request.params['tfaresponse'].replace(' ', '')
-    tfa_secret_sess = _get_totp_code_from_session()
+    tfa_secret_sess = _get_totp_code_from_session(request)
 
     # Check to see if the tfaresponse matches the tfasecret when run through the TOTP algorithm
     tfa_secret, recovery_codes = tfa.init_verify_tfa(tfa_secret_sess, tfaresponse)
@@ -123,7 +125,7 @@ def tfa_init_qrcode_post_(request):
             "2fa"
         ], title="Enable 2FA: Step 2"))
     else:
-        _set_recovery_codes_on_session(','.join(recovery_codes))
+        _set_recovery_codes_on_session(request, ','.join(recovery_codes))
         return Response(define.webpage(request.userid, "control/2fa/init_verify.html", [
             recovery_codes,
             None
@@ -149,8 +151,8 @@ def tfa_init_verify_get_(request):
 def tfa_init_verify_post_(request):
     # Extract parameters from the form
     verify_checkbox = 'verify' in request.params
-    tfasecret = _get_totp_code_from_session()
-    tfarecoverycodes = _get_recovery_codes_from_session()
+    tfasecret = _get_totp_code_from_session(request)
+    tfarecoverycodes = _get_recovery_codes_from_session(request)
 
     # Does the user want to proceed with enabling 2FA?
     if verify_checkbox and tfa.store_recovery_codes(request.userid, tfarecoverycodes):
@@ -162,7 +164,7 @@ def tfa_init_verify_post_(request):
             # Invalidate all other login sessions
             invalidate_other_sessions(request.userid)
             # Clean up the stored session variables
-            _cleanup_session()
+            _cleanup_session(request)
             raise HTTPSeeOther(location="/control/2fa/status")
         # TOTP+2FA Secret did not validate
         else:
@@ -248,14 +250,14 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
         if '2fa_recovery_codes_timestamp' in sess.additional_data:
             # Are the codes on the current session < 30 minutes old?
             tstamp = sess.additional_data['2fa_recovery_codes_timestamp']
-            if arrow.now().timestamp - tstamp < 1800:
+            if arrow.utcnow().int_timestamp - tstamp < 1800:
                 # We have recent codes on the session, use them instead of generating fresh codes.
                 recovery_codes = sess.additional_data['2fa_recovery_codes'].split(',')
                 gen_rec_codes = False
         if gen_rec_codes:
             # Either this is a fresh request to generate codes, or the timelimit was exceeded.
             recovery_codes = tfa.generate_recovery_codes()
-            _set_recovery_codes_on_session(','.join(recovery_codes))
+            _set_recovery_codes_on_session(request, ','.join(recovery_codes))
         return Response(define.webpage(request.userid, "control/2fa/generate_recovery_codes.html", [
             recovery_codes,
             None
@@ -283,14 +285,14 @@ def tfa_generate_recovery_codes_post_(request):
     # Extract parameters from the form
     verify_checkbox = 'verify' in request.params
     tfaresponse = request.params['tfaresponse']
-    tfarecoverycodes = _get_recovery_codes_from_session()
+    tfarecoverycodes = _get_recovery_codes_from_session(request)
 
     # Does the user want to save the new recovery codes?
     if verify_checkbox:
         if tfa.verify(request.userid, tfaresponse, consume_recovery_code=False):
             if tfa.store_recovery_codes(request.userid, tfarecoverycodes):
                 # Clean up the stored session variables
-                _cleanup_session()
+                _cleanup_session(request)
                 # Successfuly stored new recovery codes.
                 raise HTTPSeeOther(location="/control/2fa/status")
             else:

@@ -86,6 +86,21 @@ poetry)
     exit $exit_code
     ;;
 
+npm)
+    docker build --target asset-builder -t weasyl-npm .
+    exit_code=1
+    if
+        docker run --name=weasyl-npm --init -it weasyl-npm npm "$@" \
+        && docker cp weasyl-npm:/weasyl-build/package.json ./ \
+        && docker cp weasyl-npm:/weasyl-build/package-lock.json ./
+    then
+        exit_code=0
+    fi
+    docker container rm weasyl-npm
+    docker image rm weasyl-npm
+    exit $exit_code
+    ;;
+
 push-templates)
     docker cp weasyl/templates weasyl-web-1:/weasyl/weasyl/
     ;;

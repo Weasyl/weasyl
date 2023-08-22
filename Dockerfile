@@ -6,7 +6,7 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
 WORKDIR /weasyl-build
 RUN chown node:node /weasyl-build
 USER node
-COPY package.json package-lock.json ./
+COPY --chown=node:node package.json package-lock.json ./
 RUN --mount=type=cache,id=npm,target=/home/node/.npm/_cacache,uid=1000 npm ci --no-audit --ignore-scripts
 COPY build.js build.js
 

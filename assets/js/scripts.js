@@ -260,44 +260,6 @@
         addNewSocialGroupIfNeeded.call(newSocialGroup);
     }
 
-    $('#detail-flash a').click(function (ev) {
-        var $parent = $(this).parent();
-        var flashURL = $parent.data('flash-url');
-        var flashWidth = parseFloat($parent.data('flash-width'));
-        var flashHeight = parseFloat($parent.data('flash-height'));
-        $parent.css({
-            'max-width': flashWidth + 'px',
-            'max-height': flashHeight + 'px',
-            margin: '0 auto',
-        });
-        var container = $('<div>', {id: 'flash-container'}).css({
-            padding: (flashHeight / flashWidth * 100).toFixed(1) + '% 0 0',
-        });
-        var obj = $('<object>');
-        $('<param>', {
-            name: 'allowScriptAccess',
-            value: 'never',
-        }).appendTo(obj);
-        $('<param>', {
-            name: 'allowNetworking',
-            value: 'none',
-        }).appendTo(obj);
-        $('<param>', {
-            name: 'src',
-            value: flashURL,
-        }).appendTo(obj);
-        $('<embed>', {
-            type: 'application/x-shockwave-flash',
-            src: flashURL,
-            allowScriptAccess: 'never',
-            allowNetworking: 'none',
-        }).appendTo(obj);
-        $parent
-            .empty()
-            .append(container.append(obj));
-        ev.preventDefault();
-    });
-
     var reportButtons = $('#report_buttons .enableable');
     var reportClosureWarning = $('#report-closure-warning');
     var noteTitle = $('#note-title');

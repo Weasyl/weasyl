@@ -89,18 +89,23 @@ $code:
     </div>
 
   $elif submission['file_type'] == "swf":
-    <!-- SHOCKWAVE FLASH -->
-    <div id="detail-flash" data-flash-url="${submission['display_url']}"
-         data-flash-width="${submission['attributes'].get('width', 550)}"
-         data-flash-height="${submission['attributes'].get('height', 400)}">
-      <a href="${submission['display_url']}">
-        $if cover:
-          <img src="${cover['display_url']}" alt="" />
-        <p>
-          View Shockwave Flash Animation
-        </p>
-      </a>
+    $code:
+      flash_width = submission['attributes'].get('width', 550)
+      flash_height = submission['attributes'].get('height', 400)
+    <div id="detail-flash"
+         data-flash-url="${submission['display_url']}"
+         style="width: ${flash_width}px; aspect-ratio: ${flash_width / flash_height}">
+      $if cover:
+        <div class="flash-cover">
+          <img class="flash-cover-background" src="${cover['display_url']}" alt="" />
+          <img class="flash-cover-foreground" src="${cover['display_url']}" alt="" />
+        </div>
+      <menu class="flash-controls">
+        <li><a href="${submission['display_url']}">View Flash animation</a></li>
+      </menu>
     </div>
+    <script type="module" src="${resource_path('js/ruffle/ruffle.js')}"></script>
+    <script type="module" src="${resource_path('js/flash.js')}"></script>
 
   $if query['folder_more']['older'] or query['folder_more']['newer']:
     <div class="detail-folder-nav clear">

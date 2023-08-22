@@ -60,6 +60,9 @@ const getShortDigest = digest => {
         .replace(/\//g, '_');
 };
 
+const packageSource = packagePath =>
+    path.join(__dirname, 'node_modules', packagePath);
+
 const addFilenameSuffix = (relativePath, suffix) => {
     const pathInfo = path.parse(relativePath);
 
@@ -70,20 +73,30 @@ const addFilenameSuffix = (relativePath, suffix) => {
     });
 };
 
-const copyUnversionedStaticFile = (relativePath, touch) => {
-    const inputPath = path.join(ASSETS, relativePath);
-    const outputFullPath = path.join(BUILD, relativePath);
+const fallbackFile = file =>
+    typeof file === 'string'
+        ? {
+            from: path.join(ASSETS, file),
+            to: file,
+        }
+        : file;
+
+const copyUnversionedStaticFile = (file, touch) => {
+    file = fallbackFile(file);
+
+    const outputFullPath = path.join(BUILD, file.to);
 
     return {
         entries: [],
         work: touch.then(() =>
-            fs.promises.copyFile(inputPath, outputFullPath)),
+            fs.promises.copyFile(file.from, outputFullPath)),
     };
 };
 
-const copyStaticFile = (relativePath, touch) => {
-    const inputPath = path.join(ASSETS, relativePath);
-    const stream = fs.createReadStream(inputPath);
+const copyStaticFile = (file, touch) => {
+    file = fallbackFile(file);
+
+    const stream = fs.createReadStream(file.from);
     const hash = crypto.createHash('sha512');
 
     stream.pipe(hash);
@@ -93,13 +106,13 @@ const copyStaticFile = (relativePath, touch) => {
 
         hash.once('readable', () => {
             const shortDigest = getShortDigest(hash.read());
-            const outputPath = addFilenameSuffix(relativePath, shortDigest);
-            const outputFullPath = path.join(BUILD, outputPath);
+            const suffixedOutputPath = addFilenameSuffix(file.to, shortDigest);
+            const outputFullPath = path.join(BUILD, suffixedOutputPath);
 
             resolve({
-                entries: [[relativePath, outputPath]],
+                entries: [[file.to, suffixedOutputPath]],
                 work: touch.then(() =>
-                    fs.promises.copyFile(inputPath, outputFullPath)),
+                    fs.promises.copyFile(file.from, outputFullPath)),
             });
         });
     });
@@ -121,6 +134,29 @@ const copyStaticFiles = async (relativePath, touch) => {
 
             return await copyStaticFile(subpath, touch);
         })
+    );
+
+    return {
+        entries: subtasks.flatMap(task => task.entries),
+        work: Promise.all(subtasks.map(task => task.work)),
+    };
+};
+
+const copyRuffleComponents = async (touch) => {
+    const names = await fs.promises.readdir(packageSource('@ruffle-rs/ruffle'));
+    const subtasks = await Promise.all(
+        names
+            .filter(name =>
+                name.endsWith('.wasm')
+                || (name.startsWith('core.ruffle.') && name.endsWith('.js'))
+            )
+            .map(name =>
+                // These components already include hashes in their names.
+                copyUnversionedStaticFile({
+                    from: packageSource('@ruffle-rs/ruffle/' + name),
+                    to: 'js/ruffle/' + name,
+                }, touch)
+            )
     );
 
     return {
@@ -226,7 +262,7 @@ const main = async () => {
         fs.promises.mkdir(path.join(BUILD, 'css'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'fonts'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'img', 'help'), {recursive: true}),
-        fs.promises.mkdir(path.join(BUILD, 'js'), {recursive: true}),
+        fs.promises.mkdir(path.join(BUILD, 'js', 'ruffle'), {recursive: true}),
     ]);
 
     const copyImages = copyStaticFiles('img', touch);
@@ -249,6 +285,11 @@ const main = async () => {
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
         esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/flash.js', 'js/flash.js', touch, {
+            format: 'esm',
+            target: 'es6',
+            banner: {},
+        }),
         copyStaticFiles('img/help', touch),
         copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,
@@ -258,6 +299,11 @@ const main = async () => {
         copyStaticFile('js/imageselect.js', touch),
         copyStaticFile('js/marked.js', touch),
         copyStaticFile('js/zxcvbn.js', touch),
+        copyRuffleComponents(touch),
+        copyStaticFile({
+            from: packageSource('@ruffle-rs/ruffle/ruffle.js'),
+            to: 'js/ruffle/ruffle.js',
+        }, touch),
 
         // site
         copyStaticFile('js/notification-list.js', touch),

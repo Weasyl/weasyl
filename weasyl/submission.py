@@ -51,7 +51,7 @@ _LIMITS = {
     ".pdf": 10 * _MEGABYTE,
     ".htm": 10 * _MEGABYTE,
     ".mp3": 15 * _MEGABYTE,
-    ".swf": 15 * _MEGABYTE,
+    ".swf": 50 * _MEGABYTE,
 }
 
 

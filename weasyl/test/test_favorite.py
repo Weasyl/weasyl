@@ -18,11 +18,10 @@ class SelectSubmissionCountTestCase(unittest.TestCase):
         self.pivot = 5
         s = db_utils.create_submissions(self.count, self.user1, ratings.GENERAL.code)
         self.pivotid = s[self.pivot]
-        f = []
         time = 100
         for submitid in s:
-            time = time + 1
-            f.append(db_utils.create_favorite(self.user2, submitid=submitid, unixtime=arrow.get(time)))
+            time += 1
+            db_utils.create_favorite(self.user2, submitid=submitid, unixtime=arrow.get(time))
 
     def test_count_backid(self):
         self.assertEqual(

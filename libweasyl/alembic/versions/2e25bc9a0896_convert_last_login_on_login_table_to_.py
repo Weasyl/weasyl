@@ -10,8 +10,8 @@ Create Date: 2020-02-27 15:02:32.668000
 revision = '2e25bc9a0896'
 down_revision = '21660aaeb0d7'
 
-from alembic import op   # lgtm[py/unused-import]
-import sqlalchemy as sa  # lgtm[py/unused-import]
+from alembic import op
+import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 
 

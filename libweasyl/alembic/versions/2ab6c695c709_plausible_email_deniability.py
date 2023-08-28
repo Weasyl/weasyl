@@ -10,8 +10,8 @@ Create Date: 2017-12-03 00:32:53.266420
 revision = '2ab6c695c709'
 down_revision = '999833c1fcf9'
 
-from alembic import op   # lgtm[py/unused-import]
-import sqlalchemy as sa  # lgtm[py/unused-import]
+from alembic import op
+import sqlalchemy as sa
 
 
 def upgrade():

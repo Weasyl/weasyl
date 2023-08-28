@@ -10,8 +10,8 @@ Create Date: 2017-01-08 22:20:43.814375
 revision = 'eff79a07a88d'
 down_revision = '83e6b2a46191'
 
-from alembic import op   # lgtm[py/unused-import]
-import sqlalchemy as sa  # lgtm[py/unused-import]
+from alembic import op
+import sqlalchemy as sa
 
 import libweasyl
 from libweasyl.legacy import UNIXTIME_OFFSET

@@ -10,8 +10,8 @@ Create Date: 2021-03-07 09:41:31.364370
 revision = '371d1872b404'
 down_revision = '30ea79d1586c'
 
-from alembic import op   # lgtm[py/unused-import]
-import sqlalchemy as sa  # lgtm[py/unused-import]
+from alembic import op
+import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 def upgrade():

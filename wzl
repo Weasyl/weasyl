@@ -4,16 +4,15 @@ set -eu
 export DOCKER_BUILDKIT=1
 export WEASYL_VERSION="$(git rev-parse --short HEAD)"
 
-{ # Try -- Current versions of Docker have compose as a plugin to docker
-docker compose version
-WZL_DOCKER_COMPOSE_EXECUTABLE="docker compose"
-} || { # Catch -- At some point the old v1 docker-compose might break with future changes;
-       # until that point, left in for now for backwards compatibility
-WZL_DOCKER_COMPOSE_EXECUTABLE="docker-compose"
-}
+# `docker-compose` is fast and easy to check for, so we fall back on `docker compose` instead of the other way around.
+if command -v docker-compose > /dev/null; then
+    docker_compose='docker-compose'
+else
+    docker_compose='docker compose'
+fi
 
 if test $# -eq 0; then
-    exec $WZL_DOCKER_COMPOSE_EXECUTABLE
+    exec $docker_compose
 fi
 
 head="$1"
@@ -24,26 +23,26 @@ check_nobuild() {
         return 0
     fi
 
-    $WZL_DOCKER_COMPOSE_EXECUTABLE build "$1" || exit $?
+    $docker_compose build "$1" || exit $?
     return 1
 }
 
 case "$head" in
 
 assets)
-    $WZL_DOCKER_COMPOSE_EXECUTABLE create "$@" build-assets
-    $WZL_DOCKER_COMPOSE_EXECUTABLE cp ./assets build-assets:/weasyl-build/
-    container_id="$($WZL_DOCKER_COMPOSE_EXECUTABLE ps -a --format=json build-assets | grep -o '"ID":"[^"]*"' | cut -d '"' -f 4)"
+    $docker_compose create "$@" build-assets
+    $docker_compose cp ./assets build-assets:/weasyl-build/
+    container_id="$($docker_compose ps -a --format=json build-assets | grep -o '"ID":"[^"]*"' | cut -d '"' -f 4)"
     exec docker start -ai "$container_id"
     ;;
 
 check)
     if check_nobuild flake8 "${1:-}"; then shift; fi
-    exec $WZL_DOCKER_COMPOSE_EXECUTABLE run --rm -T flake8 "$@"
+    exec $docker_compose run --rm -T flake8 "$@"
     ;;
 
 configure)
-    c="$WZL_DOCKER_COMPOSE_EXECUTABLE run --rm -T configure"
+    c="$docker_compose run --rm -T configure"
     set -x
     $c "$@" alembic.ini < libweasyl/alembic/alembic.ini.example
     $c "$@" site.config.txt < config/site.config.txt.example
@@ -53,17 +52,17 @@ configure)
 
 migrate)
     if check_nobuild migrate "${1:-}"; then shift; fi
-    exec $WZL_DOCKER_COMPOSE_EXECUTABLE run --rm -T migrate "$@"
+    exec $docker_compose run --rm -T migrate "$@"
     ;;
 
 revision)
     if check_nobuild revision "${1:-}"; then shift; fi
-    exec $WZL_DOCKER_COMPOSE_EXECUTABLE run --rm -T revision "$@" | tar x libweasyl/alembic/versions
+    exec $docker_compose run --rm -T revision "$@" | tar x libweasyl/alembic/versions
     ;;
 
 test)
     if check_nobuild test "${1:-}"; then shift; fi
-    exec $WZL_DOCKER_COMPOSE_EXECUTABLE run --rm test "$@"
+    exec $docker_compose run --rm test "$@"
     ;;
 
 test-coverage)
@@ -78,7 +77,7 @@ test-coverage)
         '
     fi
 
-    exec $WZL_DOCKER_COMPOSE_EXECUTABLE run --rm test "$@"
+    exec $docker_compose run --rm test "$@"
     ;;
 
 poetry)
@@ -114,6 +113,6 @@ push-templates)
     ;;
 
 *)
-    exec $WZL_DOCKER_COMPOSE_EXECUTABLE "$head" "$@"
+    exec $docker_compose "$head" "$@"
 
 esac

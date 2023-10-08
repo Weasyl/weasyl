@@ -8,11 +8,11 @@
 Requirements:
 
 - [Docker][docker]
-- [docker-compose][] (included with Docker on Windows and macOS)
+- [docker compose][] (included with Docker on Windows and macOS)
 
 
 [docker]: https://docs.docker.com/get-docker/
-[docker-compose]: https://docs.docker.com/compose/install/
+[docker compose]: https://docs.docker.com/compose/install/
 
 
 ### Get the sample database

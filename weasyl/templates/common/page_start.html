@@ -30,6 +30,12 @@ $def with (query, options, extended_options={})
   $if "imageselect" in options:
     <link rel="stylesheet" href="${resource_path('css/imageselect.css')}" />
 
+  $if "mod" in options:
+    <link rel="stylesheet" href="${resource_path('css/mod.css')}" />
+
+  $if "signup" in options:
+    <link rel="stylesheet" href="${resource_path('css/signup.css')}" />
+
   $if 'twitter_card' in extended_options:
     <meta name="twitter:site" content="@weasyl" />
     $for k, v in extended_options['twitter_card'].items():

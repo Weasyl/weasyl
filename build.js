@@ -282,6 +282,8 @@ const main = async () => {
         sasscFile('scss/site.scss', 'css/site.css', touch, copyImages),
         sasscFile('scss/help.scss', 'css/help.css', touch, copyImages),
         sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
+        sasscFile('scss/mod.scss', 'css/mod.css', touch, copyImages),
+        sasscFile('scss/signup.scss', 'css/signup.css', touch, copyImages),
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
         esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),

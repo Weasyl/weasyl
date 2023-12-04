@@ -17,7 +17,9 @@ def modcontrol_(request):
 @moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
-                                   (moderation.BAN_TEMPLATES,), title="User Suspensions"))
+                                   (moderation.BAN_TEMPLATES,),
+                                   options=("mod",),
+                                   title="User Suspensions"))
 
 
 @moderator_only
@@ -39,7 +41,7 @@ def modcontrol_report_(request):
         request.userid,
         r,
         blacklisted_tags,
-    ], title="View Reported " + r.target_type.title()))
+    ], options=("mod",), title="View Reported " + r.target_type.title()))
 
 
 @moderator_only
@@ -51,7 +53,7 @@ def modcontrol_reports_(request):
         # Reports
         report.select_list(request.userid, form),
         macro.MACRO_REPORT_VIOLATION,
-    ], title="Reported Content"))
+    ], options=("mod",), title="Reported Content"))
 
 
 @moderator_only
@@ -78,7 +80,7 @@ def modcontrol_contentbyuser_(request):
     return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
         form.name,
         sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
-    ], title=form.name + "'s Content"))
+    ], options=("mod",), title=form.name + "'s Content"))
 
 
 @moderator_only

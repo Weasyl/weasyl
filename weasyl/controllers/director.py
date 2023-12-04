@@ -38,7 +38,7 @@ def directorcontrol_emailblacklist_post_(request):
     # Remove entr(y|ies) from blacklist
     if action == "remove":
         d.engine.execute("DELETE FROM emailblacklist WHERE id = ANY (%(selected_ids)s)",
-                         selected_ids=map(int, remove_selection))
+                         selected_ids=list(map(int, remove_selection)))
 
     # Add any entries to blacklist, if any in form.domain_name; duplicate entries are silently discarded.
     elif action == "add" and domain_name:

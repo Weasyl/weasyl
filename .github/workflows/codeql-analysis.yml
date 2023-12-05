@@ -12,14 +12,17 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     permissions:
+      actions: read
+      contents: read
       security-events: write
 
     strategy:
       fail-fast: false
       matrix:
         language:
-          - javascript
+          - javascript-typescript
           - python
 
     steps:

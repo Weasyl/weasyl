@@ -278,6 +278,7 @@ def control_editemailpassword_get_(request):
         request.userid,
         "control/edit_emailpassword.html",
         (profile_info["email"], profile_info["username"]),
+        options=("signup",),
         title="Edit Password and Email Address"
     ))
 

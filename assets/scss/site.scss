@@ -1,5 +1,4 @@
 @import 'reset';
-@import 'components/password-meter';
 @import 'components/option';
 @import 'components/text-post-list';
 @import 'pages/marketplace';
@@ -1726,22 +1725,6 @@ $tag-reject-deemphasize-size: 11px;
 
 #login-sfw input {
     margin: 0;
-}
-
-.form-date-day, .form-date-year {
-    width: 25%;
-    float: left;
-}
-
-.form-date-month {
-    width: 46%;
-    float: left;
-    padding: 0 2%;
-}
-
-#signup-terms {
-    clear: both;
-    padding-top: 1.75em;
 }
 
 @media (min-width: 34em) {
@@ -3924,93 +3907,6 @@ img + #detail-art-text {
 }
 
 
-/* ------------------------------------ =moderation -- */
-
-.content-by-user-page {
-    padding-top: 20px;
-}
-
-.content-by-user {
-    width: 100%;
-    table-layout: fixed;
-}
-.content-by-user td {
-    vertical-align: middle;
-}
-
-.content-by-user .checkbox-cell {
-    width: 8%;
-}
-.content-by-user .thumb-cell {
-    width: 30%;
-}
-.content-by-user .title-cell {
-    width: 20%;
-}
-.content-by-user .rating-cell {
-    width: 15%;
-}
-.content-by-user .time-cell {
-    width: 20%;
-}
-.content-by-user .visibility-cell {
-    width: 10%;
-}
-
-/* needed for absolute positioning in firefox */
-.content-by-user .checkbox-cell-wrapper {
-    height: 180px;
-    position: relative;
-}
-.content-by-user label {
-    display: block;
-    width: 1250%;
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1;
-}
-.content-by-user input[type=checkbox] {
-    position: absolute;
-    left: 0.5em;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
-}
-
-/* h4x */
-.content-by-user .thumb, .content-by-user .journal-thumb, .content-by-user .title, .content-by-user .rating, .content-by-user .time, .content-by-user .visibility {
-    position: relative;
-    z-index: 3;
-}
-.content-by-user .thumb {
-    display: block;
-    margin: auto;
-    max-width: 100%;
-    max-height: 160px;
-}
-.content-by-user .title {
-    display: inline-block;
-    max-width: 100%;
-    padding: 0 10px;
-}
-.content-by-user .rating {
-    border-style: solid;
-    border-bottom-width: 3px;
-}
-
-.content-by-user-actions {
-    padding: 2em 0;
-}
-
-@media (min-width: 45em) {
-    .content-by-user-moderate {
-        float: right;
-    }
-}
-
-
 /* ------------------------------------ =misc -- */
 
 #journals-content {
@@ -4068,84 +3964,6 @@ img + #detail-art-text {
 #notes-content .buttons {
     padding-top: 1em;
 }
-
-#comm-guidelines {
-    padding-top: 2em;
-}
-
-#comm-guidelines ul li, #comm-guidelines ol li {
-    padding-bottom: 1.5em;
-}
-
-#comm-guidelines ul ol, #comm-guidelines ul ol li:last-child, #comm-guidelines ol ul, #comm-guidelines ol ul li:last-child {
-    padding-bottom: 0;
-}
-
-.help-examples table {
-    margin-bottom: 1em;
-}
-
-.help-examples th {
-    font-weight: normal;
-    text-align: left;
-}
-
-.help-examples th,
-.help-examples td {
-    border: 0.1em solid #bbb;
-    padding: 0.4em;
-    vertical-align: top;
-}
-
-.help-examples > h4 {
-    padding-top: 0.6em;
-    padding-bottom: 0.2em;
-}
-
-.donator-list {
-    column-count: 2;
-    column-gap: 2em;
-    padding: 2em 0;
-    font-size: 1.15em;
-}
-
-.donator-list > li {
-    line-height: 1;
-    overflow-wrap: break-word;
-    padding: 0.25em 0.5em 0.75em 0;
-}
-
-@media (min-width: 45em) {
-    .donator-list {
-        column-count: 4;
-    }
-}
-
-@media (min-width: 55em) {
-    .donator-list {
-        column-count: 5;
-    }
-}
-
-@media (min-width: 65em) {
-    .donator-list {
-        column-count: 6;
-    }
-}
-
-@media (min-width: 72em) {
-    .donator-list {
-        column-count: 7;
-    }
-}
-
-@media (min-width: 80em) {
-    .donator-list {
-        column-count: 8;
-    }
-}
-
-.right { text-align: right; }
 
 /* ------------------------------------ =footer -- */
 
@@ -4402,36 +4220,6 @@ body input[type="checkbox"] {
     top: -1px;
 }
 
-/* ---------------------------------------------- reports -- */
-/*
-templates/modcontrol/reports.html
-*/
-
-#reports_content {
-    padding-top: 2em;
-}
-
-#reports_buttons {
-    padding: 2em 0;
-}
-
-/* General
---------------------------------*/
-.warning {
-    background-color: #f50;
-    color: white;
-    font-weight: bold;
-    margin-bottom: 1em;
-    padding: 1em;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.warning ul {
-    list-style-type: disc;
-    margin-top: 0.5em;
-    padding-left: 1.8em;
-}
-
 /* Form
 --------------------------------*/
 .link-button {
@@ -4533,10 +4321,6 @@ a.user-icon:hover > span, a.user-icon:focus > span {
     margin: 1em 0;
     color: #ad322d;
     font-style: italic;
-}
-
-#tag-history th {
-    text-align: left;
 }
 
 .hidden-comment {

@@ -6,6 +6,13 @@ from weasyl.controllers.decorators import login_required
 from weasyl import define, profile, report
 
 
+def _help_page(template, *, title):
+    def respond(request):
+        return Response(define.webpage(request.userid, template, options=("help",), title=title))
+
+    return respond
+
+
 # Policy functions
 
 def staff_(request):
@@ -29,84 +36,26 @@ def staff_(request):
                                    title="Staff"))
 
 
-def thanks_(request):
-    return Response(define.webpage(request.userid, "help/thanks.html",
-                                   title="Awesome People"))
+thanks_ = _help_page("help/thanks.html", title="Awesome People")
 
+policy_community_ = _help_page("help/community.html", title="Community Guidelines")
+policy_copyright_ = _help_page("help/copyright.html", title="Copyright Policy")
+policy_privacy_ = _help_page("help/privacy.html", title="Privacy Policy")
+policy_scoc_ = _help_page("help/scoc.html", title="Staff Code of Conduct")
+policy_tos_ = _help_page("help/tos.html", title="Terms of Service")
 
-def policy_community_(request):
-    return Response(define.webpage(request.userid, "help/community.html",
-                                   title="Community Guidelines"))
-
-
-def policy_copyright_(request):
-    return Response(define.webpage(request.userid, "help/copyright.html",
-                                   title="Copyright Policy"))
-
-
-def policy_privacy_(request):
-    return Response(define.webpage(request.userid, "help/privacy.html",
-                                   title="Privacy Policy"))
-
-
-def policy_scoc_(request):
-    return Response(define.webpage(request.userid, "help/scoc.html",
-                                   title="Staff Code of Conduct"))
-
-
-def policy_tos_(request):
-    return Response(define.webpage(request.userid, "help/tos.html",
-                                   title="Terms of Service"))
-
-
-# Help functions
-def help_(request):
-    return Response(define.webpage(request.userid, "help/help.html",
-                                   title="Help Topics"))
-
-
-def help_about_(request):
-    return Response(define.webpage(request.userid, "help/about.html",
-                                   title="About Weasyl"))
-
-
-def help_collections_(request):
-    return Response(define.webpage(request.userid, "help/collections.html",
-                                   options=("help",),
-                                   title="Collections"))
-
-
-def help_faq_(request):
-    return Response(define.webpage(request.userid, "help/faq.html",
-                                   title="FAQ"))
-
-
-def help_folders_(request):
-    return Response(define.webpage(request.userid, "help/folder-options.html",
-                                   options=("help",),
-                                   title="Folder Options"))
-
-
-def help_gdocs_(request):
-    return Response(define.webpage(request.userid, "help/gdocs.html",
-                                   options=("help",),
-                                   title="Google Docs Embedding"))
-
-
-def help_markdown_(request):
-    return Response(define.webpage(request.userid, "help/markdown.html",
-                                   title="Markdown"))
-
-
-def help_marketplace_(request):
-    return Response(define.webpage(request.userid, "help/marketplace.html",
-                                   options=("help",),
-                                   title="Marketplace"))
-
-
-def help_ratings_(request):
-    return Response(define.webpage(request.userid, "help/ratings.html",
-                                   title="Content Ratings"))
+help_ = _help_page("help/help.html", title="Help Topics")
+help_about_ = _help_page("help/about.html", title="About Weasyl")
+help_collections_ = _help_page("help/collections.html", title="Collections")
+help_faq_ = _help_page("help/faq.html", title="FAQ")
+help_folders_ = _help_page("help/folder-options.html", title="Folder Options")
+help_gdocs_ = _help_page("help/gdocs.html", title="Google Docs Embedding")
+help_markdown_ = _help_page("help/markdown.html", title="Markdown")
+help_marketplace_ = _help_page("help/marketplace.html", title="Marketplace")
+help_ratings_ = _help_page("help/ratings.html", title="Content Ratings")
+help_searching_ = _help_page("help/searching.html", title="Searching")
+help_tagging_ = _help_page("help/tagging.html", title="Tagging")
+help_two_factor_authentication_ = _help_page("help/two_factor_authentication.html", title="Two-Factor Authentication")
 
 
 @login_required
@@ -114,23 +63,6 @@ def help_reports_(request):
     return Response(define.webpage(request.userid, "help/reports.html", [
         report.select_reported_list(request.userid),
     ], title="My Reports"))
-
-
-def help_searching_(request):
-    return Response(define.webpage(request.userid, "help/searching.html",
-                                   title="Searching"))
-
-
-def help_tagging_(request):
-    return Response(define.webpage(request.userid, "help/tagging.html",
-                                   options=("help",),
-                                   title="Tagging"))
-
-
-def help_two_factor_authentication_(request):
-    return Response(define.webpage(request.userid, "help/two_factor_authentication.html",
-                                   options=("help",),
-                                   title="Two-Factor Authentication"))
 
 
 def help_verification_(request):

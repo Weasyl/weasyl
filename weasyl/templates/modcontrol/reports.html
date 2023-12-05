@@ -1,9 +1,10 @@
 $def with (method, query, violations)
 $:{RENDER("common/stage_title.html", ["Reported Content", "Moderator Control Panel", "/modcontrol"])}
 $code:
-  _color_map = {
-    'review': ' style="color:#e0a000;"',
-    'open': ' style="color:#f00000;"',
+  _status_class = {
+    'open': 'report-status-open',
+    'review': 'report-status-review',
+    'closed': '',
   }
 
   _context_map = {
@@ -21,19 +22,32 @@ $code:
 
 <div id="reports_content" class="content">
   $if query:
-    <table>
-      <tr>
-        <td style="font-weight:bold;">Title</td>
-        <td style="font-weight:bold;">Direct Link</td>
-        <td style="font-weight:bold;">Content Owner</td>
-        <td style="font-weight:bold;">Violation(s)</td>
-        <td style="font-weight:bold;">Reporters</td>
-        <td style="font-weight:bold;">Opened On</td>
-        <td style="font-weight:bold;text-align:right;">Report Status</td>
-      </tr>
+    <table class="reports">
+      <colgroup>
+        <col>
+        <col class="reports-column-direct-link">
+        <col>
+        <col>
+        <col class="reports-column-reporters">
+        <col>
+        <col>
+      </colgroup>
 
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Direct Link</th>
+          <th>Content Owner</th>
+          <th>Violation(s)</th>
+          <th>Reporters</th>
+          <th>Opened On</th>
+          <th>Report Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
       $for report, report_count, report_violations in query:
-        <tr$:{_color_map.get(report.status, '')}>
+        <tr class="${_status_class.get(report.status)}">
           <td><a href="/modcontrol/report?reportid=${report.reportid}">${report.target.title}</a></td>
           <td>
             <a href="${report.target.legacy_path(mod=True)}">
@@ -48,18 +62,19 @@ $code:
           <td>$:{LOCAL_TIME(report.opened_at, '{date} {time}')}</td>
           $ status = report.status
           $if status == 'review':
-            <td class="right">
+            <td>
               Under review by <a href="/~${report.owner.login_name}">${report.owner.profile.username}</a>
             </td>
           $elif status == 'closed':
-            <td class="right">
+            <td>
               Closed by <a href="/~${report.owner.login_name}">${report.owner.profile.username}</a>
               (${report.closure_reason.value.replace('-', ' ')}
               $:{LOCAL_TIME(report.closed_at, 'on {date} at {time}')})
             </td>
           $else:
-            <td class="right">Open</td>
+            <td>Open</td>
         </tr>
+      </tbody>
 
     </table>
   $else:

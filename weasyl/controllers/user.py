@@ -179,7 +179,7 @@ def signout_(request):
 
 @guest_required
 def signup_get_(request):
-    return Response(define.webpage(request.userid, "etc/signup.html", (), title="Create a Weasyl Account"))
+    return Response(define.webpage(request.userid, "etc/signup.html", (), options=("signup",), title="Create a Weasyl Account"))
 
 
 @guest_required
@@ -251,7 +251,7 @@ def resetpassword_get_(request):
             "The e-mail address **%s** is not associated with a Weasyl account." % (reset_target.email,),
             [["Sign Up", "/signup"], ["Return to the Home Page", "/"]]))
 
-    return Response(define.webpage(request.userid, "etc/resetpassword.html", [token, reset_target], title="Reset Forgotten Password"))
+    return Response(define.webpage(request.userid, "etc/resetpassword.html", [token, reset_target], options=("signup",), title="Reset Forgotten Password"))
 
 
 @guest_required

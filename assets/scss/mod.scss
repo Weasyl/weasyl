@@ -1,0 +1,134 @@
+@import 'components/date-picker';
+
+.report-status-review {
+    color: #e0a000;
+}
+
+.report-status-open {
+    color: #f00000;
+}
+
+#reports_content {
+    padding-top: 2em;
+}
+
+.reports th {
+    text-align: left;
+}
+
+.reports-column-direct-link {
+    // This column has a fixed set of possible cell values, the widest of which is "View submission".
+    width: 10em;
+}
+
+.reports-column-reporters {
+    // This column is just a number, usually a single digit; it only needs enough room for the header.
+    width: 6em;
+}
+
+#reports_buttons {
+    padding: 2em 0;
+}
+
+.warning {
+    background-color: #f50;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 1em;
+    padding: 1em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.warning ul {
+    list-style-type: disc;
+    margin-top: 0.5em;
+    padding-left: 1.8em;
+}
+
+.content-by-user-page {
+    padding-top: 20px;
+}
+
+.content-by-user {
+    width: 100%;
+    table-layout: fixed;
+}
+.content-by-user td {
+    vertical-align: middle;
+}
+
+.content-by-user .checkbox-cell {
+    width: 8%;
+}
+.content-by-user .thumb-cell {
+    width: 30%;
+}
+.content-by-user .title-cell {
+    width: 20%;
+}
+.content-by-user .rating-cell {
+    width: 15%;
+}
+.content-by-user .time-cell {
+    width: 20%;
+}
+.content-by-user .visibility-cell {
+    width: 10%;
+}
+
+/* needed for absolute positioning in firefox */
+.content-by-user .checkbox-cell-wrapper {
+    height: 180px;
+    position: relative;
+}
+.content-by-user label {
+    display: block;
+    width: 1250%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+}
+.content-by-user input[type=checkbox] {
+    position: absolute;
+    left: 0.5em;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+}
+
+/* h4x */
+.content-by-user .thumb, .content-by-user .journal-thumb, .content-by-user .title, .content-by-user .rating, .content-by-user .time, .content-by-user .visibility {
+    position: relative;
+    z-index: 3;
+}
+.content-by-user .thumb {
+    display: block;
+    margin: auto;
+    max-width: 100%;
+    max-height: 160px;
+}
+.content-by-user .title {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0 10px;
+}
+.content-by-user .rating {
+    border-style: solid;
+    border-bottom-width: 3px;
+}
+
+.content-by-user-actions {
+    padding: 2em 0;
+}
+
+@media (min-width: 45em) {
+    .content-by-user-moderate {
+        float: right;
+    }
+}
+
+#tag-history th {
+    text-align: left;
+}

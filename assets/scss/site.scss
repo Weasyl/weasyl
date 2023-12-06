@@ -71,7 +71,7 @@ dl.leaders dd {
 
 /* Typefaces
 --------------------------------*/
-#page-container, textarea, .typeface-default, button, select {
+#page-container, textarea, .typeface-default, button {
     font-family: Lucida Sans, Lucida Grande, Arial, Roboto, sans-serif;
     font-size: 12px;
     font-size: 0.75rem;
@@ -769,19 +769,13 @@ dl + h4, #uc-info {
     line-height: 1.75rem;
 }
 
-input.input {
+// .input:not(textarea)
+input.input,
+select.input {
     height: 28px;
     height: 1.75rem;
     line-height: 28px;
     line-height: 1.75rem;
-}
-
-select.input {
-    line-height: 1;
-    padding-top: 5px;
-    padding-top: 0.3rem;
-    padding-bottom: 5px;
-    padding-bottom: 0.3rem;
 }
 
 .input:hover, .input:focus {

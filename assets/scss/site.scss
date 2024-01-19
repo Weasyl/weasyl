@@ -2863,10 +2863,6 @@ $notifs-color-active: #b9b9b9;
         padding-left: 2.5em;
     }
 
-    #user-nav.group li + li {
-        padding-left: 3.5em;
-    }
-
     #user-nav li a {
         padding: 0;
         height: 48px;
@@ -2891,11 +2887,7 @@ $notifs-color-active: #b9b9b9;
         width: 14.28%;
     }
 
-    #user-nav.group li {
-        width: 14.28%;
-    }
-
-    #user-nav li + li, #user-nav.group li + li {
+    #user-nav li + li {
         padding-left: 0;
     }
 

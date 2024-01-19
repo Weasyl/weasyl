@@ -135,6 +135,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     files.clear_temporary(userid)
 
     define.metric('increment', 'characters')
+    define.cached_posts_count.invalidate(userid)
 
     return charid
 
@@ -396,6 +397,8 @@ def edit(userid, character, friends_only):
             userid, query.userid, 'The following character was edited:',
             '- ' + text.markdown_link(character.char_name, '/character/%s?anyway=true' % (character.charid,)))
 
+    define.cached_posts_count.invalidate(query.userid)
+
 
 def remove(userid, charid):
     ownerid = define.get_ownerid(charid=charid)
@@ -410,6 +413,7 @@ def remove(userid, charid):
 
     if result.rowcount != 0:
         welcome.character_remove(charid)
+        define.cached_posts_count.invalidate(ownerid)
 
     return ownerid
 

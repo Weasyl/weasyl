@@ -59,6 +59,7 @@ def create(userid, journal, friends_only=False, tags=None):
                            friends_only=friends_only)
 
     d.metric('increment', 'journals')
+    d.cached_posts_count.invalidate(userid)
 
     return journalid
 
@@ -298,6 +299,8 @@ def edit(userid, journal, friends_only=False):
             userid, query[0], 'The following journal was edited:',
             '- ' + text.markdown_link(journal.title, '/journal/%s?anyway=true' % (journal.journalid,)))
 
+    d.cached_posts_count.invalidate(query[0])
+
 
 def remove(userid, journalid):
     ownerid = d.get_ownerid(journalid=journalid)
@@ -312,5 +315,6 @@ def remove(userid, journalid):
 
     if result.rowcount != 0:
         welcome.journal_remove(journalid)
+        d.cached_posts_count.invalidate(ownerid)
 
     return ownerid

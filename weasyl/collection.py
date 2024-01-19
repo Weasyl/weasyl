@@ -224,6 +224,7 @@ def pending_accept(userid, submissions):
         welcome.collectrequest_remove(userid, s[1], s[0])
 
     d._page_header_info.invalidate(userid)
+    d.cached_posts_count.invalidate(userid)
 
 
 def pending_reject(userid, submissions):
@@ -250,3 +251,4 @@ def remove(userid, submissions):
     """, user=userid, submissions=submissions)
 
     welcome.collection_remove(userid, submissions)
+    d.cached_posts_count.invalidate(userid)

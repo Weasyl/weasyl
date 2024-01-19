@@ -1,4 +1,4 @@
-$def with (request, profile, userinfo, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified)
+$def with (request, profile, userinfo, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified, post_counts_by_type)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <section><div id="user-header" class="stage clear">
@@ -31,7 +31,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 </div></section>
 
-$:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['show_favorites_tab']])}
+$:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['show_favorites_tab'], post_counts_by_type])}
 
 <div id="user-content" class="content clear">
   $# only moderators can see the profiles of unverified users, so no need for additional ability-to-vouch checks

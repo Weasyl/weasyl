@@ -782,6 +782,18 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
                 else:
                     copyable.append('- %s' % (title,))
 
+    cached_posts_count_invalidate_userids = list(affected.keys())
+    if submissions:
+        # bulk add collectors; see `weasyl.collection.find_owners`
+        cached_posts_count_invalidate_userids.extend(
+            row.userid
+            for row in d.engine.execute(
+                "SELECT DISTINCT userid FROM collection WHERE submitid = ANY (%(submissions)s) AND settings !~ '[pr]'",
+                submissions=submissions,
+            )
+        )
+    d.cached_posts_count_invalidate_multi(cached_posts_count_invalidate_userids)
+
     now = arrow.utcnow()
     values = []
     for target, target_affected in affected.items():

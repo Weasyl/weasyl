@@ -110,6 +110,7 @@ def _create_submission(expected_type):
             if newid:
                 p = d.meta.tables['profile']
                 d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
+                d.cached_posts_count.invalidate(userid)
             return newid
 
         return create_generic
@@ -944,6 +945,14 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
     }
 
 
+def _invalidate_collectors_posts_count(submitid):
+    """
+    Invalidate the cached post counts of users who have as a collection the submission being edited or deleted.
+    """
+    owners = collection.find_owners(submitid)
+    d.cached_posts_count_invalidate_multi(owners)
+
+
 def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
     query = d.engine.execute(
         "SELECT userid, subtype, hidden, embed_type FROM submission WHERE submitid = %(id)s",
@@ -1004,6 +1013,10 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
             userid, query[0], 'The following submission was edited:',
             '- ' + text.markdown_link(submission.title, '/submission/%s?anyway=true' % (submission.submitid,)))
 
+    # possible rating change
+    d.cached_posts_count.invalidate(query[0])
+    _invalidate_collectors_posts_count(submission.submitid)
+
 
 def remove(userid, submitid):
     ownerid = d.get_ownerid(submitid=submitid)
@@ -1016,6 +1029,8 @@ def remove(userid, submitid):
 
     if query:
         welcome.submission_remove(submitid)
+        d.cached_posts_count.invalidate(ownerid)
+        _invalidate_collectors_posts_count(submitid)
 
     return ownerid
 

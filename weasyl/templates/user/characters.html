@@ -1,9 +1,9 @@
-$def with (profile, userinfo, relationship, result)
+$def with (profile, userinfo, relationship, result, post_counts_by_type)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <div id="characters_stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
-  $:{RENDER("common/user_tabs.html", [profile['username'], "characters", profile['show_favorites_tab']])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], "characters", profile['show_favorites_tab'], post_counts_by_type])}
 </div>
 
 <div class="content user-characters">

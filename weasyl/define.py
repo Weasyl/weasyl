@@ -6,6 +6,9 @@ import json
 import numbers
 import datetime
 import pkgutil
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import urlencode, urljoin
 
 import arrow
@@ -177,6 +180,7 @@ def _compile(template_name):
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
+                "format": format,
                 "getattr": getattr,
                 "json": json,
                 "sorted": sorted,
@@ -588,6 +592,61 @@ def user_type(userid):
         return "dev"
 
     return None
+
+
+def _posts_count_query_basic(table):
+    return (
+        f"SELECT '{table}' AS post_type, rating, friends_only, count(*) FROM {table}"
+        " WHERE userid = %(userid)s"
+        " AND NOT hidden"
+        " GROUP BY rating, friends_only"
+    )
+
+
+_POSTS_COUNT_QUERY = " UNION ALL ".join((
+    _posts_count_query_basic("submission"),
+    _posts_count_query_basic("journal"),
+    _posts_count_query_basic("character"),
+    (
+        "SELECT 'collection' AS post_type, rating, friends_only, count(*)"
+        " FROM collection INNER JOIN submission USING (submitid)"
+        " WHERE collection.userid = %(userid)s"
+        " AND NOT hidden"
+        " AND collection.settings !~ '[pr]'"
+        " GROUP BY rating, friends_only"
+    ),
+))
+
+
+@dataclass(frozen=True, slots=True)
+class PostsCountKey:
+    post_type: Literal["submission", "journal", "character", "collection"]
+    rating: Literal[10, 30, 40]
+
+
+@region.cache_on_arguments()
+def cached_posts_count(userid):
+    return [*map(dict, engine.execute(_POSTS_COUNT_QUERY, userid=userid))]
+
+
+def cached_posts_count_invalidate_multi(userids):
+    namespace = None
+    cache_keys = [*map(region.function_key_generator(namespace, cached_posts_count), userids)]
+    region.delete_multi(cache_keys)
+
+
+def posts_count(userid, *, friends: bool):
+    result = defaultdict(int)
+
+    for row in cached_posts_count(userid):
+        if friends or not row["friends_only"]:
+            key = PostsCountKey(
+                post_type=row["post_type"],
+                rating=row["rating"],
+            )
+            result[key] += row["count"]
+
+    return result
 
 
 @region.cache_on_arguments(expiration_time=180)

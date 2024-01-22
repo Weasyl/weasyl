@@ -1,8 +1,8 @@
-$def with (profile, userinfo, relationship, query)
+$def with (profile, userinfo, relationship, query, post_counts_by_type)
 
 <div class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
-  $:{RENDER("common/user_tabs.html", [profile['username'], "", profile['show_favorites_tab']])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], "", profile['show_favorites_tab'], post_counts_by_type])}
 </div>
 
 <div class="content">

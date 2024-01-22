@@ -1,6 +1,7 @@
 @import 'reset';
 @import 'components/option';
 @import 'components/text-post-list';
+@import 'components/user-tabs';
 @import 'pages/marketplace';
 
 /* Basic styles
@@ -2545,18 +2546,6 @@ $notifs-color-active: #b9b9b9;
     padding-top: 1rem;
 }
 
-#user-nav li {
-    width: 50%;
-    float: left;
-}
-
-#user-nav li a {
-    display: block;
-    padding: 0.5em 0;
-    font-size: 14px;
-    font-size: 0.9rem;
-}
-
 #uf-image {
     text-align: center;
 }
@@ -2662,10 +2651,6 @@ $notifs-color-active: #b9b9b9;
         padding-top: 4px;
         padding-top: 0.25rem;
         margin-left: 64px;
-    }
-
-    #user-nav li {
-        width: 25%;
     }
 
     #user-stats dl {
@@ -2853,25 +2838,6 @@ $notifs-color-active: #b9b9b9;
     }
 }
 
-@media (min-width: 48em) {
-    #user-nav li {
-        width: auto;
-        float: left;
-    }
-
-    #user-nav li + li {
-        padding-left: 2.5em;
-    }
-
-    #user-nav li a {
-        padding: 0;
-        height: 48px;
-        height: 3rem;
-        line-height: 48px;
-        line-height: 3rem;
-    }
-}
-
 @media (min-width: 53em) {
     #user-info .avatar {
         left: 32px;
@@ -2881,18 +2847,6 @@ $notifs-color-active: #b9b9b9;
     #user-actions .stream-status {
         right: 32px;
         right: 2rem;
-    }
-
-    #user-nav li {
-        width: 14.28%;
-    }
-
-    #user-nav li + li {
-        padding-left: 0;
-    }
-
-    #user-nav li a {
-        text-align: center;
     }
 }
 

@@ -12,6 +12,21 @@ from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
 
 
+def _get_post_counts_by_type(userid, *, friends: bool, rating):
+    result = {
+        "submission": 0,
+        "journal": 0,
+        "character": 0,
+        "collection": 0,
+    }
+
+    for key, count in define.posts_count(userid, friends=friends).items():
+        if key.rating <= rating:
+            result[key.post_type] += count
+
+    return result
+
+
 # Profile browsing functions
 def profile_(request):
     name = request.params.get('name', '')
@@ -90,6 +105,8 @@ def profile_(request):
 
     statistics, show_statistics = profile.select_statistics(otherid)
 
+    relation = profile.select_relation(request.userid, otherid)
+
     return Response(define.webpage(
         request.userid,
         "user/profile.html",
@@ -100,7 +117,7 @@ def profile_(request):
             # User information
             profile.select_userinfo(otherid, config=userprofile['config']),
             # Relationship
-            profile.select_relation(request.userid, otherid),
+            relation,
             # Myself
             profile.select_myself(request.userid),
             # Recent submissions
@@ -121,6 +138,7 @@ def profile_(request):
             # Friends
             lambda: frienduser.has_friends(otherid),
             is_unverified,
+            _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
         ),
         twitter_card=twitter_meta,
         ogp=ogp,
@@ -171,19 +189,22 @@ def submissions_(request):
         nextid=define.get_int(nextid), profile_page_filter=not folderid,
         count_limit=submission.COUNT_LIMIT)
 
+    relation = profile.select_relation(request.userid, otherid)
+
     page.append(define.render('user/submissions.html', [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Recent submissions
         result,
         # Folders
         folder.select_list(otherid),
         # Current folder
         folderid,
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -214,15 +235,18 @@ def collections_(request):
         collection.select_list, collection.select_count, 'submitid', url_format, request.userid, rating,
         limit=66, otherid=otherid, backid=define.get_int(backid), nextid=define.get_int(nextid))
 
+    relation = profile.select_relation(request.userid, otherid)
+
     page.append(define.render('user/collections.html', [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Collections
         result,
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -245,15 +269,18 @@ def journals_(request):
     page_title = u"%s's journals" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
+    relation = profile.select_relation(request.userid, otherid)
+
     page.append(define.render('user/journals.html', [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Journals list
         journal.select_list(request.userid, rating, otherid=otherid),
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -287,15 +314,18 @@ def characters_(request):
         otherid=otherid, backid=define.get_int(backid),
         nextid=define.get_int(nextid))
 
+    relation = profile.select_relation(request.userid, otherid)
+
     page.append(define.render('user/characters.html', [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Characters list
         result,
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -330,19 +360,23 @@ def shouts_(request):
     page_title = u"%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
+    relation = profile.select_relation(request.userid, otherid)
+    rating = define.get_rating(request.userid)
+
     page.append(define.render('user/shouts.html', [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Myself
         profile.select_myself(request.userid),
         # Comments
         shout.select(request.userid, ownerid=otherid),
         # Feature
         "shouts",
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -365,19 +399,23 @@ def staffnotes_(request):
     userinfo['reportstats'] = reportstats
     userinfo['reporttotal'] = sum(reportstats.values())
 
+    relation = profile.select_relation(request.userid, otherid)
+    rating = define.get_rating(request.userid)
+
     page.append(define.render('user/shouts.html', [
         # Profile information
         userprofile,
         # User information
         userinfo,
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Myself
         profile.select_myself(request.userid),
         # Comments
         shout.select(request.userid, ownerid=otherid, staffnotes=True),
         # Feature
         "staffnotes",
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -437,17 +475,20 @@ def favorites_(request):
             "journal": favorite.select_journal(request.userid, rating, 22, otherid=otherid),
         }
 
+    relation = profile.select_relation(request.userid, otherid)
+
     page.append(define.render('user/favorites.html', [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Feature
         feature,
         # Favorites
         faves,
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -468,6 +509,8 @@ def friends_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    relation = profile.select_relation(request.userid, otherid)
+    rating = define.get_rating(request.userid)
 
     return Response(define.webpage(request.userid, "user/friends.html", [
         # Profile information
@@ -475,10 +518,11 @@ def friends_(request):
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Friends
         frienduser.select_friends(request.userid, otherid, limit=44,
                                   backid=define.get_int(backid), nextid=define.get_int(nextid)),
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
 
@@ -497,6 +541,8 @@ def following_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    relation = profile.select_relation(request.userid, otherid)
+    rating = define.get_rating(request.userid)
 
     return Response(define.webpage(request.userid, "user/following.html", [
         # Profile information
@@ -504,10 +550,11 @@ def following_(request):
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Following
         followuser.select_following(request.userid, otherid, limit=44,
                                     backid=define.get_int(backid), nextid=define.get_int(nextid)),
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))
 
 
@@ -526,6 +573,8 @@ def followed_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    relation = profile.select_relation(request.userid, otherid)
+    rating = define.get_rating(request.userid)
 
     return Response(define.webpage(request.userid, "user/followed.html", [
         # Profile information
@@ -533,8 +582,9 @@ def followed_(request):
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
         # Relationship
-        profile.select_relation(request.userid, otherid),
+        relation,
         # Followed
         followuser.select_followed(request.userid, otherid, limit=44,
                                    backid=define.get_int(backid), nextid=define.get_int(nextid)),
+        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
     ]))

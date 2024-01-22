@@ -1,7 +1,7 @@
-$def with (profile, userinfo, relationship, myself, shouts, feature)
+$def with (profile, userinfo, relationship, myself, shouts, feature, post_counts_by_type)
 <div id="shouts-stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
-  $:{RENDER("common/user_tabs.html", [profile['username'], feature, profile['show_favorites_tab']])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], feature, profile['show_favorites_tab'], post_counts_by_type])}
 </div>
 <div id="shouts-content" class="content">
   $if feature == "staffnotes":

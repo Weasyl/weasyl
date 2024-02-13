@@ -298,16 +298,7 @@ def get_profile_settings(userid):
     return ProfileSettings(jsonb)
 
 
-def get_rating(userid):
-    if not userid:
-        return ratings.GENERAL.code
-
-    if is_sfw_mode():
-        profile_settings = get_profile_settings(userid)
-
-        # if no explicit max SFW rating picked assume general as a safe default
-        return profile_settings.max_sfw_rating
-
+def _get_config_rating(userid):
     config = get_config(userid)
     if 'p' in config:
         return ratings.EXPLICIT.code
@@ -315,6 +306,17 @@ def get_rating(userid):
         return ratings.MATURE.code
     else:
         return ratings.GENERAL.code
+
+
+def get_rating(userid):
+    if not userid:
+        return ratings.GENERAL.code
+
+    if is_sfw_mode():
+        profile_settings = get_profile_settings(userid)
+        return profile_settings.max_sfw_rating
+
+    return _get_config_rating(userid)
 
 
 # this method is used specifically for the settings page, where
@@ -678,6 +680,26 @@ def _page_header_info(userid):
     return result
 
 
+def get_max_post_rating(userid):
+    return max((key.rating for key, count in posts_count(userid, friends=True).items() if count), default=ratings.GENERAL.code)
+
+
+def _is_sfw_locked(userid):
+    """
+    Determine whether SFW mode has no effect for the specified user.
+
+    If the SFW mode rating preference is the same as the standard rating preference and the user has no posts above that rating, SFW mode has no effect.
+    """
+    config_rating = _get_config_rating(userid)
+    profile_settings = get_profile_settings(userid)
+
+    if profile_settings.max_sfw_rating != config_rating:
+        return False
+
+    max_post_rating = get_max_post_rating(userid)
+    return max_post_rating is not None and max_post_rating <= config_rating
+
+
 def page_header_info(userid):
     from weasyl import media
     sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
@@ -687,6 +709,7 @@ def page_header_info(userid):
         "username": get_display_name(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
+        "sfw_locked": _is_sfw_locked(userid),
     }
 
 

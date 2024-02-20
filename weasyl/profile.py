@@ -823,19 +823,14 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])
 
         if age < ratings.EXPLICIT.minimum_age:
-            max_rating = ratings.GENERAL.code
-            rating_flag = ""
-        else:
-            max_rating = ratings.EXPLICIT.code
-
-        if d.get_rating(userid) > max_rating:
+            # reset rating preference and SFW mode rating preference to General
             d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || %(rating_flag)s
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'),
+                    jsonb_settings = jsonb_settings - 'max_sfw_rating'
                 WHERE userid = %(user)s
                 """,
-                rating_flag=rating_flag,
                 user=userid,
             )
             d._get_all_config.invalidate(userid)

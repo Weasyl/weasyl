@@ -323,7 +323,6 @@ def control_editpreferences_get_(request):
         jsonb_settings,
         # Rating
         current_rating,
-        age,
         allowed_ratings,
     ], title="Site Preferences"))
 

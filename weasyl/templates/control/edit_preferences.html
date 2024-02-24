@@ -1,4 +1,4 @@
-$def with (config, jsonb_settings, current_rating, age, allowed_ratings)
+$def with (config, jsonb_settings, current_rating, allowed_ratings)
 $:{RENDER("common/stage_title.html", ["Site Preferences", "Settings"])}
 $code:
   def _CHECKED(x):
@@ -22,11 +22,11 @@ $code:
     <p class="color-lighter" style="padding-top: 0.5em;">This does not apply to your own submissions.</p>
 
     <label for="siterating">Maximum Viewable Content Rating</label>
-    <select name="rating" class="input" id="siterating"$:{'' if age >= 18 else ' disabled'}>
+    <select name="rating" class="input" id="siterating"$:{'' if len(allowed_ratings) > 1 else ' disabled'}>
       $for rating in allowed_ratings
         <option value="${rating.code}"$:{_RATING(current_rating, rating)}>${rating.name_with_age}</option>
     </select>
-    $if age >= 18:
+    $if len(allowed_ratings) > 1:
       <p class="color-lighter" style="padding-top: 0.5em;"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos">Weasyl Terms of Service</a></i></p>
 
     <label>Custom Profile Settings</label>

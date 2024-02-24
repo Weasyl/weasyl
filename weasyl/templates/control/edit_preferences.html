@@ -1,4 +1,4 @@
-$def with (config, jsonb_settings, current_rating, current_sfw_rating, age, allowed_ratings)
+$def with (config, jsonb_settings, current_rating, age, allowed_ratings)
 $:{RENDER("common/stage_title.html", ["Site Preferences", "Settings"])}
 $code:
   def _CHECKED(x):
@@ -25,11 +25,6 @@ $code:
     <select name="rating" class="input" id="siterating">
       $for rating in allowed_ratings
         <option value="${rating.code}"$:{_RATING(current_rating, rating)}>${rating.name_with_age}</option>
-    </select>
-    <label for="sfwrating">Maximum Viewable Content Rating in SFW Mode</label>
-    <select name="sfwrating" class="input" id="sfwrating">
-      $for rating in allowed_ratings
-        <option value="${rating.code}"$:{_RATING(current_sfw_rating, rating)}>${rating.name_with_age}</option>
     </select>
     $if age >= 18:
       <p class="color-lighter" style="padding-top: 0.5em;"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos">Weasyl Terms of Service</a></i></p>

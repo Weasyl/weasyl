@@ -298,7 +298,7 @@ def get_profile_settings(userid):
     return ProfileSettings(jsonb)
 
 
-def _get_config_rating(userid):
+def get_config_rating(userid):
     config = get_config(userid)
     if 'p' in config:
         return ratings.EXPLICIT.code
@@ -313,32 +313,9 @@ def get_rating(userid):
         return ratings.GENERAL.code
 
     if is_sfw_mode():
-        profile_settings = get_profile_settings(userid)
-        return profile_settings.max_sfw_rating
+        return ratings.GENERAL.code
 
-    return _get_config_rating(userid)
-
-
-# this method is used specifically for the settings page, where
-# the max sfw/nsfw rating need to be displayed separately
-def get_config_rating(userid):
-    """
-    Retrieve the sfw-mode and regular-mode ratings separately
-    :param userid: the user to retrieve ratings for
-    :return: a tuple of (max_rating, max_sfw_rating)
-    """
-    config = get_config(userid)
-
-    if 'p' in config:
-        max_rating = ratings.EXPLICIT.code
-    elif 'a' in config:
-        max_rating = ratings.MATURE.code
-    else:
-        max_rating = ratings.GENERAL.code
-
-    profile_settings = get_profile_settings(userid)
-    sfw_rating = profile_settings.max_sfw_rating
-    return max_rating, sfw_rating
+    return get_config_rating(userid)
 
 
 def is_sfw_mode():
@@ -688,12 +665,11 @@ def _is_sfw_locked(userid):
     """
     Determine whether SFW mode has no effect for the specified user.
 
-    If the SFW mode rating preference is the same as the standard rating preference and the user has no posts above that rating, SFW mode has no effect.
+    If the standard rating preference is General and the user has no posts above that rating, SFW mode has no effect.
     """
-    config_rating = _get_config_rating(userid)
-    profile_settings = get_profile_settings(userid)
+    config_rating = get_config_rating(userid)
 
-    if profile_settings.max_sfw_rating != config_rating:
+    if config_rating > ratings.GENERAL.code:
         return False
 
     max_post_rating = get_max_post_rating(userid)

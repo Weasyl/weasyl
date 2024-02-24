@@ -672,16 +672,8 @@ def edit_preferences(userid,
     """
     config = d.get_config(userid)
 
-    tooyoung = False
-    if preferences is not None:
-        tooyoung |= get_user_age(userid) < preferences.rating.minimum_age
-    if jsonb_settings is not None:
-        sfwrating = jsonb_settings.max_sfw_rating
-        sfwrating = ratings.CODE_MAP.get(sfwrating, ratings.GENERAL)
-        tooyoung |= get_user_age(userid) < sfwrating.minimum_age
-
-    if tooyoung:
-        raise WeasylError("birthdayInsufficient")
+    if preferences is not None and get_user_age(userid) < preferences.rating.minimum_age:
+        preferences.rating = ratings.GENERAL
 
     updates = {}
     if preferences is not None:

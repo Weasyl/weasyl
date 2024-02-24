@@ -313,7 +313,7 @@ def control_editemailpassword_post_(request):
 @login_required
 def control_editpreferences_get_(request):
     config = define.get_config(request.userid)
-    current_rating, current_sfw_rating = define.get_config_rating(request.userid)
+    current_rating = define.get_config_rating(request.userid)
     age = profile.get_user_age(request.userid)
     allowed_ratings = ratings.get_ratings_for_age(age)
     jsonb_settings = define.get_profile_settings(request.userid)
@@ -323,7 +323,6 @@ def control_editpreferences_get_(request):
         jsonb_settings,
         # Rating
         current_rating,
-        current_sfw_rating,
         age,
         allowed_ratings,
     ], title="Site Preferences"))
@@ -342,7 +341,6 @@ def control_editpreferences_post_(request):
     rating = ratings.CODE_MAP[define.get_int(form.rating)]
     jsonb_settings = define.get_profile_settings(request.userid)
     jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
-    jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
 
     preferences = profile.Config()
     preferences.rating = rating

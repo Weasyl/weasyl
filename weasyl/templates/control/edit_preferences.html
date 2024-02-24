@@ -22,7 +22,7 @@ $code:
     <p class="color-lighter" style="padding-top: 0.5em;">This does not apply to your own submissions.</p>
 
     <label for="siterating">Maximum Viewable Content Rating</label>
-    <select name="rating" class="input" id="siterating">
+    <select name="rating" class="input" id="siterating"$:{'' if age >= 18 else ' disabled'}>
       $for rating in allowed_ratings
         <option value="${rating.code}"$:{_RATING(current_rating, rating)}>${rating.name_with_age}</option>
     </select>

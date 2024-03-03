@@ -102,6 +102,8 @@ def _create_submission(expected_type):
                 raise WeasylError("Unexpected")
 
             profile.check_user_rating_allowed(userid, submission.rating)
+            if submission.rating.minimum_age:
+                profile.assert_adult(userid)
 
             newid = create_specific(
                 userid=userid,
@@ -977,6 +979,8 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
 
     if userid == query.userid:
         profile.check_user_rating_allowed(userid, submission.rating)
+        if submission.rating.minimum_age:
+            profile.assert_adult(userid)
 
     if 'other' == query[3]:
         submission.content = "%s\n%s" % (embedlink, submission.content)

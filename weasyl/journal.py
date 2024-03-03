@@ -31,6 +31,8 @@ def create(userid, journal, friends_only=False, tags=None):
     elif not journal.rating:
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, journal.rating)
+    if journal.rating.minimum_age:
+        profile.assert_adult(userid)
 
     # Create journal
     jo = d.meta.tables["journal"]
@@ -280,6 +282,8 @@ def edit(userid, journal, friends_only=False):
 
     if userid == query.userid:
         profile.check_user_rating_allowed(userid, journal.rating)
+        if journal.rating.minimum_age:
+            profile.assert_adult(userid)
 
     if friends_only:
         welcome.journal_remove(journal.journalid)

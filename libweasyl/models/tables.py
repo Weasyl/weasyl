@@ -350,7 +350,7 @@ logincreate = Table(
     Column('login_name', String(length=40), nullable=False, unique=True),
     Column('hashpass', String(length=100), nullable=False),
     Column('email', String(length=100), nullable=False, unique=True),
-    Column('birthday', WeasylTimestampColumn(), nullable=False),
+    Column('birthday', WeasylTimestampColumn(), nullable=True),
     Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
     # Used to determine if a record is invalid for purposes of plausible deniability of email addresses
     #   AKA, create a logincreate entry if an in-use email address is provided, thus preserving the effect of
@@ -884,7 +884,8 @@ useralias = Table(
 userinfo = Table(
     'userinfo', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('birthday', WeasylTimestampColumn(), nullable=False),
+    Column('birthday', WeasylTimestampColumn(), nullable=True),
+    Column('asserted_adult', Boolean(), nullable=False, server_default='f'),
     Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),
     default_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),

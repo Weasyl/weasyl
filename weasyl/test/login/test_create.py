@@ -1,11 +1,11 @@
 import pytest
 import arrow
+from web.utils import Storage as Bag
 
 from weasyl import define as d
 from weasyl import login
 from weasyl.error import WeasylError
 from weasyl.test import db_utils
-from weasyl.test.utils import Bag
 
 
 user_name = "test"

@@ -267,7 +267,6 @@ def edit(userid, journal, friends_only=False):
         raise WeasylError("contentInvalid")
     elif not journal.rating:
         raise WeasylError("ratingInvalid")
-    profile.check_user_rating_allowed(userid, journal.rating)
 
     query = d.engine.execute(
         "SELECT userid, hidden FROM journal WHERE journalid = %(id)s",
@@ -278,6 +277,9 @@ def edit(userid, journal, friends_only=False):
         raise WeasylError("Unexpected")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
+
+    if userid == query.userid:
+        profile.check_user_rating_allowed(userid, journal.rating)
 
     if friends_only:
         welcome.journal_remove(journal.journalid)

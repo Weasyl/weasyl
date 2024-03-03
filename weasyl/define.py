@@ -298,16 +298,7 @@ def get_profile_settings(userid):
     return ProfileSettings(jsonb)
 
 
-def get_rating(userid):
-    if not userid:
-        return ratings.GENERAL.code
-
-    if is_sfw_mode():
-        profile_settings = get_profile_settings(userid)
-
-        # if no explicit max SFW rating picked assume general as a safe default
-        return profile_settings.max_sfw_rating
-
+def get_config_rating(userid):
     config = get_config(userid)
     if 'p' in config:
         return ratings.EXPLICIT.code
@@ -317,26 +308,14 @@ def get_rating(userid):
         return ratings.GENERAL.code
 
 
-# this method is used specifically for the settings page, where
-# the max sfw/nsfw rating need to be displayed separately
-def get_config_rating(userid):
-    """
-    Retrieve the sfw-mode and regular-mode ratings separately
-    :param userid: the user to retrieve ratings for
-    :return: a tuple of (max_rating, max_sfw_rating)
-    """
-    config = get_config(userid)
+def get_rating(userid):
+    if not userid:
+        return ratings.GENERAL.code
 
-    if 'p' in config:
-        max_rating = ratings.EXPLICIT.code
-    elif 'a' in config:
-        max_rating = ratings.MATURE.code
-    else:
-        max_rating = ratings.GENERAL.code
+    if is_sfw_mode():
+        return ratings.GENERAL.code
 
-    profile_settings = get_profile_settings(userid)
-    sfw_rating = profile_settings.max_sfw_rating
-    return max_rating, sfw_rating
+    return get_config_rating(userid)
 
 
 def is_sfw_mode():
@@ -678,6 +657,25 @@ def _page_header_info(userid):
     return result
 
 
+def get_max_post_rating(userid):
+    return max((key.rating for key, count in posts_count(userid, friends=True).items() if count), default=ratings.GENERAL.code)
+
+
+def _is_sfw_locked(userid):
+    """
+    Determine whether SFW mode has no effect for the specified user.
+
+    If the standard rating preference is General and the user has no posts above that rating, SFW mode has no effect.
+    """
+    config_rating = get_config_rating(userid)
+
+    if config_rating > ratings.GENERAL.code:
+        return False
+
+    max_post_rating = get_max_post_rating(userid)
+    return max_post_rating is not None and max_post_rating <= config_rating
+
+
 def page_header_info(userid):
     from weasyl import media
     sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
@@ -687,6 +685,7 @@ def page_header_info(userid):
         "username": get_display_name(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
+        "sfw_locked": _is_sfw_locked(userid),
     }
 
 

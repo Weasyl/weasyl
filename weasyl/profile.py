@@ -569,7 +569,7 @@ def edit_userinfo(userid, form):
     if social_rows:
         d.engine.execute(d.meta.tables['user_links'].insert().values(social_rows))
 
-    if 'show_age' in form and form.get('birthdate-month') and form.get('birthdate-year'):
+    if form.show_age and form.get('birthdate-month') and form.get('birthdate-year'):
         birthdate_month = int(form['birthdate-month'])
         birthdate_year = int(form['birthdate-year'])
 

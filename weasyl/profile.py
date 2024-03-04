@@ -683,16 +683,15 @@ def edit_preferences(userid,
             config = config.replace(i, "")
         config_str = config + preferences.to_code()
         updates['config'] = config_str
-        d._get_all_config.invalidate(userid)
     if jsonb_settings is not None:
         # update jsonb preferences
         updates['jsonb_settings'] = jsonb_settings.get_raw()
-        d._get_all_config.invalidate(userid)
 
     d.engine.execute(
         t.profile.update().where(t.profile.c.userid == userid),
         updates
     )
+    d._get_all_config.invalidate(userid)
 
 
 def select_manage(userid):

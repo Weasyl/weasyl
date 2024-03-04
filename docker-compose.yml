@@ -137,17 +137,18 @@ services:
           if test $$i -ge 8; then
             exit 1
           fi
-          if test -n "$$(.venv/bin/alembic -c /run/config/alembic.ini current 2> /dev/null)"; then
+          if test -n "$$(.venv/bin/alembic current 2> /dev/null)"; then
             break
           fi
           i=$$((i + 1))
           printf 'checking if postgres is up in %i seconds...\n' $$i
           sleep $$i
         done
-        exec .venv/bin/alembic -c /run/config/alembic.ini upgrade head
+        exec .venv/bin/alembic upgrade head
     environment:
       # needed for revision f30dc3b5856a
       WEASYL_STORAGE_ROOT: /fakepath
+      ALEMBIC_CONFIG: /run/config/alembic.ini
     volumes:
       - config:/run/config:ro
     networks:

@@ -369,7 +369,9 @@ def edit(userid, character, friends_only):
         raise WeasylError("characterNameInvalid")
     elif not character.rating:
         raise WeasylError("Unexpected")
-    profile.check_user_rating_allowed(userid, character.rating)
+
+    if userid == query.userid:
+        profile.check_user_rating_allowed(userid, character.rating)
 
     if friends_only:
         welcome.character_remove(character.charid)

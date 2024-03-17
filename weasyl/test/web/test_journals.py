@@ -74,11 +74,17 @@ def test_list_unicode_username(app):
     assert titles == [u'Unícode journal 😊']
 
 
+def create_journal(app, user, *, rating):
+    resp = app.post("/submit/journal", {"title": "Created journal", "rating": rating, "content": "A journal"})
+    assert resp.status_int == 303
+    return resp
+
+
 @pytest.mark.usefixtures('db', 'journal_user')
 def test_create(app, journal_user):
-    cookie = db_utils.create_session(journal_user)
+    app.set_cookie(*db_utils.create_session(journal_user).split("=", 1))
 
-    app.post('/submit/journal', {'title': u'Created journal', 'rating': '10', 'content': u'A journal'}, headers={'Cookie': cookie})
+    create_journal(app, journal_user, rating="10")
 
     resp = app.get('/~journal_test')
     assert resp.html.find(id='user-journal').h4.string == u'Created journal'

@@ -37,7 +37,7 @@ def create_api_key(userid, token, description=""):
     add_entity(orm.APIToken(userid=userid, token=token, description=description))
 
 
-def create_user(full_name="", birthday=arrow.get(586162800), config=None,
+def create_user(full_name="", birthday=None, config=None,
                 username=None, password=None, email_addr=None, user_id=None,
                 verified=True):
     """ Creates a new user and profile, and returns the user ID. """

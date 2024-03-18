@@ -53,5 +53,8 @@ CODE_TO_NAME = {rating.code: rating.name for rating in ALL_RATINGS}
 
 
 def get_ratings_for_age(age):
+    if age is None:
+        return ALL_RATINGS
+
     age = max(0, age)
     return [rating for rating in ALL_RATINGS if rating.minimum_age <= age]

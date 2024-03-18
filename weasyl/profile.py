@@ -1,6 +1,9 @@
+import datetime
 import re
 
+import arrow
 import sqlalchemy as sa
+from arrow import Arrow
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import bindparam, func
 from sqlalchemy.dialects.postgresql import aggregate_order_by
@@ -214,7 +217,8 @@ def select_myself(userid):
 
 def get_user_age(userid):
     assert userid
-    return d.convert_age(d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid))
+    birthday = d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid)
+    return None if birthday is None else d.convert_age(birthday)
 
 
 def get_user_ratings(userid):
@@ -224,7 +228,8 @@ def get_user_ratings(userid):
 def check_user_rating_allowed(userid, rating):
     # TODO(kailys): ensure usages always pass a Rating
     minimum_age = rating.minimum_age if isinstance(rating, ratings.Rating) else ratings.CODE_MAP[rating].minimum_age
-    if get_user_age(userid) < minimum_age:
+    user_age = get_user_age(userid)
+    if user_age is not None and user_age < minimum_age:
         raise WeasylError("ratingInvalid")
 
 
@@ -245,7 +250,7 @@ def select_userinfo(userid, config):
     show_age = "b" in config or d.get_userid() in staff.MODS
     return {
         "birthday": query.birthday,
-        "age": d.convert_age(query.birthday) if show_age else None,
+        "age": d.convert_age(query.birthday) if show_age and query.birthday is not None else None,
         "show_age": "b" in config,
         "gender": query.gender,
         "country": query.country,
@@ -519,6 +524,21 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         moderation.note_about(my_userid, userid, 'Streaming settings updated:', note_body)
 
 
+_MOST_ADVANCED_TIME_ZONE = datetime.timezone(datetime.timedelta(hours=14))
+
+_BIRTHDATE_UPDATE_BASE = (
+    t.userinfo.update()
+    .where(t.userinfo.c.userid == bindparam("update_userid"))
+    .where(t.userinfo.c.birthday.is_(None))
+    .values(birthday=bindparam("birthday"))
+)
+
+_ASSERTED_ADULT = (
+    sa.select(t.userinfo.c.asserted_adult)
+    .where(t.userinfo.c.userid == bindparam("userid"))
+)
+
+
 # form
 #   show_age
 #   gender
@@ -548,6 +568,48 @@ def edit_userinfo(userid, form):
     """, userid=userid)
     if social_rows:
         d.engine.execute(d.meta.tables['user_links'].insert().values(social_rows))
+
+    if form.show_age and form.get('birthdate-month') and form.get('birthdate-year'):
+        birthdate_month = int(form['birthdate-month'])
+        birthdate_year = int(form['birthdate-year'])
+
+        if not (1 <= birthdate_month <= 12) or not (-100 <= birthdate_year - arrow.utcnow().year <= 0):
+            raise WeasylError("birthdayInvalid")
+
+        birthdate_update = _BIRTHDATE_UPDATE_BASE
+
+        # If it is impossible* for someone born in the specified month to be 18+ and the user has asserted that they're 18+, don't allow it.
+        # This is mainly to avoid inconsistency between the user's *displayed* age and their interactions.
+        # (* I haven't explicitly accounted for all the weird time things that have happened in the world, but we can at least do time zones.)
+        earliest_possible_utc_birthdate = (
+            datetime.datetime(
+                year=birthdate_year,
+                month=birthdate_month,
+                day=1,
+                tzinfo=_MOST_ADVANCED_TIME_ZONE,
+            )
+            .astimezone(datetime.timezone.utc)
+            .date()
+        )
+        oldest_possible_age = d.age_in_years(earliest_possible_utc_birthdate)
+        if oldest_possible_age < 13:
+            raise WeasylError("birthdayInconsistentWithTerms")
+
+        is_age_restricted = oldest_possible_age < 18
+        if is_age_restricted:
+            birthdate_update = birthdate_update.where(~t.userinfo.c.asserted_adult)
+
+        result = d.engine.execute(birthdate_update, {
+            "update_userid": userid,
+            "birthday": Arrow(year=birthdate_year, month=birthdate_month, day=1),
+        })
+
+        if result.rowcount != 1:
+            assert result.rowcount == 0
+            if is_age_restricted and d.engine.scalar(_ASSERTED_ADULT, {"userid": userid}):
+                raise WeasylError("birthdayInconsistentWithRating")
+
+            # otherwise, assume nothing was updated because a birthdate was already set
 
     if form.show_age:
         d.engine.execute("""
@@ -671,8 +733,9 @@ def edit_preferences(userid,
     :return: None
     """
     config = d.get_config(userid)
+    user_age = get_user_age(userid)
 
-    if preferences is not None and get_user_age(userid) < preferences.rating.minimum_age:
+    if preferences is not None and user_age is not None and user_age < preferences.rating.minimum_age:
         preferences.rating = ratings.GENERAL
 
     updates = {}
@@ -687,11 +750,26 @@ def edit_preferences(userid,
         # update jsonb preferences
         updates['jsonb_settings'] = jsonb_settings.get_raw()
 
+    if preferences is not None and preferences.rating.minimum_age:
+        assert_adult(userid)
+
     d.engine.execute(
         t.profile.update().where(t.profile.c.userid == userid),
         updates
     )
     d._get_all_config.invalidate(userid)
+
+
+def assert_adult(userid):
+    """
+    Set a flag on a user indicating that they’ve asserted they’re 18 or older in performing some operation.
+    """
+    d.engine.execute(
+        t.userinfo.update().where(t.userinfo.c.userid == userid),
+        {
+            'asserted_adult': True,
+        },
+    )
 
 
 def select_manage(userid):
@@ -804,16 +882,21 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Birthday
     if birthday is not None:
-        # HTML5 date format is yyyy-mm-dd
-        split = birthday.split("-")
-        if len(split) != 3 or d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
-            raise WeasylError("birthdayInvalid")
-        unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
-        age = d.convert_age(unixtime)
+        if birthday == "":
+            unixtime = None
+            age = None
+        else:
+            # HTML5 date format is yyyy-mm-dd
+            split = birthday.split("-")
+            if len(split) != 3 or d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
+                raise WeasylError("birthdayInvalid")
+            unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
+            age = d.convert_age(unixtime)
 
-        d.execute("UPDATE userinfo SET birthday = %i WHERE userid = %i", [unixtime, userid])
+        result = d.engine.execute("UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s", birthday=unixtime, user=userid)
+        assert result.rowcount == 1
 
-        if age < ratings.EXPLICIT.minimum_age:
+        if age is not None and age < ratings.EXPLICIT.minimum_age:
             # reset rating preference and SFW mode rating preference to General
             d.engine.execute(
                 """
@@ -825,7 +908,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
                 user=userid,
             )
             d._get_all_config.invalidate(userid)
-        updates.append('- Birthday: %s' % (birthday,))
+        updates.append('- Birthday: %s' % (birthday or 'removal',))
 
     # Gender
     if gender is not None:

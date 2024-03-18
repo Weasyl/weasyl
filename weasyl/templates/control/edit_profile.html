@@ -19,11 +19,30 @@ $code:
       <label for="editprofile-fullname">Full Name</label>
       <input type="text" id="editprofile-fullname" class="input" name="full_name" value="${profile['full_name']}" maxlength="100" />
 
-      <label for="editprofile-showage">Age</label>
-      <select id="editprofile-showage" class="input" name="show_age">
-        <option value="true"${' selected="selected"' if userinfo['show_age'] else ''}>Display my age</option>
-        <option value=""${' selected="selected"' if not userinfo['show_age'] else ''}>Do not display my age</option>
-      </select>
+      $ birthdate = None if userinfo['birthday'] is None else ARROW(userinfo['birthday']).date()
+      <p class="label">Age</p>
+      <label class="input-checkbox">
+        <input type="checkbox" name="show_age" value="true"$:{' checked' if userinfo['show_age'] and birthdate is not None else ''} data-shows="birthdate">
+        Show my age on my profile
+      </label>
+      <fieldset id="birthdate"$:{'' if birthdate is None else ' disabled'}>
+        <legend class="label">Birthdate</legend>
+        <div class="form-date">
+          <label class="form-date-month">
+            <span class="sublabel">Month</span>
+            <select class="input" name="birthdate-month" autocomplete="bday-month">
+              <option$:{' selected' if birthdate is None else ''}></option>
+              $for i, month_name in enumerate(arrow.locales.EnglishLocale.month_names[1:], start=1):
+                <option value="${i}"$:{' selected' if birthdate is not None and birthdate.month == i else ''}>${month_name}</option>
+            </select>
+          </label>
+          <label class="form-date-year">
+            <span class="sublabel">Year</span>
+            $ current_year = arrow.utcnow().year
+            <input class="input" name="birthdate-year" type="number" min="${current_year - 100}" max="${current_year - 12}" value="${'' if birthdate is None else birthdate.year}" autocomplete="bday-year">
+          </label>
+        </div>
+      </fieldset>
 
       <label for="editprofile-gender">Gender</label>
       <input type="text" id="editprofile-gender" class="input" name="gender" value="${userinfo['gender']}" maxlength="100" />

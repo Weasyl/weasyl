@@ -43,6 +43,8 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     elif not character.rating:
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, character.rating)
+    if character.rating.minimum_age:
+        profile.assert_adult(userid)
 
     # Write temporary thumbnail file
     if thumbsize:
@@ -372,6 +374,8 @@ def edit(userid, character, friends_only):
 
     if userid == query.userid:
         profile.check_user_rating_allowed(userid, character.rating)
+        if character.rating.minimum_age:
+            profile.assert_adult(userid)
 
     if friends_only:
         welcome.character_remove(character.charid)

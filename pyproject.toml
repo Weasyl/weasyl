@@ -27,6 +27,7 @@ pillow = "10.3.0"
 psycopg2cffi = "2.9.0"
 sqlalchemy = "1.4.45"
 lxml = "4.9.2"
+prometheus-client = "^0.20.0"
 
 # https://github.com/Weasyl/misaka
 misaka = {url = "https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz"}

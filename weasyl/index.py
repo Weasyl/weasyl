@@ -16,10 +16,15 @@ from weasyl import profile
 from weasyl import searchtag
 from weasyl import siteupdate
 from weasyl import submission
+from weasyl.metrics import MemcachedHistogram
 
 
+recent_submissions_time = MemcachedHistogram("recent_submissions", "recent submissions fetch time")
+
+
+@recent_submissions_time.cached
 @region.cache_on_arguments(expiration_time=120)
-@d.record_timing
+@recent_submissions_time.uncached
 def recent_submissions():
     submissions = []
     for category in m.ALL_SUBMISSION_CATEGORIES:

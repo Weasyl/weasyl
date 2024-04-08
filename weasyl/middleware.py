@@ -7,6 +7,7 @@ import traceback
 from datetime import datetime, timedelta, timezone
 
 import multipart
+from prometheus_client import Histogram
 from pyramid.decorator import reify
 from pyramid.httpexceptions import (
     HTTPBadRequest,
@@ -154,6 +155,9 @@ def cache_clear_tween_factory(handler, registry):
     return cache_clear_tween
 
 
+request_time = Histogram("request_time", "total request time")
+
+
 def db_timer_tween_factory(handler, registry):
     """
     A tween that records timing information in the headers of a response.
@@ -163,10 +167,11 @@ def db_timer_tween_factory(handler, registry):
         request.sql_times = []
         request.memcached_times = []
         resp = handler(request)
-        ended_at = time.perf_counter()
+        time_total = time.perf_counter() - started_at
+        request_time.observe(time_total)
         time_in_sql = sum(request.sql_times)
         time_in_memcached = sum(request.memcached_times)
-        time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
+        time_in_python = time_total - time_in_sql - time_in_memcached
         resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
         resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
         resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)

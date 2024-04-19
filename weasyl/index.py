@@ -3,6 +3,8 @@ import itertools
 import operator
 import random
 
+from prometheus_client import Histogram
+
 from libweasyl import ratings
 from libweasyl.cache import region
 
@@ -16,10 +18,10 @@ from weasyl import profile
 from weasyl import searchtag
 from weasyl import siteupdate
 from weasyl import submission
-from weasyl.metrics import MemcachedHistogram
+from weasyl.metrics import CachedMetric
 
 
-recent_submissions_time = MemcachedHistogram("recent_submissions", "recent submissions fetch time")
+recent_submissions_time = CachedMetric(Histogram("weasyl_recent_submissions_fetch_seconds", "recent submissions fetch time", ["cached"]))
 
 
 @recent_submissions_time.cached

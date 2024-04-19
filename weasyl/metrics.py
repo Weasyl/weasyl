@@ -2,42 +2,42 @@ import functools
 import threading
 import time
 
-from prometheus_client import Histogram
 
+class CachedMetric:
+    """
+    A metric for a cached operation. Adds a `cached` label.
+    """
 
-_MEMCACHED_BUCKETS = [0.001, 0.005, 0.01, 0.025]
-
-
-class MemcachedHistogram:
-    def __init__(self, name, documentation, *args, **kwargs):
+    def __init__(self, metric):
         self._state = threading.local()
-        self._cached = Histogram(f"{name}_cached", f"{documentation} (cached)", *args, buckets=_MEMCACHED_BUCKETS, **kwargs)
-        self._uncached = Histogram(f"{name}_uncached", f"{documentation} (uncached)", *args, **kwargs)
+        self._metric = metric
+        metric.labels(cached="no")
+        metric.labels(cached="yes")
 
     def cached(self, func):
+        state = self._state
+        metric = self._metric
+
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            self._state.cached = True
+            state.cached = True
 
             start = time.perf_counter()
             ret = func(*args, **kwargs)
+            duration = time.perf_counter() - start
 
-            if self._state.cached:
-                self._cached.observe(time.perf_counter() - start)
+            metric.labels(cached="yes" if state.cached else "no").observe(duration)
 
             return ret
 
         return wrapped
 
     def uncached(self, func):
+        state = self._state
+
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            self._state.cached = False
-
-            start = time.perf_counter()
-            ret = func(*args, **kwargs)
-            self._uncached.observe(time.perf_counter() - start)
-
-            return ret
+            state.cached = False
+            return func(*args, **kwargs)
 
         return wrapped

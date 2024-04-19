@@ -7,12 +7,14 @@ volumes:
   storage:
   logs:
   profile-stats:
+  prometheus:
   test-cache:
   test-coverage:
 
 networks:
   external-web:
   external-nginx:
+  external-prometheus:
   nginx-web:
     internal: true
   web-memcached:
@@ -20,6 +22,8 @@ networks:
   web-postgres:
     internal: true
   test-postgres:
+    internal: true
+  prometheus-web:
     internal: true
 
 services:
@@ -53,6 +57,7 @@ services:
       WEB_CONCURRENCY: 8
       PYTHONWARNINGS: d
       PYTHONUNBUFFERED: 1
+      PROMETHEUS_MULTIPROC_DIR: /weasyl/storage/prometheus
     volumes:
       - assets:/weasyl/build:ro
       - config:/run/config:ro
@@ -60,12 +65,15 @@ services:
       - logs:/weasyl/storage/log
       - profile-stats:/weasyl/storage/profile-stats
       - type: tmpfs
+        target: /weasyl/storage/prometheus
+      - type: tmpfs
         target: /weasyl/storage/temp
       - type: tmpfs
         target: /tmp
     networks:
       - external-web
       - nginx-web
+      - prometheus-web
       - web-memcached
       - web-postgres
     read_only: false
@@ -93,6 +101,18 @@ services:
       - web-postgres
       # TODO: separate postgres service for tests
       - test-postgres
+    read_only: true
+
+  prometheus:
+    profiles: [ prometheus ]
+    build: containers/prometheus
+    volumes:
+      - prometheus:/prometheus
+    networks:
+      - external-prometheus
+      - prometheus-web
+    ports:
+      - ${WEASYL_BIND:-127.0.0.1}:9090:9090/tcp
     read_only: true
 
   configure:

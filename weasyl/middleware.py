@@ -7,6 +7,7 @@ import traceback
 from datetime import datetime, timedelta, timezone
 
 import multipart
+from prometheus_client import Histogram
 from pyramid.decorator import reify
 from pyramid.httpexceptions import (
     HTTPBadRequest,
@@ -154,24 +155,35 @@ def cache_clear_tween_factory(handler, registry):
     return cache_clear_tween
 
 
+request_duration = Histogram(
+    "weasyl_request_duration_seconds",
+    "total request time",
+    ["route"],
+    # `Histogram.DEFAULT_BUCKETS`, extended up to the Gunicorn worker timeout
+    buckets=(.005, .01, .025, .05, .075, .1, .25, .5, .75, 1.0, 2.5, 5.0, 7.5, 10.0, 15.0, 20.0, 30.0, float("inf")),
+)
+
+
 def db_timer_tween_factory(handler, registry):
     """
     A tween that records timing information in the headers of a response.
     """
+    # register all labels for the `weasyl_request_duration_seconds` metric in advance
+    for route in registry.introspector.get_category("routes"):
+        request_duration.labels(route=route["introspectable"].discriminator)
+
     def db_timer_tween(request):
         started_at = time.perf_counter()
         request.sql_times = []
         request.memcached_times = []
         resp = handler(request)
-        ended_at = time.perf_counter()
-        time_in_sql = sum(request.sql_times)
-        time_in_memcached = sum(request.memcached_times)
-        time_in_python = ended_at - started_at - time_in_sql - time_in_memcached
-        resp.headers['X-SQL-Time-Spent'] = '%0.1fms' % (time_in_sql * 1000,)
-        resp.headers['X-Memcached-Time-Spent'] = '%0.1fms' % (time_in_memcached * 1000,)
-        resp.headers['X-Python-Time-Spent'] = '%0.1fms' % (time_in_python * 1000,)
-        resp.headers['X-SQL-Queries'] = str(len(request.sql_times))
-        resp.headers['X-Memcached-Queries'] = str(len(request.memcached_times))
+        time_total = time.perf_counter() - started_at
+        request_duration.labels(route=request.matched_route.name if request.matched_route is not None else "none").observe(time_total, exemplar={
+            "sql_queries": "%d" % (len(request.sql_times),),
+            "sql_seconds": "%.3f" % (sum(request.sql_times),),
+            "memcached_queries": "%d" % (len(request.memcached_times),),
+            "memcached_seconds": "%.3f" % (sum(request.memcached_times),),
+        })
         return resp
     return db_timer_tween
 

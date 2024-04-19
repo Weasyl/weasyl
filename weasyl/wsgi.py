@@ -1,3 +1,8 @@
+from prometheus_client import (
+    CollectorRegistry,
+    multiprocess,
+)
+from prometheus_client.openmetrics import exposition as openmetrics
 from pyramid.config import Configurator
 from pyramid.response import Response
 
@@ -80,4 +85,22 @@ def make_wsgi_app(*, configure_cache=True):
             replace_existing_backend=True
         )
 
-    return wsgi_app
+    def app_with_metrics(environ, start_response):
+        if environ["PATH_INFO"] == "/metrics":
+            if "HTTP_X_FORWARDED_FOR" in environ:
+                start_response("403 Forbidden", [])
+                return []
+
+            registry = CollectorRegistry()
+            multiprocess.MultiProcessCollector(registry)
+            data = openmetrics.generate_latest(registry)
+
+            start_response("200 OK", [
+                ("Content-Type", openmetrics.CONTENT_TYPE_LATEST),
+                ("Content-Length", str(len(data))),
+            ])
+            return [data]
+
+        return wsgi_app(environ, start_response)
+
+    return app_with_metrics

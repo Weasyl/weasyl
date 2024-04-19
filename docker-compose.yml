@@ -104,6 +104,7 @@ services:
     read_only: true
 
   prometheus:
+    profiles: [ prometheus ]
     build: containers/prometheus
     volumes:
       - prometheus:/prometheus

@@ -337,7 +337,7 @@ def control_editpreferences_post_(request):
         follow_s="", follow_c="", follow_f="", follow_t="",
         follow_j="")
 
-    rating = ratings.CODE_MAP[define.get_int(form.rating)]
+    rating = ratings.CODE_MAP.get(define.get_int(form.rating), ratings.GENERAL)
     jsonb_settings = define.get_profile_settings(request.userid)
     jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
 

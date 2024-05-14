@@ -1,11 +1,13 @@
 from libweasyl import html
 
 
-def test_strip_html():
-    assert html.strip_html('<div style="text-align: center">**foo**</div> <!-- comment -->') == "**foo** ", "`strip_html` should strip HTML tags"
-    assert html.strip_html('1 < 3 > 2 "foo"') == '1 < 3 > 2 "foo"', "the output of `strip_html` should be plain text, not HTML"
-    assert html.strip_html("&copy;") == "©", "`strip_html` should decode named character references"
-    assert html.strip_html("&#xec;") == "ì", "`strip_html` should decode numeric character references"
+def test_html_to_text():
+    assert html.html_to_text('<div style="text-align: center">**foo**</div><!-- comment -->') == "**foo**", "`html_to_text` should strip HTML tags"
+    assert html.html_to_text('1 < 3 > 2 "foo"') == '1 < 3 > 2 "foo"', "the output of `html_to_text` should be plain text, not HTML"
+    assert html.html_to_text("&copy;") == "©", "`html_to_text` should decode named character references"
+    assert html.html_to_text("&#xec;") == "ì", "`html_to_text` should decode numeric character references"
+    assert html.html_to_text('foo <img alt="bar"> baz') == "foo [bar] baz", "`html_to_text` should replace images with their alt text"
+    assert html.html_to_text(" foo\nbar  baz\t") == "foo bar baz", "`html_to_text` should normalize whitespace"
 
 
 def test_inline_json():

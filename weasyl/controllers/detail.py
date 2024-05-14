@@ -1,7 +1,7 @@
 from pyramid import httpexceptions
 from pyramid.response import Response
 
-from libweasyl.html import strip_html
+from libweasyl.html import html_to_text
 from libweasyl.models.content import Submission
 from libweasyl.text import slug_for
 from weasyl import (
@@ -69,7 +69,7 @@ def submission_(request):
     else:
         twitter_meta['title'] = title_with_attribution
 
-    meta_description = define.summarize(strip_html(item['content']).strip())
+    meta_description = define.summarize(html_to_text(item['content']).strip())
     if meta_description:
         twitter_meta['description'] = ogp['description'] = meta_description
 

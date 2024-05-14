@@ -8,16 +8,29 @@ import json
 from html.parser import HTMLParser
 
 
-def strip_html(markdown: str) -> str:
+class _HtmlToText(HTMLParser):
+
+    def __init__(self, handle_data):
+        super().__init__()
+        self.handle_data = handle_data
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "img":
+            alt = next((value for key, value in attrs if key == "alt"), None)
+
+            if alt:
+                self.handle_data(f"[{alt}]")
+
+
+def html_to_text(markdown: str) -> str:
     """
-    Strip HTML tags and resolve character references in a markdown string.
+    Convert HTML to a plain text representation suitable for summaries.
     """
     text_parts = []
-    parser = HTMLParser()
-    parser.handle_data = text_parts.append
+    parser = _HtmlToText(text_parts.append)
     parser.feed(markdown)
     parser.close()
-    return "".join(text_parts)
+    return " ".join("".join(text_parts).split())
 
 
 def inline_json(obj):

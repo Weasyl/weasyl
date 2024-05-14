@@ -13,7 +13,7 @@ user_linking_markdown_tests = [
     ('![](user:spam)![](user:spam)',
      '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'
      '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'),
-    ('<!~spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"> <span>spam</span></a>'),
+    ('<!~spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt=""> <span>spam</span></a>'),
     ('![user image with alt text](user:example)', '<a href="/~example" class="user-icon"><img src="/~example/avatar"> <span>user image with alt text</span></a>'),
     ('<user:spam>', '<a href="/~spam">spam</a>'),
     ('[link](user:spam)', '<a href="/~spam">link</a>'),

@@ -121,9 +121,11 @@ def create_link(t, username):
 
         image = etree.SubElement(link, u"img")
         image.set(u"src", u"/~{username}/avatar".format(username=get_sysname(username)))
-        image.set(u"alt", username)
 
-        if t != "!":
+        if t == "!":
+            image.set("alt", username)
+        else:
+            image.set("alt", "")
             label = etree.SubElement(link, u"span")
             label.text = username
             image.tail = u" "

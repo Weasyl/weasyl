@@ -2,7 +2,7 @@ from pyramid import httpexceptions
 from pyramid.response import Response
 
 from libweasyl import staff
-from libweasyl.html import html_to_text
+from libweasyl.text import markdown_excerpt
 
 from weasyl import (
     character, collection, commishinfo, define, favorite, folder,
@@ -60,7 +60,7 @@ def profile_(request):
     username = userprofile["username"]
     canonical_path = request.route_path("profile_tilde", name=define.get_sysname(username))
     title = f"{username}’s profile"
-    meta_description = define.summarize(html_to_text(userprofile["profile_text"]).strip())
+    meta_description = markdown_excerpt(userprofile["profile_text"])
     avatar_url = define.absolutify_url(userprofile['user_media']['avatar'][0]['display_url'])
     twitter_meta = {
         "card": "summary",

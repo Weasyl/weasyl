@@ -298,6 +298,8 @@ def markdown(target):
 def _itertext_spaced(element):
     if element.text:
         yield element.text
+    elif element.tag == "img" and (alt := element.get("alt")):
+        yield "[%s]" % (alt,)
 
     for child in element:
         is_block = child.tag in _EXCERPT_BLOCK_ELEMENTS

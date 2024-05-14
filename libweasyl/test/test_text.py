@@ -173,6 +173,13 @@ markdown_excerpt_tests = [
     (u'single-codepoint graphemes😊😊😊😊', u'single-codepoint graphemes😊😊😊😊'),
     (u'single-codepoint graphemes😊😊😊😊😊', u'single-codepoint graphemes😊😊😊…'),
     (u'test\n - lists\n - of\n - items\n\ntest', u'test lists of items test'),
+    ('<div style="text-align: center">**foo**</div>\n<!-- comment -->', "foo"),
+    ('1 < 3 > 2 "foo"', '1 < 3 > 2 "foo"'),
+    ("&copy;", "©"),
+    ("&#xec;", "ì"),
+    ('foo <!bar> baz', "foo [bar] baz"),
+    (" foo\nbar  baz\t", "foo bar baz"),
+    ("<![/b]>", "<![/b]>"),
 ]
 
 

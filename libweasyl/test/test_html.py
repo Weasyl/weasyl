@@ -8,6 +8,7 @@ def test_html_to_text():
     assert html.html_to_text("&#xec;") == "ì", "`html_to_text` should decode numeric character references"
     assert html.html_to_text('foo <img alt="bar"> baz') == "foo [bar] baz", "`html_to_text` should replace images with their alt text"
     assert html.html_to_text(" foo\nbar  baz\t") == "foo bar baz", "`html_to_text` should normalize whitespace"
+    assert html.html_to_text("a<![/b]>c") == "ac", "`html_to_text` shouldn’t throw on invalid HTML"
 
 
 def test_inline_json():

@@ -13,7 +13,7 @@ user_linking_markdown_tests = [
     ('![](user:spam)![](user:spam)',
      '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'
      '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"></a>'),
-    ('<!~spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt="spam"> <span>spam</span></a>'),
+    ('<!~spam>', '<a href="/~spam" class="user-icon"><img src="/~spam/avatar" alt=""> <span>spam</span></a>'),
     ('![user image with alt text](user:example)', '<a href="/~example" class="user-icon"><img src="/~example/avatar"> <span>user image with alt text</span></a>'),
     ('<user:spam>', '<a href="/~spam">spam</a>'),
     ('[link](user:spam)', '<a href="/~spam">link</a>'),
@@ -173,6 +173,13 @@ markdown_excerpt_tests = [
     (u'single-codepoint graphemes😊😊😊😊', u'single-codepoint graphemes😊😊😊😊'),
     (u'single-codepoint graphemes😊😊😊😊😊', u'single-codepoint graphemes😊😊😊…'),
     (u'test\n - lists\n - of\n - items\n\ntest', u'test lists of items test'),
+    ('<div style="text-align: center">**foo**</div>\n<!-- comment -->', "foo"),
+    ('1 < 3 > 2 "foo"', '1 < 3 > 2 "foo"'),
+    ("&copy;", "©"),
+    ("&#xec;", "ì"),
+    ('foo <!bar> baz', "foo [bar] baz"),
+    (" foo\nbar  baz\t", "foo bar baz"),
+    ("<![/b]>", "<![/b]>"),
 ]
 
 

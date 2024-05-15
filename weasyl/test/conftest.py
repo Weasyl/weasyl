@@ -80,19 +80,29 @@ def empty_storage():
         shutil.rmtree(macro.MACRO_STORAGE_ROOT)
 
 
+@pytest.fixture(scope="session")
+def configurator():
+    config = pyramid.testing.setUp()
+    setup_routes_and_views(config)
+
+    try:
+        yield config
+    finally:
+        pyramid.testing.tearDown()
+
+
 @pytest.fixture(autouse=True)
-def setup_request_environment(request):
+def setup_request_environment(request, configurator):
     pyramid_request = pyramid.testing.DummyRequest()
     pyramid_request.set_property(middleware.pg_connection_request_property, name='pg_connection', reify=True)
     pyramid_request.set_property(middleware.userid_request_property, name='userid', reify=True)
     pyramid_request.web_input = middleware.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'
     pyramid_request.client_addr = '127.0.0.1'
-    setup_routes_and_views(pyramid.testing.setUp(request=pyramid_request))
+    configurator.begin(request=pyramid_request)
 
     def tear_down():
         pyramid_request.pg_connection.close()
-        pyramid.testing.tearDown()
 
     request.addfinalizer(tear_down)
 

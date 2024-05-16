@@ -1,8 +1,6 @@
-import datetime
 import itertools
 
 import arrow
-from dateutil.relativedelta import relativedelta
 import py.path
 
 from libweasyl.models import content, tables, users
@@ -43,8 +41,6 @@ def make_user(db):
     Returns:
         Login: The user Login object created.
     """
-    age = 42
-    birthday = arrow.get(datetime.datetime.utcnow() - relativedelta(years=age))
     login_name = 'user%d' % next(_user_counter)
     user = users.Login(
         profile=users.Profile(username=login_name, full_name=login_name, created_at=arrow.get(0).datetime),
@@ -54,7 +50,6 @@ def make_user(db):
     db.flush()
     db.execute(tables.userinfo.insert(), {
         'userid': user.userid,
-        'birthday': birthday,
     })
     return user
 

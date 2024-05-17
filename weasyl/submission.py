@@ -102,6 +102,8 @@ def _create_submission(expected_type):
                 raise WeasylError("Unexpected")
 
             profile.check_user_rating_allowed(userid, submission.rating)
+            if submission.rating.minimum_age:
+                profile.assert_adult(userid)
 
             newid = create_specific(
                 userid=userid,
@@ -974,13 +976,17 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("embedlinkInvalid")
     elif 'google-drive' == query[3]:
         embedlink = _normalize_google_docs_embed(embedlink)
-    profile.check_user_rating_allowed(userid, submission.rating)
+
+    if userid == query.userid:
+        profile.check_user_rating_allowed(userid, submission.rating)
+        if submission.rating.minimum_age:
+            profile.assert_adult(userid)
 
     if 'other' == query[3]:
         submission.content = "%s\n%s" % (embedlink, submission.content)
 
     if friends_only:
-        welcome.submission_became_friends_only(submission.submitid, userid)
+        welcome.submission_became_friends_only(submission.submitid, query.userid)
 
     # TODO(kailys): maintain ORM object
     db = d.connect()

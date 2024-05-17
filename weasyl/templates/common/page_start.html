@@ -79,11 +79,15 @@ $def with (query, options, extended_options={})
         <a class="avatar" href="/~${LOGIN(query['username'])}"><img id="avatar" src="${avatar['display_url']}" alt="${query['username']}"></a>
         <h2><i>Welcome,</i> <a id="username" class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h2>
         <div id="header-utility">
-          <form class="user-nav-form sfw-toggle" action="/control/sfwtoggle" method="POST">
+          $if query['sfw_locked']:
+            <a class="sfw-locked" href="/control/editpreferences"><svg width="16" height="16" viewBox="0 0 16 16" alt="SFW mode always on"><path d="m2 14h12v-7h-1.5v-1.5a4.5 4.5 0 0 0-9 0v1.5h-1.5m4 0v-1.5a2 2 0 0 1 4 0v1.5z" fill="currentColor" /></svg> <span>sfw</span></a>
+          $else:
             $ sfw = query['sfw']
-            <input type="hidden" name="redirect" value="${PATH()}">
-            <button class="link-button ${'sfw' if sfw else 'nsfw'}">sfw ${'on' if sfw else 'off'}</button>
-          </form> <span>|</span>
+            <form class="user-nav-form sfw-toggle" action="/control/sfwtoggle" method="POST">
+              <input type="hidden" name="redirect" value="${PATH()}">
+              <button class="link-button ${'sfw' if sfw else 'nsfw'}">sfw ${'on' if sfw else 'off'}</button>
+            </form>
+          <span>|</span>
           <a href="/control">settings</a> <span>|</span>
 
           $if query['userid'] in staff.DIRECTORS:

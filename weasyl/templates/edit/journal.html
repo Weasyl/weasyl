@@ -22,6 +22,8 @@ $code:
       $for rating in ratings:
         <option value="${rating.code}"$:{_RATING(rating.code)}>${rating.name_with_age}</option>
     </select>
+    $if len(ratings) > 1:
+      <p class="color-lighter tags-help"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos" target="_blank">Weasyl Terms of Service</a></i></p>
 
     <label for="editjournalcontent">Content</label>
     <textarea name="content" class="markdown input expanding" rows="9" id="editjournalcontent">${query['content']}</textarea>

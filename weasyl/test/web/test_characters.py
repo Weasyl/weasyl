@@ -33,19 +33,28 @@ def _character_user(db):
     return db_utils.create_user(username='character_test')
 
 
-@pytest.fixture(name='character')
-def _character(app, db, character_user):
+def create_character(app, character_user, **kwargs):
     cookie = db_utils.create_session(character_user)
 
-    form = dict(
-        _BASE_FORM,
-        submitfile=webtest.Upload('wesley', read_asset('img/wesley1.png'), 'image/png'),
-    )
+    for field in kwargs.keys():
+        if field not in _BASE_FORM:
+            raise KeyError(field)
+
+    form = {
+        **_BASE_FORM,
+        "submitfile": webtest.Upload('wesley', read_asset('img/wesley1.png'), 'image/png'),
+        **kwargs,
+    }
 
     resp = app.post('/submit/character', form, headers={'Cookie': cookie}).follow(headers={'Cookie': cookie})
     charid = int(resp.html.find('input', {'name': 'charid'})['value'])
 
     return charid
+
+
+@pytest.fixture(name='character')
+def _character(app, db, character_user):
+    return create_character(app, character_user)
 
 
 @pytest.mark.usefixtures('db', 'character_user')

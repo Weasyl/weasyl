@@ -11,55 +11,27 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
     <input type="password" id="signup-password" class="input" name="password" minlength="10" maxlength="72" required autocomplete="new-password" />
     <p class="color-lighter" style="padding-top: 0.5em;"><i>Passwords must be a minimum of 10 characters.</i></p>
 
-    <div id="password-strength" class="password-strength password-strength-empty" data-password-input="signup-password" data-personal-inputs="signup-username,signup-email,year"></div>
+    <div id="password-strength" class="password-strength password-strength-empty" data-password-input="signup-password" data-personal-inputs="signup-username,signup-email"></div>
 
     <label for="signup-email">Email Address</label>
     <input type="email" id="signup-email" class="input" name="email" placeholder="john@doe.com" required autocomplete="email" />
 
-    <label for="signup-birthday">Date of Birth</label>
-    <div class="form-date clear">
-      <div class="form-date-day">
-        <label for="day" class="color-lighter">Day</label>
-        <select class="input" name="day" id="day">
-          <option value=""></option>
-          $for i in range(1, 32):
-            <option value="$i">$i</option>
-        </select>
-      </div>
-      <div class="form-date-month">
-        <label for="month" class="color-lighter">Month</label>
-        <select class="input" name="month" id="month">
-          <option value=""></option>
-          <option value="1">January</option>
-          <option value="2">February</option>
-          <option value="3">March</option>
-          <option value="4">April</option>
-          <option value="5">May</option>
-          <option value="6">June</option>
-          <option value="7">July</option>
-          <option value="8">August</option>
-          <option value="9">September</option>
-          <option value="10">October</option>
-          <option value="11">November</option>
-          <option value="12">December</option>
-        </select>
-      </div>
-      <div class="form-date-year">
-        <label for="year" class="color-lighter">Year</label>
-        <select class="input last-input" name="year" id="year">
-          <option value=""></option>
-          $ current_year = arrow.utcnow().year
-          $for i in range(current_year, current_year - 101, -1):
-            <option value="$i">$i</option>
-        </select>
-      </div>
-    </div>
+    <fieldset>
+      <legend class="label">Age Requirement</legend>
+      <label class="input-checkbox required-label">
+        <input type="checkbox" name="age" value="13+" required title="You need to be at least 13 years old to use Weasyl." class="invalid-use-title">
+        I am at least 13 years old
+      </label>
+    </fieldset>
 
+    <script type="module" src="${resource_path('js/signup.js')}" async></script>
     <script src="${resource_path('js/zxcvbn.js')}" async></script>
     <script src="${resource_path('js/zxcvbn-check.js')}" async></script>
 
-    <button type="submit" class="button positive" style="float: right;">Join Weasyl</button>
-    <a class="button" href="/">Cancel</a>
+    <div style="padding-top: 1em">
+      <button type="submit" class="button positive" style="float: right;">Join Weasyl</button>
+      <a class="button" href="/">Cancel</a>
+    </div>
 
     <div id="signup-terms">
       By registering an account on Weasyl, you agree that you have fully read and will abide by both the

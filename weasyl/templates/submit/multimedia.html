@@ -55,6 +55,8 @@ $:{TITLE("Multimedia Artwork", "Submit", "/submit")}
           <option value="${rating.code}">${rating.name_with_age}</option>
       </select>
       <p class="color-lighter tags-help"><i>Please apply a rating to this submission according to our <a href="/help/ratings" target="_blank">ratings guidelines</a>.</i></p>
+      $if len(ratings) > 1:
+        <p class="color-lighter tags-help"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos" target="_blank">Weasyl Terms of Service</a></i></p>
     </div>
 
     <div class="column description">

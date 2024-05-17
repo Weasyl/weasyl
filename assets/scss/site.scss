@@ -1,4 +1,6 @@
+@import 'theme';
 @import 'reset';
+@import 'components/date-picker';
 @import 'components/option';
 @import 'components/text-post-list';
 @import 'components/user-tabs';
@@ -71,7 +73,7 @@ dl.leaders dd {
 
 /* Typefaces
 --------------------------------*/
-#page-container, textarea, .typeface-default, button, select {
+#page-container, textarea, .typeface-default, button {
     font-family: Lucida Sans, Lucida Grande, Arial, Roboto, sans-serif;
     font-size: 12px;
     font-size: 0.75rem;
@@ -134,8 +136,6 @@ a.more span, #header-messages a, .page-title a {
 .color-off {
     color: #943522;
 }
-
-$content-color-lighter: #777;
 
 .content .color-lighter {
     color: $content-color-lighter;
@@ -751,6 +751,8 @@ dl + h4, #uc-info {
     opacity: 0.6;
 }
 
+$input-background: #e4e4e4;
+
 .input {
     box-sizing: border-box;
     padding: 0 0.5em;
@@ -758,9 +760,19 @@ dl + h4, #uc-info {
     border-width: 1px;
     border-color: #aaa #bbb #ccc;
     border-radius: 0;
-    background-color: #e4e4e4;
+    background-color: $input-background;
     box-shadow: 0 4px 0 #336979, inset 0 1px 2px #aaa;
     transition: all 0.15s linear;
+
+    &:hover,
+    &:focus {
+        background-color: #eee;
+    }
+
+    &:disabled {
+        background-color: $input-background;
+        box-shadow: 0 4px 0 #aaa;
+    }
 }
 
 .input::placeholder {
@@ -769,23 +781,13 @@ dl + h4, #uc-info {
     line-height: 1.75rem;
 }
 
-input.input {
+// .input:not(textarea)
+input.input,
+select.input {
     height: 28px;
     height: 1.75rem;
     line-height: 28px;
     line-height: 1.75rem;
-}
-
-select.input {
-    line-height: 1;
-    padding-top: 5px;
-    padding-top: 0.3rem;
-    padding-bottom: 5px;
-    padding-bottom: 0.3rem;
-}
-
-.input:hover, .input:focus {
-    background-color: #eee;
 }
 
 .input:focus {
@@ -1645,13 +1647,6 @@ $tag-reject-deemphasize-size: 11px;
     font-weight: 700;
 }
 
-.form label.color-lighter:not(.input-checkbox) {
-    padding-top: 0.35em;
-    font-size: 12px;
-    font-size: 0.75rem;
-    font-weight: 400;
-}
-
 .optional-indicator {
     font-weight: normal;
     color: $content-color-lighter;
@@ -1861,7 +1856,7 @@ $tag-reject-deemphasize-size: 11px;
     color: #999;
 }
 
-#header-utility span {
+#header-utility > span {
     display: inline-block;
     padding: 0 0.2em;
     color: #363f42;
@@ -2244,6 +2239,19 @@ $notifs-color-active: #b9b9b9;
 
 .sfw-toggle button.sfw::before {
     background-color: #8cad47;
+}
+
+.sfw-locked > svg {
+    color: rgba(185, 185, 185, 0.7);
+    vertical-align: middle;
+}
+
+.sfw-locked:hover {
+    text-decoration: none;
+
+    > span {
+        text-decoration: underline;
+    }
 }
 
 /* ------------------------------------ =homepage --*/

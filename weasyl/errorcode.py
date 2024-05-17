@@ -22,6 +22,10 @@ unexpected = (
     "fully processed.")
 
 error_messages = {
+    "birthdayInconsistentWithRating": (
+        "You’ve already confirmed that you were 18 or older when setting rating preferences or a post’s rating; Weasyl won’t show an age inconsistent with that on your profile."),
+    "birthdayInconsistentWithTerms": (
+        "You’ve already confirmed that you were 13 or older when signing up; Weasyl won’t show an age inconsistent with that on your profile."),
     "birthdayInsufficient": (
         "Your date of birth indicates that you are not allowed to set your content rating settings to the "
         "level you entered. Please choose a lower rating level."),

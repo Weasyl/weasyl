@@ -1136,22 +1136,31 @@
         inputElement.parentNode.classList.toggle('disabled', disable);
     }
 
-    document.addEventListener('change', function (e) {
-        var disableId = e.target.dataset.disables;
+    function handleCheckState(target) {
+        var disableId = target.dataset.disables;
 
         if (disableId) {
             var disables = document.getElementById(disableId);
-            var disable = e.target.checked;
+            var disable = target.checked;
 
             disableWithLabel(disables, disable);
         }
+
+        var showId = target.dataset.shows;
+
+        if (showId) {
+            var shows = document.getElementById(showId);
+
+            shows.style.display = target.checked ? '' : 'none';
+        }
+    }
+
+    document.addEventListener('change', function (e) {
+        handleCheckState(e.target);
     });
 
-    forEach(document.querySelectorAll('[data-disables]'), function (checkbox) {
-        var disables = document.getElementById(checkbox.dataset.disables);
-
-        disableWithLabel(disables, checkbox.checked);
-    });
+    forEach(document.querySelectorAll('[data-disables]'), handleCheckState);
+    forEach(document.querySelectorAll('[data-shows]'), handleCheckState);
 
     (function () {
         function isOtherOption(option) {

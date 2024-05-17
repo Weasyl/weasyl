@@ -25,7 +25,7 @@ def modcontrol_suspenduser_get_(request):
 @moderator_only
 @token_checked
 def modcontrol_suspenduser_post_(request):
-    form = request.web_input(userid="", username="", mode="", reason="", day="", month="", year="", datetype="",
+    form = request.web_input(userid="", username="", mode="", reason="", datetype="",
                              duration="", durationunit="")
 
     moderation.setusermode(request.userid, form)

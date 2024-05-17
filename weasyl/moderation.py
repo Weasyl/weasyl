@@ -4,6 +4,7 @@ import datetime
 import arrow
 import sqlalchemy as sa
 
+from libweasyl.legacy import UNIXTIME_OFFSET
 from libweasyl.models.content import Submission
 from libweasyl import ratings, staff, text
 
@@ -417,32 +418,32 @@ def setusermode(userid, form):
     form.reason = form.reason.strip()
 
     if form.mode == "s":
+        today = datetime.datetime.utcnow().date()
+
         if form.datetype == "r":
             # Relative date
             magnitude = int(form.duration)
-
-            if magnitude < 0:
-                raise WeasylError("releaseInvalid")
-
-            basedate = datetime.datetime.now()
             if form.durationunit == "y":
-                basedate += datetime.timedelta(days=magnitude * 365)
+                duration = datetime.timedelta(days=magnitude * 365)
             elif form.durationunit == "m":
-                basedate += datetime.timedelta(days=magnitude * 30)
+                duration = datetime.timedelta(days=magnitude * 30)
             elif form.durationunit == "w":
-                basedate += datetime.timedelta(weeks=magnitude)
+                duration = datetime.timedelta(weeks=magnitude)
             else:  # Catchall, days
-                basedate += datetime.timedelta(days=magnitude)
+                duration = datetime.timedelta(days=magnitude)
 
-            form.release = d.convert_unixdate(basedate.day, basedate.month, basedate.year)
+            release_date = today + duration
         else:
             # Absolute date
-            if datetime.date(int(form.year), int(form.month), int(form.day)) < datetime.date.today():
-                raise WeasylError("releaseInvalid")
+            try:
+                release_date = datetime.date.fromisoformat(form["release-date"])
+            except ValueError as e:
+                raise WeasylError("releaseInvalid") from e
 
-            form.release = d.convert_unixdate(form.day, form.month, form.year)
+        if release_date <= today:
+            raise WeasylError("releaseInvalid")
     else:
-        form.release = None
+        release_date = None
 
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
@@ -456,13 +457,15 @@ def setusermode(userid, form):
             db.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=form.userid, reason=form.reason)
     elif form.mode == "s":
         # Suspend user
-        if not form.release:
+        if release_date is None:
             raise WeasylError("releaseInvalid")
+
+        release_unixtime = arrow.get(release_date).int_timestamp + UNIXTIME_OFFSET
 
         with d.engine.begin() as db:
             db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
             db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
-            db.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=form.userid, reason=form.reason, release=form.release)
+            db.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=form.userid, reason=form.reason, release=release_unixtime)
     elif form.mode == "x":
         # Unban/Unsuspend
         with d.engine.begin() as db:
@@ -473,9 +476,8 @@ def setusermode(userid, form):
     if action is not None:
         isoformat_release = None
         message = form.reason
-        if form.release is not None:
-            isoformat_release = d.datetime.datetime.fromtimestamp(form.release).isoformat()
-            message = '#### Release date: %s\n\n%s' % (isoformat_release, message)
+        if release_date is not None:
+            message = '#### Release date: %s\n\n%s' % (release_date.isoformat(), message)
         d.append_to_log(
             'staff.actions',
             userid=userid, action=action, target=form.userid, reason=form.reason,

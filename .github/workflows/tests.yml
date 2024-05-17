@@ -30,10 +30,10 @@ jobs:
         image: memcached:1.5-alpine
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Cache npm dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: cache-${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
@@ -41,7 +41,7 @@ jobs:
             cache-${{ runner.os }}-npm-
 
       - name: Cache Poetry dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
           key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}

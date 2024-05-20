@@ -96,7 +96,7 @@ def submission_(request):
         ogp=ogp,
         canonical_url=canonical_path,
         title=item["title"],
-        options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+        options=("tags-edit",) if _can_edit_tags(request.userid) else (),
     ))
 
 
@@ -169,7 +169,7 @@ def character_(request):
         define.common_page_end(
             request.userid,
             page,
-            options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+            options=("tags-edit",) if _can_edit_tags(request.userid) else (),
         )
     )
 
@@ -209,6 +209,6 @@ def journal_(request):
         define.common_page_end(
             request.userid,
             page,
-            options=("tags-edit",) if _can_edit_tags(request.userid) else None,
+            options=("tags-edit",) if _can_edit_tags(request.userid) else (),
         )
     )

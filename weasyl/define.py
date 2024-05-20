@@ -214,13 +214,7 @@ def errorpage(userid, code=None, links=None, request_id=None, **extras):
     return errorpage_html(userid, text.markdown(code), links, request_id, **extras)
 
 
-def webpage(userid, template, argv=None, options=None, **extras):
-    if argv is None:
-        argv = []
-
-    if options is None:
-        options = []
-
+def webpage(userid, template, argv=(), options=(), **extras):
     page = common_page_start(userid, options=options, **extras)
     page.append(render(template, argv))
 
@@ -689,10 +683,7 @@ def page_header_info(userid):
     }
 
 
-def common_page_start(userid, options=None, **extended_options):
-    if options is None:
-        options = []
-
+def common_page_start(userid, options=(), **extended_options):
     userdata = None
     if userid:
         userdata = page_header_info(userid)
@@ -703,7 +694,7 @@ def common_page_start(userid, options=None, **extended_options):
     return [data]
 
 
-def common_page_end(userid, page, options=None):
+def common_page_end(userid, page, options=()):
     data = render("common/page_end.html", (options,))
     page.append(data)
     return "".join(page)

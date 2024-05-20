@@ -676,7 +676,7 @@ def manage_thumbnail_get_(request):
         source,
         # Exists
         bool(source),
-    ], options=['imageselect'], title="Select Thumbnail"))
+    ], options=('imageselect',), title="Select Thumbnail"))
 
 
 @login_required
@@ -748,7 +748,7 @@ def manage_avatar_get_(request):
             # Avatar selection exists
             avatar_source_url is not None,
         ],
-        options=["imageselect", "square_select"],
+        options=("imageselect", "square_select"),
         title="Edit Avatar"
     ))
 

@@ -846,6 +846,7 @@
             // Remove the original form’s non-functional Markdown preview and warning elements
             contentField.parentNode.removeChild(contentField.nextSibling);
             contentField.parentNode.removeChild(contentField.nextSibling);
+            contentField.value = '';
 
             if (!children || children.nodeName !== 'UL') {
                 children = document.createElement('ul');

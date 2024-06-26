@@ -2,7 +2,7 @@ import functools
 
 
 @functools.total_ordering
-class Rating(object):
+class Rating:
     def __init__(self, code, character, name, nice_name, minimum_age, block_text,
                  additional_description=None):
 

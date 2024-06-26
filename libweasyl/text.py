@@ -72,7 +72,7 @@ MISAKA_FORMAT = (
 def strip_outer_tag(html):
     match = locatestarttagend.match(html)
     start_tag_end = match.end()
-    end_tag_start = html.rindex(u'<')
+    end_tag_start = html.rindex('<')
     return html[:start_tag_end + 1], html[start_tag_end + 1:end_tag_start], html[end_tag_start:]
 
 
@@ -82,7 +82,7 @@ class WeasylRenderer(misaka.HtmlRenderer):
         if raw_html.startswith('<!--'):
             return raw_html
         start, stripped, end = strip_outer_tag(raw_html)
-        return u''.join([start, _markdown(stripped).rstrip(), end])
+        return ''.join([start, _markdown(stripped).rstrip(), end])
 
     def autolink(self, link, is_email):
         # default implementation from sundown’s `rndr_autolink`, with the tag name replaced
@@ -111,31 +111,29 @@ def _markdown(target):
 
 
 def create_link(t, username):
-    link = etree.Element(u"a")
-    link.set(u"href", u"/~" + get_sysname(username))
+    link = etree.Element("a")
+    link.set("href", "/~" + get_sysname(username))
 
     if t == "~":
         link.text = username
     else:
-        link.set(u"class", u"user-icon")
+        link.set("class", "user-icon")
 
-        image = etree.SubElement(link, u"img")
-        image.set(u"src", u"/~{username}/avatar".format(username=get_sysname(username)))
+        image = etree.SubElement(link, "img")
+        image.set("src", "/~{username}/avatar".format(username=get_sysname(username)))
 
         if t == "!":
             image.set("alt", username)
         else:
             image.set("alt", "")
-            label = etree.SubElement(link, u"span")
+            label = etree.SubElement(link, "span")
             label.text = username
-            image.tail = u" "
+            image.tail = " "
 
     return link
 
 
 def add_user_links(fragment, parent, can_contain):
-    _nonlocal = {}
-
     def add_matches(text, got_link):
         text_start = 0
 
@@ -163,7 +161,8 @@ def add_user_links(fragment, parent, can_contain):
         return True
 
     def got_text_link(t, username):
-        previous = _nonlocal["previous"]
+        nonlocal previous
+        nonlocal insert_index
 
         if previous is None:
             fragment.text = "".join(previous_text)
@@ -173,20 +172,23 @@ def add_user_links(fragment, parent, can_contain):
         del previous_text[:]
 
         link = create_link(t, username)
-        fragment.insert(_nonlocal["insert_index"], link)
-        _nonlocal["insert_index"] += 1
+        fragment.insert(insert_index, link)
+        insert_index += 1
 
-        _nonlocal["previous"] = link
+        previous = link
 
     def got_tail_link(t, username):
-        _nonlocal["previous"].tail = "".join(previous_text)
+        nonlocal previous
+        nonlocal insert_index
+
+        previous.tail = "".join(previous_text)
         del previous_text[:]
 
-        _nonlocal["insert_index"] += 1
+        insert_index += 1
         link = create_link(t, username)
-        parent.insert(_nonlocal["insert_index"], link)
+        parent.insert(insert_index, link)
 
-        _nonlocal["previous"] = link
+        previous = link
 
     if can_contain:
         for child in list(fragment):
@@ -194,25 +196,23 @@ def add_user_links(fragment, parent, can_contain):
             add_user_links(child, fragment, child_can_contain)
 
         if fragment.text:
-            _nonlocal["previous"] = None
-            _nonlocal["insert_index"] = 0
+            previous = None
+            insert_index = 0
             previous_text = []
 
             if add_matches(fragment.text, got_text_link):
-                previous = _nonlocal["previous"]
-
                 if previous is None:
                     fragment.text = "".join(previous_text)
                 else:
                     previous.tail = "".join(previous_text)
 
     if fragment.tail:
-        _nonlocal["previous"] = fragment
-        _nonlocal["insert_index"] = parent.index(fragment)
+        previous = fragment
+        insert_index = parent.index(fragment)
         previous_text = []
 
         if add_matches(fragment.tail, got_tail_link):
-            _nonlocal["previous"].tail = "".join(previous_text)
+            previous.tail = "".join(previous_text)
 
 
 def _convert_autolinks(fragment):
@@ -226,15 +226,15 @@ def _convert_autolinks(fragment):
                 t, _, user = href.partition(":")
 
                 if t == "user":
-                    link.set("href", u"/~{user}".format(user=get_sysname(user)))
+                    link.set("href", "/~{user}".format(user=get_sysname(user)))
                 elif t == "da":
-                    link.set("href", u"https://www.deviantart.com/{user}".format(user=_deviantart(user)))
+                    link.set("href", "https://www.deviantart.com/{user}".format(user=_deviantart(user)))
                 elif t == "ib":
-                    link.set("href", u"https://inkbunny.net/{user}".format(user=_inkbunny(user)))
+                    link.set("href", "https://inkbunny.net/{user}".format(user=_inkbunny(user)))
                 elif t == "fa":
-                    link.set("href", u"https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user)))
+                    link.set("href", "https://www.furaffinity.net/user/{user}".format(user=_furaffinity(user)))
                 elif t == "sf":
-                    link.set("href", u"https://{user}.sofurry.com/".format(user=_sofurry(user)))
+                    link.set("href", "https://{user}.sofurry.com/".format(user=_sofurry(user)))
                 else:
                     continue
 
@@ -256,26 +256,26 @@ def _markdown_fragment(target):
         t, _, user = src.partition(":")
 
         if t != "user":
-            link = etree.Element(u"a")
+            link = etree.Element("a")
             link.tail = image.tail
-            link.set(u"href", src)
+            link.set("href", src)
             link.text = image.get("alt", src)
             image.getparent().replace(image, link)
             continue
 
-        image.set(u"src", u"/~{user}/avatar".format(user=get_sysname(user)))
+        image.set("src", "/~{user}/avatar".format(user=get_sysname(user)))
 
-        link = etree.Element(u"a")
-        link.set(u"href", u"/~{user}".format(user=get_sysname(user)))
-        link.set(u"class", u"user-icon")
+        link = etree.Element("a")
+        link.set("href", "/~{user}".format(user=get_sysname(user)))
+        link.set("class", "user-icon")
         link.tail = image.tail
         image.getparent().replace(image, link)
         link.append(image)
 
         alt = image.get("alt")
         if alt:
-            image.tail = u" "
-            label = etree.SubElement(link, u"span")
+            image.tail = " "
+            label = etree.SubElement(link, "span")
             label.text = alt
             del image.attrib["alt"]
         else:

@@ -1,6 +1,6 @@
 # TODO(kailys): Doc and create examples
 
-class ConfigOption(object):
+class ConfigOption:
     "A class representing options for ``Config``."
 
     def __init__(self, name, value_map):
@@ -41,7 +41,7 @@ class InvalidValue(ValueError):
     pass
 
 
-class ConfigAttribute(object):
+class ConfigAttribute:
     def __init__(self, option):
         self.option = option
 
@@ -56,7 +56,7 @@ class ConfigAttribute(object):
         instance._values[self.option.name] = value
 
 
-class BaseConfig(object):
+class BaseConfig:
     _options = {}
     _options_by_code = {}
     all_option_codes = ''

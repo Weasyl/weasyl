@@ -7,11 +7,11 @@ from libweasyl.models.users import Follow, Login, Profile, Session
 
 # TODO: Implement these are real models in libweasyl.
 # These currently exist for a workaround in the settings controller and should be removed.
-class CommishClass(object):
+class CommishClass:
     pass
 
 
-class CommishPrice(object):
+class CommishPrice:
     pass
 
 

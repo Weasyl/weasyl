@@ -26,7 +26,7 @@ from weasyl.configuration_builder import create_configuration, BoolOption, Confi
 from weasyl.error import WeasylError
 
 
-class ExchangeType(object):
+class ExchangeType:
     __slots__ = ()
 
 
@@ -35,7 +35,7 @@ EXCHANGE_TYPE_REQUEST = ExchangeType()
 EXCHANGE_TYPE_COMMISSION = ExchangeType()
 
 
-class ExchangeSetting(object):
+class ExchangeSetting:
     __slots__ = ("code",)
 
     def __init__(self, code):
@@ -951,7 +951,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
 
 # TODO(hyena): Make this class unnecessary and remove it when we fix up settings.
-class ProfileSettings(object):
+class ProfileSettings:
     """
     This class standardizes access to jsonb profile settings,
     to ensure consistent use of naming conventions
@@ -959,7 +959,7 @@ class ProfileSettings(object):
     exceptions if you try to access a setting that has
     not been properly defined!
     """
-    class Setting(object):
+    class Setting:
         def __init__(self, default, typecast):
             self.default = default
             self.typecast = typecast

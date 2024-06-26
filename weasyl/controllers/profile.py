@@ -177,7 +177,7 @@ def submissions_(request):
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = u"%s's submissions" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's submissions" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/submissions/{username}?%s{folderquery}".format(
@@ -227,7 +227,7 @@ def collections_(request):
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = u"%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])
@@ -266,7 +266,7 @@ def journals_(request):
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = u"%s's journals" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's journals" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
     relation = profile.select_relation(request.userid, otherid)
@@ -303,7 +303,7 @@ def characters_(request):
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = u"%s's characters" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's characters" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/characters?userid={userid}&%s".format(userid=userprofile['userid'])
@@ -357,7 +357,7 @@ def shouts_(request):
         )
 
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = u"%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
     relation = profile.select_relation(request.userid, otherid)
@@ -391,7 +391,7 @@ def staffnotes_(request):
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = u"%s's staff notes" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's staff notes" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
     userinfo = profile.select_userinfo(otherid, config=userprofile['config'])
@@ -443,7 +443,7 @@ def favorites_(request):
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = u"%s's favorites" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's favorites" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
     page = define.common_page_start(request.userid, title=page_title)
 
     if feature:

@@ -232,7 +232,7 @@ def query_debug_tween_factory(handler, registry):
         if not hasattr(request, 'weasyl_session') or request.userid not in staff.DEVELOPERS:
             return
 
-        class ParameterCounter(object):
+        class ParameterCounter:
             def __init__(self):
                 self.next = 1
                 self.ids = {}
@@ -244,18 +244,18 @@ def query_debug_tween_factory(handler, registry):
                     id = self.ids[name] = self.next
                     self.next += 1
 
-                return u'$%i' % (id,)
+                return '$%i' % (id,)
 
         debug_rows = []
 
         for statement, t in request.query_debug:
-            statement = u' '.join(statement.split()).replace(u'( ', u'(').replace(u' )', u')') % ParameterCounter()
-            debug_rows.append(u'<tr><td>%.1f ms</td><td><code>%s</code></td></tr>' % (t * 1000, html.escape(statement)))
+            statement = ' '.join(statement.split()).replace('( ', '(').replace(' )', ')') % ParameterCounter()
+            debug_rows.append('<tr><td>%.1f ms</td><td><code>%s</code></td></tr>' % (t * 1000, html.escape(statement)))
 
-        response.text += u''.join(
-            [u'<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
+        response.text += ''.join(
+            ['<table style="background: white; border-collapse: separate; border-spacing: 1em; table-layout: auto; margin: 1em; font-family: sans-serif">']
             + debug_rows
-            + [u'</table>']
+            + ['</table>']
         )
 
     def query_debug_tween(request):

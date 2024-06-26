@@ -94,7 +94,7 @@ class MediaItem(Base):
         return '/' + '/'.join(self._file_path_components)
 
 
-class _LinkMixin(object):
+class _LinkMixin:
     cache_func = None
 
     @classmethod

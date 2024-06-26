@@ -153,4 +153,4 @@ def test_viewing_own_profile(db):
 
 
 def test_sysname():
-    assert d.get_sysname(u"ź") == "z"
+    assert d.get_sysname("ź") == "z"

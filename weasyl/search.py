@@ -32,7 +32,7 @@ _TABLE_INFORMATION = {
 COUNT_LIMIT = 10000
 
 
-class Query(object):
+class Query:
     def __init__(self):
         self.possible_includes = set()
         self.required_includes = set()

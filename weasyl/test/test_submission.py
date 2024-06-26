@@ -212,7 +212,7 @@ class SelectListTestCase(unittest.TestCase):
         sub2 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=4))
         sub3 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=2))
         sub4 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now)
-        tag = db_utils.create_tag(u'tag')
+        tag = db_utils.create_tag('tag')
 
         for s in [sub1, sub2, sub3, sub4]:
             db_utils.create_submission_tag(tag, s)

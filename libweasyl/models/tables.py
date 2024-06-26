@@ -239,7 +239,7 @@ character = Table(
     Column('height', String(length=100), nullable=False, server_default=''),
     Column('weight', String(length=100), nullable=False, server_default=''),
     Column('species', String(length=100), nullable=False, server_default=''),
-    Column('content', String(length=100000), nullable=False, server_default=u""),
+    Column('content', String(length=100000), nullable=False, server_default=""),
     Column('rating', RatingColumn, nullable=False),
     Column('settings', CharSettingsColumn({}, length=20), nullable=False, server_default=''),
     Column('hidden', Boolean(), nullable=False, server_default='f'),
@@ -365,7 +365,7 @@ media = Table(
     'media', metadata,
     Column('mediaid', Integer(), primary_key=True, nullable=False),
     Column('file_type', String(length=8), nullable=False),
-    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
+    Column('attributes', JSONValuesColumn(), nullable=False, server_default=text("''::hstore")),
     Column('sha256', String(length=64)),
 )
 
@@ -655,7 +655,7 @@ sessions = Table(
     Column('created_at', ArrowColumn(), nullable=False, server_default=text('now()')),
     Column('last_active', TIMESTAMP(timezone=True), nullable=True, server_default=func.now()),
     Column('userid', Integer()),
-    Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text(u"''::hstore")),
+    Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text("''::hstore")),
     Column('ip_address', String(length=39), nullable=True),
     Column('user_agent_id', Integer(), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
@@ -825,7 +825,7 @@ tag_updates = Table(
     Column('added', ARRAY(Text())),
     Column('removed', ARRAY(Text())),
     Column('updated_at', Integer(), nullable=False,
-           server_default=text(u"(date_part('epoch'::text, now()) - (18000)::double precision)")),
+           server_default=text("(date_part('epoch'::text, now()) - (18000)::double precision)")),
     default_fkey(['submitid'], ['submission.submitid'], name='tag_updates_submitid_fkey'),
     ForeignKeyConstraint(['userid'], ['login.userid'], name='tag_updates_userid_fkey'),
 )

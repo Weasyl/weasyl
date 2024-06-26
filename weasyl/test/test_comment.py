@@ -12,7 +12,7 @@ from weasyl.test import db_utils
 
 
 @pytest.mark.usefixtures('db')
-class TestRemoveComment(object):
+class TestRemoveComment:
     generation_parameters = [
         ("submit", db_utils.create_submission_comment, comment.remove,
          db_utils.create_submission),

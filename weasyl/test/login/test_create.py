@@ -262,7 +262,7 @@ def test_verify_correct_information_creates_account():
         name=form.username)
 
 
-class TestAccountCreationBlacklist(object):
+class TestAccountCreationBlacklist:
     @pytest.mark.usefixtures('db')
     def test_create_fails_if_email_domain_is_blacklisted(self):
         """

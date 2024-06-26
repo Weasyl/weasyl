@@ -44,17 +44,17 @@ def test_rating_accessibility(app, age):
 
     form = dict(
         BASE_VISUAL_FORM,
-        rating=u'30',
+        rating='30',
         submitfile=webtest.Upload('wesley1.png', read_asset('img/wesley1.png'), 'image/png'),
     )
     _post_expecting(form, 'Mature' if age >= 18 else None)
 
     form['submitfile'] = webtest.Upload('wesley-jumpingtext.png', read_asset('img/help/wesley-jumpingtext.png'), 'image/png')
-    form['rating'] = u'40'
+    form['rating'] = '40'
     _post_expecting(form, 'Explicit' if age >= 18 else None)
 
     form['submitfile'] = webtest.Upload('wesley-draw.png', read_asset('img/help/wesley-draw.png'), 'image/png')
-    form['rating'] = u'10'
+    form['rating'] = '10'
     _post_expecting(form, 'General')
 
 
@@ -91,7 +91,7 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
 
     # Reupload submission 1 with image 2
     app.post('/reupload/submission', {
-        'targetid': u'%i' % (v1,),
+        'targetid': '%i' % (v1,),
         'submitfile': wesley2_large,
     }, headers={'Cookie': cookie}).follow()
 
@@ -101,7 +101,7 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
 
     # Remove submission 1, so uploading a duplicate image is allowed
     app.post('/remove/submission', {
-        'submitid': u'%i' % (v1,),
+        'submitid': '%i' % (v1,),
     }, headers={'Cookie': cookie}).follow(headers={'Cookie': cookie})
 
     # Upload submission 2 with image 2

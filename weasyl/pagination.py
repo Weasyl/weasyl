@@ -1,5 +1,5 @@
 
-class PaginatedResult(object):
+class PaginatedResult:
     # We expect select_list to have at least the following keyword arguments:
     # limit, back_id, next_id
     def __init__(self, select_list, select_count, id_field, url_format, *args, limit=None, count_limit=None, **kwargs):

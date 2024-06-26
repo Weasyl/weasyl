@@ -114,7 +114,7 @@ def column(results):
     return [x for x, in results]
 
 
-_PG_SERIALIZATION_FAILURE = u'40001'
+_PG_SERIALIZATION_FAILURE = '40001'
 
 
 def serializable_retry(action, limit=16):
@@ -918,7 +918,7 @@ def absolutify_url(url):
 
 def summarize(s, max_length=200):
     if len(s) > max_length:
-        return s[:max_length - 1].rstrip() + u'\N{HORIZONTAL ELLIPSIS}'
+        return s[:max_length - 1].rstrip() + '\N{HORIZONTAL ELLIPSIS}'
     return s
 
 

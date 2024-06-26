@@ -109,21 +109,21 @@ def test_login_succeeds_for_valid_username_and_password():
 
 @pytest.mark.usefixtures('db')
 def test_unicode_password():
-    user_id = db_utils.create_user(password=u"passwordé", username=user_name)
-    result = login.authenticate_bcrypt(username=user_name, password=u"passwordé", request=None)
+    user_id = db_utils.create_user(password="passwordé", username=user_name)
+    result = login.authenticate_bcrypt(username=user_name, password="passwordé", request=None)
     assert result == (user_id, None)
-    result = login.authenticate_bcrypt(username=user_name, password=u"passworde", request=None)
+    result = login.authenticate_bcrypt(username=user_name, password="passworde", request=None)
     assert result == (0, 'invalid')
-    result = login.authenticate_bcrypt(username=user_name, password=u"password", request=None)
+    result = login.authenticate_bcrypt(username=user_name, password="password", request=None)
     assert result == (0, 'invalid')
 
 
 @pytest.mark.usefixtures('db')
 def test_unicode_attempts():
-    user_id = db_utils.create_user(password=u"password", username=user_name)
-    result = login.authenticate_bcrypt(username=user_name, password=u"passwordé", request=None)
+    user_id = db_utils.create_user(password="password", username=user_name)
+    result = login.authenticate_bcrypt(username=user_name, password="passwordé", request=None)
     assert result == (0, 'invalid')
-    result = login.authenticate_bcrypt(username=user_name, password=u"passwörd", request=None)
+    result = login.authenticate_bcrypt(username=user_name, password="passwörd", request=None)
     assert result == (0, 'invalid')
-    result = login.authenticate_bcrypt(username=user_name, password=u"password", request=None)
+    result = login.authenticate_bcrypt(username=user_name, password="password", request=None)
     assert result == (user_id, None)

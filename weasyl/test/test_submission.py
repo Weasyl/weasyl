@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import datetime
 import unittest
 import pytest
 
 import arrow
-from pyramid.threadlocal import get_current_request
 
 from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
@@ -13,6 +10,7 @@ from libweasyl import ratings
 from libweasyl.models import site, users
 import weasyl.define as d
 from weasyl import blocktag, searchtag, submission, welcome
+from weasyl.searchtag import GroupedTags
 from weasyl.test import db_utils
 
 
@@ -27,29 +25,13 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission(user1, rating=ratings.GENERAL.code)
         db_utils.create_submission(user1, rating=ratings.MATURE.code)
         db_utils.create_submission(user1, rating=ratings.EXPLICIT.code)
-        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
-        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, 10)))
-        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+        self.assertEqual(3, len(submission.select_list(user2, ratings.EXPLICIT.code, limit=10)))
+        self.assertEqual(2, len(submission.select_list(user2, ratings.MATURE.code, limit=10)))
+        self.assertEqual(1, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # A user sees their own submissions regardless of the rating level
         self.assertEqual(3, len(submission.select_list(
-            user1, ratings.GENERAL.code, 10, otherid=user1)))
-
-    def test_ratings_twittercard(self):
-        user = db_utils.create_user()
-
-        sub1 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
-        sub2 = db_utils.create_submission(user, rating=ratings.MATURE.code)
-        sub3 = db_utils.create_submission(user, rating=ratings.EXPLICIT.code)
-
-        request = get_current_request()
-        card1 = submission.twitter_card(request, sub1)
-        card2 = submission.twitter_card(request, sub2)
-        card3 = submission.twitter_card(request, sub3)
-
-        self.assertNotEqual('This image is rated 18+ and only viewable on weasyl.com', card1['description'])
-        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card2['description'])
-        self.assertEqual('This image is rated 18+ and only viewable on weasyl.com', card3['description'])
+            user1, ratings.GENERAL.code, limit=10, otherid=user1)))
 
     def test_filters(self):
         # Test filters of the following:
@@ -59,57 +41,57 @@ class SelectListTestCase(unittest.TestCase):
         folder = db_utils.create_folder(user1)
         db_utils.create_submission(user1, rating=ratings.GENERAL.code, folderid=folder)
         db_utils.create_submission(user1, rating=ratings.GENERAL.code, subtype=1010)
-        db_utils.create_submission(user1, rating=ratings.GENERAL.code, settings=CharSettings({'hidden'}, {}, {}))
+        db_utils.create_submission(user1, rating=ratings.GENERAL.code, hidden=True)
         db_utils.create_submission(user2, rating=ratings.GENERAL.code)
 
-        self.assertEqual(3, len(submission.select_list(user1, ratings.EXPLICIT.code, 10)))
-        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, 10, otherid=user2)))
-        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, 10, folderid=folder)))
-        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, 10, subcat=1010)))
+        self.assertEqual(3, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10)))
+        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, otherid=user2)))
+        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, folderid=folder)))
+        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, subcat=1010)))
 
     def test_select_list_limits(self):
         user1 = db_utils.create_user()
         submissions = db_utils.create_submissions(
             20, user1, rating=ratings.GENERAL.code)
 
-        results = submission.select_list(user1, ratings.EXPLICIT.code, 10)
+        results = submission.select_list(user1, ratings.EXPLICIT.code, limit=10)
         # submissions are descending, so we get the highest numbers first
         self.assertEqual(submissions[19], results[0]['submitid'])
         self.assertEqual(10, len(results))
 
         results = submission.select_list(
-            user1, ratings.EXPLICIT.code, 10, nextid=submissions[10])
+            user1, ratings.EXPLICIT.code, limit=10, nextid=submissions[10])
         self.assertEqual(submissions[9], results[0]['submitid'])
 
         results = submission.select_list(
-            user1, ratings.EXPLICIT.code, 10, backid=submissions[10])
+            user1, ratings.EXPLICIT.code, limit=10, backid=submissions[10])
         self.assertEqual(submissions[19], results[0]['submitid'])
 
     def test_friends_only(self):
         user1 = db_utils.create_user()
         user2 = db_utils.create_user()
-        db_utils.create_submission(user1, rating=ratings.GENERAL.code, settings=CharSettings({'friends-only'}, {}, {}))
+        db_utils.create_submission(user1, rating=ratings.GENERAL.code, friends_only=True)
 
         # poster can view their submission
         self.assertEqual(
-            1, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
 
         # but a non-friend or a non-logged in user cannot
         self.assertEqual(
-            0, len(submission.select_list(None, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(None, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # user with a pending friendship cannot view
         db_utils.create_friendship(user1, user2, settings=CharSettings({'pending'}, {}, {}))
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # but a friend can
         d.sessionmaker().query(users.Friendship).delete()
         db_utils.create_friendship(user1, user2)
         self.assertEqual(
-            1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
     def test_ignored_user(self):
         user1 = db_utils.create_user()
@@ -117,15 +99,15 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission(user1, rating=ratings.GENERAL.code)
         # can view the submission
         self.assertEqual(
-            1, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
         # user2 blocks user1
         db_utils.create_ignoreuser(user2, user1)
         # user2 can no longer view the submission
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
         # but a non-logged in user can
         self.assertEqual(
-            1, len(submission.select_list(None, ratings.GENERAL.code, 10)))
+            1, len(submission.select_list(None, ratings.GENERAL.code, limit=10)))
 
     def test_blocked_tag(self):
         user1 = db_utils.create_user()
@@ -137,7 +119,7 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission_tag(tag1, s1)
         db_utils.create_blocktag(user2, tag1, ratings.GENERAL.code)
         self.assertEqual(
-            0, len(submission.select_list(user2, ratings.GENERAL.code, 10)))
+            0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # submission s2 has a penguin in it. user2 does not want to see penguins in
         # adult circumstances, but s2 is general, so visibility is OK
@@ -146,14 +128,14 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submission_tag(tag2, s2)
         db_utils.create_blocktag(user2, tag2, ratings.EXPLICIT.code)
         self.assertEqual(
-            1, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
+            1, len(submission.select_list(user2, ratings.EXPLICIT.code, limit=10)))
 
         # submission s3 has penguins on it in adult situations, but User2
         # is okay with that if it's one of User2's own submissions.
         s3 = db_utils.create_submission(user2, rating=ratings.EXPLICIT.code)
         db_utils.create_submission_tag(tag2, s3)
         self.assertEqual(
-            2, len(submission.select_list(user2, ratings.EXPLICIT.code, 10)))
+            2, len(submission.select_list(user2, ratings.EXPLICIT.code, limit=10)))
 
     def test_duplicate_blocked_tag(self):
         user = db_utils.create_user()
@@ -167,9 +149,9 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submissions(9, user1, ratings.GENERAL.code)
         db_utils.create_submission(user1, ratings.GENERAL.code, folderid=folder)
         self.assertEqual(
-            10, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            10, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            9, len(submission.select_list(user1, ratings.GENERAL.code, 10,
+            9, len(submission.select_list(user1, ratings.GENERAL.code, limit=10,
                                           profile_page_filter=True)))
 
     def test_index_page_filter(self):
@@ -179,9 +161,9 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submissions(9, user1, ratings.GENERAL.code)
         db_utils.create_submission(user1, ratings.GENERAL.code, folderid=folder)
         self.assertEqual(
-            10, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            10, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            9, len(submission.select_list(user1, ratings.GENERAL.code, 10,
+            9, len(submission.select_list(user1, ratings.GENERAL.code, limit=10,
                                           index_page_filter=True)))
 
     def test_feature_page_filter(self):
@@ -191,71 +173,46 @@ class SelectListTestCase(unittest.TestCase):
         db_utils.create_submissions(9, user1, ratings.GENERAL.code)
         db_utils.create_submission(user1, ratings.GENERAL.code, folderid=folder)
         self.assertEqual(
-            10, len(submission.select_list(user1, ratings.GENERAL.code, 10)))
+            10, len(submission.select_list(user1, ratings.GENERAL.code, limit=10)))
         self.assertEqual(
-            1, len(submission.select_list(user1, ratings.GENERAL.code, 10,
+            1, len(submission.select_list(user1, ratings.GENERAL.code, limit=10,
                                           featured_filter=True)))
 
     def test_retag(self):
         owner = db_utils.create_user()
         tagger = db_utils.create_user()
         s = db_utils.create_submission(owner, rating=ratings.GENERAL.code)
+        target = searchtag.SubmissionTarget(s)
 
-        searchtag.associate(owner, {'orange'}, submitid=s)
+        searchtag.associate(userid=owner, target=target, tag_names={'orange'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['orange'])
+            GroupedTags(artist=['orange'], suggested=[], own_suggested=[]))
 
-        searchtag.associate(tagger, {'apple', 'tomato'}, submitid=s)
+        searchtag.associate(userid=tagger, target=target, tag_names={'apple', 'tomato'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['apple', 'tomato'])
+            GroupedTags(artist=['orange'], suggested=['apple', 'tomato'], own_suggested=[]))
 
-        searchtag.associate(tagger, {'tomato'}, submitid=s)
+        searchtag.associate(userid=tagger, target=target, tag_names={'tomato'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['tomato'])
+            GroupedTags(artist=['orange'], suggested=['tomato'], own_suggested=[]))
 
-        searchtag.associate(owner, {'kale'}, submitid=s)
+        searchtag.associate(userid=owner, target=target, tag_names={'kale'})
         self.assertEqual(
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['kale'])
-
-    def test_retag_no_owner_remove(self):
-        config = CharSettings({'disallow-others-tag-removal'}, {}, {})
-        owner = db_utils.create_user(config=config)
-        tagger = db_utils.create_user()
-        s = db_utils.create_submission(owner, rating=ratings.GENERAL.code)
-
-        searchtag.associate(owner, {'orange'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['orange'])
-
-        searchtag.associate(tagger, {'apple', 'tomato'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['apple', 'orange', 'tomato'])
-
-        searchtag.associate(tagger, {'tomato'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['orange', 'tomato'])
-
-        searchtag.associate(owner, {'kale'}, submitid=s)
-        self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
-            ['kale'])
+            GroupedTags(artist=['kale'], suggested=['tomato'], own_suggested=[]))
 
     def test_recently_popular(self):
         owner = db_utils.create_user()
-        now = arrow.now()
+        now = arrow.utcnow()
 
         sub1 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=6))
         sub2 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=4))
         sub3 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=2))
         sub4 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now)
-        tag = db_utils.create_tag(u'tag')
+        tag = db_utils.create_tag('tag')
 
         for s in [sub1, sub2, sub3, sub4]:
             db_utils.create_submission_tag(tag, s)
@@ -330,9 +287,9 @@ class SubmissionNotificationsTestCase(unittest.TestCase):
         """
         s = db_utils.create_submission(self.owner)
         welcome.submission_insert(self.owner, s)
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(1, self._notification_count(self.nonfriend))
-        self.assertEquals(1, self._notification_count(self.ignored))
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(1, self._notification_count(self.nonfriend))
+        self.assertEqual(1, self._notification_count(self.ignored))
 
     def test_friends_only_submission(self):
         """
@@ -340,11 +297,11 @@ class SubmissionNotificationsTestCase(unittest.TestCase):
         """
         s = db_utils.create_submission(
             self.owner,
-            settings=CharSettings({'friends-only'}, {}, {}))
-        welcome.submission_insert(self.owner, s, settings='f')
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(0, self._notification_count(self.nonfriend))
-        self.assertEquals(0, self._notification_count(self.ignored))
+            friends_only=True)
+        welcome.submission_insert(self.owner, s, friends_only=True)
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(0, self._notification_count(self.nonfriend))
+        self.assertEqual(0, self._notification_count(self.ignored))
 
     def test_submission_becomes_friends_only(self):
         """
@@ -354,11 +311,11 @@ class SubmissionNotificationsTestCase(unittest.TestCase):
         # Initial behavior should match with normal.
         s = db_utils.create_submission(self.owner)
         welcome.submission_insert(self.owner, s)
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(1, self._notification_count(self.nonfriend))
-        self.assertEquals(1, self._notification_count(self.ignored))
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(1, self._notification_count(self.nonfriend))
+        self.assertEqual(1, self._notification_count(self.ignored))
 
         welcome.submission_became_friends_only(s, self.owner)
-        self.assertEquals(1, self._notification_count(self.friend))
-        self.assertEquals(0, self._notification_count(self.nonfriend))
-        self.assertEquals(0, self._notification_count(self.ignored))
+        self.assertEqual(1, self._notification_count(self.friend))
+        self.assertEqual(0, self._notification_count(self.nonfriend))
+        self.assertEqual(0, self._notification_count(self.ignored))

@@ -3,8 +3,6 @@ $:{RENDER("common/stage_title.html", ["Username Alias", "Settings"])}
 
 <div class="content">
   <form name="managealias" action="/manage/alias" method="post" class="form skinny clear">
-    $:{CSRF()}
-
     <label for="editaliasusername">Alias</label>
     <input type="text" name="username" class="input last-input" id="editaliasusername" value="${query if query else ''}" />
 

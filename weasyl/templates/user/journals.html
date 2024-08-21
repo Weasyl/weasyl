@@ -1,14 +1,44 @@
-$def with (profile, userinfo, relationship, journals, latest)
+$def with (profile, userinfo, relationship, journals, post_counts_by_type)
 <div id="journals_stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
-  $:{RENDER("common/user_tabs.html", [profile['username'], "journals", profile['show_favorites_tab']])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], "journals", profile['show_favorites_tab'], post_counts_by_type])}
 </div>
 
 <div class="content" id="journals-content">
-  <div class="form wide">
-    <h3>Journals</h3>
+  <div class="constrained text-post-list">
+    $code:
+      avatar = profile['user_media']['avatar'][0]
 
-    $for i in journals:
-      <h4><a href="/journal/${i['journalid']}/${SLUG(i['title'])}">${i['title']}</a></h4>
+      avatar_html = '<img class="text-post-image" src="{avatar_url_html}" title="{username_html}" alt="{username_html}’s avatar">'.format(
+        avatar_url_html=escape_(avatar['display_url'], True),
+        username_html=escape_(profile['username'], True),
+      )
+
+      last_created = None
+
+    $for journal in journals:
+      $ created = journal['created_at']
+      <div is="date-group-header" class="text-post-group-header"
+        $if last_created is not None:
+          data-compare="${last_created.int_timestamp},${created.int_timestamp}"
+        >
+        $:{LOCAL_TIME(created, '{date}')}
+      </div>
+
+      <article class="text-post-item">
+        $:{avatar_html}
+
+        <div class="text-post-text">
+          <h4 class="text-post-title">
+            <a href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a>
+          </h4>
+
+          <p class="text-post-excerpt">${MARKDOWN_EXCERPT(journal['content'])}</p>
+        </div>
+      </article>
+      $ last_created = created
+
+    $if not journals:
+      <p>No journals to show.</p>
   </div>
 </div>

@@ -32,7 +32,7 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
     $for related in report.related_reports():
       <ul>
         <a href="/modcontrol/report?reportid=${related.reportid}">
-          Opened on ${DATE(related.opened_at)} at ${TIME(related.opened_at)}; status: ${related.status}.
+          Opened $:{LOCAL_TIME(related.opened_at, 'on {date} at {time}')}; status: ${related.status}.
           $if related.is_closed:
             (resolution: ${related.closure_reason.value.replace('-', ' ')})
         </a>
@@ -47,7 +47,7 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
     <h2>Report is closed</h2>
     <p>
       <strong>
-        Closed by ${report.owner.profile.username} on ${DATE(report.closed_at)} at ${TIME(report.closed_at)}.
+        Closed by ${report.owner.profile.username} $:{LOCAL_TIME(report.closed_at, 'on {date} at {time}')}
       </strong>
       The resolution was: ${report.closure_reason.value.replace('-', ' ')}.
     </p>
@@ -57,7 +57,6 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
   $else:
     <h2>Add a comment</h2>
     <form class="form" action="/submit/report" method="post" style="margin-bottom: 2em">
-      $:{CSRF()}
       <input type="hidden" name="reportid" value="${report.reportid}">
       <input type="hidden" name="${feature}id" value="${getattr(report.target, feature + 'id')}">
       <input type="hidden" name="violation" value="0">
@@ -69,7 +68,6 @@ $:{RENDER("common/stage_title.html", ["Reported " + report.target_type.title(), 
 
     <h2>Close this report</h2>
     <form name="closereport" class="form" action="/modcontrol/closereport" method="post">
-      $:{CSRF()}
       <input type="hidden" name="reportid" value="${report.reportid}" />
       <input type="hidden" name="feature" value="${feature}" />
       <label for="report-closure-action">Action</label>

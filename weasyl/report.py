@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import arrow
+from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import aliased, contains_eager, joinedload
 import sqlalchemy as sa
@@ -68,7 +67,7 @@ def create(userid, form):
         raise WeasylError("ReportCommentRequired")
 
     is_hidden = d.engine.scalar(
-        "SELECT settings ~ 'h' FROM %s WHERE %s = %i" % (
+        "SELECT hidden FROM %s WHERE %s = %i" % (
             ("submission", "submitid", form.submitid) if form.submitid else
             ("character", "charid", form.charid) if form.charid else
             ("journal", "journalid", form.journalid)
@@ -157,15 +156,19 @@ def select_list(userid, form):
         q = q.filter(sa.literal(int(form.violation)) == sa.func.any(subq.c.violations))
 
     q = q.order_by(Report.opened_at.desc())
-    return [(report, report_count, map(_convert_violation, violations))
+    return [(report, report_count, list(map(_convert_violation, violations)))
             for report, _, report_count, violations in q.all()]
 
 
-def select_view(userid, form):
+def select_view(userid, *, reportid):
     report = (
         Report.query
         .options(joinedload('comments', innerjoin=True).joinedload('poster', innerjoin=True))
-        .get_or_404(int(form.reportid)))
+        .get(reportid))
+
+    if report is None:
+        raise HTTPNotFound()
+
     report.old_style_comments = [
         {
             'userid': c.userid,

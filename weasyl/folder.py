@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from collections import defaultdict
 
 import sqlalchemy as sa
 
@@ -119,10 +119,10 @@ def select_preview(userid, otherid, rating):
             INNER JOIN submission_tags USING (submitid)
         WHERE fd.userid = %(otherid)s
             AND fd.settings !~ '[hu]'
-            AND su.settings !~ 'h'
+            AND NOT su.hidden
             AND (su.rating <= %(rating)s OR (su.userid = %(userid)s AND NOT %(sfwmode)s))
             AND (
-                su.settings !~ 'f'
+                NOT su.friends_only
                 OR su.userid = %(userid)s
                 OR EXISTS (
                     SELECT FROM frienduser
@@ -155,77 +155,54 @@ def select_preview(userid, otherid, rating):
     return previews
 
 
-def select_list(userid, feature):
+def select_list(userid):
+    query = d.engine.execute(
+        "SELECT folderid, title, parentid FROM folder"
+        " WHERE userid = %(user)s AND settings !~ 'h'"
+        " ORDER BY parentid, title",
+        user=userid,
+    ).fetchall()
+
+    folders_by_parentid = defaultdict(list)
+
+    for row in query:
+        folders_by_parentid[row.parentid].append({
+            "folder_id": row.folderid,
+            "title": row.title,
+        })
+
+    result = folders_by_parentid[0]
+
+    for top_level_folder in result:
+        children = folders_by_parentid.get(top_level_folder["folder_id"])
+
+        if children:
+            top_level_folder["subfolders"] = children
+
+    return result
+
+
+def select_flat(userid):
+    folders = select_list(userid)
     result = []
 
-    # Select for sidebar
-    if feature == "sidebar/all":
-        query = d.execute("""
-            SELECT
-                fd.folderid, fd.title, fd.parentid
-            FROM folder fd
-            WHERE fd.userid = %i
-                AND fd.settings !~ 'h'
-            ORDER BY fd.parentid, fd.title
-        """, [userid])
+    for f in folders:
+        title = f["title"]
 
-        for i in range(len(query)):
-            if query[i][2]:
-                break
+        result.append({
+            "folderid": f["folder_id"],
+            "title": title,
+            "subfolder": False,
+            "haschildren": "subfolders" in f,
+        })
 
+        for child in f.get("subfolders", ()):
             result.append({
-                "folderid": query[i][0],
-                "title": query[i][1],
-                "subfolder": False,
-            })
-
-            for j in range(i + 1, len(query)):
-                if query[j][2] == query[i][0]:
-                    result.append({
-                        "folderid": query[j][0],
-                        "title": query[j][1],
-                        "subfolder": True,
-                    })
-    # Select for dropdown
-    else:
-        query = d.execute(
-            "SELECT folderid, title, parentid FROM folder WHERE userid = %i AND settings !~ 'h' ORDER BY parentid, title",
-            [userid])
-
-        for i in range(len(query)):
-            if query[i][2]:
-                break
-
-            result.append({
-                "folderid": query[i][0],
-                "title": query[i][1],
-                "subfolder": False,
+                "folderid": child["folder_id"],
+                "title": "%s / %s" % (title, child["title"]),
+                "subfolder": True,
                 "haschildren": False,
             })
-
-            if feature == "drop/all" or feature == "api/all":
-                has_children = set()
-
-                for j in range(i + 1, len(query)):
-                    if query[j][2] == query[i][0]:
-                        if feature == "drop/all":
-                            title = "%s / %s" % (query[i][1], query[j][1])
-                        else:
-                            title = query[j][1]
-
-                        result.append({
-                            "folderid": query[j][0],
-                            "title": title,
-                            "subfolder": True,
-                            "parentid": query[j][2],
-                            "haschildren": False
-                        })
-
-                        if not query[j][2] in has_children:
-                            has_children.add(query[j][2])
-
-                for m in (f for f in result if f["folderid"] in has_children):
-                    m["haschildren"] = True
 
     return result
 
@@ -275,7 +252,7 @@ def move(userid, form):
         raise WeasylError("InsufficientPermissions")
     # folder with subfolders cannot become a subfolder
     elif (form.folderid and
-          d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s)",
+          d.engine.scalar("SELECT EXISTS (SELECT 0 FROM folder WHERE parentid = %(parent)s AND settings !~ 'h')",
                           parent=form.folderid)):
         raise WeasylError("parentidInvalid")
 

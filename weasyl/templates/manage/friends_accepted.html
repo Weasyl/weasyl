@@ -14,7 +14,6 @@ $:{TITLE("Friends", "Settings", "/control")}
           <figcaption class="caption centered big">
             <h5><a class="username one-line" href="/~${LOGIN(i['username'])}" title="${i['username']}">${i['username']}</a></h5>
             <form action="/unfrienduser" method="post">
-              $:{CSRF()}
               <input type="hidden" name="userid" value="${i['userid']}" />
               <input type="hidden" name="feature" value="accepted" />
               <button type="submit" class="button negative">Unfriend</button>

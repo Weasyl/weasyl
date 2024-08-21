@@ -4,30 +4,28 @@ $:{TITLE("Multimedia Artwork", "Submit", "/submit")}
 <div id="submit-multimedia-content" class="content">
 
   <form id="submit-form" name="submitmultimedia" class="form clear" action="/submit/multimedia" method="post" enctype="multipart/form-data">
-    $:{CSRF()}
-
     <div class="column files">
       <h3>Files</h3>
 
       <label for="submitfile">Submission</label>
-      <input type="file" name="submitfile" id="submitfile" class="styled-input" />
+      <input type="file" name="submitfile" id="submitfile" accept="audio/mp3, application/x-shockwave-flash, .mp3, .swf" />
       <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (MP3): 15 MB </i></p>
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (SWF): 15 MB</i></p>
+      <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (SWF): 50 MB</i></p>
 
       <h3 class="or color-lighter"><i>&mdash; Or &mdash;</i></h3>
 
       <label for="embedlink">Embed Link</label>
       <input type="url" class="input" name="embedlink" id="embedlink" />
-      <p class="supported"><i class="color-lighter">Allowed: Bandcamp, Sketchfab, Soundcloud, Vimeo, Vine, YouTube</i></p>
+      <p class="supported"><i class="color-lighter">Allowed: Bandcamp, Sketchfab, Soundcloud, Vimeo, YouTube</i></p>
 
       <label for="coverfile">Cover Artwork</label>
-      <input type="file" name="coverfile" id="coverfile" class="styled-input" accept="image/*" />
+      <input type="file" name="coverfile" id="coverfile" accept="image/*" />
       <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (JPG): 10 MB</i></p>
       <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (PNG): 10 MB</i></p>
       <p class="color-lighter" style="padding-top: 0.5em;"><i>Limit (GIF): 10 MB</i></p>
 
       <label for="thumbfile">Thumbnail</label>
-      <input type="file" name="thumbfile" id="thumbfile" class="styled-input" accept="image/*" />
+      <input type="file" name="thumbfile" id="thumbfile" accept="image/*" />
     </div>
 
     <div class="column info">
@@ -57,11 +55,8 @@ $:{TITLE("Multimedia Artwork", "Submit", "/submit")}
           <option value="${rating.code}">${rating.name_with_age}</option>
       </select>
       <p class="color-lighter tags-help"><i>Please apply a rating to this submission according to our <a href="/help/ratings" target="_blank">ratings guidelines</a>.</i></p>
-      <p class="tags-help"><i>
-        Note that at most three submissions per user will be shown on the
-        Weasyl homepage. If a user has more than three submissions that would
-        be shown, the most recently submitted three will be displayed.
-      </i></p>
+      $if len(ratings) > 1:
+        <p class="color-lighter tags-help"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos" target="_blank">Weasyl Terms of Service</a></i></p>
     </div>
 
     <div class="column description">
@@ -72,7 +67,7 @@ $:{TITLE("Multimedia Artwork", "Submit", "/submit")}
 
     <div class="column tagging">
       <h3>Tags</h3>
-      <textarea name="tags" class="input tags-textarea" rows="3"></textarea>
+      <textarea name="tags" class="input tags-textarea" rows="3" required></textarea>
       <p class="color-lighter tags-help"><i>When tagging, make sure to describe your submission thoroughly. Separate tags with a space. Use an underscore for multiple words in a tag, ex. red_fox</i></p>
     </div>
 
@@ -103,7 +98,7 @@ $:{TITLE("Multimedia Artwork", "Submit", "/submit")}
 
     <div class="buttons clear">
       <button type="submit" class="button positive" style="float: right;">Continue</button>
-      <a class="button" href="/index">Return Home</a>
+      <a class="button" href="/">Return Home</a>
     </div>
 
   </form>

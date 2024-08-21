@@ -1,13 +1,7 @@
-# encoding: utf-8
-from __future__ import absolute_import, division
-
-import logging
 import re
-import urllib
 from collections import namedtuple
 from decimal import Decimal
-
-from pyramid.threadlocal import get_current_request
+from urllib.parse import quote as urlquote
 
 from libweasyl.cache import region
 
@@ -75,13 +69,10 @@ def _fetch_rates_no_cache_failure():
     except WeasylError:
         # http_get already logged the exception
         return None
-    else:
-        request = get_current_request()
-        request.environ['raven.captureMessage']("Fetched exchange rates", level=logging.INFO)
 
     rates = {'EUR': 1.0}
 
-    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.content):
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.text):
         code, rate = match.groups()
 
         try:
@@ -320,7 +311,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if tags:
             terms = ["user:" + d.get_sysname(info.username)] + ["|" + tag for tag in tags]
-            dinfo['searchquery'] = "q=" + urllib.quote(u" ".join(terms).encode("utf-8"))
+            dinfo['searchquery'] = "q=" + urlquote(" ".join(terms).encode("utf-8"))
         else:
             dinfo['searchquery'] = ""
         return dinfo

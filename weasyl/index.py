@@ -1,8 +1,9 @@
-from __future__ import absolute_import
-
 import collections
 import itertools
 import operator
+import random
+
+from prometheus_client import Histogram
 
 from libweasyl import ratings
 from libweasyl.cache import region
@@ -12,14 +13,20 @@ from weasyl import character
 from weasyl import define as d
 from weasyl import ignoreuser
 from weasyl import macro as m
+from weasyl import media
 from weasyl import profile
 from weasyl import searchtag
 from weasyl import siteupdate
 from weasyl import submission
+from weasyl.metrics import CachedMetric
 
 
-@region.cache_on_arguments()
-@d.record_timing
+recent_submissions_time = CachedMetric(Histogram("weasyl_recent_submissions_fetch_seconds", "recent submissions fetch time", ["cached"]))
+
+
+@recent_submissions_time.cached
+@region.cache_on_arguments(expiration_time=120)
+@recent_submissions_time.uncached
 def recent_submissions():
     submissions = []
     for category in m.ALL_SUBMISSION_CATEGORIES:
@@ -41,10 +48,11 @@ def recent_submissions():
 
     submissions.extend(characters)
     submissions.sort(key=operator.itemgetter('unixtime'), reverse=True)
+    media.strip_non_thumbnail_media(submissions)
     return submissions
 
 
-def filter_submissions(userid, submissions, incidence_limit=3):
+def filter_submissions(userid, submissions, incidence_limit=None):
     """
     Filters a list of submissions according to the user's preferences and
     optionally limits the number of items returned from one submitter.
@@ -91,29 +99,33 @@ def partition_submissions(submissions):
         else:
             bucket = s['subtype'] // 1000
         buckets[bucket].append(s)
-    ret = [
+
+    return (
         submissions[:22],
-        d.get_random_set(submissions, 11),
-    ]
-    for bucket in [1, 2, 3, 'char']:
-        ret.append(buckets[bucket][:11])
-    return ret
+        buckets[1][:11],
+        buckets[2][:11],
+        buckets[3][:11],
+        buckets['char'][:11],
+    )
 
 
-@region.cache_on_arguments(expiration_time=60)
 @d.record_timing
 def template_fields(userid):
-    rating = d.get_rating(userid)
-    submissions = list(filter_submissions(userid, recent_submissions()))
+    submissions = list(filter_submissions(userid, recent_submissions(), incidence_limit=1))
     ret = partition_submissions(submissions)
 
-    return ret + [
+    critique = submission.select_critique()
+    random.shuffle(critique)
+    critique = list(itertools.islice(filter_submissions(userid, critique, incidence_limit=1), 11))
+    critique.sort(key=lambda sub: sub['submitid'], reverse=True)
+
+    return ret + (
         # Recent site news update
         siteupdate.select_last(),
         # Recent critique submissions
-        submission.select_list(userid, rating, 4, options=["critique"]),
+        critique,
         # Currently streaming users
-        profile.select_streaming(userid, 4),
+        profile.select_streaming_sample(userid),
         # Recently popular submissions
         list(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 11)),
-    ]
+    )

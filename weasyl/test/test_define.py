@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import absolute_import
-
 from pyramid.threadlocal import get_current_request
 import pytest
 
@@ -156,4 +153,4 @@ def test_viewing_own_profile(db):
 
 
 def test_sysname():
-    assert d.get_sysname(u"ź") == "z"
+    assert d.get_sysname("ź") == "z"

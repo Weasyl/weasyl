@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import staff
 
@@ -18,8 +17,7 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     statement = ["""
         SELECT
             sh.commentid, sh.parentid, sh.userid, pr.username,
-            sh.content, sh.unixtime, sh.settings, sh.indent,
-            sh.hidden_by
+            sh.content, sh.unixtime, sh.settings, sh.hidden_by
         FROM comments sh
             INNER JOIN profile pr USING (userid)
         WHERE sh.target_user = %i
@@ -49,7 +47,7 @@ def count(ownerid, staffnotes=False):
     sh = d.meta.tables['comments']
     op = '~' if staffnotes else '!~'
     q = (
-        d.sa.select([d.sa.func.count()])
+        sa.select([sa.func.count()])
         .select_from(sh)
         .where(sh.c.settings.op(op)('s'))
         .where(sh.c.target_user == ownerid))
@@ -57,41 +55,40 @@ def count(ownerid, staffnotes=False):
     return ret
 
 
-def insert(userid, shout, staffnotes=False):
+def insert(userid, target_user, parentid, content, staffnotes):
     # Check invalid content
-    if not shout.content:
+    if not content:
         raise WeasylError("commentInvalid")
-    elif not shout.userid or not d.is_vouched_for(shout.userid):
+    elif not target_user or (not d.is_vouched_for(target_user) and not staffnotes):
         raise WeasylError("Unexpected")
 
-    # Determine indent and parentuserid
-    if shout.parentid:
-        parent = d.engine.execute("SELECT userid, indent FROM comments WHERE commentid = %(parentid)s",
-                                  parentid=shout.parentid).first()
+    # Determine parent userid
+    if parentid:
+        parentuserid = d.engine.scalar(
+            "SELECT userid FROM comments WHERE commentid = %(parent)s",
+            parent=parentid,
+        )
 
-        if not parent:
+        if parentuserid is None:
             raise WeasylError("shoutRecordMissing")
-
-        indent = parent.indent + 1
-        parentuserid = parent.userid
     else:
-        indent, parentuserid = 0, None
+        parentuserid = None
 
     # Check permissions
     if userid not in staff.MODS:
-        if ignoreuser.check(shout.userid, userid):
+        if ignoreuser.check(target_user, userid):
             raise WeasylError("pageOwnerIgnoredYou")
-        elif ignoreuser.check(userid, shout.userid):
+        elif ignoreuser.check(userid, target_user):
             raise WeasylError("youIgnoredPageOwner")
         elif ignoreuser.check(parentuserid, userid):
             raise WeasylError("replyRecipientIgnoredYou")
         elif ignoreuser.check(userid, parentuserid):
             raise WeasylError("youIgnoredReplyRecipient")
 
-        _, is_banned, _ = d.get_login_settings(shout.userid)
-        profile_config = d.get_config(shout.userid)
+        is_banned, _ = d.get_login_settings(target_user)
+        profile_config = d.get_config(target_user)
 
-        if is_banned or "w" in profile_config or "x" in profile_config and not frienduser.check(userid, shout.userid):
+        if is_banned or "w" in profile_config or "x" in profile_config and not frienduser.check(userid, target_user):
             raise WeasylError("insufficientActionPermissions")
 
     # Create comment
@@ -100,16 +97,16 @@ def insert(userid, shout, staffnotes=False):
     db = d.connect()
     commentid = db.scalar(
         co.insert()
-        .values(userid=userid, target_user=shout.userid, parentid=shout.parentid or None, content=shout.content,
-                unixtime=arrow.utcnow(), indent=indent, settings=settings)
+        .values(userid=userid, target_user=target_user, parentid=parentid or None, content=content,
+                unixtime=arrow.utcnow(), settings=settings)
         .returning(co.c.commentid))
 
     # Create notification
-    if shout.parentid and userid != parentuserid:
+    if parentid and userid != parentuserid:
         if not staffnotes or parentuserid in staff.MODS:
-            welcome.shoutreply_insert(userid, commentid, parentuserid, shout.parentid, staffnotes)
-    elif not staffnotes and shout.userid and userid != shout.userid:
-        welcome.shout_insert(userid, commentid, otherid=shout.userid)
+            welcome.shoutreply_insert(userid, commentid, parentuserid, parentid, staffnotes)
+    elif not staffnotes and target_user and userid != target_user:
+        welcome.shout_insert(userid, commentid, otherid=target_user)
 
     d.metric('increment', 'shouts')
 

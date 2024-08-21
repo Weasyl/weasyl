@@ -1,0 +1,85 @@
+#user-nav > li {
+    width: 50%;
+    float: left;
+}
+
+#user-nav > li > a {
+    display: block;
+    padding: 0.5em 0;
+    font-size: 14px;
+    font-size: 0.9rem;
+}
+
+.user-nav-with-count {
+    position: relative;
+}
+
+.user-nav-with-count:hover {
+    text-decoration: none;
+}
+
+.user-nav-with-count:hover > .user-nav-label {
+    text-decoration: underline;
+}
+
+$count-selected-background: #006080;
+
+.user-nav-count {
+    background-color: #2a2e2f;
+    border-radius: 4px;
+    color: #999;
+    line-height: 1;
+    margin-left: 6px;
+    margin-top: calc(-0.5em - 4px);
+    padding: 4px 6px;
+    text-decoration: none;
+    top: 50%;
+
+    .current > & {
+        background-color: $count-selected-background;
+        color: scale-color($count-selected-background, $lightness: 75%);
+    }
+}
+
+@media (min-width: 45em) {
+    #user-nav > li {
+        width: 25%;
+    }
+}
+
+@media (min-width: 52em) {
+    #user-nav > li {
+        width: auto;
+        float: left;
+    }
+
+    #user-nav > * + li {
+        padding-left: 2.5em;
+    }
+
+    #user-nav > li > a {
+        padding: 0;
+        height: 48px;
+        height: 3rem;
+        line-height: 48px;
+        line-height: 3rem;
+    }
+}
+
+@media (min-width: 94em) {
+    #user-nav > li {
+        width: 14.28%;
+    }
+
+    #user-nav > * + li {
+        padding-left: 0;
+    }
+
+    #user-nav > li > a {
+        text-align: center;
+    }
+
+    .user-nav-count {
+        position: absolute;
+    }
+}

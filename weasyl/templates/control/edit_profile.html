@@ -10,8 +10,6 @@ $code:
 <div id="edit-profile" class="content">
 
   <form name="controleditprofile" class="form clear" action="/control/editprofile" method="post">
-    $:{CSRF()}
-
     <div class="column info clear">
       <h3>Profile Settings</h3>
 
@@ -21,11 +19,30 @@ $code:
       <label for="editprofile-fullname">Full Name</label>
       <input type="text" id="editprofile-fullname" class="input" name="full_name" value="${profile['full_name']}" maxlength="100" />
 
-      <label for="editprofile-showage">Age</label>
-      <select id="editprofile-showage" class="input" name="show_age">
-        <option value="true"${' selected="selected"' if userinfo['show_age'] else ''}>Display my age</option>
-        <option value=""${' selected="selected"' if not userinfo['show_age'] else ''}>Do not display my age</option>
-      </select>
+      $ birthdate = userinfo['birthday']
+      <p class="label">Age</p>
+      <label class="input-checkbox">
+        <input type="checkbox" name="show_age" value="true"$:{' checked' if userinfo['show_age'] and birthdate is not None else ''} data-shows="birthdate">
+        Show my age on my profile
+      </label>
+      <fieldset id="birthdate"$:{'' if birthdate is None else ' disabled'}>
+        <legend class="label">Birthdate</legend>
+        <div class="form-date">
+          <label class="form-date-month">
+            <span class="sublabel">Month</span>
+            <select class="input" name="birthdate-month" autocomplete="bday-month">
+              <option$:{' selected' if birthdate is None else ''}></option>
+              $for i, month_name in enumerate(arrow.locales.EnglishLocale.month_names[1:], start=1):
+                <option value="${i}"$:{' selected' if birthdate is not None and birthdate.month == i else ''}>${month_name}</option>
+            </select>
+          </label>
+          <label class="form-date-year">
+            <span class="sublabel">Year</span>
+            $ current_year = arrow.utcnow().year
+            <input class="input" name="birthdate-year" type="number" min="${current_year - 100}" max="${current_year - 12}" value="${'' if birthdate is None else birthdate.year}" autocomplete="bday-year">
+          </label>
+        </div>
+      </fieldset>
 
       <label for="editprofile-gender">Gender</label>
       <input type="text" id="editprofile-gender" class="input" name="gender" value="${userinfo['gender']}" maxlength="100" />
@@ -90,7 +107,7 @@ $code:
       <h3>Contact and Social Media</h3>
       <p>
         For frequently used social media sites
-        $ sites = (site['name'] for site in M.SOCIAL_SITES.itervalues() if 'url' in site)
+        $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site and not site.get('hidden', False))
         ($:{', '.join('<strong>%s</strong>' % site for site in sorted(sites, key=lambda s: s.lower()))}),
         fill in the site as displayed, and your username in the second blank.
         Weasyl will do the rest.
@@ -108,25 +125,19 @@ $code:
       $for site, values in userinfo['sorted_user_links']:
         $for value in values:
           <div class="group">
-            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site">
+            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site" list="known-social-sites">
             <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
           </div>
-      <div class="group">
-        <input type="text" class="input site-name" name="site_names" placeholder="Site">
+      <div class="group" id="new-social-group">
+        <input type="text" class="input site-name" name="site_names" placeholder="Site" list="known-social-sites">
         <input type="text" class="input" name="site_values" placeholder="Username or URL">
       </div>
-      <div class="group">
-        <button type="submit" class="button postitive" name="more" id="add-contact-button">
-          New
-        </button>
-      </div>
-      <script>
-        /* This is used for the auto-completion. */
-        var socialSiteList = [
-        $for site in M.SOCIAL_SITES_BY_NAME:
-          {val: $:{INLINE_JSON(site)}},
-        ];
-      </script>
+      $# This is used for the auto-completion.
+      <datalist id="known-social-sites">
+        $for site in M.SOCIAL_SITES.values():
+          $if not site.get('hidden'):
+            <option value="${site['name']}"></option>
+      </datalist>
     </div>
 
     <div class="buttons">

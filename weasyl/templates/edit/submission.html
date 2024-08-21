@@ -9,12 +9,11 @@ $code:
   def _SUBTYPE(x):
     return ' selected="selected"' if query['subtype'] == x else ''
   def _CHECKED(x):
-    return ' checked="checked"' if x in query['settings'] else ''
+    return ' checked="checked"' if query[x] else ''
 
 <div id="edit-submission-content" class="content">
 
-  <form name="editsubmission" action="/edit/submission" method="post" class="form skinny">
-    $:{CSRF()}
+  <form id="editsubmission" action="/edit/submission" method="post" class="form skinny">
     <input type="hidden" name="submitid" value="${query['submitid']}" />
 
     <h3>Submission Information</h3>
@@ -22,16 +21,16 @@ $code:
     <label for="editsubmissiontitle">Title</label>
     <input type="text" name="title" class="input" value="${query['title']}" id="editsubmissiontitle" maxlength="200" />
 
-    $if 'v' in query['settings']:
+    $if 'other' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
       <input type="text" name="embedlink" class="input" value="${query['embedlink']}" id="embedlink" />
 
-    $if 'D' in query['settings']:
+    $if 'google-drive' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
       <input type="url" class="input" name="embedlink" id="embedlink"
-             value="${query['google_doc_embed'].embed_url}" />
+             value="${query['google_doc_embed']}" required />
       <p class="supported" style="padding-top: 0.5em">
-        <i class="color-lighter">Allowed: Google Drive Documents</i>
+        <i class="color-lighter"><a href="/help/google-drive-embed" target="_blank">How do I find the embed link?</a></i>
       </p>
 
     <label for="editsubmissionfolder">Folder</label>
@@ -52,6 +51,8 @@ $code:
       $for rating in ratings:
         <option value="${rating.code}"$:{_RATING(rating.code)}>${rating.name_with_age}</option>
     </select>
+    $if len(ratings) > 1:
+      <p class="color-lighter tags-help"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos" target="_blank">Weasyl Terms of Service</a></i></p>
 
     <label for="editsubmissiondesc">Description</label>
     <textarea name="content" rows="9" class="markdown input expanding" id="editsubmissiondesc">${query['content']}</textarea>
@@ -59,11 +60,11 @@ $code:
     <h3>Additional Options</h3>
 
     <label for="editsubmissionfriends" class="input-checkbox">
-      <input type="checkbox" id="editsubmissionfriends" name="friends"$:{_CHECKED("f")} />
+      <input type="checkbox" id="editsubmissionfriends" name="friends"$:{_CHECKED("friends_only")} />
       Make this submission visible only to my friends
     </label>
     <label for="editsubmissioncrit" class="input-checkbox">
-      <input type="checkbox" id="editsubmissioncrit" name="critique"$:{_CHECKED("q")} />
+      <input type="checkbox" id="editsubmissioncrit" name="critique"$:{_CHECKED("critique")} />
       Flag this submission for critique
     </label>
 

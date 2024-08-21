@@ -1,24 +1,24 @@
-from __future__ import absolute_import
+import datetime
+import re
 
-from datetime import date
-
-import pytz
+import arrow
 import sqlalchemy as sa
-from translationstring import TranslationString as _
+from pyramid.threadlocal import get_current_request
+from sqlalchemy import bindparam, func
+from sqlalchemy.dialects.postgresql import aggregate_order_by
 
 from libweasyl import ratings
 from libweasyl import security
 from libweasyl import staff
 from libweasyl.cache import region
-from libweasyl.html import strip_html
-from libweasyl.models import tables
+from libweasyl.legacy import UNIXTIME_NOW_SQL
+from libweasyl.models import tables as t
 
 from weasyl import define as d
 from weasyl import emailer
 from weasyl import login
 from weasyl import macro as m
 from weasyl import media
-from weasyl import orm
 from weasyl import shout
 from weasyl import welcome
 from weasyl.configuration_builder import create_configuration, BoolOption, ConfigOption
@@ -26,30 +26,26 @@ from weasyl.error import WeasylError
 
 
 class ExchangeType:
-    def __init__(self, name_singular, name_plural):
-        self.name_singular = name_singular
-        self.name_plural = name_plural
+    __slots__ = ()
 
 
-EXCHANGE_TYPE_TRADE = ExchangeType("trade", "trades")
-EXCHANGE_TYPE_REQUEST = ExchangeType("request", "requests")
-EXCHANGE_TYPE_COMMISSION = ExchangeType("commission", "commissions")
+EXCHANGE_TYPE_TRADE = ExchangeType()
+EXCHANGE_TYPE_REQUEST = ExchangeType()
+EXCHANGE_TYPE_COMMISSION = ExchangeType()
 
 
 class ExchangeSetting:
-    def __init__(self, code, text):
+    __slots__ = ("code",)
+
+    def __init__(self, code):
         self.code = code
-        self.text = text
-
-    def format(self, request_type):
-        return _(self.text.format(type=request_type))
 
 
-EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o", "I am currently accepting {type.name_plural}")
-EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s", "I may sometimes accept {type.name_plural}")
-EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f", "My {type.name_singular} queue is currently filled")
-EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c", "I am not accepting {type.name_plural} right now")
-EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e", "This is not applicable to me")
+EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o")
+EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s")
+EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f")
+EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c")
+EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e")
 
 ALL_EXCHANGE_SETTINGS = [EXCHANGE_SETTING_ACCEPTING, EXCHANGE_SETTING_SOMETIMES,
                          EXCHANGE_SETTING_FULL_QUEUE, EXCHANGE_SETTING_NOT_ACCEPTING,
@@ -64,7 +60,6 @@ ALLOWABLE_EXCHANGE_CODES = {
 
 
 Config = create_configuration([
-    BoolOption("twelvehour", "2"),
     ConfigOption("rating", dict(zip(ratings.ALL_RATINGS, ["", "a", "p"]))),
     BoolOption("tagging", "k"),
     BoolOption("hideprofile", "h"),
@@ -73,7 +68,6 @@ Config = create_configuration([
     BoolOption("hidefavbar", "u"),
     ConfigOption("shouts", {"anyone": "", "friends_only": "x", "staff_only": "w"}),
     ConfigOption("notes", {"anyone": "", "friends_only": "z", "staff_only": "y"}),
-    BoolOption("filter", "l"),
     BoolOption("follow_s", "s"),
     BoolOption("follow_c", "c"),
     BoolOption("follow_f", "f"),
@@ -100,10 +94,10 @@ def exchange_settings_from_settings_string(settings_string):
     }
 
 
-def resolve(userid, otherid, othername, myself=True):
+def resolve(userid, otherid, othername):
     """
     Attempts to determine the userid of a specified user; resolves using otherid,
-    othername, and userid (if myself is True), in that order. If no userid can be
+    othername, and userid, in that order. If no userid can be
     resolved, returns 0 instead.
     """
     result = None
@@ -114,40 +108,78 @@ def resolve(userid, otherid, othername, myself=True):
         if result:
             return result
     elif othername:
-        return d.get_userids([othername])[othername]
-    elif userid and myself:
+        return resolve_by_username(othername)
+    elif userid:
         return userid
 
     return 0
 
 
+def resolve_by_username(username):
+    return d.get_userids([username])[username]
+
+
+_TWITTER_USERNAME = re.compile(r"@?(\w{4,15})", re.ASCII)
+
+_TWITTER_USER_LINK = re.compile(
+    r"(?:https?://)(?:(?:www|m|mobile)\.)?twitter.com/@?(\w{4,15})(?:\Z|[?#/])",
+    re.ASCII | re.IGNORECASE
+)
+
+
+def _parse_twitter_username(twitter_link_value):
+    """
+    Get a Twitter username from a user-provided link if possible, or `None` if not.
+
+    Preserves case.
+    """
+    twitter_link_value = twitter_link_value.strip()
+
+    if m := _TWITTER_USERNAME.fullmatch(twitter_link_value):
+        twitter_username = m.group(1)
+    elif m := _TWITTER_USER_LINK.match(twitter_link_value):
+        twitter_username = m.group(1)
+    else:
+        return None
+
+    return twitter_username if twitter_username.lower() != "twitter" else None
+
+
+_TWITTER_LINK_QUERY = (
+    sa.select(t.user_links.c.link_value)
+    .where(t.user_links.c.userid == bindparam("userid"))
+    .where(t.user_links.c.link_type.ilike(sa.text("'twitter'")))
+    .order_by(t.user_links.c.link_value)
+    .limit(1)
+).compile()
+
+
 @region.cache_on_arguments()
-@d.record_timing
-def resolve_by_login(login):
-    return resolve(None, None, login, False)
+def get_twitter_username(userid):
+    link_value = d.engine.scalar(_TWITTER_LINK_QUERY, {"userid": userid})
+    return _parse_twitter_username(link_value) if link_value else None
 
 
 def select_profile(userid, viewer=None):
     query = d.engine.execute("""
-        SELECT pr.username, pr.full_name, pr.catchphrase, pr.unixtime, pr.profile_text,
+        SELECT pr.username, pr.full_name, pr.catchphrase, pr.created_at, pr.profile_text,
             pr.settings, pr.stream_url, pr.config, pr.stream_text, us.end_time
         FROM profile pr
-            INNER JOIN login lo USING (userid)
             LEFT JOIN user_streams us USING (userid)
         WHERE userid = %(user)s
     """, user=userid).first()
 
     if not query:
-        raise WeasylError('RecordMissing')
+        raise WeasylError('userRecordMissing')
 
-    _, is_banned, is_suspended = d.get_login_settings(userid)
+    is_banned, is_suspended = d.get_login_settings(userid)
 
     streaming_status = "stopped"
     if query[6]:  # profile.stream_url
-        if query[9] > d.get_time():  # user_streams.end_time
-            streaming_status = "started"
-        elif 'l' in query[5]:
+        if 'l' in query[5]:
             streaming_status = "later"
+        elif query[9] is not None and query[9] > d.get_time():  # user_streams.end_time
+            streaming_status = "started"
 
     return {
         "userid": userid,
@@ -163,42 +195,10 @@ def select_profile(userid, viewer=None):
         "config": query[7],
         "show_favorites_bar": "u" not in query[7] and "v" not in query[7],
         "show_favorites_tab": userid == viewer or "v" not in query[7],
-        "commish_slots": 0,
         "banned": is_banned,
         "suspended": is_suspended,
         "streaming_status": streaming_status,
     }
-
-
-def twitter_card(userid):
-    username, full_name, catchphrase, profile_text, config, twitter = d.engine.execute(
-        "SELECT pr.username, pr.full_name, pr.catchphrase, pr.profile_text, pr.config, ul.link_value "
-        "FROM profile pr "
-        "LEFT JOIN user_links ul ON pr.userid = ul.userid AND ul.link_type = 'twitter' "
-        "WHERE pr.userid = %(user)s",
-        user=userid).first()
-
-    ret = {
-        'card': 'summary',
-        'url': d.absolutify_url('/~%s' % (username,)),
-        'title': '%s on Weasyl' % (full_name,),
-    }
-
-    if catchphrase:
-        description = '"%s"' % (catchphrase,)
-    elif profile_text:
-        description = strip_html(profile_text)
-    else:
-        description = "[%s has an empty profile, but is eggcelent!]" % (full_name,)
-    ret['description'] = d.summarize(description)
-
-    media_items = media.get_user_media(userid)
-    ret['image:src'] = d.absolutify_url(media_items['avatar'][0]['display_url'])
-
-    if twitter:
-        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
-
-    return ret
 
 
 def select_myself(userid):
@@ -216,7 +216,8 @@ def select_myself(userid):
 
 def get_user_age(userid):
     assert userid
-    return d.age_in_years(d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid))
+    birthday = d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid)
+    return None if birthday is None else d.age_in_years(birthday)
 
 
 def get_user_ratings(userid):
@@ -226,24 +227,17 @@ def get_user_ratings(userid):
 def check_user_rating_allowed(userid, rating):
     # TODO(kailys): ensure usages always pass a Rating
     minimum_age = rating.minimum_age if isinstance(rating, ratings.Rating) else ratings.CODE_MAP[rating].minimum_age
-    if get_user_age(userid) < minimum_age:
+    user_age = get_user_age(userid)
+    if user_age is not None and user_age < minimum_age:
         raise WeasylError("ratingInvalid")
 
 
-def select_userinfo(userid, config=None):
-    if config is None:
-        query = tuple(d.engine.execute("""
-            SELECT pr.config, ui.birthday, ui.gender, ui.country
-            FROM profile pr
-            INNER JOIN userinfo ui USING (userid)
-            WHERE pr.userid = %(userid)s
-        """, userid=userid).first())
-    else:
-        query = (config,) + tuple(d.engine.execute("""
-            SELECT birthday, gender, country
-            FROM userinfo
-            WHERE userid = %(userid)s
-        """, userid=userid).first())
+def select_userinfo(userid, config):
+    query = d.engine.execute("""
+        SELECT birthday, gender, country
+        FROM userinfo
+        WHERE userid = %(userid)s
+    """, userid=userid).first()
 
     user_links = d.engine.execute("""
         SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
@@ -252,13 +246,13 @@ def select_userinfo(userid, config=None):
         GROUP BY link_type
     """, userid=userid).fetchall()
 
-    show_age = "b" in query[0] or d.get_userid() in staff.MODS
+    show_age = "b" in config or d.get_userid() in staff.MODS
     return {
-        "birthday": query[1],
-        "age": d.age_in_years(query[1]) if show_age else None,
-        "show_age": "b" in query[0],
-        "gender": query[2],
-        "country": query[3],
+        "birthday": query.birthday,
+        "age": d.age_in_years(query.birthday) if show_age and query.birthday is not None else None,
+        "show_age": "b" in config,
+        "gender": query.gender,
+        "country": query.country,
         "user_links": {r[0]: r[1] for r in user_links},
         "sorted_user_links": sort_user_links(user_links),
     }
@@ -315,15 +309,15 @@ def _select_statistics(userid):
             (SELECT page_views FROM profile WHERE userid = %(user)s),
             (SELECT COUNT(*) FROM favorite WHERE userid = %(user)s),
             (
-                (SELECT sum(favorites) FROM submission WHERE userid = %(user)s) +
+                (SELECT coalesce(sum(favorites), 0) FROM submission WHERE userid = %(user)s) +
                 (SELECT COUNT(*) FROM favorite fa JOIN character ch ON fa.targetid = ch.charid
                     WHERE ch.userid = %(user)s AND fa.type = 'f') +
                 (SELECT COUNT(*) FROM favorite fa JOIN journal jo ON fa.targetid = jo.journalid
                     WHERE jo.userid = %(user)s AND fa.type = 'j')),
             (SELECT COUNT(*) FROM watchuser WHERE otherid = %(user)s),
             (SELECT COUNT(*) FROM watchuser WHERE userid = %(user)s),
-            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND settings !~ 'h'),
-            (SELECT COUNT(*) FROM journal WHERE userid = %(user)s AND settings !~ 'h'),
+            (SELECT COUNT(*) FROM submission WHERE userid = %(user)s AND NOT hidden),
+            (SELECT COUNT(*) FROM journal WHERE userid = %(user)s AND NOT hidden),
             (SELECT COUNT(*) FROM comments WHERE target_user = %(user)s AND settings !~ 'h' AND settings ~ 's')
     """, user=userid).first()
 
@@ -344,30 +338,79 @@ def select_statistics(userid):
     return _select_statistics(userid), show
 
 
-def select_streaming(userid, limit, order_by=None):
-    statement = [
-        "SELECT userid, pr.username, pr.stream_url, pr.config, pr.stream_text, start_time "
-        "FROM profile pr "
-        "JOIN user_streams USING (userid) "
-        "JOIN login USING (userid) "
-        "WHERE login.voucher IS NOT NULL AND end_time > %i" % (d.get_time(),)
-    ]
+_SELECT_STREAMING_BASE = (
+    sa.select(
+        t.profile.c.userid,
+        t.profile.c.username,
+        t.profile.c.stream_url,
+        t.profile.c.stream_text,
+        t.user_streams.c.start_time.label('stream_time'),
+    )
+    .select_from(
+        t.profile
+        .join(t.user_streams, t.profile.c.userid == t.user_streams.c.userid)
+        .join(t.login, t.profile.c.userid == t.login.c.userid),
+    )
+    .where(t.login.c.voucher.is_not(None))
+    .where(t.user_streams.c.end_time > UNIXTIME_NOW_SQL)
+    .where(t.profile.c.stream_url != sa.text("''"))
+)
+
+
+def select_streaming_sample(userid):
+    query = _SELECT_STREAMING_BASE
 
     if userid:
-        statement.append(m.MACRO_IGNOREUSER % (userid, "pr"))
-    if order_by:
-        statement.append(" ORDER BY %s LIMIT %i" % (order_by, limit))
-    else:
-        statement.append(" ORDER BY RANDOM() LIMIT %i" % limit)
+        query = query.where(
+            m.not_ignored(t.profile.c.userid)
+            .unique_params({'userid': userid})
+        )
 
-    ret = [{
-        "userid": i[0],
-        "username": i[1],
-        "stream_url": i[2],
-        "stream_text": i[4],
-        "stream_time": i[5],
-    } for i in d.execute("".join(statement)) if i[2]]
+    sample_subquery = (
+        query
+        .order_by(func.random())
+        .limit(3)
+        .subquery()
+    )
 
+    sample_and_count = sa.select(
+        func.coalesce(
+            sa.select(
+                func.jsonb_agg(
+                    aggregate_order_by(
+                        sample_subquery.table_valued(),
+                        sample_subquery.c.stream_time.desc(),
+                    )
+                ),
+            )
+            .select_from(sample_subquery)
+            .scalar_subquery(),
+            sa.text("'[]'::jsonb"),
+        ).label('sample'),
+        (sa.select(func.count())
+            .select_from(query.subquery())
+            .scalar_subquery()
+            .label('total')),
+    )
+
+    ret = d.engine.execute(sample_and_count).one()
+    media.populate_with_user_media(ret.sample)
+    return ret
+
+
+def select_streaming(userid):
+    query = (
+        _SELECT_STREAMING_BASE
+        .order_by(t.user_streams.c.start_time.desc())
+    )
+
+    if userid:
+        query = query.where(
+            m.not_ignored(t.profile.c.userid)
+            .unique_params({'userid': userid})
+        )
+
+    ret = [row._asdict() for row in d.engine.execute(query)]
     media.populate_with_user_media(ret)
     return ret
 
@@ -480,6 +523,21 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         moderation.note_about(my_userid, userid, 'Streaming settings updated:', note_body)
 
 
+_MOST_ADVANCED_TIME_ZONE = datetime.timezone(datetime.timedelta(hours=14))
+
+_BIRTHDATE_UPDATE_BASE = (
+    t.userinfo.update()
+    .where(t.userinfo.c.userid == bindparam("update_userid"))
+    .where(t.userinfo.c.birthday.is_(None))
+    .values(birthday=bindparam("birthday"))
+)
+
+_ASSERTED_ADULT = (
+    sa.select(t.userinfo.c.asserted_adult)
+    .where(t.userinfo.c.userid == bindparam("userid"))
+)
+
+
 # form
 #   show_age
 #   gender
@@ -510,6 +568,48 @@ def edit_userinfo(userid, form):
     if social_rows:
         d.engine.execute(d.meta.tables['user_links'].insert().values(social_rows))
 
+    if form.show_age and form.get('birthdate-month') and form.get('birthdate-year'):
+        birthdate_month = int(form['birthdate-month'])
+        birthdate_year = int(form['birthdate-year'])
+
+        if not (1 <= birthdate_month <= 12) or not (-100 <= birthdate_year - arrow.utcnow().year <= 0):
+            raise WeasylError("birthdayInvalid")
+
+        birthdate_update = _BIRTHDATE_UPDATE_BASE
+
+        # If it is impossible* for someone born in the specified month to be 18+ and the user has asserted that they're 18+, don't allow it.
+        # This is mainly to avoid inconsistency between the user's *displayed* age and their interactions.
+        # (* I haven't explicitly accounted for all the weird time things that have happened in the world, but we can at least do time zones.)
+        earliest_possible_utc_birthdate = (
+            datetime.datetime(
+                year=birthdate_year,
+                month=birthdate_month,
+                day=1,
+                tzinfo=_MOST_ADVANCED_TIME_ZONE,
+            )
+            .astimezone(datetime.timezone.utc)
+            .date()
+        )
+        oldest_possible_age = d.age_in_years(earliest_possible_utc_birthdate)
+        if oldest_possible_age < 13:
+            raise WeasylError("birthdayInconsistentWithTerms")
+
+        is_age_restricted = oldest_possible_age < 18
+        if is_age_restricted:
+            birthdate_update = birthdate_update.where(~t.userinfo.c.asserted_adult)
+
+        result = d.engine.execute(birthdate_update, {
+            "update_userid": userid,
+            "birthday": datetime.date(year=birthdate_year, month=birthdate_month, day=1),
+        })
+
+        if result.rowcount != 1:
+            assert result.rowcount == 0
+            if is_age_restricted and d.engine.scalar(_ASSERTED_ADULT, {"userid": userid}):
+                raise WeasylError("birthdayInconsistentWithRating")
+
+            # otherwise, assume nothing was updated because a birthdate was already set
+
     if form.show_age:
         d.engine.execute("""
             UPDATE profile
@@ -525,10 +625,10 @@ def edit_userinfo(userid, form):
         """, userid=userid)
 
     d._get_all_config.invalidate(userid)
+    get_twitter_username.invalidate(userid)
 
 
-def edit_email_password(userid, username, password, newemail, newemailcheck,
-                        newpassword, newpasscheck):
+def edit_email_password(*, userid, password, newemail, newpassword):
     """
     Edit the email address and/or password for a given Weasyl account.
 
@@ -538,40 +638,27 @@ def edit_email_password(userid, username, password, newemail, newemailcheck,
 
     Parameters:
         userid: The `userid` of the Weasyl account to modify.
-        username: User-entered username for password-based authentication.
         password: The user's current plaintext password.
         newemail: If changing the email on the account, the new email address. Optional.
-        newemailcheck: A verification field for the above to serve as a typo-check. Optional,
-        but mandatory if `newemail` provided.
         newpassword: If changing the password, the user's new password. Optional.
-        newpasscheck: Verification field for `newpassword`. Optional, but mandatory if
-        `newpassword` provided.
     """
     from weasyl import login
+
+    # Check that credentials are correct
+    current_email = login.authenticate_account_change(
+        userid=userid,
+        password=password,
+    )
 
     # Track if any changes were made for later display back to the user.
     changes_made = ""
 
-    # Check that credentials are correct
-    logid, logerror = login.authenticate_bcrypt(username, password, request=None)
-
-    # Run checks prior to modifying anything...
-    if userid != logid or logerror is not None:
-        raise WeasylError("loginInvalid")
-
-    if newemail:
-        if newemail != newemailcheck:
-            raise WeasylError("emailMismatch")
-
-    if newpassword:
-        if newpassword != newpasscheck:
-            raise WeasylError("passwordMismatch")
-        elif not login.password_secure(newpassword):
-            raise WeasylError("passwordInsecure")
+    if newpassword and not login.password_secure(newpassword):
+        raise WeasylError("passwordInsecure")
 
     # If we are setting a new email, then write the email into a holding table pending confirmation
     #   that the email is valid.
-    if newemail:
+    if newemail and newemail.lower() != current_email.lower():
         # Only actually attempt to change the email if unused; prevent finding out if an email is already registered
         if not login.email_exists(newemail):
             token = security.generate_key(40)
@@ -627,40 +714,29 @@ def invalidate_other_sessions(userid):
 
     Returns: Nothing.
     """
-    sess = d.get_weasyl_session()
+    sess = get_current_request().weasyl_session
     d.engine.execute("""
         DELETE FROM sessions
         WHERE userid = %(userid)s
           AND sessionid != %(currentsession)s
-    """, userid=userid, currentsession=sess.sessionid)
+    """, userid=userid, currentsession=sess.sessionid if sess is not None else "")
 
 
-def edit_preferences(userid, timezone=None,
+def edit_preferences(userid,
                      preferences=None, jsonb_settings=None):
     """
     Apply changes to stored preferences for a given user.
     :param userid: The userid to apply changes to
-    :param timezone: (optional) new Timezone to set for user
     :param preferences: (optional) old-style char preferences, overwrites all previous settings
     :param jsonb_settings: (optional) JSON preferences, overwrites all previous settings
     :return: None
     """
     config = d.get_config(userid)
+    user_age = get_user_age(userid)
 
-    tooyoung = False
-    if preferences is not None:
-        tooyoung |= get_user_age(userid) < preferences.rating.minimum_age
-    if jsonb_settings is not None:
-        sfwrating = jsonb_settings.max_sfw_rating
-        sfwrating = ratings.CODE_MAP.get(sfwrating, ratings.GENERAL)
-        tooyoung |= get_user_age(userid) < sfwrating.minimum_age
+    if preferences is not None and user_age is not None and user_age < preferences.rating.minimum_age:
+        preferences.rating = ratings.GENERAL
 
-    if tooyoung:
-        raise WeasylError("birthdayInsufficient")
-    if timezone is not None and timezone not in pytz.all_timezones:
-        raise WeasylError('invalidTimezone')
-
-    db = d.connect()
     updates = {}
     if preferences is not None:
         # update legacy preferences
@@ -669,28 +745,30 @@ def edit_preferences(userid, timezone=None,
             config = config.replace(i, "")
         config_str = config + preferences.to_code()
         updates['config'] = config_str
-        d._get_all_config.invalidate(userid)
     if jsonb_settings is not None:
         # update jsonb preferences
         updates['jsonb_settings'] = jsonb_settings.get_raw()
-        d._get_all_config.invalidate(userid)
+
+    if preferences is not None and preferences.rating.minimum_age:
+        assert_adult(userid)
 
     d.engine.execute(
-        tables.profile.update().where(tables.profile.c.userid == userid),
+        t.profile.update().where(t.profile.c.userid == userid),
         updates
     )
+    d._get_all_config.invalidate(userid)
 
-    # update TZ
-    if timezone is not None:
-        tz = db.query(orm.UserTimezone).get(userid)
-        if tz is None:
-            tz = orm.UserTimezone(userid=userid)
-            db.add(tz)
-        tz.timezone = timezone
-        db.flush()
-        tz.cache()
-    else:
-        db.flush()
+
+def assert_adult(userid):
+    """
+    Set a flag on a user indicating that they’ve asserted they’re 18 or older in performing some operation.
+    """
+    d.engine.execute(
+        t.userinfo.update().where(t.userinfo.c.userid == userid),
+        {
+            'asserted_adult': True,
+        },
+    )
 
 
 def select_manage(userid):
@@ -705,7 +783,7 @@ def select_manage(userid):
     query = d.engine.execute("""
         SELECT
             lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
-            pr.unixtime, pr.username, pr.full_name, pr.catchphrase,
+            pr.created_at, pr.username, pr.full_name, pr.catchphrase,
             ui.birthday, ui.gender, ui.country, pr.config
         FROM login lo
             INNER JOIN profile pr USING (userid)
@@ -803,39 +881,37 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Birthday
     if birthday is not None:
-        # HTML5 date format is yyyy-mm-dd
-        split = birthday.split("-")
-        if len(split) == 3:
-            try:
-                unixtime = date(day=int(split[2]), month=int(split[1]), year=int(split[0]))
-            except ValueError:
+        if birthday == "":
+            unixtime = None
+            age = None
+        else:
+            # HTML5 date format is yyyy-mm-dd
+            split = birthday.split("-")
+            if len(split) == 3:
+                try:
+                    unixtime = datetime.date(day=int(split[2]), month=int(split[1]), year=int(split[0]))
+                except ValueError:
+                    raise WeasylError("birthdayInvalid")
+            else:
                 raise WeasylError("birthdayInvalid")
-        else:
-            raise WeasylError("birthdayInvalid")
+            age = d.age_in_years(unixtime)
 
-        age = d.age_in_years(unixtime)
+        result = d.engine.execute("UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s", birthday=unixtime, user=userid)
+        assert result.rowcount == 1
 
-        d.engine.execute("UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(id)s",
-                         birthday=unixtime, id=userid)
-
-        if age < ratings.EXPLICIT.minimum_age:
-            max_rating = ratings.GENERAL.code
-            rating_flag = ""
-        else:
-            max_rating = ratings.EXPLICIT.code
-
-        if d.get_rating(userid) > max_rating:
+        if age is not None and age < ratings.EXPLICIT.minimum_age:
+            # reset rating preference and SFW mode rating preference to General
             d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g') || %(rating_flag)s
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'),
+                    jsonb_settings = jsonb_settings - 'max_sfw_rating'
                 WHERE userid = %(user)s
                 """,
-                rating_flag=rating_flag,
                 user=userid,
             )
             d._get_all_config.invalidate(userid)
-        updates.append('- Birthday: %s' % (birthday,))
+        updates.append('- Birthday: %s' % (birthday or 'removal',))
 
     # Gender
     if gender is not None:
@@ -878,7 +954,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
 
 # TODO(hyena): Make this class unnecessary and remove it when we fix up settings.
-class ProfileSettings(object):
+class ProfileSettings:
     """
     This class standardizes access to jsonb profile settings,
     to ensure consistent use of naming conventions

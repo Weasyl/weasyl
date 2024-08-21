@@ -3,9 +3,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
 
 <div id="manage-folders-content" class="content">
 
-  <form name="controlcreatefolder" action="/control/createfolder" method="post" class="form skinny">
-    $:{CSRF()}
-
+  <form id="create-folder" action="/control/createfolder" method="post" class="form skinny">
     <h3>Create Folder</h3>
 
     <label for="foldersnew">Folder Title:</label>
@@ -21,9 +19,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <button type="submit" class="button positive" style="float: right;">Create Folder</button>
   </form>
 
-  <form name="controlrenamefolder" action="/control/renamefolder" method="post" class="form skinny">
-    $:{CSRF()}
-
+  <form id="rename-folder" action="/control/renamefolder" method="post" class="form skinny">
     <h3>Rename Folder</h3>
 
     <label for="foldersnew">Folder Title:</label>
@@ -39,9 +35,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <button type="submit" class="button positive" style="float: right;">Rename Folder</button>
   </form>
 
-  <form name="controlmovefolder" action="/control/movefolder" method="post" class="form skinny">
-    $:{CSRF()}
-
+  <form id="move-folder" action="/control/movefolder" method="post" class="form skinny">
     <h3>Move Folder</h3>
 
     <label for="folderscurrent">Current Folder:</label>
@@ -61,9 +55,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
     <button type="submit" class="button positive" style="float: right;">Move Folder</button>
   </form>
 
-  <form name="controlremovefolder" action="/control/removefolder" method="post" class="form skinny">
-    $:{CSRF()}
-
+  <form id="remove-folder" action="/control/removefolder" method="post" class="form skinny">
     <h3>Remove Folder</h3>
 
     <p>Removing a folder will also remove its subfolders. The submissions in each removed folder will be moved to your root folder.</p>

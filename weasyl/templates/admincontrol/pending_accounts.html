@@ -6,7 +6,6 @@ $:{RENDER("common/stage_title.html", ["Accounts Pending Creation", "Administrato
     <div>
       <h3>Accounts Pending Creation</h3>
       <form action="/admincontrol/pending_accounts" method="POST">
-        $:{CSRF()}
         <table>
           <tr>
             <td width="10%" style="font-weight:700;">Purge?</td>
@@ -16,7 +15,6 @@ $:{RENDER("common/stage_title.html", ["Accounts Pending Creation", "Administrato
           </tr>
 
           $for i in query:
-            $ date = arrow.get(i.unixtime)
             <tr>
               <td style="padding-bottom:1em;"><button class="button negative" name="logincreatetoken" value="${i.token}">Purge</button></td>
               <td style="padding-bottom:1em;">${i.username}</td>
@@ -27,7 +25,7 @@ $:{RENDER("common/stage_title.html", ["Accounts Pending Creation", "Administrato
                   <td style="padding-bottom:1em;"><em>Invalid <code>logincreate</code> record -- Email in use, but not recorded</em></td>
               $else:
                 <td style="padding-bottom:1em;">${i.email}</td>
-              <td style="padding-bottom:1em;">${date.isoformat()}</td>
+              <td style="padding-bottom:1em;">$:{LOCAL_TIME(i.created_at, '{date}')}</td>
             </tr>
         </table>
       </form>

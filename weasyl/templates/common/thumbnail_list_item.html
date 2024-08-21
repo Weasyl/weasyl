@@ -1,4 +1,4 @@
-$def with (query, caption=None)
+$def with (query, caption)
 
 <div class="thumbnail_list_item">
   $if query['contype'] == 10:
@@ -18,15 +18,13 @@ $def with (query, caption=None)
           requested by <a class="username" href="/~${LOGIN(query['username'])}">${query['collector']}</a>
         $else:
           submitted by <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
+          $if caption == "collection_pending":
+            and offered
+          $else:
+            $# caption == "collection_accepted"
+            and collected
 
-        $if caption == "collection_pending":
-          and offered on ${DATE(query['unixtime'])}
-        $elif caption == "collection_requested":
-          on ${DATE(query['unixtime'])}
-        $elif caption == "collection_accepted":
-          and collected on ${DATE(query['unixtime'])}
-        $else:
-          on ${DATE(query['unixtime'])} at ${TIME(query['unixtime'])}
+        $:{LOCAL_TIME(query['unixtime'], 'on {date}')}
       </label>
     </div>
 </div>

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -14,17 +12,17 @@ from weasyl.controllers.decorators import login_required, token_checked
 @login_required
 @token_checked
 def messages_remove_(request):
-    form = request.web_input(recall='', remove=[])
-    remove_all_before = form.get('remove-all-before')
+    remove_all_before = request.POST.get('remove-all-before')
 
     if remove_all_before:
         message.remove_all_before(request.userid, int(remove_all_before))
-    elif form.get('remove-all-submissions'):
-        message.remove_all_submissions(request.userid, define.get_int(form['remove-all-submissions']))
+    elif 'remove-all-submissions' in request.POST:
+        message.remove_all_submissions(request.userid, int(request.POST['remove-all-submissions']))
     else:
-        message.remove(request.userid, map(int, form.remove))
+        remove = list(map(int, request.POST.getall('remove')))
+        message.remove(request.userid, remove)
 
-    if form.recall:
+    if 'recall' in request.POST:
         raise HTTPSeeOther(location="/messages/submissions")
     else:
         raise HTTPSeeOther(location="/messages/notifications")
@@ -64,13 +62,12 @@ def messages_notifications_(request):
 
 @login_required
 def messages_submissions_(request):
-    form = request.web_input(feature="", backtime=None, nexttime=None)
+    backtime = request.GET.get('backtime')
+    nexttime = request.GET.get('nexttime')
 
     define._page_header_info.refresh(request.userid)
-    return Response(define.webpage(request.userid, "message/submissions_thumbnails.html", [
-        # Feature
-        form.feature,
+    return Response(define.webpage(request.userid, "message/submissions_thumbnails.html", (
         # Submissions
         message.select_submissions(request.userid, 66, include_tags=False,
-                                   backtime=define.get_int(form.backtime), nexttime=define.get_int(form.nexttime)),
-    ]))
+                                   backtime=define.get_int(backtime), nexttime=define.get_int(nexttime)),
+    )))

@@ -1,7 +1,6 @@
-from __future__ import absolute_import
-
 from sanpera import geometry
 
+from libweasyl import images
 from weasyl.error import WeasylError
 from weasyl import define as d
 from weasyl import image, media, orm
@@ -34,7 +33,7 @@ def create(userid, x1, y1, x2, y2):
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
     db = d.connect()
     im = db.query(orm.MediaItem).get(avatar_source(userid)['mediaid']).as_image()
-    file_type = image.image_file_type(im)
+    file_type = images.image_file_type(im)
     bounds = None
     size = im.size.width, im.size.height
     if image.check_crop(size, x1, y1, x2, y2):

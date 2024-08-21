@@ -1,15 +1,16 @@
-# encoding: utf-8
-from __future__ import absolute_import
-
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import staff
 from libweasyl.legacy import UNIXTIME_OFFSET
+from libweasyl.models import tables as t
 
 from weasyl import define as d
+from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
+from weasyl import siteupdate
 from weasyl import welcome
 from weasyl.error import WeasylError
 
@@ -116,36 +117,33 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
 
 
 def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, parentid=None, content=None):
-    if not submitid and not charid and not journalid and not updateid:
+    if submitid:
+        table = "comments"
+    elif charid:
+        table = "charcomment"
+    elif journalid:
+        table = "journalcomment"
+    elif updateid:
+        table = "siteupdatecomment"
+    else:
         raise WeasylError("Unexpected")
-    elif not content:
+
+    if not content:
         raise WeasylError("commentInvalid")
 
-    # Determine indent and parentuserid
+    # Determine parent userid
     if parentid:
-        if updateid:
-            parentuserid = d.engine.scalar("SELECT userid FROM siteupdatecomment WHERE commentid = %(parent)s", parent=parentid)
+        parentuserid = d.engine.scalar(
+            "SELECT userid FROM {table} WHERE commentid = %(parent)s".format(table=table),
+            parent=parentid,
+        )
 
-            if parentuserid is None:
-                raise WeasylError("Unexpected")
-        else:
-            parent = d.engine.execute(
-                "SELECT userid, indent FROM {table} WHERE commentid = %(parentid)s".format(
-                    table="comments" if submitid else "charcomment" if charid else "journalcomment",
-                ),
-                parentid=parentid,
-            ).first()
-
-            if not parent:
-                raise WeasylError("Unexpected")
-
-            indent = parent.indent + 1
-            parentuserid = parent.userid
-    elif updateid:
-        parentid = None  # parentid == 0
-        parentuserid = None
+        if parentuserid is None:
+            raise WeasylError("Unexpected")
     else:
-        indent = 0
+        if updateid:
+            parentid = None  # parentid == 0
+
         parentuserid = None
 
     if updateid:
@@ -155,21 +153,28 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             raise WeasylError("submissionRecordMissing")
     else:
         # Determine the owner of the target
-        otherid = d.engine.scalar(
-            "SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'" % (
-                ("submission", "submitid", submitid) if submitid else
-                ("character", "charid", charid) if charid else
-                ("journal", "journalid", journalid)
-            )
+        content_table, content_table_filter = (
+            (t.submission, t.submission.c.submitid == submitid) if submitid
+            else (t.character, t.character.c.charid == charid) if charid
+            else (t.journal, t.journal.c.journalid == journalid)
         )
 
+        target = d.engine.execute(
+            sa.select([content_table.c.userid, content_table.c.friends_only])
+            .select_from(content_table)
+            .where(content_table_filter)
+            .where(~content_table.c.hidden)
+        ).first()
+
         # Check permissions
-        if not otherid:
+        if target is None or (target.friends_only and not frienduser.check(userid, target.userid)):
             raise WeasylError("submissionRecordMissing")
-        elif ignoreuser.check(otherid, userid):
+        elif ignoreuser.check(target.userid, userid):
             raise WeasylError("pageOwnerIgnoredYou")
-        elif ignoreuser.check(userid, otherid):
+        elif ignoreuser.check(userid, target.userid):
             raise WeasylError("youIgnoredPageOwner")
+
+        otherid = target.userid
 
     if parentuserid and ignoreuser.check(parentuserid, userid):
         raise WeasylError("replyRecipientIgnoredYou")
@@ -183,7 +188,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         commentid = db.scalar(
             co.insert()
             .values(userid=userid, target_sub=submitid, parentid=parentid or None,
-                    content=content, unixtime=arrow.utcnow(), indent=indent)
+                    content=content, unixtime=arrow.utcnow())
             .returning(co.c.commentid))
     elif updateid:
         commentid = d.engine.scalar(
@@ -195,17 +200,17 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             parent=parentid,
             content=content,
         )
+        siteupdate.select_last.invalidate()
     else:
         commentid = d.engine.scalar(
-            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime, indent)"
-            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s, %(indent)s)"
+            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
+            " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
             " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
             user=userid,
             target=d.get_targetid(charid, journalid),
             parent=parentid or 0,
             content=content,
             now=d.get_time(),
-            indent=indent,
         )
 
     # Create notification
@@ -282,8 +287,10 @@ def remove(userid, feature=None, commentid=None):
         # user is commenter
         comment_table = (
             "comments" if feature == 'submit' else feature + "comment")
+        comment_visible = (
+            "hidden_at IS NULL" if feature == 'siteupdate' else "settings !~ 'h'")
         has_replies = d.engine.scalar(
-            "SELECT EXISTS (SELECT FROM {table} WHERE parentid = %(comment)s)".format(table=comment_table),
+            f"SELECT EXISTS (SELECT FROM {comment_table} WHERE parentid = %(comment)s AND {comment_visible})",
             comment=commentid)
         if has_replies:
             # a commenter cannot remove their comment if it has replies
@@ -306,6 +313,7 @@ def remove(userid, feature=None, commentid=None):
             comment=commentid,
             hidden_by=userid,
         )
+        siteupdate.select_last.invalidate()
     else:
         d.engine.execute(
             "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),

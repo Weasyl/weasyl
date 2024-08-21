@@ -1,18 +1,13 @@
-$def with (profile, userinfo, relationship, result, folders, currentfolder)
+$def with (profile, userinfo, relationship, result, folders, currentfolder, post_counts_by_type)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
 <div id="submissions-stage" class="stage clear">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
-  $:{RENDER("common/user_tabs.html", [profile['username'], "submissions", profile['show_favorites_tab']])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], "submissions", profile['show_favorites_tab'], post_counts_by_type])}
 
   <div class="user-submissions">
 
     $ username = LOGIN(profile['username'])
-
-    $if(currentfolder == None):
-      $ folderquery = ""
-    $else:
-      $ folderquery = "&amp;folderid=%i" % currentfolder
 
     $ div_class = ""
     $ grid_class = "thumbnail-grid"
@@ -22,20 +17,16 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       <div class="content sectioned-sidebar">
         <h3>Folders</h3>
         $for i in folders:
-          $if(i['subfolder']):
-            <p style="margin-left:15px;"><a href="/submissions/${username}?folderid=${i['folderid']}"$:{' class="current"' if i['folderid'] == currentfolder else ''}>${i['title']}</a></p>
-          $else:
-            <p><a href="/submissions/${username}?folderid=${i['folderid']}"$:{' class="current"' if i['folderid'] == currentfolder else ''}>${i['title']}</a></p>
+          <p><a href="/submissions/${username}?folderid=${i['folder_id']}"$:{' class="current"' if i['folder_id'] == currentfolder else ''}>${i['title']}</a></p>
+          $for s in i.get('subfolders', ()):
+            <p style="margin-left:15px;"><a href="/submissions/${username}?folderid=${s['folder_id']}"$:{' class="current"' if s['folder_id'] == currentfolder else ''}>${s['title']}</a></p>
       </div>
 
     $if result.query:
       <div class="${div_class}">
         <ul class="${grid_class}">
           $for index, item in enumerate(result.query):
-            $if index < 10:
-              $:{_GRID_ITEM(item, lazy_load=False)}
-            $else:
-              $:{_GRID_ITEM(item)}
+            $:{_GRID_ITEM(item, include_byline=False, lazy_load=index >= 10)}
         </ul>
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
           $:{RENDER("common/page_navigation.html", [result])}

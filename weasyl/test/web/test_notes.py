@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import pytest
 
 from weasyl import define as d
 from weasyl.test import db_utils
 
 
-@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+@pytest.mark.usefixtures('db', 'cache')
 def test_reply_to_restricted_notes(app):
     user1 = db_utils.create_user(username='user1')
     user2 = db_utils.create_user(username='user2')
@@ -33,7 +31,7 @@ def test_reply_to_restricted_notes(app):
     try_send(303)
 
 
-@pytest.mark.usefixtures('db', 'cache', 'no_csrf')
+@pytest.mark.usefixtures('db', 'cache')
 def test_reply_when_blocked(app):
     user1 = db_utils.create_user(username='user1')
     user2 = db_utils.create_user(username='user2')

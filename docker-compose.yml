@@ -1,0 +1,229 @@
+volumes:
+  assets:
+  config:
+  database:
+  storage:
+  logs:
+  profile-stats:
+  prometheus:
+  test-cache:
+  test-coverage:
+
+networks:
+  external-web:
+  external-nginx:
+  external-prometheus:
+  nginx-web:
+    internal: true
+  web-memcached:
+    internal: true
+  web-postgres:
+    internal: true
+  test-postgres:
+    internal: true
+  prometheus-web:
+    internal: true
+
+services:
+  nginx:
+    build: containers/nginx
+    volumes:
+      - assets:/weasyl/build:ro
+      - storage:/weasyl/static:ro
+      - test-coverage:/weasyl/coverage:ro
+      - type: tmpfs
+        target: /var/cache/nginx
+      - type: tmpfs
+        target: /run
+    networks:
+      - external-nginx
+      - nginx-web
+    ports:
+      - ${WEASYL_BIND:-127.0.0.1}:8080:8080/tcp
+    read_only: true
+
+  web:
+    image: weasyl
+    build: &weasyl-build
+      context: .
+      args:
+        version: '${WEASYL_VERSION:-}'
+    environment:
+      WEASYL_STORAGE_ROOT: storage
+      WEASYL_RELOAD_ASSETS: true
+      WEASYL_RELOAD_TEMPLATES: true
+      WEB_CONCURRENCY: 8
+      PYTHONWARNINGS: d
+      PYTHONUNBUFFERED: 1
+      PROMETHEUS_MULTIPROC_DIR: /weasyl/storage/prometheus
+    volumes:
+      - assets:/weasyl/build:ro
+      - config:/run/config:ro
+      - storage:/weasyl/storage/static
+      - logs:/weasyl/storage/log
+      - profile-stats:/weasyl/storage/profile-stats
+      - type: tmpfs
+        target: /weasyl/storage/prometheus
+      - type: tmpfs
+        target: /weasyl/storage/temp
+      - type: tmpfs
+        target: /tmp
+    networks:
+      - external-web
+      - nginx-web
+      - prometheus-web
+      - web-memcached
+      - web-postgres
+    read_only: false
+
+  memcached:
+    image: docker.io/library/memcached:1.6-alpine3.16
+    command: --memory-limit=64
+    networks:
+      - web-memcached
+    read_only: true
+
+  postgres:
+    build: containers/postgres
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: weasyl
+      POSTGRES_DB: weasyl
+    volumes:
+      - database:/var/lib/postgresql/data
+      - type: tmpfs
+        target: /run/postgresql
+      - type: tmpfs
+        target: /tmp
+    networks:
+      - web-postgres
+      # TODO: separate postgres service for tests
+      - test-postgres
+    read_only: true
+
+  prometheus:
+    profiles: [ prometheus ]
+    build: containers/prometheus
+    volumes:
+      - prometheus:/prometheus
+    networks:
+      - external-prometheus
+      - prometheus-web
+    ports:
+      - ${WEASYL_BIND:-127.0.0.1}:9090:9090/tcp
+    read_only: true
+
+  configure:
+    profiles: [ configure ]
+    image: docker.io/library/alpine:3.16
+    entrypoint:
+      - sh
+      - -c
+      - cat >| "/run/config/$$1"
+      - sh
+    volumes:
+      - config:/run/config
+    network_mode: none
+    read_only: true
+
+  build-assets:
+    profiles: [ build-assets ]
+    build:
+      context: .
+      target: asset-builder
+    command:
+      - sh
+      - -ec
+      - |
+        chpst -u node node build.js
+        cp -R build/* /weasyl-assets/
+    volumes:
+      - assets:/weasyl-assets
+    network_mode: none
+    user: root
+
+  migrate:
+    profiles: [ migrate ]
+    image: weasyl
+    build: *weasyl-build
+    command:
+      - ash
+      - -c
+      - |
+        i=0
+        while true; do
+          if test $$i -ge 8; then
+            exit 1
+          fi
+          if test -n "$$(.venv/bin/alembic current 2> /dev/null)"; then
+            break
+          fi
+          i=$$((i + 1))
+          printf 'checking if postgres is up in %i seconds...\n' $$i
+          sleep $$i
+        done
+        exec .venv/bin/alembic upgrade head
+    environment:
+      # needed for revision f30dc3b5856a
+      WEASYL_STORAGE_ROOT: /fakepath
+      ALEMBIC_CONFIG: /run/config/alembic.ini
+    volumes:
+      - config:/run/config:ro
+    networks:
+      - web-postgres
+    read_only: true
+    depends_on:
+      - postgres
+    tty: true
+
+  revision:
+    profiles: [ revision ]
+    image: weasyl
+    build: *weasyl-build
+    entrypoint:
+      - ash
+      - -euc
+      - |
+        rev_id="$$(python3 -c 'import secrets; print(secrets.token_hex(6))')"
+        .venv/bin/alembic -c /run/config/alembic.ini revision --rev-id "$$rev_id" "$$@" >&2
+        tar c libweasyl/alembic/versions/"$$rev_id"_*
+      - ash
+    volumes:
+      - config:/run/config:ro
+    networks:
+      - web-postgres
+    depends_on:
+      - postgres
+    tty: true
+
+  test:
+    profiles: [ test ]
+    build:
+      context: .
+      target: test
+      args:
+        version: '${WEASYL_VERSION:-}'
+    environment:
+      WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2cffi://weasyl@postgres/weasyl_test
+    volumes:
+      - config:/run/config:ro
+      - test-cache:/weasyl/.pytest_cache
+      - test-coverage:/weasyl/coverage
+      - type: tmpfs
+        target: /weasyl/testing
+      - type: tmpfs
+        target: /tmp
+    networks:
+      - test-postgres
+    read_only: true
+    depends_on:
+      - postgres
+    tty: true
+
+  flake8:
+    profiles: [ flake8 ]
+    build:
+      context: .
+      target: flake8
+    network_mode: none
+    tty: true

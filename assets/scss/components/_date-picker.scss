@@ -1,0 +1,30 @@
+@import '../theme';
+
+.form-date {
+    display: flex;
+    gap: 4px;
+}
+
+.form-date > * {
+    // `!important`s here override terrible global `label` style that needs refactoring
+    display: flex !important;
+    flex-direction: column;
+    padding: 0 !important;
+}
+
+.form-date > * > .sublabel {
+    color: $content-color-lighter;
+    padding-top: 0.35em;
+    font-size: 12px;
+    font-size: 0.75rem;
+    font-weight: 400;
+}
+
+.form-date-month {
+    flex: 1;
+    max-width: 12em;
+}
+
+.form-date > .form-date-year > input {
+    width: 6em;
+}

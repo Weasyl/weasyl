@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import json
 from pyramid.response import Response
 
 from libweasyl import staff
@@ -97,8 +94,9 @@ def twofactorauth_disabled_required(view_callable):
 
 def token_checked(view_callable):
     def inner(request):
-        if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request, request.params.get('token')):
-            raise WeasylError('token')
+        assert request.method in ("POST", "DELETE", "PUT", "PATCH")
+        if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request):
+            raise WeasylError('token', level='warning')
         return view_callable(request)
     return inner
 
@@ -112,6 +110,6 @@ def supports_json(view_callable):
             except WeasylError as e:
                 result = {"error": e.value, "message": errorcode.error_messages.get(e.value)}
 
-            return Response(json.dumps(result), headerlist=[("Content-Type", "application/json")])
+            return Response(json=result)
         return view_callable(request)
     return inner

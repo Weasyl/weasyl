@@ -40,7 +40,7 @@ $code:
 
       <label for="commish-currency">Display Currency</label>
       <select class="input last-input" name="currency" id="commish-currency">
-        $for char, info in currencies.iteritems():
+        $for char, info in currencies.items():
           <option value="${char}" $:{selected(form.currency == char)}>${info.name}</option>
       </select>
 

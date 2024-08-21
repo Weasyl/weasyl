@@ -7,10 +7,8 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
       <h3>Search Criteria</h3>
 
       <form name="admincontrolfinduser" action="/admincontrol/finduser" method="post" class="clear">
-        $:{CSRF()}
-
         <label for="adminsearchid">UserID:</label>
-        <input type="text" class="input" name="userid" id="adminsearchid" />
+        <input type="text" class="input" name="targetid" id="adminsearchid" />
 
         <label for="adminsearchuser">Username:</label>
         <input type="text" class="input" name="username" id="adminsearchuser" />
@@ -93,16 +91,15 @@ $:{RENDER("common/stage_title.html", ["Search Users", "Administrator Control Pan
           </tr>
       </table>
       <form action="/admincontrol/finduser" method="post">
-        $:{CSRF()}
-        <input type="hidden" name="userid" value="${form.userid if form.userid != 0 else None}" />
-        <input type="hidden" name="username" value="${form.username}" />
-        <input type="hidden" name="email" value="${form.email}" />
-        <input type="hidden" name="excludebanned" ${'value=on' if form.excludebanned == "on" else ''} />
-        <input type="hidden" name="excludesuspended" ${'value=on' if form.excludesuspended == "on" else ''} />
-        <input type="hidden" name="excludeactive" ${'value=on' if form.excludeactive == "on" else ''} />
-        <input type="hidden" name="dateafter" value="${form.dateafter}" />
-        <input type="hidden" name="datebefore" value="${form.datebefore}" />
-        <input type="hidden" name="ipaddr" value="${form.ipaddr}" />
+        <input type="hidden" name="targetid" value="${form['targetid'] if form['targetid'] != 0 else None}" />
+        <input type="hidden" name="username" value="${form['username']}" />
+        <input type="hidden" name="email" value="${form['email']}" />
+        <input type="hidden" name="excludebanned" ${'value=on' if form['excludebanned'] == "on" else ''} />
+        <input type="hidden" name="excludesuspended" ${'value=on' if form['excludesuspended'] == "on" else ''} />
+        <input type="hidden" name="excludeactive" ${'value=on' if form['excludeactive'] == "on" else ''} />
+        <input type="hidden" name="dateafter" value="${form['dateafter']}" />
+        <input type="hidden" name="datebefore" value="${form['datebefore']}" />
+        <input type="hidden" name="ipaddr" value="${form['ipaddr']}" />
         <div class="clear">
           $if row_offset > 0:
             <button class="button" name="row_offset" value=${row_offset - 250}>Previous 250</button>

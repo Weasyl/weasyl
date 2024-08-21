@@ -5,9 +5,8 @@ $def with (myself, query, violations)
   <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h1>
 
   <div id="detail-art">
-    $ submissions = query['sub_media'].get('submission')
-    $ submission = submissions[0]
-    $ cover = submission['described']['cover'][0]
+    $ submission = query['sub_media']['submission'][0]
+    $ cover = query['sub_media']['cover'][0]
     <a href="${submission['display_url']}">
       <img src="${cover['display_url']}" alt="" />
     </a>
@@ -21,7 +20,6 @@ $def with (myself, query, violations)
   <div id="db-main">
     <ul id="detail-actions" class="toolset clear">
       <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/characters/${query['charid']}/" method="post">
-        $:{CSRF()}
         <input type="hidden" name="charid" value="${query['charid']}" />
         $if not query['mine']:
           $if query['favorited']:
@@ -34,7 +32,7 @@ $def with (myself, query, violations)
       <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
       $if query['reported'] and myself and myself['userid'] in staff.MODS:
         <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
-      $elif 'h' not in query['settings']:
+      $elif not query['hidden']:
         <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
     </ul>
     <h2 id="detail-bar-title">${query['title']}</h2>
@@ -44,7 +42,7 @@ $def with (myself, query, violations)
     $ avatar = query['user_media']['avatar'][0]
     <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
     <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-    <p class="date">${DATE(query['unixtime'])} <i>at</i> ${TIME(query['unixtime'])}</p>
+    <p class="date">$:{LOCAL_TIME(query['unixtime'], '{date} <i>at</i> {time}')}</p>
   </div>
 
 </div>
@@ -97,7 +95,6 @@ $def with (myself, query, violations)
         <p><a href="/edit/character?charid=${query['charid']}">Edit Character Details</a></p>
 
         <form action="/remove/character" method="POST" data-confirm="Are you sure you want to remove this character?">
-          $:{CSRF()}
           <input type="hidden" name="charid" value="${query['charid']}" />
 
           <button class="link-button">Remove Character from Gallery</button>
@@ -107,14 +104,13 @@ $def with (myself, query, violations)
     $if myself and myself['userid'] in staff.MODS:
       <div id="detail-mod">
         <h3>Character Moderation</h3>
-        $if query['hidden_submission']:
+        $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/character?charid=${query['charid']}&amp;anyway=true">Edit Character Details</a></p>
         <form action="/modcontrol/massaction" method="POST">
-          $:{CSRF()}
           <input type="hidden" name="characters" value="${query['charid']}">
           <select name="action" class="input">
-            $for value, name in M.MACRO_MOD_ACTIONS_FOR_SETTINGS(query['settings'], "character"):
+            $for value, name in M.get_mod_actions(query, "character").items():
               <option value="${value}">${name}</option>
           </select>
           <br>
@@ -122,22 +118,7 @@ $def with (myself, query, violations)
         </form>
       </div>
 
-
-    <div class="di-tags">
-      <h3>Tags <a class="modify typeface-default color-c" href="#">Modify</a></h3>
-
-      <div class="tags open clear">
-        $if query['tags']:
-          $for i in query['tags']:
-            <a href="/search?q=${i}">${i}</a>
-        $else:
-          <p class="color-lighter">There are no tags associated with this character</p>
-      </div>
-
-      <h3 class="edit">Edit Tags</h3>
-
-      $:{RENDER("common/detail_tag_form.html", [query['charid'], "char", query['tags']])}
-    </div>
+    $:{RENDER("common/detail_tag_form.html", [query['charid'], "char", query, myself])}
 
   </div>
 

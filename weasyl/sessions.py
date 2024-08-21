@@ -1,26 +1,12 @@
-from libweasyl import security
-from libweasyl.models.users import GuestSession, Session
+import secrets
+from libweasyl.models.users import Session
 
 
-USER_TOKEN_LENGTH = 64
-GUEST_TOKEN_LENGTH = 20
+_USER_TOKEN_BYTES = 16
 
 
 def create_session(userid):
-    sess = Session(userid=userid)
-    sess.sessionid = security.generate_key(USER_TOKEN_LENGTH)
-    sess.create = True
-    sess.save = True
-    return sess
-
-
-def create_guest_session():
-    token = security.generate_key(GUEST_TOKEN_LENGTH)
-    sess = GuestSession(token)
-    sess.create = True
-    return sess
-
-
-def is_guest_token(token):
-    token = str(token)
-    return len(token) == GUEST_TOKEN_LENGTH and token.isalnum()
+    return Session(
+        userid=userid,
+        sessionid=secrets.token_urlsafe(_USER_TOKEN_BYTES),
+    )

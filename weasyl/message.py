@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from itertools import chain
 
 from weasyl import character
@@ -58,10 +56,7 @@ def remove_all_before(userid, before):
     d._page_header_info.invalidate(userid)
 
 
-def remove_all_submissions(userid, only_before=None):
-    if not only_before:
-        only_before = d.get_time()
-
+def remove_all_submissions(userid, only_before):
     d.engine.execute(
         "DELETE FROM welcome WHERE userid = %(user)s AND type IN (2010, 2030, 2040, 2050) AND unixtime < %(before)s",
         user=userid, before=only_before)
@@ -145,7 +140,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 we.unixtime,
                 we.otherid AS userid,
                 pr.username,
-                su.settings,
+                ''::text AS settings,
                 we.welcomeid,
                 su.subtype
                 {submission_tags_select}
@@ -169,7 +164,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 we.unixtime,
                 su.userid,
                 pr.username,
-                su.settings,
+                ''::text AS settings,
                 we.welcomeid,
                 su.subtype
                 {submission_tags_select}

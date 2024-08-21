@@ -4,7 +4,6 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
 <div id="submit-journal-content" class="content">
 
   <form id="submit-form" name="submitjournal" class="form clear journal" action="/submit/journal" method="post">
-    $:{CSRF()}
     <div class="column info">
       <h3>Information</h3>
 
@@ -17,6 +16,8 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
         $for rating in ratings:
           <option value="${rating.code}">${rating.name_with_age}</option>
       </select>
+      $if len(ratings) > 1:
+        <p class="color-lighter tags-help"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos" target="_blank">Weasyl Terms of Service</a></i></p>
     </div>
 
     <div class="column description">
@@ -41,7 +42,7 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
 
     <div class="buttons clear">
       <button type="submit" class="button positive" style="float: right;">Continue</button>
-      <a class="button" href="/index">Return Home</a>
+      <a class="button" href="/">Return Home</a>
     </div>
 
   </form>

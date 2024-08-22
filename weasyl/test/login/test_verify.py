@@ -1,5 +1,4 @@
 import pytest
-import arrow
 
 from weasyl import login
 from weasyl import define as d
@@ -18,7 +17,6 @@ def _create_pending_account(invalid=False):
         "login_name": username,
         "hashpass": login.passhash('0123456789'),
         "email": email,
-        "birthday": arrow.Arrow(2000, 1, 1),
         "invalid": invalid,
     })
 

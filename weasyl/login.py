@@ -1,7 +1,6 @@
 import os
 from io import open
 
-import arrow
 import bcrypt
 from publicsuffixlist import PublicSuffixList
 from sqlalchemy.sql.expression import select
@@ -204,27 +203,11 @@ def create(form):
     # Normalize form data
     username = clean_display_name(form.username)
     sysname = d.get_sysname(username)
-
     email = emailer.normalize_address(form.email)
-
-    # TODO: remove birth date check after checkbox-only form has been deployed for a while
     password = form.password
-    if form.day and form.month and form.year:
-        try:
-            birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
-        except ValueError:
-            raise WeasylError("birthdayInvalid")
-
-        if d.age_in_years(birthday) < 13:
-            raise WeasylError("birthdayInvalid")
-    else:
-        birthday = None
-
-    if "age" in form and form.age != "13+":
-        raise WeasylError("birthdayInvalid")
 
     # Check invalid form data
-    if birthday is None and "age" not in form:
+    if "age" not in form or form.age != "13+":
         raise WeasylError("birthdayInvalid")
     if not password_secure(password):
         raise WeasylError("passwordInsecure")
@@ -251,7 +234,6 @@ def create(form):
             "login_name": sysname,
             "hashpass": passhash(password),
             "email": email,
-            "birthday": birthday,
         })
 
         # Send verification email
@@ -268,7 +250,6 @@ def create(form):
             "login_name": sysname,
             "hashpass": passhash(password),
             "email": token,
-            "birthday": None,
             "invalid": True,
             # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
             "invalid_email_addr": email,
@@ -320,7 +301,6 @@ def verify(token, ip_address=None):
         })
         db.execute(d.meta.tables["userinfo"].insert(), {
             "userid": userid,
-            "birthday": query.birthday,
         })
 
         # Update logincreate records

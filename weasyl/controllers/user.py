@@ -186,8 +186,7 @@ def signup_get_(request):
 @token_checked
 def signup_post_(request):
     form = request.web_input(
-        username="", password="", email="",
-        day="", month="", year="")
+        username="", password="", email="")
 
     login.create(form)
     return Response(define.errorpage(

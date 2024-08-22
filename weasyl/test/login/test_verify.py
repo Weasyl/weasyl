@@ -1,5 +1,3 @@
-from datetime import date
-
 import pytest
 
 from weasyl import login
@@ -19,7 +17,6 @@ def _create_pending_account(invalid=False):
         "login_name": username,
         "hashpass": login.passhash('0123456789'),
         "email": email,
-        "birthday": date(2000, 1, 1),
         "invalid": invalid,
     })
 

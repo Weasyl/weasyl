@@ -1,5 +1,4 @@
 import pytest
-import arrow
 
 from weasyl import login
 from weasyl import define as d
@@ -21,7 +20,6 @@ def test_acct_verif_token_returned_if_email_provided_to_function():
         "login_name": user_name,
         "hashpass": login.passhash(raw_password),
         "email": email_addr,
-        "birthday": arrow.Arrow(2000, 1, 1),
     })
     acct_verification_token = login.get_account_verification_token(email=email_addr, username=None)
     assert token == acct_verification_token
@@ -35,7 +33,6 @@ def test_acct_verif_token_returned_if_username_provided_to_function():
         "login_name": user_name,
         "hashpass": login.passhash(raw_password),
         "email": email_addr,
-        "birthday": arrow.Arrow(2000, 1, 1),
     })
     acct_verification_token = login.get_account_verification_token(email=None, username=user_name)
     assert token == acct_verification_token

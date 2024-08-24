@@ -16,6 +16,7 @@ from pyramid.threadlocal import get_current_request
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from prometheus_client import Histogram
 from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
 from web.template import Template
@@ -29,6 +30,7 @@ from libweasyl import html, text, ratings, staff
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
+from weasyl import metrics
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
 
@@ -622,8 +624,13 @@ def posts_count(userid, *, friends: bool):
     return result
 
 
+notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
+
+
+@metrics.separate_timing
+@notification_count_time.cached
 @region.cache_on_arguments(expiration_time=180)
-@record_timing
+@notification_count_time.uncached
 def _page_header_info(userid):
     messages = engine.scalar(
         "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)

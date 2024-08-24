@@ -174,10 +174,11 @@ def db_timer_tween_factory(handler, registry):
 
     def db_timer_tween(request):
         started_at = time.perf_counter()
+        request.excluded_time = 0.0
         request.sql_times = []
         request.memcached_times = []
         resp = handler(request)
-        time_total = time.perf_counter() - started_at
+        time_total = time.perf_counter() - started_at - request.excluded_time
         request_duration.labels(route=request.matched_route.name if request.matched_route is not None else "none").observe(time_total, exemplar={
             "sql_queries": "%d" % (len(request.sql_times),),
             "sql_seconds": "%.3f" % (sum(request.sql_times),),

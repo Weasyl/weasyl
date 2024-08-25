@@ -29,7 +29,7 @@ def _image_hash(image):
 @pytest.mark.parametrize('age', [17, 19])
 @pytest.mark.usefixtures('db')
 def test_rating_accessibility(app, age):
-    submission_user = db_utils.create_user('submission_test', birthday=arrow.utcnow().shift(years=-age))
+    submission_user = db_utils.create_user('submission_test', birthday=arrow.utcnow().shift(years=-age).date())
     cookie = db_utils.create_session(submission_user)
 
     def _post_expecting(form, expected_rating):

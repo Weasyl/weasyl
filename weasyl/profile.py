@@ -3,7 +3,6 @@ import re
 
 import arrow
 import sqlalchemy as sa
-from arrow import Arrow
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import bindparam, func
 from sqlalchemy.dialects.postgresql import aggregate_order_by
@@ -218,7 +217,7 @@ def select_myself(userid):
 def get_user_age(userid):
     assert userid
     birthday = d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid)
-    return None if birthday is None else d.convert_age(birthday)
+    return None if birthday is None else d.age_in_years(birthday)
 
 
 def get_user_ratings(userid):
@@ -250,7 +249,7 @@ def select_userinfo(userid, config):
     show_age = "b" in config or d.get_userid() in staff.MODS
     return {
         "birthday": query.birthday,
-        "age": d.convert_age(query.birthday) if show_age and query.birthday is not None else None,
+        "age": d.age_in_years(query.birthday) if show_age and query.birthday is not None else None,
         "show_age": "b" in config,
         "gender": query.gender,
         "country": query.country,
@@ -601,7 +600,7 @@ def edit_userinfo(userid, form):
 
         result = d.engine.execute(birthdate_update, {
             "update_userid": userid,
-            "birthday": Arrow(year=birthdate_year, month=birthdate_month, day=1),
+            "birthday": datetime.date(year=birthdate_year, month=birthdate_month, day=1),
         })
 
         if result.rowcount != 1:
@@ -888,10 +887,14 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         else:
             # HTML5 date format is yyyy-mm-dd
             split = birthday.split("-")
-            if len(split) != 3 or d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
+            if len(split) == 3:
+                try:
+                    unixtime = datetime.date(day=int(split[2]), month=int(split[1]), year=int(split[0]))
+                except ValueError:
+                    raise WeasylError("birthdayInvalid")
+            else:
                 raise WeasylError("birthdayInvalid")
-            unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
-            age = d.convert_age(unixtime)
+            age = d.age_in_years(unixtime)
 
         result = d.engine.execute("UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s", birthday=unixtime, user=userid)
         assert result.rowcount == 1

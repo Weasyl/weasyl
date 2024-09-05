@@ -12,6 +12,7 @@ from weasyl import (
     moderation,
     profile,
     resetpassword,
+    turnstile,
     two_factor_auth,
 )
 from weasyl.controllers.decorators import (
@@ -185,6 +186,8 @@ def signup_get_(request):
 @guest_required
 @token_checked
 def signup_post_(request):
+    turnstile.require(request)
+
     form = request.web_input(
         username="", password="", email="")
 
@@ -227,6 +230,8 @@ def forgotpassword_get_(request):
 @guest_required
 @token_checked
 def forgetpassword_post_(request):
+    turnstile.require(request)
+
     resetpassword.request(email=request.POST['email'])
     return Response(define.errorpage(
         request.userid,

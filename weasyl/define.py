@@ -31,6 +31,7 @@ from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
 from weasyl import metrics
+from weasyl import turnstile
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
 
@@ -187,6 +188,7 @@ def _compile(template_name):
                 "json": json,
                 "sorted": sorted,
                 "staff": staff,
+                "turnstile": turnstile,
                 "resource_path": get_resource_path,
             })
 

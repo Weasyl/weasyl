@@ -24,6 +24,11 @@ host = localhost
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
 secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
 
+[turnstile]
+site_key = 3x00000000000000000000FF
+secret_key = 1x0000000000000000000000000000000AA
+enforce = true
+
 # These keys MUST be changed when in production
 [secret_keys]
 # can be generated with `secrets.token_urlsafe(32) + "="`

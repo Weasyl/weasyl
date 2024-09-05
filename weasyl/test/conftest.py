@@ -25,6 +25,7 @@ from weasyl import (
     macro,
     media,
     middleware,
+    turnstile,
 )
 from weasyl.controllers.routes import setup_routes_and_views
 from weasyl.wsgi import make_wsgi_app
@@ -167,6 +168,11 @@ def deterministic_marketplace_tests(monkeypatch):
         return json.loads(rates)
 
     monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
+
+
+@pytest.fixture(autouse=True)
+def disable_turnstile(monkeypatch):
+    monkeypatch.setattr(turnstile, "SITE_KEY", None)
 
 
 @pytest.fixture(scope='session')

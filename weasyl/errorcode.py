@@ -1,3 +1,6 @@
+from weasyl import macro as m
+
+
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
 charid = "This character doesn't seem to be in our database."
@@ -136,6 +139,9 @@ error_messages = {
     "titleTooLong": "That title is too long.",
     "token": token,
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
+    "turnstileMissing": (
+        "A required bot check failed. Please go back, refresh the page, and try again.\n\n"
+        f"If issues persist, contact support at [{m.MACRO_SUPPORT_ADDRESS}](mailto:{m.MACRO_SUPPORT_ADDRESS})."),
     "TwoFactorAuthenticationAuthenticationAttemptsExceeded": (
         "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),
     "TwoFactorAuthenticationAuthenticationTimeout": "Your authentication session has timed out. Please try logging in again.",

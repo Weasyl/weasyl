@@ -24,6 +24,8 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
       </label>
     </fieldset>
 
+    $:{COMPILE("common/turnstile.html")(action="signup")}
+
     <script type="module" src="${resource_path('js/signup.js')}" async></script>
     <script src="${resource_path('js/zxcvbn.js')}" async></script>
     <script src="${resource_path('js/zxcvbn-check.js')}" async></script>

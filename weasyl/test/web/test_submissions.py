@@ -126,6 +126,10 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
         'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
     ),
     (
+        'https://docs.google.com/document/d/zd9LMaQo_rfD-ZUhI1WPDK2nhCI3Z3LmchHpLogIVqCd/pub',
+        'https://docs.google.com/document/d/zd9LMaQo_rfD-ZUhI1WPDK2nhCI3Z3LmchHpLogIVqCd/pub?embedded=true',
+    ),
+    (
         'docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub',
         'https://docs.google.com/document/d/e/2PACX-1Hheu7cs9fxBIMdFSNozPOKsXS79QEoUNhx2AFli6BkxBD9QG9QmjO68C17nx_wcEOq4uC2AdVcGGr14/pub?embedded=true',
     ),

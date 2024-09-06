@@ -269,8 +269,8 @@ def create_visual(userid, submission,
 
 
 _GOOGLE_DOCS_EMBED = re.compile(
-    r"\bdocs\.google\.com/document/d/e/([0-9a-z_\-]+)/pub\b",
-    re.IGNORECASE,
+    r"\bdocs\.google\.com/document/d/((?:e/)?[0-9a-z_\-]+)/pub\b",
+    re.ASCII | re.IGNORECASE,
 )
 
 
@@ -280,7 +280,7 @@ def _normalize_google_docs_embed(embedlink):
     if match is None:
         raise WeasylError('googleDocsEmbedLinkInvalid', level='info')
 
-    return f"https://docs.google.com/document/d/e/{match.group(1)}/pub?embedded=true"
+    return f"https://docs.google.com/document/d/{match.group(1)}/pub?embedded=true"
 
 
 @_create_submission(expected_type=2)

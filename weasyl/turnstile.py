@@ -46,7 +46,7 @@ def _check(request) -> Result:
         error_codes = turnstile_validation["error-codes"]
 
         if not {"invalid-input-response", "timeout-or-duplicate"}.issuperset(error_codes):
-            logger.warn("Unexpected Turnstile error codes: %r", error_codes)  # pragma: no cover
+            logger.warning("Unexpected Turnstile error codes: %r", error_codes)  # pragma: no cover
 
         return Result.INVALID
 
@@ -68,4 +68,4 @@ def require(request) -> None:
     if result == Result.NOT_LOADED:
         logger.info("Form submitted without Turnstile field in non-enforcing mode")
     else:
-        logger.warn("Turnstile validation failed in non-enforcing mode: %s", result)
+        logger.warning("Turnstile validation failed in non-enforcing mode: %s", result)

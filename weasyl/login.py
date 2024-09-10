@@ -1,5 +1,4 @@
 import os
-from io import open
 
 import bcrypt
 from publicsuffixlist import PublicSuffixList

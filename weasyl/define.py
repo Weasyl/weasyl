@@ -963,7 +963,6 @@ def _requests_wrapper(func_name):
 
 
 http_get = _requests_wrapper('get')
-http_post = _requests_wrapper('post')
 
 
 def metric(*a, **kw):

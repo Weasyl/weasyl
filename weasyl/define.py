@@ -1,3 +1,4 @@
+import functools
 import os
 import time
 import hashlib
@@ -948,9 +949,8 @@ def query_string(query):
     return urlencode(pairs)
 
 
-def _requests_wrapper(func_name):
-    func = getattr(requests, func_name)
-
+def _requests_wrapper(func):
+    @functools.wraps(func)
     def wrapper(*a, **kw):
         try:
             return func(*a, **kw)
@@ -962,7 +962,7 @@ def _requests_wrapper(func_name):
     return wrapper
 
 
-http_get = _requests_wrapper('get')
+http_get = _requests_wrapper(requests.get)
 
 
 def metric(*a, **kw):

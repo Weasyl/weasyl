@@ -7,7 +7,7 @@ from weasyl import welcome
 from weasyl.error import PostgresError, WeasylError
 
 
-def select_query(userid, rating, otherid=None, pending=False, backid=None, nextid=None):
+def select_query(userid, *, rating, otherid, pending=False, backid=None, nextid=None):
     """
     Build a query to select a list of collections, joined on submission table
     and profile of the submitter
@@ -61,18 +61,18 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
     return statement
 
 
-def select_count(userid, rating, otherid=None, pending=False, backid=None, nextid=None):
+def select_count(userid, rating, *, otherid, pending=False, backid=None, nextid=None):
     statement = ["SELECT count(su.submitid) "]
-    statement.extend(select_query(userid, rating, otherid, pending,
-                                  backid, nextid))
+    statement.extend(select_query(userid, rating=rating, otherid=otherid, pending=pending,
+                                  backid=backid, nextid=nextid))
     return d.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, pending=False, backid=None, nextid=None):
+def select_list(userid, rating, limit, *, otherid, pending=False, backid=None, nextid=None):
     statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, "
                  "su.userid, pr.username, cpr.username, cpr.userid "]
-    statement.extend(select_query(userid, rating, otherid, pending,
-                                  backid, nextid))
+    statement.extend(select_query(userid, rating=rating, otherid=otherid, pending=pending,
+                                  backid=backid, nextid=nextid))
     statement.append(" ORDER BY co.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = []

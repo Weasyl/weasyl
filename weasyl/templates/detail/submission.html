@@ -246,10 +246,13 @@ $code:
 
             <input type="hidden" name="submitid" value="${query['submitid']}">
 
-            <label for="detail_collection_offer_username">Offer to User:</label>
-            <input type="text" id="detail_collection_offer_username" name="username" class="input last-input">
+            $if query['friends_only']:
+              <p>This submission is marked friends only, and cannot be offered as a collection.</p>
+            $else:
+              <label for="detail_collection_offer_username">Offer to User:</label>
+              <input type="text" id="detail_collection_offer_username" name="username" class="input last-input">
 
-            <button type="submit" class="button" style="float: right;">Send Offer</button>
+              <button type="submit" class="button" style="float: right;">Send Offer</button>
           </form>
         $else:
           <h3>Request Collection</h3>

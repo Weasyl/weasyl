@@ -1,4 +1,3 @@
-from weasyl import blocktag
 from weasyl import define as d
 from weasyl import ignoreuser
 from weasyl import macro as m
@@ -118,29 +117,22 @@ def owns(userid, submitid):
 
 def offer(userid, submitid, otherid):
     query = d.engine.execute(
-        "SELECT userid, rating, hidden, friends_only FROM submission WHERE submitid = %(id)s",
+        "SELECT userid, hidden, friends_only FROM submission WHERE submitid = %(id)s",
         id=submitid,
     ).first()
 
-    if not query or query[2]:
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
-    elif userid != query[0]:
+    if userid != query.userid:
         raise WeasylError("Unexpected")
 
     # Check collection acceptability
-    if otherid:
-        rating = d.get_rating(otherid)
-
-        if rating < query[1]:
-            raise WeasylError("collectionUnacceptable")
-        if query[3]:
-            raise WeasylError("collectionUnacceptable")
-        if ignoreuser.check(otherid, userid):
-            raise WeasylError("IgnoredYou")
-        if ignoreuser.check(userid, otherid):
-            raise WeasylError("YouIgnored")
-        if blocktag.check(otherid, submitid=submitid):
-            raise WeasylError("collectionUnacceptable")
+    if query.friends_only:
+        raise WeasylError("collectionUnacceptable")
+    if ignoreuser.check(otherid, userid):
+        raise WeasylError("IgnoredYou")
+    if ignoreuser.check(userid, otherid):
+        raise WeasylError("YouIgnored")
 
     try:
         d.execute("INSERT INTO collection (userid, submitid, unixtime) VALUES (%i, %i, %i)",

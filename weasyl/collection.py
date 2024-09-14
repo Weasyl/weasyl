@@ -3,7 +3,7 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
 from weasyl import welcome
-from weasyl.error import PostgresError, WeasylError
+from weasyl.error import WeasylError
 
 
 def select_query(userid, *, rating, otherid, pending=False, backid=None, nextid=None):
@@ -134,10 +134,17 @@ def offer(userid, submitid, otherid):
     if ignoreuser.check(userid, otherid):
         raise WeasylError("YouIgnored")
 
-    try:
-        d.execute("INSERT INTO collection (userid, submitid, unixtime) VALUES (%i, %i, %i)",
-                  [otherid, submitid, d.get_time()])
-    except PostgresError:
+    result = d.engine.execute(
+        "INSERT INTO collection (userid, submitid, unixtime, settings)"
+        " VALUES (%(userid)s, %(submitid)s, %(now)s, %(settings)s)"
+        " ON CONFLICT (userid, submitid) DO NOTHING",
+        userid=otherid,
+        submitid=submitid,
+        now=d.get_time(),
+        settings="p",
+    )
+
+    if result.rowcount == 0:
         raise WeasylError("collectionExists")
 
     welcome.collectoffer_insert(userid, otherid, submitid)
@@ -188,12 +195,17 @@ def request(userid, submitid, otherid):
     if not settings.allow_collection_requests:
         raise WeasylError("Unexpected")
 
-    request_settings = "r"
-    try:
-        d.engine.execute("INSERT INTO collection (userid, submitid, unixtime, settings) "
-                         "VALUES (%(userid)s, %(submitid)s, %(now)s, %(settings)s)",
-                         userid=userid, submitid=submitid, now=d.get_time(), settings=request_settings)
-    except PostgresError:
+    result = d.engine.execute(
+        "INSERT INTO collection (userid, submitid, unixtime, settings)"
+        " VALUES (%(userid)s, %(submitid)s, %(now)s, %(settings)s)"
+        " ON CONFLICT (userid, submitid) DO NOTHING",
+        userid=userid,
+        submitid=submitid,
+        now=d.get_time(),
+        settings="r",
+    )
+
+    if result.rowcount == 0:
         raise WeasylError("collectionExists")
 
     welcome.collectrequest_insert(userid, otherid, submitid)

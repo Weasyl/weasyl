@@ -211,15 +211,21 @@ def pending_accept(userid, submissions):
     if not submissions:
         return
 
-    d.engine.execute(
-        "UPDATE collection SET "
-        "unixtime = %(now)s, "
-        "settings = REGEXP_REPLACE(settings, '[pr]', '') "
-        "WHERE settings ~ '[pr]' "
-        "AND (submitid, userid) = ANY (%(submissions)s)",
-        submissions=submissions, now=d.get_time())
+    updated = d.engine.execute(
+        "UPDATE collection SET"
+        " unixtime = %(now)s,"
+        " settings = REGEXP_REPLACE(collection.settings, '[pr]', '')"
+        " FROM submission WHERE collection.submitid = submission.submitid"
+        " AND %(userid)s IN (collection.userid, submission.userid)"
+        " AND (collection.submitid, collection.userid) = ANY (%(submissions)s)"
+        " AND collection.settings ~ (CASE WHEN %(userid)s = collection.userid THEN 'p' ELSE 'r' END)"
+        " RETURNING collection.userid, collection.submitid",
+        userid=userid,
+        submissions=submissions,
+        now=d.get_time(),
+    ).fetchall()
 
-    for s in submissions:
+    for s in updated:
         welcome.collection_insert(s[1], s[0])
         welcome.collectrequest_remove(userid, s[1], s[0])
 
@@ -231,11 +237,18 @@ def pending_reject(userid, submissions):
     if not submissions:
         return
 
-    d.engine.execute("DELETE FROM collection WHERE (submitid, userid) = ANY (%(submissions)s)",
-                     submissions=submissions)
+    d.engine.execute(
+        "DELETE FROM collection"
+        " USING submission WHERE collection.submitid = submission.submitid"
+        " AND %(userid)s IN (collection.userid, submission.userid)"
+        " AND (collection.submitid, collection.userid) = ANY (%(submissions)s)"
+        " AND collection.settings ~ (CASE WHEN %(userid)s = collection.userid THEN 'p' ELSE 'r' END)",
+        userid=userid,
+        submissions=submissions,
+    )
 
-    for s in submissions:
-        welcome.collectrequest_remove(userid, s[1], s[0])
+    for submitid, collectorid in submissions:
+        welcome.collectrequest_remove(userid, collectorid, submitid)
 
     d._page_header_info.invalidate(userid)
 

@@ -126,3 +126,40 @@ class CollectionsTestCase(unittest.TestCase):
     # `unittest.TestCase` style doesn’t support `pytest.mark.parametrize`
     test_accept_unrelated = _test_decide_unrelated(collection.pending_accept)
     test_reject_unrelated = _test_decide_unrelated(collection.pending_reject)
+
+    def test_duplicate_offer(self):
+        self.offer()
+
+        with pytest.raises(WeasylError) as err:
+            self.offer()
+        assert err.value.value == "collectionExists"
+
+        self.assertEqual(Counts(0, 1), self.count_collections(self.collector))
+
+    def test_duplicate_request(self):
+        self.request()
+
+        with pytest.raises(WeasylError) as err:
+            self.request()
+        assert err.value.value == "collectionExists"
+
+        self.assertEqual(Counts(0, 1), self.count_collections(self.creator))
+
+    def test_offer_and_request(self):
+        self.offer()
+
+        with pytest.raises(WeasylError) as err:
+            self.request()
+        assert err.value.value == "collectionExists"
+
+        self.assertEqual(Counts(0, 1), self.count_collections(self.collector))
+
+        collection.pending_reject(self.collector, [(self.s, self.collector)])
+
+        self.request()
+
+        with pytest.raises(WeasylError) as err:
+            self.offer()
+        assert err.value.value == "collectionExists"
+
+        self.assertEqual(Counts(0, 1), self.count_collections(self.creator))

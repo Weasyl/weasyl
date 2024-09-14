@@ -253,6 +253,7 @@ def remove(userid, submissions):
         DELETE FROM collection
         WHERE userid = %(user)s
             AND submitid = ANY (%(submissions)s)
+            AND settings !~ '[pr]'
     """, user=userid, submissions=submissions)
 
     welcome.collection_remove(userid, submissions)

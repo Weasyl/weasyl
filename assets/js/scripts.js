@@ -1258,7 +1258,7 @@
         var currentTab = homeTabs.getElementsByClassName('current')[0];
         var currentPane = homePanes.getElementsByClassName('current')[0];
 
-        $(homeTabs).on('click touchstart', '.home-pane-link', function (e) {
+        $(homeTabs).on('click', '.home-pane-link', function (e) {
             e.preventDefault();
 
             var paneId = this.getAttribute('href').substring(1);

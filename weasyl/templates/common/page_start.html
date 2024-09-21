@@ -112,7 +112,7 @@ $def with (query, options, extended_options={})
           <li><a href="/messages/notifications#notifications" title="Notifications"><span class="icon icon-20 icon-notes">Notifications:</span> ${query['welcome'][2]}</a></li>
         $if query['welcome'][4]:
           <li><a href="/messages/notifications#journals" title="Journals"><span class="icon icon-20 icon-journals">Journals:</span> ${query['welcome'][4]}</a></li>
-        <li><a class="${'messages-none' if query['welcome'][0] == 0 else ''}" href="/notes" title="Private Messages"><svg class="icon icon-svg-20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 60" alt="Private Messages"><path d="M 0.45,2.94 C 0.16,3.56 0,4.26 0,5 v 50 c 0,0.23 0.02,0.46 0.05,0.68 L 29.38,27.18 Z M 3.8,59.85 C 4.18,59.95 4.58,60 5,60 h 80 c 0.33,0 0.65,-0.03 0.96,-0.09 L 56.35,31.14 45.23,40.46 33.7,30.8 Z M 89.91,55.93 C 89.97,55.63 90,55.32 90,55 V 5 C 90,4.37 89.88,3.77 89.67,3.22 l -29,24.3 z M 85.41,0.02 C 85.28,0.01 85.14,0 85,0 H 5.03 l 40.2,33.68 z" /></svg>
+        <li><a class="${'messages-none' if query['welcome'][0] == 0 else ''}" href="/notes" title="Private Messages"><svg class="icon icon-svg-20" viewBox="0 0 90 60" alt="Private Messages"><path d="M 0.45,2.94 C 0.16,3.56 0,4.26 0,5 v 50 c 0,0.23 0.02,0.46 0.05,0.68 L 29.38,27.18 Z M 3.8,59.85 C 4.18,59.95 4.58,60 5,60 h 80 c 0.33,0 0.65,-0.03 0.96,-0.09 L 56.35,31.14 45.23,40.46 33.7,30.8 Z M 89.91,55.93 C 89.97,55.63 90,55.32 90,55 V 5 C 90,4.37 89.88,3.77 89.67,3.22 l -29,24.3 z M 85.41,0.02 C 85.28,0.01 85.14,0 85,0 H 5.03 l 40.2,33.68 z" /></svg>
           ${query['welcome'][0]}</a></li>
       </ul>
 

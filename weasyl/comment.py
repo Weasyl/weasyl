@@ -242,7 +242,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
     return commentid
 
 
-def remove(userid, feature=None, commentid=None):
+def remove(userid, *, feature, commentid):
     if feature not in ["submit", "char", "journal", "siteupdate"]:
         raise WeasylError("Unexpected")
 

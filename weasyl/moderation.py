@@ -592,7 +592,7 @@ def manageuser(userid, form):
         "profile_text": query[3],
         "catchphrase": query[4],
         "user_media": media.get_user_media(query[0]),
-        "staff_notes": shout.count(query[0], staffnotes=True),
+        "staff_notes": shout.count_staff_notes(query[0]),
     }
 
 

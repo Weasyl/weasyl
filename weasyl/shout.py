@@ -42,14 +42,13 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     return result
 
 
-def count(ownerid, staffnotes=False):
+def count_staff_notes(ownerid):
     db = d.connect()
     sh = d.meta.tables['comments']
-    op = '~' if staffnotes else '!~'
     q = (
         sa.select([sa.func.count()])
         .select_from(sh)
-        .where(sh.c.settings.op(op)('s'))
+        .where(sh.c.settings.op('~')('s'))
         .where(sh.c.target_user == ownerid))
     (ret,), = db.execute(q)
     return ret

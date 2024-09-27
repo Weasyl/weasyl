@@ -824,7 +824,7 @@ def select_manage(userid):
         "gender": query[9],
         "country": query[10],
         "config": query[11],
-        "staff_notes": shout.count(userid, staffnotes=True),
+        "staff_notes": shout.count_staff_notes(userid),
         "sorted_user_links": sort_user_links(user_link_rows),
         "user_sessions": active_user_sessions,
     }

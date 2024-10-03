@@ -134,7 +134,6 @@ def remove(userid, *, commentid):
 
     # remove notifications
     welcome.comment_remove(commentid, 'shout')
-    d._page_header_info.invalidate(userid)
 
     # hide comment
     d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i", [userid, commentid])

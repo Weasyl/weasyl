@@ -298,7 +298,6 @@ def remove(userid, *, feature, commentid):
 
     # remove notifications
     welcome.comment_remove(commentid, feature)
-    d._page_header_info.invalidate(userid)
 
     # mark comments as hidden
     if feature == 'submit':

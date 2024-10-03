@@ -661,6 +661,12 @@ def _page_header_info(userid):
     return result
 
 
+def page_header_info_invalidate_multi(userids):
+    namespace = None
+    cache_keys = [*map(region.function_key_generator(namespace, _page_header_info), userids)]
+    region.delete_multi(cache_keys)
+
+
 def get_max_post_rating(userid):
     return max((key.rating for key, count in posts_count(userid, friends=True).items() if count), default=ratings.GENERAL.code)
 

@@ -258,12 +258,9 @@ def collectrequest_remove(userid, otherid, submitid):
 #   3100 user favorited character
 #   3110 user favorited journal
 
-def favorite_insert(db, userid, submitid=None, charid=None, journalid=None, otherid=None):
-    ownerid = d.get_ownerid(submitid, charid, journalid)
-    if not otherid:
-        otherid = ownerid
-
+def favorite_insert(db, userid, *, submitid, charid, journalid, otherid):
     if submitid:
+        ownerid = d.get_ownerid(submitid, charid, journalid)
         notiftype = 3020 if ownerid == otherid else 3050
     elif charid:
         notiftype = 3100

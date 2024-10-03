@@ -258,12 +258,9 @@ def collectrequest_remove(userid, otherid, submitid):
 #   3100 user favorited character
 #   3110 user favorited journal
 
-def favorite_insert(db, userid, submitid=None, charid=None, journalid=None, otherid=None):
-    ownerid = d.get_ownerid(submitid, charid, journalid)
-    if not otherid:
-        otherid = ownerid
-
+def favorite_insert(db, userid, *, submitid, charid, journalid, otherid):
     if submitid:
+        ownerid = d.get_ownerid(submitid, charid, journalid)
         notiftype = 3020 if ownerid == otherid else 3050
     elif charid:
         notiftype = 3100
@@ -375,11 +372,15 @@ def comment_remove(commentid, feature):
             ) SELECT commentid FROM rc""" % {'feature': feature}, comment=commentid)
 
     recursive_ids = [x['commentid'] for x in recursive_ids]
-    d.engine.execute(
+
+    # `targetid` is the notification comment id, and `referid` is the post id for a top-level comment or the parent comment id for a reply
+    result = d.engine.execute(
         """
-        DELETE FROM welcome WHERE (type = %(comment_code)s OR type = %(reply_code)s) AND
-        (targetid = ANY (%(ids)s) OR referid = ANY (%(ids)s))
+        DELETE FROM welcome WHERE type IN (%(comment_code)s, %(reply_code)s) AND
+        targetid = ANY (%(ids)s)
+        RETURNING userid
         """, comment_code=comment_code, reply_code=reply_code, ids=recursive_ids)
+    d.page_header_info_invalidate_multi({row.userid for row in result})
 
 
 # notifications

@@ -361,12 +361,12 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
-    # TODO: remove preferred/opt-out tag handling here when corresponding changes to `/control/editcommissionsettings` have been deployed for a while
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     target_key, targetid = only(
         (key, expect_id(request.POST[key]))
         for key in (
-            "preferred_tags_userid",
-            "optout_tags_userid",
             "submitid",
             "charid",
             "journalid",
@@ -374,28 +374,6 @@ def submit_tags_(request):
         if key in request.POST
     )
     tags = searchtag.parse_tags(request.POST["tags"])
-
-    match target_key:
-        case "preferred_tags_userid":
-            if targetid != request.userid:
-                raise WeasylError("Unexpected")
-            searchtag.set_commission_preferred_tags(
-                userid=request.userid,
-                tag_names=tags,
-            )
-            raise HTTPSeeOther(location="/control/editcommissionsettings")
-
-        case "optout_tags_userid":
-            if targetid != request.userid:
-                raise WeasylError("Unexpected")
-            searchtag.set_commission_optout_tags(
-                userid=request.userid,
-                tag_names=tags,
-            )
-            raise HTTPSeeOther(location="/control/editcommissionsettings")
-
-    if not define.is_vouched_for(request.userid):
-        raise WeasylError("vouchRequired")
 
     match target_key:
         case "submitid":

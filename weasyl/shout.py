@@ -42,14 +42,13 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     return result
 
 
-def count(ownerid, staffnotes=False):
+def count_staff_notes(ownerid):
     db = d.connect()
     sh = d.meta.tables['comments']
-    op = '~' if staffnotes else '!~'
     q = (
         sa.select([sa.func.count()])
         .select_from(sh)
-        .where(sh.c.settings.op(op)('s'))
+        .where(sh.c.settings.op('~')('s'))
         .where(sh.c.target_user == ownerid))
     (ret,), = db.execute(q)
     return ret
@@ -113,7 +112,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
     return commentid
 
 
-def remove(userid, commentid=None):
+def remove(userid, *, commentid):
     query = d.engine.execute(
         "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND settings !~ 'h'",
         id=commentid,
@@ -135,7 +134,6 @@ def remove(userid, commentid=None):
 
     # remove notifications
     welcome.comment_remove(commentid, 'shout')
-    d._page_header_info.invalidate(userid)
 
     # hide comment
     d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i", [userid, commentid])

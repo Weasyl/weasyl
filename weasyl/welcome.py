@@ -375,10 +375,12 @@ def comment_remove(commentid, feature):
             ) SELECT commentid FROM rc""" % {'feature': feature}, comment=commentid)
 
     recursive_ids = [x['commentid'] for x in recursive_ids]
+
+    # `targetid` is the notification comment id, and `referid` is the post id for a top-level comment or the parent comment id for a reply
     d.engine.execute(
         """
-        DELETE FROM welcome WHERE (type = %(comment_code)s OR type = %(reply_code)s) AND
-        (targetid = ANY (%(ids)s) OR referid = ANY (%(ids)s))
+        DELETE FROM welcome WHERE type IN (%(comment_code)s, %(reply_code)s) AND
+        targetid = ANY (%(ids)s)
         """, comment_code=comment_code, reply_code=reply_code, ids=recursive_ids)
 
 

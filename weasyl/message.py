@@ -117,6 +117,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 pr.username,
                 ch.settings,
                 we.welcomeid,
+                ch.friends_only,
                 0 AS subtype
                 {char_tags_select}
             FROM welcome we
@@ -142,6 +143,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 pr.username,
                 ''::text AS settings,
                 we.welcomeid,
+                su.friends_only,
                 su.subtype
                 {submission_tags_select}
             FROM welcome we
@@ -166,6 +168,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
                 pr.username,
                 ''::text AS settings,
                 we.welcomeid,
+                su.friends_only,
                 su.subtype
                 {submission_tags_select}
             FROM welcome we
@@ -212,6 +215,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
             "userid": i.userid,
             "username": i.username,
             "subtype": i.subtype,
+            "friends_only": i.friends_only,
             "tags": [tag_map[tag] for tag in i.tags],
             "sub_media": _fake_media_items(i),
         } for i in query]
@@ -226,6 +230,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
             "userid": i.userid,
             "username": i.username,
             "subtype": i.subtype,
+            "friends_only": i.friends_only,
             "sub_media": _fake_media_items(i),
         } for i in query]
 

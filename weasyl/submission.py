@@ -855,7 +855,7 @@ def select_list(
         "rating", "unixtime", "userid", "username", "subtype", "sub_media"
     """
     statement = "".join((
-        "SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.subtype ",
+        "SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.subtype, su.friends_only ",
         *_select_query(
             userid=userid,
             rating=rating,
@@ -891,7 +891,7 @@ def select_featured(userid, otherid, rating):
 
 def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.subtype
+        SELECT su.submitid, su.title, su.rating, su.unixtime, su.subtype, su.friends_only
           FROM submission su
          WHERE su.userid = %(owner)s
                AND NOT su.hidden
@@ -929,6 +929,7 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
         "rating": i[2],
         "unixtime": i[3],
         "subtype": i[4],
+        "friends_only": i[5],
     } for i in d.engine.execute(statement, {
         "owner": otherid,
         "submitid": submitid,

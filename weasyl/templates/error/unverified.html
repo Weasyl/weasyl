@@ -13,7 +13,5 @@ $:{RENDER("common/stage_title.html", ["Unverified Account"])}
     $if can_vouch:
       <input type="hidden" name="targetid" value="${targetid}">
       <button class="button positive">Vouch for ${target_username}</button>
-
-    <a href="javascript:;" onclick="history.back()" class="button">Go Back</a>
   </form>
 </div>

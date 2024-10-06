@@ -46,7 +46,7 @@ def collection_offer_(request):
         request.userid,
         "**Success!** Your collection offer has been sent "
         "and the recipient may now add this submission to their gallery.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/"]]))
+    ))
 
 
 @login_required
@@ -69,7 +69,7 @@ def collection_request_(request):
         request.userid,
         "**Success!** Your collection request has been sent. "
         "The submission author may approve or reject this request.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/"]]))
+    ))
 
 
 @login_required

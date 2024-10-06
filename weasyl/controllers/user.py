@@ -141,7 +141,7 @@ def signin_2fa_auth_post_(request):
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
             raise WeasylError('TwoFactorAuthenticationZeroRecoveryCodesRemaining',
-                              links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
+                              links=[["2FA Dashboard", "/control/2fa/status"]])
         # Return to the target page, restricting to the path portion of 'ref' per urlparse.
         response = HTTPSeeOther(location=urlparse(ref).path)
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
@@ -151,7 +151,7 @@ def signin_2fa_auth_post_(request):
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
         login.signout(request)
         raise WeasylError('TwoFactorAuthenticationAuthenticationAttemptsExceeded',
-                          links=[["Sign In", "/signin"], ["Return to the Home Page", "/"]])
+                          links=[["Sign In", "/signin"]])
     else:
         # Log the failed authentication attempt to the session and save
         with define.sessionmaker_future.begin() as tx:
@@ -198,7 +198,7 @@ def signup_post_(request):
         "has been sent to the email address you provided with "
         "information on how to complete the registration process. You "
         "should receive this email within the next hour.",
-        [["Return to the Home Page", "/"]]))
+    ))
 
 
 @guest_required
@@ -208,7 +208,7 @@ def verify_account_(request):
         request.userid,
         "**Success!** Your email address has been verified "
         "and you may now sign in to your account.",
-        [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+        [["Sign In", "/signin"]]))
 
 
 @login_required
@@ -218,7 +218,6 @@ def verify_emailchange_get_(request):
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your email address was successfully updated to **" + email + "**.",
-        [["Return to the Home Page", "/"]]
     ))
 
 
@@ -236,7 +235,7 @@ def forgetpassword_post_(request):
     return Response(define.errorpage(
         request.userid,
         "**Success!** Information on how to reset your password has been sent to your email address.",
-        [["Return to the Home Page", "/"]]))
+    ))
 
 
 @guest_required
@@ -253,7 +252,7 @@ def resetpassword_get_(request):
         return Response(define.errorpage(
             request.userid,
             "The e-mail address **%s** is not associated with a Weasyl account." % (reset_target.email,),
-            [["Sign Up", "/signup"], ["Return to the Home Page", "/"]]))
+            [["Sign Up", "/signup"]]))
 
     return Response(define.webpage(request.userid, "etc/resetpassword.html", [token, reset_target], options=("signup",), title="Reset Forgotten Password"))
 
@@ -275,7 +274,7 @@ def resetpassword_post_(request):
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your password has been reset and you may now sign in to your account.",
-        [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+        [["Sign In", "/signin"]]))
 
 
 @login_required

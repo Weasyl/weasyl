@@ -48,6 +48,9 @@ $def with (query, *, notifications=False, include_byline=True, lazy_load=True)
       $elif query['rating'] == R.EXPLICIT.code:
         <span class="rating explicit">The following submission is rated Explicit:</span>
 
+      $if query.get('friends_only', False):
+        <span class="friends-only">The following submission is for friends only:</span>
+
       $if query['contype'] in (30, 50):
         <img src="${avatar['display_url']}" alt="avatar" />
       $elif webp_thumb is not None:

@@ -338,7 +338,7 @@ def select_count(userid, rating, otherid=None, backid=None, nextid=None):
 
 
 def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
-    statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
+    statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings, ch.friends_only "]
     statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY ch.charid%s LIMIT %i" % ("" if backid else " DESC", limit))
@@ -353,6 +353,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
             "unixtime": i[3],
             "userid": i[4],
             "username": i[5],
+            "friends_only": i[7],
             "sub_media": fake_media_items(i[0], i[4], define.get_sysname(i[5]), i[6]),
         })
 

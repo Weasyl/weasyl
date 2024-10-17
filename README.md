@@ -53,10 +53,10 @@ Start all the remaining Weasyl services in the background:
 
 Future changes to the application server can be applied with `./wzl up -d --build web`.
 
-You can check its logs with `./wzl logs web`, or attach to it with `./wzl up web`. Detaching can be done from another shell with `pkill -x -HUP docker-compose`.
+You can check its logs with `./wzl logs web`, or attach to it with `./wzl up web`. Detaching can be done from another shell with `pkill -x -HUP docker-compose`. Inspecting the database can be done with `./wzl exec postgres psql -U weasyl`.
 
 
-Weasyl should now be running at <http://weasyl.localhost:8080/>!
+Weasyl should now be running at <http://weasyl.localhost:8080/>! Several accounts are already created for you with a default password of `password`. Login as `ikani` for director-level access, or see the contents of `./config/weasyl-staff.example.py` for accounts with other permission levels.
 
 
 ## Running tests

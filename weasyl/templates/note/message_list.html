@@ -56,7 +56,7 @@ $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
         <a class="button" href="/notes?folder=${folder}&amp;nextid=${notes[-1]['noteid']}">Next</a>
 
         <span style="float:right;">
-          <a class="button needs-js selection-toggle" href="#">Invert Selection</a>
+          <button type="button" class="button needs-js selection-toggle">Invert Selection</button>
           <button class="button negative">Remove Selected</button>
           <a class="button" href="/notes?folder=inbox">Inbox</a>
           <a class="button" href="/notes?folder=outbox">Outbox</a>

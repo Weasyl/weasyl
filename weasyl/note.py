@@ -21,7 +21,7 @@ def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
         SELECT ms.noteid, ms.userid, ps.username, ms.title, ms.unixtime, ms.settings
         FROM message ms
             INNER JOIN profile ps USING (userid)
-        WHERE (ms.otherid, ms.other_folder) = (%(recipient)s, 0)
+        WHERE ms.otherid = %(recipient)s
             AND ms.settings !~ 'r'
     """]
 
@@ -55,7 +55,7 @@ def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
         SELECT ms.noteid, ms.otherid, pr.username, ms.title, ms.unixtime
         FROM message ms
             INNER JOIN profile pr ON ms.otherid = pr.userid
-        WHERE (ms.userid, ms.user_folder) = (%(sender)s, 0)
+        WHERE ms.userid = %(sender)s
             AND ms.settings !~ 's'
     """]
 

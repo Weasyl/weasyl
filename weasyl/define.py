@@ -434,9 +434,12 @@ def get_userids(usernames):
     return ret
 
 
+def get_sysname_list(s: str) -> list[str]:
+    return list(filter(None, map(get_sysname, s.split(";"))))
+
+
 def get_userid_list(target):
-    usernames = target.split(";")
-    return [userid for userid in get_userids(usernames).values() if userid != 0]
+    return [userid for userid in get_userids(get_sysname_list(target)).values() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):

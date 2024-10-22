@@ -146,7 +146,7 @@ def notes_compose_get_(request):
 
     return Response(define.webpage(request.userid, "note/compose.html", [
         # Recipient
-        form.recipient.strip(),
+        "; ".join(define.get_sysname_list(form.recipient)),
         profile.select_myself(request.userid),
     ]))
 

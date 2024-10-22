@@ -1,0 +1,7 @@
+.pages-layout-split {
+    display: flex;
+
+    > [rel=next] {
+        margin-left: auto;
+    }
+}

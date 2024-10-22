@@ -180,70 +180,71 @@ def send(userid, form):
     elif len(form.title) > 100:
         raise WeasylError("titleTooLong")
 
-    users = set(d.get_userid_list(form.recipient))
+    recipient_sysnames = d.get_sysname_list(form.recipient)
+    if len(recipient_sysnames) > 1:
+        raise WeasylError("recipientExcessive")
+
+    recipientids = d.get_userids(recipient_sysnames)
+    if not recipientids:
+        raise WeasylError("recipientInvalid")
+
+    [recipientid] = recipientids.values()
+    del recipient_sysnames, recipientids
 
     # can't send a note to yourself
-    users.discard(userid)
+    if recipientid == userid:
+        raise WeasylError("recipientInvalid")
 
     # can't send a note to a user who ignores you
-    users.difference_update(
-        d.column(d.engine.execute("SELECT userid FROM ignoreuser WHERE otherid = %(user)s", user=userid)))
+    if ignoreuser.check(recipientid, userid):
+        raise WeasylError("recipientInvalid")
 
     # can't send a note to an unverified user
-    users.difference_update(
-        d.column(d.engine.execute("SELECT userid FROM login WHERE userid = ANY (%(users)s) AND voucher IS NULL", users=list(users))))
+    if not d.is_vouched_for(recipientid):
+        raise WeasylError("recipientInvalid")
 
     # can't send a note to a user you're ignoring
-    users.difference_update(ignoreuser.cached_list_ignoring(userid))
-
-    if not users:
+    if ignoreuser.check(userid, recipientid):
         raise WeasylError("recipientInvalid")
-
-    configs = d.engine.execute(
-        "SELECT userid, config FROM profile WHERE userid = ANY (%(recipients)s)",
-        recipients=list(users)).fetchall()
 
     if userid not in staff.MODS:
-        ignore_global_restrictions = {i for (i,) in d.engine.execute(
-            "SELECT userid FROM permitted_senders WHERE sender = %(user)s",
-            user=userid)}
+        recipient_config = d.get_config(recipientid)
 
-        remove = (
-            # Staff notes only
-            {j[0] for j in configs if "y" in j[1]} |
-            # Friend notes only
-            {j[0] for j in configs if "z" in j[1] and not frienduser.check(userid, j[0])}
-        )
+        def is_permitted_sender():
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT FROM permitted_senders WHERE (userid, sender) = (%(recipient)s, %(user)s))",
+                recipient=recipientid,
+                user=userid,
+            )
 
-        users.difference_update(remove - ignore_global_restrictions)
+        # Staff notes only
+        if "y" in recipient_config and not is_permitted_sender():
+            raise WeasylError("recipientInvalid")
 
-    if not users:
-        raise WeasylError("recipientInvalid")
-    elif len(users) > 10:
-        raise WeasylError("recipientExcessive")
+        # Friend notes only
+        if "z" in recipient_config and not frienduser.check(userid, recipientid) and not is_permitted_sender():
+            raise WeasylError("recipientInvalid")
 
     d.engine.execute(
         "INSERT INTO message (userid, otherid, title, content, unixtime)"
-        " SELECT %(sender)s, recipient, %(title)s, %(content)s, %(now)s"
-        " FROM UNNEST (%(recipients)s) AS recipient",
+        " VALUES (%(sender)s, %(recipient)s, %(title)s, %(content)s, %(now)s)",
         sender=userid,
         title=form.title,
         content=form.content,
         now=d.get_time(),
-        recipients=list(users),
+        recipient=recipientid,
     )
 
-    for u in users:
-        d._page_header_info.invalidate(u)
+    d._page_header_info.invalidate(recipientid)
 
     d.engine.execute(
         """
         INSERT INTO permitted_senders (userid, sender)
-            SELECT %(user)s, sender FROM UNNEST (%(recipients)s) AS sender
+            VALUES (%(user)s, %(recipient)s)
             ON CONFLICT (userid, sender) DO NOTHING
         """,
         user=userid,
-        recipients=list(users),
+        recipient=recipientid,
     )
 
     if form.mod_copy and userid in staff.MODS:
@@ -253,18 +254,15 @@ def send(userid, form):
         if form.staff_note:
             mod_content = '%s\n\n%s' % (form.staff_note, mod_content)
         now = arrow.utcnow()
-        mod_copies = []
-        for target in users:
-            mod_copies.append({
+        d.engine.execute(
+            d.meta.tables['comments'].insert()
+            .values({
                 'userid': userid,
-                'target_user': target,
+                'target_user': recipientid,
                 'unixtime': now,
                 'settings': 's',
                 'content': mod_content,
-            })
-        d.engine.execute(
-            d.meta.tables['comments'].insert()
-            .values(mod_copies))
+            }))
 
 
 def remove_list(userid, noteids):

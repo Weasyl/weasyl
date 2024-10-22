@@ -1,4 +1,4 @@
-$def with (folder, notes)
+$def with (folder, result)
 $code:
   username_key, userid_key, title, table_header = {
     'inbox': ('sendername', 'senderid', 'Inbox', 'Sender'),
@@ -8,22 +8,22 @@ $code:
 $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
 
 <div id="notes-content" class="content">
-  $if notes:
-    <form action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
-      <input type="hidden" name="folder" value="${folder}" />
+  <form action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
+    <input type="hidden" name="folder" value="${folder}" />
 
-      <table>
-        <thead>
-          <tr>
-            <th style="width:2em;"></th>
-            <th>Message Title</th>
-            <th>${table_header}</th>
-            <th>Time</th>
-          </tr>
-        </thead>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:2em;"></th>
+          <th>Message Title</th>
+          <th>${table_header}</th>
+          <th>Time</th>
+        </tr>
+      </thead>
 
-        <tbody>
-          $for note in notes:
+      <tbody>
+        $if result.query:
+          $for note in result.query:
             $ noteid = note['noteid']
             $ username = note[username_key]
             $ unixtime = note['unixtime']
@@ -47,37 +47,32 @@ $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
               </td>
               <td>$:{LOCAL_TIME(unixtime, '{date} {time}')}</td>
             </tr>
-        </tbody>
-      </table>
+        $else:
+          <tr>
+            <td></td>
+            <td class="notes-empty" colspan="3">No private messages.</td>
+          </tr>
+      </tbody>
+    </table>
 
-      <!-- buttons at bottom of page -->
-      <div class="buttons">
-        <a class="button" href="/notes?folder=${folder}&amp;backid=${notes[0]['noteid']}">Back</a>
-        <a class="button" href="/notes?folder=${folder}&amp;nextid=${notes[-1]['noteid']}">Next</a>
+    <div class="buttons clear">
+      $if result.query:
+        $:{COMPILE("common/page_navigation.html")(result, layout="pages-layout-left")}
 
-        <span style="float:right;">
-          <button type="button" class="button needs-js selection-toggle">Invert Selection</button>
-          <button class="button negative">Remove Selected</button>
-          <a class="button" href="/notes?folder=inbox">Inbox</a>
-          <a class="button" href="/notes?folder=outbox">Outbox</a>
-          <a class="button" href="/notes/compose">Compose</a>
-        </span>
-      </div>
+      <span style="float:right;">
+        <button type="button" class="button needs-js selection-toggle">Invert Selection</button>
+        <button class="button negative">Remove Selected</button>
+        <a class="button" href="/notes?folder=inbox">Inbox</a>
+        <a class="button" href="/notes?folder=outbox">Outbox</a>
+        <a class="button" href="/notes/compose">Compose</a>
+      </span>
+    </div>
+  </form>
+  <div style="padding-top:1em;text-align:right;">
+    <form action="/notes">
+      <input type="hidden" name="folder" value="${folder}" />
+      <input type="text" name="filter" class="input" style="width:200px;" />
+      <button type="submit" class="button">Show Messages ${'From' if folder == 'inbox' else 'To'} User</button>
     </form>
-    <div style="padding-top:1em;text-align:right;">
-      <form action="/notes">
-        <input type="hidden" name="folder" value="${folder}" />
-        <input type="text" name="filter" class="input" style="width:200px;" />
-        <button type="submit" class="button">Show Messages ${'From' if folder == 'inbox' else 'To'} User</button>
-      </form>
-    </div>
-
-  $else:
-    <p>There are no private messages to display.</p>
-
-    <div class="buttons" style="text-align:right;">
-      <a class="button" href="/notes?folder=inbox">Inbox</a>
-      <a class="button" href="/notes?folder=outbox">Outbox</a>
-      <a class="button" href="/notes/compose">Compose</a>
-    </div>
+  </div>
 </div>

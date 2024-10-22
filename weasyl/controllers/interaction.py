@@ -4,7 +4,7 @@ from pyramid.response import Response
 from weasyl.controllers.decorators import login_required, token_checked
 from weasyl.error import WeasylError
 from weasyl import (
-    define, favorite, followuser, frienduser, ignoreuser, note, profile)
+    define, favorite, followuser, frienduser, ignoreuser, note, pagination, profile)
 
 
 # User interactivity functions
@@ -114,27 +114,31 @@ def notes_(request):
         raise WeasylError("vouchRequired")
 
     form = request.web_input(folder="inbox", filter="", backid="", nextid="")
+
+    if form.folder == "inbox":
+        select_list = note.select_inbox
+        select_count = note.select_inbox_count
+    elif form.folder == "outbox":
+        select_list = note.select_outbox
+        select_count = note.select_outbox_count
+    else:
+        raise WeasylError("unknownMessageFolder")
+
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
     filter_ = define.get_userid_list(form.filter)
 
-    if form.folder == "inbox":
-        return Response(define.webpage(request.userid, "note/message_list.html", [
-            # Folder
-            "inbox",
-            # Private messages
-            note.select_inbox(request.userid, 50, backid=backid, nextid=nextid, filter=filter_),
-        ]))
-
-    if form.folder == "outbox":
-        return Response(define.webpage(request.userid, "note/message_list.html", [
-            # Folder
-            "outbox",
-            # Private messages
-            note.select_outbox(request.userid, 50, backid=backid, nextid=nextid, filter=filter_),
-        ]))
-
-    raise WeasylError("unknownMessageFolder")
+    result = pagination.PaginatedResult(
+        select_list, select_count, "noteid", f"/notes?folder={form.folder}&%s",
+        request.userid, filter=filter_,
+        backid=backid,
+        nextid=nextid,
+        count_limit=note.COUNT_LIMIT,
+    )
+    return Response(define.webpage(request.userid, "note/message_list.html", (
+        form.folder,
+        result,
+    )))
 
 
 @login_required

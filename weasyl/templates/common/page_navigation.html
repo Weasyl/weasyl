@@ -1,6 +1,6 @@
-$def with (result)
+$def with (result, layout="pages-layout-split")
 $# paginated navigation buttons using a PaginatedResult
-<nav class="pages-layout-split">
+<nav class="${layout}">
   $if result.has_counts:
     $if result.back_count:
       <a class="button" rel="prev" href="${result.back_url}">Back (${result.back_count}$:{'+' if result.back_count == result.count_limit else ''} more)</a>

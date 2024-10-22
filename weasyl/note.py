@@ -16,26 +16,54 @@ user who received it.
 """
 
 
-def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
-    statement = ["""
-        SELECT ms.noteid, ms.userid, ps.username, ms.title, ms.unixtime, ms.settings
+PAGE_SIZE = 50
+COUNT_LIMIT = 1000
+
+
+def _select_inbox_query(with_backid: bool, with_nextid: bool, with_filter: bool):
+    yield """
         FROM message ms
             INNER JOIN profile ps USING (userid)
         WHERE ms.otherid = %(recipient)s
             AND ms.settings !~ 'r'
-    """]
+    """
 
-    if filter:
-        statement.append(" AND ms.userid = ANY (%(filter)s)")
+    if with_filter:
+        yield " AND ms.userid = ANY (%(filter)s)"
 
-    if backid:
-        statement.append(" AND ms.noteid > %(backid)s ORDER BY ms.noteid")
-    elif nextid:
-        statement.append(" AND ms.noteid < %(nextid)s ORDER BY ms.noteid DESC")
-    else:
-        statement.append(" ORDER BY ms.noteid DESC")
+    if with_backid:
+        yield " AND ms.noteid > %(backid)s"
+    elif with_nextid:
+        yield " AND ms.noteid < %(nextid)s"
 
-    statement.append(" LIMIT %(limit)s")
+
+def _select_outbox_query(with_backid: bool, with_nextid: bool, with_filter: bool):
+    yield """
+        FROM message ms
+            INNER JOIN profile pr ON ms.otherid = pr.userid
+        WHERE ms.userid = %(sender)s
+            AND ms.settings !~ 's'
+    """
+
+    if with_filter:
+        yield " AND ms.otherid = ANY (%(filter)s)"
+
+    if with_backid:
+        yield " AND ms.noteid > %(backid)s"
+    elif with_nextid:
+        yield " AND ms.noteid < %(nextid)s"
+
+
+def select_inbox(userid, *, limit: None, backid, nextid, filter):
+    statement = "".join((
+        "SELECT ms.noteid, ms.userid, ps.username, ms.title, ms.unixtime, ms.settings",
+        *_select_inbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" ORDER BY ms.noteid {'DESC' if backid is None else ''} LIMIT {PAGE_SIZE}",
+    ))
 
     query = [{
         "noteid": i.noteid,
@@ -45,31 +73,21 @@ def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
         "title": i.title,
         "unixtime": i.unixtime,
     } for i in d.engine.execute(
-        "".join(statement), recipient=userid, filter=filter, backid=backid, nextid=nextid, limit=limit)]
+        statement, recipient=userid, filter=filter, backid=backid, nextid=nextid)]
 
-    return list(reversed(query)) if backid else query
+    return query if backid is None else query[::-1]
 
 
-def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
-    statement = ["""
-        SELECT ms.noteid, ms.otherid, pr.username, ms.title, ms.unixtime
-        FROM message ms
-            INNER JOIN profile pr ON ms.otherid = pr.userid
-        WHERE ms.userid = %(sender)s
-            AND ms.settings !~ 's'
-    """]
-
-    if filter:
-        statement.append(" AND ms.otherid = ANY (%(filter)s)")
-
-    if backid:
-        statement.append(" AND ms.noteid > %(backid)s ORDER BY ms.noteid")
-    elif nextid:
-        statement.append(" AND ms.noteid < %(nextid)s ORDER BY ms.noteid DESC")
-    else:
-        statement.append(" ORDER BY ms.noteid DESC")
-
-    statement.append(" LIMIT %(limit)s")
+def select_outbox(userid, *, limit: None, backid, nextid, filter):
+    statement = "".join((
+        "SELECT ms.noteid, ms.otherid, pr.username, ms.title, ms.unixtime",
+        *_select_outbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" ORDER BY ms.noteid {'DESC' if backid is None else ''} LIMIT {PAGE_SIZE}",
+    ))
 
     query = [{
         "noteid": i.noteid,
@@ -78,9 +96,37 @@ def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
         "title": i.title,
         "unixtime": i.unixtime,
     } for i in d.engine.execute(
-        "".join(statement), sender=userid, filter=filter, backid=backid, nextid=nextid, limit=limit)]
+        statement, sender=userid, filter=filter, backid=backid, nextid=nextid)]
 
-    return list(reversed(query)) if backid else query
+    return query if backid is None else query[::-1]
+
+
+def select_inbox_count(userid, *, backid, nextid, filter):
+    statement = "".join((
+        "SELECT count(*) FROM (SELECT ",
+        *_select_inbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" LIMIT {COUNT_LIMIT}) t",
+    ))
+    return d.engine.scalar(
+        statement, recipient=userid, filter=filter, backid=backid, nextid=nextid)
+
+
+def select_outbox_count(userid, *, backid, nextid, filter):
+    statement = "".join((
+        "SELECT count(*) FROM (SELECT ",
+        *_select_outbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" LIMIT {COUNT_LIMIT}) t",
+    ))
+    return d.engine.scalar(
+        statement, sender=userid, filter=filter, backid=backid, nextid=nextid)
 
 
 def select_view(userid, noteid):

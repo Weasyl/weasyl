@@ -1,6 +1,8 @@
 # encoding: utf-8
+from collections.abc import Callable
 from html import escape as html_escape
 import re
+from typing import Generator
 
 from lxml import etree, html
 import misaka
@@ -14,7 +16,7 @@ except ImportError:
     from html.parser import locatestarttagend
 
 
-def slug_for(title):
+def slug_for(title: str) -> str:
     title = title.replace("&", " and ")
     return "-".join(m.group(0) for m in re.finditer(r"[a-z0-9]+", title.lower()))
 
@@ -40,19 +42,19 @@ _EXCERPT_BLOCK_ELEMENTS = frozenset([
 ])
 
 
-def _furaffinity(target):
+def _furaffinity(target: str) -> str:
     return "".join(i for i in target if i not in "!#_" and not i.isspace()).lower()
 
 
-def _inkbunny(target):
+def _inkbunny(target: str) -> str:
     return target.lower()
 
 
-def _deviantart(target):
+def _deviantart(target: str) -> str:
     return "".join(i for i in target if i != "." and not i.isspace()).lower()
 
 
-def _sofurry(target):
+def _sofurry(target: str) -> str:
     return NON_USERNAME_CHARACTERS.sub("-", target).lstrip("-").lower()
 
 
@@ -69,7 +71,7 @@ MISAKA_FORMAT = (
     misaka.HTML_HARD_WRAP)
 
 
-def strip_outer_tag(html):
+def strip_outer_tag(html: str) -> tuple[str, str, str]:
     match = locatestarttagend.match(html)
     start_tag_end = match.end()
     end_tag_start = html.rindex('<')
@@ -78,13 +80,13 @@ def strip_outer_tag(html):
 
 class WeasylRenderer(misaka.HtmlRenderer):
     # Render Markdown in HTML
-    def block_html(self, raw_html):
+    def block_html(self, raw_html: str) -> str:
         if raw_html.startswith('<!--'):
             return raw_html
         start, stripped, end = strip_outer_tag(raw_html)
         return ''.join([start, _markdown(stripped).rstrip(), end])
 
-    def autolink(self, link, is_email):
+    def autolink(self, link: str, is_email: bool) -> str:
         # default implementation from sundown’s `rndr_autolink`, with the tag name replaced
         html_href = html_escape("mailto:" + link if is_email else link)
         html_text = html_escape(link.removeprefix("mailto:"))
@@ -92,7 +94,7 @@ class WeasylRenderer(misaka.HtmlRenderer):
         return f'<wzl-autolink href="{html_href}">{html_text}</wzl-autolink>'
 
     # Respect start of ordered lists
-    def list(self, text, ordered, prefix):
+    def list(self, text: str, ordered, prefix: str) -> str:
         if prefix:
             return '<ol start="{start}">{text}</ol>'.format(
                 start=prefix,
@@ -104,13 +106,13 @@ class WeasylRenderer(misaka.HtmlRenderer):
             )
 
 
-def _markdown(target):
+def _markdown(target: str) -> str:
     renderer = WeasylRenderer(MISAKA_FORMAT)
     markdown = misaka.Markdown(renderer, MISAKA_EXT)
     return markdown.render(target)
 
 
-def create_link(t, username):
+def create_link(t: str, username: str) -> etree._Element:
     link = etree.Element("a")
     link.set("href", "/~" + get_sysname(username))
 
@@ -133,8 +135,8 @@ def create_link(t, username):
     return link
 
 
-def add_user_links(fragment, parent, can_contain):
-    def add_matches(text, got_link):
+def add_user_links(fragment: etree._Element, parent: etree._Element, can_contain: bool):
+    def add_matches(text: str, got_link: Callable[[str, str], None]) -> bool:
         text_start = 0
 
         for m in USER_LINK.finditer(text):
@@ -160,7 +162,7 @@ def add_user_links(fragment, parent, can_contain):
 
         return True
 
-    def got_text_link(t, username):
+    def got_text_link(t: str, username: str):
         nonlocal previous
         nonlocal insert_index
 
@@ -177,7 +179,7 @@ def add_user_links(fragment, parent, can_contain):
 
         previous = link
 
-    def got_tail_link(t, username):
+    def got_tail_link(t: str, username: str):
         nonlocal previous
         nonlocal insert_index
 
@@ -215,7 +217,7 @@ def add_user_links(fragment, parent, can_contain):
             previous.tail = "".join(previous_text)
 
 
-def _convert_autolinks(fragment):
+def _convert_autolinks(fragment: etree._Element):
     for child in fragment:
         if child.tag in ("a", "wzl-autolink"):
             child.tag = "a"
@@ -244,7 +246,7 @@ def _convert_autolinks(fragment):
             _convert_autolinks(child)
 
 
-def _markdown_fragment(target):
+def _markdown_fragment(target: str) -> etree._Element:
     rendered = _markdown(target)
     fragment = html.fragment_fromstring(rendered, create_parent=True)
 
@@ -289,13 +291,13 @@ def _markdown_fragment(target):
     return fragment
 
 
-def markdown(target):
+def markdown(target: str) -> str:
     fragment = _markdown_fragment(target)
     start, stripped, end = strip_outer_tag(html.tostring(fragment, encoding="unicode"))
     return stripped
 
 
-def _itertext_spaced(element):
+def _itertext_spaced(element: etree._Element) -> Generator[str]:
     if element.text:
         yield element.text
     elif element.tag == "img" and (alt := element.get("alt")):
@@ -317,11 +319,11 @@ def _itertext_spaced(element):
             yield " "
 
 
-def _normalize_whitespace(text):
+def _normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip())
 
 
-def markdown_excerpt(markdown_text, length=300):
+def markdown_excerpt(markdown_text: str, length=300) -> str:
     fragment = _markdown_fragment(markdown_text)
     text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
 
@@ -331,6 +333,6 @@ def markdown_excerpt(markdown_text, length=300):
         return text[:length - 1].rstrip() + "…"
 
 
-def markdown_link(title, url):
+def markdown_link(title: str, url: str) -> str:
     title = title.replace('[', '\\[').replace(']', '\\]')
     return '[%s](%s)' % (title, url)

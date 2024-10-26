@@ -26,7 +26,7 @@ UNIXTIME_NOW_SQL = func.extract('epoch', func.now()).cast(sa.BigInteger()) + sa.
 _SYSNAME_CHARACTERS = frozenset(string.ascii_lowercase + string.digits)
 
 
-def get_sysname(target):
+def get_sysname(target: str) -> str:
     """
     Convert a username to a login name.
 

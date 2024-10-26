@@ -297,7 +297,7 @@ def markdown(target: str) -> str:
     return stripped
 
 
-def _itertext_spaced(element: etree._Element) -> Generator[str]:
+def _itertext_spaced(element: etree._Element) -> Generator[str, None, None]:
     if element.text:
         yield element.text
     elif element.tag == "img" and (alt := element.get("alt")):

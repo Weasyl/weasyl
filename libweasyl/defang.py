@@ -7,6 +7,9 @@ HTML defanging.
 import re
 from urllib.parse import urlparse
 
+from lxml import etree
+
+
 allowed_tags = {
     "section", "nav", "article", "aside",
     "h1", "h2", "h3", "h4", "h5", "h6",
@@ -77,7 +80,7 @@ color: \s* (?:
 """, re.X | re.I)
 
 
-def get_scheme(url):
+def get_scheme(url: str) -> str | None:
     """
     Get the scheme from a URL, if the URL is valid.
 
@@ -94,7 +97,7 @@ def get_scheme(url):
         return None
 
 
-def defang(fragment):
+def defang(fragment: etree._Element):
     """
     Remove potentially harmful attributes and elements from an HTML fragment.
 

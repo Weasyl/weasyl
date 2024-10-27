@@ -43,7 +43,7 @@ class Rating:
 
 GENERAL = Rating(10, "g", "general", "General", 0, "Block general and higher")
 MATURE = Rating(30, "a", "mature", "Mature", 18, "Block mature and higher", "non-sexual")
-EXPLICIT = Rating(40, "p", "explicit", "Explicit", 18, "Block explicit only", "sexual")
+EXPLICIT = Rating(40, "p", "explicit", "Explicit", 18, "Block explicit only", "sexual or harder fetishes")
 ALL_RATINGS = [GENERAL, MATURE, EXPLICIT]
 
 

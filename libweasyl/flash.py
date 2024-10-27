@@ -1,11 +1,13 @@
+from io import BytesIO
 import itertools
 import lzma
 import struct
+from typing import Generator, TypedDict
 import os
 import zlib
 
 
-def iter_decompressed_zlib(fobj, chunksize=1024):
+def iter_decompressed_zlib(fobj: BytesIO, chunksize=1024) -> Generator[bytes, None, None]:
     """
     An iterator over the decompressed bytes of a zlib-compressed file object.
 
@@ -33,9 +35,16 @@ SIGNATURE_COMPRESSION = {
     b'CWS': 'zlib',
     b'ZWS': 'lzma',
 }
+FlashHeader = TypedDict('FlashHeader', {
+    'compression': str | None,
+    'version': int,
+    'size': int,
+    'width': int,
+    'height': int,
+})
 
 
-def parse_flash_header(fobj):
+def parse_flash_header(fobj: BytesIO) -> FlashHeader:
     """
     Parse (parts of) the header of a flash object.
 

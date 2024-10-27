@@ -9,6 +9,7 @@ project.
 
 import json
 import threading
+from typing import Any
 
 import dogpile.cache
 import dogpile.cache.backends.memcached
@@ -50,7 +51,7 @@ class ThreadCacheProxy(ProxyBackend):
             pass
 
     @property
-    def _dict(self):
+    def _dict(self) -> dict[str, Any]:
         """
         Get the cache dict for the current thread.
 
@@ -61,7 +62,7 @@ class ThreadCacheProxy(ProxyBackend):
             self._local.cache_dict = {}
         return self._local.cache_dict
 
-    def get(self, key):
+    def get(self, key: str) -> Any:
         """
         Proxy a ``get`` call.
 
@@ -86,7 +87,7 @@ class ThreadCacheProxy(ProxyBackend):
             d[key] = ret
         return ret
 
-    def get_multi(self, keys):
+    def get_multi(self, keys: list[str]) -> list[Any]:
         """
         Proxy a ``get_multi`` call.
 
@@ -115,7 +116,7 @@ class ThreadCacheProxy(ProxyBackend):
             d[key] = ret[index] = value
         return ret
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any):
         """
         Proxy a ``set`` call.
 
@@ -129,7 +130,7 @@ class ThreadCacheProxy(ProxyBackend):
         self._dict[key] = value
         self.proxied.set(key, value)
 
-    def set_multi(self, pairs):
+    def set_multi(self, pairs: dict[str, Any]):
         """
         Proxy a ``set_multi`` call.
 
@@ -143,7 +144,7 @@ class ThreadCacheProxy(ProxyBackend):
         self._dict.update(pairs)
         self.proxied.set_multi(pairs)
 
-    def delete(self, key):
+    def delete(self, key: str):
         """
         Proxy a ``delete`` call.
 
@@ -156,7 +157,7 @@ class ThreadCacheProxy(ProxyBackend):
         self._dict.pop(key, None)
         self.proxied.delete(key)
 
-    def delete_multi(self, keys):
+    def delete_multi(self, keys: list[str]):
         """
         Proxy a ``delete_multi`` call.
 
@@ -176,10 +177,10 @@ class JsonClient(pylibmc.Client):
     A pylibmc.Client that stores only dogpile.cache entries, as JSON.
     """
 
-    def serialize(self, value):
+    def serialize(self, value: Any) -> tuple[bytes, int]:
         return json.dumps(value).encode('ascii'), 0
 
-    def deserialize(self, bytestring, flag):
+    def deserialize(self, bytestring: bytes, flag) -> CachedValue:
         payload, metadata = json.loads(bytestring)
         return CachedValue(payload, metadata)
 
@@ -189,7 +190,7 @@ class JsonPylibmcBackend(dogpile.cache.backends.memcached.PylibmcBackend):
     def _imports(self):
         pass
 
-    def _create_client(self):
+    def _create_client(self) -> JsonClient:
         return JsonClient(
             self.url,
             binary=self.binary,

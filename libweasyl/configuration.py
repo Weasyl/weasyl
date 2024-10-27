@@ -7,14 +7,31 @@ parameterizing modules, but we can't, so this is what we have. It does mean
 that only one libweasyl configuration can exist in a running python process.
 """
 
-from libweasyl.models.media import MediaItem
+from collections.abc import Iterable
+import os
+from typing import Callable, TypedDict
+
+from sqlalchemy.orm import scoped_session
+
+from libweasyl.models.media import MediaItem, SubmissionMediaLink, UserMediaLink
 from libweasyl.models.meta import _configure_dbsession
 from libweasyl.staff import _init_staff
 
 
+StaffConfigDict = TypedDict('StaffConfigDict', {
+    'directors': Iterable[int],
+    'technical_staff': Iterable[int],
+    'admins': Iterable[int],
+    'mods': Iterable[int],
+    'developers': Iterable[int],
+    'wesley': int | None,
+})
+
+
 def configure_libweasyl(
-        dbsession, base_file_path,
-        staff_config_dict, media_link_formatter_callback):
+        dbsession: scoped_session, base_file_path: str | bytes | os.PathLike,
+        staff_config_dict: StaffConfigDict,
+        media_link_formatter_callback: Callable[[MediaItem, SubmissionMediaLink | UserMediaLink], str | None]):
     """
     Configure libweasyl for the current application. This sets up some
     global state around libweasyl.

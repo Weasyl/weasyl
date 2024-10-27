@@ -2,8 +2,10 @@
 File manipulation and detection.
 """
 
+from collections.abc import Sequence
 import errno
 import os
+from typing import TypeVar
 
 from sanpera.exception import SanperaError
 
@@ -12,7 +14,10 @@ from libweasyl.exceptions import InvalidFileFormat, UnknownFileFormat
 from libweasyl import images
 
 
-def makedirs_exist_ok(path):
+T = TypeVar('T')
+
+
+def makedirs_exist_ok(path: str | bytes | os.PathLike):
     """
     Ensure a directory and all of its parent directories exist.
 
@@ -34,7 +39,7 @@ def makedirs_exist_ok(path):
             raise
 
 
-def fanout(name, fanout):
+def fanout(name: Sequence[T], fanout: Sequence[int]) -> list[T]:
     """
     Generate fanout for a particular name.
 
@@ -64,7 +69,7 @@ def fanout(name, fanout):
     return ret
 
 
-def file_type_for_category(data, category):
+def file_type_for_category(data: bytes, category: Category) -> tuple[str | bytes | None, str]:
     """
     Determine the type of a file, given its contents and a submission category.
 

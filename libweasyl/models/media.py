@@ -1,6 +1,8 @@
+from collections.abc import Iterable
 import hashlib
 from io import BytesIO
 import os
+from typing import Any, TypedDict, Union
 
 from sqlalchemy.orm import relationship, foreign, remote, joinedload, lazyload, load_only
 from sqlalchemy.sql.expression import any_
@@ -10,6 +12,15 @@ from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
 from libweasyl import flash, images
+
+
+SerializedMediaItem = TypedDict('SerializedMediaItem', {
+    'mediaid': int,
+    'file_type': str,
+    'file_url': str,
+    'attributes': dict[str, Any],
+    'display_url': str,
+})
 
 
 class MediaItem(Base):
@@ -54,7 +65,7 @@ class MediaItem(Base):
             'attributes': self.attributes,
         }
 
-    def serialize(self, *, link):
+    def serialize(self, *, link: Union['SubmissionMediaLink', 'UserMediaLink']) -> SerializedMediaItem:
         ret = self._to_dict()
         ret['display_url'] = self._media_link_formatter_callback(self, link) or self.display_url
         return ret
@@ -124,7 +135,7 @@ class _LinkMixin:
         cls.refresh_cache(identity)
 
     @classmethod
-    def bucket_links(cls, identities):
+    def bucket_links(cls, identities: Iterable[int]) -> list[dict[str, list[SerializedMediaItem]]]:
         if not identities:
             return []
         q = (

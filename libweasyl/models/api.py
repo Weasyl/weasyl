@@ -17,7 +17,7 @@ class OAuthConsumer(Base):
     owner = relationship(Login, backref='oauth_consumers')
 
     @property
-    def client_id(self):
+    def client_id(self) -> str:
         return self.clientid
 
 

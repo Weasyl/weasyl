@@ -7,7 +7,7 @@ import os
 import zlib
 
 
-def iter_decompressed_zlib(fobj: BytesIO, chunksize=1024) -> Generator[bytes, None, None]:
+def iter_decompressed_zlib(fobj: BytesIO, chunksize=1024) -> Generator[int, None, None]:
     """
     An iterator over the decompressed bytes of a zlib-compressed file object.
 

@@ -27,7 +27,7 @@ class MediaItem(Base):
     __table__ = tables.media
 
     @classmethod
-    def fetch_or_create(cls, data, file_type=None, im=None, attributes=()):
+    def fetch_or_create(cls, data: bytes, file_type: str | None = None, im=None, attributes=()) -> 'MediaItem':
         sha256 = hashlib.sha256(data).hexdigest()
         obj = (cls.query
                .filter(cls.sha256 == sha256)
@@ -70,7 +70,7 @@ class MediaItem(Base):
         ret['display_url'] = self._media_link_formatter_callback(self, link) or self.display_url
         return ret
 
-    def ensure_cover_image(self, source_image):
+    def ensure_cover_image(self, source_image) -> 'MediaItem':
         if self.file_type not in {'jpg', 'png', 'gif'}:
             raise ValueError('can only auto-cover image media items')
 
@@ -85,23 +85,23 @@ class MediaItem(Base):
         return cover_media_item
 
     @property
-    def display_url(self):
+    def display_url(self) -> str:
         # Dodge a silly AdBlock rule
         return self.file_url.replace('media/ad', 'media/ax')
 
     @property
-    def full_file_path(self):
+    def full_file_path(self) -> str:
         return os.path.join(self._base_file_path, *self._file_path_components)
 
     def as_image(self):
         return images.read(self.full_file_path.encode())
 
     @property
-    def _file_path_components(self):
+    def _file_path_components(self) -> list[str]:
         return ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
 
     @property
-    def file_url(self):
+    def file_url(self) -> str:
         return '/' + '/'.join(self._file_path_components)
 
 
@@ -109,12 +109,12 @@ class _LinkMixin:
     cache_func = None
 
     @classmethod
-    def refresh_cache(cls, identity):
+    def refresh_cache(cls, identity: int):
         if cls.cache_func:
             cls.cache_func.refresh(identity)
 
     @classmethod
-    def clear_link(cls, identity, link_type):
+    def clear_link(cls, identity: int, link_type):
         (cls.query
          .filter(cls.link_type == link_type)
          .filter(getattr(cls, cls._identity) == identity)
@@ -122,7 +122,7 @@ class _LinkMixin:
         cls.refresh_cache(identity)
 
     @classmethod
-    def make_or_replace_link(cls, identity, link_type, media_item):
+    def make_or_replace_link(cls, identity: int, link_type: str, media_item: MediaItem):
         obj = (cls.query
                .filter(cls.link_type == link_type)
                .filter(getattr(cls, cls._identity) == identity)

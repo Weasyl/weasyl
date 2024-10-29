@@ -3,6 +3,7 @@
 @import 'components/date-picker';
 @import 'components/option';
 @import 'components/page-navigation';
+@import 'components/private-messages';
 @import 'components/text-post-list';
 @import 'components/user-tabs';
 @import 'pages/marketplace';
@@ -110,7 +111,6 @@ i, #header-guest {
 --------------------------------*/
 $color-a: #069bc0;
 $color-b: #8cad47;
-$link-color: #336979;
 
 .color-a, .username, .content .username, .page-title, #header-nav .current,
 #user-nav .current,
@@ -675,7 +675,12 @@ dl + h4, #uc-info {
 
 /* ------------------------------------ =inputs -- */
 
-.button, .stage .content .button {
+// Even when the surrounding text is a different size, keep default button style consistent – extending the existing `<button>` default to `<a class="button">`.
+.button {
+    @extend .typeface-default;
+}
+
+.button, .content .button, .stage .content .button {
     display: inline-block;
     vertical-align: baseline;
     padding: 0.4em 1.2em;
@@ -3894,30 +3899,6 @@ img + #detail-art-text {
 
 #friends-accepted, #friends-pending, #following-users {
     padding-top: 2em;
-}
-
-#note-content {
-    padding-top: 2em;
-}
-
-#note-content .formatted-content {
-    padding-top: 1.5em;
-}
-
-#notes-content {
-    padding-top: 2em;
-}
-
-#notes-content th {
-    text-align: left;
-}
-
-#notes-content .unread {
-    font-weight: bold;
-}
-
-#notes-content .buttons {
-    padding-top: 1em;
 }
 
 /* ------------------------------------ =footer -- */

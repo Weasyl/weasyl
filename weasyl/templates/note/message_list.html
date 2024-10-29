@@ -1,20 +1,51 @@
-$def with (folder, result)
+$def with (folder, result, filter_usernames, inbox_unread)
 $code:
-  username_key, userid_key, title, table_header = {
-    'inbox': ('sendername', 'senderid', 'Inbox', 'Sender'),
-    'outbox': ('recipientname', 'recipientid', 'Outbox', 'Recipient'),
+  username_key, userid_key, table_header, filter_rel = {
+    'inbox': ('sendername', 'senderid', 'Sender', 'from'),
+    'outbox': ('recipientname', 'recipientid', 'Recipient', 'to'),
   }[folder]
 
-$:{RENDER("common/stage_title.html", [title, "Notes", 0])}
+  def _CURRENT(context_folder):
+    return ' class="current"' if folder == context_folder else ''
 
 <div id="notes-content" class="content">
+  <nav class="notes-folders">
+    <ul>
+      <li><a$:{_CURRENT('inbox')} href="/notes?folder=inbox">Inbox (${inbox_unread})</a></li>
+      <li><a$:{_CURRENT('outbox')} href="/notes?folder=outbox">Sent</a></li>
+      <li><a$:{_CURRENT('compose')} href="/notes/compose">Compose</a></li>
+    </ul>
+  </nav>
+
+  <search class="notes-filter">
+    $if filter_usernames:
+      Showing messages ${filter_rel}
+      $for username, exists in filter_usernames:
+        $ separator = '.' if loop.last else ' or '
+        $if exists:
+          <a href="/~${LOGIN(username)}">${username}</a>${separator}
+        $else:
+          <b>${username}</b> (no such user)${separator}
+
+      <a class="button" href="/notes?folder=${folder}">Reset filter</a>
+    $else:
+      <form action="/notes">
+        <input type="hidden" name="folder" value="${folder}" />
+        <input type="search" name="filter" class="input" />
+        <button class="button">Show messages ${filter_rel} user</button>
+      </form>
+  </search>
+
   <form action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
     <input type="hidden" name="folder" value="${folder}" />
 
-    <table>
+    $# disable implicit submission of this form: https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#implicit-submission
+    <button hidden disabled>Do nothing</button>
+
+    <table class="notes-list">
       <thead>
         <tr>
-          <th style="width:2em;"></th>
+          <th class="notes-select-all"></th>
           <th>Message Title</th>
           <th>${table_header}</th>
           <th>Time</th>
@@ -31,21 +62,33 @@ $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
             $ unread = folder == 'inbox' and note['unread']
 
             <tr>
-              <td><input type="checkbox" name="notes" value="${noteid}" /></td>
               <td>
-                <a href="/note?noteid=${noteid}"
-                  $if unread:
-                    class="unread"
-                  >${title}</a>
+                <label>
+                  <input id="select-note-${noteid}" type="checkbox" name="notes" value="${noteid}" />
+                </label>
               </td>
               <td>
-                <a href="/~${LOGIN(username)}">${username}</a>
+                <label for="select-note-${noteid}">
+                  <a href="/note?noteid=${noteid}"
+                    $if unread:
+                      class="unread"
+                    >${title}</a>
+                </label>
+              </td>
+              <td>
+                <label for="select-note-${noteid}">
+                  <a href="/~${LOGIN(username)}">${username}</a>
 
-                $ user_type = USER_TYPE(note[userid_key])
-                $if user_type:
-                  <strong class="user-type-${user_type}">(${user_type})</strong>
+                  $ user_type = USER_TYPE(note[userid_key])
+                  $if user_type:
+                    <strong class="user-type-${user_type}">(${user_type})</strong>
+                </label>
               </td>
-              <td>$:{LOCAL_TIME(unixtime, '{date} {time}')}</td>
+              <td>
+                <label for="select-note-${noteid}">
+                  $:{LOCAL_TIME(unixtime, '{date} {time}')}
+                </label>
+              </td>
             </tr>
         $else:
           <tr>
@@ -60,19 +103,10 @@ $:{RENDER("common/stage_title.html", [title, "Notes", 0])}
         $:{COMPILE("common/page_navigation.html")(result, layout="pages-layout-left")}
 
       <span style="float:right;">
-        <button type="button" class="button needs-js selection-toggle">Invert Selection</button>
-        <button class="button negative">Remove Selected</button>
-        <a class="button" href="/notes?folder=inbox">Inbox</a>
-        <a class="button" href="/notes?folder=outbox">Outbox</a>
-        <a class="button" href="/notes/compose">Compose</a>
+        <button class="button negative notes-action-remove">Delete selected notes</button>
       </span>
     </div>
   </form>
-  <div style="padding-top:1em;text-align:right;">
-    <form action="/notes">
-      <input type="hidden" name="folder" value="${folder}" />
-      <input type="text" name="filter" class="input" style="width:200px;" />
-      <button type="submit" class="button">Show Messages ${'From' if folder == 'inbox' else 'To'} User</button>
-    </form>
-  </div>
+
+  <script type="module" src="${resource_path('js/message-list.js')}"></script>
 </div>

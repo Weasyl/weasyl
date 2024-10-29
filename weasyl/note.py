@@ -282,3 +282,6 @@ def remove_list(userid, noteids):
         user=userid,
         ids=noteids,
     )
+
+
+unread_count = d.private_messages_unread_count

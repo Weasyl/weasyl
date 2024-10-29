@@ -188,12 +188,6 @@
         });
 
         // submission notifs buttons
-        $('.selection-toggle').on('click', function (ev) {
-            ev.preventDefault();
-            $(this).closest('form').find('input[type=checkbox]').each(function () {
-                this.checked = !this.checked;
-            }).change();
-        });
         $('.do-check').on('click', function (ev) {
             ev.preventDefault();
             $(this).closest('form').find('input[type=checkbox]').prop('checked', true).change();

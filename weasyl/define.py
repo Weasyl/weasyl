@@ -630,6 +630,11 @@ def posts_count(userid, *, friends: bool):
     return result
 
 
+def private_messages_unread_count(userid: int) -> int:
+    return engine.scalar(
+        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
+
+
 notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
 
 
@@ -638,8 +643,7 @@ notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_co
 @region.cache_on_arguments(expiration_time=180)
 @notification_count_time.uncached
 def _page_header_info(userid):
-    messages = engine.scalar(
-        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
+    messages = private_messages_unread_count(userid)
     result = [messages, 0, 0, 0, 0]
 
     counts = engine.execute(

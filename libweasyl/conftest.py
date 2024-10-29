@@ -11,7 +11,7 @@ from libweasyl import cache
 
 
 engine = sa.create_engine(
-    os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgresql+psycopg2cffi:///weasyl_test'),
+    os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgresql+psycopg2:///weasyl_test'),
     connect_args={
         'options': '-c TimeZone=UTC',
     },

@@ -24,8 +24,7 @@ bcrypt = "4.0.1"
 dogpile-cache = "1.2.0"
 oauthlib = "2.1.0"
 pillow = "10.3.0"
-psycopg2cffi = "2.9.0"
-sqlalchemy = "1.4.45"
+sqlalchemy = {version = "1.4.45", extras = ["postgresql"]}
 lxml = "4.9.2"
 prometheus-client = "^0.20.0"
 

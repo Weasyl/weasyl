@@ -68,7 +68,7 @@ jobs:
 
       - name: Test libweasyl
         env:
-          WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl_test
+          WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@weasyl-database/weasyl_test
         run: .venv/bin/coverage run -m pytest libweasyl.test libweasyl.models.test
 
       - name: Test weasyl

@@ -37,7 +37,7 @@ FROM docker.io/library/python:3.10-alpine3.16 AS bdist
 # libffi-dev, openssl-dev: cryptography
 # libmemcached-dev: pylibmc
 # libxml2-dev, libxslt-dev: lxml
-# postgresql-dev: psycopg2cffi
+# postgresql-dev: psycopg2
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     musl-dev gcc g++ make \

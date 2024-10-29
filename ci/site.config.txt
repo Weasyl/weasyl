@@ -10,7 +10,7 @@ origin = http://weasyl-ci.invalid
 profile_responses = false
 
 [sqlalchemy]
-url = postgresql+psycopg2cffi://weasyl@weasyl-database/weasyl
+url = postgresql+psycopg2://weasyl@weasyl-database/weasyl
 
 [memcached]
 servers = weasyl-memcached

@@ -204,7 +204,7 @@ services:
       args:
         version: '${WEASYL_VERSION:-}'
     environment:
-      WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2cffi://weasyl@postgres/weasyl_test
+      WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@postgres/weasyl_test
     volumes:
       - config:/run/config:ro
       - test-cache:/weasyl/.pytest_cache

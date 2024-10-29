@@ -10,8 +10,8 @@ origin = http://weasyl.localhost:8080
 profile_responses = false
 
 [sqlalchemy]
-url = postgresql+psycopg2cffi://weasyl@postgres/weasyl
-# url = postgresql+psycopg2cffi:///weasyl
+url = postgresql+psycopg2://weasyl@postgres/weasyl
+# url = postgresql+psycopg2:///weasyl
 
 [memcached]
 servers = memcached

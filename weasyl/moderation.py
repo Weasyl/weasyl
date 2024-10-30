@@ -120,7 +120,7 @@ BAN_TEMPLATES = {
         "days": -1,
     },
     "10-cp-14": {
-        "name": "Minors In Mature Situations (14 Day Suspension)",
+        "name": "Minors In Mature/Sexual Situations (14 Day Suspension)",
         "reason": (
             "Your account has been suspended for 14 days for repeatedly uploading "
             "content in violation of Section I.C.2 of the [Community "
@@ -131,7 +131,7 @@ BAN_TEMPLATES = {
         "days": 14,
     },
     "11-cp": {
-        "name": "Minors In Mature Situations (Ban)",
+        "name": "Minors In Mature/Sexual Situations (Ban)",
         "reason": (
             "Your account has been banned from Weasyl for repeatedly uploading content "
             "in violation of Section I.C.2 of the [Community "

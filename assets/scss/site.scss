@@ -3970,6 +3970,19 @@ img + #detail-art-text {
     color: #bbb;
 }
 
+// This flex layout achieves a similar effect to `vertical-align: middle` without extending the hover underline to the gap.
+#footer .footer-icon-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    > img {
+        width: 14px;
+        height: 14px;
+        margin-bottom: -2px;
+    }
+}
+
 #footer-wesley {
     display: block;
     max-width: 100%;

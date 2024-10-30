@@ -101,7 +101,7 @@ def partition_submissions(submissions):
         buckets[bucket].append(s)
 
     return (
-        submissions[:22],
+        submissions[:11],
         buckets[1][:11],
         buckets[2][:11],
         buckets[3][:11],
@@ -127,5 +127,5 @@ def template_fields(userid):
         # Currently streaming users
         profile.select_streaming_sample(userid),
         # Recently popular submissions
-        list(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 11)),
+        list(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 22)),
     )

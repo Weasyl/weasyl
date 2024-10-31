@@ -1,12 +1,11 @@
-import json
-from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
+from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPServiceUnavailable
 from pyramid.response import Response
 from oauthlib.oauth2 import FatalClientError, OAuth2Error
 
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
 from weasyl.controllers.decorators import disallow_api, token_checked
 from weasyl import define as d
-from weasyl import errorcode, login, media, orm
+from weasyl import media, orm
 
 
 class OAuthResponse(Response):
@@ -54,35 +53,12 @@ def authorize_get_(request):
 @disallow_api
 @token_checked
 def authorize_post_(request):
-    form = request.web_input(credentials='', username='', password='', remember_me='', mobile='', not_me='')
-    try:
-        credentials = json.loads(form.credentials)
-    except ValueError:
-        raise HTTPBadRequest()
-    scopes = credentials.pop('scopes')
-    error = None
-    if form.not_me and form.username:
-        userid, error = login.authenticate_bcrypt(form.username, form.password, request=request if form.remember_me else None)
-        if error:
-            error = errorcode.login_errors.get(error, 'Unknown error.')
-    elif not request.userid:
-        error = "You must specify a username and password."
-    else:
-        userid = request.userid
-    if error:
-        return Response(render_form(request, scopes, credentials, bool(form.mobile), error,
-                                    form.username, form.password, bool(form.remember_me),
-                                    bool(form.not_me)))
-    credentials['userid'] = userid
-    response_attrs = server.create_authorization_response(
-        *(extract_params(request) + (scopes, credentials)))
-    return OAuthResponse(*response_attrs)
+    return HTTPServiceUnavailable()
 
 
 @disallow_api
 def token_(request):
-    response_attrs = server.create_token_response(*extract_params(request))
-    return OAuthResponse(*response_attrs)
+    return HTTPServiceUnavailable()
 
 
 def get_userid_from_authorization(request, scopes=['wholesite']):

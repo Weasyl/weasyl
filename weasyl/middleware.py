@@ -11,6 +11,7 @@ from prometheus_client import Histogram
 from pyramid.decorator import reify
 from pyramid.httpexceptions import (
     HTTPBadRequest,
+    HTTPServiceUnavailable,
     HTTPUnauthorized,
 )
 from pyramid.request import Request as Request_
@@ -370,11 +371,7 @@ def userid_request_property(request):
         return userid
 
     elif authorization:
-        from weasyl.oauth2 import get_userid_from_authorization
-        userid = get_userid_from_authorization(request)
-        if not userid:
-            raise HTTPUnauthorized(www_authenticate=('Bearer', 'realm="Weasyl" error="invalid_token"'))
-        return userid
+        raise HTTPServiceUnavailable()
 
     else:
         sess = request.weasyl_session

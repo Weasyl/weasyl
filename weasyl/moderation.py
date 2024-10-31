@@ -306,7 +306,7 @@ def get_suspension_message(userid):
     ) % (suspension.reason, release.date(), MACRO_SUPPORT_ADDRESS)
 
 
-def finduser(targetid, username, email, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,
+def finduser(targetid, username: str, email: str, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,
              row_offset):
     targetid = d.get_int(targetid)
 
@@ -364,12 +364,9 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
     if targetid:
         q = q.where(lo.c.userid == targetid)
     elif username:
-        q = q.where(lo.c.login_name.op('~')(username))
+        q = q.where(lo.c.login_name.ilike(f"%{username}%"))
     elif email:
-        q = q.where(sa.or_(
-            lo.c.email.op('~')(email),
-            lo.c.email.op('ilike')('%%%s%%' % email),
-        ))
+        q = q.where(lo.c.email.ilike(f"%{email}%"))
 
     # Filter for banned and/or suspended accounts
     if excludeactive == "on":

@@ -398,6 +398,11 @@ def web_input_request_method(request, *required, **kwargs):
     return storify(request.params.mixed(), *required, **kwargs)
 
 
+def _redact_match(match):
+    prefix, secret = match.groups()
+    return "%s[%d redacted]" % (prefix, len(secret))
+
+
 def _log_request(request, *, request_id=None):
     env = {}
 
@@ -415,9 +420,22 @@ def _log_request(request, *, request_id=None):
     # don't log session cookies
     if "HTTP_COOKIE" in env:
         env["HTTP_COOKIE"] = re.sub(
-            r'(WZL="?)([^";]+)',
-            lambda match: match.group(1) + "*" * len(match.group(2)),
+            r'(WZL="?)([\w\-]+)',
+            _redact_match,
             env["HTTP_COOKIE"],
+            re.ASCII,
+        )
+
+    # don't log API keys or OAuth tokens
+    if "HTTP_X_WEASYL_API_KEY" in env:
+        env["HTTP_X_WEASYL_API_KEY"] = "[%d redacted]" % (len(env["HTTP_X_WEASYL_API_KEY"]),)
+
+    if "HTTP_AUTHORIZATION" in env:
+        env["HTTP_AUTHORIZATION"] = re.sub(
+            r'((?:Bearer )?)([\w\-]+)',
+            _redact_match,
+            env["HTTP_AUTHORIZATION"],
+            re.ASCII,
         )
 
     print(repr(env))

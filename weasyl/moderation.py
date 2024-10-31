@@ -364,11 +364,10 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
     if targetid:
         q = q.where(lo.c.userid == targetid)
     elif username:
-        q = q.where(lo.c.login_name.op('~')(username))
+        q = q.where(lo.c.login_name.op('ilike')('%%%s%%' % username.replace('\\', r'\\')))
     elif email:
         q = q.where(sa.or_(
-            lo.c.email.op('~')(email),
-            lo.c.email.op('ilike')('%%%s%%' % email),
+            lo.c.email.op('ilike')('%%%s%%' % email.replace('\\', r'\\')),
         ))
 
     # Filter for banned and/or suspended accounts

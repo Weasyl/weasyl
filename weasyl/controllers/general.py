@@ -20,7 +20,7 @@ def index_(request):
         cache_control = "private, max-age=60"
 
     return Response(
-        define.common_page_end(request.userid, page),
+        define.common_page_end(request.userid, page, options=("index",)),
         cache_control=cache_control,
         vary=["Cookie"],  # SFW mode, sign in/out, account changes
     )

@@ -97,7 +97,7 @@ def test_age_set_and_display(app):
 
 @pytest.mark.usefixtures("db", "cache")
 def test_age_terms(app):
-    u13_birthdate = arrow.utcnow().shift(years=-13, months=1)
+    u13_birthdate = arrow.utcnow().shift(years=-13, months=1, days=1)
 
     user = db_utils.create_user(username="profiletest")
     app.set_cookie(*db_utils.create_session(user).split("=", 1))
@@ -174,7 +174,7 @@ def _edit_journal(app, user):
     (_edit_journal, True),
 ])
 def test_assert_adult(app, create_post, expect_assertion):
-    u18_birthdate = arrow.utcnow().shift(years=-18, months=1)
+    u18_birthdate = arrow.utcnow().shift(years=-18, months=1, days=1)
 
     forward_user = db_utils.create_user(username="forwarduser")
     app.set_cookie(*db_utils.create_session(forward_user).split("=", 1))

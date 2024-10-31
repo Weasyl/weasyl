@@ -573,7 +573,7 @@ def edit_userinfo(userid, form):
         birthdate_month = int(form['birthdate-month'])
         birthdate_year = int(form['birthdate-year'])
 
-        if not (1 <= birthdate_month <= 12) or not (-100 <= birthdate_year - arrow.utcnow().year <= 0):
+        if not (1 <= birthdate_month <= 12) or not (-125 <= birthdate_year - arrow.utcnow().year <= 0):
             raise WeasylError("birthdayInvalid")
 
         birthdate_update = _BIRTHDATE_UPDATE_BASE

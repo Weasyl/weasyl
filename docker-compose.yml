@@ -49,13 +49,13 @@ services:
       args:
         version: '${WEASYL_VERSION:-}'
     environment:
-      WEASYL_STORAGE_ROOT: storage
-      WEASYL_RELOAD_ASSETS: true
-      WEASYL_RELOAD_TEMPLATES: true
-      WEB_CONCURRENCY: 8
-      PYTHONWARNINGS: d
-      PYTHONUNBUFFERED: 1
-      PROMETHEUS_MULTIPROC_DIR: /weasyl/storage/prometheus
+      WEASYL_STORAGE_ROOT: 'storage'
+      WEASYL_RELOAD_ASSETS: 'true'
+      WEASYL_RELOAD_TEMPLATES: 'true'
+      WEB_CONCURRENCY: '8'
+      PYTHONWARNINGS: 'd'
+      PYTHONUNBUFFERED: '1'
+      PROMETHEUS_MULTIPROC_DIR: '/weasyl/storage/prometheus'
     volumes:
       - assets:/weasyl/build:ro
       - config:/run/config:ro
@@ -165,8 +165,8 @@ services:
         exec .venv/bin/alembic upgrade head
     environment:
       # needed for revision f30dc3b5856a
-      WEASYL_STORAGE_ROOT: /fakepath
-      ALEMBIC_CONFIG: /run/config/alembic.ini
+      WEASYL_STORAGE_ROOT: '/fakepath'
+      ALEMBIC_CONFIG: '/run/config/alembic.ini'
     volumes:
       - config:/run/config:ro
     networks:
@@ -204,7 +204,7 @@ services:
       args:
         version: '${WEASYL_VERSION:-}'
     environment:
-      WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@postgres/weasyl_test
+      WEASYL_TEST_SQLALCHEMY_URL: 'postgresql+psycopg2://weasyl@postgres/weasyl_test'
     volumes:
       - config:/run/config:ro
       - test-cache:/weasyl/.pytest_cache

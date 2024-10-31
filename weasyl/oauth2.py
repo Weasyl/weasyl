@@ -1,5 +1,4 @@
-import json
-from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
+from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPServiceUnavailable
 from pyramid.response import Response
 from oauthlib.oauth2 import FatalClientError, OAuth2Error
 
@@ -56,21 +55,12 @@ def authorize_get_(request):
 @token_checked
 @login_required
 def authorize_post_(request):
-    try:
-        credentials = json.loads(request.POST['credentials'])
-    except ValueError:
-        raise HTTPBadRequest()
-    scopes = credentials.pop('scopes')
-    credentials['userid'] = request.userid
-    response_attrs = server.create_authorization_response(
-        *(extract_params(request) + (scopes, credentials)))
-    return OAuthResponse(*response_attrs)
+    return HTTPServiceUnavailable()
 
 
 @disallow_api
 def token_(request):
-    response_attrs = server.create_token_response(*extract_params(request))
-    return OAuthResponse(*response_attrs)
+    return HTTPServiceUnavailable()
 
 
 def get_userid_from_authorization(request, scopes=['wholesite']):

@@ -14,7 +14,7 @@ class OAuthResponse(Response):
         super(OAuthResponse, self).__init__(
             body=body,
             status_code=status,
-            headers={k.encode('utf-8'): v.encode('utf-8') for k, v in headers.items()},
+            headers=headers,
         )
 
 

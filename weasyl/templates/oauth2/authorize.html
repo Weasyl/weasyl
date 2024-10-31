@@ -178,12 +178,12 @@ $def with (scopes, credentials, client, myself, my_media, mobile, error, usernam
   <form method="POST" action="">
     $if myself:
       <p class="user">
-        <a class="avatar" href="${request.path_for(myself)}">
+        <a class="avatar" href="/~${myself.login_name}">
           $ avatar = my_media['avatar'][0]['display_url']
           <img src="${avatar}" alt="${myself.profile.username}">
         </a>
         Welcome,
-        <a href="${request.path_for(myself)}">${myself.profile.username}</a>
+        <a href="/~${myself.login_name}">${myself.profile.username}</a>
         <label for="not-me" class="not-me-label a">(Not ${myself.profile.username}?)</label>
       </p>
       <input type="checkbox" id="not-me" name="not_me" value="yes" ${'checked' if not_me else ''} />

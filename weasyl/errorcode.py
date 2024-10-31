@@ -111,7 +111,7 @@ error_messages = {
     "priceidInvalid": "You did not specify a price to edit.",
     "RatingExceeded": rating,
     "ratingInvalid": "The specified rating is invalid.",
-    "recipientExcessive": "You specified too many recipients for this message.",
+    "recipientExcessive": "Private messages can only be sent to one recipient at a time.",
     "recipientInvalid": (
         "Your message could not be delivered because you did not specify any valid recipients. The users "
         "you specified may restrict who can send them private messages, or you might be on their ignore list."),

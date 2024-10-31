@@ -4,7 +4,7 @@ from pyramid.response import Response
 from weasyl.controllers.decorators import login_required, token_checked
 from weasyl.error import WeasylError
 from weasyl import (
-    define, favorite, followuser, frienduser, ignoreuser, note, profile)
+    define, favorite, followuser, frienduser, ignoreuser, note, pagination, profile)
 
 
 # User interactivity functions
@@ -114,27 +114,35 @@ def notes_(request):
         raise WeasylError("vouchRequired")
 
     form = request.web_input(folder="inbox", filter="", backid="", nextid="")
-    backid = int(form.backid) if form.backid else None
-    nextid = int(form.nextid) if form.nextid else None
-    filter_ = define.get_userid_list(form.filter)
 
     if form.folder == "inbox":
-        return Response(define.webpage(request.userid, "note/message_list.html", [
-            # Folder
-            "inbox",
-            # Private messages
-            note.select_inbox(request.userid, 50, backid=backid, nextid=nextid, filter=filter_),
-        ]))
+        select_list = note.select_inbox
+        select_count = note.select_inbox_count
+        title = "Inbox"
+    elif form.folder == "outbox":
+        select_list = note.select_outbox
+        select_count = note.select_outbox_count
+        title = "Sent messages"
+    else:
+        raise WeasylError("unknownMessageFolder")
 
-    if form.folder == "outbox":
-        return Response(define.webpage(request.userid, "note/message_list.html", [
-            # Folder
-            "outbox",
-            # Private messages
-            note.select_outbox(request.userid, 50, backid=backid, nextid=nextid, filter=filter_),
-        ]))
+    backid = int(form.backid) if form.backid else None
+    nextid = int(form.nextid) if form.nextid else None
+    filter_ = define.get_userids(define.get_sysname_list(form.filter))
 
-    raise WeasylError("unknownMessageFolder")
+    result = pagination.PaginatedResult(
+        select_list, select_count, "noteid", f"/notes?folder={form.folder}&%s",
+        request.userid, filter=list(set(filter_.values())),
+        backid=backid,
+        nextid=nextid,
+        count_limit=note.COUNT_LIMIT,
+    )
+    return Response(define.webpage(request.userid, "note/message_list.html", (
+        form.folder,
+        result,
+        [(sysname, userid != 0) for sysname, userid in filter_.items()],
+        note.unread_count(request.userid),
+    ), title=title))
 
 
 @login_required
@@ -146,9 +154,9 @@ def notes_compose_get_(request):
 
     return Response(define.webpage(request.userid, "note/compose.html", [
         # Recipient
-        form.recipient.strip(),
+        "; ".join(define.get_sysname_list(form.recipient)),
         profile.select_myself(request.userid),
-    ]))
+    ], title="Compose message"))
 
 
 @login_required

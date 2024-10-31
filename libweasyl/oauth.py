@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import arrow
 from oauthlib.oauth2 import RequestValidator, WebApplicationServer
 
@@ -97,7 +99,7 @@ class WeasylValidator(RequestValidator):
             db.add(bearer_token)
         bearer_token.access_token = token['access_token']
         bearer_token.refresh_token = token['refresh_token']
-        bearer_token.expires_at = arrow.utcnow().replace(seconds=token['expires_in'])
+        bearer_token.expires_at = arrow.utcnow() + timedelta(seconds=token['expires_in'])
         db.flush()
 
     def invalidate_authorization_code(self, client_id, code, request, *args, **kwargs):

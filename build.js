@@ -286,6 +286,7 @@ const main = async () => {
         sasscFile('scss/signup.scss', 'css/signup.css', touch, copyImages),
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
         esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/message-list.js', 'js/message-list.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/flash.js', 'js/flash.js', touch, {
             format: 'esm',

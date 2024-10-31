@@ -364,13 +364,9 @@ def finduser(targetid, username: str, email: str, dateafter, datebefore, exclude
     if targetid:
         q = q.where(lo.c.userid == targetid)
     elif username:
-        escaped_username = username.replace('\\', r'\\')
-        q = q.where(lo.c.login_name.ilike(f"%{escaped_username}%"))
+        q = q.where(lo.c.login_name.ilike(f"%{username}%"))
     elif email:
-        escaped_email = email.replace('\\', r'\\')
-        q = q.where(sa.or_(
-            lo.c.email.ilike(f"%{escaped_email}%"),
-        ))
+        q = q.where(lo.c.email.ilike(f"%{email}%"))
 
     # Filter for banned and/or suspended accounts
     if excludeactive == "on":

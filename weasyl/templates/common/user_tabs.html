@@ -1,0 +1,16 @@
+$def with (username, current, show_favorites, post_counts_by_type)
+  $def count(key): <span class="user-nav-count">${format(post_counts_by_type[key], ",")}</span>
+  $code:
+    def _CURRENT(x):
+      return "current" if x == current else ""
+  $ username = LOGIN(username)
+  <nav><ul id="user-nav" class="bar clear pad-left pad-right">
+    <li><a class="$:{_CURRENT('profile')}" href="/~${username}">Profile</a></li>
+    <li><a class="user-nav-with-count $:{_CURRENT('submissions')}" href="/submissions/${username}"><span class="user-nav-label">Submissions</span> $:{count("submission")}</a></li>
+    <li><a class="user-nav-with-count $:{_CURRENT('journals')}" href="/journals/${username}"><span class="user-nav-label">Journals</span> $:{count("journal")}</a></li>
+    <li><a class="user-nav-with-count $:{_CURRENT('collections')}" href="/collections/${username}"><span class="user-nav-label">Collections</span> $:{count("collection")}</a></li>
+    <li><a class="user-nav-with-count $:{_CURRENT('characters')}" href="/characters/${username}"><span class="user-nav-label">Characters</span> $:{count("character")}</a></li>
+    <li><a class="$:{_CURRENT('shouts')}" href="/shouts/${username}">Shouts</a></li>
+    $if show_favorites:
+      <li><a class="$:{_CURRENT('favorites')}" href="/favorites/${username}">Favorites</a></li>
+  </ul></nav>

@@ -1,11 +1,10 @@
-from __future__ import absolute_import
-
 import collections
 import datetime
 
 import arrow
 import sqlalchemy as sa
 
+from libweasyl.legacy import UNIXTIME_OFFSET
 from libweasyl.models.content import Submission
 from libweasyl import ratings, staff, text
 
@@ -19,8 +18,8 @@ from weasyl import profile
 from weasyl import shout
 from weasyl import submission
 from weasyl import thumbnail
-from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
 BAN_TEMPLATES = {
@@ -121,7 +120,7 @@ BAN_TEMPLATES = {
         "days": -1,
     },
     "10-cp-14": {
-        "name": "Minors In Mature Situations (14 Day Suspension)",
+        "name": "Minors In Mature/Sexual Situations (14 Day Suspension)",
         "reason": (
             "Your account has been suspended for 14 days for repeatedly uploading "
             "content in violation of Section I.C.2 of the [Community "
@@ -132,7 +131,7 @@ BAN_TEMPLATES = {
         "days": 14,
     },
     "11-cp": {
-        "name": "Minors In Mature Situations (Ban)",
+        "name": "Minors In Mature/Sexual Situations (Ban)",
         "reason": (
             "Your account has been banned from Weasyl for repeatedly uploading content "
             "in violation of Section I.C.2 of the [Community "
@@ -268,6 +267,12 @@ BAN_TEMPLATES = {
             "way, they should receive credit for their participation. "),
         "days": -1,
     },
+    "21-spammer": {
+        "name": "Spam (Ban)",
+        "reason": (
+            "Your account has been permanently banned from Weasyl for spam."),
+        "days": -1,
+    },
 }
 
 
@@ -281,41 +286,119 @@ def get_suspension(userid):
                             user=userid).first()
 
 
-def finduser(userid, form):
-    form.userid = d.get_int(form.userid)
+def get_ban_message(userid):
+    reason = get_ban_reason(userid)
+    return (
+        "Your account has been permanently banned and you are no longer allowed "
+        "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
+        "contact %s for assistance."
+    ) % (reason, MACRO_SUPPORT_ADDRESS)
+
+
+def get_suspension_message(userid):
+    suspension = get_suspension(userid)
+    release = d.get_arrow(suspension.release)
+    return (
+        "Your account has been temporarily suspended and you are not allowed to "
+        "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
+        "%s.\n\nIf you believe this suspension is in error, please contact "
+        "%s for assistance."
+    ) % (suspension.reason, release.date(), MACRO_SUPPORT_ADDRESS)
+
+
+def finduser(targetid, username: str, email: str, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,
+             row_offset):
+    targetid = d.get_int(targetid)
+
+    # If we don't have any of these variables, nothing will be displayed. So fast-return an empty list.
+    if not targetid and not username and not email and not dateafter \
+            and not datebefore and not excludesuspended and not excludebanned \
+            and not excludeactive and not ipaddr:
+        return []
+
     lo = d.meta.tables['login']
     sh = d.meta.tables['comments']
-    q = d.sa.select([
+    pr = d.meta.tables['profile']
+    sess = d.meta.tables['sessions']
+    permaban = d.meta.tables['permaban']
+    suspension = d.meta.tables['suspension']
+
+    is_banned = sa.exists(
+        sa.select([])
+        .select_from(permaban)
+        .where(permaban.c.userid == lo.c.userid)
+    ).label('is_banned')
+
+    is_suspended = sa.exists(
+        sa.select([])
+        .select_from(suspension)
+        .where(suspension.c.userid == lo.c.userid)
+    ).label('is_suspended')
+
+    q = sa.select([
         lo.c.userid,
         lo.c.login_name,
         lo.c.email,
-        (d.sa.select([d.sa.func.count()])
+        (sa.select([sa.func.count()])
          .select_from(sh)
          .where(sh.c.target_user == lo.c.userid)
          .where(sh.c.settings.op('~')('s'))).label('staff_notes'),
-    ])
+        is_banned,
+        is_suspended,
+        lo.c.ip_address_at_signup,
+        (sa.select([sess.c.ip_address])
+            .select_from(sess)
+            .where(lo.c.userid == sess.c.userid)
+            .limit(1)
+            .order_by(sess.c.created_at.desc())
+            .correlate(sess)
+         ).label('ip_address_session'),
+    ]).select_from(
+        lo.join(pr, lo.c.userid == pr.c.userid)
+          .join(sess, sess.c.userid == pr.c.userid, isouter=True)
+    )
 
-    if form.userid:
-        q = q.where(lo.c.userid == form.userid)
-    elif form.username:
-        q = q.where(lo.c.login_name.op('~')(form.username))
-    elif form.email:
-        q = q.where(d.sa.or_(
-            lo.c.email.op('~')(form.email),
-            lo.c.email.op('ilike')('%%%s%%' % form.email),
+    # Is there a better way to only select unique accounts, when _also_ joining sessions? This _does_ work, though.
+    q = q.distinct(lo.c.login_name)
+
+    if targetid:
+        q = q.where(lo.c.userid == targetid)
+    elif username:
+        q = q.where(lo.c.login_name.ilike(f"%{username}%"))
+    elif email:
+        q = q.where(lo.c.email.ilike(f"%{email}%"))
+
+    # Filter for banned and/or suspended accounts
+    if excludeactive == "on":
+        q = q.where(is_banned | is_suspended)
+    if excludebanned == "on":
+        q = q.where(~is_banned)
+    if excludesuspended == "on":
+        q = q.where(~is_suspended)
+
+    # Filter for IP address
+    if ipaddr:
+        q = q.where(sa.or_(
+            lo.c.ip_address_at_signup.op('ilike')('%s%%' % ipaddr),
+            sess.c.ip_address.op('ilike')('%s%%' % ipaddr)
         ))
-    else:
-        return []
 
-    q = q.limit(100).order_by(lo.c.login_name.asc())
+    # Filter for date-time
+    if dateafter and datebefore:
+        q = q.where(sa.between(pr.c.created_at, arrow.get(dateafter).datetime, arrow.get(datebefore).datetime))
+    elif dateafter:
+        q = q.where(pr.c.created_at >= arrow.get(dateafter).datetime)
+    elif datebefore:
+        q = q.where(pr.c.created_at <= arrow.get(datebefore).datetime)
+
+    # Apply any row offset
+    if row_offset:
+        q = q.offset(row_offset)
+
+    q = q.limit(250).order_by(lo.c.login_name.asc())
     db = d.connect()
     return db.execute(q)
 
-
-# form
-#   mode        reason
-#   userid      release
-#   username
 
 _mode_to_action_map = {
     'b': 'ban',
@@ -332,147 +415,129 @@ def setusermode(userid, form):
     form.reason = form.reason.strip()
 
     if form.mode == "s":
+        today = datetime.datetime.utcnow().date()
+
         if form.datetype == "r":
             # Relative date
             magnitude = int(form.duration)
-
-            if magnitude < 0:
-                raise WeasylError("releaseInvalid")
-
-            basedate = datetime.datetime.now()
             if form.durationunit == "y":
-                basedate += datetime.timedelta(days=magnitude * 365)
+                duration = datetime.timedelta(days=magnitude * 365)
             elif form.durationunit == "m":
-                basedate += datetime.timedelta(days=magnitude * 30)
+                duration = datetime.timedelta(days=magnitude * 30)
             elif form.durationunit == "w":
-                basedate += datetime.timedelta(weeks=magnitude)
+                duration = datetime.timedelta(weeks=magnitude)
             else:  # Catchall, days
-                basedate += datetime.timedelta(days=magnitude)
+                duration = datetime.timedelta(days=magnitude)
 
-            form.release = d.convert_unixdate(basedate.day, basedate.month, basedate.year)
+            release_date = today + duration
         else:
             # Absolute date
-            if datetime.date(int(form.year), int(form.month), int(form.day)) < datetime.date.today():
-                raise WeasylError("releaseInvalid")
+            try:
+                release_date = datetime.date.fromisoformat(form["release-date"])
+            except ValueError as e:
+                raise WeasylError("releaseInvalid") from e
 
-            form.release = d.convert_unixdate(form.day, form.month, form.year)
+        if release_date <= today:
+            raise WeasylError("releaseInvalid")
     else:
-        form.release = None
+        release_date = None
 
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
     elif form.userid in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     if form.mode == "b":
-        query = d.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-            " RETURNING userid", [form.userid])
-
-        if query:
-            d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-            d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
-            d.execute("INSERT INTO permaban VALUES (%i, '%s')", [form.userid, form.reason])
+        # Ban user
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
+            db.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=form.userid, reason=form.reason)
     elif form.mode == "s":
-        if not form.release:
+        # Suspend user
+        if release_date is None:
             raise WeasylError("releaseInvalid")
 
-        query = d.execute(
-            "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-            " RETURNING userid", [form.userid])
+        release_unixtime = arrow.get(release_date).int_timestamp + UNIXTIME_OFFSET
 
-        if query:
-            d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-            d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
-            d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [form.userid, form.reason, form.release])
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
+            db.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=form.userid, reason=form.reason, release=release_unixtime)
     elif form.mode == "x":
-        query = d.execute("UPDATE login SET settings = REPLACE(REPLACE(settings, 's', ''), 'b', '') WHERE userid = %i",
-                          [form.userid])
-        d.execute("DELETE FROM permaban WHERE userid = %i", [form.userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [form.userid])
+        # Unban/Unsuspend
+        with d.engine.begin() as db:
+            db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
+            db.execute("DELETE FROM suspension WHERE userid = %(target)s", target=form.userid)
 
     action = _mode_to_action_map.get(form.mode)
     if action is not None:
         isoformat_release = None
         message = form.reason
-        if form.release is not None:
-            isoformat_release = d.datetime.datetime.fromtimestamp(form.release).isoformat()
-            message = '#### Release date: %s\n\n%s' % (isoformat_release, message)
+        if release_date is not None:
+            message = '#### Release date: %s\n\n%s' % (release_date.isoformat(), message)
         d.append_to_log(
             'staff.actions',
             userid=userid, action=action, target=form.userid, reason=form.reason,
             release=isoformat_release)
-        d.get_login_settings.invalidate(form.userid)
+        d._get_all_config.invalidate(form.userid)
         note_about(userid, form.userid, 'User mode changed: action was %r' % (action,), message)
 
 
-def submissionsbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
-
-    query = d.execute("""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.settings
-        FROM submission su
-            INNER JOIN profile pr USING (userid)
-        WHERE su.userid = (SELECT userid FROM login WHERE login_name = '%s')
-        ORDER BY su.submitid DESC
-    """, [d.get_sysname(form.name)])
+def submissionsbyuser(targetid):
+    query = d.engine.execute("""
+        SELECT submitid, title, rating, unixtime, hidden, friends_only, critique
+        FROM submission
+        WHERE userid = %(user)s
+    """, user=targetid)
 
     ret = [{
         "contype": 10,
+        "userid": targetid,
         "submitid": i[0],
         "title": i[1],
         "rating": i[2],
         "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "settings": i[6],
+        "hidden": i[4],
+        "friends_only": i[5],
+        "critique": i[6],
     } for i in query]
     media.populate_with_submission_media(ret)
     return ret
 
 
-def charactersbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
-
-    query = d.execute("""
-        SELECT
-            ch.charid, pr.username, ch.unixtime,
-            ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
-            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
-        FROM character ch
-        INNER JOIN profile pr ON ch.userid = pr.userid
-        INNER JOIN login ON ch.userid = login.userid
-        WHERE login.login_name = '%s'
-    """, [d.get_sysname(form.name)])
+def charactersbyuser(targetid):
+    query = d.engine.execute("""
+        SELECT charid, unixtime, char_name, rating, settings, hidden, friends_only
+        FROM character
+        WHERE userid = %(user)s
+    """, user=targetid)
 
     return [{
         "contype": 20,
-        "userid": userid,
-        "charid": item[0],
-        "username": item[1],
-        "unixtime": item[2],
-        "title": item[3],
-        "rating": item[10],
-        "settings": item[11],
-        "sub_media": character.fake_media_items(item[0], userid, d.get_sysname(item[1]), item[11]),
+        "userid": targetid,
+        "charid": item.charid,
+        "unixtime": item.unixtime,
+        "title": item.char_name,
+        "rating": item.rating,
+        "hidden": item.hidden,
+        "friends_only": item.friends_only,
+        "critique": False,
+        "sub_media": character.fake_media_items(item.charid, targetid, "unused", item.settings),
     } for item in query]
 
 
-def journalsbyuser(userid, form):
-    if userid not in staff.MODS:
-        raise WeasylError("Unexpected")
+def journalsbyuser(targetid):
+    query = d.engine.execute("""
+        SELECT journalid, title, hidden, friends_only, unixtime, rating
+        FROM journal
+        WHERE userid = %(user)s
+    """, user=targetid)
 
-    results = d.engine.execute("""
-        SELECT journalid, title, journal.settings, journal.unixtime, rating,
-               profile.username, 30 contype
-          FROM journal
-               JOIN profile USING (userid)
-               JOIN login USING (userid)
-         WHERE login_name = %(sysname)s
-    """, sysname=d.get_sysname(form.name)).fetchall()
-
-    return map(dict, results)
+    return [{
+        **item,
+        "contype": 30,
+        "critique": False,
+    } for item in query]
 
 
 def gallery_blacklisted_tags(userid, otherid):
@@ -504,32 +569,15 @@ def gallery_blacklisted_tags(userid, otherid):
     return [row.title for row in query]
 
 
-def hidesubmission(submitid):
-    d.execute("UPDATE submission SET settings = settings || 'h' WHERE submitid = %i AND settings !~ 'h'", [submitid])
-    welcome.submission_remove(submitid)
-
-
-def unhidesubmission(submitid):
-    d.execute("UPDATE submission SET settings = REPLACE(settings, 'h', '') WHERE submitid = %i", [submitid])
-
-
-def hidecharacter(charid):
-    d.execute("UPDATE character SET settings = settings || 'h' WHERE charid = %i AND settings !~ 'h'", [charid])
-    welcome.character_remove(charid)
-
-
-def unhidecharacter(charid):
-    d.execute("UPDATE character SET settings = REPLACE(settings, 'h', '') WHERE charid = %i", [charid])
-
-
 def manageuser(userid, form):
     if userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    query = d.execute(
+    query = d.engine.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
-        " WHERE userid = (SELECT userid FROM login WHERE login_name = '%s')",
-        [d.get_sysname(form.name)], ["single"])
+        " WHERE userid = (SELECT userid FROM login WHERE login_name = %(name)s)",
+        name=d.get_sysname(form.name),
+    ).first()
 
     if not query:
         raise WeasylError("noUser")
@@ -541,7 +589,7 @@ def manageuser(userid, form):
         "profile_text": query[3],
         "catchphrase": query[4],
         "user_media": media.get_user_media(query[0]),
-        "staff_notes": shout.count(query[0], staffnotes=True),
+        "staff_notes": shout.count_staff_notes(query[0]),
     }
 
 
@@ -572,7 +620,7 @@ def removethumbnail(userid, submitid):
     thumbnail.clear_thumbnail(userid, submitid)
     # Thumbnails may be cached on the front page, so invalidate that cache.
     index.recent_submissions.invalidate()
-    index.template_fields.invalidate(userid)
+    submission.select_critique.invalidate(userid)
     otherid = sub.owner.userid
     title = sub.title
     note_about(userid, otherid, 'Thumbnail was removed for ' +
@@ -610,6 +658,52 @@ _tables = [
 ]
 
 
+def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals=()):
+    action_string = 'rerated to ' + ratings.CODE_TO_NAME[new_rating]
+
+    with d.engine.begin() as db:
+        affected = collections.defaultdict(list)
+        copyable = []
+
+        for (tbl, pk, title_col, urlpart), ids in zip(_tables, [submissions, characters, journals]):
+            if not ids:
+                continue
+
+            join = (
+                tbl.select()
+                .where(tbl.c[pk].in_(ids))
+                .where(tbl.c.rating != new_rating)
+                .with_for_update()
+                .alias('join'))
+
+            results = db.execute(
+                tbl.update()
+                .where(tbl.c[pk] == join.c[pk])
+                .values(rating=new_rating)
+                .returning(tbl.c[pk], tbl.c[title_col], tbl.c.userid, join.c.rating))
+
+            for thingid, title, ownerid, original_rating in results:
+                item_format = '- (from %s) %%s' % (original_rating.name,)
+                affected[ownerid].append(item_format % text.markdown_link(title, '/%s/%s?anyway=true' % (urlpart, thingid)))
+                copyable.append(item_format % text.markdown_link(title, '/%s/%s' % (urlpart, thingid)))
+
+        now = arrow.utcnow()
+        values = []
+        for target, target_affected in affected.items():
+            staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
+            values.append({
+                'userid': userid,
+                'target_user': target,
+                'unixtime': now,
+                'settings': 's',
+                'content': staff_note,
+            })
+        if values:
+            db.execute(d.meta.tables['comments'].insert().values(values))
+
+    return 'Affected items (%s): \n\n%s' % (action_string, '\n'.join(copyable))
+
+
 def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
@@ -619,8 +713,9 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=sa.func.replace(tbl.c.settings, 'h', ''))
-                .where(tbl.c.settings.op('~')('h')))
+                .values(hidden=False)
+                .where(tbl.c.hidden))
+
         action_string = 'unhidden'
         provide_link = True
 
@@ -629,8 +724,9 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=tbl.c.settings.op('||')('h'))
-                .where(tbl.c.settings.op('!~')('h')))
+                .values(hidden=True)
+                .where(~tbl.c.hidden))
+
         action_string = 'hidden'
         # There's no value in giving the user a link to the submission as they
         # won't be able to see it.
@@ -641,22 +737,16 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         _, _, rating = action.partition('-')
         rating = int(rating)
 
-        def action(tbl):
-            return (
-                tbl.update()
-                .values(rating=rating)
-                .where(tbl.c.rating != rating))
-
-        action_string = 'rerated ' + ratings.CODE_TO_NAME[rating]
-        provide_link = True
+        return bulk_edit_rating(userid, rating, submissions, characters, journals)
 
     elif action == 'clearcritique':
         # Clear the "critique requested" flag
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=sa.func.replace(tbl.c.settings, 'q', ''))
-                .where(tbl.c.settings.op('~')('q')))
+                .values(critique=False)
+                .where(tbl.c.critique))
+
         action_string = 'unmarked as "critique requested"'
         provide_link = True
 
@@ -665,8 +755,9 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         def action(tbl):
             return (
                 tbl.update()
-                .values(settings=tbl.c.settings.op('||')('q'))
-                .where(tbl.c.settings.op('!~')('q')))
+                .values(critique=True)
+                .where(~tbl.c.critique))
+
         action_string = 'marked as "critique requested"'
         provide_link = True
 
@@ -676,6 +767,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
     db = d.connect()
     affected = collections.defaultdict(list)
     copyable = []
+
     for (tbl, col, title_col, urlpart), values in zip(_tables, [submissions, characters, journals]):
         if values:
             results = db.execute(
@@ -689,9 +781,21 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
                 else:
                     copyable.append('- %s' % (title,))
 
+    cached_posts_count_invalidate_userids = list(affected.keys())
+    if submissions:
+        # bulk add collectors; see `weasyl.collection.find_owners`
+        cached_posts_count_invalidate_userids.extend(
+            row.userid
+            for row in d.engine.execute(
+                "SELECT DISTINCT userid FROM collection WHERE submitid = ANY (%(submissions)s) AND settings !~ '[pr]'",
+                submissions=submissions,
+            )
+        )
+    d.cached_posts_count_invalidate_multi(cached_posts_count_invalidate_userids)
+
     now = arrow.utcnow()
     values = []
-    for target, target_affected in affected.iteritems():
+    for target, target_affected in affected.items():
         staff_note = '## The following items were %s:\n\n%s' % (action_string, '\n'.join(target_affected))
         values.append({
             'userid': userid,

@@ -1,9 +1,8 @@
-from __future__ import absolute_import
-
 from collections import namedtuple
 
 from weasyl.controllers import (
     admin,
+    api,
     content,
     detail,
     director,
@@ -43,22 +42,17 @@ routes = (
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),
     Route("/signin/2fa-auth", "signin_2fa_auth", {'GET': user.signin_2fa_auth_get_, 'POST': user.signin_2fa_auth_post_}),
-    Route("/signin/unicode-failure", "signin-unicode-failure", {
-        'GET': user.signin_unicode_failure_get_, 'POST': user.signin_unicode_failure_post_
-    }),
-    Route("/signout", "signout", user.signout_),
+    Route("/signout", "signout", {'POST': user.signout_}),
     Route("/signup", "signup", {'GET': user.signup_get_, 'POST': user.signup_post_}),
 
     # Verification and password management views.
     Route("/verify/account", "verify_account", user.verify_account_),
-    Route("/verify/premium", "verify_premium", user.verify_premium_),
     Route("/forgotpassword", "forgot_password",
           {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
     Route("/resetpassword", "reset_password",
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
-    Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
-    Route("/force/resetbirthday", "force_reset_birthday", {'POST': user.force_resetpassword_}),
     Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
+    Route("/vouch", "vouch", {'POST': user.vouch_}),
 
     # Two-Factor Authentication views.
     Route("/control/2fa/status", "control_2fa_status", {'GET': two_factor_auth.tfa_status_get_}),
@@ -144,6 +138,16 @@ routes = (
     Route("/submit/comment", "submit_comment", {'POST': content.submit_comment_}),
     Route("/submit/report", "submit_report", {'POST': content.submit_report_}),
     Route("/submit/tags", "submit_tags", {'POST': content.submit_tags_}),
+    Route(
+        "/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/status",
+        "suggested_tag_status",
+        {
+            "PUT": content.tag_status_put,
+            "DELETE": content.tag_status_delete,
+        },
+    ),
+    Route("/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/feedback", "suggested_tag_feedback",
+          {'PUT': content.tag_feedback_put}),
     Route("/reupload/submission", "reupload_submission",
           {'GET': content.reupload_submission_get_, 'POST': content.reupload_submission_post_}),
     Route("/reupload/character", "reupload_character",
@@ -202,6 +206,10 @@ routes = (
     Route("/control/removecommishprice", "control_removecommishprice",
           {'POST': settings.control_removecommishprice_}),
 
+    Route("/control/username", "control_username", {
+        'GET': settings.control_username_get_,
+        'POST': settings.control_username_post_,
+    }),
     Route("/control/editemailpassword", "control_editemailpassword", {
         'GET': settings.control_editemailpassword_get_,
         'POST': settings.control_editemailpassword_post_
@@ -257,14 +265,11 @@ routes = (
     Route("/modcontrol/closereport", "modcontrol_closereport", {'POST': moderation.modcontrol_closereport_}),
     Route("/modcontrol/contentbyuser", "modcontrol_contentbyuser", moderation.modcontrol_contentbyuser_),
     Route("/modcontrol/massaction", "modcontrol_massaction", {'POST': moderation.modcontrol_massaction_}),
-    Route("/modcontrol/hide", "modcontrol_hide", {'POST': moderation.modcontrol_hide_}),
-    Route("/modcontrol/unhide", "modcontrol_unhide", {'POST': moderation.modcontrol_unhide_}),
     Route("/modcontrol/manageuser", "modcontrol_manageuser", moderation.modcontrol_manageuser_),
     Route("/modcontrol/removeavatar", "modcontrol_removeavatar", {'POST': moderation.modcontrol_removeavatar_}),
     Route("/modcontrol/removebanner", "modcontrol_removebanner", {'POST': moderation.modcontrol_removebanner_}),
     Route("/modcontrol/editprofiletext", "modcontrol_editprofiletext", {'POST': moderation.modcontrol_editprofiletext_}),
     Route("/modcontrol/editcatchphrase", "modcontrol_editcatchphrase", {'POST': moderation.modcontrol_editcatchphrase_}),
-    Route("/modcontrol/edituserconfig", "modcontrol_edituserconfig", {'POST': moderation.modcontrol_edituserconfig_}),
 
     # Collection routes.
     Route("/collection/offer", "collection_offer", {'POST': weasyl_collections.collection_offer_}),
@@ -286,6 +291,10 @@ routes = (
     Route("/admincontrol/finduser", "admincontrol_finduser", {
         'GET': admin.admincontrol_finduser_get_,
         'POST': admin.admincontrol_finduser_post_,
+    }),
+    Route("/admincontrol/pending_accounts", "admincontrol_pending_accounts", {
+        'GET': admin.admincontrol_pending_accounts_get_,
+        'POST': admin.admincontrol_pending_accounts_post_,
     }),
 
     # Director control routes.
@@ -329,6 +338,7 @@ routes = (
     Route("/help/searching", "help_searching", info.help_searching_),
     Route("/help/tagging", "help_tagging", info.help_tagging_),
     Route("/help/two_factor_authentication", "help_two_factor_authentication", info.help_two_factor_authentication_),
+    Route("/help/verification", "help_verification", info.help_verification_),
 
     # OAuth2 routes.
     Route("/api/oauth2/authorize", "oauth2_authorize",
@@ -358,7 +368,7 @@ def setup_routes_and_views(config):
     # API routes.
     config.add_route("useravatar", "/api/useravatar")
     config.add_route("whoami", "/api/whoami")
-    config.add_route("version", "/api/version{format:(\.[^.]+)?}")
+    config.add_route("version", r"/api/version{format:(\.[^.]+)?}")
     config.add_route("api_frontpage", "/api/submissions/frontpage")
     config.add_route("api_submission_view", "/api/submissions/{submitid:[0-9]+}/view")
     config.add_route("api_journal_view", "/api/journals/{journalid:[0-9]+}/view")
@@ -370,4 +380,4 @@ def setup_routes_and_views(config):
     config.add_route("api_favorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite")
     config.add_route("api_unfavorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite")
 
-    config.scan("weasyl.controllers")
+    config.scan(api)

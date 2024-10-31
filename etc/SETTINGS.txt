@@ -4,7 +4,6 @@ File type indicators
 
 ~  cover
 -  thumb
-+  popup
 =  submit
 >  avatar
 <  banner
@@ -18,18 +17,6 @@ H  .htm
 M  .mp3
 F  .swf
 A  .pdf
-
------------------
-login.settings ()
------------------
-
-b  Banned account
-s  Suspended account
-d  Premium account
-
-p  Reset password
-i  Reset birthday
-e  Reset email address
 
 -----------------------
 profile.settings (ccci)
@@ -51,7 +38,6 @@ profile.config (lkscftjone)
 
 b  Show birthday in profile
 
-l  Use only tag blocklist
 a  View max rating mature
 p  View max rating explicit
 
@@ -111,9 +97,6 @@ h  Hidden
 f  Friends-only
 m  Members-only
 
-t  Tag-locked
-c  Comment-locked
-
 ------------------
 folder.settings ()
 ------------------
@@ -122,20 +105,14 @@ h  Hidden
 
 ----------------------
 submission.settings ()
+**DEPRECATED**
+These codes are no longer used and appear here only for historical interest.
 ----------------------
 
 h  Hidden
 f  Friends-only
 q  Critique
 
-p  Pool
-o  Collaboration
-
-t  Tag-locked
-c  Comment-locked
-a  Admin-locked
-
-e  Encored
 u  Thumbnail required
 v  Embedded content
 
@@ -154,23 +131,12 @@ s  Submission
 f  Character
 j  Journal entry
 
---------------------
-favorite.settings ()
---------------------
-
-p  Private
-f  Friends-only
-m  Members-only
-
 ---------------------
 character.settings ()
 ---------------------
 
 h  Hidden
 f  Friends-only
-
-t  Tag-locked
-c  Comment-locked
 
 -----------------------
 charfeature.settings ()

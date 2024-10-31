@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -12,8 +10,8 @@ from weasyl.controllers.decorators import disallow_api, login_required, token_ch
 from weasyl.error import WeasylError
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
-    define, emailer, errorcode, folder, followuser, frienduser, ignoreuser,
-    index, oauth2, profile, searchtag, thumbnail, useralias, orm)
+    define, emailer, folder, followuser, frienduser, ignoreuser,
+    login, oauth2, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -22,6 +20,7 @@ def control_(request):
     return Response(define.webpage(request.userid, "control/control.html", [
         # Premium
         define.get_premium(request.userid),
+        define.is_vouched_for(request.userid),
     ], title="Settings"))
 
 
@@ -39,10 +38,11 @@ def control_uploadavatar_(request):
 
 @login_required
 def control_editprofile_get_(request):
-    userinfo = profile.select_userinfo(request.userid)
+    query = profile.select_profile(request.userid)
+    userinfo = profile.select_userinfo(request.userid, config=query["config"])
     return Response(define.webpage(request.userid, "control/edit_profile.html", [
         # Profile
-        profile.select_profile(request.userid, commish=False),
+        query,
         # User information
         userinfo,
     ], title="Edit Profile"))
@@ -61,6 +61,7 @@ def control_editprofile_put_(request):
         raise WeasylError('Unexpected')
 
     if 'more' in form:
+        form.username = define.get_display_name(request.userid)
         form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
         form.settings = form.set_commish + form.set_trade + form.set_request
         form.config = form.profile_display
@@ -103,6 +104,19 @@ def control_editcommishinfo_(request):
 
     profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
     commishinfo.edit_content(request.userid, form.content)
+
+    if "preferred-tags" in request.POST:
+        preferred_tags = searchtag.parse_tags(request.POST["preferred-tags"])
+        optout_tags = searchtag.parse_tags(request.POST["optout-tags"])
+        searchtag.set_commission_preferred_tags(
+            userid=request.userid,
+            tag_names=preferred_tags,
+        )
+        searchtag.set_commission_optout_tags(
+            userid=request.userid,
+            tag_names=optout_tags,
+        )
+
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
@@ -143,9 +157,12 @@ def control_editcommishclass_(request):
 @login_required
 @token_checked
 def control_removecommishclass_(request):
-    form = request.web_input(classid="")
+    classid = define.get_int(request.params.get('classid', ""))
 
-    commishinfo.remove_class(request.userid, form.classid)
+    if not classid:
+        raise WeasylError("classidInvalid")
+
+    commishinfo.remove_class(request.userid, classid)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
 
 
@@ -185,19 +202,83 @@ def control_editcommishprice_(request):
 @login_required
 @token_checked
 def control_removecommishprice_(request):
-    form = request.web_input(priceid="")
+    priceid = define.get_int(request.params.get('priceid', ""))
 
-    commishinfo.remove_price(request.userid, form.priceid)
+    if not priceid:
+        raise WeasylError("priceidInvalid")
+
+    commishinfo.remove_price(request.userid, priceid)
     raise HTTPSeeOther(location="/control/editcommissionsettings")
+
+
+@login_required
+def control_username_get_(request):
+    latest_change = define.engine.execute(
+        "SELECT username, active, extract(epoch from now() - replaced_at)::int8 AS seconds"
+        " FROM username_history"
+        " WHERE userid = %(user)s"
+        " AND NOT cosmetic"
+        " ORDER BY historyid DESC LIMIT 1",
+        user=request.userid,
+    ).first()
+
+    if latest_change is None:
+        existing_redirect = None
+        days = None
+    else:
+        existing_redirect = latest_change.username if latest_change.active else None
+        days = latest_change.seconds // (3600 * 24)
+
+    return Response(define.webpage(
+        request.userid,
+        "control/username.html",
+        (define.get_display_name(request.userid), existing_redirect, days if days is not None and days < 30 else None),
+        title="Change Username",
+    ))
+
+
+@login_required
+@token_checked
+def control_username_post_(request):
+    if request.POST['do'] == 'change':
+        login.change_username(
+            acting_user=request.userid,
+            target_user=request.userid,
+            bypass_limit=False,
+            new_username=request.POST['new_username'],
+        )
+
+        return Response(define.errorpage(
+            request.userid,
+            "Your username has been changed.",
+            [["Go Back", "/control/username"], ["Return Home", "/"]],
+        ))
+    elif request.POST['do'] == 'release':
+        login.release_username(
+            define.engine,
+            acting_user=request.userid,
+            target_user=request.userid,
+        )
+
+        return Response(define.errorpage(
+            request.userid,
+            "Your old username has been released.",
+            [["Go Back", "/control/username"], ["Return Home", "/"]],
+        ))
+    else:
+        raise WeasylError("Unexpected")
 
 
 @login_required
 @disallow_api
 def control_editemailpassword_get_(request):
+    profile_info = profile.select_manage(request.userid)
+
     return Response(define.webpage(
         request.userid,
         "control/edit_emailpassword.html",
-        [profile.select_manage(request.userid)["email"]],
+        (profile_info["email"], profile_info["username"]),
+        options=("signup",),
         title="Edit Password and Email Address"
     ))
 
@@ -206,18 +287,16 @@ def control_editemailpassword_get_(request):
 @disallow_api
 @token_checked
 def control_editemailpassword_post_(request):
-    form = request.web_input(newemail="", newemailcheck="", newpassword="", newpasscheck="", password="")
+    newemail = emailer.normalize_address(request.POST["newemail"])
 
-    newemail = emailer.normalize_address(form.newemail)
-    newemailcheck = emailer.normalize_address(form.newemailcheck)
-
-    # Check if the email was invalid; Both fields must be valid (not None), and have the form fields set
-    if not newemail and not newemailcheck and form.newemail != "" and form.newemailcheck != "":
+    if not newemail and request.POST["newemail"] != "":
         raise WeasylError("emailInvalid")
 
     return_message = profile.edit_email_password(
-        request.userid, form.username, form.password, newemail, newemailcheck,
-        form.newpassword, form.newpasscheck
+        userid=request.userid,
+        password=request.POST["password"],
+        newemail=newemail,
+        newpassword=request.POST["newpassword"],
     )
 
     if not return_message:  # No changes were made
@@ -234,7 +313,7 @@ def control_editemailpassword_post_(request):
 @login_required
 def control_editpreferences_get_(request):
     config = define.get_config(request.userid)
-    current_rating, current_sfw_rating = define.get_config_rating(request.userid)
+    current_rating = define.get_config_rating(request.userid)
     age = profile.get_user_age(request.userid)
     allowed_ratings = ratings.get_ratings_for_age(age)
     jsonb_settings = define.get_profile_settings(request.userid)
@@ -244,11 +323,7 @@ def control_editpreferences_get_(request):
         jsonb_settings,
         # Rating
         current_rating,
-        current_sfw_rating,
-        age,
         allowed_ratings,
-        request.weasyl_session.timezone.timezone,
-        define.timezones(),
     ], title="Site Preferences"))
 
 
@@ -260,15 +335,13 @@ def control_editpreferences_post_(request):
         hideprofile="", hidestats="", hidefavorites="", hidefavbar="",
         shouts="", notes="", filter="",
         follow_s="", follow_c="", follow_f="", follow_t="",
-        follow_j="", timezone="", twelvehour="")
+        follow_j="")
 
-    rating = ratings.CODE_MAP[define.get_int(form.rating)]
+    rating = ratings.CODE_MAP.get(define.get_int(form.rating), ratings.GENERAL)
     jsonb_settings = define.get_profile_settings(request.userid)
     jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
-    jsonb_settings.max_sfw_rating = define.get_int(form.sfwrating)
 
     preferences = profile.Config()
-    preferences.twelvehour = bool(form.twelvehour)
     preferences.rating = rating
     preferences.tagging = bool(form.tagging)
     preferences.hideprofile = bool(form.hideprofile)
@@ -286,10 +359,8 @@ def control_editpreferences_post_(request):
     preferences.follow_t = bool(form.follow_t)
     preferences.follow_j = bool(form.follow_j)
 
-    profile.edit_preferences(request.userid, timezone=form.timezone,
+    profile.edit_preferences(request.userid,
                              preferences=preferences, jsonb_settings=jsonb_settings)
-    # release the cache on the index page in case the Maximum Viewable Content Rating changed.
-    index.template_fields.invalidate(request.userid)
     raise HTTPSeeOther(location="/control")
 
 
@@ -327,7 +398,7 @@ def control_removefolder_(request):
 def control_editfolder_get_(request):
     folderid = int(request.matchdict['folderid'])
     if not folder.check(request.userid, folderid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     return Response(define.webpage(request.userid, "manage/folder_options.html", [
         folder.select_info(folderid),
@@ -339,7 +410,7 @@ def control_editfolder_get_(request):
 def control_editfolder_post_(request):
     folderid = int(request.matchdict['folderid'])
     if not folder.check(request.userid, folderid):
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     form = request.web_input(settings=[])
     folder.update_settings(folderid, form.settings)
@@ -379,7 +450,7 @@ def control_unignoreuser_(request):
 def control_streaming_get_(request):
     form = request.web_input(target='')
     if form.target and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
     elif form.target:
         target = define.get_int(form.target)
     else:
@@ -387,7 +458,7 @@ def control_streaming_get_(request):
 
     return Response(define.webpage(request.userid, "control/edit_streaming.html", [
         # Profile
-        profile.select_profile(target, commish=False),
+        profile.select_profile(target),
         form.target,
     ], title="Edit Streaming Settings"))
 
@@ -398,7 +469,7 @@ def control_streaming_post_(request):
     form = request.web_input(target="", set_stream="", stream_length="", stream_url="", stream_text="")
 
     if form.target and request.userid not in staff.MODS:
-        return Response(define.errorpage(request.userid, errorcode.permission))
+        raise WeasylError('InsufficientPermissions')
 
     if form.target:
         target = int(form.target)
@@ -450,7 +521,7 @@ def control_apikeys_post_(request):
 @login_required
 def control_tagrestrictions_get_(request):
     return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.query_user_restricted_tags(request.userid),
+        sorted(searchtag.query_user_restricted_tags(request.userid)),
     ), title="Edit Community Tagging Restrictions"))
 
 
@@ -459,16 +530,15 @@ def control_tagrestrictions_get_(request):
 def control_tagrestrictions_post_(request):
     tags = searchtag.parse_restricted_tags(request.params["tags"])
     searchtag.edit_user_tag_restrictions(request.userid, tags)
-    return Response(define.webpage(request.userid, "control/edit_tagrestrictions.html", (
-        searchtag.query_user_restricted_tags(request.userid),
-    ), title="Edit Community Tagging Restrictions"))
+
+    raise HTTPSeeOther(location=request.route_path('control_tagrestrictions'))
 
 
 @login_required
 def manage_folders_(request):
     return Response(define.webpage(request.userid, "manage/folders.html", [
         # Folders dropdown
-        folder.select_list(request.userid, "drop/all"),
+        folder.select_flat(request.userid),
     ], title="Submission Folders"))
 
 
@@ -482,7 +552,7 @@ def manage_following_get_(request):
     if form.userid:
         return Response(define.webpage(request.userid, "manage/following_user.html", [
             # Profile
-            profile.select_profile(form.userid, avatar=True),
+            profile.select_profile(form.userid),
             # Follow settings
             followuser.select_settings(request.userid, form.userid),
         ], title="Followed User"))
@@ -511,29 +581,22 @@ def manage_following_post_(request):
 
 @login_required
 def manage_friends_(request):
-    form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
+    feature = request.params.get("feature")
 
-    if form.feature == "pending":
+    if feature == "pending":
         return Response(define.webpage(request.userid, "manage/friends_pending.html", [
-            frienduser.select_requests(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_requests(request.userid),
         ], title="Pending Friend Requests"))
     else:
         return Response(define.webpage(request.userid, "manage/friends_accepted.html", [
-            # Friends
-            frienduser.select_accepted(request.userid, limit=20, backid=form.backid, nextid=form.nextid),
+            frienduser.select_accepted(request.userid),
         ], title="Friends"))
 
 
 @login_required
 def manage_ignore_(request):
-    form = request.web_input(feature="", backid="", nextid="")
-    form.backid = define.get_int(form.backid)
-    form.nextid = define.get_int(form.nextid)
-
     return Response(define.webpage(request.userid, "manage/ignore.html", [
-        ignoreuser.select(request.userid, 20, backid=form.backid, nextid=form.nextid),
+        ignoreuser.select(request.userid),
     ], title="Ignored Users"))
 
 
@@ -543,21 +606,19 @@ def manage_collections_get_(request):
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
 
-    config = define.get_config(request.userid)
     rating = define.get_rating(request.userid)
 
     if form.feature == "pending":
         return Response(define.webpage(request.userid, "manage/collections_pending.html", [
             # Pending Collections
             collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
-                                   pending=True, config=config),
+                                   pending=True),
             request.userid
         ], title="Pending Collections"))
 
     return Response(define.webpage(request.userid, "manage/collections_accepted.html", [
         # Accepted Collections
-        collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid,
-                               config=config),
+        collection.select_list(request.userid, rating, 30, otherid=request.userid, backid=backid, nextid=nextid),
     ], title="Accepted Collections"))
 
 
@@ -583,16 +644,16 @@ def manage_collections_post_(request):
 
 @login_required
 def manage_thumbnail_get_(request):
-    form = request.web_input(submitid="", charid="", auto="")
+    form = request.web_input(submitid="", charid="")
     submitid = define.get_int(form.submitid)
     charid = define.get_int(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
-        return Response(define.errorpage(request.userid, errorcode.permissions))
-    elif charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
-        return Response(define.errorpage(request.userid, errorcode.permissions))
-    elif not submitid and not charid:
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
+    if charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
+        raise WeasylError("InsufficientPermissions")
+    if not submitid and not charid:
+        raise WeasylError("Unexpected")
 
     if charid:
         source_path = define.url_make(charid, "char/.thumb", root=True)
@@ -606,8 +667,6 @@ def manage_thumbnail_get_(request):
         except WeasylError:
             source = None
 
-    options = ['imageselect']
-
     return Response(define.webpage(request.userid, "manage/thumbnail.html", [
         # Feature
         "submit" if submitid else "char",
@@ -617,7 +676,7 @@ def manage_thumbnail_get_(request):
         source,
         # Exists
         bool(source),
-    ], options=options, title="Select Thumbnail"))
+    ], options=('imageselect',), title="Select Thumbnail"))
 
 
 @login_required
@@ -628,20 +687,20 @@ def manage_thumbnail_post_(request):
     charid = define.get_int(form.charid)
 
     if submitid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(submitid=submitid):
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
     if charid and request.userid not in staff.ADMINS and request.userid != define.get_ownerid(charid=charid):
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("InsufficientPermissions")
     if not submitid and not charid:
-        return Response(define.errorpage(request.userid))
+        raise WeasylError("Unexpected")
 
     if form.thumbfile:
-        thumbnail.upload(request.userid, form.thumbfile, submitid=submitid, charid=charid)
+        thumbnail.upload(form.thumbfile, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/manage/thumbnail?submitid=%i" % (submitid,))
         else:
             raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
     else:
-        thumbnail.create(request.userid, form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
+        thumbnail.create(form.x1, form.y1, form.x2, form.y2, submitid=submitid, charid=charid)
         if submitid:
             raise HTTPSeeOther(location="/submission/%i" % (submitid,))
         else:
@@ -673,7 +732,6 @@ def manage_tagfilters_post_(request):
 
 @login_required
 def manage_avatar_get_(request):
-    form = request.web_input(style="")
     try:
         avatar_source = avatar.avatar_source(request.userid)
     except WeasylError:
@@ -683,14 +741,14 @@ def manage_avatar_get_(request):
 
     return Response(define.webpage(
         request.userid,
-        "manage/avatar_nostyle.html" if form.style == "false" else "manage/avatar.html",
+        "manage/avatar.html",
         [
             # Avatar selection
             avatar_source_url,
             # Avatar selection exists
             avatar_source_url is not None,
         ],
-        options=["imageselect", "square_select"],
+        options=("imageselect", "square_select"),
         title="Edit Avatar"
     ))
 
@@ -720,13 +778,6 @@ def manage_banner_post_(request):
 
 @login_required
 def manage_alias_get_(request):
-    status = define.common_status_check(request.userid)
-
-    if status:
-        return Response(define.common_status_page(request.userid, status))
-    elif not request.userid:
-        return Response(define.webpage(request.userid))
-
     return Response(define.webpage(request.userid, "manage/alias.html", [
         # Alias
         useralias.select(request.userid),
@@ -746,11 +797,10 @@ def manage_alias_post_(request):
 @token_checked
 @disallow_api
 def sfw_toggle_(request):
-    form = request.web_input(redirect="/index")
+    form = request.web_input(redirect="/")
 
     currentstate = request.cookies.get('sfwmode', "nsfw")
     newstate = "sfw" if currentstate == "nsfw" else "nsfw"
-    request.set_cookie_on_response("sfwmode", newstate, 60 * 60 * 24 * 365)
-    # release the index page's cache so it shows the new ratings if they visit it
-    index.template_fields.invalidate(request.userid)
-    raise HTTPSeeOther(location=form.redirect)
+    response = HTTPSeeOther(location=form.redirect)
+    response.set_cookie("sfwmode", newstate, max_age=60 * 60 * 24 * 365)
+    return response

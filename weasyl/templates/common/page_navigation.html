@@ -1,0 +1,12 @@
+$def with (result, layout="pages-layout-split")
+$# paginated navigation buttons using a PaginatedResult
+<nav class="${layout}">
+  $if result.has_counts:
+    $if result.back_count:
+      <a class="button" rel="prev" href="${result.back_url}">Back (${result.back_count}$:{'+' if result.back_count == result.count_limit else ''} more)</a>
+    $if result.next_count:
+      <a class="button" rel="next" href="${result.next_url}">Next (${result.next_count}$:{'+' if result.next_count == result.count_limit else ''} more)</a>
+  $else:
+    <a class="button" rel="prev" href="${result.back_url}">Back</a>
+    <a class="button" rel="next" href="${result.next_url}">Next</a>
+</nav>

@@ -1,0 +1,23 @@
+$def with (streaming)
+
+<div id="streams" class="content">
+  <h3>Streaming Now</h3>
+
+  $if streaming:
+    <ul class="streams">
+      $for i in streaming:
+        <li>
+          <figure class="stream">
+            <img class="stream-avatar" src="${i['user_media']['avatar'][0]['display_url']}" alt="" width="75" height="75" loading="lazy">
+
+            <div class="stream-detail">
+              <h4 class="stream-header"><a class="username" href="/~${LOGIN(i['username'])}">${i['username']}</a> since $:{LOCAL_TIME(i['stream_time'], '{time}')}</h4>
+              <p>${i['stream_text']}</p>
+              <p class="stream-link"><a href="${i['stream_url']}">${i['stream_url']}</a></p>
+            </div>
+          </figure>
+        </li>
+    </ul>
+  $else:
+    <p>Nobody is streaming right now.</p>
+</div>

@@ -1,6 +1,6 @@
-# encoding: utf-8
-
-from __future__ import absolute_import
+import hashlib
+import string
+from collections import namedtuple
 
 from libweasyl import security
 from weasyl import define as d
@@ -8,122 +8,135 @@ from weasyl import emailer
 from weasyl.error import WeasylError
 
 
-def checktoken(token):
-    return d.execute("SELECT EXISTS (SELECT 0 FROM forgotpassword WHERE token = '%s')", [token], ["bool"])
+Unregistered = namedtuple('Unregistered', ['email'])
 
 
-# form
-#   email
+def _hash_token(token):
+    return hashlib.sha256(token.encode("ascii")).digest()
 
-def request(form):
-    token = security.generate_key(100)
-    email = emailer.normalize_address(form.email)
 
-    # Determine the user associated with `username`; if the user is not found,
-    # raise an exception
-    user_id = d.engine.scalar("""
-        SELECT userid FROM login WHERE email = %(email)s
-    """, email=email)
+def request(email):
+    token = security.generate_key(25, key_characters=string.digits + string.ascii_lowercase)
+    token_sha256 = _hash_token(token)
+    email = emailer.normalize_address(email)
 
-    # If `user_id` exists, then the supplied email was valid; if not valid, do nothing, raising
-    #   no errors for plausible deniability of email existence
-    if user_id:
-        # Insert a record into the forgotpassword table for the user,
-        # or update an existing one
-        now = d.get_time()
-        address = d.get_address()
+    if email is None:
+        raise WeasylError("emailInvalid")
 
-        d.engine.execute("""
-            INSERT INTO forgotpassword (userid, token, set_time, address)
-            VALUES (%(id)s, %(token)s, %(time)s, %(address)s)
-            ON CONFLICT (userid) DO UPDATE SET
-                token = %(token)s,
-                set_time = %(time)s,
-                address = %(address)s
-        """, id=user_id, token=token, time=now, address=address)
+    d.engine.execute(
+        "INSERT INTO forgotpassword (email, token_sha256)"
+        " VALUES (%(email)s, %(token_sha256)s)",
+        email=email, token_sha256=bytearray(token_sha256))
 
-        # Generate and send an email to the user containing a password reset link
-        emailer.append([email], None, "Weasyl Password Recovery", d.render("email/reset_password.html", [token]))
+    # Generate and send an email to the user containing a password reset link
+    emailer.send(email, "Weasyl Account Recovery", d.render("email/reset_password.html", [token]))
+
+
+def _find_reset_target(db, email):
+    """
+    Get information about the user whose password can be reset by access to the
+    provided normalized e-mail address, or None if there is no such user.
+
+    Matches the address case-insensitively, with priority given to a
+    case-sensitive match if there are multiple matches.
+    """
+    matches = db.execute(
+        "SELECT userid, email, username FROM login"
+        " INNER JOIN profile USING (userid)"
+        ' WHERE lower(email COLLATE "C") = lower(%(email)s COLLATE "C")',
+        email=email,
+    ).fetchall()
+
+    for match in matches:
+        if match.email == email:
+            return match
+
+    # XXX: we sent an e-mail to the address in its entered form, but are
+    # resetting the password of an account with a different case.
+    #
+    # that’s a vulnerability for a case-sensitive mail provider, but there’s
+    # not much else we can do while remaining user-friendly, and being
+    # case-sensitive as a mail provider is already exposing users to that kind
+    # of risk all over.
+    return matches[0] if matches else None
 
 
 def prepare(token):
-    # Remove records from the forgotpassword table which have been active for
-    # more than one hour, regardless of whether or not the user has clicked the
-    # associated link provided to them in the password reset request email, or
-    # which have been visited but have not been removed by the password reset
-    # script within five minutes of being visited
-    d.execute("DELETE FROM forgotpassword WHERE set_time < %i OR link_time > 0 AND link_time < %i",
-              [d.get_time() - 3600, d.get_time() - 300])
+    token_sha256 = _hash_token(token)
 
-    # Set the unixtime record for which the link associated with `token` was
-    # visited by the user
-    d.execute("UPDATE forgotpassword SET link_time = %i WHERE token = '%s'",
-              [d.get_time(), token])
-
-
-# form
-#   username    passcheck    month
-#   email       token        year
-#   password    day
-
-def reset(form):
-    from weasyl import login
-
-    # Raise an exception if `password` does not enter `passcheck` (indicating
-    # that the user mistyped one of the fields) or if `password` does not meet
-    # the system's password security requirements
-    if form.password != form.passcheck:
-        raise WeasylError("passwordMismatch")
-    elif not login.password_secure(form.password):
-        raise WeasylError("passwordInsecure")
-
-    # Select the user information and record data from the forgotpassword table
-    # pertaining to `token`, requiring that the link associated with the record
-    # be visited no more than five minutes prior; if the forgotpassword record is
-    # not found or does not meet this requirement, raise an exception
-    query = d.execute("""
-        SELECT lo.userid, lo.login_name, lo.email, fp.link_time, fp.address
-        FROM login lo
-            INNER JOIN userinfo ui USING (userid)
-            INNER JOIN forgotpassword fp USING (userid)
-        WHERE fp.token = '%s' AND fp.link_time > %i
-    """, [form.token, d.get_time() - 300], options="single")
-
-    if not query:
-        raise WeasylError("forgotpasswordRecordMissing")
-
-    USERID, USERNAME, EMAIL, LINKTIME, ADDRESS = query
-
-    # Check `username` and `email` against known correct values and raise an
-    # exception if there is a mismatch
-    if emailer.normalize_address(form.email) != emailer.normalize_address(EMAIL):
-        raise WeasylError("emailIncorrect")
-    elif d.get_sysname(form.username) != USERNAME:
-        raise WeasylError("usernameIncorrect")
-    elif d.get_address() != ADDRESS:
-        raise WeasylError("addressInvalid")
-
-    # Update the authbcrypt table with a new password hash
     d.engine.execute(
-        'INSERT INTO authbcrypt (userid, hashsum) VALUES (%(user)s, %(hash)s) '
-        'ON CONFLICT (userid) DO UPDATE SET hashsum = %(hash)s',
-        user=USERID, hash=login.passhash(form.password))
+        "DELETE FROM forgotpassword"
+        " WHERE created_at < now() - INTERVAL '1 hour'"
+    )
 
-    d.execute("DELETE FROM forgotpassword WHERE token = '%s'", [form.token])
+    email = d.engine.scalar(
+        "SELECT email FROM forgotpassword WHERE token_sha256 = %(token_sha256)s",
+        token_sha256=bytearray(token_sha256),
+    )
+
+    if email is None:
+        # token expired, or never existed.
+        return None
+
+    reset_target = _find_reset_target(d.engine, email=email)
+
+    if reset_target is None:
+        # a password reset was requested for an e-mail address not belonging to an account.
+        return Unregistered(email=email)
+
+    return reset_target
 
 
-# form
-#   password
-#   passcheck
-
-def force(userid, form):
+def reset(*, token, password, expect_userid, address):
     from weasyl import login
 
-    if form.password != form.passcheck:
-        raise WeasylError("passwordMismatch")
-    elif not login.password_secure(form.password):
+    token_sha256 = _hash_token(token)
+
+    if not login.password_secure(password):
         raise WeasylError("passwordInsecure")
 
-    d.execute("UPDATE login SET settings = REPLACE(settings, 'p', '') WHERE userid = %i", [userid])
-    d.execute("UPDATE authbcrypt SET hashsum = '%s' WHERE userid = %i", [login.passhash(form.password), userid])
-    d.get_login_settings.invalidate(userid)
+    with d.engine.begin() as db:
+        email = db.scalar(
+            "DELETE FROM forgotpassword"
+            " WHERE token_sha256 = %(token_sha256)s AND created_at >= now() - INTERVAL '1 hour'"
+            " RETURNING email",
+            token_sha256=bytearray(token_sha256),
+        )
+
+        if email is None:
+            # token expired, or never existed.
+            raise WeasylError("forgotpasswordRecordMissing")
+
+        match = _find_reset_target(db, email=email)
+
+        if match is None:
+            # account changed e-mail addresses.
+            raise WeasylError("forgotpasswordRecordMissing")
+
+        if match.userid != expect_userid:
+            # e-mail address changed accounts. possible, but very unusual.
+            #
+            # this is to make sure to never change the password of an account
+            # different from the one promised on the form, not a security thing
+            # – `expect_userid` is a hidden field of the form.
+            raise WeasylError("forgotpasswordRecordMissing")
+
+        # Update the authbcrypt table with a new password hash
+        result = db.execute(
+            "UPDATE authbcrypt SET hashsum = %(hash)s WHERE userid = %(user)s",
+            user=match.userid,
+            hash=login.passhash(password),
+        )
+
+        if result.rowcount != 1:
+            raise WeasylError("Unexpected")
+
+        db.execute(
+            d.meta.tables["user_events"].insert({
+                "userid": match.userid,
+                "event": "password-reset",
+                "data": {
+                    "address": address,
+                }
+            })
+        )

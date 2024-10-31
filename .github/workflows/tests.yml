@@ -1,0 +1,89 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    container:
+      image: ghcr.io/weasyl/ci-base-image@sha256:9a366824361bf3123b28364ab6a4bd039ac765fafd5a1baab07f5c7c4485c007
+      options: --user 1001
+
+    services:
+      weasyl-database:
+        image: postgres:9.6
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_USER: weasyl
+          POSTGRES_DB: weasyl_test
+        # probably ready by the time the tests run anyway; no need to add latency
+        #options: >-
+        #  --health-cmd pg_isready
+        #  --health-interval 10s
+        #  --health-timeout 5s
+        #  --health-retries 5
+
+      weasyl-memcached:
+        image: memcached:1.5-alpine
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: cache-${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            cache-${{ runner.os }}-npm-
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            cache-${{ runner.os }}-poetry-
+
+      - name: Create virtualenv
+        run: python3 -m venv --system-site-packages .venv
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Poetry dependencies
+        run: poetry install
+
+      - name: Configure Weasyl
+        run: |
+          cp ci/site.config.txt config/
+          cp config/weasyl-staff.example.py config/weasyl-staff.py
+          printf %.8s "$GITHUB_SHA" > version.txt
+
+      - name: Build assets
+        run: node build.js
+
+      - name: Test libweasyl
+        env:
+          WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@weasyl-database/weasyl_test
+        run: .venv/bin/coverage run -m pytest libweasyl.test libweasyl.models.test
+
+      - name: Test weasyl
+        env:
+          WEASYL_APP_ROOT: .
+          WEASYL_STORAGE_ROOT: testing
+        run: .venv/bin/coverage run -m pytest weasyl.test
+
+      - name: Create coverage report
+        run: |
+          .venv/bin/coverage combine
+          .venv/bin/coverage xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}

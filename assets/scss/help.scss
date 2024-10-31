@@ -1,0 +1,109 @@
+.content .faq-permalink {
+    margin-top: 0.7em;
+    position: absolute;
+}
+
+@media (min-width: 45em) {
+    .content .faq-permalink {
+        height: 0;
+        margin-top: 0;
+        text-indent: -9999px;
+    }
+
+    .content .faq-permalink::after {
+        content: "#";
+        font-size: 1.5em;
+        margin-right: 0.5em;
+        position: absolute;
+        right: 100%;
+        text-indent: 0;
+        top: 1.9em;
+    }
+}
+
+.help-image img {
+    box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.5);
+    display: block;
+    margin: 1em auto;
+}
+
+kbd, samp {
+    font-family: inherit;
+    font-weight: bold;
+}
+
+.help-examples table {
+    margin-bottom: 1em;
+}
+
+.help-examples th {
+    font-weight: normal;
+    text-align: left;
+}
+
+.help-examples th,
+.help-examples td {
+    border: 0.1em solid #bbb;
+    padding: 0.4em;
+    vertical-align: top;
+}
+
+.help-examples > h4 {
+    padding-top: 0.6em;
+    padding-bottom: 0.2em;
+}
+
+#comm-guidelines {
+    padding-top: 2em;
+}
+
+#comm-guidelines ul li, #comm-guidelines ol li {
+    padding-bottom: 1.5em;
+}
+
+#comm-guidelines ul ol, #comm-guidelines ul ol li:last-child, #comm-guidelines ol ul, #comm-guidelines ol ul li:last-child {
+    padding-bottom: 0;
+}
+
+.donator-list {
+    column-count: 2;
+    column-gap: 2em;
+    padding: 2em 0;
+    font-size: 1.15em;
+}
+
+.donator-list > li {
+    line-height: 1;
+    overflow-wrap: break-word;
+    padding: 0.25em 0.5em 0.75em 0;
+}
+
+@media (min-width: 45em) {
+    .donator-list {
+        column-count: 4;
+    }
+}
+
+@media (min-width: 55em) {
+    .donator-list {
+        column-count: 5;
+    }
+}
+
+@media (min-width: 65em) {
+    .donator-list {
+        column-count: 6;
+    }
+}
+
+@media (min-width: 72em) {
+    .donator-list {
+        column-count: 7;
+    }
+}
+
+@media (min-width: 80em) {
+    .donator-list {
+        column-count: 8;
+    }
+}

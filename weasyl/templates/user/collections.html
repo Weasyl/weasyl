@@ -1,0 +1,20 @@
+$def with (profile, userinfo, relationship, result, post_counts_by_type)
+$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+
+<div id="collections_stage" class="stage">
+  $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], "collections", profile['show_favorites_tab'], post_counts_by_type])}
+</div>
+
+<div class="content user-collections">
+  <h3>Collections</h3>
+
+  $if result.query:
+    <ul class="thumbnail-grid">
+      $for index, item in enumerate(result.query):
+        $:{_GRID_ITEM(item, lazy_load=index >= 10)}
+    </ul>
+    $:{RENDER("common/page_navigation.html", [result])}
+  $else:
+    There are no collections to display.
+</div>

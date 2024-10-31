@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import datetime
 
 import arrow
 import pytest
 from weasyl.test import db_utils
-from weasyl import commishinfo, orm, profile, searchtag
+from weasyl import commishinfo, define as d, orm, profile, searchtag
 
 
 @pytest.mark.usefixtures('db')
@@ -56,24 +54,24 @@ def test_commish_search(args, result_order):
     u1 = db_utils.create_user(username="searcher")
 
     # user open for commissions
-    create_commish_searchable_user("u2", submittime=arrow.now())
+    create_commish_searchable_user("u2", submittime=arrow.utcnow())
 
     # user sometimes open for commissions (should behave same as above)
     create_commish_searchable_user("u3", commish_status='s',
-                                   submittime=arrow.now() - datetime.timedelta(days=1))
+                                   submittime=arrow.utcnow() - datetime.timedelta(days=1))
 
     # user open for commissions, with blacklisted tags
-    u4 = create_commish_searchable_user("u4", submittime=arrow.now() - datetime.timedelta(days=2))
-    searchtag.associate(u4, optout_tags_userid=u4, tags={'cat'})
+    u4 = create_commish_searchable_user("u4", submittime=arrow.utcnow() - datetime.timedelta(days=2))
+    searchtag.set_commission_optout_tags(userid=u4, tag_names={'cat'})
 
     # user with a different commish class and a preference tag
     u5 = create_commish_searchable_user("u5", commishclass="sketch",
-                                        submittime=arrow.now() - datetime.timedelta(days=3))
-    searchtag.associate(u5, preferred_tags_userid=u5, tags={'cat'})
+                                        submittime=arrow.utcnow() - datetime.timedelta(days=3))
+    searchtag.set_commission_preferred_tags(userid=u5, tag_names={'cat'})
 
     # user with a different price
     create_commish_searchable_user("u6", minprice="100.0", maxprice="100.0",
-                                   submittime=arrow.now() - datetime.timedelta(days=4))
+                                   submittime=arrow.utcnow() - datetime.timedelta(days=4))
 
     results = commishinfo.select_commissionable(userid=u1,
                                                 limit=10,
@@ -98,7 +96,7 @@ def test_commish_search_invalid():
 
     # user meets all requirements, but is suspended
     u4 = create_commish_searchable_user("u4")
-    db_utils.create_suspenduser(u4, "", arrow.now() + datetime.timedelta(days=7))
+    db_utils.create_suspenduser(u4, "", d.get_time() + 604800)
 
     # user meets all requirements, but is banned
     u5 = create_commish_searchable_user("u5")

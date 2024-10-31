@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import unittest
 import pytest
 
-from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
 
 from weasyl.test import db_utils
@@ -40,7 +37,7 @@ class SelectUserCountTestCase(unittest.TestCase):
         """
         Should be able to see a friend's journal in a listing.
         """
-        j = db_utils.create_journal(self.friend1, 'Friends only journal', settings=CharSettings({"friends-only"}, {}, {}))
+        j = db_utils.create_journal(self.friend1, 'Friends only journal', friends_only=True)
         self.assertEqual(
             self.count + 1,
             select_user_count(self.user1, ratings.GENERAL.code))
@@ -52,7 +49,7 @@ class SelectUserCountTestCase(unittest.TestCase):
         """
         Should not be able to see a non-friend's journal in a listing.
         """
-        db_utils.create_journal(self.user2, 'Friends only journal', settings=CharSettings({"friends-only"}, {}, {}))
+        db_utils.create_journal(self.user2, 'Friends only journal', friends_only=True)
         self.assertEqual(
             self.count,
             select_user_count(self.user1, ratings.GENERAL.code))

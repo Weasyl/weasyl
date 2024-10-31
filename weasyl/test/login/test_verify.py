@@ -1,12 +1,8 @@
-from __future__ import absolute_import, unicode_literals
-
 import pytest
-import arrow
 
 from weasyl import login
 from weasyl import define as d
 from weasyl.error import WeasylError
-from weasyl.test.utils import Bag
 
 
 token = "a" * 40
@@ -21,8 +17,6 @@ def _create_pending_account(invalid=False):
         "login_name": username,
         "hashpass": login.passhash('0123456789'),
         "email": email,
-        "birthday": arrow.Arrow(2000, 1, 1),
-        "unixtime": arrow.now(),
         "invalid": invalid,
     })
 
@@ -62,12 +56,6 @@ def test_verify_success_if_valid_token_provided():
         userid=userid)
     assert d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM userinfo WHERE userid = %(userid)s)",
-        userid=userid)
-    assert d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM userstats WHERE userid = %(userid)s)",
-        userid=userid)
-    assert d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM welcomecount WHERE userid = %(userid)s)",
         userid=userid)
 
     # The 'logincreate' record gets deleted on successful execution; verify this

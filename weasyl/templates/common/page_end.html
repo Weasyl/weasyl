@@ -1,0 +1,85 @@
+$def with (options)
+  <footer><div id="footer">
+
+    <nav><div id="footer-nav" class="clear">
+
+      <div class="column clear">
+        <h1><a href="/"><img src="${resource_path('img/logo.png')}" alt="Weasyl" /></a></h1>
+        <ul class="clear">
+          <li><a href="/submit">Submit</a></li>
+          <li><a href="/search">Search</a></li>
+          <li><a href="/control">Settings</a></li>
+        </ul>
+      </div>
+
+      <div class="column clear">
+        <h2 class="typeface-a color-a">About</h2>
+        <ul class="clear">
+          <li><a href="/help/about">About Weasyl</a></li>
+          <li><a href="/site-updates/">News</a></li>
+          <li><a href="/help/faq">FAQ</a></li>
+          <li><a href="/staff">Staff</a></li>
+          <li><a href="/thanks">Awesome People</a></li>
+        </ul>
+      </div>
+
+      <div class="column clear">
+        <h2 class="typeface-a color-a">Community</h2>
+        <ul class="clear">
+          $ site_social_rel = ' rel="me"' if 'index' in options else ''
+          <li><a$:{site_social_rel} class="footer-icon-link" href="https://bsky.app/profile/weasyl.com"><img src="${resource_path('img/bluesky.svg')}" alt="" fetchpriority="low"> Bluesky</a></li>
+          <li><a$:{site_social_rel} class="footer-icon-link" href="https://sunny.garden/@weasyl"><img src="${resource_path('img/mastodon.svg')}" alt="" fetchpriority="low"> Mastodon</a></li>
+        </ul>
+      </div>
+
+      <div class="column clear">
+        <h2 class="typeface-a color-a">Policy</h2>
+        <ul class="clear">
+          <li><a href="/policy/community">Community Guidelines</a></li>
+          <li><a href="/help/ratings">Ratings Guidelines</a></li>
+          <li><a href="/policy/tos">Terms of Service</a></li>
+          <li><a href="/policy/copyright">Copyright Policy</a></li>
+          <li><a href="/policy/scoc">Staff Code of Conduct</a></li>
+          <li><a href="/policy/privacy">Privacy Policy</a></li>
+        </ul>
+      </div>
+
+      <div class="column clear">
+        <h2 class="typeface-a color-a">Support</h2>
+        <ul class="clear">
+          <li><a href="/help">Help Topics</a></li>
+          <li><a href="mailto:${M.MACRO_SUPPORT_ADDRESS}">Report a Bug</a></li>
+          <li><a href="/help/reports">My Reports</a></li>
+          <li><a href="mailto:${M.MACRO_SUPPORT_ADDRESS}">${M.MACRO_SUPPORT_ADDRESS}</a></li>
+        </ul>
+      </div>
+
+    </div></nav>
+
+    <img id="footer-wesley" src="${resource_path('img/wesley1.png')}" alt="" />
+
+    <p id="footer-info">
+      <a href="https://github.com/Weasyl/weasyl/commit/${SHA}">${SHA}</a> &middot; Copyright &copy; 2012–${arrow.utcnow().year} Weasyl LLC<br>
+      <a href="https://github.com/Weasyl/weasyl">Weasyl is an open source project</a>
+    </p>
+
+  </div></footer>
+
+</div>
+
+<script src="${resource_path('js/jquery-2.2.4.min.js')}"></script>
+
+<script id="scripts" src="${resource_path('js/scripts.js')}" data-marked-src="${resource_path('js/marked.js')}"></script>
+
+$if "imageselect" in options:
+  <script src="${resource_path('js/imageselect.js')}"></script>
+  $:{RENDER("common/image_select.html", ["square_select" in options])}
+
+$if 'search' in options:
+  <script src="${resource_path('js/search.js')}"></script>
+
+$if 'tags-edit' in options:
+  <script type="module" src="${resource_path('js/tags-edit.js')}" async></script>
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+$def with (query, ratings)
+$:{RENDER("common/stage_title.html", ["Edit Journal Entry"])}
+
+$code:
+  def _RATING(x):
+    return ' selected="selected"' if query['rating'] == x else ''
+  def _CHECKED(x):
+    return ' checked="checked"' if x else ''
+
+<div id="edit-journal-content" class="content">
+
+  <form name="editjournal" action="/edit/journal" method="post" class="form skinny clear">
+    <input type="hidden" name="journalid" value="${query['journalid']}" />
+
+    <h3>Journal Composition</h3>
+
+    <label for="editjournaltitle">Title</label>
+    <input type="text" class="input" name="title" value="${query['title']}" id="editjournaltitle" />
+
+    <label for="editjournalrating">Rating</label>
+    <select name="rating" class="input" id="editjournalrating">
+      $for rating in ratings:
+        <option value="${rating.code}"$:{_RATING(rating.code)}>${rating.name_with_age}</option>
+    </select>
+    $if len(ratings) > 1:
+      <p class="color-lighter tags-help"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos" target="_blank">Weasyl Terms of Service</a></i></p>
+
+    <label for="editjournalcontent">Content</label>
+    <textarea name="content" class="markdown input expanding" rows="9" id="editjournalcontent">${query['content']}</textarea>
+    <p class="color-lighter tags-help"><i>For assistance with formatting, including linking to users, see <a href="/help/markdown" target="_blank">Formatting Help</a>.</i></p>
+
+    <h3>Additional Options</h3>
+
+    <label for="editjournalfriends" class="input-checkbox">
+      <input type="checkbox" id="editjournalfriends" name="friends"${_CHECKED(query['friends_only'])} />
+      Make this journal visible only to my friends
+    </label>
+
+    <div class="buttons clear" style="padding-top: 1em;">
+      <button type="submit" class="button" style="float: right;">Save</button>
+      <a class="button" href="/journal/${query['journalid']}/${SLUG(query['title'])}">Cancel</a>
+    </div>
+
+  </form>
+</div>

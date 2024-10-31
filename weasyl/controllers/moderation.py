@@ -1,8 +1,3 @@
-# encoding: utf-8
-
-from __future__ import absolute_import
-
-import anyjson as json
 import arrow
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -22,13 +17,15 @@ def modcontrol_(request):
 @moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
-                                   [moderation.BAN_TEMPLATES, json.dumps(moderation.BAN_TEMPLATES)], title="User Suspensions"))
+                                   (moderation.BAN_TEMPLATES,),
+                                   options=("mod",),
+                                   title="User Suspensions"))
 
 
 @moderator_only
 @token_checked
 def modcontrol_suspenduser_post_(request):
-    form = request.web_input(userid="", username="", mode="", reason="", day="", month="", year="", datetype="",
+    form = request.web_input(userid="", username="", mode="", reason="", datetype="",
                              duration="", durationunit="")
 
     moderation.setusermode(request.userid, form)
@@ -37,15 +34,14 @@ def modcontrol_suspenduser_post_(request):
 
 @moderator_only
 def modcontrol_report_(request):
-    form = request.web_input(reportid='')
-    r = report.select_view(request.userid, form)
+    r = report.select_view(request.userid, reportid=int(request.GET["reportid"]))
     blacklisted_tags = moderation.gallery_blacklisted_tags(request.userid, r.target.userid)
 
     return Response(define.webpage(request.userid, "modcontrol/report.html", [
         request.userid,
         r,
         blacklisted_tags,
-    ], title="View Reported " + r.target_type.title()))
+    ], options=("mod",), title="View Reported " + r.target_type.title()))
 
 
 @moderator_only
@@ -57,7 +53,7 @@ def modcontrol_reports_(request):
         # Reports
         report.select_list(request.userid, form),
         macro.MACRO_REPORT_VIOLATION,
-    ], title="Reported Content"))
+    ], options=("mod",), title="Reported Content"))
 
 
 @moderator_only
@@ -77,20 +73,20 @@ def modcontrol_contentbyuser_(request):
     if not target_userid:
         raise WeasylError("userRecordMissing")
 
-    submissions = moderation.submissionsbyuser(request.userid, form) if 's' in form.features else []
-    characters = moderation.charactersbyuser(request.userid, form) if 'c' in form.features else []
-    journals = moderation.journalsbyuser(request.userid, form) if 'j' in form.features else []
+    submissions = moderation.submissionsbyuser(target_userid) if 's' in form.features else []
+    characters = moderation.charactersbyuser(target_userid) if 'c' in form.features else []
+    journals = moderation.journalsbyuser(target_userid) if 'j' in form.features else []
 
     return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
         form.name,
         sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
-    ], title=form.name + "'s Content"))
+    ], options=("mod",), title=form.name + "'s Content"))
 
 
 @moderator_only
 @token_checked
 def modcontrol_massaction_(request):
-    form = request.web_input(action='', name='', submissions=[], characters=[], journals=[])
+    form = request.web_input(action='', submissions=[], characters=[], journals=[])
     if form.action.startswith("zap-"):
         # "Zapping" cover art or thumbnails is not a bulk edit.
         if not form.submissions:
@@ -113,37 +109,11 @@ def modcontrol_massaction_(request):
         body=moderation.bulk_edit(
             request.userid,
             form.action,
-            map(int, form.submissions),
-            map(int, form.characters),
-            map(int, form.journals),
+            list(map(int, form.submissions)),
+            list(map(int, form.characters)),
+            list(map(int, form.journals)),
         ),
     )
-
-
-@moderator_only
-@token_checked
-def modcontrol_hide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.hidesubmission(int(form.submission))
-    elif form.character:
-        moderation.hidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
-
-
-@moderator_only
-@token_checked
-def modcontrol_unhide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.unhidesubmission(int(form.submission))
-    elif form.character:
-        moderation.unhidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
@@ -193,21 +163,12 @@ def modcontrol_editcatchphrase_(request):
 
 @moderator_only
 @token_checked
-def modcontrol_edituserconfig_(request):
-    form = request.web_input(userid="")
-
-    moderation.edituserconfig(form)
-    raise HTTPSeeOther("/modcontrol")
-
-
-@moderator_only
-@token_checked
 def modcontrol_copynotetostaffnotes_post_(request):
     form = request.web_input(noteid=None)
 
     notedata = note.select_view(request.userid, int(form.noteid))
 
-    staff_note_title = u"Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
+    staff_note_title = "Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
         sender=notedata['sendername'],
         date=arrow.get(notedata['unixtime']).format('YYYY-MM-DD HH:mm:ss ZZ'),
         subj=notedata['title'],

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from libweasyl import ratings
 
 from weasyl import define as d
@@ -18,24 +16,14 @@ WatchSettings = create_configuration([
 ])
 
 
-def check(userid, otherid, myself=False):
-    if not userid or not otherid:
-        return False
-    if userid == otherid:
-        return myself
-
-    return d.execute("SELECT EXISTS (SELECT 0 FROM watchuser WHERE (userid, otherid) = (%i, %i))",
-                     [userid, otherid], options="bool")
-
-
-def list_followed(userid, settings=None, within=False, rating=ratings.GENERAL.code, friends=False):
+def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
     """
     Returns a list of users who are following the specified user.
     """
-    statement = ["SELECT wu.userid FROM watchuser wu JOIN profile pr ON wu.userid = pr.userid WHERE wu.otherid = %i"]
-
-    if settings:
-        statement.append(" AND wu.settings ~ '%s'")
+    statement = [
+        "SELECT wu.userid FROM watchuser wu JOIN profile pr ON wu.userid = pr.userid WHERE wu.otherid = %(user)s"
+        " AND wu.settings ~ %(setting)s"
+    ]
 
     if friends:
         statement.append("""
@@ -48,24 +36,26 @@ def list_followed(userid, settings=None, within=False, rating=ratings.GENERAL.co
         # Only notify users who view explicit
         statement.append(" AND pr.config ~ 'p'")
     elif rating == ratings.MATURE.code:
-        # Only notify users who view explicit or explicit
+        # Only notify users who view mature or explicit
         statement.append(" AND pr.config ~ '[ap]'")
 
-    return d.execute("".join(statement),
-                     [userid, settings] if settings else [userid],
-                     options=["within"] if within else [])
+    return d.column(d.engine.execute("".join(statement), user=userid, setting=settings))
 
 
 def select_settings(userid, otherid):
-    query = d.execute("SELECT settings FROM watchuser WHERE (userid, otherid) = (%i, %i)", [userid, otherid], ["single"])
+    settings = d.engine.scalar(
+        "SELECT settings FROM watchuser WHERE (userid, otherid) = (%(user)s, %(other)s)",
+        user=userid,
+        other=otherid,
+    )
 
-    if not query:
+    if settings is None:
         raise WeasylError("watchuserRecordMissing")
 
-    return query[0]
+    return settings
 
 
-def select_followed(userid, otherid, limit=None, backid=None, nextid=None, choose=None, following=False):
+def select_followed(userid, otherid, limit=None, backid=None, nextid=None, following=False):
     """
     Returns the users who are following the specified user; note that
     ``following`` need never be passed explicitly.
@@ -87,10 +77,7 @@ def select_followed(userid, otherid, limit=None, backid=None, nextid=None, choos
     elif nextid:
         statement.append(" AND pr.username > (SELECT username FROM profile WHERE userid = %i)" % (nextid,))
 
-    if choose:
-        statement.append(" ORDER BY RANDOM() LIMIT %i" % (choose,))
-    else:
-        statement.append(" ORDER BY pr.username%s LIMIT %i" % (" DESC" if backid else "", limit))
+    statement.append(" ORDER BY pr.username%s LIMIT %i" % (" DESC" if backid else "", limit))
 
     query = [{
         "userid": i[0],
@@ -101,11 +88,11 @@ def select_followed(userid, otherid, limit=None, backid=None, nextid=None, choos
     return query[::-1] if backid else query
 
 
-def select_following(userid, otherid, limit=None, backid=None, nextid=None, choose=None):
+def select_following(userid, otherid, limit=None, backid=None, nextid=None):
     """
     Returns the users whom the specified user is following.
     """
-    return select_followed(userid, otherid, limit, backid, nextid, choose, following=True)
+    return select_followed(userid, otherid, limit, backid, nextid, following=True)
 
 
 def manage_following(userid, limit, backid=None, nextid=None):
@@ -152,8 +139,12 @@ def insert(userid, otherid):
 
 
 def update(userid, otherid, watch_settings):
-    d.execute("UPDATE watchuser SET settings = '%s' WHERE (userid, otherid) = (%i, %i)",
-              [watch_settings.to_code(), userid, otherid])
+    d.engine.execute(
+        "UPDATE watchuser SET settings = %(settings)s WHERE (userid, otherid) = (%(user)s, %(other)s)",
+        settings=watch_settings.to_code(),
+        user=userid,
+        other=otherid,
+    )
 
 
 def remove(userid, otherid):

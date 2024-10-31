@@ -1,15 +1,12 @@
-from __future__ import absolute_import
-
-from weasyl import blocktag
 from weasyl import define as d
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
 from weasyl import welcome
-from weasyl.error import PostgresError, WeasylError
+from weasyl.error import WeasylError
 
 
-def select_query(userid, rating, otherid=None, pending=False, backid=None, nextid=None, config=None, options=[]):
+def select_query(userid, *, rating, otherid, pending=False, backid=None, nextid=None):
     """
     Build a query to select a list of collections, joined on submission table
     and profile of the submitter
@@ -19,8 +16,6 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
     :param pending: TRUE to give only pending collections, otherwise give accepted ones.
     :param backid: will not return submissions older than the one with this ID
     :param nextid: will not return submissions newer than the one with this ID
-    :param config: unused
-    :param options: unused
     :return: a statement created based on options given
     """
     statement = [
@@ -28,7 +23,7 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
         " submission su ON co.submitid = su.submitid"
         " INNER JOIN profile pr ON su.userid = pr.userid"
         " INNER JOIN profile cpr ON co.userid = cpr.userid"
-        " WHERE su.settings !~ 'h'"]
+        " WHERE NOT su.hidden"]
 
     # filter own content in SFW mode
     if d.is_sfw_mode():
@@ -61,25 +56,22 @@ def select_query(userid, rating, otherid=None, pending=False, backid=None, nexti
 
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
     return statement
 
 
-def select_count(userid, rating, otherid=None, pending=False, backid=None, nextid=None, config=None, options=[]):
+def select_count(userid, rating, *, otherid, pending=False, backid=None, nextid=None):
     statement = ["SELECT count(su.submitid) "]
-    statement.extend(select_query(userid, rating, otherid, pending,
-                                  backid, nextid, config))
+    statement.extend(select_query(userid, rating=rating, otherid=otherid, pending=pending,
+                                  backid=backid, nextid=nextid))
     return d.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, pending=False, backid=None, nextid=None, config=None, options=[]):
-    if config is None:
-        config = d.get_config(userid)
-
+def select_list(userid, rating, limit, *, otherid, pending=False, backid=None, nextid=None):
     statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, "
                  "su.userid, pr.username, cpr.username, cpr.userid "]
-    statement.extend(select_query(userid, rating, otherid, pending,
-                                  backid, nextid, config))
+    statement.extend(select_query(userid, rating=rating, otherid=otherid, pending=pending,
+                                  backid=backid, nextid=nextid))
     statement.append(" ORDER BY co.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
 
     query = []
@@ -102,49 +94,57 @@ def select_list(userid, rating, limit, otherid=None, pending=False, backid=None,
     return query[::-1] if backid else query
 
 
-def find_owners(submitid, pending=False):
+def find_owners(submitid):
     """
     Retrieve a list of users who have collected the given submission.
     does NOT include the original submitter.
     :param submitid: any submission ID
-    :param pending: TRUE to include pending submissions, FALSE to exclude them
     :return: a list of userids of all users who have collected this submission
     """
-    statement = "SELECT userid FROM collection WHERE submitid = %(sub)s"
-    if not pending:
-        statement += " AND settings !~ '[pr]'"
-    result = d.engine.execute(statement, sub=submitid)
+    result = d.engine.execute(
+        "SELECT userid FROM collection WHERE submitid = %(sub)s AND settings !~ '[pr]'",
+        sub=submitid)
     return [r[0] for r in result]
 
 
-def offer(userid, submitid, otherid):
-    query = d.execute("SELECT userid, rating, settings FROM submission WHERE submitid = %i",
-                      [submitid], options="single")
+def owns(userid, submitid):
+    return d.engine.scalar(
+        "SELECT EXISTS (SELECT FROM collection WHERE userid = %(user)s AND submitid = %(sub)s)",
+        user=userid,
+        sub=submitid,
+    )
 
-    if not query or "h" in query[2]:
+
+def offer(userid, submitid, otherid):
+    query = d.engine.execute(
+        "SELECT userid, hidden, friends_only FROM submission WHERE submitid = %(id)s",
+        id=submitid,
+    ).first()
+
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
-    elif userid != query[0]:
+    if userid != query.userid:
         raise WeasylError("Unexpected")
 
     # Check collection acceptability
-    if otherid:
-        rating = d.get_rating(otherid)
+    if query.friends_only:
+        raise WeasylError("collectionUnacceptable")
+    if ignoreuser.check(otherid, userid):
+        raise WeasylError("IgnoredYou")
+    if ignoreuser.check(userid, otherid):
+        raise WeasylError("YouIgnored")
 
-        if rating < query[1]:
-            raise WeasylError("collectionUnacceptable")
-        if "f" in query[2]:
-            raise WeasylError("collectionUnacceptable")
-        if ignoreuser.check(otherid, userid):
-            raise WeasylError("IgnoredYou")
-        if ignoreuser.check(userid, otherid):
-            raise WeasylError("YouIgnored")
-        if blocktag.check(otherid, submitid=submitid):
-            raise WeasylError("collectionUnacceptable")
+    result = d.engine.execute(
+        "INSERT INTO collection (userid, submitid, unixtime, settings)"
+        " VALUES (%(userid)s, %(submitid)s, %(now)s, %(settings)s)"
+        " ON CONFLICT (userid, submitid) DO NOTHING",
+        userid=otherid,
+        submitid=submitid,
+        now=d.get_time(),
+        settings="p",
+    )
 
-    try:
-        d.execute("INSERT INTO collection (userid, submitid, unixtime) VALUES (%i, %i, %i)",
-                  [otherid, submitid, d.get_time()])
-    except PostgresError:
+    if result.rowcount == 0:
         raise WeasylError("collectionExists")
 
     welcome.collectoffer_insert(userid, otherid, submitid)
@@ -167,13 +167,13 @@ def _check_throttle(userid, otherid):
 
 
 def request(userid, submitid, otherid):
-    query = d.engine.execute("SELECT userid, rating, settings "
+    query = d.engine.execute("SELECT userid, rating, hidden, friends_only "
                              "FROM submission WHERE submitid = %(submission)s",
                              submission=submitid).first()
 
     rating = d.get_rating(userid)
 
-    if not query or "h" in query.settings:
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
     if otherid != query.userid:
         raise WeasylError("Unexpected")
@@ -182,7 +182,7 @@ def request(userid, submitid, otherid):
     # something with a tag you don't like that's your business
     if rating < query.rating:
         raise WeasylError("RatingExceeded")
-    if "f" in query.settings:
+    if query.friends_only:
         raise WeasylError("collectionUnacceptable")
     if ignoreuser.check(otherid, userid):
         raise WeasylError("IgnoredYou")
@@ -195,12 +195,17 @@ def request(userid, submitid, otherid):
     if not settings.allow_collection_requests:
         raise WeasylError("Unexpected")
 
-    request_settings = "r"
-    try:
-        d.engine.execute("INSERT INTO collection (userid, submitid, unixtime, settings) "
-                         "VALUES (%(userid)s, %(submitid)s, %(now)s, %(settings)s)",
-                         userid=userid, submitid=submitid, now=d.get_time(), settings=request_settings)
-    except PostgresError:
+    result = d.engine.execute(
+        "INSERT INTO collection (userid, submitid, unixtime, settings)"
+        " VALUES (%(userid)s, %(submitid)s, %(now)s, %(settings)s)"
+        " ON CONFLICT (userid, submitid) DO NOTHING",
+        userid=userid,
+        submitid=submitid,
+        now=d.get_time(),
+        settings="r",
+    )
+
+    if result.rowcount == 0:
         raise WeasylError("collectionExists")
 
     welcome.collectrequest_insert(userid, otherid, submitid)
@@ -210,30 +215,44 @@ def pending_accept(userid, submissions):
     if not submissions:
         return
 
-    d.engine.execute(
-        "UPDATE collection SET "
-        "unixtime = %(now)s, "
-        "settings = REGEXP_REPLACE(settings, '[pr]', '') "
-        "WHERE settings ~ '[pr]' "
-        "AND (submitid, userid) = ANY (%(submissions)s)",
-        submissions=submissions, now=d.get_time())
+    updated = d.engine.execute(
+        "UPDATE collection SET"
+        " unixtime = %(now)s,"
+        " settings = REGEXP_REPLACE(collection.settings, '[pr]', '')"
+        " FROM submission WHERE collection.submitid = submission.submitid"
+        " AND %(userid)s IN (collection.userid, submission.userid)"
+        " AND (collection.submitid, collection.userid) = ANY (%(submissions)s)"
+        " AND collection.settings ~ (CASE WHEN %(userid)s = collection.userid THEN 'p' ELSE 'r' END)"
+        " RETURNING collection.userid, collection.submitid",
+        userid=userid,
+        submissions=submissions,
+        now=d.get_time(),
+    ).fetchall()
 
-    for s in submissions:
+    for s in updated:
         welcome.collection_insert(s[1], s[0])
         welcome.collectrequest_remove(userid, s[1], s[0])
 
     d._page_header_info.invalidate(userid)
+    d.cached_posts_count.invalidate(userid)
 
 
 def pending_reject(userid, submissions):
     if not submissions:
         return
 
-    d.engine.execute("DELETE FROM collection WHERE (submitid, userid) = ANY (%(submissions)s)",
-                     submissions=submissions)
+    d.engine.execute(
+        "DELETE FROM collection"
+        " USING submission WHERE collection.submitid = submission.submitid"
+        " AND %(userid)s IN (collection.userid, submission.userid)"
+        " AND (collection.submitid, collection.userid) = ANY (%(submissions)s)"
+        " AND collection.settings ~ (CASE WHEN %(userid)s = collection.userid THEN 'p' ELSE 'r' END)",
+        userid=userid,
+        submissions=submissions,
+    )
 
-    for s in submissions:
-        welcome.collectrequest_remove(userid, s[1], s[0])
+    for submitid, collectorid in submissions:
+        welcome.collectrequest_remove(userid, collectorid, submitid)
 
     d._page_header_info.invalidate(userid)
 
@@ -246,6 +265,8 @@ def remove(userid, submissions):
         DELETE FROM collection
         WHERE userid = %(user)s
             AND submitid = ANY (%(submissions)s)
+            AND settings !~ '[pr]'
     """, user=userid, submissions=submissions)
 
     welcome.collection_remove(userid, submissions)
+    d.cached_posts_count.invalidate(userid)

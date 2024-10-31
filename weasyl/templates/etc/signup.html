@@ -1,0 +1,49 @@
+$def with ()
+$:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
+
+<div id="signup-content" class="content">
+
+  <form name="signup" action="/signup" method="post" class="form skinny clear">
+    <label for="signup-username">Username</label>
+    <input type="text" id="signup-username" class="input" name="username" autofocus required maxlength="25" autocomplete="username" />
+
+    <label for="signup-password">Password</label>
+    <input type="password" id="signup-password" class="input" name="password" minlength="10" maxlength="72" required autocomplete="new-password" />
+    <p class="color-lighter" style="padding-top: 0.5em;"><i>Passwords must be a minimum of 10 characters.</i></p>
+
+    <div id="password-strength" class="password-strength password-strength-empty" data-password-input="signup-password" data-personal-inputs="signup-username,signup-email"></div>
+
+    <label for="signup-email">Email Address</label>
+    <input type="email" id="signup-email" class="input" name="email" placeholder="john@doe.com" required autocomplete="email" />
+
+    <fieldset>
+      <legend class="label">Age Requirement</legend>
+      <label class="input-checkbox required-label">
+        <input type="checkbox" name="age" value="13+" required title="You need to be at least 13 years old to use Weasyl." class="invalid-use-title">
+        I am at least 13 years old
+      </label>
+    </fieldset>
+
+    $:{COMPILE("common/turnstile.html")(action="signup")}
+
+    <script type="module" src="${resource_path('js/signup.js')}" async></script>
+    <script src="${resource_path('js/zxcvbn.js')}" async></script>
+    <script src="${resource_path('js/zxcvbn-check.js')}" async></script>
+
+    <div style="padding-top: 1em">
+      <button type="submit" class="button positive" style="float: right;">Join Weasyl</button>
+      <a class="button" href="/">Cancel</a>
+    </div>
+
+    <div id="signup-terms">
+      By registering an account on Weasyl, you agree that you have fully read and will abide by both the
+      <a href="/policy/tos">Terms of Service</a> and the <a href="/policy/community">Community Guidelines</a>,
+      and that you agree to the terms outlined in the <a href="/policy/privacy">Privacy Policy</a>.
+      If you accept these policies and conditions, click the <strong>Join Weasyl</strong> button to register;
+      otherwise, click <strong>Cancel</strong> to continue browsing as a guest.
+    </div>
+
+  </form>
+
+
+</div>

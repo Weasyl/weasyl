@@ -1,5 +1,3 @@
-from __future__ import absolute_import, unicode_literals
-
 import pytest
 
 from libweasyl import staff
@@ -12,15 +10,6 @@ from weasyl.test import db_utils
 valid_tags = {'test', '*test', 'te*st', 'test*', 'test_too'}
 invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
 combined_tags = valid_tags | invalid_tags
-
-
-@pytest.mark.usefixtures('db')
-def test_get_user_tag_restrictions():
-    user_id = db_utils.create_user()
-    tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
-    searchtag.edit_user_tag_restrictions(user_id, tags)
-    resultant_tags = searchtag.query_user_restricted_tags(user_id)
-    assert resultant_tags == valid_tags
 
 
 @pytest.mark.usefixtures('db')

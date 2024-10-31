@@ -1,0 +1,21 @@
+$def with (container, query, additional=None)
+<div id="${container}" class="comments">
+  $for i in query:
+    <div class="comment">
+      <a href="/~${LOGIN(i['username'])}" class="avatar">
+        $ avatar = i['user_media']['avatar'][0]
+        <img src="${avatar['display_url']}" alt="" />
+      </a>
+      <div class="comment-content">
+        <p class="byline">
+          <a href="/~${LOGIN(i['username'])}" class="username">${i['username']}</a>
+          $:{LOCAL_TIME(i['unixtime'], '<i>on</i> <b class="local-time-date">{date_text}</b> <i>at</i> {time}')}
+        </p>
+        <div class="formatted-content">
+          $:{MARKDOWN(i['content'])}
+          $if additional:
+            <p><strong>(&nbsp;${i[additional]}&nbsp;)</strong></p>
+        </div>
+      </div>
+    </div>
+</div>

@@ -1,0 +1,50 @@
+$def with (ratings)
+$:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
+
+<div id="submit-journal-content" class="content">
+
+  <form id="submit-form" name="submitjournal" class="form clear journal" action="/submit/journal" method="post">
+    <div class="column info">
+      <h3>Information</h3>
+
+      <label for="journaltitle">Title</label>
+      <input type="text" class="input" name="title" id="journaltitle" required />
+
+      <label for="journalrating">Rating</label>
+      <select name="rating" class="input" id="journalrating" required>
+        <option value="" selected="selected">&nbsp;</option>
+        $for rating in ratings:
+          <option value="${rating.code}">${rating.name_with_age}</option>
+      </select>
+      $if len(ratings) > 1:
+        <p class="color-lighter tags-help"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos" target="_blank">Weasyl Terms of Service</a></i></p>
+    </div>
+
+    <div class="column description">
+      <h3>Content</h3>
+      <label for="journaldesc">Content</label>
+      <textarea name="content" class="markdown input expanding" rows="9" id="journaldesc" required></textarea>
+      <p class="color-lighter tags-help"><i>For assistance with formatting, including linking to users, see <a href="/help/markdown" target="_blank">Formatting Help</a>.</i></p>
+    </div>
+
+    <div class="column tagging">
+      <h3>Tags</h3>
+      <textarea name="tags" class="input tags-textarea" rows="3"></textarea>
+    </div>
+
+    <div class="column options">
+      <h3>Additional Options</h3>
+
+      <label for="submit-friends" class="input-checkbox last-input">
+        <input type="checkbox" name="friends" id="submit-friends" />
+        Make this journal visible only to my friends
+      </label>
+    </div>
+
+    <div class="buttons clear">
+      <button type="submit" class="button positive" style="float: right;">Continue</button>
+      <a class="button" href="/">Return Home</a>
+    </div>
+
+  </form>
+</div>

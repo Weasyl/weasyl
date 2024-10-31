@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import absolute_import
-
 from pyramid.threadlocal import get_current_request
 import pytest
 
@@ -156,4 +153,11 @@ def test_viewing_own_profile(db):
 
 
 def test_sysname():
-    assert d.get_sysname(u"ź") == "z"
+    assert d.get_sysname("ź") == "z"
+
+
+def test_nul():
+    with pytest.raises(ValueError) as err:
+        d.engine.scalar("SELECT %(test)s", test="foo\x00bar")
+
+    assert err.value.args == ("A string literal cannot contain NUL (0x00) characters.",)

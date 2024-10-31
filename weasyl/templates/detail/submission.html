@@ -1,0 +1,309 @@
+$def with (request, myself, query, subtypes, violations)
+$code:
+  def _CAT(x):
+    if x // 1000 == 1:   return "Visual"
+    elif x // 1000 == 2: return "Literary"
+    else:                return "Multimedia"
+
+  def _SUBCAT(x):
+    return dict(subtypes).get(x, "General")
+
+<div id="detail-stage" class="stage">
+  <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
+  $if query['critique']:
+    <i>(critique requested)</i>
+  </h1>
+
+  $code:
+    submissions = query['sub_media'].get('submission')
+    submission = submissions[0] if submissions else None
+    covers = query['sub_media'].get('cover')
+    cover = covers[0] if covers else None
+  <!-- embedded -->
+  $if query['google_doc_embed'] is not None:
+    <div id="detail-art">
+      $if cover:
+        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+      <iframe
+          src="${query['google_doc_embed']}" class="content gdoc"
+          style="width: 100%; height: 40em; max-width: 80em; padding: 0">
+      </iframe>
+    </div>
+
+  $elif not submission:
+    $if cover:
+      <div id="detail-art">
+        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+      </div>
+    <div id="detail-embed" class="pad-left pad-right">
+      $:{query['embed']}
+    </div>
+
+  $elif submission['file_type'] in ["jpg", "png", "gif"] and cover:
+    <!-- VISUAL -->
+    <div id="detail-art">
+      <a href="${submission['display_url']}">
+      <img src="${cover['display_url']}" alt="${query['title']}" />
+      </a>
+    </div>
+
+  $elif submission['file_type'] == "txt":
+    <!-- TEXTUAL -->
+    <div id="detail-art">
+      $if cover:
+        <img src="${cover['display_url']}" alt="${query['title']}" />
+      <div id="detail-art-text" class="content formatted-content">
+        $:{MARKDOWN(query['text'])}
+      </div>
+    </div>
+
+  $elif submission['file_type'] == "pdf":
+    <div id="detail-art">
+      $if cover:
+        <img src="${cover['display_url']}" alt="${query['title']}" />
+      <div id="detail-art-text" class="content pdf">
+        <a href="${submission['display_url']}" id="pdf-download" class="button">View PDF</a>
+      </div>
+    </div>
+
+  $elif submission['file_type'] == "htm":
+    <!-- COMPOSITION -->
+    <div id="detail-art">
+      $if cover:
+        <img src="${cover['display_url']}" alt="${query['title']}" />
+      <div id="detail-art-text" class="content formatted-content">
+        $:{query['text']}
+      </div>
+    </div>
+
+  $elif submission['file_type'] == "mp3":
+    <!-- MULTIMEDIA -->
+    <div id="detail-art">
+      $if cover:
+        <img src="${cover['display_url']}" alt="${query['title']}" />
+      <div id="detail_submission_media" style="display:inline-block;width:500px;">
+        <audio type="audio/mpeg" src="${submission['display_url']}" controls>
+          <p>Your browser doesn’t support audio playback.</p>
+        </audio>
+      </div>
+    </div>
+
+  $elif submission['file_type'] == "swf":
+    $code:
+      flash_width = submission['attributes'].get('width', 550)
+      flash_height = submission['attributes'].get('height', 400)
+    <div id="detail-flash"
+         data-flash-url="${submission['display_url']}"
+         style="width: ${flash_width}px; aspect-ratio: ${flash_width / flash_height}">
+      $if cover:
+        <div class="flash-cover">
+          <img class="flash-cover-background" src="${cover['display_url']}" alt="" />
+          <img class="flash-cover-foreground" src="${cover['display_url']}" alt="" />
+        </div>
+      <menu class="flash-controls">
+        <li><a href="${submission['display_url']}">View Flash animation</a></li>
+      </menu>
+    </div>
+    <script type="module" src="${resource_path('js/ruffle/ruffle.js')}"></script>
+    <script type="module" src="${resource_path('js/flash.js')}"></script>
+
+  $if query['folder_more']['older'] or query['folder_more']['newer']:
+    <div class="detail-folder-nav clear">
+
+      <a class="folder-title" href="/submissions/${LOGIN(query['username'])}?folderid=${query['folderid']}"><i class="folder-title-label">Folder:</i><br /><span class="folder-title-title">${query['folder_title']}</span></a>
+
+      $ older = query['folder_more']['older']
+      $if older:
+        $for e, i in enumerate(older, start=1):
+          $code:
+            thumb = THUMB(i)
+            id = 'id="folder-nav-prev"' if e == len(older) else ''
+            link = request.route_path(
+              'submission_detail_profile',
+              name=LOGIN(i['username']),
+              submitid=i['submitid'],
+              slug=SLUG(i['title']),
+            )
+          <a class="nav-link older" $:{id} href="${link}">
+            <span class="text">&#171; Older</span>
+            $if i['rating'] == R.MATURE.code:
+              <span class="rating mature">The following submission is rated Mature:</span>
+            $elif i['rating'] == R.EXPLICIT.code:
+              <span class="rating explicit">The following submission is rated Explicit:</span>
+            <img src="${thumb['display_url']}" alt="${i['title']}" class="thumb" />
+          </a>
+
+      $if query['folder_more']['newer']:
+        $for e, i in enumerate(query['folder_more']['newer']):
+          $code:
+            thumb = THUMB(i)
+            id = 'id="folder-nav-next"' if e == 0 else ''
+            link = request.route_path(
+              'submission_detail_profile',
+              name=LOGIN(i['username']),
+              submitid=i['submitid'],
+              slug=SLUG(i['title']),
+            )
+          <a class="nav-link newer" $:{id} href="${link}">
+            $if i['rating'] == R.MATURE.code:
+              <span class="rating mature">The following submission is rated Mature:</span>
+            $elif i['rating'] == R.EXPLICIT.code:
+              <span class="rating explicit">The following submission is rated Explicit:</span>
+            <img src="${thumb['display_url']}" alt="${i['title']}" class="thumb" />
+            <span class="text">Newer &#187;</span>
+          </a>
+
+    </div>
+
+</div>
+
+<div id="detail-bar" class="bar pad-left pad-right clear">
+
+  <div id="db-main">
+    <ul id="detail-actions" class="toolset clear">
+      <li><form id="submission-favorite-form" action="/favorite" data-action-base="/api/submissions/${query['submitid']}/" method="post">
+        <input type="hidden" name="submitid" value="${query['submitid']}" />
+        $if not query['mine']:
+          $if query['favorited']:
+            <input type="hidden" name="action" value="unfavorite" />
+            <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
+          $else:
+            <input type="hidden" name="action" value="favorite" />
+            <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+      </form></li>
+      $if submission:
+        <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
+    $if query['reported'] and myself and myself['userid'] in staff.MODS:
+      <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
+    $elif not query['hidden']:
+      <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
+    </ul>
+
+    <h2 id="detail-bar-title">${query['title']}
+    $if query['critique']:
+      <em style="font-size: 65%">(critique requested)</em>
+    </h2>
+
+  </div>
+
+  <div id="db-user">
+    $ avatar = query['user_media']['avatar'][0]
+    <a class="avatar" href="/~${LOGIN(query['username'])}"><img src="${avatar['display_url']}" alt="" /></a>
+    <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
+    <p class="date">$:{LOCAL_TIME(query['unixtime'], '{date} <i>at</i> {time}')}</p>
+  </div>
+
+</div>
+
+
+<div id="detail-content" class="content clear">
+
+  <div id="detail-description">
+    $:{RENDER("common/detail_report_form.html", [query['submitid'], "submit", violations])}
+    <div class="formatted-content">
+      $:{MARKDOWN(query['content'])}
+    </div>
+  </div>
+
+  <div id="detail-info">
+
+    <div id="di-info">
+      <h3>Submission Information</h3>
+      $if query['friends_only']:
+        <div id="detail-visibility-restricted">Friends Only</div>
+      <dl class="clear">
+        <dt>Views:</dt> <dd>${query['page_views']}</dd>
+        <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
+        <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
+        <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
+        <dt>Category:</dt> <dd>${_CAT(query['subtype'])} / ${_SUBCAT(query['subtype'])}</dd>
+      </dl>
+    </div>
+
+    $if query['mine']:
+      <div id="detail-manage">
+        <h3>Submission Management</h3>
+
+        <p><a href="/manage/thumbnail?submitid=${query['submitid']}">Edit Submission Thumbnail</a></p>
+        $if query['subtype'] > 1999:
+          <p><a href="/reupload/cover?submitid=${query['submitid']}">Edit Cover Artwork</a></p>
+        $if not query['embed_type']:
+          <p><a href="/reupload/submission?submitid=${query['submitid']}">Edit Submission File</a></p>
+        <p><a href="/edit/submission?submitid=${query['submitid']}">Edit Submission Details</a></p>
+
+        <form action="/remove/submission" method="POST" data-confirm="Are you sure you want to remove this submission?">
+          <input type="hidden" name="submitid" value="${query['submitid']}">
+
+          <input type="submit" value="Remove Submission from Gallery" class="link-button">
+        </form>
+      </div>
+
+    $if myself:
+      <div id="detail-collection-offer">
+        $if query['mine']:
+          <form name="collectionoffer" action="/collection/offer" method="post" class="form clear">
+            <h3>Send Collection Offer</h3>
+
+            <input type="hidden" name="submitid" value="${query['submitid']}">
+
+            $if query['friends_only']:
+              <p>This submission is marked friends only, and cannot be offered as a collection.</p>
+            $else:
+              <label for="detail_collection_offer_username">Offer to User:</label>
+              <input type="text" id="detail_collection_offer_username" name="username" class="input last-input">
+
+              <button type="submit" class="button" style="float: right;">Send Offer</button>
+          </form>
+        $else:
+          <h3>Request Collection</h3>
+          $if query['collected']:
+            <p>This submission is already in your collection.</p>
+          $elif query['friends_only']:
+            <p>This submission is marked friends only, and cannot be collected.</p>
+          $elif query['no_request']:
+            <p>This user has disallowed collection requests.</p>
+          $else:
+            <i><a href="/help/collections">What are collections?</a></i>
+            <form name="collectionrequest" action="/collection/request" method="post" class="form clear">
+              <input type="hidden" name="submitid" value="${query['submitid']}" style="display:block">
+
+              <button type="submit" class="button" style="display:block">Request This Submission</button>
+            </form>
+      </div>
+
+    $if not query['mine'] and myself and myself['userid'] in staff.MODS:
+      <div id="detail-mod">
+        <h3>Submission Moderation</h3>
+        $if query['hidden']:
+          <div id="detail-visibility-restricted">Hidden Submission</div>
+        <p><a href="/edit/submission?submitid=${query['submitid']}&amp;anyway=true">Edit Submission Details</a></p>
+        <form action="/modcontrol/massaction" method="POST">
+          <input type="hidden" name="submissions" value="${query['submitid']}">
+          <select name="action" class="input">
+            $for value, name in M.get_mod_actions(query, "submission").items():
+              <option value="${value}">${name}</option>
+            <option value="zap-thumb">Remove Custom Thumbnail Art</option>
+            $if query['subtype'] > 1999:
+              <option value="zap-cover">Remove Cover Art</option>
+              <option value="zap-both">Remove Both</option>
+          </select>
+          <br>
+          <button class="button positive">Moderate Submission</button>
+        </form>
+      </div>
+
+    $:{RENDER("common/detail_tag_form.html", [query['submitid'], "submit", query, myself])}
+
+  </div>
+
+
+  <div id="detail-comments">
+    $if query['comments']:
+      <h3>Comments</h3>
+      $:{RENDER("common/comment_thread.html", ["detail_comments", query['comments'], "submit", myself, query['submitid'], query['userid']])}
+    $if myself:
+      <h3>Leave a Comment</h3>
+      $:{RENDER("common/comment_form.html", [myself, query['submitid'], "submit"])}
+  </div>
+
+</div>

@@ -265,14 +265,6 @@ Slightly different keys are returned for the
       "media": {
          "submission": [
             {
-               "links": {
-                  "cover": [
-                     {
-                        "mediaid": 1009285,
-                        "url": "https://www.weasyl.com/static/media/41/eb/c1/41ebc1c2940be928532785dfbf35c37622664d2fbb8114c3b063df969562fc51.png"
-                     }
-                  ]
-               },
                "mediaid": 1009285,
                "url": "https://www.weasyl.com/~fiz/submissions/2031/41ebc1c2940be928532785dfbf35c37622664d2fbb8114c3b063df969562fc51/fiz-a-wesley.png"
             }
@@ -376,14 +368,6 @@ A basic character object resembles::
       "media": {
          "submission": [
             {
-               "links": {
-                     "cover": [
-                        {
-                           "mediaid": null,
-                           "url": "https://cdn.weasyl.com/static/character/94/4d/a7/e0/a0/7a/wesley-63670.cover.png"
-                        }
-                     ]
-               },
                "mediaid": null,
                "url": "https://cdn.weasyl.com/static/character/94/4d/a7/e0/a0/7a/wesley-63670.submit.2000.png"
             }
@@ -499,8 +483,7 @@ A user object resembles::
           "following": 56,
           "journals": 0,
           "page_views": 16354,
-          "submissions": 0,
-          "submit_views": 0
+          "submissions": 0
       },
       "stream_text": "",
       "stream_url": "",
@@ -545,11 +528,6 @@ file stored by Weasyl. The *url* is one possible URL where the file can be
 downloaded. There can be multiple possible *url*\ s for a given *mediaid*. A
 *mediaid* can also be ``null`` to indicate the *url* is already unambiguous.
 
-A media file object may also have another key: *links*. The *links* key is
-itself a media key, and allows media files to be linked to other media files.
-Currently, the only kind of link is ``"cover"``, which links a media file to
-its :term:`cover image`.
-
 For submissions, the possible descriptive names are ``"submission"`` for the
 original file uploaded by the user, ``"cover"`` for the submission's
 :term:`cover image`, and ``"thumbnail"`` for the submission's thumbnail. The
@@ -565,14 +543,6 @@ Here is an example of the media for a visual submission::
   {
     "submission": [
       {
-        "links": {
-          "cover": [
-            {
-              "mediaid": 1651999,
-              "url": "https://www.weasyl.com/static/media/..."
-            }
-          ]
-        },
         "mediaid": 1651999,
         "url": "https://www.weasyl.com/static/media/..."
       }
@@ -585,14 +555,6 @@ Here is an example of the media for a visual submission::
     ],
     "cover": [
       {
-        "links": {
-          "cover": [
-            {
-              "mediaid": 1651999,
-              "url": "https://www.weasyl.com/static/media/..."
-            }
-          ]
-        },
         "mediaid": 1651999,
         "url": "https://www.weasyl.com/static/media/..."
       }

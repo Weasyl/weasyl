@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+    <ShortName>Weasyl</ShortName>
+    <Description>Search Weasyl</Description>
+    <InputEncoding>UTF-8</InputEncoding>
+    <Image height="32" width="32" type="image/svg+xml">data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZlcnNpb249IjEuMSIgdmlld0JveD0iMCAwIDE2IDE2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Im01LjYzIDUuNmMtMS40My0yLjI2LTEuNDctMy44LTEuNDctMy44bC0xLjM3IDAuODMzcy0wLjA0MTQgMi4xNCAyLjA0IDMuNjJjLTYuNjUgMS4xOS02LjI3IDguMDIgMC4xNTcgNy43NSAwLjczNy0wLjAzMTctMC44MDYgMC45ODEgMS4yOSAwLjU4MiAzLjgtMC43MyA2LjItMi4wOCA4LjI1LTQuMyAwLjk0Ny0xLjAyLTAuNTIxLTAuNTg5IDAuMDc2NC0xLjM3IDUuNC03LjA3LTYuNDItMTEuMi04Ljk3LTMuMzF6IiBmaWxsPSIjOTcwMDAwIi8+PHBhdGggZD0ibTIuNTggNy41IDEuNzUtMC42NzMgMi44MiA0LjQ1IDAuMDUyMS02Ljg4IDEuMDctMC4zMzEgMy43NCA1LjgyIDAuMDM0Mi02Ljc3IDEuOTEtMC41NjMtMC4yNzkgNy42LTIuMzggMS44OC0yLjY2LTQuMTgtMC4wMTA5IDUuNDctMS45NCAwLjYyM3oiIGZpbGw9IiNmZmYiLz48L3N2Zz4K</Image>
+    <Url type="text/html" template="https://www.weasyl.com/search">
+        <Param name="q" value="{searchTerms}" />
+    </Url>
+    <Url rel="self" type="application/opensearchdescription+xml" template="https://www.weasyl.com/opensearch.xml" />
+    <Contact>support@weasyl.dev</Contact>
+</OpenSearchDescription>

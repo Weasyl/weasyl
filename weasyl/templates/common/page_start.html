@@ -1,0 +1,134 @@
+$def with (query, options, extended_options={})
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  $if 'title' in extended_options:
+    <title>${extended_options['title']} — Weasyl</title>
+  $else:
+    <title>Weasyl</title>
+
+  $# If we have JavaScript enabled, remove the no-js class; keep before any link/style elements
+  <script>
+    document.documentElement.classList.remove("no-js");
+    document.documentElement.classList.add("js");
+  </script>
+
+  <link rel="stylesheet" href="${resource_path('fonts/museo500.css')}" />
+  <link rel="stylesheet" href="${resource_path('css/site.css')}" />
+
+  <link rel="icon" type="image/png" sizes="16x16" href="${resource_path('img/favicon.png')}" />
+  <link rel="icon" type="image/svg+xml" sizes="any 16x16" href="${resource_path('img/favicon.svg')}" />
+  <link rel="mask-icon" color="#970000" href="${resource_path('img/favicon-mask.svg')}" />
+
+  $if "help" in options:
+    <link rel="stylesheet" href="${resource_path('css/help.css')}" />
+
+  $if "imageselect" in options:
+    <link rel="stylesheet" href="${resource_path('css/imageselect.css')}" />
+
+  $if "mod" in options:
+    <link rel="stylesheet" href="${resource_path('css/mod.css')}" />
+
+  $if "signup" in options:
+    <link rel="stylesheet" href="${resource_path('css/signup.css')}" />
+
+  $if 'twitter_card' in extended_options:
+    <meta name="twitter:site" content="@weasyl" />
+    $for k, v in extended_options['twitter_card'].items():
+      <meta name="twitter:${k}" content="${v}" />
+  $if 'ogp' in extended_options:
+    <meta property="og:site_name" content="Weasyl" />
+    $for k, v in extended_options['ogp'].items():
+      <meta property="og:${k}" content="${v}" />
+
+  $if 'canonical_url' in extended_options:
+    <link rel="canonical" href="https://www.weasyl.com/${extended_options['canonical_url'].lstrip('/')}" />
+
+  <script type="module" src="${resource_path('js/main.js')}" async></script>
+
+  <link rel="search" title="Weasyl" type="application/opensearchdescription+xml" href="/opensearch.xml">
+
+</head>
+
+<body>
+
+<div id="page-container">
+  $if query is None:
+    <div id="login-top">
+      $:{RENDER("etc/login_box.html", (False, PATH(), False))}
+    </div>
+
+  <header><div id="header" class="clear">
+
+    <h1 id="logo"><a href="/"><img src="${resource_path('img/logo.png')}" alt="Weasyl" /></a></h1>
+
+    $if query is None:
+      <h3 id="header-guest">
+        Welcome!
+        <a id="hg-login" href="/signin" class="typeface-a color-a">Sign in</a>,
+        <a id="hg-register" href="/signup" class="typeface-a color-a">register</a>,
+        or learn more <a href="/help/about" class="typeface-a color-a">about Weasyl</a>.
+      </h3>
+    $else:
+      <div id="header-user" data-user-type="${USER_TYPE(query['userid']) or ''}">
+        $ avatar = query['user_media']['avatar'][0]
+        <a class="avatar" href="/~${LOGIN(query['username'])}"><img id="avatar" src="${avatar['display_url']}" alt="${query['username']}"></a>
+        <h2><i>Welcome,</i> <a id="username" class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h2>
+        <div id="header-utility">
+          $if query['sfw_locked']:
+            <a class="sfw-locked" href="/control/editpreferences"><svg width="16" height="16" viewBox="0 0 16 16" alt="SFW mode always on"><path d="m2 14h12v-7h-1.5v-1.5a4.5 4.5 0 0 0-9 0v1.5h-1.5m4 0v-1.5a2 2 0 0 1 4 0v1.5z" fill="currentColor" /></svg> <span>sfw</span></a>
+          $else:
+            $ sfw = query['sfw']
+            <form class="user-nav-form sfw-toggle" action="/control/sfwtoggle" method="POST">
+              <input type="hidden" name="redirect" value="${PATH()}">
+              <button class="link-button ${'sfw' if sfw else 'nsfw'}">sfw ${'on' if sfw else 'off'}</button>
+            </form>
+          <span>|</span>
+          <a href="/control">settings</a> <span>|</span>
+
+          $if query['userid'] in staff.DIRECTORS:
+            <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span> <a href="/directorcontrol">director</a> <span>|</span>
+          $elif query['userid'] in staff.ADMINS:
+            <a href="/modcontrol">mod</a> <span>|</span> <a href="/admincontrol">admin</a> <span>|</span>
+          $elif query['userid'] in staff.MODS:
+            <a href="/modcontrol">mod</a> <span>|</span>
+
+          <form class="user-nav-form" method="POST" action="/signout">
+            <button class="link-button">log out</button>
+          </form>
+        </div>
+      </div>
+
+      <ul id="header-messages">
+        $if query['welcome'][3]:
+          <li><a href="/messages/submissions" title="Art"><span class="icon icon-20 icon-art">Art:</span> ${query['welcome'][3]}</a></li>
+        $if query['welcome'][1]:
+          <li><a href="/messages/notifications#comments" title="Comments"><span class="icon icon-20 icon-comments">Comments:</span> ${query['welcome'][1]}</a></li>
+        $if query['welcome'][2]:
+          <li><a href="/messages/notifications#notifications" title="Notifications"><span class="icon icon-20 icon-notes">Notifications:</span> ${query['welcome'][2]}</a></li>
+        $if query['welcome'][4]:
+          <li><a href="/messages/notifications#journals" title="Journals"><span class="icon icon-20 icon-journals">Journals:</span> ${query['welcome'][4]}</a></li>
+        <li><a class="${'messages-none' if query['welcome'][0] == 0 else ''}" href="/notes" title="Private Messages"><svg class="icon icon-svg-20" viewBox="0 0 90 60" alt="Private Messages"><path d="M 0.45,2.94 C 0.16,3.56 0,4.26 0,5 v 50 c 0,0.23 0.02,0.46 0.05,0.68 L 29.38,27.18 Z M 3.8,59.85 C 4.18,59.95 4.58,60 5,60 h 80 c 0.33,0 0.65,-0.03 0.96,-0.09 L 56.35,31.14 45.23,40.46 33.7,30.8 Z M 89.91,55.93 C 89.97,55.63 90,55.32 90,55 V 5 C 90,4.37 89.88,3.77 89.67,3.22 l -29,24.3 z M 85.41,0.02 C 85.28,0.01 85.14,0 85,0 H 5.03 l 40.2,33.68 z" /></svg>
+          ${query['welcome'][0]}</a></li>
+      </ul>
+
+    <a id="nav-toggle" href="#footer-nav"><span class="icon icon-20 icon-nav"></span> <i>Menu</i></a>
+
+    <nav><div id="header-nav">
+      <ul>
+        <li><a href="/submit">Submit</a></li>
+        <li><a href="/search">Browse</a></li>
+        <li><a href="/marketplace">Marketplace</a></li>
+        <li id="header-search-nav"><a href="/search">Search</a></li>
+      </ul>
+
+      <form id="header-search" action="/search" method="GET">
+        <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="1" />
+      </form>
+    </div></nav>
+
+  </div></header>

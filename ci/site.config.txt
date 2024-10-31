@@ -1,0 +1,29 @@
+[general]
+allow_submit = true
+# Whether currency exchange rates should be fetched for /marketplace
+convert_currency = false
+
+# value checked against the Origin header to prevent CSRF
+origin = http://weasyl-ci.invalid
+
+[backend]
+profile_responses = false
+
+[sqlalchemy]
+url = postgresql+psycopg2://weasyl@weasyl-database/weasyl
+
+[memcached]
+servers = weasyl-memcached
+
+[smtp]
+host = localhost
+
+[two_factor_auth]
+# This key MUST be changed when in production;
+# See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
+secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
+
+# These keys MUST be changed when in production
+[secret_keys]
+# can be generated with `secrets.token_urlsafe(32) + "="`
+suggested_tag_undo = 5Bf8KDzoCGyv6Cfbb7P6wI70bEwYd5EFGiBYa1hdxUc=

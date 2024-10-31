@@ -1,0 +1,16 @@
+[run]
+branch = True
+parallel = True
+source =
+    libweasyl
+    weasyl
+omit =
+    libweasyl/test/*
+    libweasyl/models/test/*
+    weasyl/test/*
+data_file = coverage/.coverage
+
+[report]
+exclude_lines =
+    pragma: no ?cover
+    except ImportError:

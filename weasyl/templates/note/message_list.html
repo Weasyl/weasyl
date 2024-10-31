@@ -1,0 +1,112 @@
+$def with (folder, result, filter_usernames, inbox_unread)
+$code:
+  username_key, userid_key, table_header, filter_rel = {
+    'inbox': ('sendername', 'senderid', 'Sender', 'from'),
+    'outbox': ('recipientname', 'recipientid', 'Recipient', 'to'),
+  }[folder]
+
+  def _CURRENT(context_folder):
+    return ' class="current"' if folder == context_folder else ''
+
+<div id="notes-content" class="content">
+  <nav class="notes-folders">
+    <ul>
+      <li><a$:{_CURRENT('inbox')} href="/notes?folder=inbox">Inbox (${inbox_unread})</a></li>
+      <li><a$:{_CURRENT('outbox')} href="/notes?folder=outbox">Sent</a></li>
+      <li><a$:{_CURRENT('compose')} href="/notes/compose">Compose</a></li>
+    </ul>
+  </nav>
+
+  <search class="notes-filter">
+    $if filter_usernames:
+      Showing messages ${filter_rel}
+      $for username, exists in filter_usernames:
+        $ separator = '.' if loop.last else ' or '
+        $if exists:
+          <a href="/~${LOGIN(username)}">${username}</a>${separator}
+        $else:
+          <b>${username}</b> (no such user)${separator}
+
+      <a class="button" href="/notes?folder=${folder}">Reset filter</a>
+    $else:
+      <form action="/notes">
+        <input type="hidden" name="folder" value="${folder}" />
+        <input type="search" name="filter" class="input" />
+        <button class="button">Show messages ${filter_rel} user</button>
+      </form>
+  </search>
+
+  <form action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
+    <input type="hidden" name="folder" value="${folder}" />
+
+    $# disable implicit submission of this form: https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#implicit-submission
+    <button hidden disabled>Do nothing</button>
+
+    <table class="notes-list">
+      <thead>
+        <tr>
+          <th class="notes-select-all"></th>
+          <th>Message Title</th>
+          <th>${table_header}</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        $if result.query:
+          $for note in result.query:
+            $ noteid = note['noteid']
+            $ username = note[username_key]
+            $ unixtime = note['unixtime']
+            $ title = note['title']
+            $ unread = folder == 'inbox' and note['unread']
+
+            <tr>
+              <td>
+                <label>
+                  <input id="select-note-${noteid}" type="checkbox" name="notes" value="${noteid}" />
+                </label>
+              </td>
+              <td>
+                <label for="select-note-${noteid}">
+                  <a href="/note?noteid=${noteid}"
+                    $if unread:
+                      class="unread"
+                    >${title}</a>
+                </label>
+              </td>
+              <td>
+                <label for="select-note-${noteid}">
+                  <a href="/~${LOGIN(username)}">${username}</a>
+
+                  $ user_type = USER_TYPE(note[userid_key])
+                  $if user_type:
+                    <strong class="user-type-${user_type}">(${user_type})</strong>
+                </label>
+              </td>
+              <td>
+                <label for="select-note-${noteid}">
+                  $:{LOCAL_TIME(unixtime, '{date} {time}')}
+                </label>
+              </td>
+            </tr>
+        $else:
+          <tr>
+            <td></td>
+            <td class="notes-empty" colspan="3">No private messages.</td>
+          </tr>
+      </tbody>
+    </table>
+
+    <div class="buttons clear">
+      $if result.query:
+        $:{COMPILE("common/page_navigation.html")(result, layout="pages-layout-left")}
+
+      <span style="float:right;">
+        <button class="button negative notes-action-remove">Delete selected notes</button>
+      </span>
+    </div>
+  </form>
+
+  <script type="module" src="${resource_path('js/message-list.js')}"></script>
+</div>

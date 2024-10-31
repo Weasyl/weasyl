@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import arrow
+from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import aliased, contains_eager, joinedload
 import sqlalchemy as sa
@@ -8,7 +7,7 @@ import web
 
 from libweasyl.models.content import Report, ReportComment
 from libweasyl.models.users import Login
-from libweasyl import constants, legacy, staff
+from libweasyl import constants, staff
 from weasyl.error import WeasylError
 from weasyl import macro as m, define as d, media, note
 
@@ -67,14 +66,15 @@ def create(userid, form):
     elif vtype[3] and not form.content:
         raise WeasylError("ReportCommentRequired")
 
-    query = d.execute(
-        "SELECT userid, settings FROM %s WHERE %s = %i",
-        ["submission", "submitid", form.submitid] if form.submitid else
-        ["character", "charid", form.charid] if form.charid else
-        ["journal", "journalid", form.journalid],
-        options="single")
+    is_hidden = d.engine.scalar(
+        "SELECT hidden FROM %s WHERE %s = %i" % (
+            ("submission", "submitid", form.submitid) if form.submitid else
+            ("character", "charid", form.charid) if form.charid else
+            ("journal", "journalid", form.journalid)
+        )
+    )
 
-    if not query or (form.violation != 0 and 'h' in query[1]):
+    if is_hidden is None or (form.violation != 0 and is_hidden):
         raise WeasylError("TargetRecordMissing")
 
     now = arrow.get()
@@ -147,7 +147,7 @@ def select_list(userid, form):
     # If filtering by the report's content's owner, iterate over the previously
     # collected Login model aliases to compare against Login.login_name.
     if form.submitter:
-        submitter = legacy.login_name(form.submitter)
+        submitter = d.get_sysname(form.submitter)
         q = q.filter(sa.or_(l.login_name == submitter for l in login_aliases))
 
     # If filtering by violation type, see if the violation is in the array
@@ -156,15 +156,19 @@ def select_list(userid, form):
         q = q.filter(sa.literal(int(form.violation)) == sa.func.any(subq.c.violations))
 
     q = q.order_by(Report.opened_at.desc())
-    return [(report, report_count, map(_convert_violation, violations))
+    return [(report, report_count, list(map(_convert_violation, violations)))
             for report, _, report_count, violations in q.all()]
 
 
-def select_view(userid, form):
+def select_view(userid, *, reportid):
     report = (
         Report.query
         .options(joinedload('comments', innerjoin=True).joinedload('poster', innerjoin=True))
-        .get_or_404(int(form.reportid)))
+        .get(reportid))
+
+    if report is None:
+        raise HTTPNotFound()
+
     report.old_style_comments = [
         {
             'userid': c.userid,

@@ -1,8 +1,6 @@
 # pytest configuration for weasyl db test fixture.
 # The filename conftest.py is magical, do not change.
 
-from __future__ import absolute_import
-
 import errno
 import json
 import os
@@ -10,32 +8,38 @@ import shutil
 
 import pytest
 import pyramid.testing
-from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import psycopg2
+from webtest import TestApp as TestApp_
 
 from weasyl import config
 config._in_test = True  # noqa
 
+from libweasyl import cache
+from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from weasyl import (
-    cache,
     commishinfo,
     define,
     emailer,
     macro,
     media,
-    middleware
+    middleware,
+    turnstile,
 )
+from weasyl.controllers.routes import setup_routes_and_views
+from weasyl.wsgi import make_wsgi_app
 
 
-cache.region.configure('dogpile.cache.memory')
+cache.region.configure(
+    'dogpile.cache.memory',
+    wrap=[ThreadCacheProxy],
+)
 define.metric = lambda *a, **kw: None
 
 
 configure_libweasyl(
     dbsession=define.sessionmaker,
-    not_found_exception=HTTPNotFound,
     base_file_path=macro.MACRO_STORAGE_ROOT,
     staff_config_dict={},
     media_link_formatter_callback=media.format_media_link,
@@ -56,7 +60,7 @@ def setupdb(request):
     define.meta.create_all(define.engine)
 
 
-@pytest.yield_fixture(autouse=True)
+@pytest.fixture(autouse=True)
 def empty_storage():
     try:
         os.mkdir(macro.MACRO_STORAGE_ROOT)
@@ -67,6 +71,9 @@ def empty_storage():
         raise
 
     os.mkdir(macro.MACRO_SYS_LOG_PATH)
+    os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static'))
+    os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media'))
+    os.symlink('ad', os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media', 'ax'))
 
     try:
         yield
@@ -74,20 +81,29 @@ def empty_storage():
         shutil.rmtree(macro.MACRO_STORAGE_ROOT)
 
 
+@pytest.fixture(scope="session")
+def configurator():
+    config = pyramid.testing.setUp()
+    setup_routes_and_views(config)
+
+    try:
+        yield config
+    finally:
+        pyramid.testing.tearDown()
+
+
 @pytest.fixture(autouse=True)
-def setup_request_environment(request):
+def setup_request_environment(request, configurator):
     pyramid_request = pyramid.testing.DummyRequest()
     pyramid_request.set_property(middleware.pg_connection_request_property, name='pg_connection', reify=True)
     pyramid_request.set_property(middleware.userid_request_property, name='userid', reify=True)
-    pyramid_request.log_exc = middleware.log_exc_request_method
     pyramid_request.web_input = middleware.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'
     pyramid_request.client_addr = '127.0.0.1'
-    pyramid.testing.setUp(request=pyramid_request)
+    configurator.begin(request=pyramid_request)
 
     def tear_down():
         pyramid_request.pg_connection.close()
-        pyramid.testing.tearDown()
 
     request.addfinalizer(tear_down)
 
@@ -99,10 +115,10 @@ def lower_bcrypt_rounds(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def drop_email(monkeypatch):
-    def drop_append(mailto, mailfrom, subject, content, displayto=None):
+    def drop_send(mailto, subject, content):
         pass
 
-    monkeypatch.setattr(emailer, 'append', drop_append)
+    monkeypatch.setattr(emailer, 'send', drop_send)
 
 
 @pytest.fixture
@@ -112,7 +128,7 @@ def db(request):
     def tear_down():
         """ Clears all rows from the test database. """
         db.flush()
-        for table in metadata.tables.values():
+        for table in reversed(metadata.sorted_tables):
             db.execute(table.delete())
 
     request.addfinalizer(tear_down)
@@ -125,12 +141,23 @@ def db(request):
 
 @pytest.fixture(name='cache')
 def cache_(request):
-    cache.region.configure('dogpile.cache.memory', replace_existing_backend=True)
+    cache.region.configure(
+        'dogpile.cache.memory',
+        wrap=[ThreadCacheProxy],
+        replace_existing_backend=True,
+    )
+    yield
+    ThreadCacheProxy.zap_cache()
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
+def template_cache():
+    define._template_cache.clear()
+
+
+@pytest.fixture(autouse=True)
 def no_csrf(monkeypatch):
-    monkeypatch.setattr(define, 'get_token', lambda: '')
+    monkeypatch.setattr(define, 'is_csrf_valid', lambda request: True)
 
 
 @pytest.fixture(autouse=True)
@@ -141,3 +168,26 @@ def deterministic_marketplace_tests(monkeypatch):
         return json.loads(rates)
 
     monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
+
+
+@pytest.fixture(autouse=True)
+def disable_turnstile(monkeypatch):
+    monkeypatch.setattr(turnstile, "SITE_KEY", None)
+
+
+@pytest.fixture(scope='session')
+def wsgi_app():
+    return make_wsgi_app(configure_cache=False)
+
+
+class TestApp(TestApp_):
+
+    def do_request(self, req, status=None, expect_errors=None):
+        if 'wsgi.input' in req.environ:
+            req.environ['wsgi.input_terminated'] = True
+        return super().do_request(req, status, expect_errors)
+
+
+@pytest.fixture()
+def app(wsgi_app):
+    return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})

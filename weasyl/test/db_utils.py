@@ -1,20 +1,22 @@
-from __future__ import absolute_import
-
 import itertools
 
 import arrow
 
-from libweasyl import legacy
 from libweasyl import ratings
-from libweasyl import security
+from libweasyl import staff
+from libweasyl.legacy import get_sysname
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
+from weasyl import favorite
 from weasyl import login
 from weasyl import orm
+from weasyl import sessions
 
 _user_index = itertools.count()
 TEST_DATABASE = "weasyl_test"
+
+_DEFAULT_PASSWORD = "$2b$04$IIdgY7gIpBckJI.YZQ3nHOo.Gh5j2lLhoTEPnWJplnfdpIOSoHYcu"
 
 
 def add_entity(entity):
@@ -35,20 +37,37 @@ def create_api_key(userid, token, description=""):
     add_entity(orm.APIToken(userid=userid, token=token, description=description))
 
 
-def create_user(full_name="", birthday=arrow.get(586162800), config=None,
-                username=None, password=None, email_addr=None, user_id=None):
+def create_user(full_name="", birthday=None, config=None,
+                username=None, password=None, email_addr=None, user_id=None,
+                verified=True):
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
         username = "User-" + str(next(_user_index))
-    user = add_entity(users.Login(login_name=legacy.login_name(username),
-                                  last_login=arrow.get(0)))
+
+    while True:
+        user = add_entity(users.Login(login_name=get_sysname(username),
+                                      last_login=arrow.get(0).datetime))
+
+        if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:
+            break
+
+        db = d.connect()
+        db.delete(user)
+        db.flush()
+
     add_entity(users.Profile(userid=user.userid, username=username,
-                             full_name=full_name, unixtime=arrow.get(0), config=config))
-    add_entity(users.UserInfo(userid=user.userid, birthday=birthday))
+                             full_name=full_name, created_at=arrow.get(0).datetime, config=config))
+    d.engine.execute(d.meta.tables['userinfo'].insert(), {
+        'userid': user.userid,
+        'birthday': birthday,
+    })
+    # Verify this user
+    if verified:
+        d.engine.execute("UPDATE login SET voucher = userid WHERE userid = %(id)s",
+                         id=user.userid)
     # Set a password for this user
-    if password is not None:
-        d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
-                         id=user.userid, bcrypthash=login.passhash(password))
+    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
+                     id=user.userid, bcrypthash=_DEFAULT_PASSWORD if password is None else login.passhash(password))
     # Set an email address for this user
     if email_addr is not None:
         d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s",
@@ -64,15 +83,13 @@ def create_session(user):
     """
     Creates a session for a user and returns the corresponding WZL cookie.
     """
-    session = orm.Session()
-    session.sessionid = security.generate_key(64)
-    session.userid = user
+    session = sessions.create_session(user)
 
     db = d.connect()
     db.add(session)
     db.flush()
 
-    return 'WZL=' + session.sessionid.encode('utf-8')
+    return 'WZL=' + session.sessionid
 
 
 def create_folder(userid, title="Folder", parentid=0, settings=None):
@@ -81,24 +98,28 @@ def create_folder(userid, title="Folder", parentid=0, settings=None):
     return folder.folderid
 
 
-def create_submission(userid, title="", rating=ratings.GENERAL.code, unixtime=arrow.get(1),
-                      description="", folderid=None, subtype=0, settings=None):
+def create_submission(userid, title="Test title", rating=ratings.GENERAL.code, unixtime=arrow.get(1),
+                      description="", folderid=None, subtype=0, hidden=False,
+                      friends_only=False, critique=False
+                      ):
     """ Creates a new submission, and returns its ID. """
     submission = add_entity(content.Submission(
         userid=userid, rating=rating, title=title, unixtime=unixtime, content=description,
-        folderid=folderid, subtype=subtype, sorttime=arrow.get(0), settings=settings))
+        folderid=folderid, subtype=subtype, hidden=hidden,
+        friends_only=friends_only, critique=critique,
+        favorites=0))
     update_last_submission_time(userid, unixtime)
     return submission.submitid
 
 
 def create_submissions(count, userid, title="", rating=ratings.GENERAL.code,
                        unixtime=arrow.get(1), description="", folderid=None, subtype=0,
-                       settings=None):
+                       hidden=False, friends_only=False, critique=False):
     """ Creates multiple submissions, and returns their IDs. """
     results = []
     for i in range(count):
         results.append(create_submission(userid, title, rating, unixtime, description,
-                                         folderid, subtype, settings))
+                                         folderid, subtype, hidden, friends_only, critique))
     return results
 
 
@@ -134,36 +155,37 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, content=''):
+def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False):
     journal = add_entity(Journal(
-        userid=userid, title=title, rating=rating, unixtime=unixtime, settings=settings, content=content))
+        userid=userid, title=title, rating=rating, unixtime=unixtime, content=content,
+        hidden=hidden, friends_only=friends_only))
     update_last_submission_time(userid, unixtime)
     return journal.journalid
 
 
-def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+def create_journals(count, userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), *, friends_only=False):
     results = []
     for i in range(count):
-        results.append(create_journal(userid, title, rating, unixtime, settings))
+        results.append(create_journal(userid, title, rating, unixtime, friends_only=friends_only))
     return results
 
 
 def create_character(userid, name='', age='', gender='', height='', weight='', species='',
-                     description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                     description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, *, friends_only=False):
     character = add_entity(content.Character(
         userid=userid, char_name=name, age=age, gender=gender, height=height, weight=weight,
-        species=species, content=description, rating=rating, unixtime=unixtime, settings=settings))
+        species=species, content=description, rating=rating, unixtime=unixtime, settings=settings, friends_only=friends_only))
     update_last_submission_time(userid, unixtime)
     return character.charid
 
 
 def create_characters(count, userid, name='', age='', gender='', height='', weight='', species='',
-                      description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None):
+                      description='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), settings=None, *, friends_only=False):
     results = []
     for i in range(count):
         results.append(create_character(
             userid, name, age, gender, height, weight, species, description,
-            rating, unixtime, settings))
+            rating, unixtime, settings, friends_only=friends_only))
     return results
 
 
@@ -187,65 +209,79 @@ def create_ignoreuser(ignorer, ignoree):
 
 # TODO: do these two in a less bad way
 def create_banuser(userid, reason):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 'b' WHERE userid = %i"
-        " RETURNING userid", [userid])
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO permaban VALUES (%i, '%s')", [userid, reason])
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO permaban VALUES (%(target)s, %(reason)s)", target=userid, reason=reason)
 
 
 def create_suspenduser(userid, reason, release):
-    query = d.execute(
-        "UPDATE login SET settings = REPLACE(REPLACE(settings, 'b', ''), 's', '') || 's' WHERE userid = %i"
-        " RETURNING userid", [userid])
-
-    if query:
-        d.execute("DELETE FROM permaban WHERE userid = %i", [userid])
-        d.execute("DELETE FROM suspension WHERE userid = %i", [userid])
-        d.execute("INSERT INTO suspension VALUES (%i, '%s', %i)", [userid, reason, release])
+    d.engine.execute("DELETE FROM permaban WHERE userid = %(target)s", target=userid)
+    d.engine.execute("DELETE FROM suspension WHERE userid = %(target)s", target=userid)
+    d.engine.execute("INSERT INTO suspension VALUES (%(target)s, %(reason)s, %(release)s)", target=userid, reason=reason, release=release)
 
 
 def create_tag(title):
-    tag = add_entity(content.Tag(title=title))
-    return tag.tagid
+    return d.engine.scalar("INSERT INTO searchtag (title) VALUES (%(title)s) RETURNING tagid", title=title)
 
 
-def create_journal_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.JournalTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+def create_journal_tag(tagid, targetid):
+    d.engine.execute(
+        'INSERT INTO searchmapjournal (tagid, targetid)'
+        ' VALUES (%(tag)s, %(journal)s)',
+        tag=tagid,
+        journal=targetid,
+    )
 
 
-def create_character_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.CharacterTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+def create_character_tag(tagid, targetid):
+    d.engine.execute(
+        'INSERT INTO searchmapchar (tagid, targetid)'
+        ' VALUES (%(tag)s, %(char)s)',
+        tag=tagid,
+        char=targetid,
+    )
 
 
 def create_submission_tag(tagid, targetid, settings=None):
-    db = d.connect()
-    db.add(
-        content.SubmissionTag(tagid=tagid, targetid=targetid, settings=settings))
-    db.flush()
+    d.engine.execute(
+        'INSERT INTO searchmapsubmit (tagid, targetid, settings)'
+        ' VALUES (%(tag)s, %(sub)s, %(settings)s)',
+        tag=tagid,
+        sub=targetid,
+        settings=settings or '',
+    )
 
-    db.execute(
-        'INSERT INTO submission_tags (submitid, tags) VALUES (:submission, ARRAY[:tag]) '
-        'ON CONFLICT (submitid) DO UPDATE SET tags = submission_tags.tags || :tag',
-        {'submission': targetid, 'tag': tagid})
+    d.engine.execute(
+        'INSERT INTO submission_tags (submitid, tags)'
+        ' VALUES (%(sub)s, ARRAY[%(tag)s])'
+        ' ON CONFLICT (submitid) DO UPDATE SET tags = submission_tags.tags || %(tag)s',
+        sub=targetid,
+        tag=tagid,
+    )
 
 
 def create_blocktag(userid, tagid, rating):
-    db = d.connect()
-    db.add(content.Blocktag(userid=userid, tagid=tagid, rating=rating))
-    db.flush()
+    d.engine.execute(d.meta.tables['blocktag'].insert(), {
+        'userid': userid,
+        'tagid': tagid,
+        'rating': rating,
+    })
 
 
-def create_favorite(userid, targetid, type, unixtime=arrow.get(1), settings=None):
-    db = d.connect()
-    db.add(content.Favorite(userid=userid, targetid=targetid, type=type,
-                            unixtime=unixtime, settings=settings))
-    db.flush()
+def create_favorite(userid, **kwargs):
+    unixtime = kwargs.pop('unixtime', None)
+    favorite.insert(userid, **kwargs)
+
+    if unixtime is not None:
+        if 'submitid' in kwargs:
+            type_ = 's'
+        elif 'charid' in kwargs:
+            type_ = 'c'
+        elif 'journalid' in kwargs:
+            type_ = 'j'
+
+        targetid = d.get_targetid(*kwargs.values())
+
+        fav = content.Favorite.query.filter_by(userid=userid, type=type_, targetid=targetid).one()
+        fav.unixtime = unixtime
+        content.Favorite.dbsession.flush()

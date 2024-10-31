@@ -1,32 +1,35 @@
 [general]
-notice = 9387490
-warning = 12345
-adpath = ui/it/il/tx/
 allow_submit = true
-captcha_disable_verification = false
-# The max age in days for a submission to be considered for 'recently popular'.
-# In production, this should be set low, but giving it a high value (or 0) can
-# be useful for dev on an database.
-popular_max_age_days = 21
+# Whether currency exchange rates should be fetched for /marketplace
+convert_currency = false
+
+# value checked against the Origin header to prevent CSRF
+origin = http://weasyl.localhost:8080
 
 [backend]
-run_periodic_tasks = false
 profile_responses = false
-time_endpoints = false
-# this should almost always be off in prod but it's a useful default for dev
-rough_shutdowns = true
 
 [sqlalchemy]
-url = postgresql+psycopg2cffi:///weasyl
+url = postgresql+psycopg2://weasyl@postgres/weasyl
+# url = postgresql+psycopg2:///weasyl
 
-[sentry]
-# dsn = twisted+http://...
+[memcached]
+servers = memcached
 
-[recaptcha-lo.weasyl.com]
-public_key = 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
-private_key = 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+[smtp]
+host = localhost
 
 [two_factor_auth]
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
 secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
+
+[turnstile]
+site_key = 3x00000000000000000000FF
+secret_key = 1x0000000000000000000000000000000AA
+enforce = true
+
+# These keys MUST be changed when in production
+[secret_keys]
+# can be generated with `secrets.token_urlsafe(32) + "="`
+suggested_tag_undo = 5Bf8KDzoCGyv6Cfbb7P6wI70bEwYd5EFGiBYa1hdxUc=

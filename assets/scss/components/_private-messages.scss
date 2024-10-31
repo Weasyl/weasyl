@@ -1,0 +1,95 @@
+@import '../theme';
+
+.notes-folders {
+    line-height: 1;
+    margin-bottom: 16px;
+
+    > ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    li {
+        display: block;
+    }
+
+    a {
+        border-radius: 2px;
+        display: inline-block;
+        padding: 8px;
+    }
+
+    .current {
+        background-color: $link-color;
+        color: white;
+        text-decoration: none;
+    }
+}
+
+.notes-filter {
+    margin-bottom: 16px;
+}
+
+$cell-padding: 4px;
+
+.notes-list > * > * {
+    // allow clicking anywhere on the row, outside a link, to select a message
+    > * > label {
+        display: block;
+        padding: $cell-padding;
+    }
+
+    > th {
+        padding: $cell-padding;
+        text-align: left;
+        vertical-align: bottom;  // ideally, this would be middle-aligned text aligned to the bottom of the cell (for when some other cell's text wraps to multiple lines), but normally the checkbox is close in height, so good enough
+    }
+
+    // checkbox
+    > :nth-child(1) {
+        text-align: center;
+        width: 2em;
+    }
+
+    // message title
+    //
+    // desirable properties:
+    // - [X] no zalgo overflow
+    // - [X] focus ring normal-looking and unclipped
+    // - [X] link area doesn’t include empty space when text wraps
+    // - [ ] link area extends to full height of cell
+    // - [ ] link area exists even when title is zero-sized, e.g. contains no printing characters
+    > :nth-child(2) > label {
+        overflow: hidden;
+    }
+}
+
+.notes-list > tbody > :nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.notes-list .unread {
+    font-weight: bold;
+}
+
+.notes-empty {
+    padding: $cell-padding;
+}
+
+#note-content {
+    padding-top: 2em;
+}
+
+#note-content .formatted-content {
+    padding-top: 1.5em;
+}
+
+#notes-content {
+    font-size: 14px;
+    padding-top: 2em;
+}
+
+#notes-content .buttons {
+    padding-top: 1em;
+}

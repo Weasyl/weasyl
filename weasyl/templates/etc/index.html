@@ -1,0 +1,100 @@
+$def with (everything, visual, literary, media, characters, update, critique, streaming, popular)
+$code:
+  def _RATING(target):
+    if target == R.MATURE.code:
+      return '<span class="rating mature">The following submission is rated Mature:</span>'
+    elif target == R.EXPLICIT.code:
+      return '<span class="rating explicit">The following submission is rated Explicit:</span>'
+    return ''
+$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+<div id="home-art" class="stage">
+
+  <ul class="home-latest thumbnail-grid medium-footprint">
+    $# Items that are front and center on the main page, quite close to the top; skip lazy loading entirely.
+    $for i in everything:
+      $:{_GRID_ITEM(i, lazy_load=False)}
+    <li class="more"><a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
+  </ul>
+
+  <ul id="home-tabs" class="bar">
+    <li><a class="home-pane-link current" href="#home-recently-popular"><span class="home-tab-collapse">Recently </span>Popular</a></li>
+    <li><a class="home-pane-link" href="#home-critique">Critique<span class="home-tab-collapse"> Wanted</span></a></li>
+    <li><a class="home-pane-link" href="#home-literature">Writing</a></li>
+    <li><a class="home-pane-link" href="#home-multimedia">Multimedia</a></li>
+    <li><a class="home-pane-link" href="#home-characters">Characters</a></li>
+  </ul>
+
+  <div id="home-panes">
+
+    <div id="home-recently-popular" class="pane current">
+      <ul class="thumbnail-grid small-footprint">
+        $for i in popular:
+          $:{_GRID_ITEM(i)}
+        <li class="more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
+      </ul>
+    </div>
+
+    <div id="home-critique" class="pane">
+      <ul class="thumbnail-grid small-footprint">
+        $for i in critique:
+          $:{_GRID_ITEM(i)}
+        <li class="more"><a class="more" href="/search?find=critique"><i>More</i> <span>Critique Requests</span></a></li>
+      </ul>
+    </div>
+
+    <div id="home-literature" class="pane">
+      <ul class="thumbnail-grid small-footprint">
+        $for i in literary:
+          $:{_GRID_ITEM(i)}
+        <li class="more"><a class="more" href="/search?find=submit&amp;cat=2000"><i>More</i> <span>Writing</span></a></li>
+      </ul>
+    </div>
+
+    <div id="home-multimedia" class="pane">
+      <ul class="thumbnail-grid small-footprint">
+        $for i in media:
+          $:{_GRID_ITEM(i)}
+        <li class="more"><a class="more" href="/search?find=submit&amp;cat=3000"><i>More</i> <span>Multimedia</span></a></li>
+      </ul>
+    </div>
+
+    <div id="home-characters" class="pane">
+      <ul class="thumbnail-grid small-footprint">
+        $for i in characters:
+          $:{_GRID_ITEM(i)}
+        <li class="more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<div id="hc-streams">
+  <h3 class="typeface-a">Streaming Now</h3>
+
+  $if streaming.sample:
+    <ul class="streams streams-sample">
+      $for i in streaming.sample:
+        <li>
+          <figure class="stream">
+            <img class="stream-avatar" src="${i['user_media']['avatar'][0]['display_url']}" alt="" width="75" height="75" loading="lazy">
+
+            <div class="stream-detail">
+              <h4 class="stream-header"><a class="username" href="/~${LOGIN(i['username'])}">${i['username']}</a> since $:{LOCAL_TIME(i['stream_time'], '{time}')}</h4>
+              <p>${i['stream_text']}</p>
+              <p class="stream-link"><a href="${i['stream_url']}">${i['stream_url']}</a></p>
+            </div>
+          </figure>
+        </li>
+    </ul>
+
+    <div class="streams-footer">
+      <a class="streams-all" href="/streaming">${streaming.total} total</a>
+    </div>
+  $else:
+    <p class="streams-empty">Nobody is streaming right now.</p>
+</div>
+
+$if update:
+  $ _SITE_UPDATE = COMPILE("etc/site_update.html")
+  $:{_SITE_UPDATE(myself=None, update=update, comments=None)}

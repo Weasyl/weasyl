@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from weasyl.test import db_utils
@@ -11,35 +9,18 @@ test_alias = "test_alias"
 
 
 @pytest.mark.usefixtures('db')
-def test_selecting_alias_succeeds_if_premium_parameter_is_set_to_true():
+def test_selecting_alias_succeeds():
     # This is the default case
     user_id = db_utils.create_user()
     d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id, alias=test_alias)
-    query = useralias.select(userid=user_id, premium=True)
+    query = useralias.select(userid=user_id)
     # The manually set alias should equal what the function returns.
     assert test_alias == query
 
 
 @pytest.mark.usefixtures('db')
-def test_selecting_alias_succeeds_if_premium_parameter_is_set_to_false():
+def test_selecting_alias_when_user_has_no_alias_returns_zero_length_array():
     user_id = db_utils.create_user()
-    d.engine.execute("INSERT INTO useralias VALUES (%(id)s, %(alias)s, 'p')", id=user_id, alias=test_alias)
-    queried_user_alias = useralias.select(userid=user_id, premium=False)
-    # The manually set alias should equal what the function returns.
-    assert test_alias == queried_user_alias
-
-
-@pytest.mark.usefixtures('db')
-def test_selecting_alias_when_user_has_no_alias_returns_zero_length_array_if_premium_parameter_is_set_to_true():
-    user_id = db_utils.create_user()
-    queried_user_alias = useralias.select(userid=user_id, premium=True)
-    # Result when user has no alias set: should be a list, and be zero-length
-    assert queried_user_alias == []
-
-
-@pytest.mark.usefixtures('db')
-def test_selecting_alias_when_user_has_no_alias_returns_zero_length_array_if_premium_parameter_is_set_to_false():
-    user_id = db_utils.create_user()
-    queried_user_alias = useralias.select(userid=user_id, premium=False)
-    # Result when user has no alias set: should be a list, and be zero-length
-    assert queried_user_alias == []
+    queried_user_alias = useralias.select(userid=user_id)
+    # Result when user has no alias set: should be None
+    assert queried_user_alias is None

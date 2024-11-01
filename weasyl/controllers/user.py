@@ -1,5 +1,3 @@
-from urllib.parse import urlsplit, urlunsplit
-
 import arrow
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
@@ -22,6 +20,7 @@ from weasyl.controllers.decorators import (
     token_checked,
 )
 from weasyl.error import WeasylError
+from weasyl.forms import checked_redirect
 from weasyl.sessions import create_session
 
 
@@ -41,7 +40,7 @@ def signin_post_(request):
     logid, logerror = login.authenticate_bcrypt(form.username, form.password, request=request, ip_address=request.client_addr, user_agent=request.user_agent)
 
     if logid and logerror is None:
-        response = HTTPSeeOther(location=referer)
+        response = HTTPSeeOther(location=checked_redirect(referer))
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
                             secure=request.scheme == 'https', httponly=True)
         if form.sfwmode == "sfw":
@@ -143,8 +142,7 @@ def signin_2fa_auth_post_(request):
                               links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
         # Return to the target page, removing the scheme and domain per urlsplit.
         ref = request.POST["referer"] or "/"
-        urlparts = urlsplit(ref)
-        response = HTTPSeeOther(location=urlunsplit(['', '', urlparts[2], urlparts[3], urlparts[4]]))
+        response = HTTPSeeOther(location=checked_redirect(ref))
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
                             secure=request.scheme == 'https', httponly=True)
         return response

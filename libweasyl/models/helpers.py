@@ -1,4 +1,5 @@
 import contextlib
+from typing import TypeVar
 
 import json
 import arrow
@@ -11,7 +12,11 @@ from ..legacy import UNIXTIME_OFFSET
 from .. import ratings
 
 
-def reverse_dict(d):
+T = TypeVar('T')
+U = TypeVar('U')
+
+
+def reverse_dict(d: dict[T, U]) -> dict[U, T]:
     return {v: k for k, v in d.items()}
 
 

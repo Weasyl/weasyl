@@ -1,7 +1,8 @@
 import json
+from typing import Any
 
 
-def inline_json(obj):
+def inline_json(obj: Any) -> str:
     """
     Format a python object as JSON for inclusion in HTML.
 

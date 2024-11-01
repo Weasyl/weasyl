@@ -10,7 +10,7 @@ secure_random = random.SystemRandom()
 KEY_CHARACTERS = string.ascii_letters + string.digits
 
 
-def generate_key(size, key_characters=KEY_CHARACTERS):
+def generate_key(size: int, key_characters=KEY_CHARACTERS) -> str:
     """
     Generate a cryptographically-secure random key.
 

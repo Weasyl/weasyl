@@ -3,8 +3,8 @@ import functools
 
 @functools.total_ordering
 class Rating:
-    def __init__(self, code, character, name, nice_name, minimum_age, block_text,
-                 additional_description=None):
+    def __init__(self, code: int, character: str, name: str, nice_name: str, minimum_age: int,
+                 block_text: str, additional_description: str | None = None):
 
         self.code = code
         self.character = character
@@ -52,7 +52,7 @@ CHARACTER_MAP = {rating.character: rating for rating in ALL_RATINGS}
 CODE_TO_NAME = {rating.code: rating.name for rating in ALL_RATINGS}
 
 
-def get_ratings_for_age(age):
+def get_ratings_for_age(age: int | None) -> list[Rating]:
     if age is None:
         return ALL_RATINGS
 

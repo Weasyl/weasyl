@@ -2,6 +2,8 @@
 Sets of Weasyl staff user ids.
 """
 
+from collections.abc import Iterable
+
 DIRECTORS = frozenset()
 """ Directors have the same powers as admins. """
 
@@ -21,7 +23,9 @@ WESLEY = None
 """ The site mascot. Option for the owner of a site update. """
 
 
-def _init_staff(directors=(), technical_staff=(), admins=(), mods=(), developers=(), wesley=None):
+def _init_staff(directors: Iterable[int] = (), technical_staff: Iterable[int] = (),
+                admins: Iterable[int] = (), mods: Iterable[int] = (),
+                developers: Iterable[int] = (), wesley: int | None = None):
     """
     Populates staff members from passed kwargs.
 

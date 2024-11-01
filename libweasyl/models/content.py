@@ -4,6 +4,7 @@ from sqlalchemy.orm import backref, relationship
 
 from libweasyl.media import get_submission_media
 from libweasyl.models.helpers import clauses_for
+from libweasyl.models.media import SerializedMediaItem
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Login
 from libweasyl.models import tables
@@ -15,7 +16,7 @@ class Submission(Base):
 
     owner = relationship(Login)
 
-    def legacy_path(self, mod=False):
+    def legacy_path(self, mod=False) -> str:
         """
         Create the weasyl-old relative URL for a submission.
 
@@ -32,18 +33,18 @@ class Submission(Base):
         return ret
 
     @reify
-    def media(self):
+    def media(self) -> dict[str, list[SerializedMediaItem]]:
         return get_submission_media(self.submitid)
 
     @reify
-    def submission_media(self):
+    def submission_media(self) -> SerializedMediaItem | None:
         ret = self.media.get('submission')
         if ret:
             return ret[0]
         return None
 
     @reify
-    def cover_media(self):
+    def cover_media(self) -> SerializedMediaItem | None:
         ret = self.media.get('cover')
         if ret:
             return ret[0]
@@ -58,7 +59,7 @@ class Comment(Base):
     poster = relationship(Login, foreign_keys=[__table__.c.userid])
 
     @property
-    def target(self):
+    def target(self) -> Login | Submission:
         if self.target_user:
             return self._target_user
         elif self.target_sub:
@@ -82,7 +83,7 @@ class Journal(Base):
 
     owner = relationship(Login)
 
-    def legacy_path(self, mod=False):
+    def legacy_path(self, mod=False) -> str:
         """
         Create the weasyl-old relative URL for a journal.
 
@@ -109,10 +110,10 @@ class Character(Base):
     owner = relationship(Login)
 
     @property
-    def title(self):
+    def title(self) -> str:
         return self.char_name
 
-    def legacy_path(self, mod=False):
+    def legacy_path(self, mod=False) -> str:
         """
         Create the weasyl-old relative URL for a character.
 
@@ -158,7 +159,7 @@ class Report(Base):
     owner = relationship(Login, foreign_keys=[__table__.c.closerid])
 
     @property
-    def target(self):
+    def target(self) -> Login | Submission | Character | Journal | Comment:
         if self.target_user:
             return self._target_user
         elif self.target_sub:
@@ -173,7 +174,7 @@ class Report(Base):
             raise ValueError('no target profile, user, character, journal, or comment')
 
     @property
-    def target_type(self):
+    def target_type(self) -> str:
         if self.target_user:
             return 'profile'
         elif self.target_sub:
@@ -188,7 +189,7 @@ class Report(Base):
             raise ValueError('no target profile, user, character, journal, or comment')
 
     @property
-    def status(self):
+    def status(self) -> str:
         if self.closerid is None:
             return 'open'
         elif self.is_under_review:
@@ -197,14 +198,14 @@ class Report(Base):
             return 'closed'
 
     @hybrid_property
-    def is_closed(self):
+    def is_closed(self) -> bool:
         return self.closerid is not None and not self.is_under_review
 
     @is_closed.expression
     def is_closed(cls):
         return (None != cls.closerid) & (~cls.is_under_review)
 
-    def related_reports(self):
+    def related_reports(self) -> list['Report']:
         cls = type(self)
         q = (
             cls.query

@@ -97,7 +97,10 @@ def note_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    noteid = forms.expect_id(request.GET.get("noteid"), "noteidInvalid")
+    try:
+        noteid = forms.expect_id(request.GET.getone("noteid"))
+    except (KeyError, WeasylError) as e:
+        raise WeasylError("noteRecordMissing") from e
 
     data = note.select_view(request.userid, noteid)
 

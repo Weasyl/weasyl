@@ -98,7 +98,6 @@ error_messages = {
     'noGuests': no_guest_access,
     "noCover": "No cover exists for that submission.",
     "noImageSource": "No image exists from which to create a thumbnail.",
-    "noteidInvalid": "The specified note is invalid.",
     "notEnoughTags": (
         "You must maintain at least two tags on this content in order to sufficiently describe it "
         "for our search system."),
@@ -178,7 +177,6 @@ error_status_code = {
     "journalRecordMissing": 404,
     "characterRecordMissing": 404,
     "noteRecordMissing": 404,
-    "noteidInvalid": 403,
     "vouchRequired": 403,
     "signed": 403,
     "unsigned": 403,

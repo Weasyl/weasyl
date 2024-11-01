@@ -4,6 +4,7 @@
 __pycache__/
 
 /build
+/docs/build
 /temp
 /backup
 /log

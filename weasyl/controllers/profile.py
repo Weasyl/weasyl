@@ -138,7 +138,7 @@ def profile_(request):
             # Friends
             lambda: frienduser.has_friends(otherid),
             is_unverified,
-            _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+            _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
         ),
         twitter_card=twitter_meta,
         ogp=ogp,
@@ -204,7 +204,7 @@ def submissions_(request):
         folder.select_list(otherid),
         # Current folder
         folderid,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -246,7 +246,7 @@ def collections_(request):
         relation,
         # Collections
         result,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -280,7 +280,7 @@ def journals_(request):
         relation,
         # Journals list
         journal.select_list(request.userid, rating, otherid=otherid),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -325,7 +325,7 @@ def characters_(request):
         relation,
         # Characters list
         result,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -376,7 +376,7 @@ def shouts_(request):
         shout.select(request.userid, ownerid=otherid),
         # Feature
         "shouts",
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -415,7 +415,7 @@ def staffnotes_(request):
         shout.select(request.userid, ownerid=otherid, staffnotes=True),
         # Feature
         "staffnotes",
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -488,7 +488,7 @@ def favorites_(request):
         feature,
         # Favorites
         faves,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -522,7 +522,7 @@ def friends_(request):
         # Friends
         frienduser.select_friends(request.userid, otherid, limit=44,
                                   backid=define.get_int(backid), nextid=define.get_int(nextid)),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
 
@@ -554,7 +554,7 @@ def following_(request):
         # Following
         followuser.select_following(request.userid, otherid, limit=44,
                                     backid=define.get_int(backid), nextid=define.get_int(nextid)),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
 
@@ -586,5 +586,5 @@ def followed_(request):
         # Followed
         followuser.select_followed(request.userid, otherid, limit=44,
                                    backid=define.get_int(backid), nextid=define.get_int(nextid)),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))

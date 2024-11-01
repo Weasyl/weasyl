@@ -4,7 +4,7 @@ from pyramid.response import Response
 from weasyl.controllers.decorators import login_required, token_checked
 from weasyl.error import WeasylError
 from weasyl import (
-    define, favorite, followuser, frienduser, ignoreuser, note, pagination, profile)
+    define, favorite, followuser, forms, frienduser, ignoreuser, note, pagination, profile)
 
 
 # User interactivity functions
@@ -97,9 +97,9 @@ def note_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input()
+    noteid = forms.expect_id(request.GET.get("noteid"), "noteidInvalid")
 
-    data = note.select_view(request.userid, int(form.noteid))
+    data = note.select_view(request.userid, noteid)
 
     return Response(define.webpage(request.userid, "note/message_view.html", [
         # Private message

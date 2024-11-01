@@ -53,14 +53,14 @@ $def with (scopes, credentials, client, myself, my_media)
       display: block;
       max-width: 100px;
     }
-    form, header {
+    main, header {
       max-width: 600px;
       margin: 20px auto;
     }
-    form {
+    main {
       margin-bottom: 40px;
     }
-    p {
+    .user, p {
       margin-bottom: 20px;
     }
 
@@ -75,6 +75,9 @@ $def with (scopes, credentials, client, myself, my_media)
     }
     .submit:focus, .submit:hover {
       background: #12b421;
+    }
+    .signout {
+      display: inline-block;
     }
     .not-me {
       display: inline-block;
@@ -127,35 +130,36 @@ $def with (scopes, credentials, client, myself, my_media)
     <a href="/" class="logo"><img src="${resource_path('img/logo-mark-light.svg')}" alt="Weasyl logo" /></a>
   </header>
 
-  <form id="signout" method="POST" action="/signout"></form>
-
-  <form method="POST" action="">
-    $if myself:
-      <p class="user">
-        <a class="avatar" href="/~${myself.login_name}">
-          $ avatar = my_media['avatar'][0]['display_url']
-          <img src="${avatar}" alt="${myself.profile.username}">
-        </a>
-        Welcome,
-        <a href="/~${myself.login_name}">${myself.profile.username}</a>
-        <button form="signout" class="not-me">(Not ${myself.profile.username}?)</button>
-      </p>
-
-    <p>Please confirm that the application <strong>${client.description}</strong>
-      (by <a href="/~${LOGIN(client.owner.profile.username)}">${client.owner.profile.username}</a>)
-      should be authorized to make requests on your behalf.</p>
-
-    <p>Note that this means that <strong>${client.description}</strong> can
-      perform <em>almost any action</em> as if you were logged in. Do
-      not authorize this application if you do not trust it. However, this
-      application will <em>never</em> be able to see or change your
-      password.</p>
-
-    <input type="hidden" name="credentials" value="${json.dumps(credentials)}">
-    <div class="actions">
-      <button class="submit">Authorize</button>
+  <main>
+    <div class="user">
+      <a class="avatar" href="/~${myself.login_name}">
+        $ avatar = my_media['avatar'][0]['display_url']
+        <img src="${avatar}" alt="${myself.profile.username}">
+      </a>
+      Welcome,
+      <a href="/~${myself.login_name}">${myself.profile.username}</a>
+      <form class="signout" method="POST" action="/signout">
+        <button class="not-me">(Not ${myself.profile.username}?)</button>
+      </form>
     </div>
-  </form>
+
+    <form method="POST" action="">
+      <p>Please confirm that the application <strong>${client.description}</strong>
+        (by <a href="/~${LOGIN(client.owner.profile.username)}">${client.owner.profile.username}</a>)
+        should be authorized to make requests on your behalf.</p>
+
+      <p>Note that this means that <strong>${client.description}</strong> can
+        perform <em>almost any action</em> as if you were logged in. Do
+        not authorize this application if you do not trust it. However, this
+        application will <em>never</em> be able to see or change your
+        password.</p>
+
+      <input type="hidden" name="credentials" value="${json.dumps(credentials)}">
+      <div class="actions">
+        <button class="submit">Authorize</button>
+      </div>
+    </form>
+  </main>
 
 </body>
 </html>

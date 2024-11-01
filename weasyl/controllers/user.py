@@ -35,13 +35,13 @@ def signin_get_(request):
 @guest_required
 @token_checked
 def signin_post_(request):
-    form = request.web_input(username="", password="", referer="", sfwmode="nsfw")
-    form.referer = form.referer or '/'
+    form = request.web_input(username="", password="", sfwmode="nsfw")
+    referer = request.POST.get("referer") or "/"
 
     logid, logerror = login.authenticate_bcrypt(form.username, form.password, request=request, ip_address=request.client_addr, user_agent=request.user_agent)
 
     if logid and logerror is None:
-        response = HTTPSeeOther(location=form.referer)
+        response = HTTPSeeOther(location=referer)
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
                             secure=request.scheme == 'https', httponly=True)
         if form.sfwmode == "sfw":
@@ -72,7 +72,7 @@ def signin_post_(request):
         response = Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(logid), form.referer, remaining_recovery_codes, None],
+            [define.get_display_name(logid), referer, remaining_recovery_codes, None],
             title="Sign In - 2FA"
         ))
         response.set_cookie('WZL', sess.sessionid, max_age=60 * 60 * 24 * 365,
@@ -81,7 +81,7 @@ def signin_post_(request):
             response.set_cookie("sfwmode", "sfw", max_age=31536000)
         return response
     elif logerror == "invalid":
-        return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
+        return Response(define.webpage(request.userid, "etc/signin.html", [True, referer]))
     elif logerror == "banned":
         message = moderation.get_ban_message(logid)
         return Response(define.errorpage(request.userid, message))
@@ -136,13 +136,13 @@ def signin_2fa_auth_post_(request):
         # 2FA passed, so login and cleanup.
         login.signout(request)
         login.signin(request, tfa_userid, ip_address=request.client_addr, user_agent=request.user_agent)
-        ref = request.params["referer"] or "/"
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
             raise WeasylError('TwoFactorAuthenticationZeroRecoveryCodesRemaining',
                               links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
         # Return to the target page, removing the scheme and domain per urlsplit.
+        ref = request.POST["referer"] or "/"
         urlparts = urlsplit(ref)
         response = HTTPSeeOther(location=urlunsplit(['', '', urlparts[2], urlparts[3], urlparts[4]]))
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
@@ -159,11 +159,11 @@ def signin_2fa_auth_post_(request):
             sess.additional_data['2fa_pwd_auth_attempts'] += 1
             flag_modified(sess, 'additional_data')
             tx.add(sess)
-        # 2FA failed; redirect to 2FA input page & inform user that authentication failed.
+        # 2FA failed; respond with 2FA input page & inform user that authentication failed.
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+            [define.get_display_name(tfa_userid), request.POST["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
              "2fa"], title="Sign In - 2FA"))
 
 

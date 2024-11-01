@@ -412,8 +412,7 @@ def control_editfolder_post_(request):
     if not folder.check(request.userid, folderid):
         raise WeasylError('InsufficientPermissions')
 
-    form = request.web_input(settings=[])
-    folder.update_settings(folderid, form.settings)
+    folder.update_settings(folderid, request.POST.getall('settings'))
     raise HTTPSeeOther(location='/manage/folders')
 
 
@@ -506,14 +505,12 @@ def control_apikeys_get_(request):
 @disallow_api
 @token_checked
 def control_apikeys_post_(request):
-    form = request.web_input(**{'delete-api-keys': [], 'revoke-oauth2-consumers': []})
-
-    if form.get('add-api-key'):
-        api.add_api_key(request.userid, form.get('add-key-description'))
-    if form.get('delete-api-keys'):
-        api.delete_api_keys(request.userid, form['delete-api-keys'])
-    if form.get('revoke-oauth2-consumers'):
-        oauth2.revoke_consumers_for_user(request.userid, form['revoke-oauth2-consumers'])
+    if 'add-api-key' in request.POST:
+        api.add_api_key(request.userid, request.POST.getone('add-key-description'))
+    if 'delete-api-keys' in request.POST:
+        api.delete_api_keys(request.userid, request.POST.getall('delete-api-keys'))
+    if 'revoke-oauth2-consumers' in request.POST:
+        oauth2.revoke_consumers_for_user(request.userid, request.POST.getall('revoke-oauth2-consumers'))
 
     raise HTTPSeeOther(location="/control/apikeys")
 
@@ -625,16 +622,17 @@ def manage_collections_get_(request):
 @login_required
 @token_checked
 def manage_collections_post_(request):
-    form = request.web_input(submissions=[], action="")
+    action = request.POST["action"]
+
     # submissions input format: "submissionID;collectorID"
     # we have to split it apart because each offer on a submission is a single checkbox
     # but needs collector's ID for unambiguity
-    intermediate = [x.split(";") for x in form.submissions]
+    intermediate = [x.split(";") for x in request.POST.getall("submissions")]
     submissions = [(int(x[0]), int(x[1])) for x in intermediate]
 
-    if form.action == "accept":
+    if action == "accept":
         collection.pending_accept(request.userid, submissions)
-    elif form.action == "reject":
+    elif action == "reject":
         collection.pending_reject(request.userid, submissions)
     else:
         raise WeasylError("Unexpected")
@@ -720,12 +718,15 @@ def manage_tagfilters_get_(request):
 @login_required
 @token_checked
 def manage_tagfilters_post_(request):
-    form = request.web_input(do="", title="", rating="")
+    do = request.POST["do"]
+    title = request.POST["title"]
 
-    if form.do == "create":
-        blocktag.insert(request.userid, title=form.title, rating=define.get_int(form.rating))
-    elif form.do == "remove":
-        blocktag.remove(request.userid, title=form.title)
+    if do == "create":
+        blocktag.insert(request.userid, title=title, rating=define.get_int(request.POST["rating"]))
+    elif do == "remove":
+        blocktag.remove(request.userid, title=title)
+    else:
+        raise WeasylError("Unexpected")  # pragma: no cover
 
     raise HTTPSeeOther(location="/manage/tagfilters")
 

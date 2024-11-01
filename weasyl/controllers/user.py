@@ -108,7 +108,7 @@ def signin_2fa_auth_get_(request):
         login.signout(request)
         raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
     else:
-        ref = request.params["referer"] if "referer" in request.params else "/"
+        ref = "/"
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",

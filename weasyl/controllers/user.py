@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+from urllib.parse import urlsplit, urlunsplit
 
 import arrow
 from pyramid.httpexceptions import HTTPSeeOther
@@ -142,8 +142,9 @@ def signin_2fa_auth_post_(request):
             two_factor_auth.force_deactivate(tfa_userid)
             raise WeasylError('TwoFactorAuthenticationZeroRecoveryCodesRemaining',
                               links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
-        # Return to the target page, restricting to the path portion of 'ref' per urlparse.
-        response = HTTPSeeOther(location=urlparse(ref).path)
+        # Return to the target page, removing the scheme and domain per urlsplit.
+        urlparts = urlsplit(ref)
+        response = HTTPSeeOther(location=urlunsplit(['', '', urlparts[2], urlparts[3], urlparts[4]]))
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
                             secure=request.scheme == 'https', httponly=True)
         return response

@@ -56,9 +56,8 @@ def authorize_get_(request):
 @token_checked
 @login_required
 def authorize_post_(request):
-    form = request.web_input(credentials='')
     try:
-        credentials = json.loads(form.credentials)
+        credentials = json.loads(request.POST['credentials'])
     except ValueError:
         raise HTTPBadRequest()
     scopes = credentials.pop('scopes')

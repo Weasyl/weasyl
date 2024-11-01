@@ -39,7 +39,7 @@ def authorize_get_(request):
     if not request.userid:
         return Response(d.webpage(request.userid, "etc/signin.html", [
             False,
-            request.current_route_url(),
+            request.path_qs,
         ], title="Sign In"))
 
     try:

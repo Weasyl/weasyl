@@ -15,7 +15,7 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
       </select>
     </div>
 
-    <div id="tagfilters_content_buttons" class="clear">
+    <div class="buttons clear">
       <button class="button positive" name="do" value="create">Create Filter</button>
     </div>
   </form>
@@ -56,9 +56,7 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
         </tbody>
       </table>
       <div class="buttons clear">
-        <span style="float: right;">
-          <button class="button negative" name="do" value="remove">Unblock selected tags</button>
-        </span>
+        <button class="button negative" name="do" value="remove">Unblock selected tags</button>
       </div>
     $else:
       <p>No tags blocked.</p>

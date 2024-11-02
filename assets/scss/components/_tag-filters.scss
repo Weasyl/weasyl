@@ -1,5 +1,9 @@
 @import '../theme';
 
+#filters-content .button {
+    float: right;
+}
+
 #filters-content .buttons {
     padding-top: 1em;
 }
@@ -28,8 +32,4 @@ $cell-padding: 4px;
 
 .filters-list > tbody > :nth-child(odd) {
     background-color: rgba(0, 0, 0, 0.05);
-}
-
-#tagfilters_content_buttons {
-    margin-top: 0.6em;
 }

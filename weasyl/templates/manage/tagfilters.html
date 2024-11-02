@@ -3,9 +3,9 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
 
 <div id="filters-content" class="content">
   <form method="POST" class="form skinny clear">
-    <h3>Block a Tag</h3>
+    <h3>Block New Tags</h3>
 
-    <p>Enter a tag to block if you don't want to see content that is marked with this tag. To enter a tag composed of multiple words, separate each word with an underscore character, as in <strong>new_york_city</strong>. You can choose the range of ratings for which this tag will be blocked.</p>
+    <p>Enter tags to block if you don't want to see content marked with any of these tags. To enter a tag composed of multiple words, separate each word with an underscore character, as in <strong>red_fox</strong>. You can choose the range of ratings for which these tags will be blocked.</p>
 
     <div class="group">
       <input type="text" id="new-blocked-tag" class="input" name="titles" placeholder="Tag">
@@ -16,7 +16,7 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
     </div>
 
     <div class="buttons clear">
-      <button class="button positive" name="do" value="create">Create Filter</button>
+      <button class="button positive" name="do" value="create">Block tags</button>
     </div>
   </form>
 

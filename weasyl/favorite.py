@@ -49,7 +49,7 @@ def select_submit_count(userid, rating, otherid, backid=None, nextid=None):
 
 
 def select_submit(userid, rating, limit, otherid, backid=None, nextid=None):
-    statement = ["SELECT su.submitid, su.title, su.rating, fa.unixtime, su.userid, pr.username, su.subtype"]
+    statement = ["SELECT su.submitid, su.title, su.rating, fa.unixtime, su.userid, pr.username, su.subtype, su.friends_only"]
     statement.extend(select_submit_query(userid, rating, otherid, backid, nextid))
 
     statement.append(" ORDER BY fa.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
@@ -63,6 +63,7 @@ def select_submit(userid, rating, limit, otherid, backid=None, nextid=None):
         "userid": i[4],
         "username": i[5],
         "subtype": i[6],
+        "friends_only": i[7],
     } for i in d.execute("".join(statement))]
     media.populate_with_submission_media(query)
 
@@ -71,7 +72,7 @@ def select_submit(userid, rating, limit, otherid, backid=None, nextid=None):
 
 def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
     statement = ["""
-        SELECT ch.charid, ch.char_name, ch.rating, fa.unixtime, ch.userid, pr.username, ch.settings
+        SELECT ch.charid, ch.char_name, ch.rating, fa.unixtime, ch.userid, pr.username, ch.settings, ch.friends_only
         FROM favorite fa
             INNER JOIN character ch ON fa.targetid = ch.charid
             INNER JOIN profile pr ON ch.userid = pr.userid
@@ -113,6 +114,7 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
         "unixtime": i[3],
         "userid": i[4],
         "username": i[5],
+        "friends_only": i[7],
         "sub_media": character.fake_media_items(i[0], i[4], d.get_sysname(i[5]), i[6]),
     } for i in d.execute("".join(statement))]
 
@@ -121,7 +123,7 @@ def select_char(userid, rating, limit, otherid, backid=None, nextid=None):
 
 def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
     statement = ["""
-        SELECT jo.journalid, jo.title, jo.rating, fa.unixtime, jo.userid, pr.username, pr.config
+        SELECT jo.journalid, jo.title, jo.rating, fa.unixtime, jo.userid, pr.username, pr.config, jo.friends_only
         FROM favorite fa
             INNER JOIN journal jo ON fa.targetid = jo.journalid
             INNER JOIN profile pr ON jo.userid = pr.userid
@@ -162,6 +164,7 @@ def select_journal(userid, rating, limit, otherid, backid=None, nextid=None):
         "unixtime": i[3],
         "userid": i[4],
         "username": i[5],
+        "friends_only": i[7],
     } for i in d.execute("".join(statement))]
     media.populate_with_user_media(query)
 

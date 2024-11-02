@@ -130,6 +130,8 @@ $code:
               <span class="rating mature">The following submission is rated Mature:</span>
             $elif i['rating'] == R.EXPLICIT.code:
               <span class="rating explicit">The following submission is rated Explicit:</span>
+            $if i['friends_only']:
+              <span class="friends-only">The following submission is for friends only:</span>
             <img src="${thumb['display_url']}" alt="${i['title']}" class="thumb" />
           </a>
 
@@ -149,6 +151,8 @@ $code:
               <span class="rating mature">The following submission is rated Mature:</span>
             $elif i['rating'] == R.EXPLICIT.code:
               <span class="rating explicit">The following submission is rated Explicit:</span>
+            $if i['friends_only']:
+              <span class="friends-only">The following submission is for friends only:</span>
             <img src="${thumb['display_url']}" alt="${i['title']}" class="thumb" />
             <span class="text">Newer &#187;</span>
           </a>

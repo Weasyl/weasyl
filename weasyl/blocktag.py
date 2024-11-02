@@ -56,7 +56,8 @@ def select(userid):
     return [{
         "title": i[0],
         "rating": i[1],
-    } for i in d.execute("SELECT st.title, bt.rating FROM searchtag st "
+        "tagid": i[2],
+    } for i in d.execute("SELECT st.title, bt.rating, bt.tagid FROM searchtag st "
                          " INNER JOIN blocktag bt ON st.tagid = bt.tagid"
                          " WHERE bt.userid = %i"
                          " ORDER BY st.title", [userid])]
@@ -86,11 +87,12 @@ def insert(userid, title, rating):
     select_ids.invalidate(userid)
 
 
-def remove(userid, title):
-    d.engine.execute(
-        "DELETE FROM blocktag WHERE (userid, tagid) = (%(user)s, (SELECT tagid FROM searchtag WHERE title = %(tag)s))",
-        user=userid,
-        tag=d.get_search_tag(title),
-    )
+def remove_list(userid: int, tagids: list[int]):
+    if not tagids:
+        return
 
-    select_ids.invalidate(userid)
+    d.engine.execute(
+        "DELETE FROM blocktag WHERE userid = %(userid)s AND tagid = ANY (%(tagids)s)",
+        userid=userid,
+        tagids=tagids,
+    )

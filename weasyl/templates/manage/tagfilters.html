@@ -20,20 +20,51 @@ $:{RENDER("common/stage_title.html", ["Tag Filters", "Settings"])}
 
     <div id="tagfilters_content_buttons" class="clear">
       <button class="button positive" name="do" value="create">Create Filter</button>
-      <button class="button negative" name="do" value="remove">Remove Filter</button>
     </div>
+  </form>
 
-    <h3>Blacklist Filters</h3>
+  <form method="POST" class="form skinny clear">
+    <h3>Blocked Tags</h3>
 
-    <div id="tagfilters_standard" class="tagfilters clear">
-      $if blocktag:
-        $for i in blocktag:
-          <span>
-            <strong>${i['title']}</strong>
-            ${R.CODE_MAP[i['rating']].nice_name}${'+' if i['rating'] != R.EXPLICIT.code else ''}
-          </span>
-      $else:
-        There are no blacklist filters to display.
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Tag</th>
+          <th>Rating</th>
+        </tr>
+      </thead>
+      <tbody>
+        $if blocktag:
+          $for i in blocktag:
+            $ tagid = i['tagid']
+            $ title = i['title']
+            <tr>
+              <td>
+                <input id="select-tag-${tagid}" type="checkbox" name="tagids" value="${tagid}" />
+              </td>
+              <td>
+                <label for="select-tag-${tagid}">
+                  ${title}
+                </label>
+              </td>
+              <td>
+                <label for="select-tag-${tagid}">
+                  ${R.CODE_MAP[i['rating']].nice_name}${'+' if i['rating'] != R.EXPLICIT.code else ''}
+                </label>
+              </td>
+            </tr>
+        $else:
+          <tr>
+            <td></td>
+            <td colspan="2">There are no blacklist filters to display.</td>
+          </tr>
+      </tbody>
+    </table>
+    <div class="buttons clear">
+      <span style="float: right;">
+        <button class="button negative" name="do" value="remove">Unblock selected tags</button>
+      </span>
     </div>
   </form>
 </div>

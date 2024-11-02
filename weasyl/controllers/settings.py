@@ -719,12 +719,13 @@ def manage_tagfilters_get_(request):
 @token_checked
 def manage_tagfilters_post_(request):
     do = request.POST["do"]
-    title = request.POST["title"]
 
     if do == "create":
+        title = request.POST["title"]
         blocktag.insert(request.userid, title=title, rating=define.get_int(request.POST["rating"]))
     elif do == "remove":
-        blocktag.remove(request.userid, title=title)
+        tagids = list(map(int, request.POST.getall("tagids")))
+        blocktag.remove_list(request.userid, tagids)
     else:
         raise WeasylError("Unexpected")  # pragma: no cover
 

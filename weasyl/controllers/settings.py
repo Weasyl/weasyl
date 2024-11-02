@@ -721,7 +721,9 @@ def manage_tagfilters_post_(request):
     do = request.POST.getone("do")
 
     if do == "create":
-        titles = request.POST.getall("titles")
+        titles = list(filter(
+            lambda title: title and not title.isspace(),
+            request.POST.getall("titles")))
         rating = define.get_int(request.POST.getone("rating"))
         blocktag.insert_list(request.userid, titles=titles, rating=rating)
     elif do == "remove":

@@ -183,7 +183,7 @@ def _get_or_create_many(names: list[str]) -> list[int]:
     d.engine.execute('''
         INSERT INTO searchtag (title)
         SELECT title
-        FROM UNNEST (%(names)s) AS title
+        FROM UNNEST (%(names)s::text[]) AS title
         ON CONFLICT (title) DO NOTHING
     ''', names=names)
 

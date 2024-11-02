@@ -83,7 +83,7 @@ def insert_list(userid: int, titles: list[str], rating: int):
     d.engine.execute('''
         INSERT INTO blocktag (userid, tagid, rating)
         SELECT %(user)s, tag, %(rating)s
-        FROM UNNEST (%(tag)s) AS tag
+        FROM UNNEST (%(tag)s::integer[]) AS tag
         ON CONFLICT DO NOTHING
     ''', user=userid, tag=searchtag.get_or_create_many(titles), rating=rating)
 

@@ -74,15 +74,18 @@ def select_ids(userid):
     ]
 
 
-def insert(userid, title, rating):
+def insert_list(userid: int, titles: list[str], rating: int):
     if rating not in ratings.CODE_MAP:
         rating = ratings.GENERAL.code
 
     profile.check_user_rating_allowed(userid, rating)
 
-    d.engine.execute(
-        'INSERT INTO blocktag (userid, tagid, rating) VALUES (%(user)s, %(tag)s, %(rating)s) ON CONFLICT DO NOTHING',
-        user=userid, tag=searchtag.get_or_create(title), rating=rating)
+    d.engine.execute('''
+        INSERT INTO blocktag (userid, tagid, rating)
+        SELECT %(user)s, tag, %(rating)s
+        FROM UNNEST (%(tag)s) AS tag
+        ON CONFLICT DO NOTHING
+    ''', user=userid, tag=searchtag.get_or_create_many(titles), rating=rating)
 
     select_ids.invalidate(userid)
 

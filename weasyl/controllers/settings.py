@@ -718,11 +718,12 @@ def manage_tagfilters_get_(request):
 @login_required
 @token_checked
 def manage_tagfilters_post_(request):
-    do = request.POST["do"]
+    do = request.POST.getone("do")
 
     if do == "create":
-        title = request.POST["title"]
-        blocktag.insert(request.userid, title=title, rating=define.get_int(request.POST["rating"]))
+        titles = request.POST.getall("titles")
+        rating = define.get_int(request.POST.getone("rating"))
+        blocktag.insert_list(request.userid, titles=titles, rating=rating)
     elif do == "remove":
         tagids = list(map(int, request.POST.getall("tagids")))
         blocktag.remove_list(request.userid, tagids)

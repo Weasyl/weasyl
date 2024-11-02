@@ -1,5 +1,4 @@
 from typing import Iterable, TypeVar
-from urllib.parse import urlsplit
 
 from weasyl.error import WeasylError
 
@@ -30,15 +29,3 @@ def only(iterable: Iterable[_T]) -> _T:
             return x
 
     raise WeasylError("Unexpected")
-
-
-def checked_redirect(path: str) -> str:
-    """
-    Returns the passed URL, asserting that it’s a valid place to redirect back to within the same application (e.g. after logging in).
-    """
-    split_result = urlsplit(path)
-
-    if split_result.scheme or split_result.netloc:
-        raise WeasylError("Unexpected", level="warning")
-
-    return path

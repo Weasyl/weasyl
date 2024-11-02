@@ -20,7 +20,6 @@ from weasyl.controllers.decorators import (
     token_checked,
 )
 from weasyl.error import WeasylError
-from weasyl.forms import checked_redirect
 from weasyl.sessions import create_session
 
 
@@ -40,7 +39,7 @@ def signin_post_(request):
     logid, logerror = login.authenticate_bcrypt(form.username, form.password, request=request, ip_address=request.client_addr, user_agent=request.user_agent)
 
     if logid and logerror is None:
-        response = HTTPSeeOther(location=checked_redirect(referer))
+        response = HTTPSeeOther(location=define.path_redirect(referer))
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
                             secure=request.scheme == 'https', httponly=True)
         if form.sfwmode == "sfw":
@@ -142,7 +141,7 @@ def signin_2fa_auth_post_(request):
                               links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
         # Return to the target page, removing the scheme and domain per urlsplit.
         ref = request.POST["referer"] or "/"
-        response = HTTPSeeOther(location=checked_redirect(ref))
+        response = HTTPSeeOther(location=define.path_redirect(ref))
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
                             secure=request.scheme == 'https', httponly=True)
         return response

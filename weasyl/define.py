@@ -240,6 +240,13 @@ def is_csrf_valid(request):
     return request.headers.get('origin') == _ORIGIN
 
 
+def path_redirect(path_qs: str) -> str:
+    """
+    Return an absolute URL for an internal redirect within the application’s origin.
+    """
+    return _ORIGIN + path_qs
+
+
 @region.cache_on_arguments(namespace='v3')
 def _get_all_config(userid):
     """

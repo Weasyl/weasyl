@@ -712,7 +712,7 @@ def manage_tagfilters_get_(request):
         blocktag.select(request.userid),
         # filterable ratings
         profile.get_user_ratings(request.userid),
-    ], title="Tag Filters"))
+    ], title="Blocked Tags"))
 
 
 @login_required

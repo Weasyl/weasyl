@@ -4,6 +4,7 @@
 @import 'components/option';
 @import 'components/page-navigation';
 @import 'components/private-messages';
+@import 'components/tag-filters';
 @import 'components/text-post-list';
 @import 'components/user-tabs';
 @import 'pages/marketplace';
@@ -4154,16 +4155,6 @@ templates/error/error.html
 *******************************************************************************
 ******************************************************************************/
 
-.tagfilters span {
-    display: block;
-    float: left;
-    padding: 0.3em 0.5em;
-    margin: 0 0.5em 0.5em 0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    background-color: #f5f5f5;
-}
-
 body input[type="checkbox"] {
     position: relative;
     top: -1px;
@@ -4357,12 +4348,6 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 
 #api-token-list .api-token {
     margin-left: 1.8rem;
-}
-
-/* Tag filters
---------------------------------*/
-#tagfilters_content_buttons {
-    margin-top: 0.6em;
 }
 
 /* Submission favorite button

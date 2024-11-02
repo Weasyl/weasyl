@@ -1,0 +1,35 @@
+@import '../theme';
+
+#filters-content .buttons {
+    padding-top: 1em;
+}
+
+// Use this over class="form skinny" since that makes everything bold, which is undesired.
+.filters-blocked {
+    margin: 0 auto;
+    max-width: 30em;
+}
+
+$cell-padding: 4px;
+
+.filters-list > * > * {
+    // Allow clicking anywhere on a tag's row to select that tag; similar to notes.
+    > * > label {
+        display: block;
+        padding: $cell-padding;
+    }
+
+    // Checkbox
+    > :nth-child(1) {
+        text-align: center;
+        width: 2em;
+    }
+}
+
+.filters-list > tbody > :nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+#tagfilters_content_buttons {
+    margin-top: 0.6em;
+}

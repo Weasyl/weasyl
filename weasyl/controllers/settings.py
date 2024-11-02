@@ -8,6 +8,7 @@ from libweasyl import staff
 
 from weasyl.controllers.decorators import disallow_api, login_required, token_checked
 from weasyl.error import WeasylError
+from weasyl.forms import checked_redirect
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, folder, followuser, frienduser, ignoreuser,
@@ -798,10 +799,10 @@ def manage_alias_post_(request):
 @token_checked
 @disallow_api
 def sfw_toggle_(request):
-    form = request.web_input(redirect="/")
+    redirect = request.POST.get("redirect", "/")
 
     currentstate = request.cookies.get('sfwmode', "nsfw")
     newstate = "sfw" if currentstate == "nsfw" else "nsfw"
-    response = HTTPSeeOther(location=form.redirect)
+    response = HTTPSeeOther(location=checked_redirect(redirect))
     response.set_cookie("sfwmode", newstate, max_age=60 * 60 * 24 * 365)
     return response

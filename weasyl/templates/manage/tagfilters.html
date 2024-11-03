@@ -5,12 +5,13 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
   <form method="POST" class="form skinny clear">
     <h3>Block New Tags</h3>
 
-    <p>Enter tags to block if you don't want to see content marked with any of these tags. To enter a tag composed of multiple words, separate each word with an underscore character, as in <strong>red_fox</strong>. You can choose the range of ratings for which these tags will be blocked.</p>
+    <p>Enter tags to block if you don't want to see content marked with any of these tags. You can choose the range of ratings for which these tags will be blocked.</p>
 
-    <label for="tagfilters_title">Content Tag:</label>
-    <input type="text" name="title" id="tagfilters_title" class="input" />
+    <label for="tagfilters_title">Tags</label>
+    <textarea name="tags" class="input tags-textarea" rows="3"></textarea>
+    <p class="color-lighter tags-help"><i>Separate tags with a space. Use an underscore for multiple words in a tag, ex. red_fox</i></p>
 
-    <label for="tagfilters_rating">Rating to Filter:</label>
+    <label for="tagfilters_rating">Ratings</label>
     <select name="rating" id="tagfilters_rating" class="input">
     $for rating in filter_ratings:
       <option value="${rating.code}">${rating.block_text}</option>

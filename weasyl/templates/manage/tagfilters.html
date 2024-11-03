@@ -7,18 +7,13 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
 
     <p>Enter tags to block if you don't want to see content marked with any of these tags. To enter a tag composed of multiple words, separate each word with an underscore character, as in <strong>red_fox</strong>. You can choose the range of ratings for which these tags will be blocked.</p>
 
-    <label for="rating">Tags</label>
-
     <div class="group">
       <input type="text" id="new-blocked-tag" class="input" name="titles" placeholder="Tag">
+      <select class="input" name="rating">
+      $for rating in filter_ratings:
+        <option value="${rating.code}">${rating.block_text}</option>
+      </select>
     </div>
-
-    <label for="rating">Rating</label>
-
-    <select class="input" name="rating">
-    $for rating in filter_ratings:
-      <option value="${rating.code}">${rating.block_text}</option>
-    </select>
 
     <div class="buttons clear">
       <button class="button positive" name="do" value="create">Block tags</button>

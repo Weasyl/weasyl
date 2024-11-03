@@ -86,7 +86,8 @@ def insert(userid: int, tags: str, rating: int):
         INSERT INTO blocktag (userid, tagid, rating)
         SELECT %(user)s, tag, %(rating)s
         FROM UNNEST (%(tag)s::integer[]) AS tag
-        ON CONFLICT DO NOTHING
+        ON CONFLICT (userid, tagid) DO UPDATE
+        SET rating = EXCLUDED.rating
     ''', user=userid, tag=searchtag.get_or_create_many(parsed_tags), rating=rating)
 
     select_ids.invalidate(userid)

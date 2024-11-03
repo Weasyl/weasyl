@@ -101,3 +101,5 @@ def remove_list(userid: int, tagids: list[int]):
         userid=userid,
         tagids=tagids,
     )
+
+    select_ids.invalidate(userid)

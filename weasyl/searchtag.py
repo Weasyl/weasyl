@@ -178,27 +178,6 @@ def get_or_create(name):
     return _get_or_create(d.get_search_tag(name))
 
 
-@region.cache_on_arguments()
-def _get_or_create_many(names: list[str]) -> list[int]:
-    d.engine.execute('''
-        INSERT INTO searchtag (title)
-        SELECT title
-        FROM UNNEST (%(names)s::text[]) AS title
-        ON CONFLICT (title) DO NOTHING
-    ''', names=names)
-
-    rows = d.engine.execute(
-        'SELECT tagid FROM searchtag WHERE title = ANY (%(names)s)',
-        names=names)
-
-    return list(row[0] for row in rows)
-
-
-def get_or_create_many(names: list[str]) -> list[int]:
-    normalized_names = list(map(d.get_search_tag, names))
-    return _get_or_create_many(normalized_names)
-
-
 def get_ids(names):
     result = d.engine.execute(
         "SELECT tagid, title FROM searchtag WHERE title = ANY (%(names)s)",

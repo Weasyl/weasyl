@@ -9,6 +9,7 @@
 !pyproject.toml
 
 !build.js
+!imagemagick-policy.xml
 !package.json
 !package-lock.json
 !setup.cfg

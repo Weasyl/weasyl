@@ -96,7 +96,7 @@ def file_type_for_category(data, category):
         try:
             im = images.from_buffer(data)
         except SanperaError:
-            raise UnknownFileFormat('The image data provided could not be decoded.')
+            raise UnknownFileFormat('The image data provided could not be decoded. Image files must be in the GIF, JPG, or PNG formats.')
         fmt = im.original_format.decode()
         if fmt == 'JPEG':
             fmt = 'JPG'

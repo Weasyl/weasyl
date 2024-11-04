@@ -68,6 +68,8 @@ services:
         target: /weasyl/storage/temp
       - type: tmpfs
         target: /tmp
+      - type: tmpfs
+        target: /magick-tmp
     networks:
       - external-web
       - nginx-web
@@ -213,6 +215,8 @@ services:
         target: /weasyl/testing
       - type: tmpfs
         target: /tmp
+      - type: tmpfs
+        target: /magick-tmp
     networks:
       - test-postgres
     read_only: true

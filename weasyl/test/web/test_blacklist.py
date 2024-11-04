@@ -33,10 +33,9 @@ def test_blacklist_homepage(app):
 
     resp = app.get('/manage/tagfilters', headers={'Cookie': cookie})
     tagid = resp.html.find('input', {'name': 'tagids'})['value']
-    print(tagid)
 
     app.post('/manage/tagfilters',
-             {'tagids': str(tagid), 'do': 'remove'},
+             {'tagids': tagid, 'do': 'remove'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})

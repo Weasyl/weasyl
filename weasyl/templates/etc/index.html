@@ -9,15 +9,15 @@ $code:
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 <div id="home-art" class="stage">
 
-  <ul class="home-latest thumbnail-grid medium-footprint">
+  <ul class="home-top thumbnail-grid medium-footprint">
     $# Items that are front and center on the main page, quite close to the top; skip lazy loading entirely.
-    $for i in everything:
+    $for i in popular:
       $:{_GRID_ITEM(i, lazy_load=False)}
-    <li class="more"><a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
+    <li class="more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
   </ul>
 
   <ul id="home-tabs" class="bar">
-    <li><a class="home-pane-link current" href="#home-recently-popular"><span class="home-tab-collapse">Recently </span>Popular</a></li>
+    <li><a class="home-pane-link current" href="#home-latest">Latest<span class="home-tab-collapse"> Posts</span></a></li>
     <li><a class="home-pane-link" href="#home-critique">Critique<span class="home-tab-collapse"> Wanted</span></a></li>
     <li><a class="home-pane-link" href="#home-literature">Writing</a></li>
     <li><a class="home-pane-link" href="#home-multimedia">Multimedia</a></li>
@@ -26,11 +26,11 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
   <div id="home-panes">
 
-    <div id="home-recently-popular" class="pane current">
+    <div id="home-latest" class="pane current">
       <ul class="thumbnail-grid small-footprint">
-        $for i in popular:
+        $for i in everything:
           $:{_GRID_ITEM(i)}
-        <li class="more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
+        <li class="more"><a class="more" href="/search"><i>Browse</i> <span>Everything</span></a></li>
       </ul>
     </div>
 

@@ -50,6 +50,24 @@ configure)
     $c "$@" disposable-domains.txt < config/disposable-domains.txt
     ;;
 
+docs)
+    docker build --target bdist -t weasyl-docs .
+    exit_code=1
+    WZL_TMP=$(mktemp --directory /tmp/wzl.XXXXXXXXXXX)
+    cp pyproject.toml poetry.lock "$WZL_TMP"
+    if docker run --name=weasyl-docs --init -it weasyl-docs .poetry-venv/bin/poetry install --with=docs --sync; then
+        docker cp weasyl-docs:/weasyl/pyproject.toml ./
+        docker cp weasyl-docs:/weasyl/poetry.lock ./
+        if poetry run make --directory ./docs/ "$@"; then
+            exit_code=0
+        fi
+        cp "$WZL_TMP/pyproject.toml" "$WZL_TMP/poetry.lock" .
+    fi
+    docker container rm weasyl-docs
+    docker image rm weasyl-docs
+    exit $exit_code
+    ;;
+
 migrate)
     if check_nobuild migrate "${1:-}"; then shift; fi
     exec $docker_compose run --rm -T migrate "$@"

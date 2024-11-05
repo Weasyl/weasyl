@@ -24,9 +24,9 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
 RUN adduser -S build -h /mozjpeg-build
 WORKDIR /mozjpeg-build
 USER build
-RUN wget https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.0.3.tar.gz
-RUN echo '59c2d65af28d4ef68b9e5c85215cf3b26f4ac5c98e3ae76ba5febceec97fa5ab28cc13496e3f039f11cae767c5466bbf798038f83b310134c13d2e9a6bf5467e  v4.0.3.tar.gz' | sha512sum -c && tar xf v4.0.3.tar.gz
-WORKDIR /mozjpeg-build/mozjpeg-4.0.3
+RUN wget https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.1.5.tar.gz
+RUN echo '90e1b0067740b161398d908e90b976eccc2ee7174496ce9693ba3cdf4727559ecff39744611657d847dd83164b80993152739692a5233aca577ebd052efaf501  v4.1.5.tar.gz' | sha512sum -c && tar xf v4.1.5.tar.gz
+WORKDIR /mozjpeg-build/mozjpeg-4.1.5
 RUN cmake -DENABLE_STATIC=0 -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-build/package-root .
 RUN cmake --build . --parallel --target install
 

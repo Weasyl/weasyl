@@ -1,4 +1,4 @@
-FROM docker.io/library/postgres:13-alpine3.16
+FROM docker.io/library/postgres:13-alpine3.20
 COPY \
     00-hstore.sql \
     01-test.sql \

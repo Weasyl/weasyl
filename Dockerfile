@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/library/node:16-alpine3.16 AS asset-builder
+FROM docker.io/library/node:18-alpine3.20 AS asset-builder
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     sassc runit
@@ -16,7 +16,7 @@ COPY assets assets
 RUN node build.js
 
 
-FROM docker.io/library/alpine:3.16 AS mozjpeg
+FROM docker.io/library/alpine:3.20 AS mozjpeg
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     musl-dev gcc make \
@@ -88,7 +88,7 @@ RUN --network=none make -j"$(nproc)"
 RUN --network=none make install DESTDIR="$HOME/package-root"
 
 
-FROM docker.io/library/python:3.10-alpine3.16 AS bdist
+FROM docker.io/library/python:3.10-alpine3.20 AS bdist
 # libwebp-dev, zlib-dev: Pillow
 # libffi-dev, openssl-dev: cryptography
 # libmemcached-dev: pylibmc
@@ -138,15 +138,14 @@ RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,u
     .poetry-venv/bin/poetry install --only=dev
 
 
-FROM docker.io/library/python:3.10-alpine3.16 AS package
-# gcc (libgomp), lcms2, libpng, libxml2, libwebp: ImageMagick
+FROM docker.io/library/python:3.10-alpine3.20 AS package
+# gcc (libgomp), lcms2, libpng, libxml2, libwebp*: ImageMagick
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    gcc lcms2 libpng libxml2 libwebp \
+    gcc lcms2 libpng libxml2 libwebpdemux libwebpmux \
     libffi \
     libmemcached-libs \
     libpq \
-    libwebp \
     libxslt
 RUN adduser -S weasyl -h /weasyl
 WORKDIR /weasyl
@@ -175,7 +174,7 @@ COPY assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
 STOPSIGNAL SIGINT
 
-FROM docker.io/library/alpine:3.16 AS flake8
+FROM docker.io/library/alpine:3.20 AS flake8
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     py3-flake8

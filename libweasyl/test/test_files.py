@@ -57,10 +57,10 @@ def test_file_type_for_category_invalid_visual_file():
 
 def test_file_type_for_category_invalid_file_format():
     """
-    ``InvalidFileFormat`` is raised if the image data isn't a GIF, JPG, or PNG.
+    A file format error is raised if the image data isn't a GIF, JPG, or PNG. It might be ``InvalidFileFormat`` if the file was parsed as a known format, or ``UnknownFileFormat`` if parsing failed, including by being denied by a security policy.
     """
     data = datadir.join('1x70.bmp').read(mode='rb')
-    with pytest.raises(exceptions.InvalidFileFormat):
+    with pytest.raises((exceptions.InvalidFileFormat, exceptions.UnknownFileFormat)):
         files.file_type_for_category(data, Category.visual)
 
 

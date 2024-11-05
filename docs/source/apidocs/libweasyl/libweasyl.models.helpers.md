@@ -16,29 +16,17 @@
 :align: left
 
 * - {py:obj}`CharSettings <libweasyl.models.helpers.CharSettings>`
-  - ```{autodoc2-docstring} libweasyl.models.helpers.CharSettings
-    :summary:
-    ```
+  -
 * - {py:obj}`CharSettingsColumn <libweasyl.models.helpers.CharSettingsColumn>`
-  - ```{autodoc2-docstring} libweasyl.models.helpers.CharSettingsColumn
-    :summary:
-    ```
+  -
 * - {py:obj}`WeasylTimestampColumn <libweasyl.models.helpers.WeasylTimestampColumn>`
-  - ```{autodoc2-docstring} libweasyl.models.helpers.WeasylTimestampColumn
-    :summary:
-    ```
+  -
 * - {py:obj}`ArrowColumn <libweasyl.models.helpers.ArrowColumn>`
-  - ```{autodoc2-docstring} libweasyl.models.helpers.ArrowColumn
-    :summary:
-    ```
+  -
 * - {py:obj}`JSONValuesColumn <libweasyl.models.helpers.JSONValuesColumn>`
-  - ```{autodoc2-docstring} libweasyl.models.helpers.JSONValuesColumn
-    :summary:
-    ```
+  -
 * - {py:obj}`IntegerEnumColumn <libweasyl.models.helpers.IntegerEnumColumn>`
-  - ```{autodoc2-docstring} libweasyl.models.helpers.IntegerEnumColumn
-    :summary:
-    ```
+  -
 ````
 
 ### Functions
@@ -83,29 +71,14 @@
 
 Bases: {py:obj}`sqlalchemy.ext.mutable.Mutable`
 
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettings
-```
-
-```{rubric} Initialization
-```
-
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettings.__init__
-```
-
 ````{py:method} __repr__()
 :canonical: libweasyl.models.helpers.CharSettings.__repr__
-
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettings.__repr__
-```
 
 ````
 
 ````{py:method} coerce(key, value)
 :canonical: libweasyl.models.helpers.CharSettings.coerce
 :classmethod:
-
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettings.coerce
-```
 
 ````
 
@@ -172,15 +145,6 @@ Bases: {py:obj}`sqlalchemy.ext.mutable.Mutable`
 
 Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettingsColumn
-```
-
-```{rubric} Initialization
-```
-
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettingsColumn.__init__
-```
-
 ````{py:attribute} impl
 :canonical: libweasyl.models.helpers.CharSettingsColumn.impl
 :value: >
@@ -244,16 +208,10 @@ Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 ````{py:method} process_bind_param(value, dialect)
 :canonical: libweasyl.models.helpers.CharSettingsColumn.process_bind_param
 
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettingsColumn.process_bind_param
-```
-
 ````
 
 ````{py:method} process_result_value(original_value, dialect)
 :canonical: libweasyl.models.helpers.CharSettingsColumn.process_result_value
-
-```{autodoc2-docstring} libweasyl.models.helpers.CharSettingsColumn.process_result_value
-```
 
 ````
 
@@ -267,13 +225,10 @@ Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 
 `````
 
-`````{py:class} WeasylTimestampColumn
+`````{py:class} WeasylTimestampColumn(*args, **kwargs)
 :canonical: libweasyl.models.helpers.WeasylTimestampColumn
 
 Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
-
-```{autodoc2-docstring} libweasyl.models.helpers.WeasylTimestampColumn
-```
 
 ````{py:attribute} impl
 :canonical: libweasyl.models.helpers.WeasylTimestampColumn.impl
@@ -298,28 +253,19 @@ Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 ````{py:method} process_result_value(value, dialect)
 :canonical: libweasyl.models.helpers.WeasylTimestampColumn.process_result_value
 
-```{autodoc2-docstring} libweasyl.models.helpers.WeasylTimestampColumn.process_result_value
-```
-
 ````
 
 ````{py:method} process_bind_param(value, dialect)
 :canonical: libweasyl.models.helpers.WeasylTimestampColumn.process_bind_param
 
-```{autodoc2-docstring} libweasyl.models.helpers.WeasylTimestampColumn.process_bind_param
-```
-
 ````
 
 `````
 
-`````{py:class} ArrowColumn
+`````{py:class} ArrowColumn(*args, **kwargs)
 :canonical: libweasyl.models.helpers.ArrowColumn
 
 Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
-
-```{autodoc2-docstring} libweasyl.models.helpers.ArrowColumn
-```
 
 ````{py:attribute} impl
 :canonical: libweasyl.models.helpers.ArrowColumn.impl
@@ -344,28 +290,19 @@ Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 ````{py:method} process_result_value(value, dialect)
 :canonical: libweasyl.models.helpers.ArrowColumn.process_result_value
 
-```{autodoc2-docstring} libweasyl.models.helpers.ArrowColumn.process_result_value
-```
-
 ````
 
 ````{py:method} process_bind_param(value, dialect)
 :canonical: libweasyl.models.helpers.ArrowColumn.process_bind_param
 
-```{autodoc2-docstring} libweasyl.models.helpers.ArrowColumn.process_bind_param
-```
-
 ````
 
 `````
 
-`````{py:class} JSONValuesColumn
+`````{py:class} JSONValuesColumn(*args, **kwargs)
 :canonical: libweasyl.models.helpers.JSONValuesColumn
 
 Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
-
-```{autodoc2-docstring} libweasyl.models.helpers.JSONValuesColumn
-```
 
 ````{py:attribute} impl
 :canonical: libweasyl.models.helpers.JSONValuesColumn.impl
@@ -380,16 +317,10 @@ Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 ````{py:method} process_bind_param(value, dialect)
 :canonical: libweasyl.models.helpers.JSONValuesColumn.process_bind_param
 
-```{autodoc2-docstring} libweasyl.models.helpers.JSONValuesColumn.process_bind_param
-```
-
 ````
 
 ````{py:method} process_result_value(value, dialect)
 :canonical: libweasyl.models.helpers.JSONValuesColumn.process_result_value
-
-```{autodoc2-docstring} libweasyl.models.helpers.JSONValuesColumn.process_result_value
-```
 
 ````
 
@@ -399,15 +330,6 @@ Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 :canonical: libweasyl.models.helpers.IntegerEnumColumn
 
 Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
-
-```{autodoc2-docstring} libweasyl.models.helpers.IntegerEnumColumn
-```
-
-```{rubric} Initialization
-```
-
-```{autodoc2-docstring} libweasyl.models.helpers.IntegerEnumColumn.__init__
-```
 
 ````{py:attribute} impl
 :canonical: libweasyl.models.helpers.IntegerEnumColumn.impl
@@ -432,16 +354,10 @@ Bases: {py:obj}`sqlalchemy.types.TypeDecorator`
 ````{py:method} process_bind_param(value, dialect)
 :canonical: libweasyl.models.helpers.IntegerEnumColumn.process_bind_param
 
-```{autodoc2-docstring} libweasyl.models.helpers.IntegerEnumColumn.process_bind_param
-```
-
 ````
 
 ````{py:method} process_result_value(value, dialect)
 :canonical: libweasyl.models.helpers.IntegerEnumColumn.process_result_value
-
-```{autodoc2-docstring} libweasyl.models.helpers.IntegerEnumColumn.process_result_value
-```
 
 ````
 

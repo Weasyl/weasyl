@@ -15,7 +15,7 @@ commands.md
 ```{toctree}
 :hidden:
 :maxdepth: 3
-:caption: Modules
+:caption: Packages
 
 libweasyl.md
 weasyl.md

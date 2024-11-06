@@ -721,11 +721,11 @@ def manage_tagfilters_post_(request):
     do = request.POST["do"]
 
     if do == "create":
-        tags = request.POST.getone("tags")
+        tags = request.POST.getone("title")
         blocktag.insert(request.userid, tags=tags, rating=define.get_int(request.POST["rating"]))
     elif do == "remove":
-        tagids = list(map(int, request.POST.getall("tagids")))
-        blocktag.remove_list(request.userid, tagids)
+        tags = request.POST.getall("title")
+        blocktag.remove_list(request.userid, tags)
     else:
         raise WeasylError("Unexpected")  # pragma: no cover
 

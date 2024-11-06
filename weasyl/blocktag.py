@@ -93,14 +93,18 @@ def insert(userid: int, tags: str, rating: int):
     select_ids.invalidate(userid)
 
 
-def remove_list(userid: int, tagids: list[int]):
-    if not tagids:
+def remove_list(userid: int, tags: list[str]):
+    if not tags:
         return
 
-    d.engine.execute(
-        "DELETE FROM blocktag WHERE userid = %(userid)s AND tagid = ANY (%(tagids)s)",
-        userid=userid,
-        tagids=tagids,
-    )
+    d.engine.execute('''
+        DELETE FROM blocktag
+        WHERE userid = %(userid)s
+        AND tagid IN (
+            SELECT tagid
+            FROM searchtag
+            WHERE title = ANY (%(tags)s)
+        )
+    ''', userid=userid, tags=tags)
 
     select_ids.invalidate(userid)

@@ -8,7 +8,7 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
     <p>Enter tags to block if you don't want to see content marked with any of these tags. You can choose the range of ratings for which these tags will be blocked.</p>
 
     <label for="tagfilters_title">Tags</label>
-    <textarea name="tags" class="input tags-textarea" rows="3"></textarea>
+    <textarea name="title" class="input tags-textarea" rows="3"></textarea>
     <p class="color-lighter tags-help"><i>Separate tags with a space. Use an underscore for multiple words in a tag, ex. red_fox</i></p>
 
     <label for="tagfilters_rating">Ratings</label>
@@ -41,7 +41,7 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
             <tr>
               <td>
                 <label>
-                  <input id="select-tag-${tagid}" type="checkbox" name="tagids" value="${tagid}" />
+                  <input id="select-tag-${tagid}" type="checkbox" name="title" value="${title}" />
                 </label>
               </td>
               <td>

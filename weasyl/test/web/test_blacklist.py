@@ -25,17 +25,14 @@ def test_blacklist_homepage(app):
     assert len(resp.html.select('#home-art > .thumbnail-grid .thumb')) == 2
 
     app.post('/manage/tagfilters',
-             {'tags': 'walrus', 'rating': str(ratings.GENERAL.code), 'do': 'create'},
+             {'title': 'walrus', 'rating': str(ratings.GENERAL.code), 'do': 'create'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})
     assert len(resp.html.select('#home-art > .thumbnail-grid .thumb')) == 1
 
-    resp = app.get('/manage/tagfilters', headers={'Cookie': cookie})
-    tagid = resp.html.find('input', {'name': 'tagids'})['value']
-
     app.post('/manage/tagfilters',
-             {'tagids': tagid, 'do': 'remove'},
+             {'title': 'walrus', 'do': 'remove'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})

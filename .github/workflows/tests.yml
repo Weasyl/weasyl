@@ -9,7 +9,7 @@ jobs:
       contents: read
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:9a366824361bf3123b28364ab6a4bd039ac765fafd5a1baab07f5c7c4485c007
+      image: ghcr.io/weasyl/ci-base-image@sha256:960e621bcdde15bdf9b1dd29c8b45dec93927aa67f2e7f4ab3f763a16f2b99f4
       options: --user 1001
 
     services:
@@ -61,6 +61,7 @@ jobs:
         run: |
           cp ci/site.config.txt config/
           cp config/weasyl-staff.example.py config/weasyl-staff.py
+          cat imagemagick-policy.xml > /usr/etc/ImageMagick-6/policy.xml
           printf %.8s "$GITHUB_SHA" > version.txt
 
       - name: Build assets

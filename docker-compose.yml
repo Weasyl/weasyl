@@ -68,6 +68,8 @@ services:
         target: /weasyl/storage/temp
       - type: tmpfs
         target: /tmp
+      - type: tmpfs
+        target: /magick-tmp
     networks:
       - external-web
       - nginx-web
@@ -77,7 +79,7 @@ services:
     read_only: false
 
   memcached:
-    image: docker.io/library/memcached:1.6-alpine3.16
+    image: docker.io/library/memcached:1.6-alpine3.20
     command: --memory-limit=64
     networks:
       - web-memcached
@@ -115,7 +117,7 @@ services:
 
   configure:
     profiles: [ configure ]
-    image: docker.io/library/alpine:3.16
+    image: docker.io/library/alpine:3.20
     entrypoint:
       - sh
       - -c
@@ -213,6 +215,8 @@ services:
         target: /weasyl/testing
       - type: tmpfs
         target: /tmp
+      - type: tmpfs
+        target: /magick-tmp
     networks:
       - test-postgres
     read_only: true

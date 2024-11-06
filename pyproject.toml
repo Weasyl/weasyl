@@ -13,7 +13,6 @@ web-py = "0.51"
 requests = "^2.31.0"
 pylibmc = "1.6.2"
 pyramid = "2.0.2"
-webtest = "3.0.0"
 pyotp = "2.3.0"
 qrcodegen = "1.2.0"
 cryptography = "^43.0.1"
@@ -37,6 +36,7 @@ sanpera = {url = "https://pypi.weasyl.dev/sanpera/sanpera-0.2rc0%2Bweasyl.3.tar.
 [tool.poetry.group.dev.dependencies]
 pytest = "7.3.1"
 coverage = "7.2.5"
+webtest = "^3.0.1"
 
 
 [build-system]

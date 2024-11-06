@@ -160,43 +160,31 @@ def select_list(map_table, targetids):
     return dict(list(db.execute(q)))
 
 
-@region.cache_on_arguments()
-def _get_or_create(name):
-    tag = d.engine.scalar(
-        'INSERT INTO searchtag (title) VALUES (%(name)s) ON CONFLICT (title) DO NOTHING RETURNING tagid',
-        name=name)
+@region.cache_multi_on_arguments()
+def _get_or_create(*names: str) -> list[int]:
+    names_list = list(names)
 
-    if tag is not None:
-        return tag
+    d.engine.execute('''
+        INSERT INTO searchtag (title)
+        SELECT title
+        FROM UNNEST(%(names)s::text[]) AS title
+        ON CONFLICT (title) DO NOTHING
+    ''', names=names_list)
 
-    return d.engine.scalar(
-        'SELECT tagid FROM searchtag WHERE title = %(name)s',
-        name=name)
+    result = d.engine.execute(
+        'SELECT tagid FROM searchtag WHERE title = ANY (%(names)s)',
+        names=names_list)
+
+    return result.scalars().all()
 
 
 def get_or_create(name):
     return _get_or_create(d.get_search_tag(name))
 
 
-@region.cache_on_arguments()
-def _get_or_create_many(names: list[str]) -> list[int]:
-    d.engine.execute('''
-        INSERT INTO searchtag (title)
-        SELECT title
-        FROM UNNEST(%(names)s::text[]) AS title
-        ON CONFLICT (title) DO NOTHING
-    ''', names=names)
-
-    rows = d.engine.execute(
-        'SELECT tagid FROM searchtag WHERE title = ANY (%(names)s)',
-        names=names)
-
-    return list(row[0] for row in rows)
-
-
 def get_or_create_many(names: list[str]) -> list[int]:
-    normalized_names = list(map(d.get_search_tag, names))
-    return _get_or_create_many(normalized_names)
+    normalized_names = map(d.get_search_tag, names)
+    return _get_or_create(*normalized_names)
 
 
 def get_ids(names):

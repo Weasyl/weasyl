@@ -56,8 +56,7 @@ def select(userid):
     return [{
         "title": i[0],
         "rating": i[1],
-        "tagid": i[2],
-    } for i in d.execute("SELECT st.title, bt.rating, bt.tagid FROM searchtag st "
+    } for i in d.execute("SELECT st.title, bt.rating FROM searchtag st "
                          " INNER JOIN blocktag bt ON st.tagid = bt.tagid"
                          " WHERE bt.userid = %i"
                          " ORDER BY st.title", [userid])]

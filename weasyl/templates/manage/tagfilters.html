@@ -36,21 +36,20 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
         </thead>
         <tbody>
           $for i in blocktag:
-            $ tagid = i['tagid']
             $ title = i['title']
             <tr>
               <td>
                 <label>
-                  <input id="select-tag-${tagid}" type="checkbox" name="title" value="${title}" />
+                  <input id="select-tag-${title}" type="checkbox" name="title" value="${title}" />
                 </label>
               </td>
               <td>
-                <label for="select-tag-${tagid}">
+                <label for="select-tag-${title}">
                   ${title}
                 </label>
               </td>
               <td>
-                <label for="select-tag-${tagid}">
+                <label for="select-tag-${title}">
                   ${R.CODE_MAP[i['rating']].nice_name}${'+' if i['rating'] != R.EXPLICIT.code else ''}
                 </label>
               </td>

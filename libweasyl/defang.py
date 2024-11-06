@@ -77,6 +77,9 @@ color: \s* (?:
 """, re.X | re.I)
 
 
+_C0_OR_SPACE = "".join(map(chr, range(0x21)))
+
+
 def get_scheme(url):
     """
     Get the scheme from a URL, if the URL is valid.
@@ -128,13 +131,15 @@ def defang(fragment):
         extend_attributes = []
 
         for key, value in child.items():
-            if key == "href" and child.tag == "a" and get_scheme(value) in allowed_schemes:
-                url = urlparse(value)
+            # `value_stripped` is a correct thing to do according to the WHATWG URL spec (but not the only possible validation error, and not all are handled here yet). It also works around CVE-2023-24329 while on Python <3.10.12.
+            if key == "href" and child.tag == "a" and get_scheme(value_stripped := value.strip(_C0_OR_SPACE)) in allowed_schemes:
+                url = urlparse(value_stripped)
+                extend_attributes.append((key, value_stripped))
 
                 if url.hostname not in (None, "www.weasyl.com", "weasyl.com"):
                     extend_attributes.append(("rel", "nofollow ugc"))
-            elif key == "src" and child.tag == "img" and get_scheme(value) in allowed_schemes:
-                pass
+            elif key == "src" and child.tag == "img" and get_scheme(value_stripped := value.strip(_C0_OR_SPACE)) in allowed_schemes:
+                extend_attributes.append((key, value_stripped))
             elif key == "style" and ALLOWED_STYLE.match(value):
                 pass
             elif key == "class":

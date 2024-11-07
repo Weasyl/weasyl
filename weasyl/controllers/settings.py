@@ -712,19 +712,20 @@ def manage_tagfilters_get_(request):
         blocktag.select(request.userid),
         # filterable ratings
         profile.get_user_ratings(request.userid),
-    ], title="Tag Filters"))
+    ], title="Blocked Tags"))
 
 
 @login_required
 @token_checked
 def manage_tagfilters_post_(request):
     do = request.POST["do"]
-    title = request.POST["title"]
 
     if do == "create":
-        blocktag.insert(request.userid, title=title, rating=define.get_int(request.POST["rating"]))
+        tags = request.POST.getone("title")
+        blocktag.insert(request.userid, tags=tags, rating=define.get_int(request.POST["rating"]))
     elif do == "remove":
-        blocktag.remove(request.userid, title=title)
+        tags = request.POST.getall("title")
+        blocktag.remove_list(request.userid, tags)
     else:
         raise WeasylError("Unexpected")  # pragma: no cover
 

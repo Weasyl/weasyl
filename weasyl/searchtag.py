@@ -5,6 +5,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from struct import Struct
+from typing import Iterable
 
 import sqlalchemy as sa
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
@@ -182,8 +183,7 @@ def get_or_create(name):
     return _get_or_create(d.get_search_tag(name))
 
 
-def get_or_create_many(names: list[str]) -> list[int]:
-    normalized_names = map(d.get_search_tag, names)
+def get_or_create_many(normalized_names: Iterable[str]) -> list[int]:
     return _get_or_create(*normalized_names)
 
 

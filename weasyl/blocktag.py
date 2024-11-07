@@ -79,7 +79,7 @@ def insert(userid: int, tags: str, rating: int):
 
     profile.check_user_rating_allowed(userid, rating)
 
-    parsed_tags = list(searchtag.parse_tags(tags))
+    parsed_tags = searchtag.parse_tags(tags)
 
     d.engine.execute('''
         INSERT INTO blocktag (userid, tagid, rating)

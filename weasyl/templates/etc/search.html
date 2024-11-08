@@ -136,14 +136,34 @@ $code:
     <h2 class="page-title">Browse Content</h2>
 
     $if results['submit']:
-      <h3 class="pad-left">Submissions</h3>
+      <h3 class="pad-left">Visual Submissions</h3>
       <ul class="thumbnail-grid medium-footprint">
         $for i in results['submit']:
           $:{_GRID_ITEM(i, lazy_load=False)}
-        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
+        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Visual Submissions</span></a></li>
       </ul>
     $else:
-      There are no submissions to display.
+      There are no visual submissions to display.
+
+    $if results['literary']:
+      <h3 class="pad-left">Literary Submissions</h3>
+      <ul class="thumbnail-grid medium-footprint">
+        $for i in results['literary']:
+          $:{_GRID_ITEM(i, lazy_load=False)}
+        <li class="more"><a class="more" href="/search?find=literary"><i>More</i> <span>Literary Submissions</span></a></li>
+      </ul>
+    $else:
+      There are no literary submissions to display.
+
+    $if results['multimedia']:
+      <h3 class="pad-left">Multimedia Submissions</h3>
+      <ul class="thumbnail-grid medium-footprint">
+        $for i in results['multimedia']:
+          $:{_GRID_ITEM(i, lazy_load=False)}
+        <li class="more"><a class="more" href="/search?find=multimedia"><i>More</i> <span>Multimedia Submissions</span></a></li>
+      </ul>
+    $else:
+      There are no multimedia submissions to display.
 
     $if results['char']:
       <h3 class="pad-left">Characters</h3>

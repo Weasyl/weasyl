@@ -135,12 +135,12 @@ $code:
     $# BROWSE SUMMARY (user hit the "Browse" tab or didn't specify a content type)
     <h2 class="page-title">Browse Content</h2>
 
-    $if results['submit']:
+    $if results['visual']:
       <h3 class="pad-left">Visual Submissions</h3>
       <ul class="thumbnail-grid medium-footprint">
         $for i in results['submit']:
           $:{_GRID_ITEM(i, lazy_load=False)}
-        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Visual Submissions</span></a></li>
+        <li class="more"><a class="more" href="/search?find=visual"><i>More</i> <span>Visual Submissions</span></a></li>
       </ul>
     $else:
       There are no visual submissions to display.
@@ -165,6 +165,10 @@ $code:
     $else:
       There are no multimedia submissions to display.
 
+    <ul class="thumbnail-grid medium-footprint">
+      <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
+    </ul>
+
     $if results['char']:
       <h3 class="pad-left">Characters</h3>
       <ul class="grid avatar-grid">
@@ -184,6 +188,5 @@ $code:
       </ul>
     $else:
       There are no journals to display.
-
 
 </div>

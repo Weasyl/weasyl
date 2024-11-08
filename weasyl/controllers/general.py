@@ -146,6 +146,15 @@ def search_(request):
                     backid=None,
                     nextid=None,
                 ),
+                "visual": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="visual",
+                    cat=None,
+                    backid=None,
+                    nextid=None,
+                ),
                 "literary": search.browse(
                     userid=request.userid,
                     rating=rating,

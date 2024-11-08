@@ -138,7 +138,7 @@ $code:
     $if results['visual']:
       <h3 class="pad-left">Visual Submissions</h3>
       <ul class="thumbnail-grid medium-footprint">
-        $for i in results['submit']:
+        $for i in results['visual']:
           $:{_GRID_ITEM(i, lazy_load=False)}
         <li class="more"><a class="more" href="/search?find=submit&cat=1000"><i>More</i> <span>Visual Submissions</span></a></li>
       </ul>
@@ -165,9 +165,10 @@ $code:
     $else:
       There are no multimedia submissions to display.
 
-    <ul class="thumbnail-grid medium-footprint">
-      <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
-    </ul>
+    $if results['visual'] or results['literary'] or results['multimedia']:
+      <ul class="thumbnail-grid medium-footprint">
+        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
+      </ul>
 
     $if results['char']:
       <h3 class="pad-left">Characters</h3>

@@ -137,15 +137,6 @@ def search_(request):
             None,
             # Search results
             {
-                "submit": search.browse(
-                    userid=request.userid,
-                    rating=rating,
-                    limit=22,
-                    find="submit",
-                    cat=None,
-                    backid=None,
-                    nextid=None,
-                ),
                 "visual": search.browse(
                     userid=request.userid,
                     rating=rating,

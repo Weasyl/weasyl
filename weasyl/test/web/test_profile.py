@@ -203,3 +203,32 @@ def test_assert_adult(app, create_post, expect_assertion):
         with _guest(app):
             resp = app.get("/~forwarduser")
             assert resp.html.find(id="user-id").text.strip() == "17"
+
+
+@pytest.mark.usefixtures("db", "cache")
+@pytest.mark.parametrize(("site_names", "site_values", "rel_me_expected"), [
+    ("Bluesky", "weasyl.invalid", True),
+    ("Email", "weasyl@weasyl.invalid", False),
+    ("Something non-default", "not a URL", False),
+    ("Something non-default", "https://weasyl.invalid/", True),
+])
+def test_profile_links_rel_me(app, site_names: str, site_values: str, rel_me_expected: bool):
+    user = db_utils.create_user(username="profiletest")
+    app.set_cookie(*db_utils.create_session(user).split("=", 1))
+
+    app.post("/control/editprofile", {
+        # Unrelated, but necessary for successful form submission
+        "set_commish": "e",
+        "set_request": "e",
+        "set_trade": "e",
+
+        "site_names": site_names,
+        "site_values": site_values,
+    })
+
+    resp = app.get("/~profiletest")
+    assert resp.html.find(string=site_names)
+    assert resp.html.find(string=site_values)
+
+    rel = resp.html.find(string=site_values).parent.get("rel", [])
+    assert ("me" in rel) is rel_me_expected

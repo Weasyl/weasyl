@@ -3,7 +3,7 @@ from pyramid.response import Response
 
 from libweasyl import staff
 
-from weasyl import login, moderation, profile, siteupdate
+from weasyl import moderation, profile, siteupdate
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
 from weasyl.controllers.decorators import token_checked
@@ -118,18 +118,6 @@ def admincontrol_manageuser_post_(request):
                       remove_social=request.params.getall('remove_social'),
                       permission_tag='permission-tag' in request.params)
     raise HTTPSeeOther(location="/admincontrol")
-
-
-@admin_only
-@token_checked
-def admincontrol_acctverifylink_(request):
-    token = login.get_account_verification_token(
-        username=request.params.get('username', ''), email=request.params.get('email', ''))
-
-    if token:
-        return Response(d.webpage(request.userid, "admincontrol/acctverifylink.html", [token]))
-
-    return Response(d.errorpage(request.userid, "No pending account found."))
 
 
 @admin_only

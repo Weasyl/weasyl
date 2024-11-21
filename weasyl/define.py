@@ -340,9 +340,9 @@ def get_premium(userid):
     return "d" in config
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(should_cache_fn=bool)
 @record_timing
-def _get_display_name(userid):
+def _get_display_name(userid: int) -> str | None:
     """
     Return the display name assiciated with `userid`; if no such user exists,
     return None.
@@ -350,10 +350,16 @@ def _get_display_name(userid):
     return engine.scalar("SELECT username FROM profile WHERE userid = %(user)s", user=userid)
 
 
-def get_display_name(userid):
-    if not userid:
-        return None
-    return _get_display_name(userid)
+def get_display_name(userid: int) -> str:
+    username = _get_display_name(userid)
+
+    if username is None:
+        raise WeasylError("Unexpected")
+
+    return username
+
+
+try_get_display_name = _get_display_name
 
 
 def get_int(target):

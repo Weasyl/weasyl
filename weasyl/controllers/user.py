@@ -290,7 +290,7 @@ def vouch_(request):
         target=targetid,
     ).first()
 
-    target_username = define.get_display_name(targetid)
+    target_username = define.try_get_display_name(targetid)
 
     if updated is not None:
         define._get_all_config.invalidate(targetid)

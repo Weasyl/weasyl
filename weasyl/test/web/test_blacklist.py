@@ -32,7 +32,7 @@ def test_blacklist_homepage(app):
     assert len(resp.html.select('#home-art > .thumbnail-grid .thumb')) == 1
 
     app.post('/manage/tagfilters',
-             {'title': 'walrus', 'rating': str(ratings.GENERAL.code), 'do': 'remove'},
+             {'title': 'walrus', 'do': 'remove'},
              headers={'Cookie': cookie}, status=303)
 
     resp = app.get('/', headers={'Cookie': cookie})

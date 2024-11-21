@@ -60,13 +60,6 @@ def control_editprofile_put_(request):
     if len(form.site_names) != len(form.site_values):
         raise WeasylError('Unexpected')
 
-    if 'more' in form:
-        form.username = define.get_display_name(request.userid)
-        form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
-        form.settings = form.set_commish + form.set_trade + form.set_request
-        form.config = form.profile_display
-        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form], title="Edit Profile"))
-
     p = orm.Profile()
     p.full_name = form.full_name
     p.catchphrase = form.catchphrase
@@ -712,19 +705,20 @@ def manage_tagfilters_get_(request):
         blocktag.select(request.userid),
         # filterable ratings
         profile.get_user_ratings(request.userid),
-    ], title="Tag Filters"))
+    ], title="Blocked Tags"))
 
 
 @login_required
 @token_checked
 def manage_tagfilters_post_(request):
     do = request.POST["do"]
-    title = request.POST["title"]
 
     if do == "create":
-        blocktag.insert(request.userid, title=title, rating=define.get_int(request.POST["rating"]))
+        tags = request.POST.getone("title")
+        blocktag.insert(request.userid, tags=tags, rating=define.get_int(request.POST["rating"]))
     elif do == "remove":
-        blocktag.remove(request.userid, title=title)
+        tags = request.POST.getall("title")
+        blocktag.remove_list(request.userid, tags)
     else:
         raise WeasylError("Unexpected")  # pragma: no cover
 

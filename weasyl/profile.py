@@ -505,7 +505,7 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         welcome.stream_insert(userid, stream_status)
 
     pr = d.meta.tables['profile']
-    d.engine.execute(
+    result = d.engine.execute(
         pr.update()
         .where(pr.c.userid == userid)
         .values({
@@ -514,6 +514,9 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
             'settings': sa.func.regexp_replace(pr.c.settings, "[nli]", "").concat(settings_flag),
         })
     )
+
+    if result.rowcount != 1:
+        raise WeasylError("Unexpected")
 
     if my_userid != userid:
         from weasyl import moderation

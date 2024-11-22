@@ -21,8 +21,14 @@ def followuser_(request):
         followuser.insert(request.userid, otherid)
     elif form.action == "unfollow":
         followuser.remove(request.userid, otherid)
+    else:
+        raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+    target_username = define.try_get_display_name(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(target_username)))
 
 
 @login_required
@@ -56,11 +62,17 @@ def frienduser_(request):
             frienduser.remove_request(request.userid, otherid)
     elif form.action == "unfriend":
         frienduser.remove(request.userid, otherid)
+    else:
+        raise WeasylError("Unexpected")
+
+    target_username = define.try_get_display_name(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
 
     if form.feature == "pending":
         raise HTTPSeeOther(location="/manage/friends?feature=pending")
     else:  # typical value will be user
-        raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+        raise HTTPSeeOther(location="/~%s" % (define.get_sysname(target_username)))
 
 
 @login_required
@@ -87,8 +99,14 @@ def ignoreuser_(request):
         ignoreuser.insert(request.userid, [otherid])
     elif form.action == "unignore":
         ignoreuser.remove(request.userid, [otherid])
+    else:
+        raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+    target_username = define.try_get_display_name(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(target_username)))
 
 
 # Private messaging functions

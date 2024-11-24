@@ -155,6 +155,8 @@ error_messages = {
     "UserIgnored": "This content was posted by a user you have chosen to ignore.",
     "userRecordMissing": userid,
     "usernameChangedTooRecently": "You can't change your username within 30 days of a previous change.",
+    "usernameBanned": (
+        "The username you entered is reserved. Please choose a different username."),
     "usernameExists": "The username you entered is already registered by another user.",
     "usernameInvalid": (
         "The username you entered is not valid. Usernames must contain one or more alphanumeric characters."),

@@ -22,6 +22,7 @@ from weasyl import searchtag
 from weasyl import thumbnail
 from weasyl import welcome
 from weasyl.error import PostgresError, WeasylError
+from weasyl.users import Username
 
 
 _MEGABYTE = 1048576
@@ -233,12 +234,12 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
     query = _select_character_and_check(
         userid, charid, rating=rating, ignore=ignore, anyway=anyway == "true")
 
-    login = define.get_sysname(query['username'])
+    username = Username.from_stored(query['username'])
 
     return {
         'charid': charid,
         'userid': query['userid'],
-        'username': query['username'],
+        'username': username.display,
         'user_media': media.get_user_media(query['userid']),
         'mine': userid == query['userid'],
         'unixtime': query['unixtime'],
@@ -258,7 +259,7 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
         'fave_count': favorite.count(charid, 'character'),
         'comments': comment.select(userid, charid=charid),
         'sub_media': fake_media_items(
-            charid, query['userid'], login, query['settings']),
+            charid, query['userid'], username.sysname, query['settings']),
         'tags': searchtag.select_grouped(userid, searchtag.CharacterTarget(charid)),
     }
 
@@ -270,12 +271,12 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         userid, charid, rating=rating, ignore=anyway,
         anyway=anyway, increment_views=increment_views)
 
-    login = define.get_sysname(query['username'])
+    username = Username.from_stored(query['username'])
 
     return {
         'charid': charid,
-        'owner': query['username'],
-        'owner_login': login,
+        'owner': username.display,
+        'owner_login': username.sysname,
         'owner_media': api.tidy_all_media(
             media.get_user_media(query['userid'])),
         'posted_at': define.iso8601(query['unixtime']),
@@ -293,7 +294,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         'favorites': favorite.count(charid, 'character'),
         'comments': comment.count(charid, 'character'),
         'media': api.tidy_all_media(fake_media_items(
-            charid, query['userid'], login, query['settings'])),
+            charid, query['userid'], username.sysname, query['settings'])),
         'tags': searchtag.select(charid=charid),
         'type': 'character',
         'link': define.absolutify_url(
@@ -345,6 +346,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
 
     query = []
     for i in define.execute("".join(statement)):
+        username = Username.from_stored(i[5])
         query.append({
             "contype": 20,
             "charid": i[0],
@@ -352,8 +354,8 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
             "rating": i[2],
             "unixtime": i[3],
             "userid": i[4],
-            "username": i[5],
-            "sub_media": fake_media_items(i[0], i[4], define.get_sysname(i[5]), i[6]),
+            "username": username.display,
+            "sub_media": fake_media_items(i[0], i[4], username.sysname, i[6]),
         })
 
     return query[::-1] if backid else query

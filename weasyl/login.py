@@ -12,44 +12,11 @@ from weasyl import macro as m
 from weasyl import emailer
 from weasyl.error import WeasylError
 from weasyl.sessions import create_session
+from weasyl.forms import parse_sysname
+from weasyl.users import Username
 
 
-_EMAIL = 100
 _PASSWORD = 10
-_USERNAME = 25
-
-_BANNED_SYSNAMES = frozenset([
-    "admin",
-    "administrator",
-    "mod",
-    "moderator",
-    "weasyl",
-    "weasyladmin",
-    "weasylmod",
-    "staff",
-    "security",
-])
-
-
-def clean_display_name(text):
-    """
-    Process a user's selection of their own username into the username that will be stored.
-
-    - Leading and trailing whitespace is removed.
-    - Non-ASCII characters are removed.
-    - Control characters are removed.
-    - Semicolons are removed.
-    - Only the first 25 characters are kept.
-
-    Throws a WeasylError("usernameInvalid") if a well-formed username isn't produced by this process.
-    """
-    cleaned = "".join(c for c in text.strip() if " " <= c <= "~" and c != ";")[:_USERNAME]
-    sysname = d.get_sysname(cleaned)
-
-    if sysname and sysname not in _BANNED_SYSNAMES:
-        return cleaned
-    else:
-        raise WeasylError("usernameInvalid")
 
 
 def signin(request, userid, ip_address=None, user_agent=None):
@@ -122,13 +89,17 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
     if not username or not password:
         return 0, "invalid"
 
+    sysname = parse_sysname(username)
+    if sysname is None:
+        return 0, "invalid"
+
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
     query = d.engine.execute(
         "SELECT ab.userid, ab.hashsum, lo.twofa_secret FROM authbcrypt ab"
         " RIGHT JOIN login lo USING (userid)"
         " WHERE lo.login_name = %(name)s",
-        name=d.get_sysname(username),
+        name=sysname,
     ).first()
 
     if not query:
@@ -199,8 +170,7 @@ def _delete_expired():
 
 def create(form):
     # Normalize form data
-    username = clean_display_name(form.username)
-    sysname = d.get_sysname(username)
+    username = Username.create(form.username)
     email = emailer.normalize_address(form.email)
     password = form.password
 
@@ -217,7 +187,7 @@ def create(form):
     # Delete stale logincreate records before checking for colliding ones or trying to insert more
     _delete_expired()
 
-    if username_exists(sysname):
+    if username_exists(username.sysname):
         raise WeasylError("usernameExists")
 
     # Account verification token
@@ -228,15 +198,15 @@ def create(form):
         # Create pending account
         d.engine.execute(d.meta.tables["logincreate"].insert(), {
             "token": token,
-            "username": username,
-            "login_name": sysname,
+            "username": username.display,
+            "login_name": username.sysname,
             "hashpass": passhash(password),
             "email": email,
         })
 
         # Send verification email
         emailer.send(email, "Weasyl Account Creation", d.render(
-            "email/verify_account.html", [token, sysname]))
+            "email/verify_account.html", [token, username.sysname]))
         d.metric('increment', 'createdusers')
     else:
         # Store a dummy record to support plausible deniability of email addresses
@@ -244,8 +214,8 @@ def create(form):
         #  constraint for the email field (e.g., if there is already a valid, pending row in the table).
         d.engine.execute(d.meta.tables["logincreate"].insert(), {
             "token": token,
-            "username": username,
-            "login_name": sysname,
+            "username": username.display,
+            "login_name": username.sysname,
             "hashpass": passhash(password),
             "email": token,
             "invalid": True,
@@ -275,12 +245,14 @@ def verify(token, ip_address=None):
         # If the record is explicitly marked as invalid, treat the record as if it doesn't exist.
         raise WeasylError("logincreateRecordMissing")
 
+    username = Username.from_stored(query.username)
+
     db = d.connect()
     with db.begin():
         # Create login record
         userid = db.scalar(
             lo.insert().values(
-                login_name=d.get_sysname(query.username),
+                login_name=username.sysname,
                 last_login=sqlalchemy.func.now(),
                 email=query.email,
                 ip_address_at_signup=ip_address
@@ -293,8 +265,8 @@ def verify(token, ip_address=None):
         })
         db.execute(d.meta.tables["profile"].insert(), {
             "userid": userid,
-            "username": query.username,
-            "full_name": query.username,
+            "username": username.display,
+            "full_name": username.display,
             "config": "kscftj",
         })
         db.execute(d.meta.tables["userinfo"].insert(), {
@@ -341,16 +313,13 @@ def release_username(db, acting_user, target_user):
 
 
 def change_username(acting_user, target_user, bypass_limit, new_username):
-    new_username = clean_display_name(new_username)
-    new_sysname = d.get_sysname(new_username)
+    new_username = Username.create(new_username)
+    old_username = d.get_username(target_user)
 
-    old_username = d.get_display_name(target_user)
-    old_sysname = d.get_sysname(old_username)
-
-    if new_username == old_username:
+    if new_username.display == old_username.display:
         return
 
-    cosmetic = new_sysname == old_sysname
+    cosmetic = new_username.sysname == old_username.sysname
 
     def change_username_transaction(db):
         if not cosmetic and not bypass_limit:
@@ -382,7 +351,7 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
                 " OR EXISTS (SELECT FROM logincreate WHERE login_name = %(new_sysname)s)"
                 " OR EXISTS (SELECT FROM username_history WHERE active AND login_name = %(new_sysname)s)",
                 target=target_user,
-                new_sysname=new_sysname,
+                new_sysname=new_username.sysname,
             )
 
             if conflict:
@@ -392,8 +361,8 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
             "INSERT INTO username_history (userid, username, login_name, replaced_at, replaced_by, active, cosmetic)"
             " VALUES (%(target)s, %(old_username)s, %(old_sysname)s, now(), %(target)s, NOT %(cosmetic)s, %(cosmetic)s)",
             target=target_user,
-            old_username=old_username,
-            old_sysname=old_sysname,
+            old_username=old_username.display,
+            old_sysname=old_username.sysname,
             cosmetic=cosmetic,
         )
 
@@ -401,8 +370,8 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
             result = db.execute(
                 "UPDATE login SET login_name = %(new_sysname)s WHERE userid = %(target)s AND login_name = %(old_sysname)s",
                 target=target_user,
-                old_sysname=old_sysname,
-                new_sysname=new_sysname,
+                old_sysname=old_username.sysname,
+                new_sysname=new_username.sysname,
             )
 
             if result.rowcount != 1:
@@ -411,14 +380,14 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
         db.execute(
             "UPDATE profile SET username = %(new_username)s WHERE userid = %(target)s",
             target=target_user,
-            new_username=new_username,
+            new_username=new_username.display,
         )
 
     d.serializable_retry(change_username_transaction)
-    d._get_display_name.invalidate(target_user)
+    d.username_invalidate(target_user)
 
     if not cosmetic:
-        d._get_userids.invalidate(old_sysname)
+        d._get_userids.invalidate(old_username.sysname)
 
 
 with open(os.path.join(m.MACRO_SYS_CONFIG_PATH, "disposable-domains.txt"), encoding='ascii') as f:

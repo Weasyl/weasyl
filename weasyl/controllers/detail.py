@@ -7,6 +7,7 @@ from weasyl import (
     character, define, journal, macro, media, profile, searchtag, submission)
 from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
+from weasyl.users import Username
 
 
 def _can_edit_tags(userid: int) -> bool:
@@ -15,7 +16,7 @@ def _can_edit_tags(userid: int) -> bool:
 
 # Content detail functions
 def submission_(request):
-    username = request.matchdict.get('name')
+    path_username = request.matchdict.get('name')
     submitid = request.matchdict.get('submitid')
 
     rating = define.get_rating(request.userid)
@@ -36,8 +37,8 @@ def submission_(request):
             ]
         raise
 
-    login = define.get_sysname(item['username'])
-    canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
+    username = Username.from_stored(item['username'])
+    canonical_path = request.route_path('submission_detail_profile', name=username.sysname, submitid=submitid, slug=slug_for(item['title']))
 
     title_with_attribution = f"{item['title']} by {item['username']}"
     twitter_meta = {}
@@ -75,7 +76,7 @@ def submission_(request):
     if request.GET.get('anyway'):
         canonical_path += '?anyway=true'
 
-    if login != username:
+    if username.sysname != path_username:
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
 
     return Response(define.webpage(

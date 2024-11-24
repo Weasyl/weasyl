@@ -10,6 +10,7 @@ from weasyl import (
     pagination)
 from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
+from weasyl.users import Username
 
 
 def _get_post_counts_by_type(userid, *, friends: bool, rating):
@@ -57,9 +58,9 @@ def profile_(request):
     if not request.userid and "h" in userprofile['config']:
         raise WeasylError('noGuests')
 
-    username = userprofile["username"]
-    canonical_path = request.route_path("profile_tilde", name=define.get_sysname(username))
-    title = f"{username}’s profile"
+    username = Username.from_stored(userprofile["username"])
+    canonical_path = request.route_path("profile_tilde", name=username.sysname)
+    title = f"{username.display}’s profile"
     meta_description = markdown_excerpt(userprofile["profile_text"])
     avatar_url = define.absolutify_url(userprofile['user_media']['avatar'][0]['display_url'])
     twitter_meta = {
@@ -72,7 +73,7 @@ def profile_(request):
         "type": "profile",
         "url": define.absolutify_url(canonical_path),
         "image": avatar_url,
-        "username": username,
+        "username": username.display,
     }
 
     if twitter_username := profile.get_twitter_username(otherid):
@@ -176,12 +177,13 @@ def submissions_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    username = Username.from_stored(userprofile["username"])
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's submissions" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's submissions" % (userprofile['full_name'] if has_fullname else username.display,)
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/submissions/{username}?%s{folderquery}".format(
-                 username=define.get_sysname(userprofile['username']),
+                 username=username.sysname,
                  folderquery="&folderid=%d" % folderid if folderid else "")
     result = pagination.PaginatedResult(
         submission.select_list, submission.select_count, 'submitid', url_format, request.userid, rating,
@@ -226,8 +228,9 @@ def collections_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    username = Username.from_stored(userprofile["username"])
     has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = "%s's collections" % (userprofile['full_name'] if has_fullname else username.display,)
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])

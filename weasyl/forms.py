@@ -1,6 +1,12 @@
+import re
+import unicodedata
 from typing import Iterable, TypeVar
 
 from weasyl.error import WeasylError
+from weasyl.users import USERNAME_MAX_LENGTH
+
+
+_NON_SYSNAME = re.compile(r"[^0-9a-z]")
 
 
 _T = TypeVar("T")
@@ -34,3 +40,17 @@ def only(iterable: Iterable[_T]) -> _T:
             return x
 
     raise WeasylError("Unexpected")
+
+
+def parse_sysname(s: str) -> str | None:
+    """
+    Attempt to convert a string to a sysname suitable for exact lookup against the `login.login_name` column, returning `None` if the result is not usable as a sysname filter.
+
+    Note: This never returns `None` for valid sysnames, but it doesn’t always return `None` for invalid sysnames, e.g. the prohibited ones in `weasyl.users._BANNED_SYSNAMES`.
+
+    `Username.create(s).sysname == parse_sysname(s)` when the LHS doesn’t throw.
+    """
+    normalized = unicodedata.normalize("NFKD", s.lower())
+    sysname = _NON_SYSNAME.sub("", normalized)
+
+    return sysname if 0 < len(sysname) <= USERNAME_MAX_LENGTH else None

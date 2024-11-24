@@ -24,7 +24,7 @@ from web.template import Template
 
 import libweasyl.constants
 from libweasyl.cache import region
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
+from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl import html, text, ratings, staff
 
@@ -35,6 +35,8 @@ from weasyl import metrics
 from weasyl import turnstile
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname
+from weasyl.users import Username
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -138,6 +140,10 @@ def serializable_retry(action, limit=16):
                     raise
 
 
+def _sysname_for_stored_username(s: str) -> str:
+    return Username.from_stored(s).sysname
+
+
 with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
     CURRENT_SHA = f.read().strip()
 
@@ -159,7 +165,7 @@ def _compile(template_name):
             filename=template_name,
             globals={
                 "STR": str,
-                "LOGIN": get_sysname,
+                "LOGIN": _sysname_for_stored_username,
                 "USER_TYPE": user_type,
                 "ARROW": get_arrow,
                 "LOCAL_TIME": _get_local_time_html,
@@ -359,7 +365,19 @@ def get_display_name(userid: int) -> str:
     return username
 
 
-try_get_display_name = _get_display_name
+def try_get_username(userid: int) -> Username | None:
+    username = _get_display_name(userid)
+    return Username.from_stored(username) if username is not None else None
+
+
+def get_username(userid: int) -> Username:
+    return Username.from_stored(get_display_name(userid))
+
+
+username_invalidate = _get_display_name.invalidate
+"""
+Invalidate the cached username for a user.
+"""
 
 
 def get_int(target):
@@ -434,9 +452,9 @@ def get_userids(usernames):
     sysnames = []
 
     for username in usernames:
-        sysname = get_sysname(username)
+        sysname = parse_sysname(username)
 
-        if sysname:
+        if sysname is not None:
             lookup_usernames.append(username)
             sysnames.append(sysname)
         else:
@@ -448,7 +466,7 @@ def get_userids(usernames):
 
 
 def get_sysname_list(s: str) -> list[str]:
-    return list(filter(None, map(get_sysname, s.split(";"))))
+    return list(filter(None, map(parse_sysname, s.split(";"))))
 
 
 def get_userid_list(target):
@@ -712,7 +730,7 @@ def page_header_info(userid):
     return {
         "welcome": _page_header_info(userid),
         "userid": userid,
-        "username": get_display_name(userid),
+        "username": get_username(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
         "sfw_locked": _is_sfw_locked(userid),

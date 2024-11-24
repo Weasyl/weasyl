@@ -5,8 +5,8 @@ import re
 from lxml import etree, html
 import misaka
 
+from weasyl.forms import parse_sysname
 from .defang import defang
-from .legacy import get_sysname
 
 try:
     from html.parser import locatestarttagend_tolerant as locatestarttagend
@@ -111,8 +111,15 @@ def _markdown(target):
 
 
 def create_link(t, username):
+    sysname = parse_sysname(username)
+    if sysname is None:
+        e = etree.Element("span")
+        e.set("class", "invalid-markup")
+        e.text = f"<{t}{username}>"
+        return e
+
     link = etree.Element("a")
-    link.set("href", "/~" + get_sysname(username))
+    link.set("href", f"/~{sysname}")
 
     if t == "~":
         link.text = username
@@ -120,7 +127,7 @@ def create_link(t, username):
         link.set("class", "user-icon")
 
         image = etree.SubElement(link, "img")
-        image.set("src", "/~{username}/avatar".format(username=get_sysname(username)))
+        image.set("src", f"/~{sysname}/avatar")
 
         if t == "!":
             image.set("alt", username)
@@ -225,8 +232,8 @@ def _convert_autolinks(fragment):
             if href:
                 t, _, user = href.partition(":")
 
-                if t == "user":
-                    link.set("href", "/~{user}".format(user=get_sysname(user)))
+                if t == "user" and (sysname := parse_sysname(user)) is not None:
+                    link.set("href", f"/~{sysname}")
                 elif t == "da":
                     link.set("href", "https://www.deviantart.com/{user}".format(user=_deviantart(user)))
                 elif t == "ib":
@@ -255,7 +262,7 @@ def _markdown_fragment(target):
 
         t, _, user = src.partition(":")
 
-        if t != "user":
+        if t != "user" or (sysname := parse_sysname(user)) is None:
             link = etree.Element("a")
             link.tail = image.tail
             link.set("href", src)
@@ -263,10 +270,10 @@ def _markdown_fragment(target):
             image.getparent().replace(image, link)
             continue
 
-        image.set("src", "/~{user}/avatar".format(user=get_sysname(user)))
+        image.set("src", f"/~{sysname}/avatar")
 
         link = etree.Element("a")
-        link.set("href", "/~{user}".format(user=get_sysname(user)))
+        link.set("href", f"/~{sysname}")
         link.set("class", "user-icon")
         link.tail = image.tail
         image.getparent().replace(image, link)

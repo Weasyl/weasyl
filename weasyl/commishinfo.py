@@ -9,6 +9,7 @@ from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl.error import PostgresError, WeasylError
+from weasyl.users import Username
 
 _MAX_PRICE = 99999999
 
@@ -310,7 +311,7 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if tags:
-            terms = ["user:" + d.get_sysname(info.username)] + ["|" + tag for tag in tags]
+            terms = ["user:" + Username.from_stored(info.username).sysname] + ["|" + tag for tag in tags]
             dinfo['searchquery'] = "q=" + urlquote(" ".join(terms).encode("utf-8"))
         else:
             dinfo['searchquery'] = ""

@@ -66,7 +66,7 @@ def help_reports_(request):
 
 
 def help_verification_(request):
-    username = define.get_display_name(request.userid) if request.userid else None
+    username = define.get_username(request.userid) if request.userid else None
 
     return Response(define.webpage(request.userid, "help/verification.html", [username],
                                    options=("help",),

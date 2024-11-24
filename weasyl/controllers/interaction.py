@@ -24,11 +24,11 @@ def followuser_(request):
     else:
         raise WeasylError("Unexpected")
 
-    target_username = define.try_get_display_name(otherid)
+    target_username = define.try_get_username(otherid)
     if target_username is None:
         raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(target_username)))
+    raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 @login_required
@@ -65,14 +65,14 @@ def frienduser_(request):
     else:
         raise WeasylError("Unexpected")
 
-    target_username = define.try_get_display_name(otherid)
+    target_username = define.try_get_username(otherid)
     if target_username is None:
         raise WeasylError("Unexpected")
 
     if form.feature == "pending":
         raise HTTPSeeOther(location="/manage/friends?feature=pending")
     else:  # typical value will be user
-        raise HTTPSeeOther(location="/~%s" % (define.get_sysname(target_username)))
+        raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 @login_required
@@ -102,11 +102,11 @@ def ignoreuser_(request):
     else:
         raise WeasylError("Unexpected")
 
-    target_username = define.try_get_display_name(otherid)
+    target_username = define.try_get_username(otherid)
     if target_username is None:
         raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(target_username)))
+    raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 # Private messaging functions

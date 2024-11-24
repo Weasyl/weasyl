@@ -17,7 +17,7 @@ $:{TITLE("Account Verification", "Help", "/help")}
     <div class="formatted-content">
       $code:
         if username:
-          profile_link = '<a href="{0}">https://www.weasyl.com{0}</a>'.format("/~" + LOGIN(username))
+          profile_link = '<a href="{0}">https://www.weasyl.com{0}</a>'.format("/~" + username.sysname)
         else:
           profile_link = 'your username in the top-right is a link to it'
 

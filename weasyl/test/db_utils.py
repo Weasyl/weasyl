@@ -4,7 +4,6 @@ import arrow
 
 from libweasyl import ratings
 from libweasyl import staff
-from libweasyl.legacy import get_sysname
 from libweasyl.models import content, users
 from libweasyl.models.content import Journal
 import weasyl.define as d
@@ -12,6 +11,7 @@ from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
+from weasyl.users import Username
 
 _user_index = itertools.count()
 TEST_DATABASE = "weasyl_test"
@@ -45,7 +45,7 @@ def create_user(full_name="", birthday=None, config=None,
         username = "User-" + str(next(_user_index))
 
     while True:
-        user = add_entity(users.Login(login_name=get_sysname(username),
+        user = add_entity(users.Login(login_name=Username.from_stored(username).sysname,
                                       last_login=arrow.get(0).datetime))
 
         if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:

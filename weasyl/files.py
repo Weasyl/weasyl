@@ -6,7 +6,7 @@ import shutil
 
 from libweasyl.constants import Category
 from libweasyl.exceptions import InvalidFileFormat, UnknownFileFormat
-from libweasyl.files import file_type_for_category, makedirs_exist_ok
+from libweasyl.files import file_type_for_category
 from libweasyl import security
 from weasyl.error import WeasylError
 import weasyl.define as d
@@ -20,7 +20,7 @@ def read(filename):
 
 def ensure_file_directory(filename):
     dirname = os.path.dirname(filename)
-    makedirs_exist_ok(dirname)
+    os.makedirs(dirname, exist_ok=True)
 
 
 def write(filename, content):
@@ -75,7 +75,7 @@ def clear_temporary(userid):
 
 def make_character_directory(target):
     path = d.get_character_directory(target)
-    makedirs_exist_ok(path)
+    os.makedirs(path, exist_ok=True)
 
 
 def make_resource(userid, target, feature, extension=None):

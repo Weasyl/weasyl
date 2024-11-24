@@ -1,41 +1,8 @@
-import errno
-
 import pytest
 
 from libweasyl.constants import Category
 from libweasyl.test.common import datadir
 from libweasyl import exceptions, files
-
-
-def test_makedirs_default_behavior(tmpdir):
-    """
-    ``makedirs_exist_ok`` creates multiple levels of directories.
-    """
-    d = tmpdir.join('a', 'b', 'c')
-    assert not d.exists()
-    files.makedirs_exist_ok(d.strpath)
-    assert d.exists()
-
-
-def test_makedirs_with_extant_directories(tmpdir):
-    """
-    ``makedirs_exist_ok`` doesn't care if the directories already exist.
-    """
-    d = tmpdir.join('a', 'b', 'c')
-    d.ensure(dir=True)
-    files.makedirs_exist_ok(d.strpath)
-    assert d.exists()
-
-
-def test_makedirs_reraises_other_errors(tmpdir):
-    """
-    ``makedirs_exist_ok`` reraises errors it can't handle, such as EACCES.
-    """
-    tmpdir.chmod(0)
-    d = tmpdir.join('a', 'b', 'c')
-    with pytest.raises(OSError) as e:
-        files.makedirs_exist_ok(d.strpath)
-    assert e.value.errno == errno.EACCES
 
 
 def test_file_type_for_category_invalid_category():

@@ -139,7 +139,7 @@ def signin_2fa_auth_post_(request):
             two_factor_auth.force_deactivate(tfa_userid)
             raise WeasylError('TwoFactorAuthenticationZeroRecoveryCodesRemaining',
                               links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
-        # Return to the target page, removing the scheme and domain per urlsplit.
+        # Return to the target page.
         ref = request.POST["referer"] or "/"
         response = HTTPSeeOther(location=define.path_redirect(ref))
         response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,

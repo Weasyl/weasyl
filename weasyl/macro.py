@@ -205,6 +205,10 @@ SOCIAL_SITES = {
         "name": "Inkbunny",
         "url": "https://inkbunny.net/%s",
     },
+    "itaku": {
+        "name": "Itaku",
+        "url": "https://itaku.ee/profile/%s",
+    },
     "reddit": {
         "name": "reddit",
         "url": "https://www.reddit.com/user/%s",

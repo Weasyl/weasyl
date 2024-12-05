@@ -17,7 +17,7 @@ from weasyl.controllers import (
     settings,
     two_factor_auth,
     user,
-    weasyl_collections,
+    weasyl_collections, well_known,
 )
 from weasyl import oauth2
 
@@ -346,6 +346,10 @@ routes = (
 
     # Routes for static event pages, such as holidays.
     Route("/events/halloweasyl2014", "events_halloweasyl2014", events.halloweasyl2014_),
+
+    # Routes for activitypub
+    Route("/.well-known/webfinger", "well_known_webfinger", well_known.webfinger),
+    # handled in "profile_" Route("/users/{username}", "activity_pub_user_profile", activitypub.webfinger),
 )
 
 

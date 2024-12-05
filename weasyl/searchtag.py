@@ -180,7 +180,7 @@ def _get_or_create(*names: str) -> list[int]:
 
 
 def get_or_create(name):
-    return _get_or_create(d.get_search_tag(name))
+    return _get_or_create(d.get_search_tag(name))[0]
 
 
 def get_or_create_many(normalized_names: Iterable[str]) -> list[int]:

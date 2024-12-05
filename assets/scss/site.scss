@@ -3159,6 +3159,12 @@ img + #detail-art-text {
         clear: left;
     }
 
+    .di-tags {
+        width: 48%;
+        margin-right: 0;
+        margin-left: auto;
+    }
+
     .detail-folder-nav {
         margin: 6em auto 4em;
         max-width: 20em;
@@ -3288,7 +3294,7 @@ img + #detail-art-text {
         padding-top: 2rem;
     }
 
-    #di-info, #detail-manage, #detail-collection-offer, #detail-mod {
+    #di-info, .di-tags, #detail-manage, #detail-collection-offer, #detail-mod {
         width: auto;
         float: none;
         margin-left: 0;

@@ -117,19 +117,3 @@ $tag-reject-deemphasize-size: 11px;
 .tags-actions {
     margin-top: 8px;
 }
-
-@media (min-width: 45em) {
-    .di-tags {
-        width: 48%;
-        margin-right: 0;
-        margin-left: auto;
-    }
-}
-
-@media (min-width: 65em) {
-    .di-tags {
-        width: auto;
-        float: none;
-        margin-left: 0;
-    }
-}

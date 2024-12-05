@@ -179,3 +179,41 @@ def test_user_search_ordering(db):
 
     results = search.select_users("user")
     assert [user["title"] for user in results] == ["user_aa", "user_Ab", "user_ba", "user_Bb"]
+
+
+def test_search_within_friends(db):
+    def _select(userid: int):
+        results, _, _ = search.select(
+            search=search.Query.parse("ferret", "submit"),
+            userid=userid, rating=ratings.GENERAL.code, limit=100,
+            cat=None, subcat=None, within="friend", backid=None, nextid=None,
+        )
+
+        return results
+
+    config = CharSettings({}, {}, {})
+    config_pending = CharSettings({"pending"}, {}, {})
+
+    user1_id = db_utils.create_user("user1", username="user1", config=config)
+    user2_id = db_utils.create_user("user2", username="user2", config=config)
+
+    tag_id = db_utils.create_tag("ferret")
+
+    submission1_id = db_utils.create_submission(user1_id, rating=ratings.GENERAL.code)
+    db_utils.create_submission_tag(tag_id, submission1_id)
+
+    submission2_id = db_utils.create_submission(user2_id, rating=ratings.GENERAL.code)
+    db_utils.create_submission_tag(tag_id, submission2_id)
+
+    assert len(_select(user1_id)) == 0
+    assert len(_select(user2_id)) == 0
+
+    db_utils.create_friendship(user1_id, user2_id, config_pending)
+
+    assert len(_select(user1_id)) == 0
+    assert len(_select(user2_id)) == 0
+
+    db_utils.create_friendship(user2_id, user1_id, config)
+
+    assert len(_select(user1_id)) == 1
+    assert len(_select(user1_id)) == 1

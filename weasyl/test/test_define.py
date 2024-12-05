@@ -52,7 +52,8 @@ def test_parse_iso8601(parameter, expected):
 
 
 def test_parse_iso8601_invalid_format():
-    pytest.raises(ValueError, d.parse_iso8601, 'dongs')
+    with pytest.raises(ValueError):
+        d.parse_iso8601('dongs')
 
 
 def create_with_user(func):

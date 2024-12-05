@@ -1,6 +1,7 @@
 @import 'theme';
 @import 'reset';
 @import 'components/date-picker';
+@import 'components/edit-profile';
 @import 'components/option';
 @import 'components/page-navigation';
 @import 'components/private-messages';
@@ -64,14 +65,6 @@ dl.leaders dd + dt, dl.leaders dt + dt {
 
 dl.leaders dd {
     text-align: right;
-}
-
-.social .group input {
-    margin-bottom: 6px;
-}
-
-.social .group {
-    margin-bottom: 12px;
 }
 
 /* Typefaces
@@ -3675,35 +3668,18 @@ img + #detail-art-text {
     padding-top: 2em;
 }
 
-#edit-profile .buttons {
-    padding-top: 1em;
-}
-
 .tags-help {
     padding-top: 0.5em;
 }
 
-@media (min-width: 30em) {
-    #edit-profile .social .group {
-        width: 48%;
-        float: left;
-        padding-right: 2%;
-    }
-}
-
 @media (min-width: 45em) {
-    #submit-form .column, #edit-profile .column, #commishprices-content .column {
+    #submit-form .column, #commishprices-content .column {
         width: 48%;
     }
 
-    #submit-form .files, #submit-form .info, #edit-profile .info, #commishprices-content .classes {
+    #submit-form .files, #submit-form .info, #commishprices-content .classes {
         float: left;
         clear: left;
-    }
-
-    #edit-profile .settings {
-        float: left;
-        padding-left: 4%;
     }
 
     #submit-form .description, #submit-form .tagging, #submit-form .options {
@@ -3724,22 +3700,13 @@ img + #detail-art-text {
         padding-top: 1em;
     }
 
-    #submit-form .description, #submit-form .tagging, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging {
         padding-bottom: 4px;
     }
 
     #submit-form .buttons {
         clear: both;
         padding-top: 2em;
-    }
-
-    #edit-profile .social, #edit-profile .profile {
-        clear: both;
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 23%;
     }
 }
 
@@ -3769,11 +3736,11 @@ img + #detail-art-text {
         margin: 0 auto;
     }
 
-    #submit-form .column, #submit-form.journal .column, #edit-profile .column, #commishprices-content .column {
+    #submit-form .column, #submit-form.journal .column, #commishprices-content .column {
         width: 31%;
     }
 
-    #submit-form .info, #edit-profile .settings {
+    #submit-form .info {
         clear: none;
         padding-left: 3.5%;
         margin-left: 0;
@@ -3783,7 +3750,7 @@ img + #detail-art-text {
         padding-left: 0;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging, #submit-form .options {
         margin-left: 65.5%;
         padding-left: 3.5%;
         clear: none;
@@ -3795,41 +3762,24 @@ img + #detail-art-text {
         margin-left: 34.5%;
         padding-left: 0;
     }
-
-    #edit-profile .social {
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 18%;
-    }
 }
 
 @media (min-width: 80em) {
-    #submit-form .column, #edit-profile .column {
+    #submit-form .column {
         width: 23%;
     }
 
-    #submit-form .info, #edit-profile .settings {
+    #submit-form .info {
         padding-left: 2%;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging, #submit-form .options {
         width: 50%;
         margin-left: 48%;
         padding-left: 2%;
         overflow: hidden;
     }
-
-    #edit-profile .social {
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 14.6%;
-    }
 }
-
 
 /* ------------------------------------ =notifications -- */
 

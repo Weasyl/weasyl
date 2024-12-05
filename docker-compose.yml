@@ -44,6 +44,7 @@ services:
 
   web:
     image: weasyl
+    pull_policy: never
     build: &weasyl-build
       context: .
       args:
@@ -147,6 +148,7 @@ services:
   migrate:
     profiles: [ migrate ]
     image: weasyl
+    pull_policy: never
     build: *weasyl-build
     command:
       - ash
@@ -181,6 +183,7 @@ services:
   revision:
     profiles: [ revision ]
     image: weasyl
+    pull_policy: never
     build: *weasyl-build
     entrypoint:
       - ash

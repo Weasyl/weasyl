@@ -5,7 +5,7 @@ import os
 from sqlalchemy.orm import relationship, foreign, remote, joinedload, lazyload, load_only
 from sqlalchemy.sql.expression import any_
 
-from libweasyl.files import fanout, makedirs_exist_ok
+from libweasyl.files import fanout
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
@@ -35,7 +35,7 @@ class MediaItem(Base):
 
             # Write our file to disk
             real_path = obj.full_file_path
-            makedirs_exist_ok(os.path.dirname(real_path))
+            os.makedirs(os.path.dirname(real_path), exist_ok=True)
             with open(real_path, 'wb') as outfile:
                 outfile.write(data)
 

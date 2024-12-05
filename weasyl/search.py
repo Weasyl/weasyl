@@ -180,8 +180,9 @@ def _find_without_media(userid, rating, limit,
         elif within == "friend":
             # Search within friends content
             statement_from.append(
-                "INNER JOIN frienduser ON (frienduser.userid, frienduser.otherid) = (%(userid)s, content.userid)"
-                " OR (frienduser.userid, frienduser.otherid) = (content.userid, %(userid)s)")
+                "INNER JOIN frienduser ON ((frienduser.userid, frienduser.otherid) = (%(userid)s, content.userid)"
+                " OR (frienduser.userid, frienduser.otherid) = (content.userid, %(userid)s))"
+                " AND frienduser.settings !~ 'p'")
         elif within == "follow":
             # Search within following content
             statement_from.append(

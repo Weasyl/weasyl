@@ -280,7 +280,7 @@ def test_reject_and_undo_suggested_tag(app, submission_user):
     assert not app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': tagger_cookie}).html.find(class_='tag-suggested', string='otter')
     assert not app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': submitter_cookie}).html.find(class_='tag-suggested', string='otter')
 
-    resp = app.delete(f'/api-unstable/tag-suggestions/submit/{submission}/otter/status', undo_token, headers={'Cookie': submitter_cookie})
+    app.delete(f'/api-unstable/tag-suggestions/submit/{submission}/otter/status', undo_token, headers={'Cookie': submitter_cookie})
 
     assert app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': tagger_cookie}).html.find(class_='tag-suggested', string='otter')
     assert app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': submitter_cookie}).html.find(class_='tag-suggested', string='otter')

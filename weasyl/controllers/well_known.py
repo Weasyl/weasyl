@@ -24,6 +24,7 @@ def webfinger(request):
     url = define.absolutify_url("")
     domain = url.replace("http://", "").replace("https://", "")
     user = profile.resolve(request.userid, userid, username)
+    # we could also support submissions/journals/collections/characters individually as actors in the future
     userprofile = profile.select_profile(user, viewer=request.userid)
     avatar_url = define.absolutify_url(userprofile['user_media']['avatar'][0]['display_url'])
     if not user:
@@ -45,7 +46,10 @@ def webfinger(request):
             {
                 "rel": "http://webfinger.net/rel/profile-page",
                 "type": "text/html",
-                "href": f"{url}/~{username}"
+                "href": f"{url}/~{username}",
+                "properties": {
+                    "https://www.w3.org/ns/activitystreams#type": "Person"
+                }
             },
             # unsupported, but would be cool?
             # {

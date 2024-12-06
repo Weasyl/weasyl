@@ -248,3 +248,39 @@ def test_folder_navigation_sfw_mode(app, submission_user):
     assert app.get(f"/~submissiontest/submissions/{s1}/test-title").html.find(id='folder-nav-next')['href'] == f"/~submissiontest/submissions/{s2}/test-title"
     app.set_cookie('sfwmode', 'sfw')
     assert app.get(f"/~submissiontest/submissions/{s1}/test-title").html.find(id='folder-nav-next')['href'] == f"/~submissiontest/submissions/{s3}/test-title"
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_reject_and_undo_suggested_tag(app, submission_user):
+    submitter_cookie = db_utils.create_session(submission_user)
+    submission = create_visual(
+        app, submission_user,
+        submitfile=webtest.Upload('wesley1.png', read_asset('img/wesley1.png'), 'image/png'),
+    )
+
+    tagger_user = db_utils.create_user('tagger_user')
+    tagger_cookie = db_utils.create_session(tagger_user)
+
+    submit_tag_form = {
+        'submitid': submission,
+        'tags': 'otter',
+    }
+
+    app.post('/submit/tags', submit_tag_form, headers={'Cookie': tagger_cookie})
+
+    assert app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': tagger_cookie}).html.find(class_='tag-suggested', string='otter')
+    assert app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': submitter_cookie}).html.find(class_='tag-suggested', string='otter')
+
+    resp = app.put(f'/api-unstable/tag-suggestions/submit/{submission}/otter/status', 'reject', headers={'Cookie': submitter_cookie})
+    assert resp.body.startswith(b'\x01')
+    undo_token = resp.body[1:]
+
+    app.put(f'/api-unstable/tag-suggestions/submit/{submission}/otter/feedback', {'reason': 'incorrect'}, headers={'Cookie': submitter_cookie})
+
+    assert not app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': tagger_cookie}).html.find(class_='tag-suggested', string='otter')
+    assert not app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': submitter_cookie}).html.find(class_='tag-suggested', string='otter')
+
+    app.delete(f'/api-unstable/tag-suggestions/submit/{submission}/otter/status', undo_token, headers={'Cookie': submitter_cookie})
+
+    assert app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': tagger_cookie}).html.find(class_='tag-suggested', string='otter')
+    assert app.get(f'/~submissiontest/submissions/{submission}/test-title', headers={'Cookie': submitter_cookie}).html.find(class_='tag-suggested', string='otter')

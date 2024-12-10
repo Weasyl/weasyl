@@ -180,8 +180,15 @@ const sasscFile = async (relativeInputPath, relativeOutputPath, touch, copyImage
     });
 
     // ew
-    const images = new Map(
-        (await copyImages).entries
+    const subresources = new Map(
+        [
+            ...(await copyImages).entries,
+            // font license does not allow distribution with source code
+            ...[
+                'fonts/Museo500.woff2',
+                'fonts/Museo500.woff',
+            ].map(p => [p, p]),
+        ]
             .map(([k, v]) => [new URL('http://localhost/' + k).href, v])
     );
 
@@ -192,11 +199,11 @@ const sasscFile = async (relativeInputPath, relativeOutputPath, touch, copyImage
 
         const expandedLink = new URL(link, 'http://localhost/' + relativeInputPath).href;
 
-        if (!images.has(expandedLink)) {
+        if (!subresources.has(expandedLink)) {
             throw new Error(`Unresolvable url() in ${relativeInputPath}: ${link}`);
         }
 
-        return left + '/' + images.get(expandedLink) + ')';
+        return left + '/' + subresources.get(expandedLink) + ')';
     });
 
     const shortDigest = getShortDigest(
@@ -320,10 +327,7 @@ const main = async () => {
         manifestPath,
         JSON.stringify(
             Object.fromEntries(
-                [
-                    ...tasks.flatMap(task => task.entries),
-                    ['fonts/museo500.css', 'fonts/museo500.css'],
-                ])),
+                tasks.flatMap(task => task.entries))),
     );
     await Promise.all(tasks.map(task => task.work));
 };

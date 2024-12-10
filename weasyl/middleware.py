@@ -309,7 +309,6 @@ def _generate_http2_server_push_headers():
     css_preload = [
         '<' + item + '>; rel=preload; as=style' for item in [
             d.get_resource_path('css/site.css'),
-            d.get_resource_path('fonts/museo500.css'),
         ]
     ]
 

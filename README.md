@@ -61,8 +61,16 @@ Weasyl should now be running at <http://weasyl.localhost:8080/>! Several account
 
 ## Running tests
 
+To run all tests:
+
 ```shell
 ./wzl test
+```
+
+To run only a specific module's tests, such as `weasyl.test.test_api`:
+
+```shell
+./wzl test pytest -x weasyl.test.test_api
 ```
 
 

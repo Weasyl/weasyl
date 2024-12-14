@@ -1194,41 +1194,27 @@
                 return;
             }
 
-            var rq = new XMLHttpRequest();
-
-            rq.open('POST', favoriteActionBase + favoriteAction.value, true);
-            rq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-            rq.onreadystatechange = function () {
-                if (rq.readyState !== 4) {
-                    return;
-                }
-
-                if (rq.status === 200) {
-                    var success;
-
-                    try {
-                        success = JSON.parse(rq.responseText).success;
-                    } catch (e) {}
-
-                    if (success) {
-                        favoriteButton.classList.remove('pending');
-
-                        var newState = favoriteButton.classList.toggle('active');
-                        favoriteButton.replaceChild(document.createTextNode(newState ? ' Favorited' : ' Favorite'), favoriteButton.lastChild);
-                        favoriteAction.value = newState ? 'unfavorite' : 'favorite';
-
-                        return;
-                    }
-                }
-
-                // If there was any error, resubmit the form so the user can see it in full.
-                favoriteForm.submit();
-            };
-
-            rq.send(null);
-
             favoriteButton.classList.add('pending');
+
+            fetch(favoriteActionBase + favoriteAction.value, { method: 'POST' })
+                .then(response => {
+                    if (response.status !== 200)
+                        return Promise.reject({});
+
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.success)
+                        return Promise.reject({});
+
+                    favoriteButton.classList.remove('pending');
+
+                    var newState = favoriteButton.classList.toggle('active');
+                    favoriteButton.replaceChild(document.createTextNode(newState ? ' Favorited' : ' Favorite'), favoriteButton.lastChild);
+                    favoriteAction.value = newState ? 'unfavorite' : 'favorite';
+                })
+                // If there was any error, resubmit the form so the user can see it in full.
+                .catch(error => favoriteForm.submit());
 
             e.preventDefault();
         }, false);

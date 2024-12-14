@@ -44,7 +44,10 @@ $def with (profile, userinfo, relationship)
       <ul id="user-actions" class="toolset clear">
 
         $if not relationship['is_self']:
-          <li><form name="followuser" action="/followuser" method="post">
+          <li><form name="followuser" action="/followuser" method="post"
+            $if relationship['follow']:
+              data-confirm="Are you sure you wish to unfollow this user?"
+          >
             <input type="hidden" name="userid" value="${profile['userid']}" />
             $if(relationship['follow']):
               <input type="hidden" name="action" value="unfollow" />

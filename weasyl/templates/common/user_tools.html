@@ -76,7 +76,10 @@ $def with (profile, userinfo, relationship)
 
           <li><a href="/notes/compose?recipient=${LOGIN(profile['username'])}"><span class="icon icon-20 icon-pencil"></span> Message</a></li>
 
-          <li><form name="ignoreuser" action="/ignoreuser" method="post">
+          <li><form name="ignoreuser" action="/ignoreuser" method="post"
+            $if not relationship['ignore']:
+              data-confirm="Are you sure you wish to ignore this user?"
+          >
             <input type="hidden" name="userid" value="${profile['userid']}" />
             $if(relationship['ignore']):
               <input type="hidden" name="action" value="unignore" />

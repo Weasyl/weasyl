@@ -1189,7 +1189,10 @@
         var favoriteAction = favoriteForm.querySelector('input[name="action"]');
 
         favoriteForm.addEventListener('submit', function (e) {
-            if (favoriteButton.classList.contains('pending')) {
+            if (
+                favoriteButton.classList.contains('pending')
+                || favoriteAction.value === 'unfavorite' && !confirm('Are you sure you wish to remove this submission from your favorites?')
+            ) {
                 e.preventDefault();
                 return;
             }

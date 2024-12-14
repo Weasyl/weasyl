@@ -1295,20 +1295,4 @@
             savedTab.click();
         }
     })();
-
-    // Confirm removing friends
-    (function () {
-        var hasUnfriend = $('input[name="action"][value="unfriend"]')[0];
-        if (!hasUnfriend) {
-            return;
-        }
-
-        $('form[name="frienduser"]').on('submit', function (e) {
-            var shouldUnfriend = confirm('Are you sure you wish to remove this friend?');
-
-            if (!shouldUnfriend) {
-                e.preventDefault();
-            }
-        });
-    })();
 })();

@@ -256,9 +256,9 @@ import autosize_ from 'autosize';
     var newSocialGroup = document.getElementById('new-social-group');
 
     function addNewSocialGroupIfNeeded() {
-        if (this.children[0].value || this.children[1].value) {
+        if (this.children[0].children[0].value || this.children[1].children[0].value) {
             newSocialGroup = this.cloneNode(true);
-            newSocialGroup.children[0].value = newSocialGroup.children[1].value = '';
+            newSocialGroup.children[0].children[0].value = newSocialGroup.children[1].children[0].value = '';
             this.insertAdjacentElement('afterend', newSocialGroup);
             this.removeEventListener('input', addNewSocialGroupIfNeeded);
             newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);

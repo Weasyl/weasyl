@@ -122,16 +122,26 @@ $code:
         ‘Save’.
       </p>
 
-      $for site, values in userinfo['sorted_user_links']:
-        $for value in values:
-          <div class="group">
-            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site" list="known-social-sites">
-            <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
-          </div>
-      <div class="group" id="new-social-group">
-        <input type="text" class="input site-name" name="site_names" placeholder="Site" list="known-social-sites">
-        <input type="text" class="input" name="site_values" placeholder="Username or URL">
-      </div>
+      <table class="contact-editor">
+        <thead>
+          <tr>
+            <th class="site-name">Site</th>
+            <th>Username or URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          $for site, values in userinfo['sorted_user_links']:
+            $for value in values:
+              <tr>
+                <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site" list="known-social-sites"></td>
+                <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
+              </tr>
+          <tr id="new-social-group">
+            <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site" list="known-social-sites"></td>
+            <td><input type="text" class="input" name="site_values" placeholder="Username or URL"></td>
+          </tr>
+        </tbody>
+      </table>
       $# This is used for the auto-completion.
       <datalist id="known-social-sites">
         $for site in M.SOCIAL_SITES.values():

@@ -55,9 +55,9 @@ def control_editprofile_put_(request):
         full_name="", catchphrase="",
         profile_text="", set_commish="", set_trade="", set_request="",
         set_stream="", stream_url="", stream_text="", show_age="",
-        gender="", country="", profile_display="", site_names=[], site_values=[])
+        gender="", country="", profile_display="", site_names=[], site_labels=[], site_values=[])
 
-    if len(form.site_names) != len(form.site_values):
+    if len(form.site_names) != len(form.site_labels) != len(form.site_values):
         raise WeasylError('Unexpected')
 
     p = orm.Profile()

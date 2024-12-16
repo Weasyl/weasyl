@@ -240,8 +240,9 @@ def select_userinfo(userid, config):
         WHERE userid = %(userid)s
     """, userid=userid).first()
 
+    # need to cast linkid to text since postgres arrays can't be of mixed type
     user_links = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
+        SELECT link_type, ARRAY_AGG(ARRAY[link_value, link_label, linkid::text] ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
@@ -549,16 +550,18 @@ _ASSERTED_ADULT = (
 #   (...)
 
 def edit_userinfo(userid, form):
-    social_rows = []
-    for site_name, site_value in zip(form.site_names, form.site_values):
+    link_types = []
+    link_values = []
+    link_labels = []
+    for site_name, site_label, site_value in zip(form.site_names, form.site_labels, form.site_values):
         if not site_name or not site_value:
             continue
-        row = {
-            'userid': userid,
-            'link_type': site_name,
-            'link_value': site_value,
-        }
-        social_rows.append(row)
+        # Turn whitespace-only labels into NULLs.
+        if not site_label.strip():
+            site_label = None
+        link_types.append(site_name)
+        link_values.append(site_value)
+        link_labels.append(site_label)
 
     d.engine.execute("""
         UPDATE userinfo
@@ -569,8 +572,13 @@ def edit_userinfo(userid, form):
         DELETE FROM user_links
         WHERE userid = %(userid)s
     """, userid=userid)
-    if social_rows:
-        d.engine.execute(d.meta.tables['user_links'].insert().values(social_rows))
+    if link_types:
+        d.engine.execute("""
+            INSERT INTO user_links (userid, link_type, link_value, link_label)
+            SELECT %(userid)s, link_type, link_value, link_label
+            FROM UNNEST (%(link_types)s::text[], %(link_values)s::text[], %(link_labels)s::text[])
+            AS data (link_type, link_value, link_label)
+        """, userid=userid, link_types=link_types, link_values=link_values, link_labels=link_labels)
 
     if form.show_age and form.get('birthdate-month') and form.get('birthdate-year'):
         birthdate_month = int(form['birthdate-month'])
@@ -798,8 +806,9 @@ def select_manage(userid):
     if not query:
         raise WeasylError("Unexpected")
 
+    # need to cast linkid to text since postgres arrays can't be of mixed type
     user_link_rows = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(link_value ORDER BY link_value)
+        SELECT link_type, ARRAY_AGG(ARRAY[link_value, link_label, linkid::text] ORDER BY link_value)
         FROM user_links
         WHERE userid = %(userid)s
         GROUP BY link_type
@@ -834,7 +843,7 @@ def select_manage(userid):
 
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None, remove_social=None,
+              birthday=None, gender=None, country=None, remove_social: list[int] = None,
               permission_tag=None):
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
@@ -850,7 +859,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         birthday (str): New birthday for user, in HTML5 date format (ISO 8601 yyyy-mm-dd). Defaults to None.
         gender (str): New gender for user. Defaults to None.
         country (str): New country for user. Defaults to None.
-        remove_social (list): Items to remove from the user's social/contact links. Defaults to None.
+        remove_social (list): Items to remove from the user's social/contact links. Each entry is a linkid. Defaults to None.
         permission_tag (bool): New tagging permission for user. Defaults to None.
 
     Returns:
@@ -928,9 +937,14 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Social and contact links
     if remove_social:
-        for social_link in remove_social:
-            d.engine.execute("DELETE FROM user_links WHERE userid = %(userid)s AND link_type = %(link)s", userid=userid, link=social_link)
-            updates.append('- Removed social link for %s' % (social_link,))
+        for linkid in remove_social:
+            link_type, link_value, link_label = d.engine.execute("""
+                DELETE FROM user_links
+                WHERE userid = %(user)s
+                AND linkid = %(linkid)s::int
+                RETURNING link_type, link_value, link_label
+            """, user=userid, linkid=linkid).first()
+            updates.append('- Removed social link for site %s, label %s, value %s' % (link_type, link_label, link_value))
 
     # Permissions
     if permission_tag is not None:

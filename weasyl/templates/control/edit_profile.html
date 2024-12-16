@@ -113,6 +113,12 @@ $code:
         Weasyl will do the rest.
       </p>
       <p>
+        You may add an optional label to each entry. This can be useful if you
+        have multiple accounts for the same site. For example, if you have two
+        accounts on the same microblogging platform &ndash; one for personal
+        thoughts and one for artwork &ndash; you can label them as such.
+      </p>
+      <p>
         For other sites, you can use any site name you like, and add the full
         URL or username to the second blank. You can use <tt>http</tt>,
         <tt>https</tt>, and <tt>mailto</tt> URLs.
@@ -126,18 +132,21 @@ $code:
         <thead>
           <tr>
             <th class="site-name">Site</th>
+            <th class="site-label">Label</th>
             <th>Username or URL</th>
           </tr>
         </thead>
         <tbody>
           $for site, values in userinfo['sorted_user_links']:
-            $for value in values:
+            $for value, label, _ in values:
               <tr>
                 <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site" list="known-social-sites"></td>
+                <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="Label (optional)"></td>
                 <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
               </tr>
           <tr id="new-social-group">
             <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site" list="known-social-sites"></td>
+            <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="Label (optional)"></td>
             <td><input type="text" class="input" name="site_values" placeholder="Username or URL"></td>
           </tr>
         </tbody>

@@ -88,9 +88,13 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     <div id="user-contact" class="clear on-side">
       <h3>Contact</h3>
       <dl class="leaders">
-      $for name, values in sorted(userinfo['user_links'].items(), key=lambda kv: kv[0].lower()):
-        $for value in sorted(values):
-          <dt>${name}</dt>
+      $for name, values in userinfo['sorted_user_links']:
+        $for value, label, _ in sorted(values):
+          <dt>
+            ${name}
+            $if label:
+              (${label})
+          </dt>
           $ info = M.SOCIAL_SITES_BY_NAME.get(name, {})
           $if value.startswith(('http://', 'https://')):
             <dd><a href="${value}" rel="me nofollow ugc">${value}</a></dd>

@@ -3,10 +3,6 @@
         padding-top: 1em;
     }
 
-    .site-name {
-        width: 10em;
-    }
-
     @media (min-width: 45em) {
         .column {
             width: 48%;
@@ -29,6 +25,10 @@
         .social, .profile {
             clear: both;
             width: 100%;
+        }
+
+        .site-name, .site-label {
+            width: 10em;
         }
     }
 

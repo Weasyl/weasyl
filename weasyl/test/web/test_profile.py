@@ -224,10 +224,11 @@ def test_profile_links_rel_me(app, site_names: str, site_values: str, rel_me_exp
 
         "site_names": site_names,
         "site_values": site_values,
+        "site_labels": '',
     })
 
     resp = app.get("/~profiletest")
-    assert resp.html.find(string=site_names)
+    assert site_names in resp.html.find(id='user-contact').dl.dt.string
     assert resp.html.find(string=site_values)
 
     rel = resp.html.find(string=site_values).parent.get("rel", [])

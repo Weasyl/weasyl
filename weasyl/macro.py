@@ -210,7 +210,7 @@ SOCIAL_SITES = {
         "url": "https://itaku.ee/profile/%s",
     },
     "reddit": {
-        "name": "reddit",
+        "name": "Reddit",
         "url": "https://www.reddit.com/user/%s",
     },
     "sofurry": {

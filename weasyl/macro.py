@@ -237,6 +237,10 @@ SOCIAL_SITES = {
         "name": "Tumblr",
         "url": "https://%s.tumblr.com/",
     },
+    "twitch": {
+        "name": "Twitch",
+        "url": "https://twitch.tv/%s",
+    },
     "twitter": {
         "name": "Twitter",
         "url": "https://twitter.com/%s",

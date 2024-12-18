@@ -1294,9 +1294,8 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .comment.hypothetical textarea {
     width: 100%;
     height: 1.5em;
-    margin-top: 0.9em;
-    padding-bottom: 1.5em;
-    margin-bottom: -1.5em;
+    margin: 0.625rem -1rem -1rem;
+    padding: 0 1rem 1rem;
     background-color: transparent;
     resize: none;
     outline: none;
@@ -1305,11 +1304,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     &::placeholder {
         font-style: italic;
     }
-}
 
-.no-js .comment.hypothetical textarea {
-    height: 8em;
-    border: 1px solid #c0c0c0;
+    .no-js:root & {
+        height: 8em;
+        resize: vertical;
+    }
 }
 
 .comment.hypothetical .markdown-preview {

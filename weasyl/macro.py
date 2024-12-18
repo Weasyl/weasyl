@@ -221,6 +221,10 @@ SOCIAL_SITES = {
         "name": "Picarto",
         "url": "https://picarto.tv/%s",
     },
+    "piczel": {
+        "name": "Piczel",
+        "url": "https://piczel.tv/watch/%s",
+    },
     "reddit": {
         "name": "Reddit",
         "url": "https://www.reddit.com/user/%s",

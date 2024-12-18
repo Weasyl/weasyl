@@ -1603,14 +1603,14 @@ $tag-reject-deemphasize-size: 11px;
 }
 
 .label,
-.form label:not(.input-checkbox),
+.form label:not(.input-checkbox):not(.label-around),
 .form-actions {
     display: block;
     padding: 16px 0 4px;
     padding: 1rem 0 0.25rem;
 }
 
-.label, .form label:not(.input-checkbox) {
+.label, .form label:not(.input-checkbox):not(.label-around) {
     font-size: 14px;
     font-size: 0.9rem;
     font-weight: 700;

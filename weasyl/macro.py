@@ -217,6 +217,10 @@ SOCIAL_SITES = {
         "name": "Patreon",
         "url": "https://www.patreon.com/%s",
     },
+    "picarto": {
+        "name": "Picarto",
+        "url": "https://picarto.tv/%s",
+    },
     "reddit": {
         "name": "Reddit",
         "url": "https://www.reddit.com/user/%s",

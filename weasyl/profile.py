@@ -240,12 +240,11 @@ def select_userinfo(userid, config):
         WHERE userid = %(userid)s
     """, userid=userid).first()
 
-    # need to cast linkid to text since postgres arrays can't be of mixed type
     user_links = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(ARRAY[link_value, link_label, linkid::text] ORDER BY link_value)
+        SELECT link_type, link_value, link_label, linkid
         FROM user_links
         WHERE userid = %(userid)s
-        GROUP BY link_type
+        ORDER BY link_type, link_label, link_value
     """, userid=userid).fetchall()
 
     show_age = "b" in config or d.get_userid() in staff.MODS
@@ -255,8 +254,7 @@ def select_userinfo(userid, config):
         "show_age": "b" in config,
         "gender": query.gender,
         "country": query.country,
-        "user_links": {r[0]: r[1] for r in user_links},
-        "sorted_user_links": sort_user_links(user_links),
+        "user_links": user_links,
     }
 
 
@@ -806,13 +804,12 @@ def select_manage(userid):
     if not query:
         raise WeasylError("Unexpected")
 
-    # need to cast linkid to text since postgres arrays can't be of mixed type
     user_link_rows = d.engine.execute("""
-        SELECT link_type, ARRAY_AGG(ARRAY[link_value, link_label, linkid::text] ORDER BY link_value)
+        SELECT link_type, link_value, link_label, linkid
         FROM user_links
         WHERE userid = %(userid)s
-        GROUP BY link_type
-    """, userid=userid)
+        ORDER BY link_type, link_label, link_value
+    """, userid=userid).all()
 
     active_user_sessions = d.engine.execute("""
         SELECT sess.created_at, sess.ip_address, ua.user_agent
@@ -837,13 +834,13 @@ def select_manage(userid):
         "country": query[10],
         "config": query[11],
         "staff_notes": shout.count_staff_notes(userid),
-        "sorted_user_links": sort_user_links(user_link_rows),
+        "user_links": user_link_rows,
         "user_sessions": active_user_sessions,
     }
 
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None, remove_social: list[int] = None,
+              birthday=None, gender=None, country=None, remove_social: list[int] | None = None,
               permission_tag=None):
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
@@ -941,7 +938,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             link_type, link_value, link_label = d.engine.execute("""
                 DELETE FROM user_links
                 WHERE userid = %(user)s
-                AND linkid = %(linkid)s::int
+                AND linkid = %(linkid)s
                 RETURNING link_type, link_value, link_label
             """, user=userid, linkid=linkid).first()
             updates.append('- Removed social link for site %s, label %s, value %s' % (link_type, link_label, link_value))

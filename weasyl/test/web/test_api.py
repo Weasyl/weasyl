@@ -129,8 +129,7 @@ def test_user_view(app, submission_user):
             'age': None,
             'gender': '',
             'location': '',
-            'sorted_user_links': [],
-            'user_links': {},
+            'user_links': [],
         },
         'username': 'submission_test',
     }

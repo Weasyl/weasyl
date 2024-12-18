@@ -137,13 +137,12 @@ $code:
           </tr>
         </thead>
         <tbody>
-          $for site, values in userinfo['sorted_user_links']:
-            $for value, label, _ in values:
-              <tr>
-                <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site" list="known-social-sites"></td>
-                <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="Label (optional)"></td>
-                <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
-              </tr>
+          $for site, value, label, _ in userinfo['user_links']:
+            <tr>
+              <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site" list="known-social-sites"></td>
+              <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="Label (optional)"></td>
+              <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
+            </tr>
           <tr id="new-social-group">
             <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site" list="known-social-sites"></td>
             <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="Label (optional)"></td>

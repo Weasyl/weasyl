@@ -225,6 +225,10 @@ SOCIAL_SITES = {
         "name": "Steam",
         "url": "https://steamcommunity.com/id/%s",
     },
+    "telegram": {
+        "name": "Telegram",
+        "url": "https://t.me/%s",
+    },
     "tumblr": {
         "name": "Tumblr",
         "url": "https://%s.tumblr.com/",

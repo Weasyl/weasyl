@@ -828,7 +828,7 @@ select.input {
     overflow: visible;
 }
 
-@media only screen and (min-resolution: 1.5dppx) {
+@media (min-resolution: 1.5x) {
     .icon-20 {
         background-image: url('../img/icons-20@2x.png');
         background-size: 60px 260px;

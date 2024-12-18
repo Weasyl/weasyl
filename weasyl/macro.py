@@ -209,6 +209,10 @@ SOCIAL_SITES = {
         "name": "Itaku",
         "url": "https://itaku.ee/profile/%s",
     },
+    "patreon": {
+        "name": "Patreon",
+        "url": "https://www.patreon.com/%s",
+    },
     "reddit": {
         "name": "Reddit",
         "url": "https://www.reddit.com/user/%s",
@@ -232,10 +236,6 @@ SOCIAL_SITES = {
     "youtube": {
         "name": "YouTube",
         "url": "https://www.youtube.com/user/%s",
-    },
-    "patreon": {
-        "name": "Patreon",
-        "url": "https://www.patreon.com/%s",
     },
 }
 

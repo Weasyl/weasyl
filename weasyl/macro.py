@@ -176,6 +176,10 @@ MACRO_SYS_STAFF_CONFIG_PATH = os.path.join(MACRO_SYS_CONFIG_PATH, "weasyl-staff.
 MACRO_CFG_SITE_CONFIG = MACRO_SYS_CONFIG_PATH + "site.config.txt"
 
 SOCIAL_SITES = {
+    "ao3": {
+        "name": "Archive of Our Own",
+        "url": "https://archiveofourown.org/users/%s",
+    },
     "bluesky": {
         "name": "Bluesky",
         "url": "https://bsky.app/profile/%s",

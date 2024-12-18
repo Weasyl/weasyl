@@ -637,7 +637,7 @@
 
     function updateMarkdownPreview(input) {
         if (markedLoadState === 2) {
-            var preview = input.nextSibling.nextSibling;
+            var preview = input.nextSibling;
 
             while (preview.childNodes.length) {
                 preview.removeChild(preview.firstChild);
@@ -668,31 +668,7 @@
         }
     }
 
-    function addMarkdownWarning(input) {
-        var helpLink = document.createElement('a');
-        helpLink.href = '/help/markdown';
-        helpLink.target = '_blank';
-        helpLink.appendChild(document.createTextNode('Read about Markdown!'));
-
-        var warning = document.createElement('div');
-        warning.className = 'bbcode-warning';
-        warning.appendChild(document.createTextNode('Trying to use BBCode? '));
-        warning.appendChild(helpLink);
-
-        function showWarning() {
-            warning.style.display = ATTEMPTED_BBCODE.test(input.value) ? 'block' : 'none';
-        }
-
-        input.addEventListener('input', showWarning, false);
-
-        showWarning();
-        input.parentNode.insertBefore(warning, input.nextSibling);
-    }
-
-    forEach(document.getElementsByClassName('markdown'), function (input) {
-        addMarkdownPreview(input);
-        addMarkdownWarning(input);
-    });
+    forEach(document.getElementsByClassName('markdown'), addMarkdownPreview);
 
     function getCommentInfo(commentActionLink) {
         var comment = commentActionLink;
@@ -837,8 +813,7 @@
             var targetId = parseInt(targetIdField.value, 10);
             var contentField = newFormContent.getElementsByClassName('form-content')[0];
 
-            // Remove the original form’s non-functional Markdown preview and warning elements
-            contentField.parentNode.removeChild(contentField.nextSibling);
+            // Remove the original form’s non-functional Markdown preview element
             contentField.parentNode.removeChild(contentField.nextSibling);
             contentField.value = '';
 
@@ -1054,7 +1029,6 @@
             e.preventDefault();
 
             addMarkdownPreview(contentField);
-            addMarkdownWarning(contentField);
 
             $(contentField).autosize();
             contentField.focus();

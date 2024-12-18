@@ -209,6 +209,10 @@ SOCIAL_SITES = {
         "name": "Itaku",
         "url": "https://itaku.ee/profile/%s",
     },
+    "kofi": {
+        "name": "Ko-fi",
+        "url": "https://ko-fi.com/%s",
+    },
     "patreon": {
         "name": "Patreon",
         "url": "https://www.patreon.com/%s",

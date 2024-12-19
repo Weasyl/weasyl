@@ -844,10 +844,10 @@
             };
 
             var handleShortcuts = function handleShortcuts(e) {
-                if (e.keyCode === 27 && !contentField.value) {
+                if (e.key === 'Escape' && !contentField.value) {
                     contentField.removeEventListener('keydown', handleShortcuts);
                     cancelReply(e);
-                } else if (e.keyCode === 13 && e.ctrlKey) {
+                } else if (e.key === 'Enter' && e.ctrlKey) {
                     e.preventDefault();
                     submitComment();
                 }
@@ -1035,14 +1035,14 @@
         }
     });
 
-    function addLocationChangerForKeyCodeAndHref(keyCode, href) {
+    function addLocationChangerForKeyAndHref(key, href) {
         document.addEventListener('keydown', function (e) {
             if (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey ||
                     e.target.nodeName === 'INPUT' || e.target.nodeName === 'TEXTAREA') {
                 return;
             }
 
-            if (e.keyCode === keyCode) {
+            if (e.key === key) {
                 document.location = href;
             }
         });
@@ -1051,10 +1051,10 @@
     (function () {
         var folderNavPrev, folderNavNext;
         if ((folderNavPrev = document.getElementById('folder-nav-prev'))) {
-            addLocationChangerForKeyCodeAndHref(37, folderNavPrev.href);
+            addLocationChangerForKeyAndHref('ArrowLeft', folderNavPrev.href);
         }
         if ((folderNavNext = document.getElementById('folder-nav-next'))) {
-            addLocationChangerForKeyCodeAndHref(39, folderNavNext.href);
+            addLocationChangerForKeyAndHref('ArrowRight', folderNavNext.href);
         }
 
         if (!document.getElementsByClassName) {
@@ -1071,7 +1071,7 @@
 
         // ctrl+enter comment submit
         rootCommentBox.addEventListener('keydown', function (e) {
-            if (e.keyCode === 13 && e.ctrlKey) {
+            if (e.key === 'Enter' && e.ctrlKey) {
                 e.preventDefault();
                 rootCommentForm.submit();
             }
@@ -1079,7 +1079,7 @@
 
         // 'c' to focus comment box
         document.addEventListener('keydown', function (e) {
-            if (e.keyCode === 67 && e.target === document.body &&
+            if (e.key === 'c' && e.target === document.body &&
                 !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
                 e.preventDefault();
                 rootCommentBox.focus();
@@ -1090,7 +1090,7 @@
         var faveForm = document.getElementById('submission-favorite-form');
         if (faveForm) {
             document.addEventListener('keydown', function (e) {
-                if (e.keyCode === 70 && e.target === document.body &&
+                if (e.key === 'f' && e.target === document.body &&
                     !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
                     e.preventDefault();
                     faveForm.getElementsByTagName('button')[0].click();

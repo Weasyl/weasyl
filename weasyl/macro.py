@@ -176,6 +176,10 @@ MACRO_SYS_STAFF_CONFIG_PATH = os.path.join(MACRO_SYS_CONFIG_PATH, "weasyl-staff.
 MACRO_CFG_SITE_CONFIG = MACRO_SYS_CONFIG_PATH + "site.config.txt"
 
 SOCIAL_SITES = {
+    "ao3": {
+        "name": "Archive of Our Own",
+        "url": "https://archiveofourown.org/users/%s",
+    },
     "bluesky": {
         "name": "Bluesky",
         "url": "https://bsky.app/profile/%s",
@@ -209,8 +213,24 @@ SOCIAL_SITES = {
         "name": "Itaku",
         "url": "https://itaku.ee/profile/%s",
     },
+    "kofi": {
+        "name": "Ko-fi",
+        "url": "https://ko-fi.com/%s",
+    },
+    "patreon": {
+        "name": "Patreon",
+        "url": "https://www.patreon.com/%s",
+    },
+    "picarto": {
+        "name": "Picarto",
+        "url": "https://picarto.tv/%s",
+    },
+    "piczel": {
+        "name": "Piczel",
+        "url": "https://piczel.tv/watch/%s",
+    },
     "reddit": {
-        "name": "reddit",
+        "name": "Reddit",
         "url": "https://www.reddit.com/user/%s",
     },
     "sofurry": {
@@ -221,9 +241,17 @@ SOCIAL_SITES = {
         "name": "Steam",
         "url": "https://steamcommunity.com/id/%s",
     },
+    "telegram": {
+        "name": "Telegram",
+        "url": "https://t.me/%s",
+    },
     "tumblr": {
         "name": "Tumblr",
         "url": "https://%s.tumblr.com/",
+    },
+    "twitch": {
+        "name": "Twitch",
+        "url": "https://twitch.tv/%s",
     },
     "twitter": {
         "name": "Twitter",
@@ -232,10 +260,6 @@ SOCIAL_SITES = {
     "youtube": {
         "name": "YouTube",
         "url": "https://www.youtube.com/user/%s",
-    },
-    "patreon": {
-        "name": "Patreon",
-        "url": "https://www.patreon.com/%s",
     },
 }
 

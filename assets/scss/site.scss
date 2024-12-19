@@ -42,32 +42,6 @@ a:hover {
     display: none;
 }
 
-/* single, two-column dl list items with dashed borders between them */
-dl.leaders dt + dd {
-    border-top: 1px dashed #b4b4b4;
-    margin-top: 0.375em;
-    padding-top: 0.375em;
-}
-
-dl.leaders dt:first-child + dd {
-    border-top: none;
-}
-
-dl.leaders dt {
-    clear: left;
-    float: left;
-    font-weight: 700;
-    padding-top: 0.375em;
-}
-
-dl.leaders dd + dt, dl.leaders dt + dt {
-    padding-top: 0.75em;
-}
-
-dl.leaders dd {
-    text-align: right;
-}
-
 /* Typefaces
 --------------------------------*/
 #page-container, textarea, .typeface-default, button {
@@ -854,7 +828,7 @@ select.input {
     overflow: visible;
 }
 
-@media only screen and (min-resolution: 1.5dppx) {
+@media (min-resolution: 1.5x) {
     .icon-20 {
         background-image: url('../img/icons-20@2x.png');
         background-size: 60px 260px;
@@ -1302,11 +1276,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     padding-bottom: 1rem;
 }
 
-.js .comment.hypothetical .comment-content {
-    padding-bottom: 16px;
-    padding-bottom: 1rem;
-}
-
 .comment .actions {
     float: right;
     padding-left: 2em;
@@ -1325,9 +1294,8 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .comment.hypothetical textarea {
     width: 100%;
     height: 1.5em;
-    margin-top: 0.9em;
-    padding-bottom: 1.5em;
-    margin-bottom: -1.5em;
+    margin: 0.625rem -1rem -1rem;
+    padding: 0 1rem 1rem;
     background-color: transparent;
     resize: none;
     outline: none;
@@ -1336,11 +1304,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     &::placeholder {
         font-style: italic;
     }
-}
 
-.no-js .comment.hypothetical textarea {
-    height: 8em;
-    border: 1px solid #c0c0c0;
+    .no-js:root & {
+        height: 8em;
+        resize: vertical;
+    }
 }
 
 .comment.hypothetical .markdown-preview {
@@ -1635,14 +1603,14 @@ $tag-reject-deemphasize-size: 11px;
 }
 
 .label,
-.form label:not(.input-checkbox),
+.form label:not(.input-checkbox):not(.label-around),
 .form-actions {
     display: block;
     padding: 16px 0 4px;
     padding: 1rem 0 0.25rem;
 }
 
-.label, .form label:not(.input-checkbox) {
+.label, .form label:not(.input-checkbox):not(.label-around) {
     font-size: 14px;
     font-size: 0.9rem;
     font-weight: 700;
@@ -1978,11 +1946,17 @@ $notifs-color-active: #b9b9b9;
     max-height: 23em;
 }
 
+// Chrome and Firefox render small caps significantly differently, so implement small caps manually in the originally intended proportions used by Firefox
+$small-caps-ratio: 1.2;
+
 #header-nav a {
     display: block;
-    font-size: 14px;
-    font-size: 0.9rem;
-    padding: 0.7em 1.25em;
+    font-size: 0.9rem / $small-caps-ratio;
+    padding: 0.625rem 1.125rem;
+
+    &::first-letter {
+        font-size: $small-caps-ratio * 1em;
+    }
 }
 
 #header-nav a:hover {
@@ -2076,8 +2050,8 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav ul {
-        font-variant: small-caps;
         letter-spacing: 0.1ex;
+        text-transform: uppercase;
         overflow: hidden;
     }
 
@@ -2087,20 +2061,10 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        height: 72px;
         height: 4.5rem;
-        line-height: 72px;
         line-height: 4.5rem;
-        font-size: 12px;
-        font-size: 0.75rem;
-        padding: 0 0.5em;
-    }
-}
-/* webkit sucks at small caps */
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 45em) {
-    #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
+        font-size: 0.75rem / $small-caps-ratio;
+        padding: 0 0.4375rem;
     }
 }
 
@@ -2126,15 +2090,7 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
-    }
-}
-
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 48em) {
-    #header-nav a {
-        font-size: 16px;
-        font-size: 1rem;
+        font-size: 0.9rem / $small-caps-ratio;
     }
 }
 
@@ -4205,13 +4161,6 @@ a.user-icon:hover {
 a.user-icon:hover > span, a.user-icon:focus > span {
     outline: none;
     text-decoration: underline;
-}
-
-.bbcode-warning {
-    display: none;
-    margin: 1em 0;
-    color: #ad322d;
-    font-style: italic;
 }
 
 .hidden-comment {

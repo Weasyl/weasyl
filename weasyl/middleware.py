@@ -340,8 +340,12 @@ def http2_server_push_tween_factory(handler, registry):
     def http2_server_push(request):
         resp = handler(request)
 
-        # Combined HTTP/2 headers indicating which resources to server push
-        resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
+        content_type = resp.headers.get('Content-Type')
+
+        if content_type is not None and content_type.startswith("text/html"):
+            # Combined HTTP/2 headers indicating which resources to server push
+            resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
+
         return resp
     return http2_server_push
 

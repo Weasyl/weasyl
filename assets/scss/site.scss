@@ -91,7 +91,7 @@ a.more span, #header-messages a, .page-title a {
     color: $color-b;
 }
 
-.color-c, .title, .content a {
+.color-c, .content a {
     color: $link-color;
 }
 
@@ -136,10 +136,6 @@ a.more span, #header-messages a, .page-title a {
 .suspended {
     color: #c0501b;
     text-decoration: line-through;
-}
-
-.thumbnail-grid .title {
-    color: inherit;
 }
 
 .content .byline {
@@ -1018,7 +1014,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 }
 .enhanced-thumbnails .thumbnail-grid .item {
     max-width: 100%;
-    padding-left: 0;
 }
 .thumbnail-grid .thumb {
     box-sizing: border-box;
@@ -1069,7 +1064,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .thumbnail-grid .title a {
     color: #ccc;
 }
-.content .thumbnail-grid .title, .content .thumbnail-grid .title a {
+.content .thumbnail-grid .title a {
     color: #222;
 }
 .thumbnail-grid .title a:hover {
@@ -1088,9 +1083,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 }
 .content .thumbnail-grid .username {
     color: $color-a;
-}
-.thumbnail-grid .username:hover {
-    opacity: 1;
 }
 .thumbnail-grid .thumb-bounds {
     background: rgba(0,0,0,0.15);

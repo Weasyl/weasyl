@@ -19,6 +19,14 @@
         return false;
     }
 
+    var empty = containerNode => {
+        var child;
+
+        while (child = containerNode.firstChild) {
+            containerNode.removeChild(child);
+        }
+    };
+
     var hasModifierKeys = e =>
         e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
 
@@ -396,7 +404,7 @@
             }
 
             if (!isBody && allowedTags.indexOf(node.nodeName.toLowerCase()) === -1) {
-                while (node.childNodes.length) {
+                while (node.hasChildNodes()) {
                     node.parentNode.insertBefore(node.firstChild, node);
                 }
 
@@ -633,7 +641,7 @@
         weasylMarkdown(fragment);
         defang(fragment, true);
 
-        while (fragment.childNodes.length) {
+        while (fragment.hasChildNodes()) {
             container.appendChild(fragment.firstChild);
         }
     }
@@ -641,11 +649,7 @@
     function updateMarkdownPreview(input) {
         if (markedLoadState === 2) {
             var preview = input.nextSibling;
-
-            while (preview.childNodes.length) {
-                preview.removeChild(preview.firstChild);
-            }
-
+            empty(preview);
             renderMarkdown(input.value, preview);
         } else {
             loadMarked();
@@ -837,10 +841,9 @@
                 target.textContent = 'Reply';
                 target.removeEventListener('click', cancelReply);
 
-                if (children.childNodes.length === 1) {
+                children.removeChild(newListItem);
+                if (!children.hasChildNodes()) {
                     children.parentNode.removeChild(children);
-                } else {
-                    children.removeChild(newListItem);
                 }
 
                 target.focus();

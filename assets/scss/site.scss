@@ -1009,7 +1009,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     box-sizing: border-box;
     display: inline-block;
     vertical-align: bottom;
+
+    // ensure that each row always has at least two thumbnails in the non-enhanced layout
     max-width: 43.5%;
+    max-width: calc(50% - 12px);
+
     margin: 0 4px 8px 4px;
 }
 .enhanced-thumbnails .thumbnail-grid .item {

@@ -1946,11 +1946,17 @@ $notifs-color-active: #b9b9b9;
     max-height: 23em;
 }
 
+// Chrome and Firefox render small caps significantly differently, so implement small caps manually in the originally intended proportions used by Firefox
+$small-caps-ratio: 1.2;
+
 #header-nav a {
     display: block;
-    font-size: 14px;
-    font-size: 0.9rem;
-    padding: 0.7em 1.25em;
+    font-size: 0.9rem / $small-caps-ratio;
+    padding: 0.625rem 1.125rem;
+
+    &::first-letter {
+        font-size: $small-caps-ratio * 1em;
+    }
 }
 
 #header-nav a:hover {
@@ -2044,8 +2050,8 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav ul {
-        font-variant: small-caps;
         letter-spacing: 0.1ex;
+        text-transform: uppercase;
         overflow: hidden;
     }
 
@@ -2055,20 +2061,10 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        height: 72px;
         height: 4.5rem;
-        line-height: 72px;
         line-height: 4.5rem;
-        font-size: 12px;
-        font-size: 0.75rem;
-        padding: 0 0.5em;
-    }
-}
-/* webkit sucks at small caps */
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 45em) {
-    #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
+        font-size: 0.75rem / $small-caps-ratio;
+        padding: 0 0.4375rem;
     }
 }
 
@@ -2094,15 +2090,7 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
-    }
-}
-
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 48em) {
-    #header-nav a {
-        font-size: 16px;
-        font-size: 1rem;
+        font-size: 0.9rem / $small-caps-ratio;
     }
 }
 

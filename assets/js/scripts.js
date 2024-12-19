@@ -1164,7 +1164,7 @@
         favoriteForm.addEventListener('submit', function (e) {
             if (
                 favoriteButton.classList.contains('pending')
-                || favoriteAction.value === 'unfavorite' && !confirm('Are you sure you wish to remove this submission from your favorites?')
+                || (favoriteAction.value === 'unfavorite' && !confirm('Are you sure you wish to remove this submission from your favorites?'))
             ) {
                 e.preventDefault();
                 return;
@@ -1173,15 +1173,15 @@
             favoriteButton.classList.add('pending');
 
             fetch(favoriteActionBase + favoriteAction.value, { method: 'POST' })
-                .then(response => {
-                    if (response.status !== 200)
-                        return Promise.reject({});
-
-                    return response.json();
-                })
+                .then(response =>
+                    response.ok
+                        ? response.json()
+                        : Promise.reject()
+                )
                 .then(data => {
-                    if (!data.success)
-                        return Promise.reject({});
+                    if (!data.success) {
+                        return Promise.reject();
+                    }
 
                     favoriteButton.classList.remove('pending');
 
@@ -1190,7 +1190,9 @@
                     favoriteAction.value = newState ? 'unfavorite' : 'favorite';
                 })
                 // If there was any error, resubmit the form so the user can see it in full.
-                .catch(error => favoriteForm.submit());
+                .catch(error => {
+                    favoriteForm.submit();
+                });
 
             e.preventDefault();
         });

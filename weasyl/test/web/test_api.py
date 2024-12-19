@@ -54,6 +54,12 @@ def test_submission_view(app, submission_user):
         }],
     }
 
+    favoriter = db_utils.create_user()
+    db_utils.create_favorite(favoriter, submitid=submission)
+
+    resp_json = app.get('/api/submissions/%i/view' % (submission,)).json
+    assert resp_json['favorites'] == 1
+
 
 @pytest.mark.usefixtures('db')
 def test_submission_view_missing(app):

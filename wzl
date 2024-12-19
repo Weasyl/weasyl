@@ -32,7 +32,7 @@ case "$head" in
 assets)
     $docker_compose create "$@" build-assets
     $docker_compose cp ./assets build-assets:/weasyl-build/
-    container_id="$($docker_compose ps -a --format=json build-assets | grep -o '"ID":"[^"]*"' | cut -d '"' -f 4)"
+    container_id="$($docker_compose ps -a --format='{{.ID}}' build-assets)"
     exec docker start -ai "$container_id"
     ;;
 

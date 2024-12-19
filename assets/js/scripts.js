@@ -1088,7 +1088,10 @@
         // 'f' to favorite
         var faveButton = document.querySelector('#submission-favorite-form button');
         if (faveButton) {
-            addShortcut('f', clickShortcut(faveButton));
+            addShortcut('f', () => {
+                faveButton.focus();
+                faveButton.click();
+            });
         }
 
     })();

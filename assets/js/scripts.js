@@ -19,6 +19,9 @@
         return false;
     }
 
+    var hasModifierKeys = e =>
+        e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
+
     // thumbnails: config
     var thumbnailContainers = document.getElementsByClassName('thumbnail-grid'),
         thumbnailOptions = {
@@ -161,14 +164,14 @@
         }
 
         function closeLoginIfEscape(e) {
-            if (e.key === 'Escape' && !e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
+            if (e.key === 'Escape' && !hasModifierKeys(e)) {
                 e.preventDefault();
                 closeLogin();
             }
         }
 
         $('#hg-login').on('click', function (ev) {
-            if (ev.metaKey || ev.altKey || ev.ctrlKey || ev.shiftKey) {
+            if (hasModifierKeys(ev)) {
                 return;
             }
 
@@ -1037,7 +1040,7 @@
 
     function addLocationChangerForKeyAndHref(key, href) {
         document.addEventListener('keydown', function (e) {
-            if (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey ||
+            if (hasModifierKeys(e) ||
                     e.target.nodeName === 'INPUT' || e.target.nodeName === 'TEXTAREA') {
                 return;
             }
@@ -1080,7 +1083,7 @@
         // 'c' to focus comment box
         document.addEventListener('keydown', function (e) {
             if (e.key === 'c' && e.target === document.body &&
-                !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+                !hasModifierKeys(e)) {
                 e.preventDefault();
                 rootCommentBox.focus();
             }
@@ -1091,7 +1094,7 @@
         if (faveForm) {
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'f' && e.target === document.body &&
-                    !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+                    !hasModifierKeys(e)) {
                     e.preventDefault();
                     faveForm.getElementsByTagName('button')[0].click();
                 }

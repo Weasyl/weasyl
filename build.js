@@ -260,6 +260,7 @@ const main = async () => {
         fs.promises.mkdir(path.join(BUILD, 'css'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'fonts'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'img', 'help'), {recursive: true}),
+        fs.promises.mkdir(path.join(BUILD, 'img', 'social'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'js', 'ruffle'), {recursive: true}),
     ]);
 
@@ -293,6 +294,7 @@ const main = async () => {
         }),
         esbuildFile('js/signup.js', 'js/signup.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
+        copyStaticFiles('img/social', touch),
         copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,
 

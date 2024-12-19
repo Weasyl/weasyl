@@ -24,10 +24,10 @@ $def with (myself, query, violations)
         $if not query['mine']:
           $if query['favorited']:
             <input type="hidden" name="action" value="unfavorite" />
-            <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
+            <button class="active" accesskey="f"><span class="icon icon-20 icon-star"></span> Favorited</button>
           $else:
             <input type="hidden" name="action" value="favorite" />
-            <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+            <button accesskey="f"><span class="icon icon-20 icon-star"></span> Favorite</button>
       </form></li>
       <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
       $if query['reported'] and myself and myself['userid'] in staff.MODS:

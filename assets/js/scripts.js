@@ -1162,46 +1162,37 @@
         var favoriteAction = favoriteForm.querySelector('input[name="action"]');
 
         favoriteForm.addEventListener('submit', function (e) {
-            if (favoriteButton.classList.contains('pending')) {
+            if (
+                favoriteButton.classList.contains('pending')
+                || (favoriteAction.value === 'unfavorite' && !confirm('Are you sure you wish to remove this submission from your favorites?'))
+            ) {
                 e.preventDefault();
                 return;
             }
 
-            var rq = new XMLHttpRequest();
-
-            rq.open('POST', favoriteActionBase + favoriteAction.value, true);
-            rq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-            rq.onreadystatechange = function () {
-                if (rq.readyState !== 4) {
-                    return;
-                }
-
-                if (rq.status === 200) {
-                    var success;
-
-                    try {
-                        success = JSON.parse(rq.responseText).success;
-                    } catch (e) {}
-
-                    if (success) {
-                        favoriteButton.classList.remove('pending');
-
-                        var newState = favoriteButton.classList.toggle('active');
-                        favoriteButton.replaceChild(document.createTextNode(newState ? ' Favorited' : ' Favorite'), favoriteButton.lastChild);
-                        favoriteAction.value = newState ? 'unfavorite' : 'favorite';
-
-                        return;
-                    }
-                }
-
-                // If there was any error, resubmit the form so the user can see it in full.
-                favoriteForm.submit();
-            };
-
-            rq.send(null);
-
             favoriteButton.classList.add('pending');
+
+            fetch(favoriteActionBase + favoriteAction.value, { method: 'POST' })
+                .then(response =>
+                    response.ok
+                        ? response.json()
+                        : Promise.reject()
+                )
+                .then(data => {
+                    if (!data.success) {
+                        return Promise.reject();
+                    }
+
+                    favoriteButton.classList.remove('pending');
+
+                    var newState = favoriteButton.classList.toggle('active');
+                    favoriteButton.replaceChild(document.createTextNode(newState ? ' Favorited' : ' Favorite'), favoriteButton.lastChild);
+                    favoriteAction.value = newState ? 'unfavorite' : 'favorite';
+                })
+                // If there was any error, resubmit the form so the user can see it in full.
+                .catch(error => {
+                    favoriteForm.submit();
+                });
 
             e.preventDefault();
         });
@@ -1267,21 +1258,5 @@
         if (savedTab) {
             savedTab.click();
         }
-    })();
-
-    // Confirm removing friends
-    (function () {
-        var hasUnfriend = $('input[name="action"][value="unfriend"]')[0];
-        if (!hasUnfriend) {
-            return;
-        }
-
-        $('form[name="frienduser"]').on('submit', function (e) {
-            var shouldUnfriend = confirm('Are you sure you wish to remove this friend?');
-
-            if (!shouldUnfriend) {
-                e.preventDefault();
-            }
-        });
     })();
 })();

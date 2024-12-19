@@ -179,10 +179,12 @@ SOCIAL_SITES = {
     "ao3": {
         "name": "Archive of Our Own",
         "url": "https://archiveofourown.org/users/%s",
+        "icon": "img/social/ao3.png",
     },
     "bluesky": {
         "name": "Bluesky",
         "url": "https://bsky.app/profile/%s",
+        "icon": "img/social/bluesky.svg",
     },
     "deviantart": {
         "name": "DeviantArt",
@@ -191,14 +193,17 @@ SOCIAL_SITES = {
     "facebook": {
         "name": "Facebook",
         "url": "https://www.facebook.com/%s",
+        "icon": "img/social/facebook.png",
     },
     "flickr": {
         "name": "Flickr",
         "url": "https://www.flickr.com/photos/%s",
+        "icon": "img/social/flickr.png",
     },
     "furaffinity": {
         "name": "Fur Affinity",
         "url": "https://www.furaffinity.net/user/%s",
+        "icon": "img/social/furaffinity.png",
     },
     "googleplus": {
         "name": "Google+",
@@ -208,34 +213,42 @@ SOCIAL_SITES = {
     "inkbunny": {
         "name": "Inkbunny",
         "url": "https://inkbunny.net/%s",
+        "icon": "img/social/inkbunny.png",
     },
     "itaku": {
         "name": "Itaku",
         "url": "https://itaku.ee/profile/%s",
+        "icon": "img/social/itaku.png",
     },
     "kofi": {
         "name": "Ko-fi",
         "url": "https://ko-fi.com/%s",
+        "icon": "img/social/kofi.svg",
     },
     "patreon": {
         "name": "Patreon",
         "url": "https://www.patreon.com/%s",
+        "icon": "img/social/patreon.svg",
     },
     "picarto": {
         "name": "Picarto",
         "url": "https://picarto.tv/%s",
+        "icon": "img/social/picarto.png",
     },
     "piczel": {
         "name": "Piczel",
         "url": "https://piczel.tv/watch/%s",
+        "icon": "img/social/piczel.png",
     },
     "reddit": {
         "name": "Reddit",
         "url": "https://www.reddit.com/user/%s",
+        "icon": "img/social/reddit.svg",
     },
     "sofurry": {
         "name": "SoFurry",
         "url": "https://%s.sofurry.com/",
+        "icon": "img/social/sofurry.png",
     },
     "steam": {
         "name": "Steam",
@@ -244,18 +257,22 @@ SOCIAL_SITES = {
     "telegram": {
         "name": "Telegram",
         "url": "https://t.me/%s",
+        "icon": "img/social/telegram.svg",
     },
     "tumblr": {
         "name": "Tumblr",
         "url": "https://%s.tumblr.com/",
+        "icon": "img/social/tumblr.svg",
     },
     "twitch": {
         "name": "Twitch",
         "url": "https://twitch.tv/%s",
+        "icon": "img/social/twitch.svg",
     },
     "twitter": {
         "name": "Twitter",
         "url": "https://twitter.com/%s",
+        "icon": "img/social/twitter.svg",
     },
     "youtube": {
         "name": "YouTube",

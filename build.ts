@@ -591,6 +591,7 @@ const touch = new CreateFolders([
     'css',
     'fonts',
     'img/help',
+    'img/social',
     'js/ruffle',
 ]);
 
@@ -628,6 +629,7 @@ const tasks: readonly AnyTask[] = [
         banner: {},
     }, {touch}),
     new CopyStaticFiles('img/help', {touch}),
+    new CopyStaticFiles('img/social', {touch}),
     new CopyUnversionedStaticFile('opensearch.xml', {touch}),
 
     // libraries

@@ -88,21 +88,27 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     <div id="user-contact" class="clear on-side">
       <h3>Contact</h3>
       <dl class="leaders">
-      $for name, value, label, _ in userinfo['user_links']:
-        <dt>
-          ${name}
-          $if label:
-            (${label})
-        </dt>
-        $ info = M.SOCIAL_SITES_BY_NAME.get(name, {})
-        $if value.startswith(('http://', 'https://')):
-          <dd><a href="${value}" rel="me nofollow ugc">${value}</a></dd>
-        $elif value.startswith('mailto:'):
-          <dd><a href="${value}">${value.partition('mailto:')[2]}</a></dd>
-        $elif info.get("url"):
-          <dd><a href="${info["url"] % value}" rel="me">${value}</a></dd>
-        $else:
-          <dd>${value}</dd>
+        $for name, value, label, _ in userinfo['user_links']:
+          $ info = M.SOCIAL_SITES_BY_NAME.get(name, {})
+          <dt>
+            <img
+              $if info.get("icon"):
+                src="${resource_path(info['icon'])}"
+              $else:
+                src="${resource_path('img/social/generic.svg')}"
+              class="contact-icon" alt="${label}" />
+            ${name}
+            $if label:
+              <span class="color-lighter">&ndash; ${label}</span>
+          </dt>
+          $if value.startswith(('http://', 'https://')):
+            <dd><a href="${value}" rel="me nofollow ugc">${value}</a></dd>
+          $elif value.startswith('mailto:'):
+            <dd><a href="${value}">${value.partition('mailto:')[2]}</a></dd>
+          $elif info.get("url"):
+            <dd><a href="${info["url"] % value}" rel="me">${value}</a></dd>
+          $else:
+            <dd>${value}</dd>
       </dl>
     </div>
 

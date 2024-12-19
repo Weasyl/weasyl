@@ -298,34 +298,31 @@ def database_session_cleanup_tween_factory(handler, registry):
     return database_session_cleanup_tween
 
 
-def _generate_preload_link() -> str:
-    """
-    Generates the `Link` header to preload resources needed on every webpage.
-    """
-    css_preload = [
-        '<' + item + '>; rel=preload; as=style' for item in [
-            d.get_resource_path('css/site.css'),
+# The value of the `Link` header that will be set in the `preload_tween_factory` function below.
+# Only constructed once on application load; not affected by `WEASYL_RELOAD_ASSETS`.
+_WEBPAGE_PRELOADS_LINK = ", ".join([
+    # CSS
+    *(
+        f"<{d.get_resource_path(item)}>;rel=preload;as=style" for item in [
+            "css/site.css",
         ]
-    ]
+    ),
 
-    js_preload = [
-        '<' + item + '>; rel=preload; as=script' for item in [
-            d.get_resource_path('js/jquery-2.2.4.min.js'),
-            d.get_resource_path('js/scripts.js'),
+    # JavaScript
+    *(
+        f"<{d.get_resource_path(item)}>;rel=preload;as=script" for item in [
+            "js/jquery-2.2.4.min.js",
+            "js/scripts.js",
         ]
-    ]
+    ),
 
-    esm_preload = [
-        '<' + item + '>; rel=modulepreload' for item in [
-            d.get_resource_path('js/main.js'),
+    # ES modules
+    *(
+        f"<{d.get_resource_path(item)}>;rel=modulepreload" for item in [
+            "js/main.js",
         ]
-    ]
-
-    return ", ".join(css_preload + js_preload + esm_preload)
-
-
-# part of the `Link` header that will be set in the `preload_tween_factory` function below
-_WEBPAGE_PRELOADS_LINK = _generate_preload_link()
+    ),
+])
 
 
 def preload_tween_factory(handler, registry):

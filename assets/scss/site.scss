@@ -1153,14 +1153,12 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 .tiny-footprint .item:nth-child(n+6),
 .small-footprint .item:nth-child(n+6),
-.medium-footprint .item:nth-child(n+12),
-.large-footprint .item:nth-child(n+28) {
+.medium-footprint .item:nth-child(n+12) {
     display: none;
 }
 .enhanced-thumbnails .tiny-footprint .item:nth-child(n+6),
 .enhanced-thumbnails .small-footprint .item:nth-child(n+6),
-.enhanced-thumbnails .medium-footprint .item:nth-child(n+12),
-.enhanced-thumbnails .large-footprint .item:nth-child(n+28) {
+.enhanced-thumbnails .medium-footprint .item:nth-child(n+12) {
     display: inline-block;
 }
 
@@ -1172,14 +1170,12 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     }
     .tiny-footprint .item:nth-child(n+2),
     .small-footprint .item:nth-child(n+4),
-    .medium-footprint .item:nth-child(n+8),
-    .large-footprint .item:nth-child(n+12) {
+    .medium-footprint .item:nth-child(n+8) {
         display: none;
     }
     .enhanced-thumbnails .tiny-footprint .item:nth-child(n+2),
     .enhanced-thumbnails .small-footprint .item:nth-child(n+4),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+8),
-    .enhanced-thumbnails .large-footprint .item:nth-child(n+12) {
+    .enhanced-thumbnails .medium-footprint .item:nth-child(n+8) {
         display: inline-block;
     }
 }
@@ -1188,14 +1184,12 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 @media (max-width: 767px) {
     .tiny-footprint .item:nth-child(n+3),
     .small-footprint .item:nth-child(n+5),
-    .medium-footprint .item:nth-child(n+10),
-    .large-footprint .item:nth-child(n+16) {
+    .medium-footprint .item:nth-child(n+10) {
         display: none;
     }
     .enhanced-thumbnails .tiny-footprint .item:nth-child(n+3),
     .enhanced-thumbnails .small-footprint .item:nth-child(n+5),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+10),
-    .enhanced-thumbnails .large-footprint .item:nth-child(n+16) {
+    .enhanced-thumbnails .medium-footprint .item:nth-child(n+10) {
         display: block;
     }
 }

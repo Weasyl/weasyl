@@ -70,12 +70,6 @@
                 } else {
                     maxRows = 2;
                 }
-            } else if (container.classList.contains('large-footprint')) {
-                if (window.matchMedia(thumbnailOptions.breakpoint).matches) {
-                    maxRows = 6;
-                } else {
-                    maxRows = 3;
-                }
             }
 
             while (items.length > 0) {

@@ -659,10 +659,10 @@
 
         input.parentNode.insertBefore(preview, input.nextSibling);
 
-        input.addEventListener('input', updateMarkdownPreviewListener, false);
+        input.addEventListener('input', updateMarkdownPreviewListener);
 
         if (input.value === '') {
-            input.addEventListener('focus', loadMarked, false);
+            input.addEventListener('focus', loadMarked);
         } else {
             updateMarkdownPreview(input);
         }
@@ -832,7 +832,7 @@
                 e.stopPropagation();
 
                 target.textContent = 'Reply';
-                target.removeEventListener('click', cancelReply, false);
+                target.removeEventListener('click', cancelReply);
 
                 if (children.childNodes.length === 1) {
                     children.parentNode.removeChild(children);
@@ -845,7 +845,7 @@
 
             var handleShortcuts = function handleShortcuts(e) {
                 if (e.keyCode === 27 && !contentField.value) {
-                    contentField.removeEventListener('keydown', handleShortcuts, false);
+                    contentField.removeEventListener('keydown', handleShortcuts);
                     cancelReply(e);
                 } else if (e.keyCode === 13 && e.ctrlKey) {
                     e.preventDefault();
@@ -1004,8 +1004,8 @@
                     );
 
                     target.textContent = 'Reply';
-                    target.removeEventListener('click', cancelReply, false);
-                    contentField.removeEventListener('keydown', handleShortcuts, false);
+                    target.removeEventListener('click', cancelReply);
+                    contentField.removeEventListener('keydown', handleShortcuts);
 
                     newForm.style.display = 'none';
                     newForm.parentNode.insertBefore(newComment, newForm);
@@ -1018,13 +1018,13 @@
             };
 
             target.textContent = 'Cancel (esc)';
-            target.addEventListener('click', cancelReply, false);
-            contentField.addEventListener('keydown', handleShortcuts, false);
+            target.addEventListener('click', cancelReply);
+            contentField.addEventListener('keydown', handleShortcuts);
 
             newForm.addEventListener('submit', function (e) {
                 submitComment();
                 e.preventDefault();
-            }, false);
+            });
 
             e.preventDefault();
 
@@ -1033,7 +1033,7 @@
             $(contentField).autosize();
             contentField.focus();
         }
-    }, false);
+    });
 
     function addLocationChangerForKeyCodeAndHref(keyCode, href) {
         document.addEventListener('keydown', function (e) {
@@ -1075,7 +1075,7 @@
                 e.preventDefault();
                 rootCommentForm.submit();
             }
-        }, false);
+        });
 
         // 'c' to focus comment box
         document.addEventListener('keydown', function (e) {
@@ -1205,7 +1205,7 @@
             favoriteButton.classList.add('pending');
 
             e.preventDefault();
-        }, false);
+        });
     })();
 
     // Home tabs

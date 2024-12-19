@@ -57,8 +57,12 @@ def control_editprofile_put_(request):
         set_stream="", stream_url="", stream_text="", show_age="",
         gender="", country="", profile_display="", site_names=[], site_labels=[], site_values=[])
 
-    if len(form.site_names) != len(form.site_labels) != len(form.site_values):
+    if len(form.site_names) != len(form.site_values):
         raise WeasylError('Unexpected')
+
+    # Keep form compatibility with a pre-labels version of this page.
+    if len(form.site_labels) != len(form.site_names):
+        form.site_labels = [''] * len(form.site_names)
 
     p = orm.Profile()
     p.full_name = form.full_name

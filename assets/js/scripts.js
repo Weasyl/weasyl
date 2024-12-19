@@ -1038,26 +1038,28 @@
         }
     });
 
-    function addLocationChangerForKeyAndHref(key, href) {
-        document.addEventListener('keydown', function (e) {
-            if (hasModifierKeys(e) ||
-                    e.target.nodeName === 'INPUT' || e.target.nodeName === 'TEXTAREA') {
-                return;
-            }
+    var canTriggerShortcut = e =>
+        ['INPUT', 'SELECT', 'TEXTAREA'].indexOf(e.target.nodeName) === -1;
 
-            if (e.key === key) {
-                document.location = href;
+    function addShortcut(key, action) {
+        document.addEventListener('keydown', function (e) {
+            if (e.key === key && !hasModifierKeys(e) && canTriggerShortcut(e)) {
+                e.preventDefault();
+                action();
             }
         });
     }
 
+    var clickShortcut = element => element.click.bind(element);
+    var focusShortcut = element => element.focus.bind(element);
+
     (function () {
         var folderNavPrev, folderNavNext;
         if ((folderNavPrev = document.getElementById('folder-nav-prev'))) {
-            addLocationChangerForKeyAndHref('ArrowLeft', folderNavPrev.href);
+            addShortcut('ArrowLeft', clickShortcut(folderNavPrev));
         }
         if ((folderNavNext = document.getElementById('folder-nav-next'))) {
-            addLocationChangerForKeyAndHref('ArrowRight', folderNavNext.href);
+            addShortcut('ArrowRight', clickShortcut(folderNavNext));
         }
 
         if (!document.getElementsByClassName) {
@@ -1081,24 +1083,12 @@
         });
 
         // 'c' to focus comment box
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'c' && e.target === document.body &&
-                !hasModifierKeys(e)) {
-                e.preventDefault();
-                rootCommentBox.focus();
-            }
-        });
+        addShortcut('c', focusShortcut(rootCommentBox));
 
         // 'f' to favorite
-        var faveForm = document.getElementById('submission-favorite-form');
-        if (faveForm) {
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'f' && e.target === document.body &&
-                    !hasModifierKeys(e)) {
-                    e.preventDefault();
-                    faveForm.getElementsByTagName('button')[0].click();
-                }
-            });
+        var faveButton = document.querySelector('#submission-favorite-form button');
+        if (faveButton) {
+            addShortcut('f', clickShortcut(faveButton));
         }
 
     })();

@@ -3,6 +3,16 @@
         padding-top: 1em;
     }
 
+    .site-label input:placeholder-shown {
+        background-color: #ddd;
+        border: none;
+        box-shadow: none;
+    }
+
+    tr:last-child .site-label input:placeholder-shown {
+        box-shadow: 0 4px 0 #336979;
+    }
+
     @media (min-width: 45em) {
         .column {
             width: 48%;

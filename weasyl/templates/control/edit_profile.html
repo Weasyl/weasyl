@@ -132,7 +132,7 @@ $code:
         <thead>
           <tr>
             <th class="site-name">Site</th>
-            <th class="site-label">Label</th>
+            <th class="site-label">Label (optional)</th>
             <th>Username or URL</th>
           </tr>
         </thead>
@@ -140,12 +140,12 @@ $code:
           $for site, value, label, _ in userinfo['user_links']:
             <tr>
               <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site" list="known-social-sites"></td>
-              <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="Label (optional)"></td>
+              <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="✏️ Label"></td>
               <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
             </tr>
           <tr id="new-social-group">
             <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site" list="known-social-sites"></td>
-            <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="Label (optional)"></td>
+            <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="✏️ Label"></td>
             <td><input type="text" class="input" name="site_values" placeholder="Username or URL"></td>
           </tr>
         </tbody>

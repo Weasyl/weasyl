@@ -20,7 +20,7 @@ $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
         code. You may re-enable 2FA immediately afterwards, if you desire.
       </p>
     <label for="tfa-response">Time-based Token or Recovery Code</label>
-    <input type="text" id="tfa-response" maxlength="24" class="input" name="tfaresponse" placeholder="012345" autofocus="autofocus" autocomplete="off" required />
+    <input type="text" id="tfa-response" maxlength="24" class="input" name="tfaresponse" placeholder="012345" autofocus="autofocus" autocomplete="one-time-code" required />
 
     <div style="padding-top: 1em;">
       <button class="button positive">Sign In</button>

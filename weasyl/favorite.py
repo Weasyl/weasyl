@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Literal
+
 from weasyl import collection
 from weasyl import define as d
 from weasyl import frienduser
@@ -272,26 +276,17 @@ def check(userid, submitid=None, charid=None, journalid=None):
     )
 
 
-def count(id, contenttype='submission'):
-    """Fetches the count of favorites on some content.
-
-    Args:
-        id (int): ID of the content to get the count for.
-        contenttype (str): Type of content to fetch. It accepts one of the following:
-            submission, journal, or character
-
-    Returns:
-        An int with the number of favorites.
+def count(id: int, content_type: Literal["journal", "character"]) -> int:
     """
-
-    if contenttype == 'submission':
-        querytype = 's'
-    elif contenttype == 'journal':
-        querytype = 'j'
-    elif contenttype == 'character':
-        querytype = 'f'
-    else:
-        raise ValueError("type should be one of 'submission', 'journal', or 'character'")
+    Fetches the count of favorites on some content.
+    """
+    match content_type:
+        case "journal":
+            querytype = "j"
+        case "character":
+            querytype = "f"
+        case _:  # pragma: no cover
+            raise ValueError("type must be 'journal' or 'character'")
 
     return d.engine.scalar(
         "SELECT COUNT(*) FROM favorite WHERE targetid = %s AND type = %s",

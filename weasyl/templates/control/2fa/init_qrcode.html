@@ -25,7 +25,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 2", "Two-Factor Authenti
     </p>
 
     <label for="tfa-init-verify">Enter 2FA token</label>
-    <input type="text" id="tfa-init-verify" maxlength="7" name="tfaresponse" placeholder="012345" autocomplete="off" required />
+    <input type="text" id="tfa-init-verify" maxlength="7" name="tfaresponse" placeholder="012345" autocomplete="one-time-code" required inputmode="numeric" />
 
     <div style="padding-top: 1em;">
       <a class="button negative" href="/control/2fa/status">Cancel</a>

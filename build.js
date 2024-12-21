@@ -11,15 +11,6 @@ const postcss = require('postcss');
 const ASSETS = path.join(__dirname, 'assets');
 const BUILD = path.join(__dirname, 'build');
 
-const autoprefixerOptions = {
-    overrideBrowserslist: [
-        'last 2 versions',
-        'Firefox ESR',
-        'Android >= 8',
-        'not dead',
-    ],
-};
-
 const terminate = error => {
     process.nextTick(() => {
         throw error;
@@ -170,7 +161,7 @@ const sasscFile = async (relativeInputPath, relativeOutputPath, touch, copyImage
 
     const css = await sassc(inputPath);
 
-    const result = postcss([autoprefixer(autoprefixerOptions)]).process(css, {
+    const result = postcss([autoprefixer()]).process(css, {
         from: undefined,
         map: false,
     });

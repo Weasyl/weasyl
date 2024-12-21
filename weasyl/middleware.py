@@ -11,6 +11,7 @@ from prometheus_client import Histogram
 from pyramid.decorator import reify
 from pyramid.httpexceptions import (
     HTTPBadRequest,
+    HTTPServiceUnavailable,
     HTTPUnauthorized,
 )
 from pyramid.request import Request as Request_
@@ -297,52 +298,47 @@ def database_session_cleanup_tween_factory(handler, registry):
     return database_session_cleanup_tween
 
 
-def _generate_http2_server_push_headers():
-    """
-    Generates the Link headers to load HTTP/2 Server Push resources which are needed on each pageload. Written
-    as a separate function to only execute this code a single time, since we just need to generate this each
-    time the code is relaunched (e.g., each time the web workers are kicked to a new version of the code).
-
-    A component of ``http2_server_push_tween_factory``
-    :return: An ASCII encoded string to be loaded into the Link header set inside of ``http2_server_push_tween_factory``
-    """
-    css_preload = [
-        '<' + item + '>; rel=preload; as=style' for item in [
-            d.get_resource_path('css/site.css'),
+# The value of the `Link` header that will be set in the `preload_tween_factory` function below.
+# Only constructed once on application load; not affected by `WEASYL_RELOAD_ASSETS`.
+_WEBPAGE_PRELOADS_LINK = ", ".join([
+    # CSS
+    *(
+        f"<{d.get_resource_path(item)}>;rel=preload;as=style" for item in [
+            "css/site.css",
         ]
-    ]
+    ),
 
-    js_preload = [
-        '<' + item + '>; rel=preload; as=script' for item in [
-            d.get_resource_path('js/jquery-2.2.4.min.js'),
-            d.get_resource_path('js/scripts.js'),
+    # JavaScript
+    *(
+        f"<{d.get_resource_path(item)}>;rel=preload;as=script" for item in [
+            "js/jquery-2.2.4.min.js",
+            "js/scripts.js",
         ]
-    ]
+    ),
 
-    esm_preload = [
-        '<' + item + '>; rel=modulepreload' for item in [
-            d.get_resource_path('js/main.js'),
+    # ES modules
+    *(
+        f"<{d.get_resource_path(item)}>;rel=modulepreload" for item in [
+            "js/main.js",
         ]
-    ]
-
-    return ", ".join(css_preload + js_preload + esm_preload)
-
-
-# Part of the `Link` header that will be set in the `http2_server_push_tween_factory` function, below
-HTTP2_LINK_HEADER_PRELOADS = _generate_http2_server_push_headers()
+    ),
+])
 
 
-def http2_server_push_tween_factory(handler, registry):
+def preload_tween_factory(handler, registry):
     """
-    Add the 'Link' header to outgoing responses to HTTP/2 Server Push render-blocking resources
+    Add the `Link` header to outgoing responses to preload resources needed on every webpage, which is served ahead of time by Cloudflare as an HTTP 103 Early Hints message.
     """
-    def http2_server_push(request):
+    def preload_tween(request):
         resp = handler(request)
 
-        # Combined HTTP/2 headers indicating which resources to server push
-        resp.headers['Link'] = HTTP2_LINK_HEADER_PRELOADS
+        content_type = resp.headers.get('Content-Type')
+
+        if content_type is not None and content_type.startswith("text/html"):
+            resp.headers['Link'] = _WEBPAGE_PRELOADS_LINK
+
         return resp
-    return http2_server_push
+    return preload_tween
 
 
 # Properties and methods to enhance the pyramid `request`.
@@ -369,11 +365,7 @@ def userid_request_property(request):
         return userid
 
     elif authorization:
-        from weasyl.oauth2 import get_userid_from_authorization
-        userid = get_userid_from_authorization(request)
-        if not userid:
-            raise HTTPUnauthorized(www_authenticate=('Bearer', 'realm="Weasyl" error="invalid_token"'))
-        return userid
+        raise HTTPServiceUnavailable()
 
     else:
         sess = request.weasyl_session

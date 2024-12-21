@@ -11,10 +11,10 @@ $def with (error, referer, login_page)
 
   <form class="form" name="signin" action="/signin" method="post">
     <label for="login-user">Username</label>
-    <input type="text" id="login-user" class="input" name="username" placeholder="Username"$:{" autofocus" if login_page else ""} />
+    <input type="text" id="login-user" class="input" name="username" placeholder="Username"$:{" autofocus" if login_page else ""} autocomplete="username" required />
 
     <label for="login-pass">Password</label>
-    <input type="password" id="login-pass" class="input" name="password" placeholder="Password" />
+    <input type="password" id="login-pass" class="input" name="password" placeholder="Password" autocomplete="current-password" required />
 
     <label id="login-sfw" class="input-checkbox">
       <input type="checkbox" name="sfwmode" value="sfw" /> Sign in using SFW mode

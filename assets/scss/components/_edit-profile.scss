@@ -3,6 +3,14 @@
         padding-top: 1em;
     }
 
+    .contact-editor {
+        margin-top: 2em;
+    }
+
+    .remove-contact {
+        width: 3.5em;
+    }
+
     .site-label input:placeholder-shown {
         background-color: #ddd;
         border: none;
@@ -86,7 +94,7 @@
         }
 
         .contact-editor {
-            margin: 0 auto;
+            margin: 2em auto 0;
             width: 40em;
         }
     }

@@ -123,10 +123,12 @@ $code:
         URL or username to the second blank. You can use <tt>http</tt>,
         <tt>https</tt>, and <tt>mailto</tt> URLs.
       </p>
-      <p style="margin-bottom: 2em">
-        To delete an entry, just remove either the site field or URL field, and
-        ‘Save’.
-      </p>
+      <noscript>
+        <p>
+          To delete an entry, just remove either the site field or URL field, and
+          ‘Save’.
+        </p>
+      </noscript>
 
       <table class="contact-editor">
         <thead>
@@ -134,6 +136,7 @@ $code:
             <th class="site-name">Site</th>
             <th class="site-label">Label (optional)</th>
             <th>Username or URL</th>
+            <th class="remove-contact" hidden>🗑</th>
           </tr>
         </thead>
         <tbody>
@@ -142,11 +145,13 @@ $code:
               <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site" list="known-social-sites"></td>
               <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="✏️ Label"></td>
               <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
+              <td class="remove-contact" hidden><button class="button negative" type="button">🗑</button></td>
             </tr>
           <tr id="new-social-group">
             <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site" list="known-social-sites"></td>
             <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="✏️ Label"></td>
             <td><input type="text" class="input" name="site_values" placeholder="Username or URL"></td>
+            <td class="remove-contact" hidden><button class="button negative" type="button">🗑</button></td>
           </tr>
         </tbody>
       </table>
@@ -164,3 +169,5 @@ $code:
 
   </form>
 </div>
+
+<script type="module" src="${resource_path('js/edit-profile.js')}" async></script>

@@ -618,6 +618,7 @@ const tasks: readonly AnyTask[] = [
     new Sass({from: 'scss/signup.scss', to: 'css/signup.css'}, {touch, images}),
     new EsbuildFiles(['js/scripts.js'], {}, {touch}),
     new EsbuildFiles([
+        'js/edit-profile.js',
         'js/main.js',
         'js/message-list.js',
         'js/tags-edit.js',

@@ -253,24 +253,6 @@ import autosize_ from 'autosize';
         });
     });
 
-    var newSocialGroup = document.getElementById('new-social-group');
-
-    function addNewSocialGroupIfNeeded() {
-        if (this.children[0].children[0].value || this.children[1].children[0].value) {
-            newSocialGroup = this.cloneNode(true);
-            newSocialGroup.children[0].children[0].value = newSocialGroup.children[1].children[0].value = '';
-            this.insertAdjacentElement('afterend', newSocialGroup);
-            this.removeEventListener('input', addNewSocialGroupIfNeeded);
-            newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
-        }
-    }
-
-    if (newSocialGroup) {
-        newSocialGroup.removeAttribute('id');
-        newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
-        addNewSocialGroupIfNeeded.call(newSocialGroup);
-    }
-
     var reportButtons = $('#report_buttons .enableable');
     var reportClosureWarning = $('#report-closure-warning');
     var noteTitle = $('#note-title');

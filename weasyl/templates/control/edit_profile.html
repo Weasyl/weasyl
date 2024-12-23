@@ -133,7 +133,7 @@ $code:
       <table class="contact-editor">
         <thead>
           <tr>
-            <th class="site-name">Site</th>
+            <th class="site-name">Site name</th>
             <th class="site-label">Label (optional)</th>
             <th>Username or URL</th>
             <th class="remove-contact" hidden>🗑</th>
@@ -142,13 +142,13 @@ $code:
         <tbody>
           $for site, value, label, _ in userinfo['user_links']:
             <tr>
-              <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site" list="known-social-sites"></td>
+              <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site name" list="known-social-sites"></td>
               <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="✏️ Label"></td>
               <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
               <td class="remove-contact" hidden><button class="button negative" type="button">🗑</button></td>
             </tr>
           <tr id="new-social-group">
-            <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site" list="known-social-sites"></td>
+            <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site name" list="known-social-sites"></td>
             <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="✏️ Label"></td>
             <td><input type="text" class="input" name="site_values" placeholder="Username or URL"></td>
             <td class="remove-contact" hidden><button class="button negative" type="button">🗑</button></td>

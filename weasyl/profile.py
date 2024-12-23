@@ -554,9 +554,18 @@ def edit_userinfo(userid, form):
     for site_name, site_label, site_value in zip(form.site_names, form.site_labels, form.site_values):
         if not site_name or not site_value:
             continue
+
         # Turn whitespace-only labels into NULLs.
         if not site_label.strip():
             site_label = None
+
+        if (
+            (info := m.SOCIAL_SITES_BY_NAME.get(site_name))
+            and 'extract' in info
+            and (match := info['extract'].search(site_value))
+        ):
+            site_value = match.group(1)
+
         link_types.append(site_name)
         link_values.append(site_value)
         link_labels.append(site_label)

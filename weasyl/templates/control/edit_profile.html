@@ -107,8 +107,10 @@ $code:
       <h3>Contact and Social Media</h3>
       <p>
         For frequently used social media sites
-        $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site and not site.get('hidden', False))
-        ($:{', '.join('<strong>%s</strong>' % site for site in sorted(sites, key=lambda s: s.lower()))}),
+        <noscript>
+          $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site and not site.get('hidden', False))
+          ($:{', '.join('<strong>%s</strong>' % site for site in sorted(sites, key=lambda s: s.lower()))}),
+        </noscript>
         fill in the site as displayed, and your username in the second blank.
         Weasyl will do the rest.
       </p>

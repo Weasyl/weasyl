@@ -49,8 +49,11 @@ function addNewSocialGroupIfNeeded() {
             element.value = '';
         });
 
-        newSocialGroup.querySelector('input[name="site_names"]')
-            .addEventListener('input', checkSuspiciousSiteName);
+        newSocialGroup.querySelector('div[popover]').remove();
+
+        const newSiteNameInput = newSocialGroup.querySelector('input[name="site_names"]');
+        newSiteNameInput.setAttribute('list', 'known-social-sites');
+        newSiteNameInput.addEventListener('input', checkSuspiciousSiteName);
 
         const removeContact = this.querySelector('.remove-contact');
         removeContact.hidden = false;

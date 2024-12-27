@@ -34,7 +34,7 @@ class Combobox extends HTMLInputElement {
 
         this.#popover.addEventListener('toggle', event => {
             this.ariaExpanded = event.newState === 'open';
-        })
+        });
 
         for (const option of this.list.children) {
             const item = document.createElement('li');
@@ -134,7 +134,7 @@ class Combobox extends HTMLInputElement {
                 // ArrowRight: already handled by input element
                 // ArrowLeft: already handled by input element
             }
-        })
+        });
 
         this.#update(false);
         this.style.transition = '';

@@ -25,6 +25,7 @@ function markEntryForRemoval() {
     });
 
     this.textContent = '🔄';
+    this.ariaLabel = 'Undo';
     this.className.replace('negative', 'positive');
     this.removeEventListener('click', markEntryForRemoval);
     this.addEventListener('click', unmarkEntryForRemoval);
@@ -35,7 +36,8 @@ function unmarkEntryForRemoval() {
         element.disabled = false;
     });
 
-    this.textContent = '🗑';
+    this.textContent = '❌';
+    this.ariaLabel = 'Remove';
     this.className.replace('positive', 'negative');
     this.removeEventListener('click', unmarkEntryForRemoval);
     this.addEventListener('click', markEntryForRemoval);
@@ -68,7 +70,9 @@ function addNewSocialGroupIfNeeded() {
 
 newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
 
-document.querySelectorAll('tr:not(#new-social-group) .remove-contact').forEach(element => {
+document.querySelector('th.remove-contact').hidden = false;
+
+document.querySelectorAll('tr:not(#new-social-group) td.remove-contact').forEach(element => {
     element.hidden = false;
     element.firstChild.addEventListener('click', markEntryForRemoval);
 });

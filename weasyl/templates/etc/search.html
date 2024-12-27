@@ -89,7 +89,7 @@ $code:
           <p style="text-align: center; padding:1.4em 0;">
             Your search terms are too broad. Only the first 100 results will be displayed.
           </p>
-        <ul class="thumbnail-grid sectioned">
+        <ul class="thumbnail-grid">
           $for index, result in enumerate(results):
             $:{_GRID_ITEM(result, lazy_load=index >= 10)}
         </ul>

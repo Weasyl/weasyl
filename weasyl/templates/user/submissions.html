@@ -10,10 +10,8 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     $ username = LOGIN(profile['username'])
 
     $ div_class = ""
-    $ grid_class = "thumbnail-grid"
     $if(folders):
       $ div_class = "sectioned-main clear"
-      $ grid_class = "thumbnail-grid sectioned"
       <div class="content sectioned-sidebar">
         <h3>Folders</h3>
         $for i in folders:
@@ -24,7 +22,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
     $if result.query:
       <div class="${div_class}">
-        <ul class="${grid_class}">
+        <ul class="thumbnail-grid">
           $for index, item in enumerate(result.query):
             $:{_GRID_ITEM(item, include_byline=False, lazy_load=index >= 10)}
         </ul>

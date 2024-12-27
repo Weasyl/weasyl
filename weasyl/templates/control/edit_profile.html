@@ -144,13 +144,13 @@ $code:
         <tbody>
           $for site, value, label, _ in userinfo['user_links']:
             <tr>
-              <td class="site-name"><input type="text" class="input" name="site_names" value="${site}" placeholder="Site name" list="known-social-sites"></td>
+              <td class="site-name"><input is="weasyl-combobox" type="text" class="input" name="site_names" value="${site}" placeholder="Site name" list="known-social-sites"></td>
               <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="✏️ Label"></td>
               <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL"></td>
               <td class="remove-contact" hidden><button class="button negative" type="button">🗑</button></td>
             </tr>
           <tr id="new-social-group">
-            <td class="site-name"><input type="text" class="input" name="site_names" placeholder="Site name" list="known-social-sites"></td>
+            <td class="site-name"><input is="weasyl-combobox" type="text" class="input" name="site_names" placeholder="Site name" list="known-social-sites"></td>
             <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="✏️ Label"></td>
             <td><input type="text" class="input" name="site_values" placeholder="Username or URL"></td>
             <td class="remove-contact" hidden><button class="button negative" type="button">🗑</button></td>
@@ -158,10 +158,13 @@ $code:
         </tbody>
       </table>
       $# This is used for the auto-completion.
-      <datalist id="known-social-sites">
+      <datalist id="known-social-sites" data-default-img-src="${resource_path('img/social/generic.svg')}">
         $for site in M.SOCIAL_SITES.values():
           $if not site.get('hidden'):
-            <option value="${site['name']}"></option>
+            <option value="${site['name']}"
+              $if site.get("icon"):
+                data-img-src="${resource_path(site['icon'])}"
+            ></option>
       </datalist>
     </div>
 

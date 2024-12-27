@@ -1,11 +1,13 @@
 class Combobox extends HTMLInputElement {
     #list;
-    #popover;
+    #popover = document.createElement('div');
+    #previousLeaveX = 0;
+    #previousLeaveY = 0;
+    #previousOverX = 0;
+    #previousOverY = 0;
 
     constructor() {
         super();
-
-        this.#popover = document.createElement('div');
     }
 
     connectedCallback() {
@@ -25,6 +27,15 @@ class Combobox extends HTMLInputElement {
         const list = document.createElement('ul');
         this.#popover.appendChild(list);
 
+        this.role = 'combobox';
+        this.ariaControlsElements = [ this.#popover ];
+        this.ariaAutoComplete = 'list';
+        this.#popover.role = 'listbox';
+
+        this.#popover.addEventListener('toggle', event => {
+            this.ariaExpanded = event.newState === 'open';
+        })
+
         for (const option of this.list.children) {
             const item = document.createElement('li');
 
@@ -32,11 +43,51 @@ class Combobox extends HTMLInputElement {
             icon.src = option.dataset.imgSrc ?? this.list.dataset.defaultImgSrc;
             item.append(icon, option.value);
 
+            item.ariaSelected = false;
+
             item.addEventListener('click', event => {
                 this.value = item.innerText;
 
                 // Make sure a new, empty contact link entry always gets added.
                 this.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            item.addEventListener('mouseleave', event => {
+                if (event.screenX === this.#previousLeaveX && event.screenY === this.#previousLeaveY) {
+                    return;
+                }
+
+                this.#previousLeaveX = event.screenX;
+                this.#previousLeaveY = event.screenY;
+
+                item.ariaSelected = false;
+                this.#popover.querySelector('.focus')?.classList.remove('focus');
+                item.classList.remove('focus');
+            });
+
+            item.addEventListener('mouseover', event => {
+                if (event.screenX === this.#previousOverX && event.screenY === this.#previousOverY) {
+                    return;
+                }
+
+                this.#previousOverX = event.screenX;
+                this.#previousOverY = event.screenY;
+
+                item.ariaSelected = true;
+                this.#popover.querySelector('.focus')?.classList.remove('focus');
+                item.classList.add('focus');
+            });
+
+            item.addEventListener('blur', event => {
+                this.ariaActiveDescendantElement = null;
+                this.#popover.querySelector('.focus')?.classList.remove('focus');
+                item.classList.remove('focus');
+            });
+
+            item.addEventListener('focus', event => {
+                this.ariaActiveDescendantElement = item;
+                this.#popover.querySelector('.focus')?.classList.remove('focus');
+                item.classList.add('focus');
             });
 
             list.appendChild(item);
@@ -50,6 +101,40 @@ class Combobox extends HTMLInputElement {
                 this.#update();
             });
         }
+
+        this.addEventListener('keydown', event => {
+            const focus = this.#popover.querySelector('.focus');
+            const firstOption = this.#popover.querySelector('li');
+
+            switch (event.key) {
+                case 'Enter':
+                    if (focus) {
+                        focus.click();
+                        event.preventDefault();
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (focus && focus.nextElementSibling) {
+                        focus.classList.remove('focus');
+                        focus.nextElementSibling.classList.add('focus');
+                        focus.nextElementSibling.scrollIntoView();
+                    } else if (!focus && firstOption) {
+                        firstOption.classList.add('focus');
+                        firstOption.scrollIntoView();
+                    }
+                    break;
+                case 'ArrowUp':
+                    if (focus && focus.previousElementSibling) {
+                        focus.classList.remove('focus');
+                        focus.previousElementSibling.classList.add('focus');
+                        focus.previousElementSibling.scrollIntoView();
+                    }
+                    break;
+                // Escape: already handled by popover
+                // ArrowRight: already handled by input element
+                // ArrowLeft: already handled by input element
+            }
+        })
 
         this.#update(false);
         this.style.transition = '';

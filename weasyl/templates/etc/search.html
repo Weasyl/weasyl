@@ -154,10 +154,10 @@ $code:
 
     $if results['char']:
       <h3 class="pad-left">Characters</h3>
-      <ul class="grid avatar-grid">
+      <ul class="thumbnail-grid medium-footprint">
         $for i in results['char']:
           $:{_GRID_ITEM(i)}
-        <li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
+        <li class="more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
       </ul>
     $else:
       There are no characters to display.

@@ -848,7 +848,6 @@ a:hover .icon-journals { background-position: -20px -60px; }
 a:hover .icon-messages { background-position: -20px -80px; }
 .icon-nav { background-position: 0 -100px; }
 a:hover .icon-nav { background-position: -20px -100px; }
-.icon-disclosure { background-position: 0 -120px; }
 
 .icon-star { background-position: 0 -140px; }
 a:hover .icon-star, button:hover .icon-star { background-position: -20px -140px; }
@@ -867,11 +866,11 @@ a:hover .icon-arrowDown, button:hover .icon-arrowDown { background-position: -20
 a:hover .icon-report, button:hover .icon-report { background-position: -20px -240px; }
 .active .icon-report { background-position: -40px -240px; }
 
-.icon-file { background-position: -40px 0; }
-.icon-lit { background-position: -40px -20px; }
-.ext-jpg .icon-file, .ext-png .icon-file, .ext-gif .icon-file { background-position: -40px -40px; }
-.icon-music, .ext-mp3 .icon-file { background-position: -40px -60px; }
-.icon-multi, .ext-swf .icon-file { background-position: -40px -80px; }
+%icon-disclosure { background-position: 0 -120px; }
+%icon-file { background-position: -40px 0; }
+%icon-lit { background-position: -40px -20px; }
+%icon-music { background-position: -40px -60px; }
+%icon-multi { background-position: -40px -80px; }
 
 .icon-status::after {
     content: "";

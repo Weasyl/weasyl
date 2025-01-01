@@ -1,6 +1,7 @@
 @import 'fonts/museo500';
 @import 'theme';
 @import 'reset';
+@import 'components/combobox';
 @import 'components/date-picker';
 @import 'components/edit-profile';
 @import 'components/option';
@@ -635,6 +636,14 @@ dl.leaders dt + dt {
 
 dl.leaders dd {
     text-align: right;
+}
+
+dl.leaders .contact-icon {
+    display: inline-block;
+    position: relative;
+    top: 0.125em;
+    height: 1em;
+    width: 1em;
 }
 
 dl + h4, #uc-info {

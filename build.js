@@ -260,6 +260,7 @@ const main = async () => {
         fs.promises.mkdir(path.join(BUILD, 'css'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'fonts'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'img', 'help'), {recursive: true}),
+        fs.promises.mkdir(path.join(BUILD, 'img', 'social'), {recursive: true}),
         fs.promises.mkdir(path.join(BUILD, 'js', 'ruffle'), {recursive: true}),
     ]);
 
@@ -282,6 +283,8 @@ const main = async () => {
         sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
         sasscFile('scss/mod.scss', 'css/mod.css', touch, copyImages),
         sasscFile('scss/signup.scss', 'css/signup.css', touch, copyImages),
+        esbuildFile('js/combobox.js', 'js/combobox.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/edit-profile.js', 'js/edit-profile.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
         esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/message-list.js', 'js/message-list.js', touch, PRIVATE_FIELDS_ESM),
@@ -293,6 +296,7 @@ const main = async () => {
         }),
         esbuildFile('js/signup.js', 'js/signup.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
+        copyStaticFiles('img/social', touch),
         copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,
 

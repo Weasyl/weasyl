@@ -42,6 +42,8 @@ This copies the sample configuration into the `config` volume, and only needs to
 ./wzl assets
 ```
 
+If the asset builder (`build.js`) was modified, run `./wzl build build-assets` before `./wzl assets`.
+
 
 ### Start Weasyl
 
@@ -84,6 +86,11 @@ To run only a specific module's tests, such as `weasyl.test.test_api`:
 ## Troubleshooting and getting help
 
 If you have questions or get stuck, you can try talking to Weasyl project members in the project’s [Gitter room](https://gitter.im/Weasyl/weasyl).
+
+
+### Website doesn't come up due to `PermissionError`
+
+If the website does not come up and `./wzl logs web` displays a stacktrace ending with `PermissionError: [Errno 13] Permission denied: '/weasyl/storage/prometheus/histogram_16.db'` (or similar), run `./wzl down` followed by `./wzl up -d`.
 
 
 ## Code of conduct

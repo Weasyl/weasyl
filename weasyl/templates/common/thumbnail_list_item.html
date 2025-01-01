@@ -1,30 +1,29 @@
 $def with (query, caption)
 
 <div class="thumbnail_list_item">
-  $if query['contype'] == 10:
-    <div class="item">
-      <label class="input-checkbox">
-        <input type="checkbox" name="submissions" value="${query['submitid']};${query['collectorid']}" />
+  <div class="item">
+    <label class="input-checkbox">
+      <input type="checkbox" name="submissions" value="${query['submitid']};${query['collectorid']}" />
 
-        <!-- thumbnail -->
-        <a href="/submission/${query['submitid']}/${SLUG(query['title'])}">
-          $ thumb = THUMB(query)
-          <img class="thumbnail_list_thumbnail" src="${thumb['display_url']}" alt="" />
-        </a>
+      <!-- thumbnail -->
+      <a href="/submission/${query['submitid']}/${SLUG(query['title'])}">
+        $ thumb = THUMB(query)
+        <img class="thumbnail_list_thumbnail" src="${thumb['display_url']}" alt="" />
+      </a>
 
-        <!-- caption -->
-        <a href="/submission/${query['submitid']}/${SLUG(query['title'])}">${query['title']}</a>
-        $if caption == "collection_requested":
-          requested by <a class="username" href="/~${LOGIN(query['username'])}">${query['collector']}</a>
+      <!-- caption -->
+      <a href="/submission/${query['submitid']}/${SLUG(query['title'])}">${query['title']}</a>
+      $if caption == "collection_requested":
+        requested by <a class="username" href="/~${LOGIN(query['username'])}">${query['collector']}</a>
+      $else:
+        submitted by <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
+        $if caption == "collection_pending":
+          and offered
         $else:
-          submitted by <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
-          $if caption == "collection_pending":
-            and offered
-          $else:
-            $# caption == "collection_accepted"
-            and collected
+          $# caption == "collection_accepted"
+          and collected
 
-        $:{LOCAL_TIME(query['unixtime'], 'on {date}')}
-      </label>
-    </div>
+      $:{LOCAL_TIME(query['unixtime'], 'on {date}')}
+    </label>
+  </div>
 </div>

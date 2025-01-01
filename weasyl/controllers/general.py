@@ -193,7 +193,8 @@ def site_update_(request):
 
 
 def popular_(request):
+    card_viewer = define.get_card_viewer()
     return Response(define.webpage(request.userid, 'etc/popular.html', [
-        list(itertools.islice(
+        card_viewer.get_cards(itertools.islice(
             index.filter_submissions(request.userid, submission.select_recently_popular(), incidence_limit=1), 66))
     ], title="Recently Popular"))

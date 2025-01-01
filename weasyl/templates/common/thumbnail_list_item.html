@@ -1,22 +1,18 @@
-$def with (query, caption)
+$def with (query, card, caption)
 
 <div class="thumbnail_list_item">
   <div class="item">
     <label class="input-checkbox">
       <input type="checkbox" name="submissions" value="${query['submitid']};${query['collectorid']}" />
 
-      <!-- thumbnail -->
-      <a href="/submission/${query['submitid']}/${SLUG(query['title'])}">
-        $ thumb = THUMB(query)
-        <img class="thumbnail_list_thumbnail" src="${thumb['display_url']}" alt="" />
-      </a>
+      <a href="${card.href}">
+        <img class="thumbnail_list_thumbnail" src="${card.thumbnail.files.fallback['display_url']}" alt="" />
 
-      <!-- caption -->
-      <a href="/submission/${query['submitid']}/${SLUG(query['title'])}">${query['title']}</a>
+        ${card.caption}</a>
       $if caption == "collection_requested":
-        requested by <a class="username" href="/~${LOGIN(query['username'])}">${query['collector']}</a>
+        requested by <a class="username" href="/~${LOGIN(query['collector'])}">${query['collector']}</a>
       $else:
-        submitted by <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
+        submitted by <a class="username" href="/~${LOGIN(card.username)}">${card.username}</a>
         $if caption == "collection_pending":
           and offered
         $else:

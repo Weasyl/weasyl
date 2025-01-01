@@ -1,87 +1,47 @@
-$def with (query, *, notifications=False, include_byline=True, lazy_load=True)
+$def with (card, *, welcomeid=None, include_byline=True, lazy_load=True)
 $code:
-  contype = query['contype']
-  rating = query['rating']
-  username = query['username']
-
-  if contype in (30, 50):
-    width = "120"
-    avatar = query['user_media']['avatar'][0]
-  else:
-    thumb = THUMB(query)
-    webp_thumb = WEBP_THUMB(query)
-
-    if 'attributes' in thumb:
-      width = thumb['attributes']['width']
-      height = thumb['attributes']['height']
-    else:
-      width = height = ''
-
-    display_url = thumb['display_url']
-
-    if display_url == resource_path('img/default-visual.png'):
-      subtype = query.get('subtype', 0)
-
-      if 2000 <= subtype < 3000:
-        display_url = resource_path('img/default-lit.png')
-      elif 3000 <= subtype < 3040:
-        display_url = resource_path('img/default-music.png')
-      elif 3040 <= subtype < 4000:
-        display_url = resource_path('img/default-multi.png')
-
-  if contype == 20:
-    href = "/character/%d/%s" % (query['charid'], SLUG(query['title']))
-  elif contype == 30:
-    href = "/journal/%d/%s" % (query['journalid'], SLUG(query['title']))
-  elif contype == 40:
-    href = "/submission/%d/%s" % (query['submitid'], SLUG(query['title']))
-  elif contype == 50:
-    href = "/~%s" % (LOGIN(username),)
-  else:
-    href = "/~%s/submissions/%d/%s" % (LOGIN(username), query['submitid'], SLUG(query['title']))
-
-  title = query['title']  # full name, if user
-  caption = username if contype == 50 else SUMMARIZE(title, 52)
+  if card.thumbnail is not None:
+    thumb_url = card.thumbnail.files.fallback['display_url']
 
 <li class="item">
-  $if notifications:
+  $if welcomeid is not None:
     <label class="input-checkbox">
 
   <figure class="thumb$:{'' if include_byline else ' thumb-no-byline'}">
-    <a class="thumb-bounds" data-width="${width}" href="${href}">
-      $if rating == R.MATURE.code:
+    <a class="thumb-bounds" href="${card.href}">
+      $if card.rating == R.MATURE.code:
         <span class="rating mature">The following submission is rated Mature:</span>
-      $elif rating == R.EXPLICIT.code:
+      $elif card.rating == R.EXPLICIT.code:
         <span class="rating explicit">The following submission is rated Explicit:</span>
 
-      $if contype in (30, 50):
-        <img src="${avatar['display_url']}" alt="avatar" />
-      $elif webp_thumb is not None:
+      $if card.contype in [30, 50]:
+        <img src="${card.avatar.file['display_url']}" alt="avatar" />
+      $elif card.thumbnail.files.webp is not None:
         <picture>
-          <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-          <img src="${display_url}" alt="" width="${width}" height="${height}"$:{' loading="lazy"' if lazy_load else ''} />
+          <source type="image/webp" srcset="${card.thumbnail.files.webp['display_url']}" />
+          <img src="${thumb_url}" alt="" width="${card.thumbnail.width}" height="${card.thumbnail.height}"$:{' loading="lazy"' if lazy_load else ''} />
         </picture>
       $else:
-        <img src="${display_url}" alt="" width="${width}" height="${height}"$:{' loading="lazy"' if lazy_load else ''} />
+        <img src="${thumb_url}" alt="" width="${card.thumbnail.width}" height="${card.thumbnail.height}"$:{' loading="lazy"' if lazy_load else ''} />
     </a>
 
     <figcaption>
-      <h6 class="title" title="${title}"><a href="${href}">${caption}</a></h6>
+      <h6 class="title" title="${card.title}"><a href="${card.href}">${card.caption}</a></h6>
       $if include_byline:
         $code:
           byline_prefix = (
-            'collected by' if contype == 40 else
-            'character of' if contype == 20 else
+            'collected by' if card.contype == 40 else
+            'character of' if card.contype == 20 else
             'by'
           )
-        <p class="byline" title="$:{byline_prefix} ${username}">
+        <p class="byline" title="$:{byline_prefix} ${card.username}">
           <i>$:{byline_prefix}</i>
-          <a href="/~${LOGIN(username)}" class="username">${username}</a>
+          <a href="/~${LOGIN(card.username)}" class="username">${card.username}</a>
         </p>
     </figcaption>
   </figure>
 
-  $if notifications:
-    <input type="checkbox" name="remove" value="${query['welcomeid']}" class="checkbox" />
+  $if welcomeid is not None:
+    <input type="checkbox" name="remove" value="${welcomeid}" class="checkbox" />
     </label>
 </li>

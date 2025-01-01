@@ -118,14 +118,16 @@ def template_fields(userid):
     random.shuffle(critique)
     critique = list(itertools.islice(filter_submissions(userid, critique, incidence_limit=1), 11))
     critique.sort(key=lambda sub: sub['submitid'], reverse=True)
+    viewer = d.get_card_viewer()
 
-    return ret + (
+    return (
+        *map(viewer.get_cards, ret),
         # Recent site news update
         siteupdate.select_last(),
         # Recent critique submissions
-        critique,
+        viewer.get_cards(critique),
         # Currently streaming users
         profile.select_streaming_sample(userid),
         # Recently popular submissions
-        list(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 11)),
+        viewer.get_cards(itertools.islice(filter_submissions(userid, submission.select_recently_popular(), incidence_limit=1), 11)),
     )

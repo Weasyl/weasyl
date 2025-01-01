@@ -30,104 +30,7 @@
     var hasModifierKeys = e =>
         e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
 
-    // thumbnails: config
-    var thumbnailContainers = document.getElementsByClassName('thumbnail-grid'),
-        thumbnailOptions = {
-            minWidth: 125,  // minimum width per cell (should match min thumbnail width)
-            rowBasis: 250,  // row height basis (should match max thumbnail height)
-            itemGap: 8,     // common item padding
-            breakpoint: '(max-width: 29.9em)'
-        };
-
-    // thumbnails: thumbnail data-width attribute helper
-    function getWidthAttr(item) {
-        return Math.max(parseInt(item.getAttribute('data-width')), thumbnailOptions.minWidth) || thumbnailOptions.rowBasis;
-    }
-
-    // thumbnails: calculate layout
-    function calculateThumbnailLayout() {
-        forEach(thumbnailContainers, function (container) {
-            if (container.offsetWidth === 0 || container.offsetHeight === 0) {
-                return;
-            }
-            var items = Array.prototype.slice.call(container.getElementsByClassName('thumb-bounds'), 0),
-                containerWidth = container.clientWidth,
-                startHeight = Math.min(Math.floor(containerWidth / 1.65), thumbnailOptions.rowBasis),
-                thumbRatio = startHeight / thumbnailOptions.rowBasis,
-                maxRows = -1, rowCount = -1;
-
-            if (container.classList.contains('tiny-footprint')) {
-                maxRows = 1;
-            } else if (container.classList.contains('small-footprint')) {
-                if (window.matchMedia(thumbnailOptions.breakpoint).matches) {
-                    maxRows = 2;
-                } else {
-                    maxRows = 1;
-                }
-            } else if (container.classList.contains('medium-footprint')) {
-                if (window.matchMedia(thumbnailOptions.breakpoint).matches) {
-                    maxRows = 4;
-                } else {
-                    maxRows = 2;
-                }
-            }
-
-            while (items.length > 0) {
-                rowCount++;
-                if (rowCount === maxRows) {
-                    break;
-                }
-
-                var row = [],
-                    rowWidth = thumbnailOptions.itemGap,
-                    difference = 1;
-
-                // construct a row
-                while (rowWidth < containerWidth) {
-                    var item = items.shift();
-                    if (!item) {
-                        break;
-                    }
-                    rowWidth += getWidthAttr(item) * thumbRatio + thumbnailOptions.itemGap;
-                    row.push(item);
-                }
-
-                // fit row
-                if (rowWidth > containerWidth) {
-                    var totalGap = (row.length + 1) * thumbnailOptions.itemGap;
-                    difference = (containerWidth - totalGap) / (rowWidth - totalGap);
-                }
-                forEach(row, function (item) {
-                    var width = getWidthAttr(item) * thumbRatio * difference;
-                    var height = startHeight * difference;
-
-                    item.style.width = width + 'px';
-                    item.style.height = height + 'px';
-
-                    // reset on resize
-                    item.parentNode.parentNode.style.display = '';
-                });
-            }
-
-            // if any items did not get placed, hide them
-            forEach(items, function (item) {
-                item.parentNode.parentNode.style.display = 'none';
-            });
-        });
-    }
-
-
     $(document).ready(function () {
-        // thumbnails
-        // give enhanced layout to modern browsers
-        if ('classList' in document.createElement('_') && typeof window.matchMedia === 'function') {
-            if (thumbnailContainers.length > 0) {
-                calculateThumbnailLayout();
-                window.addEventListener('resize', calculateThumbnailLayout);
-            }
-            document.documentElement.classList.add('enhanced-thumbnails');
-        }
-
         // call appropriate functions and plugins
         $('textarea.expanding').autosize();
 
@@ -1229,8 +1132,6 @@
             currentPane = pane;
             this.classList.add('current');
             pane.classList.add('current');
-
-            calculateThumbnailLayout();
 
             try {
                 localStorage['home-tab'] = paneId;

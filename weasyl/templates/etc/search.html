@@ -9,6 +9,7 @@ $code:
     'journal': 'journalid',
     'user': 'userid',
   }
+  card_viewer = get_card_viewer()
 
 <div id="search-stage" class="stage clear">
 
@@ -89,9 +90,10 @@ $code:
           <p style="text-align: center; padding:1.4em 0;">
             Your search terms are too broad. Only the first 100 results will be displayed.
           </p>
-        <ul class="thumbnail-grid">
-          $for index, result in enumerate(results):
-            $:{_GRID_ITEM(result, lazy_load=index >= 10)}
+        $ cards = card_viewer.get_cards(results)
+        <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+          $for index, card in enumerate(cards):
+            $:{_GRID_ITEM(card, lazy_load=index >= 10)}
         </ul>
 
         <div style="padding-top: 1.4em;" class="pad-left pad-right">
@@ -119,9 +121,10 @@ $code:
     </div>
 
     $if results:
-      <ul class="thumbnail-grid">
-        $for index, result in enumerate(results):
-          $:{_GRID_ITEM(result, lazy_load=index >= 10)}
+      $ cards = card_viewer.get_cards(results)
+      <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+        $for index, card in enumerate(cards):
+          $:{_GRID_ITEM(card, lazy_load=index >= 10)}
       </ul>
 
       <div style="padding-top: 1.4em;" class="pad-left pad-right">
@@ -144,8 +147,9 @@ $code:
 
     $if results['submit']:
       <h3 class="pad-left">Submissions</h3>
-      <ul class="thumbnail-grid medium-footprint">
-        $for i in results['submit']:
+      $ cards = card_viewer.get_cards(results['submit'])
+      <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+        $for i in cards:
           $:{_GRID_ITEM(i, lazy_load=False)}
         <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
       </ul>
@@ -154,8 +158,9 @@ $code:
 
     $if results['char']:
       <h3 class="pad-left">Characters</h3>
-      <ul class="thumbnail-grid medium-footprint">
-        $for i in results['char']:
+      $ cards = card_viewer.get_cards(results['char'])
+      <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+        $for i in cards:
           $:{_GRID_ITEM(i)}
         <li class="more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
       </ul>
@@ -164,8 +169,9 @@ $code:
 
     $if results['journal']:
       <h3 class="pad-left">Journals</h3>
+      $ cards = card_viewer.get_cards(results['journal'])
       <ul class="grid avatar-grid">
-        $for i in results['journal']:
+        $for i in cards:
           $:{_GRID_ITEM(i)}
         <li class="clear more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></li>
       </ul>

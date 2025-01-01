@@ -415,25 +415,21 @@ a.bar {
     }
 }
 
+:root {
+    --content-pad-h: 16px;
+}
+
 .pad-left, .content, .page-title {
-    padding-left: 16px;
-    padding-left: 1rem;
+    padding-left: var(--content-pad-h);
 }
 
 .pad-right, .content, .stage a.more, .page-title {
-    padding-right: 16px;
-    padding-right: 1rem;
+    padding-right: var(--content-pad-h);
 }
 
 @media (min-width: 53em) {
-    .pad-left, .content, .page-title {
-        padding-left: 32px;
-        padding-left: 2rem;
-    }
-
-    .pad-right, .content, .stage a.more, .page-title {
-        padding-right: 32px;
-        padding-right: 2rem;
+    :root {
+        --content-pad-h: 32px;
     }
 }
 
@@ -910,7 +906,8 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     text-align: center;
 }
 
-.grid-unit, .avatar-grid > li, .avatar-grid > div {
+// TODO: `.avatar-grid > div` is not a thing and every `.grid-unit` is already `.avatar-grid > li`
+.grid-unit, .avatar-grid > li {
     box-sizing: border-box;
     display: inline-block;
     width: 100%;
@@ -922,7 +919,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     text-align: left;
 }
 
-.avatar-grid > div, .avatar-grid > li {
+.avatar-grid > li {
     width: 115px;
     max-width: 33.3%;
     position: relative;
@@ -992,7 +989,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 /* ------------------------------------ =thumbnails -- */
 
+$thumbnail-grid-max-height: 250px;  // `ROW_BASIS` in thumbnail-grid.js
+
 .thumbnail-grid {
+    contain: inline-size layout style;
+    container-type: inline-size;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -1005,14 +1006,15 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     display: inline-block;
     vertical-align: bottom;
 
+    margin: 0 4px 8px 4px;
+
     // ensure that each row always has at least two thumbnails in the non-enhanced layout
     max-width: 43.5%;
     max-width: calc(50% - 12px);
-
-    margin: 0 4px 8px 4px;
 }
-.enhanced-thumbnails .thumbnail-grid .item {
-    max-width: 100%;
+.thumbnail-grid-enhanced .item {
+    // undo
+    max-width: none;
 }
 .thumbnail-grid .thumb {
     box-sizing: border-box;
@@ -1044,44 +1046,69 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .thumbnail-grid .title, .thumbnail-grid .byline {
     display: block;
     max-width: 100%;
-    overflow: hidden;
     white-space: nowrap;
-    text-overflow: ellipsis;
     line-height: 15px;
-    opacity: 0.6
+    opacity: 0.6;
 }
-.content .thumbnail-grid .byline {
-    opacity: 1;
+.thumbnail-grid .byline {
+    display: flex;
+    gap: 0.5ex;  // mimic a normal space
+
+    > * {
+        // The username is more important than the full relationship, and should at least have an active area at all times. The longest label is “collected by”, and there are no ambiguous prefixes (the others are “by” and “character of”).
+        // Shrink and ellipsize the username until the label takes up 50% of the width, then shrink and ellipsize both.
+        // As a future improvement, it might be nicer to omit the label entirely and just show the username if there isn’t room for both.
+        // It’s important to set `overflow` at the innermost element; otherwise, the focus ring of the link gets clipped.
+        flex-shrink: 1;
+        min-width: 0;  // Fall back on default negative space distribution when `calc-size` isn’t supported.
+        min-width: calc-size(max-content, min(50%, size));
+        overflow: clip;
+        text-overflow: ellipsis;
+    }
+
+    > i {
+        color: #666;
+        color: rgba(255,255,255,0.35);
+
+        .content & {
+            color: #888;
+        }
+    }
+
+    > .username {
+        color: #3ad;
+
+        .content & {
+            color: $color-a;
+        }
+    }
+
+    .content & {
+        opacity: 1;
+    }
 }
 .thumbnail-grid .title {
     font-size: 13px;
-    line-height: 15px;
     font-weight: 400;
     padding: 0;
     margin: 0;
-}
-.thumbnail-grid .title a {
-    color: #ccc;
-}
-.content .thumbnail-grid .title a {
-    color: #222;
-}
-.thumbnail-grid .title a:hover {
-    text-decoration: none;
-}
-.thumbnail-grid .byline i {
-    color: #666;
-    color: rgba(255,255,255,0.35);
-}
-.content .thumbnail-grid .byline i {
-    color: #888;
-}
-.thumbnail-grid .username {
-    display: inline;
-    color: #3ad;
-}
-.content .thumbnail-grid .username {
-    color: $color-a;
+
+    > a {
+        display: inline-block;
+        max-width: 100%;
+        overflow: clip;  // `overflow-y: clip`: anti-zalgo
+        text-overflow: ellipsis;
+
+        color: #ccc;
+
+        .content & {
+            color: #222;
+        }
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
 }
 .thumbnail-grid .thumb-bounds {
     background: rgba(0,0,0,0.15);
@@ -1091,11 +1118,27 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     align-items: center;
     justify-content: center;
 
+    > picture {
+        height: 100%;
+    }
+
     img {
         display: block;
-        height: auto;  // calculate from width and `aspect-ratio`
+        width: auto;  // calculate from height and `aspect-ratio`
+        max-height: 100%;
         max-width: 100%;
+        object-fit: cover;
     }
+}
+.thumbnail-grid-enhanced .thumb-bounds {
+    // Thumbnail grid CSS variable names are short to keep the generated CSS short.
+    // This requires a `thumbnail-grid-enhanced` class because property values with undefined variables still override fallbacks, like `.thumb-bounds`’s `height: 100%`.
+    contain: size layout style;
+    height: calc((100cqw - var(--g)*1px) * var(--h));
+    aspect-ratio: var(--r);
+
+    // prevent incomplete last row from stretching
+    max-height: $thumbnail-grid-max-height;
 }
 .thumbnail-grid .rating {
     width: 60px;
@@ -1144,46 +1187,36 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     font-size: 1.3em;
 }
 
-.tiny-footprint .item:nth-child(n+6),
-.small-footprint .item:nth-child(n+6),
-.medium-footprint .item:nth-child(n+12) {
-    display: none;
+.thumbnail-grid:not(.thumbnail-grid-enhanced) {
+    > .tiny-footprint > .item:nth-child(n+6),
+    > .small-footprint > .item:nth-child(n+6),
+    > .medium-footprint > .item:nth-child(n+12) {
+        display: none;
+    }
 }
-.enhanced-thumbnails .tiny-footprint .item:nth-child(n+6),
-.enhanced-thumbnails .small-footprint .item:nth-child(n+6),
-.enhanced-thumbnails .medium-footprint .item:nth-child(n+12) {
-    display: inline-block;
-}
-
 
 @media (max-width: 479px) {
     .thumbnail-grid .rating {
         width: 30px;
         height: 30px;
     }
-    .tiny-footprint .item:nth-child(n+2),
-    .small-footprint .item:nth-child(n+4),
-    .medium-footprint .item:nth-child(n+8) {
-        display: none;
-    }
-    .enhanced-thumbnails .tiny-footprint .item:nth-child(n+2),
-    .enhanced-thumbnails .small-footprint .item:nth-child(n+4),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+8) {
-        display: inline-block;
+    .thumbnail-grid:not(.thumbnail-grid-enhanced) {
+        > .tiny-footprint > .item:nth-child(n+2),
+        > .small-footprint > .item:nth-child(n+4),
+        > .medium-footprint > .item:nth-child(n+8) {
+            display: none;
+        }
     }
 }
 
 
 @media (max-width: 767px) {
-    .tiny-footprint .item:nth-child(n+3),
-    .small-footprint .item:nth-child(n+5),
-    .medium-footprint .item:nth-child(n+10) {
-        display: none;
-    }
-    .enhanced-thumbnails .tiny-footprint .item:nth-child(n+3),
-    .enhanced-thumbnails .small-footprint .item:nth-child(n+5),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+10) {
-        display: block;
+    .thumbnail-grid:not(.thumbnail-grid-enhanced) {
+        > .tiny-footprint > .item:nth-child(n+3),
+        > .small-footprint > .item:nth-child(n+5),
+        > .medium-footprint > .item:nth-child(n+10) {
+            display: none;
+        }
     }
 }
 
@@ -1198,6 +1231,17 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     .thumbnail-grid .checkbox {
         left: 10px;
         bottom: 20px;
+    }
+}
+
+// Thumbnail grids should extend all the way to the edges.
+// Examples: notifications, collections, characters, and favorites pages.
+.content .thumbnail-grid {
+    margin: 0 calc(-1 * var(--content-pad-h));
+
+    > .more {
+        @extend .pad-left;
+        @extend .pad-right;
     }
 }
 
@@ -2189,6 +2233,10 @@ $small-caps-ratio: 1.2;
 #home-panes > .pane > .thumbnail-grid {
     display: none;
     padding: 8px 0;
+
+    .no-js:root & {
+        display: flex;
+    }
 }
 
 #home-panes > .pane.current > .thumbnail-grid {
@@ -2240,7 +2288,6 @@ $small-caps-ratio: 1.2;
 
 #home-panes .thumbnail-grid {
     padding-bottom: 8px;
-    padding-bottom: 0.5rem;
 }
 
 #home-content {
@@ -2471,6 +2518,7 @@ $small-caps-ratio: 1.2;
     color: #ddd;
 }
 
+// TODO: this does not exist
 #user-thumbs #fav-thumbs {
     padding-top: 16px;
     padding-top: 1rem;
@@ -2559,7 +2607,6 @@ $small-caps-ratio: 1.2;
 
 #user-info + .thumbnail-grid {
     margin-top: 16px;
-    margin-top: 1rem;
 }
 
 @media (min-width: 27em) {
@@ -2756,7 +2803,6 @@ $small-caps-ratio: 1.2;
 
     #user-info + .thumbnail-grid {
         margin-top: 32px;
-        margin-top: 2rem;
     }
 }
 

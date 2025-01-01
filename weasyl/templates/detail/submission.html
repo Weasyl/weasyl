@@ -8,6 +8,8 @@ $code:
   def _SUBCAT(x):
     return dict(subtypes).get(x, "General")
 
+  card_viewer = get_card_viewer()
+
 <div id="detail-stage" class="stage">
   <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
   $if query['critique']:
@@ -116,7 +118,7 @@ $code:
       $if older:
         $for e, i in enumerate(older, start=1):
           $code:
-            thumb = THUMB(i)
+            thumb = card_viewer.get_thumbnail_files(i).fallback
             id = 'id="folder-nav-prev"' if e == len(older) else ''
             link = request.route_path(
               'submission_detail_profile',
@@ -136,7 +138,7 @@ $code:
       $if query['folder_more']['newer']:
         $for e, i in enumerate(query['folder_more']['newer']):
           $code:
-            thumb = THUMB(i)
+            thumb = card_viewer.get_thumbnail_files(i).fallback
             id = 'id="folder-nav-next"' if e == 0 else ''
             link = request.route_path(
               'submission_detail_profile',

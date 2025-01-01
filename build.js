@@ -283,7 +283,10 @@ const main = async () => {
         sasscFile('scss/mod.scss', 'css/mod.css', touch, copyImages),
         sasscFile('scss/signup.scss', 'css/signup.css', touch, copyImages),
         esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
-        esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/main.js', 'js/main.js', touch, {
+            ...PRIVATE_FIELDS_ESM,
+            mangleProps: /^m_/,
+        }),
         esbuildFile('js/message-list.js', 'js/message-list.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),
         esbuildFile('js/flash.js', 'js/flash.js', touch, {

@@ -35,6 +35,7 @@ $code:
 
           <label for="search_cat">Category</label>
           <select class="input" id="search-cat" name="cat">
+            <option value="">(all)</option>
             <option value="1000"$:{' selected' if meta['cat'] == 1000 else ''}>Visual Artwork</option>
             <option value="2000"$:{' selected' if meta['cat'] == 2000 else ''}>Literary Artwork</option>
             <option value="3000"$:{' selected' if meta['cat'] == 3000 else ''}>Multimedia Artwork</option>
@@ -42,7 +43,7 @@ $code:
 
           <label for="search_subcat">Subcategory</label>
           <select class="input" id="search-subcat" name="subcat">
-            <option></option>
+            <option value="">(all)</option>
             $for i in subcats:
               $if i[0] % 1000 != 999:
                 <option value="${i[0]}"$:{' selected' if meta['subcat'] == i[0] else ''}>${i[1]}</option>

@@ -266,8 +266,10 @@ a.more-block:last-child {
     }
 }
 
+$content-background: #ddd;
+
 .content {
-    background-color: #ddd;
+    background-color: $content-background;
     color: #4d4d4d;
     padding-bottom: 16px;
     padding-bottom: 1rem;
@@ -1601,12 +1603,13 @@ $tag-reject-deemphasize-size: 11px;
     max-width: 30em;
 }
 
+$field-spacing-top: 16px;
+
 .label,
 .form label:not(.input-checkbox):not(.label-around),
 .form-actions {
     display: block;
-    padding: 16px 0 4px;
-    padding: 1rem 0 0.25rem;
+    padding: $field-spacing-top 0 4px;
 }
 
 .label, .form label:not(.input-checkbox):not(.label-around) {
@@ -3530,6 +3533,46 @@ img + #detail-art-text {
 }
 
 /* ------------------------------------ =search, =submissions -- */
+
+.search-fieldset {
+    // When no legend exists, give the same layout as no fieldset at all.
+    margin-top: $field-spacing-top;
+
+    > legend {
+        $line-width: 1px;
+
+        position: relative;
+        width: 100%;
+        border-top: $line-width solid #aaa;
+
+        // 0.5em top and bottom: create 1em of evenly distributed space for actual text, and position legend fully inside fieldset.
+        // Additional 0.5em top: additional separation for fieldset when it has a legend, so it’s clear which controls are inside it.
+        margin: 1em 0 0.5em;
+
+        // Replaces the top padding of the first label.
+        padding-bottom: 8px;
+
+        font-style: italic;
+        color: #555;
+
+        > span {
+            // position along border
+            position: absolute;
+            top: -0.5em;
+            line-height: 1;
+            margin: -$line-width/2 8px 0;
+
+            // create gap in border
+            padding: 0 2px;
+            background: $content-background;
+        }
+    }
+
+    > label:first-child,
+    > legend + label {
+        padding-top: 0 !important;
+    }
+}
 
 #search-stage h2.page-title {
     margin-bottom: 0px;

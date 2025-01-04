@@ -46,4 +46,8 @@
     searchCategoryContainer.toggle(find === 'submit');
     searchSpecsContainer.toggle(find !== 'user');
     searchFind.toggleClass('last-input', find === 'user');
+
+    searchCategoryContainer.add(searchSpecsContainer)
+        .children('legend')
+        .remove();
 })();

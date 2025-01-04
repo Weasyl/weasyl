@@ -24,14 +24,15 @@ $code:
 
         <label for="search-find">Find</label>
 
-        <select class="input${' last-input' if meta['find'] == 'user' else ''}" id="search-find" name="find">
+        <select class="input" id="search-find" name="find">
           <option value="submit">Submissions</option>
           <option value="char"${' selected' if meta['find'] == 'char' else ''}>Character Profiles</option>
           <option value="journal"${' selected' if meta['find'] == 'journal' else ''}>Journal Entries</option>
           <option value="user"${' selected' if meta['find'] == 'user' else ''}>Users</option>
         </select>
 
-        <div id="search-cat-container">
+        <fieldset class="search-fieldset" id="search-cat-container">
+          <legend><span>Submissions</span></legend>
 
           <label for="search-cat">Category</label>
           <select class="input" id="search-cat" name="cat">
@@ -49,9 +50,10 @@ $code:
                 <option value="${i[0]}"$:{' selected' if meta['subcat'] == i[0] else ''}>${i[1]}</option>
           </select>
 
-        </div>
+        </fieldset>
 
-        <div id="search-specs-container" style="display:${'block' if meta['find'] != 'user' else 'none'};">
+        <fieldset class="search-fieldset" id="search-specs-container">
+          <legend><span>Posts</span></legend>
 
           <label for="search-within">Within</label>
           <select class="input last-input" name="within" id="search-within">
@@ -75,7 +77,7 @@ $code:
             Explicit (18+)
           </label>
 
-        </div>
+        </fieldset>
 
         <button class="button">Search</button>
 

@@ -1607,7 +1607,9 @@ $field-spacing-top: 16px;
 
 .label,
 .form label:not(.input-checkbox):not(.label-around),
-.form-actions {
+.form-actions,
+.input-group,
+{
     display: block;
     padding: $field-spacing-top 0 4px;
 }

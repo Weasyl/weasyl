@@ -56,7 +56,7 @@ $code:
           <legend><span>Posts</span></legend>
 
           <label for="search-within">Within</label>
-          <select class="input last-input" name="within" id="search-within">
+          <select class="input" name="within" id="search-within">
             <option value="all">Everything</option>
             <option value="notify"$:{' selected' if meta['within'] == 'notify' else ''}>Notifications</option>
             <option value="fave"$:{' selected' if meta['within'] == 'fave' else ''}>Favorites</option>
@@ -64,22 +64,25 @@ $code:
             <option value="follow"$:{' selected' if meta['within'] == 'follow' else ''}>Following</option>
           </select>
 
-          <label class="input-checkbox">
-            <input type="checkbox" name="rated" value="g"$:{' checked' if 'g' in meta['rated'] else ''} />
-            General
-          </label>
-          <label class="input-checkbox">
-            <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
-            Mature (18+)
-          </label>
-          <label class="input-checkbox last-input">
-            <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
-            Explicit (18+)
-          </label>
-
+          <fieldset class="input-group">
+            <label class="input-checkbox">
+              <input type="checkbox" name="rated" value="g"$:{' checked' if 'g' in meta['rated'] else ''} />
+              General
+            </label>
+            <label class="input-checkbox">
+              <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
+              Mature (18+)
+            </label>
+            <label class="input-checkbox">
+              <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
+              Explicit (18+)
+            </label>
+          </fieldset>
         </fieldset>
 
-        <button class="button">Search</button>
+        <div class="form-actions">
+          <button class="button">Search</button>
+        </div>
 
       </form>
     </div>

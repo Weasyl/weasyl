@@ -135,7 +135,7 @@ def select_users(q):
 
 
 def _find_without_media(userid, rating, limit,
-                        search, within, cat, subcat, backid, nextid):
+                        search, within, cat, subcat, backid, nextid, get_counts=False):
     type_code, type_letter, table, select, subtype = _TABLE_INFORMATION[search.find]
 
     # Begin statement
@@ -318,6 +318,9 @@ def _find_without_media(userid, rating, limit,
     query = d.engine.execute(statement, params)
 
     ret = [{"contype": type_code, **i} for i in query]
+
+    if not get_counts:
+        return list(reversed(ret)) if backid else ret, 0, 0
 
     if backid:
         # backid is the item after the last item (display-order-wise) on the

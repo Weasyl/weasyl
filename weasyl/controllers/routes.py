@@ -14,6 +14,7 @@ from weasyl.controllers import (
     messages,
     moderation,
     profile,
+    search,
     settings,
     two_factor_auth,
     user,
@@ -35,6 +36,7 @@ routes = (
     # Front page views.
     Route("/{index:(index)?}", "index", general.index_),  # 'index' is optional in the URL
     Route("/search", "search", general.search_),
+    Route("/api-unstable/search/navigation-counts", "search_navigation_counts", search.navigation_counts),
     Route("/popular", "popular", general.popular_),
     Route("/streaming", "streaming", general.streaming_),
     Route("/marketplace", "marketplace", marketplace.search_),

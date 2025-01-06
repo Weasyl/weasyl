@@ -94,6 +94,10 @@ def search_(request):
             # Submission subcategories
             macro.MACRO_SUBCAT_LIST,
             search.COUNT_LIMIT,
+            # `browse_header`
+            None,
+            # `is_guest`
+            not request.userid,
         )
     elif find:
         if find not in ("submit", "char", "journal", "critique"):

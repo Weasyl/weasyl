@@ -1,4 +1,4 @@
-$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None)
+$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None, is_guest=None)
 $#:{TITLE("Weasyl Search")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
@@ -52,33 +52,34 @@ $code:
 
         </fieldset>
 
-        <fieldset class="search-fieldset" id="search-specs-container">
-          <legend><span>Posts</span></legend>
+        $if not is_guest:
+          <fieldset class="search-fieldset" id="search-specs-container">
+            <legend><span>Posts</span></legend>
 
-          <label for="search-within">Within</label>
-          <select class="input" name="within" id="search-within">
-            <option value="all">Everything</option>
-            <option value="notify"$:{' selected' if meta['within'] == 'notify' else ''}>Notifications</option>
-            <option value="fave"$:{' selected' if meta['within'] == 'fave' else ''}>Favorites</option>
-            <option value="friend"$:{' selected' if meta['within'] == 'friend' else ''}>Friends</option>
-            <option value="follow"$:{' selected' if meta['within'] == 'follow' else ''}>Following</option>
-          </select>
+            <label for="search-within">Within</label>
+            <select class="input" name="within" id="search-within">
+              <option value="all">Everything</option>
+              <option value="notify"$:{' selected' if meta['within'] == 'notify' else ''}>Notifications</option>
+              <option value="fave"$:{' selected' if meta['within'] == 'fave' else ''}>Favorites</option>
+              <option value="friend"$:{' selected' if meta['within'] == 'friend' else ''}>Friends</option>
+              <option value="follow"$:{' selected' if meta['within'] == 'follow' else ''}>Following</option>
+            </select>
 
-          <fieldset class="input-group">
-            <label class="input-checkbox">
-              <input type="checkbox" name="rated" value="g"$:{' checked' if 'g' in meta['rated'] else ''} />
-              General
-            </label>
-            <label class="input-checkbox">
-              <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
-              Mature (18+)
-            </label>
-            <label class="input-checkbox">
-              <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
-              Explicit (18+)
-            </label>
+            <fieldset class="input-group">
+              <label class="input-checkbox">
+                <input type="checkbox" name="rated" value="g"$:{' checked' if 'g' in meta['rated'] else ''} />
+                General
+              </label>
+              <label class="input-checkbox">
+                <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
+                Mature (18+)
+              </label>
+              <label class="input-checkbox">
+                <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
+                Explicit (18+)
+              </label>
+            </fieldset>
           </fieldset>
-        </fieldset>
 
         <div class="form-actions">
           <button class="button">Search</button>

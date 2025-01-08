@@ -35,7 +35,6 @@ $def with (query, options, extended_options={})
     <link rel="stylesheet" href="${resource_path('css/signup.css')}" />
 
   $if 'twitter_card' in extended_options:
-    <meta name="twitter:site" content="@weasyl" />
     $for k, v in extended_options['twitter_card'].items():
       <meta name="twitter:${k}" content="${v}" />
   $if 'ogp' in extended_options:

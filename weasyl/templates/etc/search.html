@@ -1,4 +1,4 @@
-$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None, is_guest=None)
+$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None, is_guest=None, rating_limit=None)
 $#:{TITLE("Weasyl Search")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
@@ -67,17 +67,19 @@ $code:
 
             <fieldset class="input-group">
               <label class="input-checkbox">
-                <input type="checkbox" name="rated" value="g"$:{' checked' if 'g' in meta['rated'] else ''} />
+                <input type="checkbox" name="rated" value="g"$:{' checked disabled' if rating_limit < R.MATURE.code else ' checked' if 'g' in meta['rated'] else ''} />
                 General
               </label>
-              <label class="input-checkbox">
-                <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
-                Mature (18+)
-              </label>
-              <label class="input-checkbox">
-                <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
-                Explicit (18+)
-              </label>
+              $if rating_limit >= R.MATURE.code:
+                <label class="input-checkbox">
+                  <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
+                  Mature (18+)
+                </label>
+              $if rating_limit >= R.EXPLICIT.code:
+                <label class="input-checkbox">
+                  <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
+                  Explicit (18+)
+                </label>
             </fieldset>
           </fieldset>
 

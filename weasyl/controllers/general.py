@@ -98,6 +98,8 @@ def search_(request):
             None,
             # `is_guest`
             not request.userid,
+            # `rating_limit`
+            rating,
         )
     elif find:
         if find not in ("submit", "char", "journal", "critique"):

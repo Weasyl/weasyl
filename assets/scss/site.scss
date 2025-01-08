@@ -799,7 +799,6 @@ select.input {
 .icon {
     display: inline-block;
     vertical-align: middle;
-    background-repeat: no-repeat;
     font-size: 0;
     line-height: 0;
     overflow: hidden;
@@ -1951,12 +1950,8 @@ $small-caps-ratio: 1.2;
 
 #header-nav a {
     display: block;
-    font-size: 0.9rem / $small-caps-ratio;
+    font-size: 0.875rem;
     padding: 0.625rem 1.125rem;
-
-    &::first-letter {
-        font-size: $small-caps-ratio * 1em;
-    }
 }
 
 #header-nav a:hover {
@@ -2065,6 +2060,10 @@ $small-caps-ratio: 1.2;
         line-height: 4.5rem;
         font-size: 0.75rem / $small-caps-ratio;
         padding: 0 0.4375rem;
+
+        &::first-letter {
+            font-size: $small-caps-ratio * 1em;
+        }
     }
 }
 

@@ -1,3 +1,4 @@
+from collections import namedtuple
 import re
 
 from libweasyl.ratings import GENERAL, MATURE, EXPLICIT
@@ -30,6 +31,11 @@ _TABLE_INFORMATION = {
 }
 
 COUNT_LIMIT = 10000
+
+NavigationCountsSettings = namedtuple(
+    'NavigationCountsSettings',
+    ('sample_percent', 'sample_limit', 'sample_offset')
+)
 
 
 class Query:
@@ -135,23 +141,29 @@ def select_users(q):
 
 
 def _find_without_media(userid, rating, limit,
-                        search, within, cat, subcat, backid, nextid, get_counts=False):
+                        search, within, cat, subcat, backid, nextid,
+                        counts = NavigationCountsSettings(100, 0, 0)):
     type_code, type_letter, table, select, subtype = _TABLE_INFORMATION[search.find]
 
     # Begin statement
     statement_with = ""
-    statement_from = ["FROM {table} content INNER JOIN profile ON content.userid = profile.userid"]
+    statement_from_base = ["FROM {table} content"]
+    statement_from_join = ["INNER JOIN profile ON content.userid = profile.userid"]
     statement_where = ["WHERE content.rating <= %(rating)s AND NOT content.friends_only AND NOT content.hidden"]
     statement_group = []
 
+    if counts.sample_percent < 100:
+        # Use REPEATABLE to prevent the user from seeing different counts on refresh.
+        statement_from_base.append("TABLESAMPLE SYSTEM ({sample_percent}) REPEATABLE (0)")
+
     if search.find == "submit":
-        statement_from.append("INNER JOIN submission_tags ON content.submitid = submission_tags.submitid")
+        statement_from_join.append("INNER JOIN submission_tags ON content.submitid = submission_tags.submitid")
 
     if search.required_includes:
         if search.find == "submit":
-            statement_from.append("AND submission_tags.tags @> %(required_includes)s")
+            statement_from_join.append("AND submission_tags.tags @> %(required_includes)s")
         else:
-            statement_from.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
+            statement_from_join.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
             statement_where.append("AND searchmap{find}.tagid = ANY (%(required_includes)s)")
             statement_group.append(
                 "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
@@ -166,7 +178,7 @@ def _find_without_media(userid, rating, limit,
     if userid:
         if within == "notify":
             # Search within notifications
-            statement_from.append("INNER JOIN welcome ON welcome.targetid = content.{select}")
+            statement_from_join.append("INNER JOIN welcome ON welcome.targetid = content.{select}")
             statement_where.append("AND welcome.userid = %(userid)s")
             statement_where.append({
                 "submit": "AND welcome.type IN (2010, 2030, 2040)",
@@ -175,17 +187,17 @@ def _find_without_media(userid, rating, limit,
             }[search.find])
         elif within == "fave":
             # Search within favorites
-            statement_from.append("INNER JOIN favorite ON favorite.targetid = content.{select}")
+            statement_from_join.append("INNER JOIN favorite ON favorite.targetid = content.{select}")
             statement_where.append("AND favorite.userid = %(userid)s AND favorite.type = %(type)s")
         elif within == "friend":
             # Search within friends content
-            statement_from.append(
+            statement_from_join.append(
                 "INNER JOIN frienduser ON ((frienduser.userid, frienduser.otherid) = (%(userid)s, content.userid)"
                 " OR (frienduser.userid, frienduser.otherid) = (content.userid, %(userid)s))"
                 " AND frienduser.settings !~ 'p'")
         elif within == "follow":
             # Search within following content
-            statement_from.append(
+            statement_from_join.append(
                 "INNER JOIN watchuser ON (watchuser.userid, watchuser.otherid) = (%(userid)s, content.userid)")
 
         # Search within rating
@@ -246,18 +258,19 @@ def _find_without_media(userid, rating, limit,
             """)
 
     if search.required_user_includes:
-        statement_from.append("INNER JOIN login login_include ON content.userid = login_include.userid")
+        statement_from_join.append("INNER JOIN login login_include ON content.userid = login_include.userid")
         statement_where.append("AND login_include.login_name = ANY (%(required_user_includes)s)")
 
     if search.required_user_excludes:
-        statement_from.append("INNER JOIN login login_exclude ON content.userid = login_exclude.userid")
+        statement_from_join.append("INNER JOIN login login_exclude ON content.userid = login_exclude.userid")
         statement_where.append("AND login_exclude.login_name != ALL (%(required_user_excludes)s)")
 
     def make_statement(statement_select, statement_additional_where, statement_order):
         return " ".join([
             statement_with,
             statement_select,
-            " ".join(statement_from),
+            " ".join(statement_from_base),
+            " ".join(statement_from_join),
             " ".join(statement_where),
             statement_additional_where,
             " ".join(statement_group),
@@ -265,6 +278,8 @@ def _find_without_media(userid, rating, limit,
         ]).format(
             table=table,
             find=search.find,
+            sample_percent=counts.sample_percent,
+            sample_offset=counts.sample_offset,
             select=select,
             subtype=subtype,
             title_field="char_name" if search.find == "char" else "title",
@@ -309,7 +324,8 @@ def _find_without_media(userid, rating, limit,
         "category": cat,
         "subcategory": subcat,
         "limit": limit,
-        "count_limit": COUNT_LIMIT,
+        "count_limit": counts.sample_limit,
+        "count_offset": counts.sample_offset,
         "backid": backid,
         "nextid": nextid,
         "required_include_count": len(search.required_includes),
@@ -319,7 +335,7 @@ def _find_without_media(userid, rating, limit,
 
     ret = [{"contype": type_code, **i} for i in query]
 
-    if not get_counts:
+    if params["count_limit"] == 0:
         return list(reversed(ret)) if backid else ret, 0, 0
 
     if backid:
@@ -330,15 +346,15 @@ def _find_without_media(userid, rating, limit,
         # on a page to the count limit so it still comes out to the count limit
         # after subtracting if the limit is reached.
         back_count = d.engine.scalar(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
-            params) - len(ret)
+            make_statement("SELECT 100 / {sample_percent} * COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s OFFSET %(count_offset)s) _"),
+            params) - len(ret) * 100 / counts.sample_percent
     elif nextid:
         # nextid is the item before the first item (display-order-wise) on the
         # current page; the query will select items from there backwards, so
         # the current page is not included and no subtraction or modification
         # of the limit is necessary.
         back_count = d.engine.scalar(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", " LIMIT %(count_limit)s) _"),
+            make_statement("SELECT 100 / {sample_percent} * COUNT(*) FROM (SELECT 1", "AND content.{select} >= %(nextid)s", " LIMIT %(count_limit)s OFFSET %(count_offset)s) _"),
             params)
     else:
         # The first page is being displayed; there’s nothing to go back to.
@@ -350,7 +366,7 @@ def _find_without_media(userid, rating, limit,
         # current page is not included and no subtraction or modification of
         # the limit is necessary.
         next_count = d.engine.scalar(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", " LIMIT %(count_limit)s) _"),
+            make_statement("SELECT 100 / {sample_percent} * COUNT(*) FROM (SELECT 1", "AND content.{select} <= %(backid)s", " LIMIT %(count_limit)s OFFSET %(count_offset)s) _"),
             params)
 
         # The ORDER BY is reversed when a backid is specified in order to LIMIT
@@ -365,8 +381,8 @@ def _find_without_media(userid, rating, limit,
         # on a page to the count limit so it still comes out to the count limit
         # after subtracting if the limit is reached.
         next_count = d.engine.scalar(
-            make_statement("SELECT COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s) _"),
-            params) - len(ret)
+            make_statement("SELECT 100 / {sample_percent} * COUNT(*) FROM (SELECT 1", pagination_filter, " LIMIT %(count_limit)s + %(limit)s OFFSET %(count_offset)s) _"),
+            params) - len(ret) * 100 / counts.sample_percent
 
         return ret, next_count, back_count
 

@@ -105,8 +105,12 @@ _page_limit = 6
 
 
 @mock.patch.object(search, 'COUNT_LIMIT', 10)
-@pytest.mark.parametrize('get_counts', (True, False))
-def test_search_pagination(db, get_counts: bool):
+@pytest.mark.parametrize('with_counts', (True, False))
+def test_search_pagination(db, with_counts: bool):
+    kwargs = {}
+    if with_counts:
+        kwargs['counts'] = search.NavigationCountsSettings(100, 10, 0)
+
     owner = db_utils.create_user()
     submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
     tag = db_utils.create_tag('penguin')
@@ -118,28 +122,28 @@ def test_search_pagination(db, get_counts: bool):
     result, next_count, back_count = search.select(
         search=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=None, nextid=None, get_counts=get_counts)
+        cat=None, subcat=None, within='', backid=None, nextid=None, **kwargs)
 
     assert back_count == 0
-    assert next_count == (search.COUNT_LIMIT if get_counts else 0)
+    assert next_count == (search.COUNT_LIMIT if with_counts else 0)
     assert [item['submitid'] for item in result] == submissions[:-_page_limit - 1:-1]
 
     result, next_count, back_count = search.select(
         search=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=None, nextid=submissions[-_page_limit], get_counts=get_counts)
+        cat=None, subcat=None, within='', backid=None, nextid=submissions[-_page_limit], **kwargs)
 
-    assert back_count == (_page_limit if get_counts else 0)
-    assert next_count == (search.COUNT_LIMIT if get_counts else 0)
+    assert back_count == (_page_limit if with_counts else 0)
+    assert next_count == (search.COUNT_LIMIT if with_counts else 0)
     assert [item['submitid'] for item in result] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
 
     result, next_count, back_count = search.select(
         search=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=submissions[_page_limit - 1], nextid=None, get_counts=get_counts)
+        cat=None, subcat=None, within='', backid=submissions[_page_limit - 1], nextid=None, **kwargs)
 
-    assert back_count == (search.COUNT_LIMIT if get_counts else 0)
-    assert next_count == (_page_limit if get_counts else 0)
+    assert back_count == (search.COUNT_LIMIT if with_counts else 0)
+    assert next_count == (_page_limit if with_counts else 0)
     assert [item['submitid'] for item in result] == submissions[2 * _page_limit - 1:_page_limit - 1:-1]
 
 

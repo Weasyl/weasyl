@@ -47,6 +47,20 @@ const animateSearchSettings = () => {
     searchFind.toggleClass('last-input', find === 'user');
 };
 
+const displayNavigationCount = (element, count) => {
+    if (count === 10000) {
+        element.innerText += ' (10k+ more)';
+    } else if (count >= 1000) {
+        element.innerText += ` (~${count / 1000}k more)`;
+    } else if (count >= 100) {
+        element.innerText += ` (~${count} more)`;
+    } else if (count > 0) {
+        element.innerText += ` (${count} more)`
+    } else {
+        element.remove();
+    }
+};
+
 const populateNavigationCounts = async () => {
     const searchBack = document.getElementById('search-back');
     const searchNext = document.getElementById('search-next');
@@ -54,17 +68,8 @@ const populateNavigationCounts = async () => {
     const response = await fetch(`/api-unstable/search/navigation-counts${window.location.search}`);
     const {nextCount, backCount} = await response.json();
 
-    if (backCount > 0) {
-        searchBack.innerText += ` (~${backCount} more)`;
-    } else {
-        searchBack.remove();
-    }
-
-    if (nextCount > 0) {
-        searchNext.innerText += ` (~${nextCount} more)`;
-    } else {
-        searchNext.remove();
-    }
+    displayNavigationCount(searchBack, backCount);
+    displayNavigationCount(searchNext, nextCount);
 };
 
 animateSearchSettings();

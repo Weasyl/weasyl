@@ -4,7 +4,7 @@
     "devDependencies": {
         "@ruffle-rs/ruffle": "^0.1.0-nightly.2023.8.17",
         "autoprefixer": "^10.4.20",
-        "esbuild": "^0.16.13",
+        "esbuild": "^0.25.0",
         "postcss": "^8.4.20"
     }
 }

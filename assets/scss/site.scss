@@ -740,6 +740,7 @@ $input-bottom-line-width: 4px;
     border-radius: 0;
     background-color: $input-background;
     box-shadow: 0 $input-bottom-line-width 0 #336979, inset 0 1px 2px #aaa;
+    margin-bottom: $input-bottom-line-width;
     transition: all 0.15s linear;
 
     &:hover,
@@ -4140,6 +4141,11 @@ body input[type="checkbox"] {
     padding: 0.8rem 1rem;
     background-color: #f7f7f7;
     border: 1px solid #ccc;
+
+    .input + & {
+        margin-top: -$input-bottom-line-width - 1px;  // -1px to overlap borders
+        margin-bottom: $input-bottom-line-width;
+    }
 }
 
 .markdown-preview::after {

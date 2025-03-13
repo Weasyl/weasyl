@@ -2,7 +2,7 @@
 @use '../theme';
 
 .tags-textarea {
-    font-size: 14px;
+    font-size: theme.$font-size-large;
     box-sizing: border-box;
     width: 100% !important;
 }

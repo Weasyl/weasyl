@@ -15,8 +15,7 @@
 .form-date > * > .sublabel {
     color: theme.$content-color-lighter;
     padding-top: 0.35em;
-    font-size: 12px;
-    font-size: 0.75rem;
+    font-size: theme.$font-size-base;
     font-weight: 400;
 }
 

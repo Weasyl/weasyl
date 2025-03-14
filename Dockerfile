@@ -186,7 +186,8 @@ ENTRYPOINT ["/usr/bin/flake8"]
 COPY . .
 
 FROM package
-RUN mkdir storage storage/log storage/static storage/profile-stats \
+RUN mkdir storage storage/log storage/static storage/profile-stats storage/prometheus storage/temp \
+    && chmod a+rwx storage/prometheus storage/temp \
     && ln -s /run/config config
 ENV WEASYL_APP_ROOT=/weasyl
 ENV PORT=8080

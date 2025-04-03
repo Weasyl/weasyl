@@ -64,13 +64,11 @@ services:
       - logs:/weasyl/storage/log
       - profile-stats:/weasyl/storage/profile-stats
       - type: tmpfs
-        target: /weasyl/storage/prometheus
-      - type: tmpfs
-        target: /weasyl/storage/temp
-      - type: tmpfs
         target: /tmp
-      - type: tmpfs
-        target: /magick-tmp
+    tmpfs:
+      - '/weasyl/storage/prometheus:mode=700,uid=100'
+      - '/weasyl/storage/temp:mode=700,uid=100'
+      - '/magick-tmp:mode=700,uid=100'
     networks:
       - external-web
       - nginx-web

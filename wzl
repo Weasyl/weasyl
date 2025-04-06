@@ -2,6 +2,7 @@
 set -eu
 
 export DOCKER_BUILDKIT=1
+export COMPOSE_BAKE=true
 export WEASYL_VERSION="$(git rev-parse --short HEAD)"
 
 # `docker-compose` is fast and easy to check for, so we fall back on `docker compose` instead of the other way around.

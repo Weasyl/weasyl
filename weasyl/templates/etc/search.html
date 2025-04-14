@@ -94,12 +94,10 @@ $code:
             $:{_GRID_ITEM(result, lazy_load=index >= 10)}
         </ul>
 
-        <div style="padding-top: 1.4em;" class="pad-left pad-right">
-          $if back_count:
-            <a class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]], nextid=None))}" rel="prev">Back (${back_count}$:{'+' if back_count == count_limit else ''} more)</a>
-          $if next_count:
-            <a class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]], backid=None))}" rel="next">Next (${next_count}$:{'+' if next_count == count_limit else ''} more)</a>
-        </div>
+        <nav id="search-nav" style="padding-top: 1.4em;" class="pad-left pad-right">
+          <a id="search-back" class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]], nextid=None))}" rel="prev">Back</a>
+          <a id="search-next" class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]], backid=None))}" rel="next">Next</a>
+        </nav>
       $else:
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>
     </div>

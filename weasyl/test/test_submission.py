@@ -204,6 +204,7 @@ class SelectListTestCase(unittest.TestCase):
             submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['kale'], suggested=['tomato'], own_suggested=[]))
 
+    @pytest.mark.usefixtures('cache')
     def test_recently_popular(self):
         owner = db_utils.create_user()
         now = arrow.utcnow()
@@ -213,9 +214,11 @@ class SelectListTestCase(unittest.TestCase):
         sub3 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=2))
         sub4 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now)
         tag = db_utils.create_tag('tag')
+        favoriter = db_utils.create_user()
 
         for s in [sub1, sub2, sub3, sub4]:
             db_utils.create_submission_tag(tag, s)
+            db_utils.create_favorite(favoriter, submitid=s, unixtime=now)
 
         for i in range(100):
             favoriter = db_utils.create_user()

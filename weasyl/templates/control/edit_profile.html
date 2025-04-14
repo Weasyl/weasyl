@@ -19,7 +19,7 @@ $code:
       <label for="editprofile-fullname">Full Name</label>
       <input type="text" id="editprofile-fullname" class="input" name="full_name" value="${profile['full_name']}" maxlength="100" />
 
-      $ birthdate = None if userinfo['birthday'] is None else ARROW(userinfo['birthday']).date()
+      $ birthdate = userinfo['birthday']
       <p class="label">Age</p>
       <label class="input-checkbox">
         <input type="checkbox" name="show_age" value="true"$:{' checked' if userinfo['show_age'] and birthdate is not None else ''} data-shows="birthdate">

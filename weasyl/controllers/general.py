@@ -137,12 +137,30 @@ def search_(request):
             None,
             # Search results
             {
-                "submit": search.browse(
+                "visual": search.browse(
                     userid=request.userid,
                     rating=rating,
                     limit=22,
-                    find="submit",
-                    cat=None,
+                    find="visual",
+                    cat=1000,
+                    backid=None,
+                    nextid=None,
+                ),
+                "literary": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="literary",
+                    cat=2000,
+                    backid=None,
+                    nextid=None,
+                ),
+                "multimedia": search.browse(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=22,
+                    find="multimedia",
+                    cat=3000,
                     backid=None,
                     nextid=None,
                 ),

@@ -1,9 +1,10 @@
+import os
 from unittest import mock
 
 import pytest
 
 from libweasyl.models.helpers import CharSettings
-from libweasyl import ratings
+from libweasyl import media, ratings
 from weasyl.test import db_utils
 from weasyl import search
 
@@ -217,3 +218,50 @@ def test_search_within_friends(db):
 
     assert len(_select(user1_id)) == 1
     assert len(_select(user1_id)) == 1
+
+
+def test_search_sha256(db):
+    userid = db_utils.create_user()
+    tagid = db_utils.create_tag('test')
+
+    def _select(term: str):
+        results, _, _ = search.select(
+            search=search.Query.parse(term, 'submit'),
+            userid=userid, rating=ratings.EXPLICIT.code, limit=100,
+            cat=None, subcat=None, within='', backid=None, nextid=None,
+        )
+
+        return results
+
+    submitid_foo = db_utils.create_submission(userid, 'Foo')
+    db_utils.create_submission_tag(tagid, submitid_foo)
+    with open('libweasyl/test/data/1x70.jpg', 'rb') as file_foo:
+        data_foo = file_foo.read()
+    media_foo = media.MediaItem.fetch_or_create(data_foo, file_type='jpg')
+    media.SubmissionMediaLink.make_or_replace_link(submitid_foo, 'submission', media_foo)
+
+    submitid_bar = db_utils.create_submission(userid, 'Bar')
+    db_utils.create_submission_tag(tagid, submitid_bar)
+    with open('libweasyl/test/data/2x233.gif', 'rb') as file_bar:
+        data_bar = file_bar.read()
+    media_bar = media.MediaItem.fetch_or_create(data_bar, file_type='gif')
+    media.SubmissionMediaLink.make_or_replace_link(submitid_bar, 'submission', media_bar)
+
+    submitid_baz = db_utils.create_submission(userid, 'Baz')
+    db_utils.create_submission_tag(tagid, submitid_baz)
+    with open('libweasyl/test/data/2x233.gif', 'rb') as file_baz:
+        data_baz = file_baz.read()
+    media_baz = media.MediaItem.fetch_or_create(data_baz, file_type='gif')
+    media.SubmissionMediaLink.make_or_replace_link(submitid_baz, 'submission', media_baz)
+
+    results_foo = _select('sha256:a4e6ff301f671e8afb2397b4967c6a7004657447a5877a08d2dc29af58fccf3b')
+    results_bar = _select('sha256:fa6bd1dacf7b3d351172051826bb6d123113cfb7314322732a3ee1a917531672')
+    results_unknown = _select('sha256:0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f')
+
+    assert len(results_foo) == 1
+    assert results_foo[0]['title'] == 'Foo'
+
+    assert len(results_bar) == 2
+    assert sorted(map(lambda x: x['title'], results_bar)) == ['Bar', 'Baz']
+
+    assert len(results_unknown) == 0

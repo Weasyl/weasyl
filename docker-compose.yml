@@ -14,7 +14,7 @@ volumes:
 #
 # So:
 # - `web` connects to `postgres`, `memcached`, and `web-outgoing` by name, but has only internal networks (and uses `web-outgoing` to make limited HTTP requests)
-# - `nginx` and `prometheus` are connected to non-internal networks, but only connect to `web` via a UNIX socket in the `uds-nginx-web` volume
+# - `nginx` and `prometheus` are connected to non-internal networks, but only connect to `web` via a Unix socket in the `uds-nginx-web` volume
 networks:
   external-web-outgoing:
   external-nginx:
@@ -152,6 +152,8 @@ services:
     command:
       - /bin/sh
       - -c
+      # Prometheus doesn’t support scraping Unix sockets:
+      # https://github.com/prometheus/prometheus/issues/12024
       - |
         nc -lk -p 8080 ::1 -e nc local:/run/uds-nginx-web/web.sock &
         exec /bin/prometheus \

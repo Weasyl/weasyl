@@ -10,7 +10,7 @@ python = "^3.10"
 gunicorn = "23.0.0"
 multipart = "0.2.4"
 web-py = "0.51"
-requests = "^2.31.0"
+requests = {extras = ["socks"], version = "^2.32.3"}
 pylibmc = "1.6.2"
 pyramid = "2.0.2"
 pyotp = "2.3.0"

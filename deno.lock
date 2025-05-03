@@ -10,6 +10,7 @@
     "npm:autoprefixer@^10.4.20": "10.4.21_postcss@8.5.4",
     "npm:autosize@^6.0.1": "6.0.1",
     "npm:esbuild@~0.25.5": "0.25.5",
+    "npm:hls.js@^1.6.5": "1.6.5",
     "npm:postcss@^8.5.4": "8.5.4",
     "npm:sass-embedded@^1.89.1": "1.89.1"
   },
@@ -566,6 +567,9 @@
     "has-flag@4.0.0": {
       "integrity": "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ=="
     },
+    "hls.js@1.6.5": {
+      "integrity": "sha512-KMn5n7JBK+olC342740hDPHnGWfE8FiHtGMOdJPfUjRdARTWj9OB+8c13fnsf9sk1VtpuU2fKSgUjHvg4rNbzQ=="
+    },
     "immutable@5.1.2": {
       "integrity": "sha512-qHKXW1q6liAk1Oys6umoaZbDRqjcjgSrbnrifHsfsttza7zcvRAsL7mMV6xWcyhwQy7Xj5v4hhbr6b+iDYwlmQ=="
     },
@@ -820,6 +824,7 @@
       "npm:autoprefixer@^10.4.20",
       "npm:autosize@^6.0.1",
       "npm:esbuild@~0.25.5",
+      "npm:hls.js@^1.6.5",
       "npm:postcss@^8.5.4",
       "npm:sass-embedded@^1.89.1"
     ]

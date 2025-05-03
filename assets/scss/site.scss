@@ -2991,13 +2991,24 @@ img + #detail-art-text {
     visibility: hidden;
 }
 
-#detail-embed, #detail-embed iframe {
+#detail-embed, #detail-embed iframe, #detail-embed div {
     max-width: 100%;
     margin: 0 auto;
 }
 
 #detail-embed {
     text-align: center;
+}
+
+#bsky-video {
+    /* Match the most common max width for oEmbed content */
+    width: 640px;
+}
+
+@media (max-width: 45em) {
+    #bsky-video {
+        width: 100%;
+    }
 }
 
 #detail-bar-title, #detail-bar .avatar, #detail-bar .username {

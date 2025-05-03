@@ -131,6 +131,10 @@ services:
       - soundcloud.com
       - -a
       - sketchfab.com
+      - -a
+      - public.api.bsky.app
+      - -a
+      - embed.bsky.app
       # TODO: Bandcamp embeds, which are not oEmbed-based and require arbitrary subdomains
       # crossposting in `weasyl.submission` not included by default
     networks:

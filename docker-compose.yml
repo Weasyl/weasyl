@@ -102,7 +102,7 @@ services:
       # currency conversion in `weasyl.commishinfo`
       - -a
       - www.ecb.europa.eu
-      # oEmbed in `weasyl.embed`
+      # oEmbed in `weasyl.embed` and their `thumbnail_url`s
       - -a
       - www.youtube.com
       - -a
@@ -110,9 +110,15 @@ services:
       - -a
       - vimeo.com
       - -a
+      - i.vimeocdn.com
+      - -a
       - soundcloud.com
       - -a
+      - i1.sndcdn.com
+      - -a
       - sketchfab.com
+      - -a
+      - media.sketchfab.com
       # TODO: Bandcamp embeds, which are not oEmbed-based and require arbitrary subdomains
       # crossposting in `weasyl.submission` not included by default
     networks:

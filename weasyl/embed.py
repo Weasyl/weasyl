@@ -119,7 +119,11 @@ def _embed_bluesky(targetid: str) -> str:
     except Exception:
         return oembed_html
 
-    out = f'<video id="hls-video" src="{playlist_uri}" controls></video>'
+    # Since hls.js is large (487.6 KB post-bundle as of writing), only have the
+    # browser run this script if there really is a Hls-required video to play.
+    embed_video_path = d.get_resource_path("js/embed-video.js")
+    out = f'<script type="module" src="{embed_video_path}"></script>'
+    out += f'<video id="hls-video" src="{playlist_uri}" controls></video>'
     out += '<p id="video-error" hidden>There was an error playing the embedded media</p>'
 
     return out

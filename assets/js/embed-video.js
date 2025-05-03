@@ -1,6 +1,6 @@
 import Hls from 'hls.js';
 
-export const loadHlsVideo = () => {
+const loadHlsVideo = () => {
     const video = document.getElementById('hls-video');
 
     if (!video) {
@@ -24,3 +24,5 @@ export const loadHlsVideo = () => {
     hls.loadSource(video.src);
     hls.attachMedia(video);
 };
+
+loadHlsVideo();

@@ -981,9 +981,7 @@ def _requests_wrapper(func):
         try:
             return func(*a, **kw)
         except Exception as e:
-            w = WeasylError('httpError', level='info')
-            w.error_suffix = 'The original error was: %s' % (e,)
-            raise w from e
+            raise WeasylError('httpError', level='info') from e
 
     return wrapper
 

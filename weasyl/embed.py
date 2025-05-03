@@ -119,7 +119,7 @@ def _embed_bluesky(targetid: str) -> str:
     except Exception:
         return oembed_html
 
-    out = f'<video id="bsky-video" src="{playlist_uri}" controls></video>'
+    out = f'<video id="hls-video" src="{playlist_uri}" controls></video>'
     out += '<p id="video-error" hidden>There was an error playing the embedded media</p>'
 
     return out

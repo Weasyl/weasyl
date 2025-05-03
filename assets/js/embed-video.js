@@ -1,10 +1,7 @@
-/**
- * Client-side video embedding support; currently only for Bluesky.
- */
 import Hls from 'hls.js';
 
-export const loadBlueskyVideo = () => {
-    const video = document.getElementById('bsky-video');
+export const loadHlsVideo = () => {
+    const video = document.getElementById('hls-video');
 
     if (!video) {
         return;

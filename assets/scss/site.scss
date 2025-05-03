@@ -3000,13 +3000,13 @@ img + #detail-art-text {
     text-align: center;
 }
 
-#bsky-video {
+#hls-video {
     /* Match the most common max width for oEmbed content */
     width: 640px;
 }
 
 @media (max-width: 45em) {
-    #bsky-video {
+    #hls-video {
         width: 100%;
     }
 }

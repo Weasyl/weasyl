@@ -131,6 +131,7 @@ def _embed_bluesky(targetid: str) -> dict[str, Any]:
         thumbnail_url = detail_json["posts"][0]["embed"]["thumbnail"]
         embed["thumbnail_url"] = thumbnail_url
     except Exception:
+        # The thumbnail is optional, so don't do anything if it doesn't exist.
         pass
 
     return embed
@@ -143,7 +144,7 @@ def get_embed(link: str) -> dict[str, Any] | None:
     targetid, service = _targetid(link), _service(link)
 
     if not targetid:
-        return
+        return None
 
     try:
         if service == "bandcamp":

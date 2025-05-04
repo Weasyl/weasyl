@@ -66,7 +66,7 @@ def test_embed_bluesky_oembed_fallback(monkeypatch, cache):
         embed = _embed_bluesky('https://example.invalid')
 
     assert embed['html'] == 'oEmbed stuff here'
-    assert embed['needs_hls'] == False
+    assert embed['needs_hls'] is False
     assert 'thumbnail_url' not in embed
 
 
@@ -78,7 +78,7 @@ def test_embed_bluesky_video_with_thumbnail(monkeypatch, cache):
         embed = _embed_bluesky('https://example.invalid')
 
     assert embed['html'] == '<video id="hls-video" src="https://test.invalid/playlist" controls></video>'
-    assert embed['needs_hls'] == True
+    assert embed['needs_hls'] is True
     assert embed['thumbnail_url'] == 'https://test.invalid/thumbnail'
 
 
@@ -90,5 +90,5 @@ def test_embed_bluesky_video_without_thumbnail(monkeypatch, cache):
         embed = _embed_bluesky('https://example.invalid')
 
     assert embed['html'] == '<video id="hls-video" src="https://test.invalid/playlist" controls></video>'
-    assert embed['needs_hls'] == True
+    assert embed['needs_hls'] is True
     assert 'thumbnail_url' not in embed

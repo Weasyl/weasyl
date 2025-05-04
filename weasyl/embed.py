@@ -143,9 +143,6 @@ def get_embed(link: str) -> dict[str, Any] | None:
     """
     targetid, service = _targetid(link), _service(link)
 
-    if not targetid:
-        return None
-
     try:
         if service == "bandcamp":
             return {
@@ -164,6 +161,8 @@ def get_embed(link: str) -> dict[str, Any] | None:
             return {"html": _embed_json(service, targetid)["html"], "needs_hls": False}
     except (ValueError, KeyError):
         return {"html": "There was an error retrieving the embedded media", "needs_hls": False}
+
+    return None
 
 
 def thumbnail(link: str) -> str | None:

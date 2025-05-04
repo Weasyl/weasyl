@@ -1,4 +1,37 @@
-from weasyl.embed import BlueskyAtUriExtractor
+import json
+import weasyl.define as d
+from weasyl.embed import _embed_bluesky, BlueskyAtUriExtractor
+
+import pytest
+from requests import Response
+
+
+def _mock_response(*, with_thumbnail: bool):
+    response = Response()
+
+    if _mock_response.call_count == 0:
+        obj = {
+            'html': '<blockquote data-bluesky-uri="at://did:plc:test/app.bsky.feed.post/test"></blockquote>',
+        }
+    elif _mock_response.call_count == 1:
+        obj = {
+            'posts': [
+                {
+                    'embed': {
+                        'playlist': 'https://test.invalid/playlist',
+                    },
+                },
+            ],
+        }
+
+        if with_thumbnail:
+            obj['posts'][0]['embed']['thumbnail'] = 'https://test.invalid/thumbnail'
+    else:
+        pytest.fail('called mocked weasyl.define.http_get too many times')
+
+    response._content = json.dumps(obj).encode()
+    _mock_response.call_count += 1
+    return response
 
 
 def test_bluesky_at_uri_extractor():
@@ -22,3 +55,40 @@ def test_bluesky_at_uri_extractor_unexpected_input():
     extractor.feed('ferrets <p>weasels</p> <blockquote>foo</blockquote>')
 
     assert extractor.at_uri is None
+
+
+def test_embed_bluesky_oembed_fallback(monkeypatch, cache):
+    response = Response()
+    response._content = json.dumps({'html': 'oEmbed stuff here'}).encode()
+
+    with monkeypatch.context() as patch:
+        monkeypatch.setattr(d, 'http_get', lambda _: response)
+        embed = _embed_bluesky('https://example.invalid')
+
+    assert embed['html'] == 'oEmbed stuff here'
+    assert embed['needs_hls'] == False
+    assert 'thumbnail_url' not in embed
+
+
+def test_embed_bluesky_video_with_thumbnail(monkeypatch, cache):
+    _mock_response.call_count = 0
+
+    with monkeypatch.context() as patch:
+        patch.setattr(d, 'http_get', lambda _: _mock_response(with_thumbnail=True))
+        embed = _embed_bluesky('https://example.invalid')
+
+    assert embed['html'] == '<video id="hls-video" src="https://test.invalid/playlist" controls></video>'
+    assert embed['needs_hls'] == True
+    assert embed['thumbnail_url'] == 'https://test.invalid/thumbnail'
+
+
+def test_embed_bluesky_video_without_thumbnail(monkeypatch, cache):
+    _mock_response.call_count = 0
+
+    with monkeypatch.context() as patch:
+        patch.setattr(d, 'http_get', lambda _: _mock_response(with_thumbnail=False))
+        embed = _embed_bluesky('https://example.invalid')
+
+    assert embed['html'] == '<video id="hls-video" src="https://test.invalid/playlist" controls></video>'
+    assert embed['needs_hls'] == True
+    assert 'thumbnail_url' not in embed

@@ -394,8 +394,6 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
         submitextension = files.get_extension_for_category(submitfile, m.MULTIMEDIA_SUBMISSION_CATEGORY)
         if submitextension is None:
             raise WeasylError("submitType")
-        elif submitextension not in [".mp3", ".swf"] and not embedlink:
-            raise WeasylError("submitType")
         elif _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
         submit_media_item = orm.MediaItem.fetch_or_create(

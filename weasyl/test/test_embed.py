@@ -57,15 +57,32 @@ def test_bluesky_at_uri_extractor_unexpected_input():
     assert extractor.at_uri is None
 
 
-def test_get_embed_bluesky_oembed_fallback(monkeypatch, cache):
+def test_get_embed_bluesky_oembed_fallback_no_at_uri(monkeypatch, cache):
     response = Response()
-    response._content = json.dumps({'html': 'oEmbed stuff here'}).encode()
+    response._content = json.dumps({'html': 'bad oEmbed response here'}).encode()
 
     with monkeypatch.context() as patch:
         monkeypatch.setattr(d, 'http_get', lambda _: response)
         embed = get_embed('https://example.bsky.app')
 
-    assert embed['html'] == 'oEmbed stuff here'
+    assert embed['html'] == 'bad oEmbed response here'
+    assert embed['needs_hls'] is False
+    assert 'thumbnail_url' not in embed
+
+
+def test_get_embed_bluesky_oembed_fallback_bad_post_api_response(monkeypatch, cache):
+    response = Response()
+    html = '<blockquote data-bluesky-uri="at://did:plc:test/app.bsky.feed.post/test"></blockquote>'
+    # Use the mocked oEmbed response for the mocked Bluesky post API call too,
+    # simulating the case where the response from Bluesky oEmbed API is
+    # well-formed but the subsequent post API call is not.
+    response._content = json.dumps({'html': html}).encode()
+
+    with monkeypatch.context() as patch:
+        monkeypatch.setattr(d, 'http_get', lambda _: response)
+        embed = get_embed('https://example.bsky.app')
+
+    assert embed['html'] == html
     assert embed['needs_hls'] is False
     assert 'thumbnail_url' not in embed
 

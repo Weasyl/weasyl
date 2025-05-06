@@ -6,6 +6,7 @@ import sqlalchemy as sa
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.meta import registry
 from libweasyl.models.tables import metadata
+from libweasyl.staff import StaffConfig
 from libweasyl.test.common import dummy_format_media_link
 from libweasyl import cache
 
@@ -40,7 +41,7 @@ def staticdir(tmpdir):
     configure_libweasyl(
         dbsession=sessionmaker,
         base_file_path=tmpdir.strpath,
-        staff_config_dict={},
+        staff_config=StaffConfig.EMPTY,
         media_link_formatter_callback=dummy_format_media_link,
     )
     return tmpdir

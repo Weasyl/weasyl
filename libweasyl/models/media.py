@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import hashlib
-from io import BytesIO
 import os
+from io import BytesIO
+from typing import Callable
 
 from sqlalchemy.orm import relationship, foreign, remote, joinedload, lazyload, load_only
 from sqlalchemy.sql.expression import any_
@@ -43,8 +46,8 @@ class MediaItem(Base):
         return obj
 
     # set by configure_libweasyl
-    _media_link_formatter_callback = None
-    _base_file_path = None
+    _media_link_formatter_callback: Callable[[MediaItem, str], str]
+    _base_file_path: str
 
     def _to_dict(self):
         return {

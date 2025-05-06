@@ -66,7 +66,7 @@ def make_wsgi_app(*, configure_cache=True):
     configure_libweasyl(
         dbsession=d.sessionmaker,
         base_file_path=m.MACRO_STORAGE_ROOT,
-        staff_config_dict=staff_config.load(),
+        staff_config=staff_config.load(),
         media_link_formatter_callback=format_media_link,
     )
 

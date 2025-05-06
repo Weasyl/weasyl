@@ -4,36 +4,6 @@ In general, code should follow [PEP 8]; `./wzl check` can be used to automatical
 
 Miscellaneous other guidelines follow.
 
-## Trailing commas
-
-When a comma-separated list spans multiple lines, the last line should include a trailing comma.
-
-```python
-numbers = [
-    "one",
-    "two",
-    "three",  # a trailing comma
-]
-```
-
-```python
-translations = {
-    "apple": "pomme",
-    "banana": "banane",
-    "carrot": "carotte",  # another
-}
-```
-
-```python
-engine.execute(
-    "INSERT INTO temperatures (high, low, average) "
-    "VALUES (%(high)s, %(low)s, %(average)s)",
-    high=34.0,
-    low=-4.0,
-    average=19.6,  # here too
-)
-```
-
 ## Docstrings
 
 Docstrings should generally follow [google's style guide], including arguments and return blocks for methods. Be sure to include types for all parameters and the return value, either at the start of the description or in parenthesis and default values if any.  reStructuredText formatting is great where appropriate. Example:

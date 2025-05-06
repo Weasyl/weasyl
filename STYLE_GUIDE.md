@@ -22,10 +22,6 @@ def image_extension(im):
 
 See libweasyl and [sphinx-napoleon] for more examples.
 
-## Line length
-
-We don't enforce a line length limit. That being said, lines longer than 100 characters should be avoided.
-
 # Git best practices
 
 Master should always be deployable. This means that no pull request should be merged until we consider it ready for production. Some rules of thumb for what that means in practice:
@@ -41,11 +37,9 @@ If we ever put master in a state where it is not deployable, we should revert th
 Shamelessly stolen from http://chris.beams.io/posts/git-commit/ and tweaked
 
  1. Separate subject from body with a blank line
- 2. Try to limit the subject line to 50 characters and consider 69 a hard limit
- 3. Capitalize the subject line
- 4. Use the imperative mood in the subject line (e.g. 'Fix a bug in page header notification display' and not 'Fixes a bug' or 'Header notification stuff' etc.)
- 5. Wrap the body at 72 characters
- 6. Use the body to explain what and why vs. how
+ 1. Capitalize the subject line
+ 1. Use the imperative mood in the subject line (e.g. 'Fix a bug in page header notification display' and not 'Fixes a bug' or 'Header notification stuff' etc.)
+ 1. Use the body to explain what and why vs. how
 
   [PEP 8]: https://www.python.org/dev/peps/pep-0008/ "PEP 8 -- Style Guide for Python Code"
   [google's style guide]: http://google.github.io/styleguide/pyguide.html?showone=Comments#Comments "Google's guidelines for docstrings"

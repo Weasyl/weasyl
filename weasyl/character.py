@@ -21,7 +21,7 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import thumbnail
 from weasyl import welcome
-from weasyl.error import PostgresError, WeasylError
+from weasyl.error import WeasylError
 
 
 _MEGABYTE = 1048576
@@ -46,49 +46,42 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     if character.rating.minimum_age:
         profile.assert_adult(userid)
 
-    # Write temporary thumbnail file
-    if thumbsize:
-        files.write(tempthumb, thumbfile)
-        thumbextension = files.get_extension_for_category(
-            thumbfile, macro.ART_SUBMISSION_CATEGORY)
-    else:
-        thumbextension = None
+    if not submitsize:
+        raise WeasylError("submitSizeZero")
+    elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
+        raise WeasylError("submitSizeExceedsLimit")
+    elif thumbsize > 10 * _MEGABYTE:
+        raise WeasylError("thumbSizeExceedsLimit")
 
-    # Write temporary submission file
-    if submitsize:
+    try:
+        # Write temporary thumbnail file
+        if thumbsize:
+            files.write(tempthumb, thumbfile)
+            thumbextension = files.get_extension_for_category(
+                thumbfile, macro.ART_SUBMISSION_CATEGORY)
+        else:
+            thumbextension = None
+
+        # Write temporary submission file
         files.write(tempsubmit, submitfile)
         submitextension = files.get_extension_for_category(
             submitfile, macro.ART_SUBMISSION_CATEGORY)
-    else:
-        submitextension = None
 
-    # Check invalid file data
-    if not submitsize:
-        files.clear_temporary(userid)
-        raise WeasylError("submitSizeZero")
-    elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
-        files.clear_temporary(userid)
-        raise WeasylError("submitSizeExceedsLimit")
-    elif thumbsize > 10 * _MEGABYTE:
-        files.clear_temporary(userid)
-        raise WeasylError("thumbSizeExceedsLimit")
-    elif submitextension not in [".jpg", ".png", ".gif"]:
-        files.clear_temporary(userid)
-        raise WeasylError("submitType")
-    elif thumbsize and thumbextension not in [".jpg", ".png", ".gif"]:
-        files.clear_temporary(userid)
-        raise WeasylError("thumbType")
+        # Check invalid file data
+        if submitextension not in [".jpg", ".png", ".gif"]:
+            raise WeasylError("submitType")
+        elif thumbsize and thumbextension not in [".jpg", ".png", ".gif"]:
+            raise WeasylError("thumbType")
 
-    # Assign settings
-    settings = (
-        files.typeflag("submit", submitextension)
-        + files.typeflag("cover", submitextension)
-    )
+        # Assign settings
+        settings = (
+            files.typeflag("submit", submitextension)
+            + files.typeflag("cover", submitextension)
+        )
 
-    # Insert submission data
-    ch = define.meta.tables["character"]
+        # Insert submission data
+        ch = define.meta.tables["character"]
 
-    try:
         charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
             "userid": userid,
             "unixtime": arrow.utcnow(),
@@ -104,37 +97,34 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
             "hidden": False,
             "friends_only": friends,
         })
-    except PostgresError:
+
+        # Assign search tags
+        searchtag.associate(
+            userid=userid,
+            target=searchtag.CharacterTarget(charid),
+            tag_names=tags,
+        )
+
+        # Make submission file
+        files.make_character_directory(charid)
+        files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
+
+        # Make cover file
+        image.make_cover(tempsubmit, files.make_resource(userid, charid, "char/cover", submitextension))
+
+        # Make thumbnail selection file
+        if thumbsize:
+            image.make_cover(
+                tempthumb, files.make_resource(userid, charid, "char/.thumb"))
+
+        thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
+    finally:
+        # XXX: Race: this can delete temporary files of another character being submitted by the same user at the same time. Will be fixed with characters rework.
         files.clear_temporary(userid)
-        raise
-
-    # Assign search tags
-    searchtag.associate(
-        userid=userid,
-        target=searchtag.CharacterTarget(charid),
-        tag_names=tags,
-    )
-
-    # Make submission file
-    files.make_character_directory(charid)
-    files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
-
-    # Make cover file
-    image.make_cover(tempsubmit, files.make_resource(userid, charid, "char/cover", submitextension))
-
-    # Make thumbnail selection file
-    if thumbsize:
-        image.make_cover(
-            tempthumb, files.make_resource(userid, charid, "char/.thumb"))
-
-    thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
                              friends_only=friends)
-
-    # Clear temporary files
-    files.clear_temporary(userid)
 
     define.metric('increment', 'characters')
     define.cached_posts_count.invalidate(userid)

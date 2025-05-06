@@ -22,16 +22,6 @@ def image_extension(im):
 
 See libweasyl and [sphinx-napoleon] for more examples.
 
-# Git best practices
-
-Master should always be deployable. This means that no pull request should be merged until we consider it ready for production. Some rules of thumb for what that means in practice:
-
- * New features should have tests to maintain or improve our codebase's test coverage.
- * Changes to the web api should have documentation ready to go before being merged.
- * Changes should pass style checks.
-
-If we ever put master in a state where it is not deployable, we should revert the merge commit.
-
 ## Commit messages
 
 Shamelessly stolen from http://chris.beams.io/posts/git-commit/ and tweaked

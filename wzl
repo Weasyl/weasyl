@@ -18,14 +18,16 @@ fi
 head="$1"
 shift
 
-check_nobuild() {
-    if test "$2" = --nobuild; then
-        return 0
-    fi
-
-    $docker_compose build "$1" || exit $?
-    return 1
-}
+if test "${1:-}" = --nobuild; then
+    shift
+    _build() {
+        true
+    }
+else
+    _build() {
+        $docker_compose --profile="$1" build "$1" || exit $?
+    }
+fi
 
 case "$head" in
 
@@ -37,7 +39,7 @@ assets)
     ;;
 
 check)
-    if check_nobuild flake8 "${1:-}"; then shift; fi
+    _build flake8
     exec $docker_compose run --rm -T flake8 "$@"
     ;;
 
@@ -51,22 +53,22 @@ configure)
     ;;
 
 migrate)
-    if check_nobuild migrate "${1:-}"; then shift; fi
+    _build migrate
     exec $docker_compose run --rm -T migrate "$@"
     ;;
 
 revision)
-    if check_nobuild revision "${1:-}"; then shift; fi
+    _build revision
     exec $docker_compose run --rm -T revision "$@" | tar x libweasyl/alembic/versions
     ;;
 
 test)
-    if check_nobuild test "${1:-}"; then shift; fi
+    _build test
     exec $docker_compose run --rm test "$@"
     ;;
 
 test-coverage)
-    if check_nobuild test "${1:-}"; then shift; fi
+    _build test
 
     if test $# -eq 0; then
         set -- sh -c '

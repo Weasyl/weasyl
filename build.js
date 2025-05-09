@@ -292,6 +292,7 @@ const main = async () => {
             banner: {},
         }),
         esbuildFile('js/signup.js', 'js/signup.js', touch, PRIVATE_FIELDS_ESM),
+        esbuildFile('js/embed-video.js', 'js/embed-video.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
         copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,

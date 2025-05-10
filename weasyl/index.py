@@ -1,7 +1,7 @@
-import collections
 import itertools
 import operator
 import random
+from collections import defaultdict
 
 from prometheus_client import Histogram
 
@@ -76,7 +76,7 @@ def filter_submissions(userid, submissions, incidence_limit=None):
         blocked_tags = blocktag.select_ids(userid)
         ignored_users = set(ignoreuser.cached_list_ignoring(userid))
 
-    submitter_incidence = collections.defaultdict(int)
+    submitter_incidence: defaultdict[int, int] = defaultdict(int)
     for s in submissions:
         if incidence_limit and submitter_incidence[s['userid']] >= incidence_limit:
             continue
@@ -92,7 +92,7 @@ def filter_submissions(userid, submissions, incidence_limit=None):
 
 
 def partition_submissions(submissions):
-    buckets = collections.defaultdict(list)
+    buckets: defaultdict[int, list] = defaultdict(list)
     for s in submissions:
         if 'charid' in s:
             bucket = 'char'

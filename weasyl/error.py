@@ -1,5 +1,3 @@
-from sqlalchemy.exc import DBAPIError as PostgresError
-
 from libweasyl.exceptions import WeasylError as _WeasylError
 
 
@@ -15,4 +13,4 @@ class WeasylError(_WeasylError):
         return repr(self.value)
 
 
-__all__ = ['WeasylError', 'PostgresError']
+__all__ = ['WeasylError']

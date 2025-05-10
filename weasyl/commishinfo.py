@@ -3,12 +3,15 @@ from collections import namedtuple
 from decimal import Decimal
 from urllib.parse import quote as urlquote
 
+from psycopg2.errorcodes import UNIQUE_VIOLATION
+from sqlalchemy.exc import OperationalError
+
 from libweasyl.cache import region
 
 from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
-from weasyl.error import PostgresError, WeasylError
+from weasyl.error import WeasylError
 
 _MAX_PRICE = 99999999
 
@@ -338,7 +341,9 @@ def create_commission_class(userid, title):
             title=title,
         )
         return classid
-    except PostgresError:
+    except OperationalError as e:
+        if e.orig.pgcode != UNIQUE_VIOLATION:
+            raise
         raise WeasylError("commishclassExists")
 
 
@@ -376,8 +381,10 @@ def create_price(userid, price, currency="", settings=""):
             amount_max=price.amount_max,
             settings=settings,
         )
-    except PostgresError:
-        return WeasylError("titleExists")
+    except OperationalError as e:
+        if e.orig.pgcode != UNIQUE_VIOLATION:
+            raise
+        raise WeasylError("titleExists")
 
 
 def edit_class(userid, commishclass):
@@ -391,7 +398,9 @@ def edit_class(userid, commishclass):
             class_=commishclass.classid,
             user=userid,
         )
-    except PostgresError:
+    except OperationalError as e:
+        if e.orig.pgcode != UNIQUE_VIOLATION:
+            raise
         raise WeasylError("titleExists")
 
 

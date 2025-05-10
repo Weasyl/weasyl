@@ -20,6 +20,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm
 from ada_url import URL
 from prometheus_client import Histogram
+from psycopg2.errorcodes import SERIALIZATION_FAILURE
 from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
 from web.template import Template
@@ -120,9 +121,6 @@ def column(results):
     return [x for x, in results]
 
 
-_PG_SERIALIZATION_FAILURE = '40001'
-
-
 def serializable_retry(action, limit=16):
     """
     Runs an action accepting a `Connection` parameter in a serializable
@@ -136,7 +134,7 @@ def serializable_retry(action, limit=16):
                 with db.begin():
                     return action(db)
             except OperationalError as e:
-                if i == limit or e.orig.pgcode != _PG_SERIALIZATION_FAILURE:
+                if i == limit or e.orig.pgcode != SERIALIZATION_FAILURE:
                     raise
 
 

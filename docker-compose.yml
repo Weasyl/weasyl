@@ -8,16 +8,22 @@ volumes:
   prometheus:
   test-cache:
   test-coverage:
+  uds-nginx-web:
 
+# Ensure that no service is both connected to a non-internal network and attempts to resolve other containers by name. If a container that’s connected to a non-internal network attempts to resolve a container that’s down, it will fall back to external DNS, which is itself unwanted but could lead to worse results if resolving externally somehow succeeds: there’s no mTLS or anything, so at worst, a malicious external network could impersonate `web` to `nginx`, or `postgres`/`memcached` to `web`. This is pretty niche and unlikely, but it reflects a serious design issue.
+#
+# So:
+# - `web` connects to `postgres`, `memcached`, and `web-outgoing` by name, but has only internal networks (and uses `web-outgoing` to make limited HTTP requests)
+# - `nginx` and `prometheus` are connected to non-internal networks, but only connect to `web` via a Unix socket in the `uds-nginx-web` volume
 networks:
-  external-web:
+  external-web-outgoing:
   external-nginx:
   external-prometheus:
-  nginx-web:
-    internal: true
   web-memcached:
     internal: true
   web-postgres:
+    internal: true
+  web-web-outgoing:
     internal: true
   test-postgres:
     internal: true
@@ -35,9 +41,9 @@ services:
         target: /var/cache/nginx
       - type: tmpfs
         target: /run
+      - uds-nginx-web:/run/uds-nginx-web
     networks:
       - external-nginx
-      - nginx-web
     ports:
       - ${WEASYL_BIND:-127.0.0.1}:8080:8080/tcp
     read_only: true
@@ -50,6 +56,7 @@ services:
       args:
         version: '${WEASYL_VERSION:-}'
     environment:
+      https_proxy: 'socks5h://web-outgoing'
       WEASYL_STORAGE_ROOT: 'storage'
       WEASYL_RELOAD_ASSETS: 'true'
       WEASYL_RELOAD_TEMPLATES: 'true'
@@ -63,6 +70,7 @@ services:
       - storage:/weasyl/storage/static
       - logs:/weasyl/storage/log
       - profile-stats:/weasyl/storage/profile-stats
+      - uds-nginx-web:/weasyl/uds-nginx-web
       - type: tmpfs
         target: /tmp
     tmpfs:
@@ -70,12 +78,45 @@ services:
       - '/weasyl/storage/temp:mode=700,uid=100'
       - '/magick-tmp:mode=700,uid=100'
     networks:
-      - external-web
-      - nginx-web
       - prometheus-web
       - web-memcached
       - web-postgres
+      - web-web-outgoing
     read_only: false
+    depends_on:
+      - postgres
+      - memcached
+      - web-outgoing
+    command:
+      - .venv/bin/gunicorn
+      - --bind
+      - unix:uds-nginx-web/web.sock
+
+  web-outgoing:
+    image: ghcr.io/weasyl/netferret@sha256:67399ee7670d250eb057e3139a98387d1299a7622131d6ba049e98a5edd85fe4
+    init: true
+    user: '1000'
+    command:
+      # currency conversion in `weasyl.commishinfo`
+      - -a
+      - www.ecb.europa.eu
+      # oEmbed in `weasyl.embed`
+      - -a
+      - www.youtube.com
+      - -a
+      - i.ytimg.com
+      - -a
+      - vimeo.com
+      - -a
+      - soundcloud.com
+      - -a
+      - sketchfab.com
+      # TODO: Bandcamp embeds, which are not oEmbed-based and require arbitrary subdomains
+      # crossposting in `weasyl.submission` not included by default
+    networks:
+      - external-web-outgoing
+      - web-web-outgoing
+    read_only: true
 
   memcached:
     image: docker.io/library/memcached:1.6-alpine3.20
@@ -105,8 +146,20 @@ services:
   prometheus:
     profiles: [ prometheus ]
     build: containers/prometheus
+    entrypoint: []
+    command:
+      - /bin/sh
+      - -c
+      # Prometheus doesn’t support scraping Unix sockets:
+      # https://github.com/prometheus/prometheus/issues/12024
+      - |
+        nc -lk -p 8080 ::1 -e nc local:/run/uds-nginx-web/web.sock &
+        exec /bin/prometheus \
+          --config.file=/etc/prometheus/prometheus.yml \
+          --storage.tsdb.path=/prometheus
     volumes:
       - prometheus:/prometheus
+      - uds-nginx-web:/run/uds-nginx-web
     networks:
       - external-prometheus
       - prometheus-web

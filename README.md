@@ -47,18 +47,35 @@ If the asset builder (`build.js`) was modified, run `./wzl build build-assets` b
 
 ### Start Weasyl
 
-Start all the remaining Weasyl services in the background:
+Start Nginx in the background:
 
 ```shell
-./wzl up -d
+./wzl up -d nginx
 ```
 
-Future changes to the application server can be applied with `./wzl up -d --build web`.
+Build and start the Weasyl web service and its dependencies:
 
-You can check its logs with `./wzl logs web`, or attach to it with `./wzl up web`. Detaching can be done from another shell with `pkill -x -HUP docker-compose`. Inspecting the database can be done with `./wzl exec postgres psql -U weasyl`.
+```shell
+./wzl up --build web
+```
+
+> [!TIP]
+> `wzl` is a thin wrapper script for `docker compose`. You can…
+> - start any service in the background by adding the `-d` (`--detach`) flag
+> - detach from all attached services by sending SIGHUP – run `pkill -x -HUP docker-compose` from another shell
+> - reattach to any background service with <code>./wzl up <i>service-name</i></code>
+> - see logs for one or more background services with `./wzl logs`
+
+Weasyl should now be running at <http://weasyl.localhost:8080/>! Several accounts are already created for you with a default password of `password`. Login as `ikani` for director-level access, or see the contents of [./config/weasyl-staff.example.py](config/weasyl-staff.example.py) for accounts with other permission levels.
 
 
-Weasyl should now be running at <http://weasyl.localhost:8080/>! Several accounts are already created for you with a default password of `password`. Login as `ikani` for director-level access, or see the contents of `./config/weasyl-staff.example.py` for accounts with other permission levels.
+## Inspecting the database
+
+To open psql and run queries against the database:
+
+```shell
+./wzl exec postgres psql -U weasyl
+```
 
 
 ## Running tests

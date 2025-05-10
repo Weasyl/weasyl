@@ -212,9 +212,16 @@ const sasscFile = async (relativeInputPath, relativeOutputPath, touch, copyImage
     };
 };
 
-const esbuildFile = async (relativeInputPath, relativeOutputPath, touch, options) => {
+// For convenience, this function accepts an array of `relativePaths` that represent both input paths relative to `ASSETS` and output paths relative to `BUILD`.
+const esbuildFiles = async (relativePaths, touch, options) => {
+    const entryPoints = relativePaths.map(p => path.join(ASSETS, p));
+    const cwd = process.cwd();
+
+    // TODO: use build contexts
     const result = await esbuild.build({
-        entryPoints: [path.join(ASSETS, relativeInputPath)],
+        entryPoints,
+        outdir: '.',  // `outdir` is required even when `write: false`
+        outbase: ASSETS,
         write: false,
         metafile: true,
         bundle: true,
@@ -236,20 +243,44 @@ const esbuildFile = async (relativeInputPath, relativeOutputPath, touch, options
 
     console.log(await esbuild.analyzeMetafile(result.metafile, {verbose: true}));
 
-    const bundleContents = result.outputFiles[0].contents;
+    const entries = [];
+    const writes = [];
 
-    const shortDigest = getShortDigest(
-        crypto.createHash('sha512')
-            .update(bundleContents)
-            .digest()
+    // output metadata keyed by esbuild’s output files’ `path` property, which seems to be an absolute path based on the resolved value of `outdir`
+    // XXX: not yet tested on Windows
+    const outputsByAbsPath = new Map(
+        Object.entries(result.metafile.outputs)
+        .map(([assetId, output]) => [path.join(cwd, assetId), {
+            assetId,
+            output,  // XXX: unused for now
+        }])
     );
 
-    const outputPath = addFilenameSuffix(relativeOutputPath, shortDigest);
-    const outputFullPath = path.join(BUILD, outputPath);
+    for (const outputFile of result.outputFiles) {
+        const {assetId} = outputsByAbsPath.get(outputFile.path);
+        const bundleContents = outputFile.contents;
+
+        const shortDigest = getShortDigest(
+            crypto.createHash('sha512')
+                .update(bundleContents)
+                .digest()
+        );
+
+        const outputPath = addFilenameSuffix(assetId, shortDigest);
+
+        entries.push([assetId, outputPath]);
+        writes.push([outputPath, bundleContents]);
+    }
 
     return {
-        entries: [[relativeOutputPath, outputPath]],
-        work: touch.then(() => fs.promises.writeFile(outputFullPath, bundleContents)),
+        entries,
+        work: touch.then(() =>
+            Promise.all(
+                writes.map(([outputPath, bundleContents]) =>
+                    fs.promises.writeFile(path.join(BUILD, outputPath), bundleContents)
+                )
+            )
+        ),
     };
 };
 
@@ -282,16 +313,18 @@ const main = async () => {
         sasscFile('scss/imageselect.scss', 'css/imageselect.css', touch, copyImages),
         sasscFile('scss/mod.scss', 'css/mod.css', touch, copyImages),
         sasscFile('scss/signup.scss', 'css/signup.css', touch, copyImages),
-        esbuildFile('js/scripts.js', 'js/scripts.js', touch, {}),
-        esbuildFile('js/main.js', 'js/main.js', touch, PRIVATE_FIELDS_ESM),
-        esbuildFile('js/message-list.js', 'js/message-list.js', touch, PRIVATE_FIELDS_ESM),
-        esbuildFile('js/tags-edit.js', 'js/tags-edit.js', touch, PRIVATE_FIELDS_ESM),
-        esbuildFile('js/flash.js', 'js/flash.js', touch, {
+        esbuildFiles(['js/scripts.js'], touch, {}),
+        esbuildFiles([
+            'js/main.js',
+            'js/message-list.js',
+            'js/tags-edit.js',
+            'js/signup.js',
+        ], touch, PRIVATE_FIELDS_ESM),
+        esbuildFiles(['js/flash.js'], touch, {
             format: 'esm',
             target: 'es6',
             banner: {},
         }),
-        esbuildFile('js/signup.js', 'js/signup.js', touch, PRIVATE_FIELDS_ESM),
         copyStaticFiles('img/help', touch),
         copyUnversionedStaticFile('opensearch.xml', touch),
         copyImages,

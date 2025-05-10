@@ -119,7 +119,8 @@ services:
       - sketchfab.com
       - -a
       - media.sketchfab.com
-      # TODO: Bandcamp embeds, which are not oEmbed-based and require arbitrary subdomains
+      - -a
+      - bandcamp.com
       # crossposting in `weasyl.submission` not included by default
     networks:
       - external-web-outgoing

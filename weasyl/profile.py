@@ -473,13 +473,30 @@ STREAMING_ACTION_MAP = {
 }
 
 
-def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_length=0):
+def edit_streaming_settings(
+    my_userid: int,
+    userid: int,
+    *,
+    stream_text: str,
+    stream_url: str,
+    set_stream: str,
+    stream_length: int = 0,
+) -> None:
+
+    stream_url = stream_url.strip()
+
+    if stream_url:
+        stream_url_parsed = d.text_fix_url(stream_url)
+        if stream_url_parsed is None:
+            raise WeasylError("streamLocationInvalid")
+    else:
+        stream_url_parsed = None
 
     if set_stream == 'start':
         if stream_length < 1 or stream_length > 360:
             raise WeasylError("streamDurationOutOfRange")
 
-        if not profile.stream_url:
+        if stream_url_parsed is None:
             raise WeasylError("streamLocationNotSet")
 
     # unless we're specifically still streaming, clear the user_streams record
@@ -509,8 +526,8 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         pr.update()
         .where(pr.c.userid == userid)
         .values({
-            'stream_text': profile.stream_text,
-            'stream_url': profile.stream_url,
+            'stream_text': stream_text,
+            'stream_url': "" if stream_url_parsed is None else stream_url_parsed.href,
             'settings': sa.func.regexp_replace(pr.c.settings, "[nli]", "").concat(settings_flag),
         })
     )
@@ -523,7 +540,7 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         note_body = (
             '- Stream url: %s\n'
             '- Stream description: %s\n'
-            '- Stream status: %s' % (profile.stream_url, profile.stream_text, STREAMING_ACTION_MAP[set_stream]))
+            '- Stream status: %s' % (stream_url, stream_text, STREAMING_ACTION_MAP[set_stream]))
         moderation.note_about(my_userid, userid, 'Streaming settings updated:', note_body)
 
 

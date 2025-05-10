@@ -1,10 +1,13 @@
+import logging
 import os
 import re
 from io import BytesIO
 from urllib.parse import urlparse
 
 import arrow
+import requests
 import sqlalchemy as sa
+from requests import RequestException
 from sqlalchemy import bindparam
 
 from libweasyl.cache import region
@@ -53,6 +56,8 @@ _LIMITS = {
     ".mp3": 15 * _MEGABYTE,
     ".swf": 50 * _MEGABYTE,
 }
+
+logger = logging.getLogger(__name__)
 
 
 def _limit(size, extension):
@@ -374,18 +379,29 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 def create_multimedia(userid, submission, embedlink=None, friends_only=None,
                       tags=None, coverfile=None, thumbfile=None, submitfile=None,
                       critique=False, create_notifications=True, auto_thumb=False):
-    embedlink = embedlink.strip()
-
     # Determine filesizes
     coversize = len(coverfile)
     thumbsize = len(thumbfile)
     submitsize = len(submitfile)
 
-    if not submitsize and not embedlink:
+    if submitsize:
+        embedded = None
+    elif (embedlink := embedlink.strip()):
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            raise WeasylError("embedlinkInvalid")
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UnrecognizedLink as e:
+            raise WeasylError("embedlinkInvalid") from e
+        except embed.UpstreamFailure as e:
+            raise WeasylError("embedlinkFailed") from e
+    else:
         raise WeasylError("submitSizeZero")
-    elif embedlink and not embed.check_valid(embedlink):
-        raise WeasylError("embedlinkInvalid")
-    elif coversize > 10 * _MEGABYTE:
+    del embedlink
+
+    if coversize > 10 * _MEGABYTE:
         raise WeasylError("coverSizeExceedsLimit")
     elif thumbsize > 10 * _MEGABYTE:
         raise WeasylError("thumbSizeExceedsLimit")
@@ -409,15 +425,20 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
 
     tempthumb_media_item = None
     im = None
-    if auto_thumb:
-        if thumbsize == 0 and coversize == 0:
-            # Fetch default thumbnail from source if available
-            thumb_url = embed.thumbnail(embedlink)
-            if thumb_url:
-                resp = d.http_get(thumb_url, timeout=5)
-                im = image.from_string(resp.content)
-    if not im and (thumbsize or coversize):
+    if thumbsize or coversize:
         im = image.from_string(thumbfile or coverfile)
+    elif auto_thumb and embedded is not None:
+        # Fetch default thumbnail from source if available
+        if embedded.thumbnail_url:
+            try:
+                # TODO: limit permitted destinations for this, including redirects
+                resp = requests.get(embedded.thumbnail_url, timeout=5, headers={
+                    "User-Agent": embed.user_agent,
+                })
+            except RequestException as e:
+                logger.error("Fetching thumbnail at %s for embed %s failed: %s", embedded.thumbnail_url, embedded.embedlink.href, e)
+            else:
+                im = image.from_string(resp.content)
     if im:
         tempthumb = images.make_thumbnail(im)
         tempthumb_type = images.image_file_type(tempthumb)
@@ -427,8 +448,8 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             im=tempthumb)
 
     # Inject embedlink
-    if embedlink:
-        submission.content = "".join([embedlink, "\n", submission.content])
+    if embedded:
+        submission.content = "".join([embedded.embedlink.href, "\n", submission.content])
 
     # Create submission
     db = d.connect()
@@ -444,7 +465,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             "rating": submission.rating,
             "friends_only": friends_only,
             "critique": critique,
-            "embed_type": 'other' if embedlink else None,
+            "embed_type": 'other' if embedded else None,
             "favorites": 0,
             "submitter_ip_address": submission.submitter_ip_address,
             "submitter_user_agent_id": submission.submitter_user_agent_id,
@@ -609,10 +630,23 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     else:
         submittext = None
 
-    embedlink = d.text_first_line(query[5]) if query[11] == 'other' else None
-
+    content = query.content
+    embedded = None
     google_doc_embed = None
-    if query[11] == 'google-drive':
+
+    if query.embed_type == "other":
+        embedlink, content = content.split("\n", 1)
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            # a stored embed link should always be valid
+            raise RuntimeError("invalid stored embed link")  # pragma: no cover
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UpstreamFailure as e:
+            embedded = e.failed_embed
+        del embedlink
+    elif query.embed_type == "google-drive":
         google_doc_embed = get_google_docs_embed_url(submitid)
 
     grouped_tags = searchtag.select_grouped(userid, searchtag.SubmissionTarget(submitid))
@@ -627,7 +661,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "folderid": query[2],
         "unixtime": query[3],
         "title": query[4],
-        "content": (d.text_first_line(query[5], strip=True) if 'other' == query[11] else query[5]),
+        "content": content,
         "subtype": query[6],
         "rating": query[7],
         "hidden": query[8],
@@ -649,8 +683,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "sub_media": sub_media,
         "user_media": media.get_user_media(query[0]),
         "submit": submitfile,
-        "embedlink": embedlink,
-        "embed": embed.html(embedlink) if embedlink is not None else None,
+        "embed": embedded,
         "google_doc_embed": google_doc_embed,
 
 
@@ -970,8 +1003,19 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("Unexpected")
     elif submission.subtype // 1000 != query[1] // 1000:
         raise WeasylError("Unexpected")
-    elif 'other' == query[3] and not embed.check_valid(embedlink):
-        raise WeasylError("embedlinkInvalid")
+    elif 'other' == query[3]:
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            raise WeasylError("embedlinkInvalid")
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UnrecognizedLink as e:
+            raise WeasylError("embedlinkInvalid") from e
+        except embed.UpstreamFailure as e:
+            raise WeasylError("embedlinkFailed") from e
+
+        embedlink = embedded.embedlink.href
     elif 'google-drive' == query[3]:
         embedlink = _normalize_google_docs_embed(embedlink)
 

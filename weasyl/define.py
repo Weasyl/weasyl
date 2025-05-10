@@ -10,6 +10,7 @@ import pkgutil
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Literal
+from typing import NewType
 from urllib.parse import urlencode, urljoin
 
 import arrow
@@ -17,6 +18,7 @@ from pyramid.threadlocal import get_current_request
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from ada_url import URL
 from prometheus_client import Histogram
 from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
@@ -485,24 +487,38 @@ def text_price_symbol(target):
     return CURRENCY_CHARMAP[''].symbol
 
 
-def text_first_line(target, strip=False):
+HttpUrl = NewType("HttpUrl", URL)
+
+
+def text_fix_url(s: str) -> HttpUrl | None:
     """
-    Return the first line of text; if `strip` is True, return all but the first
-    line of text.
+    Normalize a user-provided external web link to a URL that always uses `http:` or `https:` (`https:` is assumed when no explicit protocol is provided). The result is safe to use as the `href` attribute of a link in the same sense as `libweasyl.defang`. This also normalizes the domain name to lowercase and Punycode.
+
+    Disallows some weird enough URLs that probably don’t have legitimate uses, indicating a misinterpretation compared to user intent:
+    - URLs containing credentials (`https://username:password@…/`)
+    - URLs with fully-qualified domain names (`https://example.com./`)
+    - URLs with single-component domain names (`https://example/`)
     """
-    first_line, _, rest = target.partition("\n")
+    s = s.strip()
 
-    if strip:
-        return rest
-    else:
-        return first_line
+    try:
+        url = URL(s)
+    except ValueError:
+        try:
+            url = URL("https://" + s)
+        except ValueError:
+            return None
 
+    if (
+        url.protocol in ["http:", "https:"]
+        and not url.username
+        and not url.password
+        and "." in url.hostname
+        and not url.hostname.endswith(".")
+    ):
+        return HttpUrl(url)
 
-def text_fix_url(target):
-    if target.startswith(("http://", "https://")):
-        return target
-
-    return "http://" + target
+    return None
 
 
 def get_arrow(unixtime):

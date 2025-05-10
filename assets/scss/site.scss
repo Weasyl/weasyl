@@ -5,6 +5,7 @@
 @import 'components/edit-profile';
 @import 'components/option';
 @import 'components/page-navigation';
+@import 'components/post/embed';
 @import 'components/private-messages';
 @import 'components/tag-filters';
 @import 'components/text-post-list';
@@ -3083,15 +3084,6 @@ img + #detail-art-text {
 
 .flash-player {
     visibility: hidden;
-}
-
-#detail-embed, #detail-embed iframe {
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-#detail-embed {
-    text-align: center;
 }
 
 #detail-bar-title, #detail-bar .avatar, #detail-bar .username {

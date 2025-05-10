@@ -13,6 +13,9 @@ profile_responses = false
 url = postgresql+psycopg2://weasyl@postgres/weasyl
 # url = postgresql+psycopg2:///weasyl
 
+[outgoing_requests]
+embed_user_agent = Weasyl-User-Embed (+https://www.weasyl.com)
+
 [memcached]
 servers = memcached
 

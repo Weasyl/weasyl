@@ -469,14 +469,15 @@ def control_streaming_post_(request):
         target = request.userid
 
     stream_length = define.clamp(define.get_int(form.stream_length), 0, 360)
-    p = orm.Profile()
-    p.stream_text = form.stream_text
-    p.stream_url = define.text_fix_url(form.stream_url.strip())
-    set_stream = form.set_stream
 
-    profile.edit_streaming_settings(request.userid, target, p,
-                                    set_stream=set_stream,
-                                    stream_length=stream_length)
+    profile.edit_streaming_settings(
+        request.userid,
+        target,
+        stream_text=form.stream_text,
+        stream_url=form.stream_url,
+        set_stream=form.set_stream,
+        stream_length=stream_length,
+    )
 
     if form.target:
         target_username = define.get_sysname(define.get_display_name(target))

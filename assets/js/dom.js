@@ -1,5 +1,5 @@
-export const byClass = (class_, within = document) =>
-    within.getElementsByClassName(class_)[0];
+export var byClass = (class_, within) =>
+    (within ?? document).getElementsByClassName(class_)[0];
 
-export const make = (element, props) =>
+export var make = (element, props) =>
     Object.assign(document.createElement(element), props);

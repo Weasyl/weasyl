@@ -1,4 +1,6 @@
 /* global marked */
+import initEmbed from './embed.js';
+import {tryGetLocal, trySetLocal} from './util/storage.js';
 
 (function () {
     'use strict';
@@ -1198,14 +1200,11 @@
         });
     })();
 
+    // Embeds
+    initEmbed();
+
     // Home tabs
     (function () {
-        function logStorageError(error) {
-            try {
-                console.warn(error);
-            } catch (consoleError) {}
-        }
-
         var homeTabs = document.getElementById('home-tabs');
         var homePanes = document.getElementById('home-panes');
 
@@ -1238,20 +1237,10 @@
 
             calculateThumbnailLayout();
 
-            try {
-                localStorage['home-tab'] = paneId;
-            } catch (error) {
-                logStorageError(error);
-            }
+            trySetLocal('home-tab', paneId);
         });
 
-        var savedTabId = null;
-
-        try {
-            savedTabId = localStorage['home-tab'];
-        } catch (error) {
-            logStorageError(error);
-        }
+        var savedTabId = tryGetLocal('home-tab');
 
         var savedTab = savedTabId && homeTabs.querySelector('.home-pane-link[href="#' + savedTabId + '"]');
 

@@ -8,10 +8,10 @@
 !poetry.lock
 !pyproject.toml
 
-!build.js
+!build.ts
+!deno.json
+!deno.lock
 !imagemagick-policy.xml
-!package.json
-!package-lock.json
 !setup.cfg
 !setup.py
 !gunicorn.conf.py

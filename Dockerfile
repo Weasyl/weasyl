@@ -1,19 +1,32 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/library/node:18-alpine3.20 AS asset-builder
+FROM docker.io/denoland/deno:alpine-2.3.5 AS asset-builder
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     sassc runit
 WORKDIR /weasyl-build
-RUN chown node:node /weasyl-build
-USER node
-COPY --chown=node:node package.json package-lock.json ./
-RUN --mount=type=cache,id=npm,target=/home/node/.npm/_cacache,uid=1000 npm ci --no-audit --ignore-scripts
-COPY build.js build.js
+RUN chown deno:deno /weasyl-build
+USER deno
+COPY --chown=deno:deno deno.json deno.lock ./
+
+# `deno install --frozen [--vendor=true]` by itself doesn’t seem to be able to use the cache.
+RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen --vendor=false
+RUN --network=none --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
+
+COPY build.ts build.ts
 
 
 FROM asset-builder AS assets
 COPY assets assets
-RUN node build.js
+RUN --network=none deno run \
+    --cached-only \
+    --frozen \
+    --allow-env \
+    --allow-read \
+    --allow-write \
+    --allow-run \
+    build.ts \
+    --assets=./assets/ \
+    --output=./build/
 
 
 FROM docker.io/library/alpine:3.20 AS mozjpeg

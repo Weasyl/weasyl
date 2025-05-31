@@ -189,7 +189,16 @@ services:
       - sh
       - -ec
       - |
-        chpst -u node node build.js
+        chpst -u deno deno run \
+          --cached-only \
+          --frozen \
+          --allow-env \
+          --allow-read \
+          --allow-write \
+          --allow-run \
+          build.ts \
+          --assets=./assets/ \
+          --output=./build/
         cp -R build/* /weasyl-assets/
     volumes:
       - assets:/weasyl-assets

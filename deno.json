@@ -1,0 +1,13 @@
+{
+    "imports": {
+        "@std/cli": "jsr:@std/cli@^1.0.19",
+        "@std/encoding": "jsr:@std/encoding@^1.0.10",
+        "@std/path": "jsr:@std/path@^1.1.0",
+        "@ruffle-rs/ruffle": "npm:@ruffle-rs/ruffle@^0.1.0-nightly.2023.8.17",
+        "autoprefixer": "npm:autoprefixer@^10.4.20",
+        "esbuild": "npm:esbuild@^0.25.5",
+        "postcss": "npm:postcss@^8.5.4"
+    },
+    "vendor": true,
+    "unstable": ["lockfile-v5"]
+}

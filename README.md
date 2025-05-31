@@ -36,13 +36,13 @@ This copies the sample configuration into the `config` volume, and only needs to
 ```
 
 
-### Copy assets
+### Build and copy assets
+
+To build assets (subresources like static images, CSS, and JavaScript) once:
 
 ```shell
 ./wzl assets
 ```
-
-If the asset builder (`build.js`) was modified, run `./wzl build build-assets` before `./wzl assets`.
 
 
 ### Start Weasyl

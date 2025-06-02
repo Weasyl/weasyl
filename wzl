@@ -40,6 +40,13 @@ assets)
     exec docker start -ai "$container_id"
     ;;
 
+assets-watch)
+    _build build-assets-watch
+    $docker_compose create "$@" build-assets-watch
+    $docker_compose cp ./assets build-assets-watch:/weasyl-build/
+    exec $docker_compose up build-assets-watch --watch
+    ;;
+
 check)
     _build flake8
     exec $docker_compose run --rm -T flake8 "$@"

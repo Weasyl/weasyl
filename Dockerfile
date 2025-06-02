@@ -2,9 +2,9 @@
 FROM docker.io/denoland/deno:alpine-2.3.5 AS asset-builder
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    sassc runit
+    sassc
 WORKDIR /weasyl-build
-RUN chown deno:deno /weasyl-build
+RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
 USER deno
 COPY --chown=deno:deno deno.json deno.lock ./
 

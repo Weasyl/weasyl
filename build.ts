@@ -6,6 +6,9 @@ import esbuild from 'esbuild';
 import postcss from 'postcss';
 
 interface Task {
+    /** Inputs that can change the output of this task (not always comprehensive, but good enough for watch mode). */
+    inputs: Source[];
+
     /** Key/value pairs to be written to manifest.json, mapping asset ids to hash-suffixed output file paths. */
     entries: [string, string][];
 
@@ -36,13 +39,17 @@ type Source =
     | AbsoluteSource;
 
 class Context {
+    readonly absoluteAssetsRoot: string;
+
     copyImages?: Promise<Task>;
 
     constructor(
         readonly touch: Promise<unknown>,
         readonly assetsRoot: string,
         readonly outputRoot: string,
-    ) {}
+    ) {
+        this.absoluteAssetsRoot = path.resolve(assetsRoot);
+    }
 
     resolveSource(source: Source) {
         if (typeof source === 'string') {
@@ -78,7 +85,15 @@ interface CopyImagesContext extends Context {
 /** Indicates that error information was already written to stderr. */
 const $hasStderr = Symbol('hasStderr');
 
-class SasscError extends Error {
+interface CanHaveStderr {
+    [$hasStderr]: boolean;
+}
+
+const hasStderr = (error: unknown): boolean =>
+    error != null
+    && Boolean((error as {[$hasStderr]?: boolean})[$hasStderr]);
+
+class SasscError extends Error implements CanHaveStderr {
     get [$hasStderr]() {
         return true;
     }
@@ -186,6 +201,66 @@ const addFilenameSuffix = (relativePath: string, suffix: string): string => {
     });
 };
 
+const removePrefix = (s: string, prefix: string) => {
+    if (!s.startsWith(prefix)) {
+        throw new Error('String didn’t start with expected prefix');
+    }
+
+    return s.substring(prefix.length);
+};
+
+declare global {
+    interface PromiseConstructor {
+        // XXX: simplified while waiting for this to work out of the box
+        try<T>(action: () => T | PromiseLike<T>): Promise<Awaited<T>>;
+    }
+}
+
+/** Prevents an idempotent async action from running multiple times concurrently, queuing one run as necessary. */
+class LimitOne {
+    #action: () => Promise<void>;
+    #running = false;
+    #waiting: PromiseWithResolvers<void> = Promise.withResolvers();
+
+    constructor(action: () => Promise<void>) {
+        this.#action = action;
+    }
+
+    get running(): boolean {
+        return this.#running;
+    }
+
+    run = (): Promise<void> => {
+        if (this.#running) {
+            return this.#waiting.promise;
+        }
+
+        const oldWaiting = this.#waiting;
+        this.#waiting = Promise.withResolvers();
+        this.#running = true;
+        oldWaiting.resolve(Promise.try(this.#action).finally(() => {
+            this.#running = false;
+        }));
+        return oldWaiting.promise;
+    };
+}
+
+/** Merges multiple attempts to perform an action separated by at most some interval into a single attempt. */
+const debounce = (action: () => Promise<void>, ms: number) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    return () => {
+        if (timer !== null) {
+            clearTimeout(timer);
+        }
+
+        timer = setTimeout(() => {
+            timer = null;
+            action();
+        }, ms);
+    };
+};
+
 interface SourceOutputPair<T = Source> {
     from: T;
     to: string;
@@ -212,6 +287,7 @@ const copyUnversionedStaticFile = (
     const outputFullPath = ctx.resolveOutput(spec.to);
 
     return {
+        inputs: [spec.from],
         entries: [],
         work: ctx.touch.then(() =>
             Deno.copyFile(ctx.resolveSource(spec.from), outputFullPath)),
@@ -244,6 +320,7 @@ const copyStaticFile = async (ctx: Context, file: SourceOutputSpec): Promise<Tas
         const outputFullPath = ctx.resolveOutput(suffixedOutputPath);
 
         return {
+            inputs: [file.from],
             entries: [[file.to, suffixedOutputPath]],
             work: ctx.touch
                 .then(() => Deno.rename(tempPath, outputFullPath))
@@ -272,6 +349,7 @@ const copyStaticFiles = async (ctx: Context, spec: SourceOutputSpec): Promise<Ta
 
     const subtasks_ = await Promise.all(subtasks);
     return {
+        inputs: subtasks_.flatMap(task => task.inputs),
         entries: subtasks_.flatMap(task => task.entries),
         work: Promise.all(subtasks_.map(task => task.work)),
     };
@@ -297,6 +375,7 @@ const copyRuffleComponents = async (ctx: Context): Promise<Task> => {
     }
 
     return {
+        inputs: [],
         entries: subtasks.flatMap(task => task.entries),
         work: Promise.all(subtasks.map(task => task.work)),
     };
@@ -347,6 +426,7 @@ const sasscFile = async (ctx: CopyImagesContext, spec: SourceOutputPair<Relative
     const outputFullPath = ctx.resolveOutput(outputPath);
 
     return {
+        inputs: [spec.from],
         entries: [[spec.to, outputPath]],
         work: ctx.touch.then(() => Deno.writeFile(outputFullPath, urlTranslatedCssBytes)),
     };
@@ -407,7 +487,11 @@ const esbuildFiles = async (ctx: Context, relativePaths: SourceOutputSame[], opt
         writes.push([outputPath, bundleContents]);
     }
 
+    const inputs = Object.keys(result.metafile.inputs).map(inputPath =>
+        removePrefix(path.join(cwd, inputPath), ctx.absoluteAssetsRoot + '/'));
+
     return {
+        inputs,
         entries,
         work: ctx.touch.then(() =>
             Promise.all(
@@ -423,7 +507,7 @@ const showUsage = () => {
     console.error('Usage: deno run build.ts --assets=<asset-dir> --output=<output-dir>');
 };
 
-class UsageError extends Error {
+class UsageError extends Error implements CanHaveStderr {
     get [$hasStderr]() {
         return true;
     }
@@ -432,6 +516,10 @@ class UsageError extends Error {
 const main = async () => {
     const args = parseArgs(Deno.args, {
         string: ['assets', 'output'],
+        boolean: ['watch'],
+        default: {
+            watch: false,
+        },
         unknown: () => {
             showUsage();
             throw new UsageError();
@@ -456,7 +544,6 @@ const main = async () => {
     ]);
 
     const ctx: Context = new Context(touch, assetsRoot, outputRoot);
-    ctx.setCopyImages(copyStaticFiles(ctx, 'img'));
 
     const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
         format: 'esm',
@@ -469,61 +556,179 @@ const main = async () => {
         banner: {},
     };
 
-    const tasks_: (Task | Promise<Task>)[] = [
-        sasscFile(ctx, {from: 'scss/site.scss', to: 'css/site.css'}),
-        sasscFile(ctx, {from: 'scss/help.scss', to: 'css/help.css'}),
-        sasscFile(ctx, {from: 'scss/imageselect.scss', to: 'css/imageselect.css'}),
-        sasscFile(ctx, {from: 'scss/mod.scss', to: 'css/mod.css'}),
-        sasscFile(ctx, {from: 'scss/signup.scss', to: 'css/signup.css'}),
-        esbuildFiles(ctx, ['js/scripts.js'], {}),
-        esbuildFiles(ctx, [
-            'js/main.js',
-            'js/message-list.js',
-            'js/tags-edit.js',
-            'js/signup.js',
-        ], PRIVATE_FIELDS_ESM),
-        esbuildFiles(ctx, ['js/flash.js'], {
-            format: 'esm',
-            target: 'es6',
-            banner: {},
-        }),
-        copyStaticFiles(ctx, 'img/help'),
-        copyUnversionedStaticFile(ctx, 'opensearch.xml'),
-        ctx.copyImages,
+    // Node:
+    //     apparently no race on Linux (uncomfortable and not documented; I would expect watcher readiness to be async): https://github.com/nodejs/node/issues/52601
+    //     can’t just use `fs[.promises].watch` with `recursive`: https://github.com/nodejs/node/blob/v23.11.0/lib/internal/fs/promises.js#L1248-L1250
+    //
+    // Deno:
+    //     unknown. TODO
+    //
+    // Preferably shouldn’t miss any events during (or after!) the first build.
+    //
+    // We don’t really want this to produce absolute paths in events at all, but not only does it, it can actually produce weird paths like `/weasyl-build/./assets/…` with a relative path argument, so pass an absolute path.
+    const watcher = Deno.watchFs(ctx.absoluteAssetsRoot, {recursive: true});
+    const watcherPrefix = ctx.absoluteAssetsRoot + '/';
 
-        // libraries
-        copyStaticFile(ctx, 'js/jquery-2.2.4.min.js'),
-        copyStaticFile(ctx, 'js/imageselect.js'),
-        copyStaticFile(ctx, 'js/marked.js'),
-        copyStaticFile(ctx, 'js/zxcvbn.js'),
-        copyRuffleComponents(ctx),
-        copyStaticFile(ctx, {
-            from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
-            to: 'js/ruffle/ruffle.js',
-        }),
+    // https://stackoverflow.com/questions/73946077/typescript-incorrectly-narrows-the-type
+    let watchSet = null as Set<string> | null;
 
-        // site
-        copyStaticFile(ctx, 'js/notification-list.js'),
-        copyStaticFile(ctx, 'js/search.js'),
-        copyStaticFile(ctx, 'js/zxcvbn-check.js'),
-    ];
+    const rebuild = async () => {
+        try {
+            ctx.setCopyImages(copyStaticFiles(ctx, 'img'));
 
-    const tasks = await Promise.all(tasks_);
+            const tasks_: (Task | Promise<Task>)[] = [
+                sasscFile(ctx, {from: 'scss/site.scss', to: 'css/site.css'}),
+                sasscFile(ctx, {from: 'scss/help.scss', to: 'css/help.css'}),
+                sasscFile(ctx, {from: 'scss/imageselect.scss', to: 'css/imageselect.css'}),
+                sasscFile(ctx, {from: 'scss/mod.scss', to: 'css/mod.css'}),
+                sasscFile(ctx, {from: 'scss/signup.scss', to: 'css/signup.css'}),
+                esbuildFiles(ctx, ['js/scripts.js'], {}),
+                esbuildFiles(ctx, [
+                    'js/main.js',
+                    'js/message-list.js',
+                    'js/tags-edit.js',
+                    'js/signup.js',
+                ], PRIVATE_FIELDS_ESM),
+                esbuildFiles(ctx, ['js/flash.js'], {
+                    format: 'esm',
+                    target: 'es6',
+                    banner: {},
+                }),
+                copyStaticFiles(ctx, 'img/help'),
+                copyUnversionedStaticFile(ctx, 'opensearch.xml'),
+                ctx.copyImages,
 
-    await touch;
-    await Deno.writeTextFile(
-        manifestPath,
-        JSON.stringify(
-            Object.fromEntries(
-                tasks.flatMap(task => task.entries))),
-    );
-    await Promise.all(tasks.map(task => task.work));
+                // libraries
+                copyStaticFile(ctx, 'js/jquery-2.2.4.min.js'),
+                copyStaticFile(ctx, 'js/imageselect.js'),
+                copyStaticFile(ctx, 'js/marked.js'),
+                copyStaticFile(ctx, 'js/zxcvbn.js'),
+                copyRuffleComponents(ctx),
+                copyStaticFile(ctx, {
+                    from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
+                    to: 'js/ruffle/ruffle.js',
+                }),
+
+                // site
+                copyStaticFile(ctx, 'js/notification-list.js'),
+                copyStaticFile(ctx, 'js/search.js'),
+                copyStaticFile(ctx, 'js/zxcvbn-check.js'),
+            ];
+
+            const tasks = await Promise.all(tasks_);
+
+            watchSet = new Set(
+                tasks.flatMap(task => task.inputs)
+                .filter(input => typeof input === 'string')  // only `RelativeSource`s can be watched
+            );
+
+            await touch;
+            await Deno.writeTextFile(
+                manifestPath,
+                JSON.stringify(
+                    Object.fromEntries(
+                        tasks.flatMap(task => task.entries))),
+            );
+            await Promise.all(tasks.map(task => task.work));
+        } catch (error) {
+            if (!args.watch) {
+                throw error;
+            }
+
+            if (!hasStderr(error)) {
+                console.error(error);
+            }
+
+            watchSet = null;
+        }
+    };
+
+    await rebuild();
+
+    if (!args.watch) {
+        return;
+    }
+
+    /** Changes since the last build started or was enqueued. */
+    const changes = new Set<string>();
+    let changesUnknown = false;
+
+    const rebuilder = new LimitOne(async () => {
+        changes.clear();
+        changesUnknown = false;
+        await rebuild();
+
+        // Handle changes that occurred during the build.
+        // TODO: Could reduce delay by allowing the changes themselves to set the debounce period.
+        const needed = debouncedRebuildIfNeeded();
+
+        console.debug('watch: rebuild done' + (needed ? ', rebuilding again' : ''));
+    });
+
+    const debouncedRebuild = debounce(rebuilder.run, 200);
+
+    const debouncedRebuildIfNeeded = (): boolean => {
+        const needed = (
+            changesUnknown
+            || (watchSet !== null && !changes.isDisjointFrom(watchSet))
+            || (watchSet === null && changes.size !== 0)
+        );
+
+        // Avoid building up and rechecking unnecessary changes during the debounce period, as well as ignored files.
+        changes.clear();
+
+        if (needed) {
+            debouncedRebuild();
+        }
+
+        return needed;
+    };
+
+    for await (const event of watcher) {
+        // https://docs.rs/notify/latest/notify/enum.EventKind.html
+        switch (event.kind) {
+            case 'access':
+                continue;
+
+            case 'rename':
+            case 'remove':
+            case 'modify':
+            case 'create':
+                for (const p of event.paths) {
+                    if (p.startsWith(watcherPrefix)) {
+                        changes.add(removePrefix(p, watcherPrefix));
+                    } else {
+                        console.warn('warning: ignoring unexpected file watcher path %o', p);
+                    }
+                }
+
+                break;
+
+            default:  // 'other' or 'any'
+                console.warn('warning: ignoring unknown file watcher event %o', event);
+                continue;
+        }
+
+        changesUnknown ||= event.flag === 'rescan';
+
+        let reaction;
+
+        if (rebuilder.running) {
+            reaction = 'deferred';
+        } else {
+            reaction = debouncedRebuildIfNeeded() ? 'will rebuild' : 'ignored';
+        }
+
+        console.debug('watch: %s %o (%s)', event.kind, event.paths, reaction);
+    }
 };
 
-await main().catch(error => {
-    if (error[$hasStderr]) {
+try {
+    await main();
+} catch (error) {
+    if (hasStderr(error)) {
         Deno.exitCode = 1;
     } else {
         throw error;
     }
-});
+}

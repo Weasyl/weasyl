@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 #user-nav > li {
     width: 50%;
     float: left;
@@ -37,7 +39,7 @@ $count-selected-background: #006080;
 
     .current > & {
         background-color: $count-selected-background;
-        color: scale-color($count-selected-background, $lightness: 75%);
+        color: color.scale($count-selected-background, $lightness: 75%);
     }
 }
 

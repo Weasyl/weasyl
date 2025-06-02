@@ -4,6 +4,7 @@ import * as path from '@std/path';
 import autoprefixer from 'autoprefixer';
 import esbuild from 'esbuild';
 import postcss from 'postcss';
+import * as sass from 'sass-embedded';
 
 interface Task {
     /** Inputs that can change the output of this task (not always comprehensive, but good enough for watch mode). */
@@ -92,92 +93,6 @@ interface CanHaveStderr {
 const hasStderr = (error: unknown): boolean =>
     error != null
     && Boolean((error as {[$hasStderr]?: boolean})[$hasStderr]);
-
-class SasscError extends Error implements CanHaveStderr {
-    get [$hasStderr]() {
-        return true;
-    }
-}
-
-class Queue<T> {
-    #popStack: T[] = [];
-    #pushStack: T[] = [];
-
-    enqueue(x: T) {
-        this.#pushStack.push(x);
-    }
-
-    peek() {
-        if (this.#popStack.length === 0) {
-            [this.#popStack, this.#pushStack] = [this.#pushStack, this.#popStack];
-            this.#popStack.reverse();
-        }
-
-        return this.#popStack.at(-1);
-    }
-
-    dequeue() {
-        const result = this.peek();
-        this.#popStack.length--;
-        return result;
-    }
-
-    get size() {
-        return this.#popStack.length + this.#pushStack.length;
-    }
-}
-
-class QueueWriter<T> {
-    #stream: WritableStream<T>;
-    #queue = new Queue<T>();
-
-    constructor(stream: WritableStream) {
-        this.#stream = stream;
-    }
-
-    enqueue(write: T) {
-        this.#queue.enqueue(write);
-
-        if (this.#queue.size === 1) {
-            this.#consumeQueue();
-        }
-    }
-
-    async #consumeQueue() {
-        const writer = this.#stream.getWriter();
-
-        try {
-            for (let next; (next = this.#queue.peek()) !== undefined;) {
-                await writer.write(next);
-                this.#queue.dequeue();
-            }
-        } finally {
-            writer.releaseLock();
-        }
-    }
-}
-
-const stderr = new QueueWriter(Deno.stderr.writable);
-
-const sassc = async (inputPath: string): Promise<string> => {
-    const cmd = new Deno.Command('sassc', {
-        args: ['--style=compressed', '--', inputPath],
-        env: {
-            // work around https://github.com/denoland/deno_docker/issues/373
-            LD_LIBRARY_PATH: '/usr/lib',
-        },
-    });
-
-    const result = await cmd.output();
-
-    stderr.enqueue(result.stderr);
-
-    if (!result.success) {
-        throw new SasscError();
-    }
-
-    return new TextDecoder().decode(result.stdout);
-};
 
 /**
  * Gets a 10-character digest from a SHA-512 digest buffer using characters from the URL-safe base64 set.
@@ -382,9 +297,9 @@ const copyRuffleComponents = async (ctx: Context): Promise<Task> => {
 };
 
 const sasscFile = async (ctx: CopyImagesContext, spec: SourceOutputPair<RelativeSource>): Promise<Task> => {
-    const css = await sassc(ctx.resolveSource(spec.from));
+    const sassResult = await sass.compileAsync(ctx.resolveSource(spec.from));
 
-    const result = postcss([autoprefixer()]).process(css, {
+    const result = postcss([autoprefixer()]).process(sassResult.css, {
         from: undefined,
         map: false,
     });
@@ -426,7 +341,8 @@ const sasscFile = async (ctx: CopyImagesContext, spec: SourceOutputPair<Relative
     const outputFullPath = ctx.resolveOutput(outputPath);
 
     return {
-        inputs: [spec.from],
+        inputs: sassResult.loadedUrls.map(url =>
+            removePrefix(path.fromFileUrl(url), ctx.absoluteAssetsRoot + '/')),
         entries: [[spec.to, outputPath]],
         work: ctx.touch.then(() => Deno.writeFile(outputFullPath, urlTranslatedCssBytes)),
     };

@@ -52,9 +52,6 @@ To watch for changes and rebuild assets automatically without rebuilding any con
 
 You’ll still need to stop and restart the watching process in order to apply changes to dependencies in [deno.json](./deno.json) or to [build.ts](./build.ts).
 
-> [!WARNING]
-> Watch mode doesn’t currently support Sass imports.
-
 
 ### Start Weasyl
 

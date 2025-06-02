@@ -1,8 +1,5 @@
 # syntax=docker/dockerfile:1
 FROM docker.io/denoland/deno:alpine-2.3.5 AS asset-builder
-RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
-    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    sassc
 WORKDIR /weasyl-build
 RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
 USER deno

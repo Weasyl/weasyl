@@ -45,6 +45,7 @@ class Context {
     copyImages?: Promise<Task>;
 
     constructor(
+        readonly verbose: boolean,
         readonly touch: Promise<unknown>,
         readonly assetsRoot: string,
         readonly outputRoot: string,
@@ -376,7 +377,9 @@ const esbuildFiles = async (ctx: Context, relativePaths: SourceOutputSame[], opt
         throw new Error('Unexpected warnings');
     }
 
-    console.log(await esbuild.analyzeMetafile(result.metafile, {verbose: true}));
+    if (ctx.verbose) {
+        console.log(await esbuild.analyzeMetafile(result.metafile, {verbose: true}));
+    }
 
     const entries: [string, string][] = [];
     const writes: [string, Uint8Array][] = [];
@@ -459,7 +462,8 @@ const main = async () => {
         Deno.mkdir(path.join(outputRoot, 'js', 'ruffle'), {recursive: true}),
     ]);
 
-    const ctx: Context = new Context(touch, assetsRoot, outputRoot);
+    const verbose = !args.watch;
+    const ctx: Context = new Context(verbose, touch, assetsRoot, outputRoot);
 
     const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
         format: 'esm',
@@ -546,16 +550,18 @@ const main = async () => {
                         tasks.flatMap(task => task.entries))),
             );
             await Promise.all(tasks.map(task => task.work));
+            return true;
         } catch (error) {
             if (!args.watch) {
                 throw error;
             }
 
             if (!hasStderr(error)) {
-                console.error(error);
+                console.error('%s', error);
             }
 
             watchSet = null;
+            return false;
         }
     };
 
@@ -572,16 +578,21 @@ const main = async () => {
     const rebuilder = new LimitOne(async () => {
         changes.clear();
         changesUnknown = false;
-        await rebuild();
+
+        const success = await rebuild();
 
         // Handle changes that occurred during the build.
         // TODO: Could reduce delay by allowing the changes themselves to set the debounce period.
         const needed = debouncedRebuildIfNeeded();
 
-        console.debug('watch: rebuild done' + (needed ? ', rebuilding again' : ''));
+        console.debug(
+            'watch: rebuild '
+            + (success ? 'done' : 'failed')
+            + (needed ? ', rebuilding again' : '')
+        );
     });
 
-    const debouncedRebuild = debounce(rebuilder.run, 200);
+    const debouncedRebuild = debounce(rebuilder.run, 100);
 
     const debouncedRebuildIfNeeded = (): boolean => {
         const needed = (

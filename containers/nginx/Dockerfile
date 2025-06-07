@@ -1,2 +1,2 @@
 FROM docker.io/library/nginx:mainline-alpine
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY --link nginx.conf /etc/nginx/nginx.conf

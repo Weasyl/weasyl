@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@std/async@^1.0.13": "1.0.13",
     "jsr:@std/cli@^1.0.19": "1.0.19",
     "jsr:@std/collections@^1.1.1": "1.1.1",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
@@ -12,6 +13,9 @@
     "npm:sass-embedded@^1.89.1": "1.89.1"
   },
   "jsr": {
+    "@std/async@1.0.13": {
+      "integrity": "1d76ca5d324aef249908f7f7fe0d39aaf53198e5420604a59ab5c035adc97c96"
+    },
     "@std/cli@1.0.19": {
       "integrity": "b3601a54891f89f3f738023af11960c4e6f7a45dc76cde39a6861124cba79e88"
     },
@@ -803,6 +807,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@std/async@^1.0.13",
       "jsr:@std/cli@^1.0.19",
       "jsr:@std/collections@^1.1.1",
       "jsr:@std/encoding@^1.0.10",

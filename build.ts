@@ -1,3 +1,4 @@
+import { debounce } from '@std/async/debounce';
 import { encodeBase64Url } from '@std/encoding/base64url';
 import { parseArgs } from '@std/cli/parse-args';
 import { mapValues } from '@std/collections/map-values';
@@ -169,22 +170,6 @@ class LimitOne {
         return oldWaiting.promise;
     };
 }
-
-/** Merges multiple attempts to perform an action separated by at most some interval into a single attempt. */
-const debounce = (action: () => Promise<void>, ms: number) => {
-    let timer: Timer | null = null;
-
-    return () => {
-        if (timer !== null) {
-            clearTimeout(timer);
-        }
-
-        timer = setTimeout(() => {
-            timer = null;
-            action();
-        }, ms);
-    };
-};
 
 interface SourceOutputPair<T = Source> {
     readonly from: T;

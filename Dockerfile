@@ -113,6 +113,11 @@ RUN \
 
 
 FROM docker.io/library/python:3.10-alpine3.20 AS bdist
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    gcc musl-dev \
+    libmemcached-dev zlib-dev \
+    libpq-dev
 RUN adduser -S weasyl -h /weasyl -u 1000
 WORKDIR /weasyl
 USER weasyl
@@ -149,7 +154,7 @@ RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,u
 
 FROM docker.io/library/python:3.10-alpine3.20 AS package
 # libgcc, libgomp, lcms2, libpng, libxml2, libwebp*: ImageMagick
-# libmemcached-libs: pylibmc
+# libmemcached-libs, zlib: pylibmc
 # libpq: psycopg2
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \

@@ -57,14 +57,14 @@ jobs:
             cache-${{ runner.os }}-poetry-
 
       - name: Create Poetry virtualenv
-        run: python3 -m venv --system-site-packages .poetry-venv
+        run: python3 -m venv --system-site-packages --without-pip .poetry-venv
 
       - name: Install Poetry
         run: |
-          .poetry-venv/bin/pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
+          .poetry-venv/bin/python3 -m pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
 
       - name: Create virtualenv
-        run: python3 -m venv --system-site-packages .venv
+        run: python3 -m venv --system-site-packages --without-pip .venv
 
       - name: Install Deno dependencies
         run: |

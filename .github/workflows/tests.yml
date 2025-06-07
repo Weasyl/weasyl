@@ -9,7 +9,7 @@ jobs:
       contents: read
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:4df75acfb590a0617eb80e9a4283b307193e30ff8e3ac8b9cb2eab430248b17f
+      image: ghcr.io/weasyl/ci-base-image@sha256:9077eec5368014b587402e54a90b7af8070a210041336ce9b66954a660d782da
       options: --user 1001
 
     services:
@@ -67,7 +67,11 @@ jobs:
         run: python3 -m venv --system-site-packages --without-pip .venv
 
       - name: Install Deno dependencies
-        run: deno install --frozen --vendor=false && deno install --frozen
+        run: |
+          (
+            export LD_LIBRARY_PATH=/usr/local/lib
+            deno install --frozen --vendor=false && deno install --frozen
+          )
 
       - name: Install Python dependencies
         run: .poetry-venv/bin/poetry install
@@ -81,6 +85,7 @@ jobs:
 
       - name: Build assets
         run: |
+          LD_LIBRARY_PATH=/usr/local/lib \
           deno run \
             --cached-only \
             --frozen \

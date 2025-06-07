@@ -61,7 +61,7 @@ jobs:
 
       - name: Install Poetry
         run: |
-          .poetry-venv/bin/pip install --require-hashes --only-binary :all: -r poetry-requirements.txt
+          .poetry-venv/bin/pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
 
       - name: Create virtualenv
         run: python3 -m venv --system-site-packages .venv

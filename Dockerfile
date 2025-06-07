@@ -113,7 +113,7 @@ COPY --from=imagemagick6-build --chown=root:root /imagemagick6-build/package-roo
 COPY poetry-requirements.txt ./
 RUN --network=none python3 -m venv .poetry-venv
 RUN --mount=type=cache,id=pip,target=/weasyl/.cache/pip,sharing=locked,uid=1000 \
-    .poetry-venv/bin/pip install --require-hashes --only-binary :all: -r poetry-requirements.txt
+    .poetry-venv/bin/pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
 RUN --network=none python3 -m venv .venv
 COPY --chown=weasyl pyproject.toml poetry.lock setup.py ./
 RUN --network=none .poetry-venv/bin/poetry check --lock

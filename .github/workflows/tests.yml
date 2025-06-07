@@ -40,13 +40,28 @@ jobs:
           restore-keys: |
             cache-${{ runner.os }}-deno-
 
-      - name: Cache Poetry dependencies
+      - name: Cache Poetry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: cache-${{ runner.os }}-pip-${{ hashFiles('poetry-requirements.txt') }}
+          restore-keys: |
+            cache-${{ runner.os }}-pip-
+
+      - name: Cache Python dependencies
         uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
           key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
           restore-keys: |
             cache-${{ runner.os }}-poetry-
+
+      - name: Create Poetry virtualenv
+        run: python3 -m venv --system-site-packages .poetry-venv
+
+      - name: Install Poetry
+        run: |
+          .poetry-venv/bin/pip install --require-hashes --only-binary :all: -r poetry-requirements.txt
 
       - name: Create virtualenv
         run: python3 -m venv --system-site-packages .venv
@@ -58,8 +73,8 @@ jobs:
             deno install --frozen --vendor=false && deno install --frozen
           )
 
-      - name: Install Poetry dependencies
-        run: poetry install
+      - name: Install Python dependencies
+        run: .poetry-venv/bin/poetry install
 
       - name: Configure Weasyl
         run: |

@@ -1,16 +1,18 @@
-@import 'fonts/museo500';
-@import 'theme';
-@import 'reset';
-@import 'components/date-picker';
-@import 'components/detail-tag-form';
-@import 'components/edit-profile';
-@import 'components/option';
-@import 'components/page-navigation';
-@import 'components/private-messages';
-@import 'components/tag-filters';
-@import 'components/text-post-list';
-@import 'components/user-tabs';
-@import 'pages/marketplace';
+@use 'sass:color';
+@use 'sass:math';
+@use 'fonts/museo500';
+@use 'theme';
+@use 'reset';
+@use 'components/date-picker';
+@use 'components/detail-tag-form';
+@use 'components/edit-profile';
+@use 'components/option';
+@use 'components/page-navigation';
+@use 'components/private-messages';
+@use 'components/tag-filters';
+@use 'components/text-post-list';
+@use 'components/user-tabs';
+@use 'pages/marketplace';
 
 /* Basic styles
 --------------------------------*/
@@ -93,7 +95,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .color-c, .title, .content a {
-    color: $link-color;
+    color: theme.$link-color;
 }
 
 .color-on {
@@ -109,7 +111,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .content .color-lighter {
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .stage .color-lighter {
@@ -1503,7 +1505,7 @@ blockquote + blockquote {
 
 .optional-indicator {
     font-weight: normal;
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .form:not(.wide) .form-2up-1, .form:not(.wide) .form-2up-2 {
@@ -1944,7 +1946,7 @@ $small-caps-ratio: 1.2;
     #header-nav a {
         height: 4.5rem;
         line-height: 4.5rem;
-        font-size: 0.75rem / $small-caps-ratio;
+        font-size: math.div(0.75rem, $small-caps-ratio);
         padding: 0 0.4375rem;
 
         &::first-letter {
@@ -1975,7 +1977,7 @@ $small-caps-ratio: 1.2;
     }
 
     #header-nav a {
-        font-size: 0.9rem / $small-caps-ratio;
+        font-size: math.div(0.9rem, $small-caps-ratio);
     }
 }
 
@@ -2223,7 +2225,7 @@ $small-caps-ratio: 1.2;
 
 .stream-header {
     @include serif;
-    color: scale-color($color-a, $saturation: -75%, $lightness: 15%);
+    color: color.scale($color-a, $saturation: -75%, $lightness: 15%);
     font-style: italic;
 }
 

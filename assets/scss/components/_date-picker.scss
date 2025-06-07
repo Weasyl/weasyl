@@ -1,4 +1,4 @@
-@import '../theme';
+@use '../theme';
 
 .form-date {
     display: flex;
@@ -13,7 +13,7 @@
 }
 
 .form-date > * > .sublabel {
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
     padding-top: 0.35em;
     font-size: 12px;
     font-size: 0.75rem;

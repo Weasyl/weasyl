@@ -30,8 +30,8 @@ FROM docker.io/library/alpine:3.20 AS mozjpeg-src
 RUN --network=none adduser -S build -h /mozjpeg-build
 USER build
 WORKDIR /mozjpeg-build
-RUN wget https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.1.5.tar.gz
-RUN echo '90e1b0067740b161398d908e90b976eccc2ee7174496ce9693ba3cdf4727559ecff39744611657d847dd83164b80993152739692a5233aca577ebd052efaf501  v4.1.5.tar.gz' | sha512sum -c && tar xf v4.1.5.tar.gz
+ADD --checksum=sha256:9fcbb7171f6ac383f5b391175d6fb3acde5e64c4c4727274eade84ed0998fcc1 --chown=build --link https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.1.5.tar.gz ./
+RUN tar xf v4.1.5.tar.gz
 
 
 FROM docker.io/library/alpine:3.20 AS mozjpeg
@@ -51,8 +51,8 @@ FROM docker.io/library/alpine:3.20 AS imagemagick6-src
 RUN --network=none adduser -S build -h /imagemagick6-build
 USER build
 WORKDIR /imagemagick6-build
-RUN wget https://imagemagick.org/archive/releases/ImageMagick-6.9.13-17.tar.xz
-RUN --network=none echo '655d8faa4387fd840e2a082633f55d961b3f6bb3c4909debec8272e7abbf9da4afb9994628a493229b41cbc17baba765812cf3d02fc69dd0eb2f2511e85b31c0  ImageMagick-6.9.13-17.tar.xz' | sha512sum -c && tar xf ImageMagick-6.9.13-17.tar.xz
+ADD --checksum=sha256:f83ae219da71e0f85609f4d540cdae4568f637be7ae518567ec0303602f61ca8 --chown=build --link https://imagemagick.org/archive/releases/ImageMagick-6.9.13-17.tar.xz ./
+RUN tar xf ImageMagick-6.9.13-17.tar.xz
 
 
 FROM docker.io/library/alpine:3.20 AS imagemagick6-build

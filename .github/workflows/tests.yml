@@ -9,7 +9,7 @@ jobs:
       contents: read
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:8269b5ee21a931d750e25b59ace565bbee61345589de3587065cfb08121ee5ac
+      image: ghcr.io/weasyl/ci-base-image@sha256:4df75acfb590a0617eb80e9a4283b307193e30ff8e3ac8b9cb2eab430248b17f
       options: --user 1001
 
     services:

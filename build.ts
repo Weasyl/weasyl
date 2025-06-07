@@ -1,20 +1,42 @@
 import { encodeBase64Url } from '@std/encoding/base64url';
 import { parseArgs } from '@std/cli/parse-args';
+import { mapValues } from '@std/collections/map-values';
 import * as path from '@std/path';
 import autoprefixer from 'autoprefixer';
 import esbuild from 'esbuild';
 import postcss from 'postcss';
 import * as sass from 'sass-embedded';
 
-interface Task {
+type Awaitable<T> = T | PromiseLike<T>;
+type Timer = ReturnType<typeof setTimeout>;
+
+/** Asserts (like a cast) that an array contains no `null` elements. */
+// XXX: Arrays are covariant on their element types in TypeScript, so this will accept a T[] where null is not a member of T.
+const asNoNulls = <T>(arr: (T | null)[]): T[] => arr as T[];
+
+interface TaskResult {
     /** Inputs that can change the output of this task (not always comprehensive, but good enough for watch mode). */
-    inputs: Source[];
+    readonly inputs: readonly Source[];
 
     /** Key/value pairs to be written to manifest.json, mapping asset ids to hash-suffixed output file paths. */
-    entries: [string, string][];
+    readonly entries: readonly (readonly [string, string])[];
 
     /** Any further build work that wasn’t required in order to compute {@link entries}. */
-    work: Promise<unknown>;
+    readonly work: Promise<unknown>;
+
+    readonly cache?: TaskCache | null;
+}
+
+interface TaskResultWithCache<Cache extends TaskCache> extends TaskResult {
+    readonly cache: Cache | null;
+}
+
+interface TaskResultWithInputMap extends TaskResult {
+    readonly inputsByEntry: Map<string, readonly Source[]>;
+}
+
+interface TaskCache {
+    dispose(): void;
 }
 
 class PackageSource {
@@ -42,11 +64,8 @@ type Source =
 class Context {
     readonly absoluteAssetsRoot: string;
 
-    copyImages?: Promise<Task>;
-
     constructor(
         readonly verbose: boolean,
-        readonly touch: Promise<unknown>,
         readonly assetsRoot: string,
         readonly outputRoot: string,
     ) {
@@ -72,23 +91,13 @@ class Context {
     resolveOutput(output: string) {
         return path.join(this.outputRoot, output);
     }
-
-    setCopyImages(copyImages: Promise<Task>): asserts this is CopyImagesContext {
-        this.copyImages = copyImages;
-    }
-}
-
-interface CopyImagesContext extends Context {
-    copyImages: Promise<Task>;
-
-    setCopyImages(copyImages: never): never;
 }
 
 /** Indicates that error information was already written to stderr. */
 const $hasStderr = Symbol('hasStderr');
 
 interface CanHaveStderr {
-    [$hasStderr]: boolean;
+    readonly [$hasStderr]: boolean;
 }
 
 const hasStderr = (error: unknown): boolean =>
@@ -163,7 +172,7 @@ class LimitOne {
 
 /** Merges multiple attempts to perform an action separated by at most some interval into a single attempt. */
 const debounce = (action: () => Promise<void>, ms: number) => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let timer: Timer | null = null;
 
     return () => {
         if (timer !== null) {
@@ -178,8 +187,8 @@ const debounce = (action: () => Promise<void>, ms: number) => {
 };
 
 interface SourceOutputPair<T = Source> {
-    from: T;
-    to: string;
+    readonly from: T;
+    readonly to: string;
 }
 
 type SourceOutputSame = string;
@@ -194,233 +203,355 @@ const expandSpec = <T>(spec: SourceOutputSpec<T>): SourceOutputPair<T | string> 
         }
         : spec;
 
-const copyUnversionedStaticFile = (
-    ctx: Context,
-    spec: SourceOutputSpec,
-): Task => {
-    spec = expandSpec(spec);
+type AnyDependencies = Readonly<Record<string, TaskResult>>;
+type AnyTask<Result extends TaskResult = TaskResult> = Task<AnyDependencies, Result, TaskCache | undefined>;
 
-    const outputFullPath = ctx.resolveOutput(spec.to);
+interface Task<
+    Dependencies extends AnyDependencies,
+    Result extends TaskResult = TaskResult,
+    Cache extends TaskCache | undefined = undefined,
+> {
+    readonly dependencies: {readonly [k in keyof Dependencies]: AnyTask<Dependencies[k]>};
 
-    return {
-        inputs: [spec.from],
-        entries: [],
-        work: ctx.touch.then(() =>
-            Deno.copyFile(ctx.resolveSource(spec.from), outputFullPath)),
-    };
-};
+    run(
+        ctx: Context,
+        deps: {readonly [k in keyof Dependencies]: Promise<Dependencies[k]>},
+        cache: Cache | null,
+    ): Awaitable<
+        undefined extends Cache
+            ? Result
+            : TaskResultWithCache<Exclude<Cache, undefined>> & Result
+    >;
+}
+
+type Dependencies<T> = T extends Task<infer U> ? U : never;
+type Providers<D extends AnyDependencies> = {readonly [k in keyof D]: AnyTask<D[k]>};
+type Provided<D extends AnyDependencies> = {readonly [k in keyof D]: Promise<D[k]>};
+
+type Touch = {touch: TaskResult};
+
+class CopyUnversionedStaticFile implements Task<Touch> {
+    readonly #spec: SourceOutputPair;
+
+    constructor(
+        spec: SourceOutputSpec,
+        readonly dependencies: Providers<Touch>,
+    ) {
+        this.#spec = expandSpec(spec);
+    }
+
+    run(ctx: Context, deps: Provided<Touch>): TaskResult {
+        const outputFullPath = ctx.resolveOutput(this.#spec.to);
+
+        return {
+            inputs: [this.#spec.from],
+            entries: [],
+            work: deps.touch.then(() =>
+                Deno.copyFile(ctx.resolveSource(this.#spec.from), outputFullPath)),
+        };
+    }
+}
 
 const shortHash = async (data: Uint8Array) =>
     getShortDigest(new Uint8Array(await crypto.subtle.digest('SHA-512', data)));
 
-const copyStaticFile = async (ctx: Context, file: SourceOutputSpec): Promise<Task> => {
-    file = expandSpec(file);
+class CopyStaticFile implements Task<Touch> {
+    readonly #file: SourceOutputPair;
 
-    const tempPath = await Deno.makeTempFile({dir: ctx.outputRoot});
+    constructor(
+        file: SourceOutputSpec,
+        readonly dependencies: Providers<Touch>,
+    ) {
+        this.#file = expandSpec(file);
+    }
 
-    const cleanup = async () => {
+    async run(ctx: Context, deps: Provided<Touch>): Promise<TaskResult> {
+        const tempPath = await Deno.makeTempFile({dir: ctx.outputRoot});
+
+        const cleanup = async () => {
+            try {
+                await Deno.remove(tempPath);
+            } catch (removeError) {
+                if (!(removeError instanceof Deno.errors.NotFound)) {
+                    console.error('Failed to remove temporary file: %o', removeError);
+                }
+            }
+        };
+
         try {
-            await Deno.remove(tempPath);
-        } catch (removeError) {
-            if (!(removeError instanceof Deno.errors.NotFound)) {
-                console.error('Failed to remove temporary file: %o', removeError);
+            await Deno.copyFile(ctx.resolveSource(this.#file.from), tempPath);
+
+            const shortDigest = await Deno.readFile(tempPath).then(shortHash);
+            const suffixedOutputPath = addFilenameSuffix(this.#file.to, shortDigest);
+            const outputFullPath = ctx.resolveOutput(suffixedOutputPath);
+
+            return {
+                inputs: [this.#file.from],
+                entries: [[this.#file.to, suffixedOutputPath]],
+                work: deps.touch
+                    .then(() => Deno.rename(tempPath, outputFullPath))
+                    .catch(cleanup),
+            };
+        } catch (error) {
+            await cleanup();
+            throw error;
+        }
+    }
+}
+
+const joinSource = (source: Source, subpath: string): Source =>
+    typeof source === 'string' ? path.join(source, subpath)
+    : source instanceof AbsoluteSource ? new AbsoluteSource(path.join(source.path, subpath))
+    : new PackageSource(source.package, path.join(source.path, subpath));
+
+class CopyStaticFiles implements Task<Touch> {
+    readonly #spec: SourceOutputPair;
+
+    constructor(
+        spec: SourceOutputSpec,
+        readonly dependencies: Providers<Touch>,
+    ) {
+        this.#spec = expandSpec(spec);
+    }
+
+    async run(ctx: Context, deps: Provided<Touch>): Promise<TaskResultWithInputMap> {
+        const subtasks = [];
+        const resolvedSource = ctx.resolveSource(this.#spec.from);
+
+        for await (const entry of Deno.readDir(resolvedSource)) {
+            if (!entry.isDirectory) {
+                const subtask = new CopyStaticFile({
+                    from: joinSource(this.#spec.from, entry.name),
+                    to: path.join(this.#spec.to, entry.name),
+                }, this.dependencies);
+
+                subtasks.push(subtask.run(ctx, deps));
             }
         }
-    };
 
-    try {
-        await Deno.copyFile(ctx.resolveSource(file.from), tempPath);
+        const subtasks_ = await Promise.all(subtasks);
+        return {
+            inputs: subtasks_.flatMap(task => task.inputs),
+            entries: subtasks_.flatMap(task => task.entries),
+            work: Promise.all(subtasks_.map(task => task.work)),
+            inputsByEntry: new Map(subtasks_.flatMap(task =>
+                task.entries.map(([k]) => [k, task.inputs]))),
+        };
+    }
+}
 
-        const shortDigest = await Deno.readFile(tempPath).then(shortHash);
-        const suffixedOutputPath = addFilenameSuffix(file.to, shortDigest);
-        const outputFullPath = ctx.resolveOutput(suffixedOutputPath);
+class CopyRuffleComponents implements Task<Dependencies<CopyUnversionedStaticFile>> {
+    constructor(
+        readonly dependencies: Providers<Dependencies<CopyUnversionedStaticFile>>,
+    ) {}
+
+    async run(
+        ctx: Context,
+        deps: Provided<Dependencies<CopyUnversionedStaticFile>>,
+    ): Promise<TaskResult> {
+        const ruffleRoot = ctx.resolveSource(new PackageSource('@ruffle-rs/ruffle', '.'));
+        const subtasks = [];
+
+        for await (const {name} of Deno.readDir(ruffleRoot)) {
+            if (
+                name.endsWith('.wasm')
+                || (name.startsWith('core.ruffle.') && name.endsWith('.js'))
+            ) {
+                subtasks.push(
+                    // These components already include hashes in their names.
+                    new CopyUnversionedStaticFile({
+                        from: new PackageSource('@ruffle-rs/ruffle', name),
+                        to: 'js/ruffle/' + name,
+                    }, this.dependencies).run(ctx, deps)
+                );
+            }
+        }
 
         return {
-            inputs: [file.from],
-            entries: [[file.to, suffixedOutputPath]],
-            work: ctx.touch
-                .then(() => Deno.rename(tempPath, outputFullPath))
-                .catch(cleanup),
+            inputs: [],  // This task type doesn’t watch.
+            entries: subtasks.flatMap(task => task.entries),
+            work: Promise.all(subtasks.map(task => task.work)),
         };
-    } catch (error) {
-        await cleanup();
-        throw error;
+    }
+}
+
+const updateSet = <T>(set: Set<T>, values: Iterable<T>) => {
+    for (const x of values) {
+        set.add(x);
     }
 };
 
-const copyStaticFiles = async (ctx: Context, spec: SourceOutputSpec): Promise<Task> => {
-    spec = expandSpec(spec);
+class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
+    readonly #spec: SourceOutputPair<RelativeSource>;
 
-    const subtasks = [];
-    const resolvedSource = ctx.resolveSource(spec.from);
-
-    for await (const entry of Deno.readDir(resolvedSource)) {
-        if (!entry.isDirectory) {
-            subtasks.push(copyStaticFile(ctx, {
-                from: new AbsoluteSource(path.join(resolvedSource, entry.name)),
-                to: path.join(spec.to, entry.name),
-            }));
-        }
+    constructor(
+        spec: SourceOutputPair<RelativeSource>,
+        readonly dependencies: Providers<Touch & {images: TaskResultWithInputMap}>,
+    ) {
+        this.#spec = spec;
     }
 
-    const subtasks_ = await Promise.all(subtasks);
-    return {
-        inputs: subtasks_.flatMap(task => task.inputs),
-        entries: subtasks_.flatMap(task => task.entries),
-        work: Promise.all(subtasks_.map(task => task.work)),
-    };
-};
+    async run(ctx: Context, deps: Provided<Touch & {images: TaskResultWithInputMap}>): Promise<TaskResult> {
+        const sassResult = await sass.compileAsync(ctx.resolveSource(this.#spec.from));
 
-const copyRuffleComponents = async (ctx: Context): Promise<Task> => {
-    const ruffleRoot = ctx.resolveSource(new PackageSource('@ruffle-rs/ruffle', '.'));
-    const subtasks = [];
+        const result = postcss([autoprefixer()]).process(sassResult.css, {
+            from: undefined,
+            map: false,
+        });
 
-    for await (const {name} of Deno.readDir(ruffleRoot)) {
-        if (
-            name.endsWith('.wasm')
-            || (name.startsWith('core.ruffle.') && name.endsWith('.js'))
-        ) {
-            subtasks.push(
-                // These components already include hashes in their names.
-                copyUnversionedStaticFile(ctx, {
-                    from: new PackageSource('@ruffle-rs/ruffle', name),
-                    to: 'js/ruffle/' + name,
-                })
-            );
-        }
+        result.warnings().forEach(warning => {
+            console.error(String(warning));
+        });
+
+        // ew
+        const images = await deps.images;
+        const subresources = new Map<string, {inputs: readonly Source[], resolved: string}>(
+            [
+                ...images.entries.map(([k, v]) => [k, {
+                    inputs: images.inputsByEntry.get(k)!,
+                    resolved: v,
+                }] as const),
+                // font license does not allow distribution with source code
+                ...[
+                    'fonts/Museo500.woff2',
+                    'fonts/Museo500.woff',
+                ].map(p => [p, {inputs: [], resolved: p}] as const),
+            ]
+                .map(([k, v]) => [new URL('http://localhost/' + k).href, v])
+        );
+
+        const subresourceInputs = new Set<Source>();
+
+        const urlTranslatedCss = result.css.replace(/(url\()([^)]*)\)/gi, (_match: string, left: string, link: string) => {
+            if (/^["']./.test(link) && link.slice(-1) === link.charAt(0)) {
+                link = link.slice(1, -1);
+            }
+
+            const expandedLink = new URL(link, 'http://localhost/' + this.#spec.from).href;
+            const subresource = subresources.get(expandedLink);
+
+            if (!subresource) {
+                throw new Error(`Unresolvable url() in ${this.#spec.from}: ${link}`);
+            }
+
+            updateSet(subresourceInputs, subresource.inputs);
+
+            return left + '/' + subresource.resolved + ')';
+        });
+        const urlTranslatedCssBytes = new TextEncoder().encode(urlTranslatedCss);
+
+        const shortDigest = await shortHash(urlTranslatedCssBytes);
+        const outputPath = addFilenameSuffix(this.#spec.to, shortDigest);
+        const outputFullPath = ctx.resolveOutput(outputPath);
+
+        return {
+            inputs: [
+                ...subresourceInputs,
+                ...sassResult.loadedUrls.map(url =>
+                    removePrefix(path.fromFileUrl(url), ctx.absoluteAssetsRoot + '/')),
+            ],
+            entries: [[this.#spec.to, outputPath]],
+            work: deps.touch.then(() => Deno.writeFile(outputFullPath, urlTranslatedCssBytes)),
+        };
+    }
+}
+
+class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
+    #relativePaths: readonly SourceOutputSame[];
+    #options: esbuild.BuildOptions;
+
+    constructor(
+        relativePaths: readonly SourceOutputSame[],
+        options: esbuild.BuildOptions,
+        readonly dependencies: Providers<Touch>,
+    ) {
+        this.#relativePaths = relativePaths;
+        this.#options = options;
     }
 
-    return {
-        inputs: [],
-        entries: subtasks.flatMap(task => task.entries),
-        work: Promise.all(subtasks.map(task => task.work)),
-    };
-};
-
-const sasscFile = async (ctx: CopyImagesContext, spec: SourceOutputPair<RelativeSource>): Promise<Task> => {
-    const sassResult = await sass.compileAsync(ctx.resolveSource(spec.from));
-
-    const result = postcss([autoprefixer()]).process(sassResult.css, {
-        from: undefined,
-        map: false,
-    });
-
-    result.warnings().forEach(warning => {
-        console.error(String(warning));
-    });
-
-    // ew
-    const subresources = new Map(
-        [
-            ...(await ctx.copyImages).entries,
-            // font license does not allow distribution with source code
-            ...[
-                'fonts/Museo500.woff2',
-                'fonts/Museo500.woff',
-            ].map(p => [p, p]),
-        ]
-            .map(([k, v]) => [new URL('http://localhost/' + k).href, v])
-    );
-
-    const urlTranslatedCss = result.css.replace(/(url\()([^)]*)\)/gi, (_match, left, link) => {
-        if (/^["']./.test(link) && link.slice(-1) === link.charAt(0)) {
-            link = link.slice(1, -1);
-        }
-
-        const expandedLink = new URL(link, 'http://localhost/' + spec.from).href;
-
-        if (!subresources.has(expandedLink)) {
-            throw new Error(`Unresolvable url() in ${spec.from}: ${link}`);
-        }
-
-        return left + '/' + subresources.get(expandedLink) + ')';
-    });
-    const urlTranslatedCssBytes = new TextEncoder().encode(urlTranslatedCss);
-
-    const shortDigest = await shortHash(urlTranslatedCssBytes);
-    const outputPath = addFilenameSuffix(spec.to, shortDigest);
-    const outputFullPath = ctx.resolveOutput(outputPath);
-
-    return {
-        inputs: sassResult.loadedUrls.map(url =>
-            removePrefix(path.fromFileUrl(url), ctx.absoluteAssetsRoot + '/')),
-        entries: [[spec.to, outputPath]],
-        work: ctx.touch.then(() => Deno.writeFile(outputFullPath, urlTranslatedCssBytes)),
-    };
-};
-
-const esbuildFiles = async (ctx: Context, relativePaths: SourceOutputSame[], options: esbuild.BuildOptions) => {
-    const entryPoints = relativePaths.map(p => ctx.resolveSource(p));
-    const cwd = Deno.cwd();
-
-    // TODO: use build contexts
-    const result = await esbuild.build({
-        entryPoints,
-        outdir: '.',  // `outdir` is required even when `write: false`
-        outbase: ctx.assetsRoot,
-        bundle: true,
-        minify: true,
-        target: 'es5',
-        banner: {
-            js: '"use strict";',
-        },
-        ...options,
-        write: false,
-        metafile: true,
-    });
-
-    if (result.warnings.length !== 0) {
-        for (const warning of result.warnings) {
-            console.warn(warning);
-        }
-
-        throw new Error('Unexpected warnings');
+    private createBuildContext(ctx: Context, entryPoints: string[]) {
+        return esbuild.context({
+            entryPoints,
+            outdir: '.',  // `outdir` is required even when `write: false`
+            outbase: ctx.assetsRoot,
+            bundle: true,
+            minify: true,
+            target: 'es5',
+            banner: {
+                js: '"use strict";',
+            },
+            ...this.#options,
+            write: false,
+            metafile: true,
+        });
     }
 
-    if (ctx.verbose) {
-        console.log(await esbuild.analyzeMetafile(result.metafile, {verbose: true}));
-    }
+    async run(
+        ctx: Context,
+        deps: Provided<Touch>,
+        buildContext: Awaited<ReturnType<typeof this.createBuildContext>> | null,
+    ): Promise<TaskResultWithCache<typeof buildContext & NonNullable<unknown>>> {
+        const entryPoints = this.#relativePaths.map(p => ctx.resolveSource(p));
+        const cwd = Deno.cwd();
 
-    const entries: [string, string][] = [];
-    const writes: [string, Uint8Array][] = [];
+        buildContext ??= await this.createBuildContext(ctx, entryPoints);
 
-    // output metadata keyed by esbuild’s output files’ `path` property, which seems to be an absolute path based on the resolved value of `outdir`
-    // XXX: not yet tested on Windows
-    const outputsByAbsPath = new Map(
-        Object.entries(result.metafile.outputs)
-        .map(([assetId, output]) => [path.join(cwd, assetId), {
-            assetId,
-            output,  // XXX: unused for now
-        }])
-    );
+        const result = await buildContext.rebuild();
 
-    for (const outputFile of result.outputFiles) {
-        const {assetId} = outputsByAbsPath.get(outputFile.path)!;
-        const bundleContents = outputFile.contents;
+        if (result.warnings.length !== 0) {
+            for (const warning of result.warnings) {
+                console.warn(warning);
+            }
 
-        const shortDigest = await shortHash(bundleContents);
+            throw new Error('Unexpected warnings');
+        }
 
-        const outputPath = addFilenameSuffix(assetId, shortDigest);
+        if (ctx.verbose) {
+            console.log(await esbuild.analyzeMetafile(result.metafile, {verbose: true}));
+        }
 
-        entries.push([assetId, outputPath]);
-        writes.push([outputPath, bundleContents]);
-    }
+        const entries: [string, string][] = [];
+        const writes: [string, Uint8Array][] = [];
 
-    const inputs = Object.keys(result.metafile.inputs).map(inputPath =>
-        removePrefix(path.join(cwd, inputPath), ctx.absoluteAssetsRoot + '/'));
+        // output metadata keyed by esbuild’s output files’ `path` property, which seems to be an absolute path based on the resolved value of `outdir`
+        // XXX: not yet tested on Windows
+        const outputsByAbsPath = new Map(
+            Object.entries(result.metafile.outputs)
+            .map(([assetId, output]) => [path.join(cwd, assetId), {
+                assetId,
+                output,  // XXX: unused for now
+            }])
+        );
 
-    return {
-        inputs,
-        entries,
-        work: ctx.touch.then(() =>
-            Promise.all(
-                writes.map(([outputPath, bundleContents]) =>
-                    Deno.writeFile(ctx.resolveOutput(outputPath), bundleContents)
+        for (const outputFile of result.outputFiles) {
+            const {assetId} = outputsByAbsPath.get(outputFile.path)!;
+            const bundleContents = outputFile.contents;
+
+            const shortDigest = await shortHash(bundleContents);
+
+            const outputPath = addFilenameSuffix(assetId, shortDigest);
+
+            entries.push([assetId, outputPath]);
+            writes.push([outputPath, bundleContents]);
+        }
+
+        const inputs = Object.keys(result.metafile.inputs).map(inputPath =>
+            removePrefix(path.join(cwd, inputPath), ctx.absoluteAssetsRoot + '/'));
+
+        return {
+            inputs,
+            entries,
+            work: deps.touch.then(() =>
+                Promise.all(
+                    writes.map(([outputPath, bundleContents]) =>
+                        Deno.writeFile(ctx.resolveOutput(outputPath), bundleContents)
+                    )
                 )
-            )
-        ),
-    };
-};
+            ),
+            cache: buildContext,
+        };
+    }
+}
 
 const showUsage = () => {
     console.error('Usage: deno run build.ts --assets=<asset-dir> --output=<output-dir>');
@@ -430,6 +561,143 @@ class UsageError extends Error implements CanHaveStderr {
     get [$hasStderr]() {
         return true;
     }
+}
+
+class CreateFolders implements Task<Record<string, never>> {
+    constructor(
+        readonly folders: readonly string[],
+    ) {}
+
+    get dependencies() {
+        return {};
+    }
+
+    async run(ctx: Context): Promise<TaskResult> {
+        await Promise.all(
+            this.folders.map(p =>
+                Deno.mkdir(
+                    path.join(ctx.outputRoot, p),
+                    {recursive: true}
+                )
+            )
+        );
+
+        return {
+            inputs: [],
+            entries: [],
+            work: Promise.resolve(),
+        };
+    }
+}
+
+const touch = new CreateFolders([
+    'css',
+    'fonts',
+    'img/help',
+    'js/ruffle',
+]);
+
+const images = new CopyStaticFiles('img', {touch});
+
+const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
+    format: 'esm',
+    target: [
+        'chrome84',
+        'firefox90',
+        'ios15',
+        'safari15',
+    ],
+    banner: {},
+};
+
+const tasks: readonly AnyTask[] = [
+    touch,
+    images,
+    new Sass({from: 'scss/site.scss', to: 'css/site.css'}, {touch, images}),
+    new Sass({from: 'scss/help.scss', to: 'css/help.css'}, {touch, images}),
+    new Sass({from: 'scss/imageselect.scss', to: 'css/imageselect.css'}, {touch, images}),
+    new Sass({from: 'scss/mod.scss', to: 'css/mod.css'}, {touch, images}),
+    new Sass({from: 'scss/signup.scss', to: 'css/signup.css'}, {touch, images}),
+    new EsbuildFiles(['js/scripts.js'], {}, {touch}),
+    new EsbuildFiles([
+        'js/main.js',
+        'js/message-list.js',
+        'js/tags-edit.js',
+        'js/signup.js',
+    ], PRIVATE_FIELDS_ESM, {touch}),
+    new EsbuildFiles(['js/flash.js'], {
+        format: 'esm',
+        target: 'es6',
+        banner: {},
+    }, {touch}),
+    new CopyStaticFiles('img/help', {touch}),
+    new CopyUnversionedStaticFile('opensearch.xml', {touch}),
+
+    // libraries
+    new CopyStaticFile('js/jquery-2.2.4.min.js', {touch}),
+    new CopyStaticFile('js/imageselect.js', {touch}),
+    new CopyStaticFile('js/marked.js', {touch}),
+    new CopyStaticFile('js/zxcvbn.js', {touch}),
+    new CopyRuffleComponents({touch}),
+    new CopyStaticFile({
+        from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
+        to: 'js/ruffle/ruffle.js',
+    }, {touch}),
+
+    // site
+    new CopyStaticFile('js/notification-list.js', {touch}),
+    new CopyStaticFile('js/search.js', {touch}),
+    new CopyStaticFile('js/zxcvbn-check.js', {touch}),
+];
+
+const ORDER_UNSET = -1;
+const ORDER_IN_PROGRESS = -2;
+
+const getTopologicalOrder = (
+    tasks: readonly AnyTask[],
+    indexOf: (t: AnyTask) => number | undefined,
+): number[] => {
+    const order: number[] = Array(tasks.length).fill(ORDER_UNSET);
+    let nextOrder = 0;
+
+    const traverse = (i: number) => {
+        if (order[i] >= 0) {
+            // dependency already satisfied
+            return;
+        }
+
+        if (order[i] === ORDER_IN_PROGRESS) {
+            throw new Error('dependency cycle');
+        }
+
+        order[i] = ORDER_IN_PROGRESS;
+
+        // satisfy all dependencies of this task
+        for (const dep in tasks[i].dependencies) {
+            const depIndex = indexOf(tasks[i].dependencies[dep]);
+
+            if (depIndex === undefined) {
+                throw new Error(`dependency not in tasks: ${dep}`);
+            }
+
+            traverse(depIndex);
+        }
+
+        // all dependencies of this task are now satisfied
+        order[i] = nextOrder++;
+    };
+
+    for (let i = 0; i < tasks.length; i++) {
+        traverse(i);
+    }
+
+    return order;
+};
+
+const enum Condition {
+    set,
+    unset,
+    handled,
 }
 
 const main = async () => {
@@ -455,26 +723,8 @@ const main = async () => {
 
     const manifestPath = path.join(outputRoot, 'rev-manifest.json');
 
-    const touch: Promise<unknown> = Promise.all([
-        Deno.mkdir(path.join(outputRoot, 'css'), {recursive: true}),
-        Deno.mkdir(path.join(outputRoot, 'fonts'), {recursive: true}),
-        Deno.mkdir(path.join(outputRoot, 'img', 'help'), {recursive: true}),
-        Deno.mkdir(path.join(outputRoot, 'js', 'ruffle'), {recursive: true}),
-    ]);
-
     const verbose = !args.watch;
-    const ctx: Context = new Context(verbose, touch, assetsRoot, outputRoot);
-
-    const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
-        format: 'esm',
-        target: [
-            'chrome84',
-            'firefox90',
-            'ios15',
-            'safari15',
-        ],
-        banner: {},
-    };
+    const ctx: Context = new Context(verbose, assetsRoot, outputRoot);
 
     // Node:
     //     apparently no race on Linux (uncomfortable and not documented; I would expect watcher readiness to be async): https://github.com/nodejs/node/issues/52601
@@ -486,72 +736,89 @@ const main = async () => {
     // Preferably shouldn’t miss any events during (or after!) the first build.
     //
     // We don’t really want this to produce absolute paths in events at all, but not only does it, it can actually produce weird paths like `/weasyl-build/./assets/…` with a relative path argument, so pass an absolute path.
-    const watcher = Deno.watchFs(ctx.absoluteAssetsRoot, {recursive: true});
+    const watcher = args.watch ? Deno.watchFs(ctx.absoluteAssetsRoot, {recursive: true}) : null;
     const watcherPrefix = ctx.absoluteAssetsRoot + '/';
 
-    // https://stackoverflow.com/questions/73946077/typescript-incorrectly-narrows-the-type
-    let watchSet = null as Set<string> | null;
+    const watchMap = new Map<string, number[]>();
+    let buildFailed = Condition.unset;
+
+    const indexes = new Map(tasks.entries().map(([i, task]) => [task, i]));
+
+    const order = getTopologicalOrder(tasks, t => indexes.get(t));
+
+    const latestRuns: (Awaitable<TaskResult> | null)[] = Array(tasks.length).fill(null);
+    const latestCache: (TaskCache | null)[] = Array(tasks.length).fill(null);
 
     const rebuild = async () => {
+        watchMap.clear();
+        buildFailed = Condition.unset;
+
+        let startedRuns = null;
+
         try {
-            ctx.setCopyImages(copyStaticFiles(ctx, 'img'));
+            for (const i of order) {
+                if (latestRuns[i] === null) {
+                    const task = tasks[i];
 
-            const tasks_: (Task | Promise<Task>)[] = [
-                sasscFile(ctx, {from: 'scss/site.scss', to: 'css/site.css'}),
-                sasscFile(ctx, {from: 'scss/help.scss', to: 'css/help.css'}),
-                sasscFile(ctx, {from: 'scss/imageselect.scss', to: 'css/imageselect.css'}),
-                sasscFile(ctx, {from: 'scss/mod.scss', to: 'css/mod.css'}),
-                sasscFile(ctx, {from: 'scss/signup.scss', to: 'css/signup.css'}),
-                esbuildFiles(ctx, ['js/scripts.js'], {}),
-                esbuildFiles(ctx, [
-                    'js/main.js',
-                    'js/message-list.js',
-                    'js/tags-edit.js',
-                    'js/signup.js',
-                ], PRIVATE_FIELDS_ESM),
-                esbuildFiles(ctx, ['js/flash.js'], {
-                    format: 'esm',
-                    target: 'es6',
-                    banner: {},
-                }),
-                copyStaticFiles(ctx, 'img/help'),
-                copyUnversionedStaticFile(ctx, 'opensearch.xml'),
-                ctx.copyImages,
+                    const deps = mapValues(task.dependencies, dep =>
+                        Promise.resolve(latestRuns[indexes.get(dep)!]!));
 
-                // libraries
-                copyStaticFile(ctx, 'js/jquery-2.2.4.min.js'),
-                copyStaticFile(ctx, 'js/imageselect.js'),
-                copyStaticFile(ctx, 'js/marked.js'),
-                copyStaticFile(ctx, 'js/zxcvbn.js'),
-                copyRuffleComponents(ctx),
-                copyStaticFile(ctx, {
-                    from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
-                    to: 'js/ruffle/ruffle.js',
-                }),
+                    latestRuns[i] = task.run(ctx, deps, latestCache[i]);
+                }
+            }
 
-                // site
-                copyStaticFile(ctx, 'js/notification-list.js'),
-                copyStaticFile(ctx, 'js/search.js'),
-                copyStaticFile(ctx, 'js/zxcvbn-check.js'),
-            ];
+            startedRuns = asNoNulls(latestRuns);
+            const taskResults = await Promise.all(startedRuns);
 
-            const tasks = await Promise.all(tasks_);
+            for (const [i, r] of taskResults.entries()) {
+                if (args.watch) {
+                    latestCache[i] = r.cache ?? null;
+                } else {
+                    r.cache?.dispose();
+                }
 
-            watchSet = new Set(
-                tasks.flatMap(task => task.inputs)
-                .filter(input => typeof input === 'string')  // only `RelativeSource`s can be watched
-            );
+                for (const input of r.inputs) {
+                    if (typeof input !== 'string') {
+                        // only `RelativeSource`s can be watched
+                        continue;
+                    }
 
-            await touch;
+                    let inputTasks = watchMap.get(input);
+                    if (inputTasks === undefined) {
+                        watchMap.set(input, inputTasks = []);
+                    }
+
+                    inputTasks.push(i);
+                }
+            }
+
             await Deno.writeTextFile(
                 manifestPath,
                 JSON.stringify(
                     Object.fromEntries(
-                        tasks.flatMap(task => task.entries))),
+                        taskResults.flatMap(r => r.entries))),
             );
-            await Promise.all(tasks.map(task => task.work));
+            await Promise.all(taskResults.map(r => r.work));
             return true;
         } catch (error) {
+            if (startedRuns !== null) {
+                let timer: Timer | null = setTimeout(() => {
+                    timer = null;
+                    console.debug('waiting for other tasks to finish after build failure…');
+                }, 100);
+
+                await Promise.allSettled(startedRuns);
+
+                if (timer === null) {
+                    console.debug('other tasks done');
+                } else {
+                    clearTimeout(timer);
+                }
+            }
+
+            watchMap.clear();
+            buildFailed = Condition.set;
+
             if (!args.watch) {
                 throw error;
             }
@@ -560,34 +827,41 @@ const main = async () => {
                 console.error('%s', error);
             }
 
-            watchSet = null;
             return false;
         }
     };
 
     await rebuild();
 
-    if (!args.watch) {
+    if (watcher === null) {
         return;
     }
 
     /** Changes since the last build started or was enqueued. */
     const changes = new Set<string>();
-    let changesUnknown = false;
+    let changesUnknown = Condition.unset;
 
     const rebuilder = new LimitOne(async () => {
         changes.clear();
-        changesUnknown = false;
+        changesUnknown = Condition.unset;
 
+        performance.mark('rebuild-start');
         const success = await rebuild();
+        performance.mark('rebuild-end');
 
         // Handle changes that occurred during the build.
         // TODO: Could reduce delay by allowing the changes themselves to set the debounce period.
         const needed = debouncedRebuildIfNeeded();
 
+        const measure = performance.measure('rebuild', {
+            start: 'rebuild-start',
+            end: 'rebuild-end',
+        });
+
         console.debug(
             'watch: rebuild '
             + (success ? 'done' : 'failed')
+            + ` in ${measure.duration.toFixed(1)} ms`
             + (needed ? ', rebuilding again' : '')
         );
     });
@@ -595,11 +869,42 @@ const main = async () => {
     const debouncedRebuild = debounce(rebuilder.run, 100);
 
     const debouncedRebuildIfNeeded = (): boolean => {
-        const needed = (
-            changesUnknown
-            || (watchSet !== null && !changes.isDisjointFrom(watchSet))
-            || (watchSet === null && changes.size !== 0)
-        );
+        let needed = false;
+
+        if (changesUnknown !== Condition.unset) {
+            if (changesUnknown !== Condition.handled) {
+                // Mark every task that depends on inputs at all as needing to be rerun.
+                for (const taskIndexes of watchMap.values()) {
+                    for (const i of taskIndexes) {
+                        latestRuns[i] = null;
+                    }
+                }
+
+                needed = true;
+                changesUnknown = Condition.handled;
+            }
+        } else if (buildFailed !== Condition.unset && changes.size !== 0) {
+            if (buildFailed !== Condition.handled) {
+                // Mark every task as needing to be rerun.
+                latestRuns.fill(null);
+
+                needed = true;
+                buildFailed = Condition.handled;
+            }
+        } else {
+            // Mark tasks that depend on changed inputs as needing to be rerun.
+            for (const change of changes) {
+                const taskIndexes = watchMap.get(change);
+
+                if (taskIndexes !== undefined) {
+                    needed = true;
+
+                    for (const i of taskIndexes) {
+                        latestRuns[i] = null;
+                    }
+                }
+            }
+        }
 
         // Avoid building up and rechecking unnecessary changes during the debounce period, as well as ignored files.
         changes.clear();
@@ -636,7 +941,9 @@ const main = async () => {
                 continue;
         }
 
-        changesUnknown ||= event.flag === 'rescan';
+        if (event.flag === 'rescan' && changesUnknown === Condition.unset) {
+            changesUnknown = Condition.set;
+        }
 
         let reaction;
 

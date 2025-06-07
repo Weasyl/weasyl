@@ -938,7 +938,12 @@ const main = async () => {
             reaction = debouncedRebuildIfNeeded() ? 'will rebuild' : 'ignored';
         }
 
-        console.debug('watch: %s %o (%s)', event.kind, event.paths, reaction);
+        const nicePaths = event.paths.map(p =>
+            p.startsWith(watcherPrefix)
+                ? removePrefix(p, watcherPrefix)
+                : p
+        );
+        console.debug('watch: %s %o (%s)', event.kind, nicePaths, reaction);
     }
 };
 

@@ -82,7 +82,7 @@ Weasyl should now be running at <http://weasyl.localhost:8080/>! Several account
 To open psql and run queries against the database:
 
 ```shell
-./wzl exec postgres psql -U weasyl
+./wzl psql
 ```
 
 

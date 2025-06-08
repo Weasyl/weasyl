@@ -1,3 +1,6 @@
+@use 'sass:color';
+@use '../theme';
+
 .tags-textarea {
     font-size: 14px;
     box-sizing: border-box;
@@ -33,9 +36,9 @@ $tag-background: #eee;
 }
 
 .tag-suggested, .content .tag-suggested {
-    background-color: scale-color($tag-background, $alpha: -30%);
+    background-color: color.scale($tag-background, $alpha: -30%);
     border-style: dashed;
-    color: scale-color($link-color, $alpha: -20%);
+    color: color.scale(theme.$link-color, $alpha: -20%);
 }
 
 .tag-actions {
@@ -94,7 +97,7 @@ $tag-reject-deemphasize-size: 11px;
 
     > p {
         font-size: $tag-reject-deemphasize-size;
-        color: $content-color-lighter;
+        color: theme.$content-color-lighter;
     }
 }
 

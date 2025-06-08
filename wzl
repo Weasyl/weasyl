@@ -2,6 +2,7 @@
 set -eu
 
 export DOCKER_BUILDKIT=1
+export COMPOSE_BAKE=true
 export WEASYL_VERSION="$(git rev-parse --short HEAD)"
 
 # `docker-compose` is fast and easy to check for, so we fall back on `docker compose` instead of the other way around.
@@ -32,10 +33,18 @@ fi
 case "$head" in
 
 assets)
+    _build build-assets
     $docker_compose create "$@" build-assets
     $docker_compose cp ./assets build-assets:/weasyl-build/
     container_id="$($docker_compose ps -a --format='{{.ID}}' build-assets)"
     exec docker start -ai "$container_id"
+    ;;
+
+assets-watch)
+    _build build-assets-watch
+    $docker_compose create "$@" build-assets-watch
+    $docker_compose cp ./assets build-assets-watch:/weasyl-build/
+    exec $docker_compose up build-assets-watch --watch
     ;;
 
 check)
@@ -95,18 +104,18 @@ poetry)
     exit $exit_code
     ;;
 
-npm)
-    docker build --target asset-builder -t weasyl-npm .
+deno)
+    docker build --target asset-builder -t weasyl-deno .
     exit_code=1
     if
-        docker run --name=weasyl-npm --init -it weasyl-npm npm "$@" \
-        && docker cp weasyl-npm:/weasyl-build/package.json ./ \
-        && docker cp weasyl-npm:/weasyl-build/package-lock.json ./
+        docker run --name=weasyl-deno --init -it weasyl-deno deno "$@" \
+        && docker cp weasyl-deno:/weasyl-build/deno.json ./ \
+        && docker cp weasyl-deno:/weasyl-build/deno.lock ./
     then
         exit_code=0
     fi
-    docker container rm weasyl-npm
-    docker image rm weasyl-npm
+    docker container rm weasyl-deno
+    docker image rm weasyl-deno
     exit $exit_code
     ;;
 

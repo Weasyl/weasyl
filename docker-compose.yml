@@ -72,13 +72,11 @@ services:
       - profile-stats:/weasyl/storage/profile-stats
       - uds-nginx-web:/weasyl/uds-nginx-web
       - type: tmpfs
-        target: /weasyl/storage/prometheus
-      - type: tmpfs
-        target: /weasyl/storage/temp
-      - type: tmpfs
         target: /tmp
-      - type: tmpfs
-        target: /magick-tmp
+    tmpfs:
+      - '/weasyl/storage/prometheus:mode=700,uid=100'
+      - '/weasyl/storage/temp:mode=700,uid=100'
+      - '/magick-tmp:mode=700,uid=100'
     networks:
       - prometheus-web
       - web-memcached
@@ -93,6 +91,23 @@ services:
       - .venv/bin/gunicorn
       - --bind
       - unix:uds-nginx-web/web.sock
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./weasyl
+          target: /weasyl/weasyl
+          ignore:
+            - templates/
+            - test/
+        - action: sync+restart
+          path: ./libweasyl
+          target: /weasyl/libweasyl
+          ignore:
+            - alembic/
+            - test/
+        - action: sync
+          path: ./weasyl/templates
+          target: /weasyl/weasyl/templates
 
   web-outgoing:
     image: ghcr.io/weasyl/netferret@sha256:67399ee7670d250eb057e3139a98387d1299a7622131d6ba049e98a5edd85fe4
@@ -191,12 +206,48 @@ services:
       - sh
       - -ec
       - |
-        chpst -u node node build.js
-        cp -R build/* /weasyl-assets/
+        deno run \
+          --cached-only \
+          --frozen \
+          --allow-env \
+          --allow-read \
+          --allow-write \
+          --allow-run \
+          build.ts \
+          --assets=./assets/ \
+          --output=/weasyl-assets/
     volumes:
       - assets:/weasyl-assets
     network_mode: none
-    user: root
+
+  build-assets-watch:
+    profiles: [ build-assets-watch ]
+    build:
+      context: .
+      target: asset-builder
+    command:
+      - sh
+      - -ec
+      - |
+        deno run \
+          --cached-only \
+          --frozen \
+          --allow-env \
+          --allow-read \
+          --allow-write \
+          --allow-run \
+          build.ts \
+          --assets=./assets/ \
+          --output=/weasyl-assets/ \
+          --watch
+    volumes:
+      - assets:/weasyl-assets
+    network_mode: none
+    develop:
+      watch:
+        - action: sync
+          path: ./assets
+          target: /weasyl-build/assets
 
   migrate:
     profiles: [ migrate ]

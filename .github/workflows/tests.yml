@@ -7,9 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:24ade9a64067dda4912bfaa2ad59a037774459b78dfc66f7ee8e0813805bac12
+      image: ghcr.io/weasyl/ci-base-image@sha256:d8bb7c559a4626bbf4e75c263d4ed30e9e260942d35d1df5312ab9d7daea5e8a
       options: --user 1001
 
     services:
@@ -114,7 +115,7 @@ jobs:
           .venv/bin/coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true

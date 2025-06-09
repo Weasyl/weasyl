@@ -999,7 +999,7 @@ class ProfileSettings:
 
     def __setattr__(self, name, value):
         if name.startswith("_"):
-            super(ProfileSettings, self).__setattr__(name, value)
+            super().__setattr__(name, value)
         else:
             setting_config = self._settings[name]
             if setting_config.typecast is not None:

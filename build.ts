@@ -377,7 +377,9 @@ class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
     }
 
     async run(ctx: Context, deps: Provided<Touch & {images: TaskResultWithInputMap}>): Promise<TaskResult> {
-        const sassResult = await sass.compileAsync(ctx.resolveSource(this.#spec.from));
+        const sassResult = await sass.compileAsync(ctx.resolveSource(this.#spec.from), {
+            style: 'compressed',
+        });
 
         const result = postcss([autoprefixer()]).process(sassResult.css, {
             from: undefined,

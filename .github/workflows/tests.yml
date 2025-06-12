@@ -10,7 +10,7 @@ jobs:
       id-token: write
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:d8bb7c559a4626bbf4e75c263d4ed30e9e260942d35d1df5312ab9d7daea5e8a
+      image: ghcr.io/weasyl/ci-base-image@sha256:bc756a11c43b1997430804227fe176bea9c06fe1e2c9b667ed8946e64e117e72
       options: --user 1001
 
     services:

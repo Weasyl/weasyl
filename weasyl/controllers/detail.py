@@ -9,6 +9,57 @@ from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
 
 
+def _generate_embed(canonical_path: str, item: dict) -> tuple[dict, dict]:
+    """Generate the Twitter and Open Graph embeds for this upload.
+
+    Args:
+        canonical_path (str): The canonical path of this upload.
+        item (dict): The output of `select_view` for a submission, character, or journal.
+
+    Returns:
+        A tuple of two dicts, for use as arguments to `define.webpage`.
+        The first dict is `twitter_card`, and the second is `ogp`.
+    """
+    twitter_meta = {}
+
+    title_with_attribution = f"{item['title']} by {item['username']}"
+
+    # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
+    ogp = {
+        'title': title_with_attribution,
+        'type': "website",
+        'url': define.absolutify_url(canonical_path),
+    }
+
+    if (media_items := item.get('sub_media')) and (cover := media_items.get('cover')):
+        twitter_meta['card'] = 'summary_large_image'
+        twitter_meta['image'] = ogp['image'] = define.absolutify_url(cover[0]['display_url'])
+    elif media_items:
+        twitter_meta['card'] = 'summary'
+        thumb = media_items.get('thumbnail-custom') or media_items.get('thumbnail-generated')
+        if thumb:
+            twitter_meta['image'] = ogp['image'] = define.absolutify_url(thumb[0]['display_url'])
+        else:
+            ogp['image'] = define.get_resource_url('img/logo-mark-light.svg')
+    else:
+        # Fallback to the user's avatar if there is no image for this upload,
+        # such as for journal entries.
+        twitter_meta['card'] = 'summary'
+        twitter_meta['image'] = ogp['image'] = define.absolutify_url(item['user_media']['avatar'][0]['display_url'])
+
+    if twitter_username := profile.get_twitter_username(item['userid']):
+        twitter_meta['creator'] = "@" + twitter_username
+        twitter_meta['title'] = item['title']
+    else:
+        twitter_meta['title'] = title_with_attribution
+
+    meta_description = markdown_excerpt(item['content'])
+    if meta_description:
+        twitter_meta['description'] = ogp['description'] = meta_description
+
+    return twitter_meta, ogp
+
+
 def _can_edit_tags(userid: int) -> bool:
     return bool(userid) and define.is_vouched_for(userid)
 
@@ -38,44 +89,13 @@ def submission_(request):
     login = define.get_sysname(item['username'])
     canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
 
-    title_with_attribution = f"{item['title']} by {item['username']}"
-    twitter_meta = {}
-
-    # The "og:" prefix is specified in page_start.html, and og:image is required by the OGP spec, so something must be in there.
-    ogp = {
-        'title': title_with_attribution,
-        'type': "website",
-        'url': define.absolutify_url(canonical_path),
-    }
-
-    media_items = item['sub_media']
-    cover = media_items.get('cover')
-    if cover:
-        twitter_meta['card'] = 'summary_large_image'
-        twitter_meta['image'] = ogp['image'] = define.absolutify_url(cover[0]['display_url'])
-    else:
-        twitter_meta['card'] = 'summary'
-        thumb = media_items.get('thumbnail-custom') or media_items.get('thumbnail-generated')
-        if thumb:
-            twitter_meta['image'] = ogp['image'] = define.absolutify_url(thumb[0]['display_url'])
-        else:
-            ogp['image'] = define.get_resource_url('img/logo-mark-light.svg')
-
-    if twitter_username := profile.get_twitter_username(item['userid']):
-        twitter_meta['creator'] = "@" + twitter_username
-        twitter_meta['title'] = item['title']
-    else:
-        twitter_meta['title'] = title_with_attribution
-
-    meta_description = markdown_excerpt(item['content'])
-    if meta_description:
-        twitter_meta['description'] = ogp['description'] = meta_description
-
     if request.GET.get('anyway'):
         canonical_path += '?anyway=true'
 
     if login != username:
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
+
+    twitter_meta, ogp = _generate_embed(canonical_path, item)
 
     return Response(define.webpage(
         request.userid,
@@ -153,7 +173,15 @@ def character_(request):
 
     canonical_url = "/character/%d/%s" % (charid, slug_for(item["title"]))
 
-    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
+    twitter_meta, ogp = _generate_embed(canonical_url, item)
+
+    page = define.common_page_start(
+        request.userid,
+        canonical_url=canonical_url,
+        title=item["title"],
+        twitter_card=twitter_meta,
+        ogp=ogp,
+    )
     page.append(define.render('detail/character.html', [
         # Profile
         profile.select_myself(request.userid),
@@ -192,7 +220,15 @@ def journal_(request):
 
     canonical_url = "/journal/%d/%s" % (journalid, slug_for(item["title"]))
 
-    page = define.common_page_start(request.userid, canonical_url=canonical_url, title=item["title"])
+    twitter_meta, ogp = _generate_embed(canonical_url, item)
+
+    page = define.common_page_start(
+        request.userid,
+        canonical_url=canonical_url,
+        title=item["title"],
+        twitter_card=twitter_meta,
+        ogp=ogp,
+    )
     page.append(define.render('detail/journal.html', [
         # Myself
         profile.select_myself(request.userid),

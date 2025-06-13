@@ -6,6 +6,8 @@ from pyramid.response import Response
 from weasyl import define, macro, moderation, note, profile, report
 from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
+from weasyl.forms import expect_id
+from weasyl.forms import expect_ids
 
 
 # Moderator control panel functions
@@ -86,32 +88,36 @@ def modcontrol_contentbyuser_(request):
 @moderator_only
 @token_checked
 def modcontrol_massaction_(request):
-    form = request.web_input(action='', submissions=[], characters=[], journals=[])
-    if form.action.startswith("zap-"):
+    action = request.POST.getone("action")
+
+    if action.startswith("zap-"):
         # "Zapping" cover art or thumbnails is not a bulk edit.
-        if not form.submissions:
-            raise WeasylError("Unexpected")
-        submitid = int(form.submissions[0])
-        type = form.action.split("zap-")[1]
-        if type == "cover":
-            moderation.removecoverart(request.userid, submitid)
-        elif type == "thumb":
-            moderation.removethumbnail(request.userid, submitid)
-        elif type == "both":
-            moderation.removecoverart(request.userid, submitid)
-            moderation.removethumbnail(request.userid, submitid)
-        else:
-            raise WeasylError("Unexpected")
+        submitid = expect_id(request.POST.getone("submissions"))
+
+        match action:
+            case "zap-cover":
+                moderation.removecoverart(request.userid, submitid)
+            case "zap-thumb":
+                moderation.removethumbnail(request.userid, submitid)
+            case "zap-both":
+                moderation.removecoverart(request.userid, submitid)
+                moderation.removethumbnail(request.userid, submitid)
+            case _:  # pragma: no cover
+                raise WeasylError("Unexpected")
         raise HTTPSeeOther(location="/submission/%i" % (submitid,))
+
+    submissions = expect_ids(request.POST.getall("submissions"))
+    characters = expect_ids(request.POST.getall("characters"))
+    journals = expect_ids(request.POST.getall("journals"))
 
     return Response(
         content_type='text/plain',
         body=moderation.bulk_edit(
             request.userid,
-            form.action,
-            list(map(int, form.submissions)),
-            list(map(int, form.characters)),
-            list(map(int, form.journals)),
+            action=action,
+            submissions=submissions,
+            characters=characters,
+            journals=journals,
         ),
     )
 

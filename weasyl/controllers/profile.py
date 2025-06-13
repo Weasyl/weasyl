@@ -12,6 +12,13 @@ from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
 
 
+def _get_page_title(userprofile: dict, what: str) -> str:
+    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
+    name = userprofile['full_name'] if has_fullname else userprofile['username']
+
+    return f"{name}'s {what}"
+
+
 def _get_post_counts_by_type(userid, *, friends: bool, rating):
     result = {
         "submission": 0,
@@ -138,7 +145,7 @@ def profile_(request):
             # Friends
             lambda: frienduser.has_friends(otherid),
             is_unverified,
-            _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+            _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
         ),
         twitter_card=twitter_meta,
         ogp=ogp,
@@ -176,8 +183,7 @@ def submissions_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's submissions" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = _get_page_title(userprofile, 'submissions')
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/submissions/{username}?%s{folderquery}".format(
@@ -204,7 +210,7 @@ def submissions_(request):
         folder.select_list(otherid),
         # Current folder
         folderid,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -226,8 +232,7 @@ def collections_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's collections" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = _get_page_title(userprofile, 'collections')
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/collections?userid={userid}&%s".format(userid=userprofile['userid'])
@@ -246,7 +251,7 @@ def collections_(request):
         relation,
         # Collections
         result,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -265,8 +270,7 @@ def journals_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's journals" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = _get_page_title(userprofile, 'journals')
     page = define.common_page_start(request.userid, title=page_title)
 
     relation = profile.select_relation(request.userid, otherid)
@@ -280,7 +284,7 @@ def journals_(request):
         relation,
         # Journals list
         journal.select_list(request.userid, rating, otherid=otherid),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -302,8 +306,7 @@ def characters_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's characters" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = _get_page_title(userprofile, 'characters')
     page = define.common_page_start(request.userid, title=page_title)
 
     url_format = "/characters?userid={userid}&%s".format(userid=userprofile['userid'])
@@ -325,7 +328,7 @@ def characters_(request):
         relation,
         # Characters list
         result,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -356,8 +359,7 @@ def shouts_(request):
             status=403,
         )
 
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's shouts" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = _get_page_title(userprofile, 'shouts')
     page = define.common_page_start(request.userid, title=page_title)
 
     relation = profile.select_relation(request.userid, otherid)
@@ -376,7 +378,7 @@ def shouts_(request):
         shout.select(request.userid, ownerid=otherid),
         # Feature
         "shouts",
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -390,8 +392,7 @@ def staffnotes_(request):
         raise WeasylError("userRecordMissing")
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's staff notes" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = _get_page_title(userprofile, 'staff notes')
     page = define.common_page_start(request.userid, title=page_title)
 
     userinfo = profile.select_userinfo(otherid, config=userprofile['config'])
@@ -415,7 +416,7 @@ def staffnotes_(request):
         shout.select(request.userid, ownerid=otherid, staffnotes=True),
         # Feature
         "staffnotes",
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -442,8 +443,7 @@ def favorites_(request):
         raise WeasylError('hiddenFavorites')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
-    has_fullname = userprofile['full_name'] is not None and userprofile['full_name'].strip() != ''
-    page_title = "%s's favorites" % (userprofile['full_name'] if has_fullname else userprofile['username'],)
+    page_title = _get_page_title(userprofile, 'favorites')
     page = define.common_page_start(request.userid, title=page_title)
 
     if feature:
@@ -488,7 +488,7 @@ def favorites_(request):
         feature,
         # Favorites
         faves,
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
     ]))
 
     return Response(define.common_page_end(request.userid, page))
@@ -509,6 +509,7 @@ def friends_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    page_title = _get_page_title(userprofile, 'friends')
     relation = profile.select_relation(request.userid, otherid)
     rating = define.get_rating(request.userid)
 
@@ -522,8 +523,8 @@ def friends_(request):
         # Friends
         frienduser.select_friends(request.userid, otherid, limit=44,
                                   backid=define.get_int(backid), nextid=define.get_int(nextid)),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
-    ]))
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
+    ], title=page_title))
 
 
 def following_(request):
@@ -541,6 +542,7 @@ def following_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    page_title = _get_page_title(userprofile, 'followed users')
     relation = profile.select_relation(request.userid, otherid)
     rating = define.get_rating(request.userid)
 
@@ -554,8 +556,8 @@ def following_(request):
         # Following
         followuser.select_following(request.userid, otherid, limit=44,
                                     backid=define.get_int(backid), nextid=define.get_int(nextid)),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
-    ]))
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
+    ], title=page_title))
 
 
 def followed_(request):
@@ -573,6 +575,7 @@ def followed_(request):
         raise WeasylError('noGuests')
 
     userprofile = profile.select_profile(otherid, viewer=request.userid)
+    page_title = _get_page_title(userprofile, 'followers')
     relation = profile.select_relation(request.userid, otherid)
     rating = define.get_rating(request.userid)
 
@@ -586,5 +589,5 @@ def followed_(request):
         # Followed
         followuser.select_followed(request.userid, otherid, limit=44,
                                    backid=define.get_int(backid), nextid=define.get_int(nextid)),
-        _get_post_counts_by_type(otherid, friends=relation["friend"], rating=rating),
-    ]))
+        _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
+    ], title=page_title))

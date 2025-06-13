@@ -5,4 +5,4 @@ global:
 scrape_configs:
   - job_name: web
     static_configs:
-      - targets: ['web:8080']
+      - targets: ['[::1]:8080']

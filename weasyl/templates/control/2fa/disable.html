@@ -16,7 +16,7 @@ $:{RENDER("common/stage_title.html", ["Disable 2FA", "Two-Factor Authentication"
     </p>
 
     <label for="disable-tfa">2FA token or Recovery Code</label>
-    <input type="text" class="input" maxlength="24" id="disable-tfa" name="tfaresponse" autocomplete="off" required />
+    <input type="text" class="input" maxlength="24" id="disable-tfa" name="tfaresponse" autocomplete="one-time-code" required />
     <div style="padding-top: 1em;">
       <label><input class="checkbox" type="checkbox" name="verify" required /> I confirm that I want to disable 2FA</label>
     </div>

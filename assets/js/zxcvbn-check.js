@@ -57,13 +57,13 @@
                 passwordStrength.textContent = strengthMessages[result.score];
             }
 
-            passwordField.addEventListener("input", check, false);
+            passwordField.addEventListener("input", check);
 
             personalFields.forEach(function (personalField) {
                 if (personalField.nodeName === "SELECT") {
-                    personalField.addEventListener("change", check, false);
+                    personalField.addEventListener("change", check);
                 } else {
-                    personalField.addEventListener("input", check, false);
+                    personalField.addEventListener("input", check);
                 }
             });
 

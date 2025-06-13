@@ -1,10 +1,18 @@
-@import 'theme';
-@import 'reset';
-@import 'components/date-picker';
-@import 'components/option';
-@import 'components/text-post-list';
-@import 'components/user-tabs';
-@import 'pages/marketplace';
+@use 'sass:color';
+@use 'sass:math';
+@use 'fonts/museo500';
+@use 'theme';
+@use 'reset';
+@use 'components/date-picker';
+@use 'components/detail-tag-form';
+@use 'components/edit-profile';
+@use 'components/option';
+@use 'components/page-navigation';
+@use 'components/private-messages';
+@use 'components/tag-filters';
+@use 'components/text-post-list';
+@use 'components/user-tabs';
+@use 'pages/marketplace';
 
 /* Basic styles
 --------------------------------*/
@@ -35,40 +43,6 @@ a:hover {
 
 .no-js .needs-js {
     display: none;
-}
-
-/* single, two-column dl list items with dashed borders between them */
-dl.leaders dt + dd {
-    border-top: 1px dashed #b4b4b4;
-    margin-top: 0.375em;
-    padding-top: 0.375em;
-}
-
-dl.leaders dt:first-child + dd {
-    border-top: none;
-}
-
-dl.leaders dt {
-    clear: left;
-    float: left;
-    font-weight: 700;
-    padding-top: 0.375em;
-}
-
-dl.leaders dd + dt, dl.leaders dt + dt {
-    padding-top: 0.75em;
-}
-
-dl.leaders dd {
-    text-align: right;
-}
-
-.social .group input {
-    margin-bottom: 6px;
-}
-
-.social .group {
-    margin-bottom: 12px;
 }
 
 /* Typefaces
@@ -109,7 +83,6 @@ i, #header-guest {
 --------------------------------*/
 $color-a: #069bc0;
 $color-b: #8cad47;
-$link-color: #336979;
 
 .color-a, .username, .content .username, .page-title, #header-nav .current,
 #user-nav .current,
@@ -122,7 +95,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .color-c, .title, .content a {
-    color: $link-color;
+    color: theme.$link-color;
 }
 
 .color-on {
@@ -138,7 +111,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .content .color-lighter {
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .stage .color-lighter {
@@ -674,7 +647,12 @@ dl + h4, #uc-info {
 
 /* ------------------------------------ =inputs -- */
 
-.button, .stage .content .button {
+// Even when the surrounding text is a different size, keep default button style consistent – extending the existing `<button>` default to `<a class="button">`.
+.button {
+    @extend .typeface-default;
+}
+
+.button, .content .button, .stage .content .button {
     display: inline-block;
     vertical-align: baseline;
     padding: 0.4em 1.2em;
@@ -824,7 +802,6 @@ select.input {
 .icon {
     display: inline-block;
     vertical-align: middle;
-    background-repeat: no-repeat;
     font-size: 0;
     line-height: 0;
     overflow: hidden;
@@ -853,7 +830,7 @@ select.input {
     overflow: visible;
 }
 
-@media only screen and (min-resolution: 1.5dppx) {
+@media (min-resolution: 1.5x) {
     .icon-20 {
         background-image: url('../img/icons-20@2x.png');
         background-size: 60px 260px;
@@ -1301,11 +1278,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     padding-bottom: 1rem;
 }
 
-.js .comment.hypothetical .comment-content {
-    padding-bottom: 16px;
-    padding-bottom: 1rem;
-}
-
 .comment .actions {
     float: right;
     padding-left: 2em;
@@ -1324,9 +1296,8 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .comment.hypothetical textarea {
     width: 100%;
     height: 1.5em;
-    margin-top: 0.9em;
-    padding-bottom: 1.5em;
-    margin-bottom: -1.5em;
+    margin: 0.625rem -1rem -1rem;
+    padding: 0 1rem 1rem;
     background-color: transparent;
     resize: none;
     outline: none;
@@ -1335,11 +1306,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     &::placeholder {
         font-style: italic;
     }
-}
 
-.no-js .comment.hypothetical textarea {
-    height: 8em;
-    border: 1px solid #c0c0c0;
+    .no-js:root & {
+        height: 8em;
+        resize: vertical;
+    }
 }
 
 .comment.hypothetical .markdown-preview {
@@ -1474,121 +1445,6 @@ blockquote + blockquote {
     }
 }
 
-/* ------------------------------------ =tags -- */
-
-.tags-textarea {
-    font-size: 14px;
-    box-sizing: border-box;
-    width: 100% !important;
-}
-
-.tags-with-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;  // for “(No tags)”
-}
-
-.tags {
-    // fallback if `display: contents` not supported
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-
-    display: contents;
-}
-
-$tag-background: #eee;
-
-.tag {
-    display: inline-block;
-    line-height: 1.75rem;
-    padding: 0 1em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: $tag-background;
-    font-weight: normal;
-}
-
-.tag-suggested,
-.content .tag-suggested {
-    background-color: scale-color($tag-background, $alpha: -30%);
-    border-style: dashed;
-    color: scale-color($link-color, $alpha: -20%);
-}
-
-.tag-actions {
-    display: flex;
-    align-items: center;
-    height: 1.75rem;
-    padding-left: 1em;
-    gap: 16px;
-}
-
-.suggested-tags {
-    display: flex;
-    flex-direction: column;
-    margin-top: 16px;
-    gap: 8px;
-
-    > li {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-}
-
-.suggested-tag-actions {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-    gap: 4px;
-}
-
-$tag-reject-deemphasize-size: 11px;
-
-.tag-reject-feedback {
-    display: flex;
-    flex-direction: column;
-    margin-top: 16px;
-    gap: 4px;
-
-    > label {
-        display: flex;
-        align-items: flex-start;
-        gap: 4px;
-    }
-
-    > output {
-        font-size: $tag-reject-deemphasize-size;
-    }
-}
-
-.tag-reject-feedback[hidden] {
-    display: none;
-}
-
-.tag-reject-label {
-    flex: 1;
-
-    > p {
-        font-size: $tag-reject-deemphasize-size;
-        color: $content-color-lighter;
-    }
-}
-
-@keyframes pulse {
-    from {
-    }
-    to {
-        color: #777;
-    }
-}
-
-.tag-form-status-saving {
-    animation: pulse 0.75s linear alternate infinite;
-}
-
 /* ------------------------------------ =forms -- */
 
 #login-top {
@@ -1634,14 +1490,14 @@ $tag-reject-deemphasize-size: 11px;
 }
 
 .label,
-.form label:not(.input-checkbox),
+.form label:not(.input-checkbox):not(.label-around),
 .form-actions {
     display: block;
     padding: 16px 0 4px;
     padding: 1rem 0 0.25rem;
 }
 
-.label, .form label:not(.input-checkbox) {
+.label, .form label:not(.input-checkbox):not(.label-around) {
     font-size: 14px;
     font-size: 0.9rem;
     font-weight: 700;
@@ -1649,7 +1505,7 @@ $tag-reject-deemphasize-size: 11px;
 
 .optional-indicator {
     font-weight: normal;
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .form:not(.wide) .form-2up-1, .form:not(.wide) .form-2up-2 {
@@ -1977,11 +1833,13 @@ $notifs-color-active: #b9b9b9;
     max-height: 23em;
 }
 
+// Chrome and Firefox render small caps significantly differently, so implement small caps manually in the originally intended proportions used by Firefox
+$small-caps-ratio: 1.2;
+
 #header-nav a {
     display: block;
-    font-size: 14px;
-    font-size: 0.9rem;
-    padding: 0.7em 1.25em;
+    font-size: 0.875rem;
+    padding: 0.625rem 1.125rem;
 }
 
 #header-nav a:hover {
@@ -2075,8 +1933,8 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav ul {
-        font-variant: small-caps;
         letter-spacing: 0.1ex;
+        text-transform: uppercase;
         overflow: hidden;
     }
 
@@ -2086,20 +1944,14 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        height: 72px;
         height: 4.5rem;
-        line-height: 72px;
         line-height: 4.5rem;
-        font-size: 12px;
-        font-size: 0.75rem;
-        padding: 0 0.5em;
-    }
-}
-/* webkit sucks at small caps */
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 45em) {
-    #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
+        font-size: math.div(0.75rem, $small-caps-ratio);
+        padding: 0 0.4375rem;
+
+        &::first-letter {
+            font-size: $small-caps-ratio * 1em;
+        }
     }
 }
 
@@ -2125,15 +1977,7 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
-    }
-}
-
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 48em) {
-    #header-nav a {
-        font-size: 16px;
-        font-size: 1rem;
+        font-size: math.div(0.9rem, $small-caps-ratio);
     }
 }
 
@@ -2381,7 +2225,7 @@ $notifs-color-active: #b9b9b9;
 
 .stream-header {
     @include serif;
-    color: scale-color($color-a, $saturation: -75%, $lightness: 15%);
+    color: color.scale($color-a, $saturation: -75%, $lightness: 15%);
     font-style: italic;
 }
 
@@ -3206,14 +3050,6 @@ img + #detail-art-text {
     font-weight: 400;
 }
 
-.tags-manage {
-    margin-top: 12px;
-}
-
-.tags-actions {
-    margin-top: 8px;
-}
-
 #detail-comments {
     clear: both;
 }
@@ -3668,35 +3504,18 @@ img + #detail-art-text {
     padding-top: 2em;
 }
 
-#edit-profile .buttons {
-    padding-top: 1em;
-}
-
 .tags-help {
     padding-top: 0.5em;
 }
 
-@media (min-width: 30em) {
-    #edit-profile .social .group {
-        width: 48%;
-        float: left;
-        padding-right: 2%;
-    }
-}
-
 @media (min-width: 45em) {
-    #submit-form .column, #edit-profile .column, #commishprices-content .column {
+    #submit-form .column, #commishprices-content .column {
         width: 48%;
     }
 
-    #submit-form .files, #submit-form .info, #edit-profile .info, #commishprices-content .classes {
+    #submit-form .files, #submit-form .info, #commishprices-content .classes {
         float: left;
         clear: left;
-    }
-
-    #edit-profile .settings {
-        float: left;
-        padding-left: 4%;
     }
 
     #submit-form .description, #submit-form .tagging, #submit-form .options {
@@ -3717,22 +3536,13 @@ img + #detail-art-text {
         padding-top: 1em;
     }
 
-    #submit-form .description, #submit-form .tagging, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging {
         padding-bottom: 4px;
     }
 
     #submit-form .buttons {
         clear: both;
         padding-top: 2em;
-    }
-
-    #edit-profile .social, #edit-profile .profile {
-        clear: both;
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 23%;
     }
 }
 
@@ -3762,11 +3572,11 @@ img + #detail-art-text {
         margin: 0 auto;
     }
 
-    #submit-form .column, #submit-form.journal .column, #edit-profile .column, #commishprices-content .column {
+    #submit-form .column, #submit-form.journal .column, #commishprices-content .column {
         width: 31%;
     }
 
-    #submit-form .info, #edit-profile .settings {
+    #submit-form .info {
         clear: none;
         padding-left: 3.5%;
         margin-left: 0;
@@ -3776,7 +3586,7 @@ img + #detail-art-text {
         padding-left: 0;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging, #submit-form .options {
         margin-left: 65.5%;
         padding-left: 3.5%;
         clear: none;
@@ -3788,41 +3598,24 @@ img + #detail-art-text {
         margin-left: 34.5%;
         padding-left: 0;
     }
-
-    #edit-profile .social {
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 18%;
-    }
 }
 
 @media (min-width: 80em) {
-    #submit-form .column, #edit-profile .column {
+    #submit-form .column {
         width: 23%;
     }
 
-    #submit-form .info, #edit-profile .settings {
+    #submit-form .info {
         padding-left: 2%;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging, #submit-form .options {
         width: 50%;
         margin-left: 48%;
         padding-left: 2%;
         overflow: hidden;
     }
-
-    #edit-profile .social {
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 14.6%;
-    }
 }
-
 
 /* ------------------------------------ =notifications -- */
 
@@ -3895,30 +3688,6 @@ img + #detail-art-text {
     padding-top: 2em;
 }
 
-#note-content {
-    padding-top: 2em;
-}
-
-#note-content .formatted-content {
-    padding-top: 1.5em;
-}
-
-#notes-content {
-    padding-top: 2em;
-}
-
-#notes-content th {
-    text-align: left;
-}
-
-#notes-content .unread {
-    font-weight: bold;
-}
-
-#notes-content .buttons {
-    padding-top: 1em;
-}
-
 /* ------------------------------------ =footer -- */
 
 #footer {
@@ -3968,6 +3737,19 @@ img + #detail-art-text {
     padding: 0.5em 8px;
     padding: 0.5em 0.5rem;
     color: #bbb;
+}
+
+// This flex layout achieves a similar effect to `vertical-align: middle` without extending the hover underline to the gap.
+#footer .footer-icon-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    > img {
+        width: 14px;
+        height: 14px;
+        margin-bottom: -2px;
+    }
 }
 
 #footer-wesley {
@@ -4159,16 +3941,6 @@ templates/error/error.html
 *******************************************************************************
 ******************************************************************************/
 
-.tagfilters span {
-    display: block;
-    float: left;
-    padding: 0.3em 0.5em;
-    margin: 0 0.5em 0.5em 0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    background-color: #f5f5f5;
-}
-
 body input[type="checkbox"] {
     position: relative;
     top: -1px;
@@ -4270,13 +4042,6 @@ a.user-icon:hover > span, a.user-icon:focus > span {
     text-decoration: underline;
 }
 
-.bbcode-warning {
-    display: none;
-    margin: 1em 0;
-    color: #ad322d;
-    font-style: italic;
-}
-
 .hidden-comment {
     opacity: 0.5;
 }
@@ -4362,12 +4127,6 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 
 #api-token-list .api-token {
     margin-left: 1.8rem;
-}
-
-/* Tag filters
---------------------------------*/
-#tagfilters_content_buttons {
-    margin-top: 0.6em;
 }
 
 /* Submission favorite button

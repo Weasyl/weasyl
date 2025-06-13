@@ -14,10 +14,8 @@ $def with (query, options, extended_options={})
   $# If we have JavaScript enabled, remove the no-js class; keep before any link/style elements
   <script>
     document.documentElement.classList.remove("no-js");
-    document.documentElement.classList.add("js");
   </script>
 
-  <link rel="stylesheet" href="${resource_path('fonts/museo500.css')}" />
   <link rel="stylesheet" href="${resource_path('css/site.css')}" />
 
   <link rel="icon" type="image/png" sizes="16x16" href="${resource_path('img/favicon.png')}" />
@@ -37,7 +35,6 @@ $def with (query, options, extended_options={})
     <link rel="stylesheet" href="${resource_path('css/signup.css')}" />
 
   $if 'twitter_card' in extended_options:
-    <meta name="twitter:site" content="@weasyl" />
     $for k, v in extended_options['twitter_card'].items():
       <meta name="twitter:${k}" content="${v}" />
   $if 'ogp' in extended_options:

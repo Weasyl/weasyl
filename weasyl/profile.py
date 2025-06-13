@@ -505,7 +505,7 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         welcome.stream_insert(userid, stream_status)
 
     pr = d.meta.tables['profile']
-    d.engine.execute(
+    result = d.engine.execute(
         pr.update()
         .where(pr.c.userid == userid)
         .values({
@@ -514,6 +514,9 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
             'settings': sa.func.regexp_replace(pr.c.settings, "[nli]", "").concat(settings_flag),
         })
     )
+
+    if result.rowcount != 1:
+        raise WeasylError("Unexpected")
 
     if my_userid != userid:
         from weasyl import moderation
@@ -573,7 +576,7 @@ def edit_userinfo(userid, form):
         birthdate_month = int(form['birthdate-month'])
         birthdate_year = int(form['birthdate-year'])
 
-        if not (1 <= birthdate_month <= 12) or not (-100 <= birthdate_year - arrow.utcnow().year <= 0):
+        if not (1 <= birthdate_month <= 12) or not (-125 <= birthdate_year - arrow.utcnow().year <= 0):
             raise WeasylError("birthdayInvalid")
 
         birthdate_update = _BIRTHDATE_UPDATE_BASE
@@ -901,8 +904,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'),
-                    jsonb_settings = jsonb_settings - 'max_sfw_rating'
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g')
                 WHERE userid = %(user)s
                 """,
                 user=userid,
@@ -964,16 +966,11 @@ class ProfileSettings:
             self.default = default
             self.typecast = typecast
 
-    def _valid_rating(rating):
-        rating = int(rating)
-        return rating if rating in ratings.CODE_MAP else ratings.GENERAL.code
-
     _raw_settings = {}
     _settings = {
         "allow_collection_requests": Setting(True, bool),
         "allow_collection_notifs": Setting(True, bool),
         "disable_custom_thumbs": Setting(False, bool),
-        "max_sfw_rating": Setting(ratings.GENERAL.code, _valid_rating),
     }
 
     def __init__(self, json):

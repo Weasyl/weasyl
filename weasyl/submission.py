@@ -712,7 +712,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         'rating': sub.rating.name,
 
         'views': views,
-        'favorites': favorite.count(submitid),
+        'favorites': sub.favorites,
         'comments': comment.count(submitid),
         'favorited': favorite.check(userid, submitid=submitid),
         'friends_only': sub.friends_only,

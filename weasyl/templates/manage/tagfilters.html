@@ -1,39 +1,66 @@
 $def with (blocktag, filter_ratings)
-$:{RENDER("common/stage_title.html", ["Tag Filters", "Settings"])}
+$:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
 
 <div id="filters-content" class="content">
   <form method="POST" class="form skinny clear">
-    <h3>Create Filters</h3>
+    <h3>Block New Tags</h3>
 
-    <p>Enter a tag to add to your filters. To enter a tag composed of multiple words, separate each word with an underscore character, as in <strong>new_york_city</strong>.</p><br/>
+    <p>Enter tags to block if you don't want to see content marked with any of these tags. You can choose the range of ratings for which these tags will be blocked.</p>
 
-    <label for="tagfilters_title">Content Tag:</label>
-    <input type="text" name="title" id="tagfilters_title" class="input" />
+    <label for="tagfilters_title">Tags</label>
+    <textarea name="title" class="input tags-textarea" rows="3"></textarea>
+    <p class="color-lighter tags-help"><i>Separate tags with a space. Use an underscore for multiple words in a tag, ex. red_fox</i></p>
 
-    <p class="color-lighter tags-help"><i>Create a <strong>blacklist filter</strong> if you don't want to see content that is marked with this tag. You can choose the range of ratings for which this tag will be blocked.</i></p><br/>
-
-    <label for="tagfilters_rating">Rating to Filter:</label>
+    <label for="tagfilters_rating">Ratings</label>
     <select name="rating" id="tagfilters_rating" class="input">
     $for rating in filter_ratings:
       <option value="${rating.code}">${rating.block_text}</option>
     </select>
 
-    <div id="tagfilters_content_buttons" class="clear">
-      <button class="button positive" name="do" value="create">Create Filter</button>
-      <button class="button negative" name="do" value="remove">Remove Filter</button>
+    <div class="buttons clear">
+      <button class="button positive" name="do" value="create">Block tags</button>
     </div>
+  </form>
 
-    <h3>Blacklist Filters</h3>
+  <form method="POST" class="filters-blocked">
+    <h3>Blocked Tags</h3>
 
-    <div id="tagfilters_standard" class="tagfilters clear">
-      $if blocktag:
-        $for i in blocktag:
-          <span>
-            <strong>${i['title']}</strong>
-            ${R.CODE_MAP[i['rating']].nice_name}${'+' if i['rating'] != R.EXPLICIT.code else ''}
-          </span>
-      $else:
-        There are no blacklist filters to display.
-    </div>
+    $if blocktag:
+      <table class="filters-list">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Tag</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          $for i in blocktag:
+            $ title = i['title']
+            <tr>
+              <td>
+                <label>
+                  <input id="select-tag-${title}" type="checkbox" name="title" value="${title}" />
+                </label>
+              </td>
+              <td>
+                <label for="select-tag-${title}">
+                  ${title}
+                </label>
+              </td>
+              <td>
+                <label for="select-tag-${title}">
+                  ${R.CODE_MAP[i['rating']].nice_name}${'+' if i['rating'] != R.EXPLICIT.code else ''}
+                </label>
+              </td>
+            </tr>
+        </tbody>
+      </table>
+      <div class="buttons clear">
+        <button class="button negative" name="do" value="remove">Unblock selected tags</button>
+      </div>
+    $else:
+      <p>No tags blocked.</p>
+
   </form>
 </div>

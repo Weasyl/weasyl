@@ -49,7 +49,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Final Step", "Two-Factor Auth
     </p>
 
     <label for="tfa-init-verify">Enter 2FA token</label>
-    <input type="text" id="tfa-init-verify" maxlength="7" name="tfaresponse" placeholder="012345" autocomplete="off" required /><br />
+    <input type="text" id="tfa-init-verify" maxlength="7" name="tfaresponse" placeholder="012345" autocomplete="one-time-code" required inputmode="numeric" /><br />
     <label><input class="checkbox" type="checkbox" name="verify" required /> I have printed or saved the above recovery codes and want to enable 2FA.</label>
 
     <div style="padding-top: 1em;">

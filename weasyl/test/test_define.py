@@ -52,7 +52,8 @@ def test_parse_iso8601(parameter, expected):
 
 
 def test_parse_iso8601_invalid_format():
-    pytest.raises(ValueError, d.parse_iso8601, 'dongs')
+    with pytest.raises(ValueError):
+        d.parse_iso8601('dongs')
 
 
 def create_with_user(func):
@@ -154,3 +155,10 @@ def test_viewing_own_profile(db):
 
 def test_sysname():
     assert d.get_sysname("ź") == "z"
+
+
+def test_nul():
+    with pytest.raises(ValueError) as err:
+        d.engine.scalar("SELECT %(test)s", test="foo\x00bar")
+
+    assert err.value.args == ("A string literal cannot contain NUL (0x00) characters.",)

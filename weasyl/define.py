@@ -240,6 +240,13 @@ def is_csrf_valid(request):
     return request.headers.get('origin') == _ORIGIN
 
 
+def path_redirect(path_qs: str) -> str:
+    """
+    Return an absolute URL for an internal redirect within the application’s origin.
+    """
+    return _ORIGIN + path_qs
+
+
 @region.cache_on_arguments(namespace='v3')
 def _get_all_config(userid):
     """
@@ -333,9 +340,9 @@ def get_premium(userid):
     return "d" in config
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(should_cache_fn=bool)
 @record_timing
-def _get_display_name(userid):
+def _get_display_name(userid: int) -> str | None:
     """
     Return the display name assiciated with `userid`; if no such user exists,
     return None.
@@ -343,10 +350,16 @@ def _get_display_name(userid):
     return engine.scalar("SELECT username FROM profile WHERE userid = %(user)s", user=userid)
 
 
-def get_display_name(userid):
-    if not userid:
-        return None
-    return _get_display_name(userid)
+def get_display_name(userid: int) -> str:
+    username = _get_display_name(userid)
+
+    if username is None:
+        raise WeasylError("Unexpected")
+
+    return username
+
+
+try_get_display_name = _get_display_name
 
 
 def get_int(target):
@@ -434,9 +447,12 @@ def get_userids(usernames):
     return ret
 
 
+def get_sysname_list(s: str) -> list[str]:
+    return list(filter(None, map(get_sysname, s.split(";"))))
+
+
 def get_userid_list(target):
-    usernames = target.split(";")
-    return [userid for userid in get_userids(usernames).values() if userid != 0]
+    return [userid for userid in get_userids(get_sysname_list(target)).values() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):
@@ -627,6 +643,11 @@ def posts_count(userid, *, friends: bool):
     return result
 
 
+def private_messages_unread_count(userid: int) -> int:
+    return engine.scalar(
+        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
+
+
 notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
 
 
@@ -635,8 +656,7 @@ notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_co
 @region.cache_on_arguments(expiration_time=180)
 @notification_count_time.uncached
 def _page_header_info(userid):
-    messages = engine.scalar(
-        "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
+    messages = private_messages_unread_count(userid)
     result = [messages, 0, 0, 0, 0]
 
     counts = engine.execute(

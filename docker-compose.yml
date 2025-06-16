@@ -160,6 +160,23 @@ services:
       - test-postgres
     read_only: true
 
+  mail-logger:
+    build: containers/postfix-stone
+    init: true
+    user: '100'
+    command:
+      - sh
+      - -c
+      - |
+        stunnel
+        smtp-sink -D /mail/%Y-%m-%d unix:/run/user/100/smtp-sink.sock 128
+    tmpfs:
+      - '/mail:mode=700,uid=100'
+      - '/run/user/100:mode=700,uid=100'
+    networks:
+      - web-postgres
+    read_only: true
+
   prometheus:
     profiles: [ prometheus ]
     build: containers/prometheus

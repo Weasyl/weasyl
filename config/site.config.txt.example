@@ -17,7 +17,7 @@ url = postgresql+psycopg2://weasyl@postgres/weasyl
 servers = memcached
 
 [smtp]
-host = localhost
+host = mail-logger:587
 
 [two_factor_auth]
 # This key MUST be changed when in production;

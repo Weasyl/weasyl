@@ -114,6 +114,9 @@ services:
     init: true
     user: '1000'
     command:
+      # Turnstile
+      - -a
+      - challenges.cloudflare.com
       # currency conversion in `weasyl.commishinfo`
       - -a
       - www.ecb.europa.eu

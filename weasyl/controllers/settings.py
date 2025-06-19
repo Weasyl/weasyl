@@ -244,7 +244,6 @@ def control_username_post_(request):
         return Response(define.errorpage(
             request.userid,
             "Your username has been changed.",
-            [["Go Back", "/control/username"], ["Return Home", "/"]],
         ))
     elif request.POST['do'] == 'release':
         login.release_username(
@@ -256,7 +255,6 @@ def control_username_post_(request):
         return Response(define.errorpage(
             request.userid,
             "Your old username has been released.",
-            [["Go Back", "/control/username"], ["Return Home", "/"]],
         ))
     else:
         raise WeasylError("Unexpected")
@@ -297,10 +295,7 @@ def control_editemailpassword_post_(request):
     else:  # Changes were made, so inform the user of this
         message = "**Success!** " + return_message
     # Finally return the message about what (if anything) changed to the user
-    return Response(define.errorpage(
-        request.userid, message,
-        [["Go Back", "/control"], ["Return Home", "/"]])
-    )
+    return Response(define.errorpage(request.userid, message))
 
 
 @login_required

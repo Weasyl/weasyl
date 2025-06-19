@@ -83,7 +83,6 @@ def submission_(request):
         if we.value in ("UserIgnored", "TagBlocked"):
             we.errorpage_kwargs['links'] = [
                 ("View Submission", "?ignore=false"),
-                ("Return to the Home Page", "/"),
             ]
         raise
 
@@ -169,7 +168,6 @@ def character_(request):
         if we.value in ("UserIgnored", "TagBlocked"):
             we.errorpage_kwargs['links'] = [
                 ("View Character", "?ignore=false"),
-                ("Return to the Home Page", "/"),
             ]
         raise
 
@@ -217,7 +215,6 @@ def journal_(request):
         if we.value in ("UserIgnored", "TagBlocked"):
             we.errorpage_kwargs['links'] = [
                 ("View Journal", "?ignore=false"),
-                ("Return to the Home Page", "/"),
             ]
         raise
 

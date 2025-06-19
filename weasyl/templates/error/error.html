@@ -12,9 +12,9 @@ $:{RENDER("common/stage_title.html", ["System Message"])}
       <tt>request-id: ${request_id}</tt>
     </p>
 
-  <div id="error_buttons">
-    $if(links):
+  $if links:
+    <div id="error_buttons">
       $for i in links:
         <a href="${i[1]}" class="button">${i[0]}</a>
-  </div>
+    </div>
 </div>

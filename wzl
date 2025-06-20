@@ -35,8 +35,8 @@ case "$head" in
 assets)
     _build build-assets
     $docker_compose create "$@" build-assets
-    $docker_compose cp ./assets build-assets:/weasyl-build/
-    container_id="$($docker_compose ps -a --format='{{.ID}}' build-assets)"
+    container_id="$($docker_compose ps --filter=status=created --format='{{.ID}}' build-assets)"
+    docker cp ./assets "$container_id":/weasyl-build/
     exec docker start -ai "$container_id"
     ;;
 

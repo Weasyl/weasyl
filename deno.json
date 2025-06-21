@@ -7,6 +7,7 @@
         "@std/path": "jsr:@std/path@^1.1.0",
         "@ruffle-rs/ruffle": "npm:@ruffle-rs/ruffle@^0.1.0-nightly.2023.8.17",
         "autoprefixer": "npm:autoprefixer@^10.4.20",
+        "autosize": "npm:autosize@^6.0.1",
         "esbuild": "npm:esbuild@^0.25.5",
         "postcss": "npm:postcss@^8.5.4",
         "sass-embedded": "npm:sass-embedded@^1.89.1"

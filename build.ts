@@ -127,12 +127,19 @@ const addFilenameSuffix = (relativePath: string, suffix: string): string => {
     });
 };
 
-const removePrefix = (s: string, prefix: string) => {
-    if (!s.startsWith(prefix)) {
+const tryRemovePrefix = (s: string, prefix: string): string | null =>
+    s.startsWith(prefix)
+        ? s.substring(prefix.length)
+        : null;
+
+const removePrefix = (s: string, prefix: string): string => {
+    const r = tryRemovePrefix(s, prefix);
+
+    if (r === null) {
         throw new Error('String didn’t start with expected prefix');
     }
 
-    return s.substring(prefix.length);
+    return r;
 };
 
 declare global {
@@ -522,8 +529,11 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
             writes.push([outputPath, bundleContents]);
         }
 
-        const inputs = Object.keys(result.metafile.inputs).map(inputPath =>
-            removePrefix(path.join(cwd, inputPath), ctx.absoluteAssetsRoot + '/'));
+        const inputs =
+            Object.keys(result.metafile.inputs)
+                .map(inputPath => tryRemovePrefix(path.join(cwd, inputPath), ctx.absoluteAssetsRoot + '/'))
+                // npm dependencies aren’t watched
+                .filter(x => x !== null);
 
         return {
             inputs,
@@ -914,8 +924,10 @@ const main = async () => {
             case 'modify':
             case 'create':
                 for (const p of event.paths) {
-                    if (p.startsWith(watcherPrefix)) {
-                        changes.add(removePrefix(p, watcherPrefix));
+                    const r = tryRemovePrefix(p, watcherPrefix);
+
+                    if (r !== null) {
+                        changes.add(r);
                     } else {
                         console.warn('warning: ignoring unexpected file watcher path %o', p);
                     }
@@ -941,10 +953,7 @@ const main = async () => {
         }
 
         const nicePaths = event.paths.map(p =>
-            p.startsWith(watcherPrefix)
-                ? removePrefix(p, watcherPrefix)
-                : p
-        );
+            tryRemovePrefix(p, watcherPrefix) ?? p);
         console.debug('watch: %s %o (%s)', event.kind, nicePaths, reaction);
     }
 };

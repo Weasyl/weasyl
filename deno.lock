@@ -8,6 +8,7 @@
     "jsr:@std/path@^1.1.0": "1.1.0",
     "npm:@ruffle-rs/ruffle@~0.1.0-nightly.2023.8.17": "0.1.0-nightly.2025.5.21",
     "npm:autoprefixer@^10.4.20": "10.4.21_postcss@8.5.4",
+    "npm:autosize@^6.0.1": "6.0.1",
     "npm:esbuild@~0.25.5": "0.25.5",
     "npm:postcss@^8.5.4": "8.5.4",
     "npm:sass-embedded@^1.89.1": "1.89.1"
@@ -499,6 +500,9 @@
       ],
       "hasBin": true
     },
+    "autosize@6.0.1": {
+      "integrity": "sha512-f86EjiUKE6Xvczc4ioP1JBlWG7FKrE13qe/DxBCpe8GCipCq2nFw73aO8QEBKHfSbYGDN5eB9jXWKen7tspDqQ=="
+    },
     "browserslist@4.25.0": {
       "integrity": "sha512-PJ8gYKeS5e/whHBh8xrwYK+dAvEj7JXtz6uTucnMRB8OiGTsKccFekoRrjajPBHV8oOY+2tI4uxeceSimKwMFA==",
       "dependencies": [
@@ -814,6 +818,7 @@
       "jsr:@std/path@^1.1.0",
       "npm:@ruffle-rs/ruffle@~0.1.0-nightly.2023.8.17",
       "npm:autoprefixer@^10.4.20",
+      "npm:autosize@^6.0.1",
       "npm:esbuild@~0.25.5",
       "npm:postcss@^8.5.4",
       "npm:sass-embedded@^1.89.1"

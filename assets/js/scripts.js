@@ -1,4 +1,5 @@
 /* global marked */
+import autosize from 'autosize';
 
 (function () {
     'use strict';
@@ -135,7 +136,7 @@
         }
 
         // call appropriate functions and plugins
-        $('textarea.expanding').autosize();
+        autosize($('textarea.expanding'));
 
         // mobile nav
         $('#nav-toggle').on('click', function (ev) {
@@ -325,14 +326,6 @@
     $('#closure-explanation, #user-note').keydown(function () {
         setTimeout(reportInputChanged);
     });
-
-    // all below plugins are under MIT licenses
-
-    // expanding textareas
-    // Jack Moore - jacklmoore.com
-    /* jshint ignore:start */
-    (function(e){var t="hidden",n="border-box",r='<textarea tabindex="-1" style="position:absolute; top:-9999px; left:-9999px; right:auto; bottom:auto; -moz-box-sizing:content-box; -webkit-box-sizing:content-box; box-sizing:content-box; word-wrap:break-word; height:0 !important; min-height:0 !important; overflow:hidden">',i=["fontFamily","fontSize","fontWeight","fontStyle","letterSpacing","textTransform","wordSpacing","textIndent"],s="oninput",o="onpropertychange",u=e(r)[0];u.setAttribute(s,"return"),e.isFunction(u[s])||o in u?e.fn.autosize=function(u){return this.each(function(){function g(){var e,n;p||(p=!0,l.value=a.value,l.style.overflowY=a.style.overflowY,l.style.width=f.css("width"),l.scrollTop=0,l.scrollTop=9e4,e=l.scrollTop,n=t,e>h?(e=h,n="scroll"):e<c&&(e=c),a.style.overflowY=n,a.style.height=e+m+"px",setTimeout(function(){p=!1},1))}var a=this,f=e(a),l,c=f.height(),h=parseInt(f.css("maxHeight"),10),p,d=i.length,v,m=0;if(f.css("box-sizing")===n||f.css("-moz-box-sizing")===n||f.css("-webkit-box-sizing")===n)m=f.outerHeight()-f.height();if(f.data("mirror")||f.data("ismirror"))return;l=e(r).data("ismirror",!0).addClass(u||"autosizejs")[0],v=f.css("resize")==="none"?"none":"horizontal",f.data("mirror",e(l)).css({overflow:t,overflowY:t,wordWrap:"break-word",resize:v}),h=h&&h>0?h:9e4;while(d--)l.style[i[d]]=f.css(i[d]);e("body").append(l),o in a?s in a?a[s]=a.onkeyup=g:a[o]=g:a[s]=g,e(window).resize(g),f.on("autosize",g),g()})}:e.fn.autosize=function(){return this}})(jQuery);
-    /* jshint ignore:end */
 
     $(document).on('submit', 'form[data-confirm]', function (e) {
         if (confirm(this.getAttribute('data-confirm'))) {
@@ -1036,7 +1029,7 @@
 
             addMarkdownPreview(contentField);
 
-            $(contentField).autosize();
+            autosize(contentField);
             contentField.focus();
         }
     });

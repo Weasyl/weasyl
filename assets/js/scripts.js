@@ -1,5 +1,5 @@
 /* global marked */
-import autosize from 'autosize';
+import autosize_ from 'autosize';
 
 (function () {
     'use strict';
@@ -30,6 +30,11 @@ import autosize from 'autosize';
 
     var hasModifierKeys = e =>
         e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
+
+    var autosize =
+        CSS.supports('field-sizing', 'content')
+            ? Object.assign(() => {}, {destroy: () => {}})
+            : autosize_;
 
     // thumbnails: config
     var thumbnailContainers = document.getElementsByClassName('thumbnail-grid'),
@@ -135,7 +140,7 @@ import autosize from 'autosize';
             document.documentElement.classList.add('enhanced-thumbnails');
         }
 
-        // call appropriate functions and plugins
+        // autosizing textareas
         autosize($('textarea.expanding'));
 
         // mobile nav

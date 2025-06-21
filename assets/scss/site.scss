@@ -741,6 +741,7 @@ $input-background: #e4e4e4;
     background-color: $input-background;
     box-shadow: 0 4px 0 #336979, inset 0 1px 2px #aaa;
     transition: all 0.15s linear;
+    transition-property: background-color, box-shadow;
 
     &:hover,
     &:focus {

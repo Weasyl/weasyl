@@ -741,6 +741,7 @@ $input-background: #e4e4e4;
     background-color: $input-background;
     box-shadow: 0 4px 0 #336979, inset 0 1px 2px #aaa;
     transition: all 0.15s linear;
+    transition-property: background-color, box-shadow;
 
     &:hover,
     &:focus {
@@ -794,6 +795,23 @@ select.input {
 
 .input-checkbox > input:disabled {
     opacity: 0.75;
+}
+
+$comment-textbox-empty-height: 1.5em;  // 1lh
+
+@supports (field-sizing: content) {
+    .expanding {
+        // All `.expanding` fields should have a constrained width (in practice, currently always `width: 100%`) already.
+        field-sizing: content;
+        height: auto !important;  // override `.no-js:root .comment.hypothetical textarea`
+        min-height: 4em;  // Fallback in case any relevant browser decides to implement `field-sizing: content` before extended `attr()`. We don’t care about Chrome 123–132 so much (132 is no longer Chrome OS LTS).
+        min-height: attr(rows lh, 2lh);  // `.input`s have `box-sizing: border-box`, so this isn’t exactly the same as the default `rows` behavior, but it’s close enough.
+    }
+
+    // Comment textboxes are our only textareas without `rows`. (They also have `box-sizing: content-box`.)
+    .comment-content > .expanding {
+        min-height: $comment-textbox-empty-height;
+    }
 }
 
 
@@ -1295,7 +1313,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 .comment.hypothetical textarea {
     width: 100%;
-    height: 1.5em;
+    height: $comment-textbox-empty-height;
     margin: 0.625rem -1rem -1rem;
     padding: 0 1rem 1rem;
     background-color: transparent;

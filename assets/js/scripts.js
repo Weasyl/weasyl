@@ -839,6 +839,8 @@ import autosize from 'autosize';
                     children.parentNode.removeChild(children);
                 }
 
+                autosize.destroy(contentField);
+
                 target.focus();
             };
 
@@ -960,6 +962,8 @@ import autosize from 'autosize';
                                     newComment.id = 'cid' + result.id;
                                     newComment.classList.remove('submitting');
                                     newForm.parentNode.removeChild(newForm);
+
+                                    autosize.destroy(contentField);
 
                                     if (commentInfo.removalPrivileges !== 'all') {
                                         var parentComment = newComment.parentNode.parentNode.previousElementSibling;

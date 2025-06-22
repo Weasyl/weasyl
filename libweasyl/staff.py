@@ -5,9 +5,6 @@ Sets of Weasyl staff user ids.
 DIRECTORS = frozenset()
 """ Directors have the same powers as admins. """
 
-TECHNICAL = frozenset()
-""" Technical staff can moderate all content and manage all users. """
-
 ADMINS = frozenset()
 """ Site administrators can update site news and moderate user content. """
 
@@ -21,13 +18,12 @@ WESLEY = None
 """ The site mascot. Option for the owner of a site update. """
 
 
-def _init_staff(directors=(), technical_staff=(), admins=(), mods=(), developers=(), wesley=None):
+def _init_staff(directors=(), admins=(), mods=(), developers=(), wesley=None):
     """
     Populates staff members from passed kwargs.
 
     Parameters:
         directors: Array with directors
-        technical_staff: Array with technical staff
         admins: array with admins
         mods: Array with mods
         developers: Array with developers
@@ -35,11 +31,8 @@ def _init_staff(directors=(), technical_staff=(), admins=(), mods=(), developers
     global DIRECTORS
     DIRECTORS = frozenset(directors)
 
-    global TECHNICAL
-    TECHNICAL = DIRECTORS | frozenset(technical_staff)
-
     global ADMINS
-    ADMINS = TECHNICAL | frozenset(admins)
+    ADMINS = DIRECTORS | frozenset(admins)
 
     global MODS
     MODS = ADMINS | frozenset(mods)

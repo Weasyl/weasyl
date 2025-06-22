@@ -31,9 +31,13 @@ def load():
         if len(statement.targets) != 1 or not isinstance(target, ast.Name):
             raise SyntaxError("Unexpected assignment target in staff configuration")
 
+        # Techs no longer exist as a role, but still allow technical_staff
+        # to prevent an outage when upgrading past its removal.
+
         if target.id not in {"directors", "technical_staff", "admins", "mods", "developers", "wesley"}:
             raise SyntaxError("Unexpected key in staff configuration: %r" % (target.id,))
 
-        staff[target.id] = ast.literal_eval(statement.value)
+        if target.id != "technical_staff":
+            staff[target.id] = ast.literal_eval(statement.value)
 
     return staff

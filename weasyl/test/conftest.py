@@ -18,6 +18,7 @@ from libweasyl import cache
 from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
+from libweasyl.staff import StaffConfig
 from weasyl import (
     commishinfo,
     define,
@@ -41,7 +42,7 @@ define.metric = lambda *a, **kw: None
 configure_libweasyl(
     dbsession=define.sessionmaker,
     base_file_path=macro.MACRO_STORAGE_ROOT,
-    staff_config_dict={},
+    staff_config=StaffConfig(),
     media_link_formatter_callback=media.format_media_link,
 )
 

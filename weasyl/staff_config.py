@@ -31,7 +31,7 @@ def load():
         if len(statement.targets) != 1 or not isinstance(target, ast.Name):
             raise SyntaxError("Unexpected assignment target in staff configuration")
 
-        if target.id not in {"directors", "technical_staff", "admins", "mods", "developers", "wesley"}:
+        if target.id not in {"directors", "admins", "mods", "developers", "wesley"}:
             raise SyntaxError("Unexpected key in staff configuration: %r" % (target.id,))
 
         staff[target.id] = ast.literal_eval(statement.value)

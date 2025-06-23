@@ -12,9 +12,6 @@ from typing import Iterable
 DIRECTORS: frozenset[int] = frozenset()
 """ Directors have the same powers as admins. """
 
-TECHNICAL: frozenset[int] = frozenset()
-""" Technical staff can moderate all content and manage all users. """
-
 ADMINS: frozenset[int] = frozenset()
 """ Site administrators can update site news and moderate user content. """
 
@@ -31,7 +28,6 @@ WESLEY: int | None = None
 @dataclass(frozen=True, slots=True)
 class StaffConfig:
     directors: Iterable[int]
-    technical_staff: Iterable[int]
     admins: Iterable[int]
     mods: Iterable[int]
     developers: Iterable[int]
@@ -42,7 +38,6 @@ class StaffConfig:
 
 StaffConfig.EMPTY = StaffConfig(
     directors=(),
-    technical_staff=(),
     admins=(),
     mods=(),
     developers=(),
@@ -57,11 +52,8 @@ def _init_staff(config: StaffConfig) -> None:
     global DIRECTORS
     DIRECTORS = frozenset(config.directors)
 
-    global TECHNICAL
-    TECHNICAL = DIRECTORS | frozenset(config.technical_staff)
-
     global ADMINS
-    ADMINS = TECHNICAL | frozenset(config.admins)
+    ADMINS = DIRECTORS | frozenset(config.admins)
 
     global MODS
     MODS = ADMINS | frozenset(config.mods)

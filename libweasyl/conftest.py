@@ -41,7 +41,7 @@ def staticdir(tmpdir):
     configure_libweasyl(
         dbsession=sessionmaker,
         base_file_path=tmpdir.strpath,
-        staff_config=StaffConfig.EMPTY,
+        staff_config=StaffConfig(),
         media_link_formatter_callback=dummy_format_media_link,
     )
     return tmpdir

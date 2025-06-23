@@ -42,7 +42,7 @@ define.metric = lambda *a, **kw: None
 configure_libweasyl(
     dbsession=define.sessionmaker,
     base_file_path=macro.MACRO_STORAGE_ROOT,
-    staff_config=StaffConfig.EMPTY,
+    staff_config=StaffConfig(),
     media_link_formatter_callback=media.format_media_link,
 )
 

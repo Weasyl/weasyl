@@ -5,7 +5,6 @@ Sets of Weasyl staff user ids.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar
 from typing import Iterable
 
 
@@ -27,22 +26,11 @@ WESLEY: int | None = None
 
 @dataclass(frozen=True, slots=True)
 class StaffConfig:
-    directors: Iterable[int]
-    admins: Iterable[int]
-    mods: Iterable[int]
-    developers: Iterable[int]
-    wesley: int | None
-
-    EMPTY: ClassVar[StaffConfig]
-
-
-StaffConfig.EMPTY = StaffConfig(
-    directors=(),
-    admins=(),
-    mods=(),
-    developers=(),
-    wesley=None,
-)
+    directors: Iterable[int] = ()
+    admins: Iterable[int] = ()
+    mods: Iterable[int] = ()
+    developers: Iterable[int] = ()
+    wesley: int | None = None
 
 
 def _init_staff(config: StaffConfig) -> None:

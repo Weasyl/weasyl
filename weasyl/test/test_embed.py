@@ -62,7 +62,7 @@ def test_get_embed_bluesky_oembed_fallback_no_at_uri(monkeypatch, cache):
     response._content = json.dumps({'html': 'bad oEmbed response here'}).encode()
 
     with monkeypatch.context() as patch:
-        monkeypatch.setattr(d, 'http_get', lambda _: response)
+        patch.setattr(d, 'http_get', lambda _: response)
         embed = get_embed('https://example.bsky.app')
 
     assert embed['html'] == 'bad oEmbed response here'
@@ -79,7 +79,7 @@ def test_get_embed_bluesky_oembed_fallback_bad_post_api_response(monkeypatch, ca
     response._content = json.dumps({'html': html}).encode()
 
     with monkeypatch.context() as patch:
-        monkeypatch.setattr(d, 'http_get', lambda _: response)
+        patch.setattr(d, 'http_get', lambda _: response)
         embed = get_embed('https://example.bsky.app')
 
     assert embed['html'] == html

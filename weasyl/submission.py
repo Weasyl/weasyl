@@ -652,7 +652,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "user_media": media.get_user_media(query[0]),
         "submit": submitfile,
         "embedlink": embedlink,
-        "embed": embed.html(embedlink) if embedlink is not None else None,
+        "embed": embed.get_embed(embedlink) if embedlink is not None else None,
         "google_doc_embed": google_doc_embed,
 
 

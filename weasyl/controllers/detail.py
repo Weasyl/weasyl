@@ -97,6 +97,14 @@ def submission_(request):
 
     twitter_meta, ogp = _generate_embed(canonical_path, item)
 
+    options = set()
+
+    if _can_edit_tags(request.userid):
+        options.add("tags-edit")
+
+    if item["embed"] and item["embed"]["needs_hls"]:
+        options.add("hls")
+
     return Response(define.webpage(
         request.userid,
         "detail/submission.html",
@@ -115,7 +123,7 @@ def submission_(request):
         ogp=ogp,
         canonical_url=canonical_path,
         title=item["title"],
-        options=("tags-edit",) if _can_edit_tags(request.userid) else (),
+        options=options,
     ))
 
 

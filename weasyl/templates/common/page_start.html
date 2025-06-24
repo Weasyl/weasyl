@@ -25,6 +25,9 @@ $def with (query, options, extended_options={})
   $if "help" in options:
     <link rel="stylesheet" href="${resource_path('css/help.css')}" />
 
+  $if "hls" in options:
+    <script type="module" src="${resource_path('js/embed-video.js')}" async></script>
+
   $if "imageselect" in options:
     <link rel="stylesheet" href="${resource_path('css/imageselect.css')}" />
 

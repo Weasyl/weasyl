@@ -1,3 +1,5 @@
+from typing import Any
+
 from pyramid import httpexceptions
 from pyramid.response import Response
 
@@ -9,7 +11,7 @@ from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
 
 
-def _generate_embed(canonical_path: str, item: dict) -> tuple[dict, dict]:
+def _generate_embed(canonical_path: str, item: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
     """Generate the Twitter and Open Graph embeds for this upload.
 
     Args:

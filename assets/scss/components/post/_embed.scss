@@ -1,3 +1,5 @@
+@use '../../theme';
+
 #detail-embed {
     max-width: 100%;
     margin: 0 auto;
@@ -60,7 +62,7 @@
         display: block;
         font-size: 11px;
         line-height: 1;
-        color: $content-color-lighter;
+        color: theme.$content-color-lighter;
     }
 }
 

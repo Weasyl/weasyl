@@ -20,7 +20,7 @@ embed_user_agent = Weasyl-User-Embed (+https://www.weasyl.com)
 servers = memcached
 
 [smtp]
-host = localhost
+host = mail-logger:587
 
 [two_factor_auth]
 # This key MUST be changed when in production;

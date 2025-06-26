@@ -921,8 +921,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'),
-                    jsonb_settings = jsonb_settings - 'max_sfw_rating'
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g')
                 WHERE userid = %(user)s
                 """,
                 user=userid,
@@ -984,16 +983,11 @@ class ProfileSettings:
             self.default = default
             self.typecast = typecast
 
-    def _valid_rating(rating):
-        rating = int(rating)
-        return rating if rating in ratings.CODE_MAP else ratings.GENERAL.code
-
     _raw_settings = {}
     _settings = {
         "allow_collection_requests": Setting(True, bool),
         "allow_collection_notifs": Setting(True, bool),
         "disable_custom_thumbs": Setting(False, bool),
-        "max_sfw_rating": Setting(ratings.GENERAL.code, _valid_rating),
     }
 
     def __init__(self, json):

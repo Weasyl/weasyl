@@ -592,8 +592,6 @@ def age_in_years(birthdate):
 def user_type(userid):
     if userid in staff.DIRECTORS:
         return "director"
-    if userid in staff.TECHNICAL:
-        return "tech"
     if userid in staff.ADMINS:
         return "admin"
     if userid in staff.MODS:

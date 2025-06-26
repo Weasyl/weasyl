@@ -8,6 +8,7 @@
 @use 'components/edit-profile';
 @use 'components/option';
 @use 'components/page-navigation';
+@use 'components/post/embed';
 @use 'components/private-messages';
 @use 'components/tag-filters';
 @use 'components/text-post-list';
@@ -2989,15 +2990,6 @@ img + #detail-art-text {
 
 .flash-player {
     visibility: hidden;
-}
-
-#detail-embed, #detail-embed iframe {
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-#detail-embed {
-    text-align: center;
 }
 
 #detail-bar-title, #detail-bar .avatar, #detail-bar .username {

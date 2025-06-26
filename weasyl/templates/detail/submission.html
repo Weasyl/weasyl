@@ -19,7 +19,7 @@ $code:
     submission = submissions[0] if submissions else None
     covers = query['sub_media'].get('cover')
     cover = covers[0] if covers else None
-  <!-- embedded -->
+
   $if query['google_doc_embed'] is not None:
     <div id="detail-art">
       $if cover:
@@ -30,14 +30,17 @@ $code:
       </iframe>
     </div>
 
-  $elif not submission:
+  $elif query['embed'] is not None:
     $if cover:
       <div id="detail-art">
         <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
       </div>
     <div id="detail-embed" class="pad-left pad-right">
-      $:{query['embed']}
+      $:{query['embed'].safer_html}
     </div>
+
+  $elif submission is None:
+    $# For tests with `weasyl.test.db_utils.create_submission` only; should never be reached in normal operation. TODO: improve tests to not rely on this, and use transactions to create submissions + media so normal operation never reaches this
 
   $elif submission['file_type'] in ["jpg", "png", "gif"] and cover:
     <!-- VISUAL -->

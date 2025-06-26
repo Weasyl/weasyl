@@ -25,6 +25,8 @@ dependencies = [
     "sqlalchemy[postgresql]==1.4.45",
     "lxml==4.9.2",
     "prometheus-client~=0.20.0",
+    "ada-url~=1.23.0",
+    "urllib3[socks]~=2.4.0",
 
     # https://github.com/Weasyl/misaka
     "misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz",

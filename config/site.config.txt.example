@@ -14,7 +14,9 @@ url = postgresql+psycopg2://weasyl@postgres/weasyl
 # url = postgresql+psycopg2:///weasyl
 
 [outgoing_requests]
-embed_user_agent = Weasyl-User-Embed (+https://www.weasyl.com)
+# This SHOULD be changed when in production to an identifying User-Agent, e.g.
+#embed_user_agent = Weasyl-User-Embed (+https://www.weasyl.com)
+embed_user_agent = python-urllib3/2.4.0
 
 [memcached]
 servers = memcached

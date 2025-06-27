@@ -1,4 +1,5 @@
 @use 'sass:color';
+@use '../theme';
 
 #user-nav > li {
     width: 50%;
@@ -8,8 +9,7 @@
 #user-nav > li > a {
     display: block;
     padding: 0.5em 0;
-    font-size: 14px;
-    font-size: 0.9rem;
+    font-size: theme.$font-size-large;
 }
 
 .user-nav-with-count {

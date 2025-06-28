@@ -12,8 +12,9 @@ from sqlalchemy.dialects.postgresql import psycopg2
 from webtest import TestApp as TestApp_
 
 from weasyl import config
-config._in_test = True  # noqa
+config._in_test = True
 
+# flake8: noqa: E402
 from libweasyl import cache
 from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl

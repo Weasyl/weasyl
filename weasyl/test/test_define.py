@@ -7,9 +7,9 @@ from weasyl.test import db_utils
 from weasyl import define as d
 
 
-def l2dl(l, k='k'):
+def l2dl(input_list, k='k'):
     "For list2dictlist."
-    return [{k: x} for x in l]
+    return [{k: x} for x in input_list]
 
 
 pagination_tests = [

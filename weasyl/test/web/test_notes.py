@@ -64,7 +64,7 @@ def test_reply_when_blocked(app):
 
 
 @pytest.mark.usefixtures('db', 'cache')
-def test_preserve_filter_on_page_change(app):
+def test_preserve_filter(app):
     from1_user = db_utils.create_user(username='from1')
     from2_user = db_utils.create_user(username='from2')
     to_user = db_utils.create_user(username='to')
@@ -91,4 +91,11 @@ def test_preserve_filter_on_page_change(app):
     next_href = resp.html.find('a', rel='next')['href']
 
     resp = app.get(next_href, headers={'Cookie': to_session})
+    assert not resp.html.find_all('a', string='from2')
+
+    form = resp.forms['remove-notes']
+    form.set('notes', True, index=0)
+    resp = form.submit(headers={'Cookie': to_session}).follow(headers={'Cookie': to_session})
+    # should be on page 2; with 74 from1 notes and 1 from2 note,
+    # if the filter is not preserved on note removal, then from2 will appear
     assert not resp.html.find_all('a', string='from2')

@@ -148,8 +148,13 @@ def notes_(request):
     nextid = int(form.nextid) if form.nextid else None
     filter_ = define.get_userids(define.get_sysname_list(form.filter))
 
+    url_format = f"/notes?folder={form.folder}"
+    if form.filter:
+        url_format += f"&filter={form.filter}"
+    url_format += "&%s"
+
     result = pagination.PaginatedResult(
-        select_list, select_count, "noteid", f"/notes?folder={form.folder}&%s",
+        select_list, select_count, "noteid", url_format,
         request.userid, filter=list(set(filter_.values())),
         backid=backid,
         nextid=nextid,

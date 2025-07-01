@@ -327,6 +327,10 @@ a.more-block:last-child {
 
     .sectioned-main {
         margin-left: 30.2%;
+    }
+
+    // A `.sectioned-main` with elements that interact with float-based layout (i.e. ones that `clear`) needs to avoid mixing those with the sidebar.
+    .sectioned-main-floats {
         overflow: hidden;
     }
 }
@@ -339,7 +343,7 @@ a.more-block:last-child {
 
     .sectioned-main {
         margin-left: 302px;
-        margin-left: 18.8em;
+        margin-left: 18.8rem;
     }
 }
 

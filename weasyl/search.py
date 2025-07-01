@@ -41,8 +41,9 @@ class Query:
         self.required_user_excludes = set()
         self.ratings = set()
         self.find = None
+        self.sha256: str | None = None
 
-    def add_criterion(self, criterion):
+    def add_criterion(self, criterion: str):
         def add_nonempty(s, item):
             if item:
                 s.add(item)
@@ -65,6 +66,9 @@ class Query:
         elif criterion.startswith("-user:"):
             user = d.get_sysname(criterion.split(":", 1)[1])
             add_nonempty(self.required_user_excludes, user)
+        elif criterion.startswith("sha256:"):
+            sha256 = criterion.split(":", 1)[1]
+            self.sha256 = sha256 or None
         elif criterion.startswith("+"):
             tag = d.get_search_tag(criterion[1:])
             add_nonempty(self.required_includes, tag)
@@ -85,6 +89,7 @@ class Query:
             self.required_excludes or
             self.required_user_includes or
             self.required_user_excludes or
+            self.sha256 or
             self.ratings)
 
     @classmethod
@@ -135,7 +140,7 @@ def select_users(q):
 
 
 def _find_without_media(userid, rating, limit,
-                        search, within, cat, subcat, backid, nextid):
+                        search: Query, within, cat, subcat, backid, nextid):
     type_code, type_letter, table, select, subtype = _TABLE_INFORMATION[search.find]
 
     # Begin statement
@@ -162,6 +167,12 @@ def _find_without_media(userid, rating, limit,
             statement_where.append("AND content.subtype = %(subcategory)s")
         elif cat:
             statement_where.append("AND content.subtype >= %(category)s AND content.subtype < %(category)s + 1000")
+
+    if search.find == "submit" and search.sha256:
+        statement_from.append("INNER JOIN submission_media_links ON submission_media_links.submitid = content.{select}")
+        statement_from.append("INNER JOIN media ON media.mediaid = submission_media_links.mediaid")
+        statement_where.append("AND submission_media_links.link_type = 'submission'")
+        statement_where.append("AND media.sha256 = %(sha256)s")
 
     if userid:
         if within == "notify":
@@ -265,6 +276,7 @@ def _find_without_media(userid, rating, limit,
         ]).format(
             table=table,
             find=search.find,
+            sha256=search.sha256,
             select=select,
             subtype=subtype,
             title_field="char_name" if search.find == "char" else "title",
@@ -302,6 +314,7 @@ def _find_without_media(userid, rating, limit,
         "required_excludes": get_ids(search.required_excludes),
         "required_user_includes": list(search.required_user_includes),
         "required_user_excludes": list(search.required_user_excludes),
+        "sha256": search.sha256,
         "type": type_letter,
         "userid": userid,
         "rating": rating,

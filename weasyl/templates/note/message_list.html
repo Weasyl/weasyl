@@ -1,5 +1,6 @@
-$def with (folder, result, filter_usernames, inbox_unread)
+$def with (form, result, filter_usernames, inbox_unread)
 $code:
+  folder = form.folder
   username_key, userid_key, table_header, filter_rel = {
     'inbox': ('sendername', 'senderid', 'Sender', 'from'),
     'outbox': ('recipientname', 'recipientid', 'Recipient', 'to'),
@@ -36,8 +37,14 @@ $code:
       </form>
   </search>
 
-  <form action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
+  <form id="remove-notes" action="/notes/remove" method="post" data-confirm="Are you sure you want to remove the selected messages?">
     <input type="hidden" name="folder" value="${folder}" />
+    $if form.filter:
+      <input type="hidden" name="filter" value="${form.filter}" />
+    $if form.backid:
+      <input type="hidden" name="backid" value="${form.backid}" />
+    $elif form.nextid:
+      <input type="hidden" name="nextid" value="${form.nextid}" />
 
     $# disable implicit submission of this form: https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#implicit-submission
     <button hidden disabled>Do nothing</button>

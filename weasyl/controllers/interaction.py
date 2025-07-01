@@ -148,15 +148,20 @@ def notes_(request):
     nextid = int(form.nextid) if form.nextid else None
     filter_ = define.get_userids(define.get_sysname_list(form.filter))
 
+    url_format = f"/notes?folder={form.folder}"
+    if form.filter:
+        url_format += f"&filter={form.filter}"
+    url_format += "&%s"
+
     result = pagination.PaginatedResult(
-        select_list, select_count, "noteid", f"/notes?folder={form.folder}&%s",
+        select_list, select_count, "noteid", url_format,
         request.userid, filter=list(set(filter_.values())),
         backid=backid,
         nextid=nextid,
         count_limit=note.COUNT_LIMIT,
     )
     return Response(define.webpage(request.userid, "note/message_list.html", (
-        form.folder,
+        form,
         result,
         [(sysname, userid != 0) for sysname, userid in filter_.items()],
         note.unread_count(request.userid),
@@ -196,13 +201,15 @@ def notes_compose_post_(request):
 @login_required
 @token_checked
 def notes_remove_(request):
-    form = request.web_input(folder="", backid="", nextid="", notes=[])
+    form = request.web_input(folder="", filter="", backid="", nextid="", notes=[])
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
 
     note.remove_list(request.userid, list(map(int, form.notes)))
     link = "/notes?folder=" + form.folder
 
+    if form.filter:
+        link += f"&filter={form.filter}"
     if backid:
         link += "&backid=%i" % backid
     elif nextid:

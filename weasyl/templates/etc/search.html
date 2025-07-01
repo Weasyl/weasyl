@@ -135,22 +135,40 @@ $code:
     $# BROWSE SUMMARY (user hit the "Browse" tab or didn't specify a content type)
     <h2 class="page-title">Browse Content</h2>
 
-    <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
-      <form id="search-backup-search" action="/search" method="GET" class="form">
-        <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="2" class="input" />
-        <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
-      </form>
-    </div>
-
-    $if results['submit']:
-      <h3 class="pad-left">Submissions</h3>
+    $if results['visual']:
+      <h3 class="pad-left">Visual Submissions</h3>
       <ul class="thumbnail-grid medium-footprint">
-        $for i in results['submit']:
+        $for i in results['visual']:
           $:{_GRID_ITEM(i, lazy_load=False)}
-        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
+        <li class="more"><a class="more" href="/search?find=submit&cat=1000"><i>More</i> <span>Visual Submissions</span></a></li>
       </ul>
     $else:
-      There are no submissions to display.
+      There are no visual submissions to display.
+
+    $if results['literary']:
+      <h3 class="pad-left">Literary Submissions</h3>
+      <ul class="thumbnail-grid medium-footprint">
+        $for i in results['literary']:
+          $:{_GRID_ITEM(i, lazy_load=False)}
+        <li class="more"><a class="more" href="/search?find=submit&cat=2000"><i>More</i> <span>Literary Submissions</span></a></li>
+      </ul>
+    $else:
+      There are no literary submissions to display.
+
+    $if results['multimedia']:
+      <h3 class="pad-left">Multimedia Submissions</h3>
+      <ul class="thumbnail-grid medium-footprint">
+        $for i in results['multimedia']:
+          $:{_GRID_ITEM(i, lazy_load=False)}
+        <li class="more"><a class="more" href="/search?find=submit&cat=3000"><i>More</i> <span>Multimedia Submissions</span></a></li>
+      </ul>
+    $else:
+      There are no multimedia submissions to display.
+
+    $if results['visual'] or results['literary'] or results['multimedia']:
+      <ul class="thumbnail-grid medium-footprint">
+        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
+      </ul>
 
     $if results['char']:
       <h3 class="pad-left">Characters</h3>
@@ -171,6 +189,5 @@ $code:
       </ul>
     $else:
       There are no journals to display.
-
 
 </div>

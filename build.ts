@@ -591,6 +591,7 @@ const touch = new CreateFolders([
     'css',
     'fonts',
     'img/help',
+    'img/social',
     'js/ruffle',
 ]);
 
@@ -617,6 +618,8 @@ const tasks: readonly AnyTask[] = [
     new Sass({from: 'scss/signup.scss', to: 'css/signup.css'}, {touch, images}),
     new EsbuildFiles(['js/scripts.js'], {}, {touch}),
     new EsbuildFiles([
+        'js/combobox.js',
+        'js/edit-profile.js',
         'js/main.js',
         'js/message-list.js',
         'js/tags-edit.js',
@@ -628,6 +631,7 @@ const tasks: readonly AnyTask[] = [
         banner: {},
     }, {touch}),
     new CopyStaticFiles('img/help', {touch}),
+    new CopyStaticFiles('img/social', {touch}),
     new CopyUnversionedStaticFile('opensearch.xml', {touch}),
 
     // libraries

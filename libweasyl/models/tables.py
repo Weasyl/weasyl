@@ -854,6 +854,7 @@ user_links = Table(
     Column('userid', Integer(), nullable=False),
     Column('link_type', String(length=64), nullable=False),
     Column('link_value', String(length=2000), nullable=False),
+    Column('link_label', String(length=64), nullable=True),
     default_fkey(['userid'], ['login.userid'], name='user_links_userid_fkey'),
 )
 

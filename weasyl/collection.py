@@ -69,7 +69,7 @@ def select_count(userid, rating, *, otherid, pending=False, backid=None, nextid=
 
 def select_list(userid, rating, limit, *, otherid, pending=False, backid=None, nextid=None):
     statement = ["SELECT su.submitid, su.title, su.subtype, su.rating, co.unixtime, "
-                 "su.userid, pr.username, cpr.username, cpr.userid "]
+                 "su.userid, pr.username, cpr.username, cpr.userid, su.friends_only "]
     statement.extend(select_query(userid, rating=rating, otherid=otherid, pending=pending,
                                   backid=backid, nextid=nextid))
     statement.append(" ORDER BY co.unixtime%s LIMIT %i" % ("" if backid else " DESC", limit))
@@ -88,6 +88,7 @@ def select_list(userid, rating, limit, *, otherid, pending=False, backid=None, n
             "username": i[6],  # username of creator
             "collector": i[7],  # username of collector
             "collectorid": i[8],
+            "friends_only": i[9],
             "sub_media": media.get_submission_media(i[0]),
         })
 

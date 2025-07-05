@@ -331,6 +331,9 @@ def markdown_excerpt(markdown_text, length=300):
     fragment = _markdown_fragment(markdown_text)
     text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
 
+    # TODO: more generic footer removal
+    text = text.removesuffix("Posted using PostyBirb").rstrip()
+
     if len(text) <= length:
         return text
     else:

@@ -123,7 +123,7 @@ def note_(request):
         # Private message
         data,
         profile.select_myself(request.userid),
-    ]))
+    ], title=data['title']))
 
 
 @login_required

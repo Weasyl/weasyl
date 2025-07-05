@@ -57,7 +57,7 @@ def messages_notifications_(request):
     define._page_header_info.refresh(request.userid)
     return Response(define.webpage(request.userid, "message/notifications.html", [
         sort_notifications(notifications),
-    ]))
+    ], title='Notifications'))
 
 
 @login_required
@@ -70,4 +70,4 @@ def messages_submissions_(request):
         # Submissions
         message.select_submissions(request.userid, 66, include_tags=False,
                                    backtime=define.get_int(backtime), nexttime=define.get_int(nexttime)),
-    )))
+    ), title='Submission Notifications'))

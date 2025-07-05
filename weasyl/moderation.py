@@ -704,7 +704,14 @@ def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals
     return 'Affected items (%s): \n\n%s' % (action_string, '\n'.join(copyable))
 
 
-def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
+def bulk_edit(
+    userid: int,
+    *,
+    action: str,
+    submissions: list[int],
+    characters: list[int],
+    journals: list[int],
+) -> str:
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
 
@@ -761,7 +768,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         action_string = 'marked as "critique requested"'
         provide_link = True
 
-    else:
+    else:  # pragma: no cover
         raise WeasylError('Unexpected')
 
     db = d.connect()

@@ -71,6 +71,7 @@ error_messages = {
         "Consequently, registrations from this domain have been blacklisted."),
     "emailIncorrect": "The email you entered is not associated with the account you specified.",
     "emailInvalid": "The email you entered does not appear to be valid.",
+    "embedlinkFailed": "Weasyl failed to load the embed link you entered. It might be a broken or unsupported link, or this might be a temporary communication failure between Weasyl and the other service. Please check your link and try again later.",
     "embedlinkInvalid": "The embed link you entered does not point to a valid resource or supported service.",
     "FeatureDisabled": "This feature has been temporarily disabled.",
     "FileType": "The file you uploaded is not of a valid type.",
@@ -124,6 +125,7 @@ error_messages = {
     "streamDurationNotSet": "Please set a stream length.",
     "streamDurationOutOfRange": "Please enter a number up to 360 minutes for stream length.",
     "streamLocationNotSet": "Please set a stream location.",
+    "streamLocationInvalid": "The stream location you entered is not a valid link.",
     "submissionRecordMissing": submitid,
     "submitSizeExceedsLimit": (
         "The submission file you uploaded exceeds the allowed filesize for this submission category."),
@@ -180,11 +182,4 @@ error_status_code = {
     "signed": 403,
     "unsigned": 403,
     "token": 403
-}
-
-
-login_errors = {
-    "invalid": "The username or password provided was incorrect.",
-    "banned": "Your account has been permanently banned.",
-    "suspended": "Your account has been temporarily suspended.",
 }

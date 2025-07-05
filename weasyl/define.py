@@ -11,7 +11,6 @@ import datetime
 import pkgutil
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Iterable
 from typing import Literal
 from typing import NewType
 from urllib.parse import urlencode, urljoin

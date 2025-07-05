@@ -22,10 +22,10 @@ Cardable = Mapping[str, Any]
 # `_FileExtraKeys` and `File`: Python 3.10 doesn’t support `typing.NotRequired`.
 # Keys: see libweasyl/models/media.py.
 class _FileExtraKeys(TypedDict, total=False):
-    mediaid: NotRequired[int]
-    attributes: NotRequired[dict]
-    file_type: NotRequired[str]
-    file_url: NotRequired[str]
+    mediaid: int
+    attributes: dict
+    file_type: str
+    file_url: str
 
 
 class File(_FileExtraKeys):

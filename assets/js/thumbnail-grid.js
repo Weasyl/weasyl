@@ -138,9 +138,6 @@ const layout = (container, stylesheet, targetingClass) => {
             m_maxWidth: containerWidth,
             m_rules: layout.m_rules,
         });
-        console.debug(`layout at width ${containerWidth} has minimum width ${layout.m_minWidth} (hard = ${layout.m_isHardMinWidth})`);
-
-        console.debug(`natural step ${containerWidth - (layout.m_minWidth - 1)}`);
 
         containerWidth -= STEP_MIN;
 
@@ -180,15 +177,6 @@ const layout = (container, stylesheet, targetingClass) => {
         }
     }
 
-    let numRules = 0;
-    for (let i = -1; (i = css.indexOf('{', i + 1)) !== -1;) {
-        numRules++;
-    }
-
-    css += '}';
-
-    console.log(layouts);
-    console.debug(`Total rules: ${numRules} (${css.length} bytes)`);
     stylesheet.replaceSync(css);
 };
 

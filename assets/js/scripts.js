@@ -123,7 +123,6 @@ import {tryGetLocal, trySetLocal} from './util/storage.js';
         // Commishinfo prices "autopopulate" dropdown
         $('#commish-edit-select').on('change', function () {
             var selectedID = $(this).val();
-            console.log(selectedID);
             forEach(document.getElementsByClassName('select-priceid'), function (field) {
                 var myID = field.getAttribute('data-priceid');
                 var visible = selectedID == myID;

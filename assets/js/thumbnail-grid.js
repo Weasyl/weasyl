@@ -132,17 +132,13 @@ const layout = (container, stylesheet, targetingClass) => {
     // Generate layouts at various widths from `CONTAINER_WIDTH_MAX` down to `CONTAINER_WIDTH_MIN`. Wider layouts can apply to narrower viewports than intended, but not the other way around (typical thumbnails should never be stretched or be centered in wider containers).
     const layouts = [];
 
-    for (let containerWidth = CONTAINER_WIDTH_MAX;;) {
+    for (let containerWidth = CONTAINER_WIDTH_MAX; containerWidth >= CONTAINER_WIDTH_MIN;) {
         const layout = getLayout(footprint, thumbnailWidths, containerWidth);
         layouts.push({
             m_maxWidth: containerWidth,
             m_rules: layout.m_rules,
         });
         console.debug(`layout at width ${containerWidth} has minimum width ${layout.m_minWidth} (hard = ${layout.m_isHardMinWidth})`);
-
-        if (layout.m_minWidth <= CONTAINER_WIDTH_MIN) {
-            break;
-        }
 
         console.debug(`natural step ${containerWidth - (layout.m_minWidth - 1)}`);
 

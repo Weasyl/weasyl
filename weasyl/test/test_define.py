@@ -1,14 +1,15 @@
-from pyramid.threadlocal import get_current_request
 import pytest
+from ada_url import URL
+from pyramid.threadlocal import get_current_request
 
 from libweasyl.models import content, users
 from weasyl.test import db_utils
 from weasyl import define as d
 
 
-def l2dl(l, k='k'):
+def l2dl(input_list, k='k'):
     "For list2dictlist."
-    return [{k: x} for x in l]
+    return [{k: x} for x in input_list]
 
 
 pagination_tests = [
@@ -162,3 +163,31 @@ def test_nul():
         d.engine.scalar("SELECT %(test)s", test="foo\x00bar")
 
     assert err.value.args == ("A string literal cannot contain NUL (0x00) characters.",)
+
+
+@pytest.mark.parametrize(("input", "output"), [
+    ("example.com/foo", "https://example.com/foo"),
+    ("//example.com/foo", "https://example.com/foo"),
+    ("http://example.com/foo", "http://example.com/foo"),
+    ("https://example.com", "https://example.com/"),
+    ("https://example.com/foo?bar=baz#quux", "https://example.com/foo?bar=baz#quux"),
+    ("https://www.weаsyl.com/foo", "https://www.xn--wesyl-5ve.com/foo"),
+    ("\xa0 \xa0example\t.com\r\n", "https://example.com/"),
+])
+def test_text_fix_url_valid(input, output):
+    result = d.text_fix_url(input)
+    assert isinstance(result, URL)
+    assert result.href == output
+
+
+@pytest.mark.parametrize("input", [
+    "javascript:alert(1)",
+    "data:text/plain,foo",
+    "https://localhost/",
+    "https://localhost./",
+    "https://example.com.",
+    "https://bar:baz@example.com/foo",
+    "/view/123",
+])
+def test_text_fix_url_invalid(input):
+    assert d.text_fix_url(input) is None

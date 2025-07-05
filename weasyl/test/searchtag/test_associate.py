@@ -203,7 +203,7 @@ def test_attempt_setting_tags_when_some_tags_have_been_restricted():
 @pytest.mark.usefixtures('db')
 def test_moderators_and_above_can_add_restricted_tags_successfully(monkeypatch):
     """
-    Moderators (and admins, technical, and directors) can add restricted tags to content.
+    Moderators (and admins and directors) can add restricted tags to content.
     Developers are not included in this test, as they are for all intents and purposes just
       normal user accounts.
     """

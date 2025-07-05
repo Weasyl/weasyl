@@ -1,15 +1,9 @@
 $def with (submissions)
 $:{TITLE("Recently Popular")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
-$code:
-  def _RATED(x):
-    return ' checked' if x in meta['rated'] else ''
-  def _WITHIN(x):
-    return ' selected' if meta['within'] == x else ''
-
 <div id="search-stage" class="stage clear">
-  <ul class="thumbnail-grid">
-    $for index, item in enumerate(submissions):
-      $:{_GRID_ITEM(item, lazy_load=index >= 10)}
+  <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(submissions)}">
+    $for index, card in enumerate(submissions):
+      $:{_GRID_ITEM(card, lazy_load=index >= 10)}
   </ul>
 </div>

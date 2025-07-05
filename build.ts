@@ -621,7 +621,10 @@ const tasks: readonly AnyTask[] = [
         'js/message-list.js',
         'js/tags-edit.js',
         'js/signup.js',
-    ], PRIVATE_FIELDS_ESM, {touch}),
+    ], {
+        ...PRIVATE_FIELDS_ESM,
+        mangleProps: /^m_/,
+    }, {touch}),
     new EsbuildFiles(['js/flash.js'], {
         format: 'esm',
         target: 'es6',

@@ -11,7 +11,7 @@ const ITEM_GAP = 8;      // common item padding
 const BREAKPOINT = 480;  // when the viewport is narrower than this, double the maximum number of rows
 
 // The minimum thumbnail grid container width to generate a layout for, in `px`.
-const CONTAINER_WIDTH_MIN = 320;
+const CONTAINER_WIDTH_MIN = 420;
 
 // The maximum thumbnail grid container width to generate a layout for, in `px`.
 // (See `#page-container`’s `max-width` in site.scss.)
@@ -43,9 +43,6 @@ const getLayout = (footprint, thumbnailWidths, containerWidth) => {
             ? footprint.m_maxRowsNarrow
             : footprint.m_maxRowsWide;
 
-    const initialHeight = Math.min(Math.floor(containerWidth / 1.65), ROW_BASIS);
-    const thumbRatio = initialHeight / ROW_BASIS;
-
     const row = [];
     let rowWidth = ITEM_GAP;
 
@@ -60,7 +57,7 @@ const getLayout = (footprint, thumbnailWidths, containerWidth) => {
             `&:nth-child(n+${1 + row[0].m_index})`
             + `:nth-child(-n+${1 + row.at(-1).m_index})`;
 
-        rules.push(`${rowSelector}{--g:${totalGap};--h:${(initialHeight / nonGapWidth).toFixed(4)}}`);
+        rules.push(`${rowSelector}{--g:${totalGap};--h:${(ROW_BASIS / nonGapWidth).toFixed(4)}}`);
 
         row.length = 0;
         rowWidth = ITEM_GAP;
@@ -69,13 +66,13 @@ const getLayout = (footprint, thumbnailWidths, containerWidth) => {
     // Determines how much narrower the container could get without changing the computed layout.
     let maxNonWrappingRowWidth = 0;
 
-    for (const [i, naturalWidth] of thumbnailWidths.entries()) {
-        const initialWidth = (naturalWidth ?? ROW_BASIS) * thumbRatio;
+    for (let [i, naturalWidth] of thumbnailWidths.entries()) {
+        naturalWidth ??= ROW_BASIS;
         const oldRowWidth = rowWidth;
-        rowWidth += initialWidth + ITEM_GAP;
+        rowWidth += naturalWidth + ITEM_GAP;
         row.push({
             m_index: i,
-            m_width: initialWidth,
+            m_width: naturalWidth,
         });
 
         if (rowWidth >= containerWidth) {
@@ -99,10 +96,6 @@ const getLayout = (footprint, thumbnailWidths, containerWidth) => {
         // Style the leftovers to ensure that they never wrap, even when this layout is used at a narrower-than-intended size. `$thumbnail-grid-max-height` prevents them from stretching.
         commitRow();
     }
-
-    // At a container width of `ROW_BASIS * 1.65` or narrower, `maxNonWrappingRowWidth` depends on `thumbRatio`. When we shrink from `containerWidth` (capped at `ROW_BASIS * 1.65`) to `maxNonWrappingRowWidth`, `maxNonWrappingRowWidth` gets scaled by `(maxNonWrappingRowWidth - totalGap) / (containerWidth - totalGap)`. The gaps can change which row is the widest.
-    // `(ROW_BASIS * 1.65 - ITEM_GAP) / (MIN_WIDTH + ITEM_GAP)` is about 3.04, i.e. there can be at most 3 items in a row subject to this process = 24px of gap. If we accept this ≤24px of error and ignore gaps, the scaling process goes to 0, i.e. the layout never changes for container widths ≤ `ROW_BASIS * 1.65`.
-    // So, TODO: remove the whole `thumbRatio` thing and set `CONTAINER_WIDTH_MIN` to `ROW_BASIS * 1.65`.
 
     let isHardMinWidth = false;
 

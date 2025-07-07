@@ -3454,7 +3454,7 @@ img + #detail-art-text {
             position: absolute;
             top: -0.5em;
             line-height: 1;
-            margin: -$line-width/2 8px 0;
+            margin: math.div($line-width, 2) 8px 0;
 
             // create gap in border
             padding: 0 2px;

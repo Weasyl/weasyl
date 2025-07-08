@@ -13,11 +13,16 @@ profile_responses = false
 url = postgresql+psycopg2://weasyl@postgres/weasyl
 # url = postgresql+psycopg2:///weasyl
 
+[outgoing_requests]
+# This SHOULD be changed when in production to an identifying User-Agent, e.g.
+#embed_user_agent = Weasyl-User-Embed (+https://www.weasyl.com)
+embed_user_agent = python-urllib3/2.4.0
+
 [memcached]
 servers = memcached
 
 [smtp]
-host = localhost
+host = mail-logger:587
 
 [two_factor_auth]
 # This key MUST be changed when in production;

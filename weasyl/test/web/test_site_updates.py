@@ -128,7 +128,6 @@ def test_create_restricted(app, monkeypatch):
     resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
-    monkeypatch.setattr(staff, 'TECHNICAL', frozenset([user]))
     monkeypatch.setattr(staff, 'MODS', frozenset([user]))
 
     resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie}, status=403)
@@ -227,7 +226,6 @@ def test_edit_restricted(app, monkeypatch, site_updates):
     resp = app.post('/site-updates/%d' % (updates[-1]['updateid'],), _FORM, headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
-    monkeypatch.setattr(staff, 'TECHNICAL', frozenset([user]))
     monkeypatch.setattr(staff, 'MODS', frozenset([user]))
 
     resp = app.get('/site-updates/%d/edit' % (updates[-1]['updateid'],), headers={'Cookie': cookie}, status=403)

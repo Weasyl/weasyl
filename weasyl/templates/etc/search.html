@@ -1,4 +1,4 @@
-$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None)
+$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None, is_guest=None, rating_limit=None)
 $#:{TITLE("Weasyl Search")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
@@ -22,61 +22,70 @@ $code:
         <input class="input" type="text" name="q" id="search-q" value="${meta['q']}" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
 
-        <label for="search_find">Find</label>
+        <label for="search-find">Find</label>
 
-        <select class="input${' last-input' if meta['find'] == 'user' else ''}" id="search-find" name="find">
+        <select class="input" id="search-find" name="find">
           <option value="submit">Submissions</option>
           <option value="char"${' selected' if meta['find'] == 'char' else ''}>Character Profiles</option>
           <option value="journal"${' selected' if meta['find'] == 'journal' else ''}>Journal Entries</option>
           <option value="user"${' selected' if meta['find'] == 'user' else ''}>Users</option>
         </select>
 
-        <div id="search-cat-container">
+        <fieldset class="search-fieldset" id="search-cat-container">
+          <legend><span>Submissions</span></legend>
 
-          <label for="search_cat">Category</label>
+          <label for="search-cat">Category</label>
           <select class="input" id="search-cat" name="cat">
+            <option value="">(all)</option>
             <option value="1000"$:{' selected' if meta['cat'] == 1000 else ''}>Visual Artwork</option>
             <option value="2000"$:{' selected' if meta['cat'] == 2000 else ''}>Literary Artwork</option>
             <option value="3000"$:{' selected' if meta['cat'] == 3000 else ''}>Multimedia Artwork</option>
           </select>
 
-          <label for="search_subcat">Subcategory</label>
+          <label for="search-subcat">Subcategory</label>
           <select class="input" id="search-subcat" name="subcat">
-            <option></option>
+            <option value="">(all)</option>
             $for i in subcats:
               $if i[0] % 1000 != 999:
                 <option value="${i[0]}"$:{' selected' if meta['subcat'] == i[0] else ''}>${i[1]}</option>
           </select>
 
+        </fieldset>
+
+        $if not is_guest:
+          <fieldset class="search-fieldset" id="search-specs-container">
+            <legend><span>Posts</span></legend>
+
+            <label for="search-within">Within</label>
+            <select class="input" name="within" id="search-within">
+              <option value="all">Everything</option>
+              <option value="notify"$:{' selected' if meta['within'] == 'notify' else ''}>Notifications</option>
+              <option value="fave"$:{' selected' if meta['within'] == 'fave' else ''}>Favorites</option>
+              <option value="friend"$:{' selected' if meta['within'] == 'friend' else ''}>Friends</option>
+              <option value="follow"$:{' selected' if meta['within'] == 'follow' else ''}>Following</option>
+            </select>
+
+            <fieldset class="input-group">
+              <label class="input-checkbox">
+                <input type="checkbox" name="rated" value="g"$:{' checked disabled' if rating_limit < R.MATURE.code else ' checked' if 'g' in meta['rated'] else ''} />
+                General
+              </label>
+              $if rating_limit >= R.MATURE.code:
+                <label class="input-checkbox">
+                  <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
+                  Mature (18+)
+                </label>
+              $if rating_limit >= R.EXPLICIT.code:
+                <label class="input-checkbox">
+                  <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
+                  Explicit (18+)
+                </label>
+            </fieldset>
+          </fieldset>
+
+        <div class="form-actions">
+          <button class="button">Search</button>
         </div>
-
-        <div id="search-specs-container" style="display:${'block' if meta['find'] != 'user' else 'none'};">
-
-          <label for="search-within">Within</label>
-          <select class="input last-input" name="within" id="search-within">
-            <option value="all">Everything</option>
-            <option value="notify"$:{' selected' if meta['within'] == 'notify' else ''}>Notifications</option>
-            <option value="fave"$:{' selected' if meta['within'] == 'fave' else ''}>Favorites</option>
-            <option value="friend"$:{' selected' if meta['within'] == 'friend' else ''}>Friends</option>
-            <option value="follow"$:{' selected' if meta['within'] == 'follow' else ''}>Following</option>
-          </select>
-
-          <label class="input-checkbox">
-            <input type="checkbox" name="rated" value="g"$:{' checked' if 'g' in meta['rated'] else ''} />
-            General
-          </label>
-          <label class="input-checkbox">
-            <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
-            Mature (18+)
-          </label>
-          <label class="input-checkbox last-input">
-            <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
-            Explicit (18+)
-          </label>
-
-        </div>
-
-        <button class="button">Search</button>
 
       </form>
     </div>

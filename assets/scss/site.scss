@@ -1,15 +1,19 @@
-@import 'fonts/museo500';
-@import 'theme';
-@import 'reset';
-@import 'components/date-picker';
-@import 'components/edit-profile';
-@import 'components/option';
-@import 'components/page-navigation';
-@import 'components/private-messages';
-@import 'components/tag-filters';
-@import 'components/text-post-list';
-@import 'components/user-tabs';
-@import 'pages/marketplace';
+@use 'sass:color';
+@use 'sass:math';
+@use 'fonts/museo500';
+@use 'theme';
+@use 'reset';
+@use 'components/date-picker';
+@use 'components/detail-tag-form';
+@use 'components/edit-profile';
+@use 'components/option';
+@use 'components/page-navigation';
+@use 'components/post/embed';
+@use 'components/private-messages';
+@use 'components/tag-filters';
+@use 'components/text-post-list';
+@use 'components/user-tabs';
+@use 'pages/marketplace';
 
 /* Basic styles
 --------------------------------*/
@@ -92,7 +96,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .color-c, .title, .content a {
-    color: $link-color;
+    color: theme.$link-color;
 }
 
 .color-on {
@@ -108,7 +112,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .content .color-lighter {
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .stage .color-lighter {
@@ -266,8 +270,10 @@ a.more-block:last-child {
     }
 }
 
+$content-background: #ddd;
+
 .content {
-    background-color: #ddd;
+    background-color: $content-background;
     color: #4d4d4d;
     padding-bottom: 16px;
     padding-bottom: 1rem;
@@ -727,6 +733,7 @@ dl + h4, #uc-info {
 }
 
 $input-background: #e4e4e4;
+$input-bottom-line-width: 2px;
 
 .input {
     box-sizing: border-box;
@@ -736,8 +743,10 @@ $input-background: #e4e4e4;
     border-color: #aaa #bbb #ccc;
     border-radius: 0;
     background-color: $input-background;
-    box-shadow: 0 4px 0 #336979, inset 0 1px 2px #aaa;
+    box-shadow: 0 $input-bottom-line-width 0 #336979, inset 0 1px 2px #aaa;
+    margin-bottom: $input-bottom-line-width;
     transition: all 0.15s linear;
+    transition-property: background-color, box-shadow;
 
     &:hover,
     &:focus {
@@ -746,7 +755,7 @@ $input-background: #e4e4e4;
 
     &:disabled {
         background-color: $input-background;
-        box-shadow: 0 4px 0 #aaa;
+        box-shadow: 0 $input-bottom-line-width 0 #aaa;
     }
 }
 
@@ -766,7 +775,7 @@ select.input {
 }
 
 .input:focus {
-    box-shadow: 0 4px 0 #069bc0;
+    box-shadow: 0 $input-bottom-line-width 0 #069bc0;
 }
 
 .input-checkbox {
@@ -791,6 +800,23 @@ select.input {
 
 .input-checkbox > input:disabled {
     opacity: 0.75;
+}
+
+$comment-textbox-empty-height: 1.5em;  // 1lh
+
+@supports (field-sizing: content) {
+    .expanding {
+        // All `.expanding` fields should have a constrained width (in practice, currently always `width: 100%`) already.
+        field-sizing: content;
+        height: auto !important;  // override `.no-js:root .comment.hypothetical textarea`
+        min-height: 4em;  // Fallback in case any relevant browser decides to implement `field-sizing: content` before extended `attr()`. We don’t care about Chrome 123–132 so much (132 is no longer Chrome OS LTS).
+        min-height: attr(rows lh, 2lh);  // `.input`s have `box-sizing: border-box`, so this isn’t exactly the same as the default `rows` behavior, but it’s close enough.
+    }
+
+    // Comment textboxes are our only textareas without `rows`. (They also have `box-sizing: content-box`.)
+    .comment-content > .expanding {
+        min-height: $comment-textbox-empty-height;
+    }
 }
 
 
@@ -1292,7 +1318,7 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 .comment.hypothetical textarea {
     width: 100%;
-    height: 1.5em;
+    height: $comment-textbox-empty-height;
     margin: 0.625rem -1rem -1rem;
     padding: 0 1rem 1rem;
     background-color: transparent;
@@ -1442,121 +1468,6 @@ blockquote + blockquote {
     }
 }
 
-/* ------------------------------------ =tags -- */
-
-.tags-textarea {
-    font-size: 14px;
-    box-sizing: border-box;
-    width: 100% !important;
-}
-
-.tags-with-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;  // for “(No tags)”
-}
-
-.tags {
-    // fallback if `display: contents` not supported
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-
-    display: contents;
-}
-
-$tag-background: #eee;
-
-.tag {
-    display: inline-block;
-    line-height: 1.75rem;
-    padding: 0 1em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: $tag-background;
-    font-weight: normal;
-}
-
-.tag-suggested,
-.content .tag-suggested {
-    background-color: scale-color($tag-background, $alpha: -30%);
-    border-style: dashed;
-    color: scale-color($link-color, $alpha: -20%);
-}
-
-.tag-actions {
-    display: flex;
-    align-items: center;
-    height: 1.75rem;
-    padding-left: 1em;
-    gap: 16px;
-}
-
-.suggested-tags {
-    display: flex;
-    flex-direction: column;
-    margin-top: 16px;
-    gap: 8px;
-
-    > li {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-}
-
-.suggested-tag-actions {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-    gap: 4px;
-}
-
-$tag-reject-deemphasize-size: 11px;
-
-.tag-reject-feedback {
-    display: flex;
-    flex-direction: column;
-    margin-top: 16px;
-    gap: 4px;
-
-    > label {
-        display: flex;
-        align-items: flex-start;
-        gap: 4px;
-    }
-
-    > output {
-        font-size: $tag-reject-deemphasize-size;
-    }
-}
-
-.tag-reject-feedback[hidden] {
-    display: none;
-}
-
-.tag-reject-label {
-    flex: 1;
-
-    > p {
-        font-size: $tag-reject-deemphasize-size;
-        color: $content-color-lighter;
-    }
-}
-
-@keyframes pulse {
-    from {
-    }
-    to {
-        color: #777;
-    }
-}
-
-.tag-form-status-saving {
-    animation: pulse 0.75s linear alternate infinite;
-}
-
 /* ------------------------------------ =forms -- */
 
 #login-top {
@@ -1601,12 +1512,15 @@ $tag-reject-deemphasize-size: 11px;
     max-width: 30em;
 }
 
+$field-spacing-top: 16px;
+
 .label,
 .form label:not(.input-checkbox):not(.label-around),
-.form-actions {
+.form-actions,
+.input-group,
+{
     display: block;
-    padding: 16px 0 4px;
-    padding: 1rem 0 0.25rem;
+    padding: $field-spacing-top 0 4px;
 }
 
 .label, .form label:not(.input-checkbox):not(.label-around) {
@@ -1617,7 +1531,7 @@ $tag-reject-deemphasize-size: 11px;
 
 .optional-indicator {
     font-weight: normal;
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .form:not(.wide) .form-2up-1, .form:not(.wide) .form-2up-2 {
@@ -1922,7 +1836,7 @@ $notifs-color-active: #b9b9b9;
     color: #ddd;
     background: transparent url('../img/icon-search.png') no-repeat 5px 50%;
     background-color: rgba(255,255,255,0.02);
-    box-shadow: 0 4px 0 #19354e;
+    box-shadow: 0 $input-bottom-line-width 0 #19354e;
     transition: all 0.15s linear;
 
     &::placeholder {
@@ -1932,7 +1846,7 @@ $notifs-color-active: #b9b9b9;
 }
 
 #header-search input:focus {
-    box-shadow: 0 4px 0 #336979;
+    box-shadow: 0 $input-bottom-line-width 0 #336979;
 }
 
 #header-nav {
@@ -2058,7 +1972,7 @@ $small-caps-ratio: 1.2;
     #header-nav a {
         height: 4.5rem;
         line-height: 4.5rem;
-        font-size: 0.75rem / $small-caps-ratio;
+        font-size: math.div(0.75rem, $small-caps-ratio);
         padding: 0 0.4375rem;
 
         &::first-letter {
@@ -2089,7 +2003,7 @@ $small-caps-ratio: 1.2;
     }
 
     #header-nav a {
-        font-size: 0.9rem / $small-caps-ratio;
+        font-size: math.div(0.9rem, $small-caps-ratio);
     }
 }
 
@@ -2337,7 +2251,7 @@ $small-caps-ratio: 1.2;
 
 .stream-header {
     @include serif;
-    color: scale-color($color-a, $saturation: -75%, $lightness: 15%);
+    color: color.scale($color-a, $saturation: -75%, $lightness: 15%);
     font-style: italic;
 }
 
@@ -3085,15 +2999,6 @@ img + #detail-art-text {
     visibility: hidden;
 }
 
-#detail-embed, #detail-embed iframe {
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-#detail-embed {
-    text-align: center;
-}
-
 #detail-bar-title, #detail-bar .avatar, #detail-bar .username {
     display: none;
 }
@@ -3160,14 +3065,6 @@ img + #detail-art-text {
 
 #char-stats dd {
     font-weight: 400;
-}
-
-.tags-manage {
-    margin-top: 12px;
-}
-
-.tags-actions {
-    margin-top: 8px;
 }
 
 #detail-comments {
@@ -3530,6 +3427,46 @@ img + #detail-art-text {
 }
 
 /* ------------------------------------ =search, =submissions -- */
+
+.search-fieldset {
+    // When no legend exists, give the same layout as no fieldset at all.
+    margin-top: $field-spacing-top;
+
+    > legend {
+        $line-width: 1px;
+
+        position: relative;
+        width: 100%;
+        border-top: $line-width solid #aaa;
+
+        // 0.5em top and bottom: create 1em of evenly distributed space for actual text, and position legend fully inside fieldset.
+        // Additional 0.5em top: additional separation for fieldset when it has a legend, so it’s clear which controls are inside it.
+        margin: 1em 0 0.5em;
+
+        // Replaces the top padding of the first label.
+        padding-bottom: 8px;
+
+        font-style: italic;
+        color: #555;
+
+        > span {
+            // position along border
+            position: absolute;
+            top: -0.5em;
+            line-height: 1;
+            margin: math.div($line-width, 2) 8px 0;
+
+            // create gap in border
+            padding: 0 2px;
+            background: $content-background;
+        }
+    }
+
+    > label:first-child,
+    > legend + label {
+        padding-top: 0 !important;
+    }
+}
 
 #search-stage h2.page-title {
     margin-bottom: 0px;
@@ -4094,6 +4031,11 @@ body input[type="checkbox"] {
     padding: 0.8rem 1rem;
     background-color: #f7f7f7;
     border: 1px solid #ccc;
+
+    .input + & {
+        margin-top: -$input-bottom-line-width - 1px;  // -1px to overlap borders
+        margin-bottom: $input-bottom-line-width;
+    }
 }
 
 .markdown-preview::after {
@@ -4170,7 +4112,7 @@ a.user-icon:hover > span, a.user-icon:focus > span {
     color: #304bb2;
 }
 
-.user-type-tech, .user-type-dev {
+.user-type-dev {
     color: #c90;
 }
 

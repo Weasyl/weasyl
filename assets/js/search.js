@@ -26,8 +26,6 @@ const animateSearchSettings = () => {
         } else {
             searchSpecsContainer.show(300);
         }
-
-        searchFind.toggleClass('last-input', findUser);
     });
 
     searchCategory.on('change', () => {
@@ -44,7 +42,10 @@ const animateSearchSettings = () => {
 
     searchCategoryContainer.toggle(find === 'submit');
     searchSpecsContainer.toggle(find !== 'user');
-    searchFind.toggleClass('last-input', find === 'user');
+
+    searchCategoryContainer.add(searchSpecsContainer)
+        .children('legend')
+        .remove();
 };
 
 const displayNavigationCount = (element, count) => {

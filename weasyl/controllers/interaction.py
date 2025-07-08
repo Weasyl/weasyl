@@ -151,7 +151,8 @@ def notes_(request):
 
     url_format = f"/notes?folder={form.folder}"
     if filter_sysnames:
-        url_format += f"&filter={';'.join(filter_sysnames)}"
+        # ';', URL-quoted, then escaped for printf-style formatting in PaginatedResult
+        url_format += f"&filter={'%%3B'.join(filter_sysnames)}"
     url_format += "&%s"
 
     result = pagination.PaginatedResult(
@@ -211,7 +212,8 @@ def notes_remove_(request):
     filter_sysnames = define.get_sysname_list(form.filter)
 
     if filter_sysnames:
-        link += f"&filter={';'.join(filter_sysnames)}"
+        # ';', URL-quoted
+        link += f"&filter={'%3B'.join(filter_sysnames)}"
     if backid:
         link += "&backid=%i" % backid
     elif nextid:

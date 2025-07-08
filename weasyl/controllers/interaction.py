@@ -146,16 +146,17 @@ def notes_(request):
 
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
-    filter_ = define.get_userids(define.get_sysname_list(form.filter))
+    filter_sysnames = define.get_sysname_list(form.filter)
+    filter_userids = define.get_userids(filter_sysnames)
 
     url_format = f"/notes?folder={form.folder}"
-    if form.filter:
-        url_format += f"&filter={form.filter}"
+    if filter_sysnames:
+        url_format += f"&filter={';'.join(filter_sysnames)}"
     url_format += "&%s"
 
     result = pagination.PaginatedResult(
         select_list, select_count, "noteid", url_format,
-        request.userid, filter=list(set(filter_.values())),
+        request.userid, filter=list(set(filter_userids.values())),
         backid=backid,
         nextid=nextid,
         count_limit=note.COUNT_LIMIT,
@@ -163,7 +164,7 @@ def notes_(request):
     return Response(define.webpage(request.userid, "note/message_list.html", (
         form,
         result,
-        [(sysname, userid != 0) for sysname, userid in filter_.items()],
+        [(sysname, userid != 0) for sysname, userid in filter_userids.items()],
         note.unread_count(request.userid),
     ), title=title))
 
@@ -207,9 +208,10 @@ def notes_remove_(request):
 
     note.remove_list(request.userid, list(map(int, form.notes)))
     link = "/notes?folder=" + form.folder
+    filter_sysnames = define.get_sysname_list(form.filter)
 
-    if form.filter:
-        link += f"&filter={form.filter}"
+    if filter_sysnames:
+        link += f"&filter={';'.join(filter_sysnames)}"
     if backid:
         link += "&backid=%i" % backid
     elif nextid:

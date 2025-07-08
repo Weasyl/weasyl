@@ -635,7 +635,8 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     google_doc_embed = None
 
     if query.embed_type == "other":
-        embedlink, content = content.split("\n", 1)
+        # NOTE: original `content` might not contain a newline
+        embedlink, _, content = content.partition("\n")
         embedlink = d.text_fix_url(embedlink)
         if embedlink is None:
             # a stored embed link should always be valid

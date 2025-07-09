@@ -4,9 +4,8 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 
 from libweasyl import ratings
-from libweasyl import staff
 
-from weasyl import comment, define, index, macro, search, profile, siteupdate, submission
+from weasyl import define, index, macro, search, profile, submission
 
 
 # General browsing functions
@@ -180,22 +179,6 @@ def streaming_(request):
     return Response(define.webpage(request.userid, 'etc/streaming.html',
                                    (profile.select_streaming(request.userid),),
                                    title="Streaming"))
-
-
-def site_update_list_(request):
-    updates = siteupdate.select_list()
-    can_post = request.userid in staff.ADMINS
-
-    return Response(define.webpage(request.userid, 'siteupdates/list.html', (request, updates, can_post), title="Site Updates"))
-
-
-def site_update_(request):
-    updateid = int(request.matchdict['update_id'])
-    update = siteupdate.select_view(updateid)
-    myself = profile.select_myself(request.userid)
-    comments = comment.select(request.userid, updateid=updateid)
-
-    return Response(define.webpage(request.userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
 
 
 def popular_(request):

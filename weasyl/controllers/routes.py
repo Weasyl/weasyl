@@ -15,6 +15,7 @@ from weasyl.controllers import (
     moderation,
     profile,
     settings,
+    siteupdate,
     two_factor_auth,
     user,
     weasyl_collections,
@@ -305,16 +306,16 @@ routes = (
         'POST': director.directorcontrol_globaltagrestrictions_post_,
     }),
 
-    Route("/site-updates/", "site_update_list", general.site_update_list_),
+    Route("/site-updates/", "site_update_list", siteupdate.site_update_list_),
     Route("/site-updates/new", "site_update_new", {
-        'GET': admin.admincontrol_siteupdate_get_,
-        'POST': admin.admincontrol_siteupdate_post_,
+        'GET': siteupdate.site_update_new_get_,
+        'POST': siteupdate.site_update_new_post_,
     }),
     Route("/site-updates/{update_id:[0-9]+}", "site_update", {
-        'GET': general.site_update_,
-        'POST': admin.site_update_put_,
+        'GET': siteupdate.site_update_get_,
+        'POST': siteupdate.site_update_post_,
     }),
-    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
+    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", siteupdate.site_update_edit_),
 
     Route("/policy/community", "policy_community", info.policy_community_),
     Route("/policy/copyright", "policy_copyright", info.policy_copyright_),

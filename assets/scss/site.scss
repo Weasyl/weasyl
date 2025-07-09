@@ -266,8 +266,10 @@ a.more-block:last-child {
     }
 }
 
+$content-background: #ddd;
+
 .content {
-    background-color: #ddd;
+    background-color: $content-background;
     color: #4d4d4d;
     padding-bottom: 16px;
     padding-bottom: 1rem;
@@ -727,6 +729,7 @@ dl + h4, #uc-info {
 }
 
 $input-background: #e4e4e4;
+$input-bottom-line-width: 2px;
 
 .input {
     box-sizing: border-box;
@@ -736,7 +739,8 @@ $input-background: #e4e4e4;
     border-color: #aaa #bbb #ccc;
     border-radius: 0;
     background-color: $input-background;
-    box-shadow: 0 4px 0 #336979, inset 0 1px 2px #aaa;
+    box-shadow: 0 $input-bottom-line-width 0 #336979, inset 0 1px 2px #aaa;
+    margin-bottom: $input-bottom-line-width;
     transition: all 0.15s linear;
     transition-property: background-color, box-shadow;
 
@@ -747,7 +751,7 @@ $input-background: #e4e4e4;
 
     &:disabled {
         background-color: $input-background;
-        box-shadow: 0 4px 0 #aaa;
+        box-shadow: 0 $input-bottom-line-width 0 #aaa;
     }
 }
 
@@ -767,7 +771,7 @@ select.input {
 }
 
 .input:focus {
-    box-shadow: 0 4px 0 #069bc0;
+    box-shadow: 0 $input-bottom-line-width 0 #069bc0;
 }
 
 .input-checkbox {
@@ -1521,12 +1525,15 @@ blockquote + blockquote {
     max-width: 30em;
 }
 
+$field-spacing-top: 16px;
+
 .label,
 .form label:not(.input-checkbox):not(.label-around),
-.form-actions {
+.form-actions,
+.input-group,
+{
     display: block;
-    padding: 16px 0 4px;
-    padding: 1rem 0 0.25rem;
+    padding: $field-spacing-top 0 4px;
 }
 
 .label, .form label:not(.input-checkbox):not(.label-around) {
@@ -1842,7 +1849,7 @@ $notifs-color-active: #b9b9b9;
     color: #ddd;
     background: transparent url('../img/icon-search.png') no-repeat 5px 50%;
     background-color: rgba(255,255,255,0.02);
-    box-shadow: 0 4px 0 #19354e;
+    box-shadow: 0 $input-bottom-line-width 0 #19354e;
     transition: all 0.15s linear;
 
     &::placeholder {
@@ -1852,7 +1859,7 @@ $notifs-color-active: #b9b9b9;
 }
 
 #header-search input:focus {
-    box-shadow: 0 4px 0 #336979;
+    box-shadow: 0 $input-bottom-line-width 0 #336979;
 }
 
 #header-nav {
@@ -3428,6 +3435,46 @@ img + #detail-art-text {
 
 /* ------------------------------------ =search, =submissions -- */
 
+.search-fieldset {
+    // When no legend exists, give the same layout as no fieldset at all.
+    margin-top: $field-spacing-top;
+
+    > legend {
+        $line-width: 1px;
+
+        position: relative;
+        width: 100%;
+        border-top: $line-width solid #aaa;
+
+        // 0.5em top and bottom: create 1em of evenly distributed space for actual text, and position legend fully inside fieldset.
+        // Additional 0.5em top: additional separation for fieldset when it has a legend, so it’s clear which controls are inside it.
+        margin: 1em 0 0.5em;
+
+        // Replaces the top padding of the first label.
+        padding-bottom: 8px;
+
+        font-style: italic;
+        color: #555;
+
+        > span {
+            // position along border
+            position: absolute;
+            top: -0.5em;
+            line-height: 1;
+            margin: math.div($line-width, 2) 8px 0;
+
+            // create gap in border
+            padding: 0 2px;
+            background: $content-background;
+        }
+    }
+
+    > label:first-child,
+    > legend + label {
+        padding-top: 0 !important;
+    }
+}
+
 #search-stage h2.page-title {
     margin-bottom: 0px;
 }
@@ -3991,6 +4038,11 @@ body input[type="checkbox"] {
     padding: 0.8rem 1rem;
     background-color: #f7f7f7;
     border: 1px solid #ccc;
+
+    .input + & {
+        margin-top: -$input-bottom-line-width - 1px;  // -1px to overlap borders
+        margin-bottom: $input-bottom-line-width;
+    }
 }
 
 .markdown-preview::after {

@@ -66,6 +66,7 @@ def search_(request):
 
         if search_query.find == "user":
             query = search.select_users(q)
+            prev_page = next_page = None
         else:
             search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
 

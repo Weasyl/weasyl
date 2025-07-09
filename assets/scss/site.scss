@@ -67,13 +67,8 @@ textarea {
     font-weight: normal !important;
 }
 
-@mixin serif {
-    font-family: Georgia, serif;
-    font-weight: 400;
-}
-
 i, #header-guest {
-    @include serif;
+    @include theme.serif;
 }
 
 .formatted-content i {
@@ -2251,7 +2246,7 @@ $small-caps-ratio: 1.2;
 }
 
 .stream-header {
-    @include serif;
+    @include theme.serif;
     color: color.scale($color-a, $saturation: -75%, $lightness: 15%);
     font-style: italic;
 }
@@ -2291,36 +2286,6 @@ $small-caps-ratio: 1.2;
             column-gap: 40px;
             padding: 0 40px;
         }
-    }
-}
-
-.hc-update-header {
-    padding-bottom: 24px;
-}
-
-#hc-update .hc-update-title {
-    padding-bottom: 4px;
-    text-align: center;
-}
-
-.hc-update-footer {
-    margin-top: 8px;
-}
-
-.hc-update-attribution {
-    @include serif;
-    font-style: italic;
-    text-align: center;
-
-    > .username {
-        font-style: normal;
-        text-decoration: none;
-    }
-
-    > .username > img {
-        vertical-align: middle;
-        width: 25px;
-        height: 25px;
     }
 }
 

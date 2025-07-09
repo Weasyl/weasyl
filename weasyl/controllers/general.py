@@ -186,7 +186,7 @@ def site_update_list_(request):
     updates = siteupdate.select_list()
     can_post = request.userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_post), title="Site Updates"))
+    return Response(define.webpage(request.userid, 'siteupdates/list.html', (request, updates, can_post), title="Site Updates"))
 
 
 def site_update_(request):
@@ -195,7 +195,7 @@ def site_update_(request):
     myself = profile.select_myself(request.userid)
     comments = comment.select(request.userid, updateid=updateid)
 
-    return Response(define.webpage(request.userid, 'etc/site_update.html', (myself, update, comments), title="Site Update"))
+    return Response(define.webpage(request.userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
 
 
 def popular_(request):

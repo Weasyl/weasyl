@@ -28,7 +28,7 @@ _BLANK_SITE_UPDATE = {
 
 @admin_only
 def admincontrol_siteupdate_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (_BLANK_SITE_UPDATE,), title="Submit Site Update"))
+    return Response(d.webpage(request.userid, "siteupdates/form.html", (_BLANK_SITE_UPDATE,), title="Submit Site Update"))
 
 
 @admin_only
@@ -58,7 +58,7 @@ def admincontrol_siteupdate_post_(request):
 def site_update_edit_(request):
     updateid = int(request.matchdict['update_id'])
     update = siteupdate.select_view(updateid)
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,), title="Edit Site Update"))
+    return Response(d.webpage(request.userid, "siteupdates/form.html", (update,), title="Edit Site Update"))
 
 
 @admin_only

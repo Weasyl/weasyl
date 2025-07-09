@@ -184,9 +184,9 @@ def streaming_(request):
 
 def site_update_list_(request):
     updates = siteupdate.select_list()
-    can_edit = request.userid in staff.ADMINS
+    can_post = request.userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_edit), title="Site Updates"))
+    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_post), title="Site Updates"))
 
 
 def site_update_(request):

@@ -1,4 +1,4 @@
-$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None, is_guest=None, rating_limit=None)
+$def with (method, meta, results, prev_page=None, next_page=None, subcats=None, browse_header=None, is_guest=None, rating_limit=None)
 $#:{TITLE("Weasyl Search")}
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
@@ -104,8 +104,10 @@ $code:
         </ul>
 
         <nav id="search-nav" style="padding-top: 1.4em;" class="pad-left pad-right">
-          <a id="search-back" class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]], nextid=None))}" rel="prev">Back</a>
-          <a id="search-next" class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]], backid=None))}" rel="next">Next</a>
+          $if prev_page is not None:
+            <a id="search-back" class="button" href="/search?${QUERY_STRING(dict(meta, backid=prev_page.backid, nextid=None))}" rel="prev">Back</a>
+          $if next_page is not None:
+            <a id="search-next" class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=next_page.nextid, backid=None))}" rel="next">Next</a>
         </nav>
       $else:
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>

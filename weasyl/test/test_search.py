@@ -1,4 +1,4 @@
-from unittest import mock
+from dataclasses import dataclass
 
 import pytest
 
@@ -59,7 +59,7 @@ def test_submission_search(db, term, n_results):
     results, _, _ = search.select(
         search=search.Query.parse(term, 'submit'),
         userid=user, rating=ratings.EXPLICIT.code, limit=100,
-        cat=None, subcat=None, within='', backid=None, nextid=None)
+        cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
     assert len(results) == n_results
 
@@ -89,7 +89,7 @@ def test_search_blocked_tags(db, rating, block_rating):
         results, _, _ = search.select(
             search=search.Query.parse(term, 'submit'),
             userid=viewer, rating=ratings.EXPLICIT.code, limit=100,
-            cat=None, subcat=None, within='', backid=None, nextid=None)
+            cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
         assert len(results) == n_results
 
@@ -104,13 +104,23 @@ def test_search_blocked_tags(db, rating, block_rating):
 _page_limit = 6
 
 
-@mock.patch.object(search, 'COUNT_LIMIT', 10)
-@pytest.mark.parametrize('with_counts', (True, False))
-def test_search_pagination(db, with_counts: bool):
-    kwargs = {}
-    if with_counts:
-        kwargs['counts'] = search.NavigationCountsSettings(100, 10, 0)
+@dataclass(frozen=True, slots=True)
+class _SearchResponse:
+    results: search.Results
+    prev_page: search.PrevFilter | None
+    next_page: search.NextFilter | None
+    back_count: int | None
+    next_count: int | None
 
+
+def _select_and_count(*, limit: int, **kwargs) -> _SearchResponse:
+    results, prev_page, next_page = search.select(limit=limit, **kwargs)
+    back_count = None if prev_page is None else search.select_count(**kwargs | {"page": prev_page})
+    next_count = None if next_page is None else search.select_count(**kwargs | {"page": next_page})
+    return _SearchResponse(results, prev_page, next_page, back_count, next_count)
+
+
+def test_search_pagination(db):
     owner = db_utils.create_user()
     submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
     tag = db_utils.create_tag('penguin')
@@ -119,32 +129,38 @@ def test_search_pagination(db, with_counts: bool):
     for submission in submissions:
         db_utils.create_submission_tag(tag, submission)
 
-    result, next_count, back_count = search.select(
+    r = _select_and_count(
         search=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=None, nextid=None, **kwargs)
+        cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
-    assert back_count == 0
-    assert next_count == (search.COUNT_LIMIT if with_counts else 0)
-    assert [item['submitid'] for item in result] == submissions[:-_page_limit - 1:-1]
+    assert r.prev_page is None
+    assert r.next_page == search.NextFilter(submissions[-_page_limit])
+    assert r.back_count is None
+    assert r.next_count == len(submissions) - _page_limit
+    assert [item['submitid'] for item in r.results] == submissions[:-_page_limit - 1:-1]
 
-    result, next_count, back_count = search.select(
+    r = _select_and_count(
         search=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=None, nextid=submissions[-_page_limit], **kwargs)
+        cat=None, subcat=None, within='', page=search.NextFilter(submissions[-_page_limit]))
 
-    assert back_count == (_page_limit if with_counts else 0)
-    assert next_count == (search.COUNT_LIMIT if with_counts else 0)
-    assert [item['submitid'] for item in result] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
+    assert r.prev_page == search.PrevFilter(submissions[-_page_limit - 1])
+    assert r.next_page == search.NextFilter(submissions[-2 * _page_limit])
+    assert r.back_count == _page_limit
+    assert r.next_count == len(submissions) - 2 * _page_limit
+    assert [item['submitid'] for item in r.results] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
 
-    result, next_count, back_count = search.select(
+    r = _select_and_count(
         search=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=submissions[_page_limit - 1], nextid=None, **kwargs)
+        cat=None, subcat=None, within='', page=search.PrevFilter(submissions[_page_limit - 1]))
 
-    assert back_count == (search.COUNT_LIMIT if with_counts else 0)
-    assert next_count == (_page_limit if with_counts else 0)
-    assert [item['submitid'] for item in result] == submissions[2 * _page_limit - 1:_page_limit - 1:-1]
+    assert r.prev_page == search.PrevFilter(submissions[2 * _page_limit - 1])
+    assert r.next_page == search.NextFilter(submissions[_page_limit])
+    assert r.back_count == len(submissions) - 2 * _page_limit
+    assert r.next_count == _page_limit
+    assert [item['submitid'] for item in r.results] == submissions[2 * _page_limit - 1:_page_limit - 1:-1]
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [
@@ -191,7 +207,7 @@ def test_search_within_friends(db):
         results, _, _ = search.select(
             search=search.Query.parse("ferret", "submit"),
             userid=userid, rating=ratings.GENERAL.code, limit=100,
-            cat=None, subcat=None, within="friend", backid=None, nextid=None,
+            cat=None, subcat=None, within="friend", page=search.FIRST_PAGE,
         )
 
         return results

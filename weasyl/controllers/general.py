@@ -66,11 +66,17 @@ def search_(request):
 
         if search_query.find == "user":
             query = search.select_users(q)
-            next_count = back_count = 0
         else:
             search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
 
-            query, next_count, back_count = search.select(
+            if backid:
+                page = search.PrevFilter(meta["backid"])
+            elif nextid:
+                page = search.NextFilter(meta["nextid"])
+            else:
+                page = search.FIRST_PAGE
+
+            query, prev_page, next_page = search.select(
                 userid=request.userid,
                 rating=rating,
                 limit=63,
@@ -78,8 +84,8 @@ def search_(request):
                 within=meta["within"],
                 cat=meta["cat"],
                 subcat=meta["subcat"],
-                backid=meta["backid"],
-                nextid=meta["nextid"])
+                page=page,
+            )
 
         title = "Search results"
         template_args = (
@@ -89,11 +95,10 @@ def search_(request):
             meta,
             # Search results
             query,
-            next_count,
-            back_count,
+            prev_page,
+            next_page,
             # Submission subcategories
             macro.MACRO_SUBCAT_LIST,
-            search.COUNT_LIMIT,
             # `browse_header`
             None,
             # `is_guest`
@@ -128,9 +133,11 @@ def search_(request):
             meta,
             # Search results
             query,
-            0,
-            0,
+            # `prev_page`
             None,
+            # `next_page`
+            None,
+            # `subcats`
             None,
             browse_header,
         )

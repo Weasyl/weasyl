@@ -62,15 +62,40 @@ const displayNavigationCount = (element, count) => {
     }
 };
 
+const setOrDelete = (map, key, value) => {
+    if (value == null) {
+        map.delete(key);
+    } else {
+        map.set(key, value);
+    }
+};
+
 const populateNavigationCounts = async () => {
     const searchBack = document.getElementById('search-back');
     const searchNext = document.getElementById('search-next');
 
-    const response = await fetch(`/api-unstable/search/navigation-counts${window.location.search}`);
+    const params = new URLSearchParams(window.location.search);
+
+    const backid = searchBack && new URL(searchBack.href).searchParams.get('backid');
+    const nextid = searchNext && new URL(searchNext.href).searchParams.get('nextid');
+
+    setOrDelete(params, 'backid', backid);
+    setOrDelete(params, 'nextid', nextid);
+
+    const response = await fetch(`/api-unstable/search/navigation-counts?${params}`);
+    if (!response.ok) {
+        return;
+    }
+
     const {nextCount, backCount} = await response.json();
 
-    displayNavigationCount(searchBack, backCount);
-    displayNavigationCount(searchNext, nextCount);
+    if (searchBack) {
+        displayNavigationCount(searchBack, backCount);
+    }
+
+    if (searchNext) {
+        displayNavigationCount(searchNext, nextCount);
+    }
 };
 
 animateSearchSettings();

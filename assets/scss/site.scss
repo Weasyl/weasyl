@@ -25,6 +25,10 @@ body {
     background-color: #1d2224;
 }
 
+picture {
+    display: contents;
+}
+
 #page-container {
     max-width: 1650px;
     margin: 0 auto;

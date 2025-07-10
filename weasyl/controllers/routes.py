@@ -16,6 +16,7 @@ from weasyl.controllers import (
     profile,
     search,
     settings,
+    siteupdate,
     two_factor_auth,
     user,
     weasyl_collections,
@@ -285,8 +286,6 @@ routes = (
 
     # Admin control routes.
     Route("/admincontrol", "admincontrol", admin.admincontrol_),
-    Route("/admincontrol/siteupdate", "admin_siteupdate",
-          {'GET': admin.admincontrol_siteupdate_get_, 'POST': admin.admincontrol_siteupdate_post_}),
     Route("/admincontrol/manageuser", "admin_manageuser",
           {'GET': admin.admincontrol_manageuser_get_, 'POST': admin.admincontrol_manageuser_post_}),
     Route("/admincontrol/finduser", "admincontrol_finduser", {
@@ -309,12 +308,16 @@ routes = (
         'POST': director.directorcontrol_globaltagrestrictions_post_,
     }),
 
-    Route("/site-updates/", "site_update_list", general.site_update_list_),
-    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
-        'GET': general.site_update_,
-        'POST': admin.site_update_put_,
+    Route("/site-updates/", "site_update_list", {
+        'GET': siteupdate.site_update_list_,
+        'POST': siteupdate.site_update_post_,
     }),
-    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
+    Route("/site-updates/new", "site_update_new", siteupdate.site_update_new_get_),
+    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
+        'GET': siteupdate.site_update_get_,
+        'POST': siteupdate.site_update_put_,
+    }),
+    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", siteupdate.site_update_edit_),
 
     Route("/policy/community", "policy_community", info.policy_community_),
     Route("/policy/copyright", "policy_copyright", info.policy_copyright_),

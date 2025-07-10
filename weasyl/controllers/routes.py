@@ -306,14 +306,14 @@ routes = (
         'POST': director.directorcontrol_globaltagrestrictions_post_,
     }),
 
-    Route("/site-updates/", "site_update_list", siteupdate.site_update_list_),
-    Route("/site-updates/new", "site_update_new", {
-        'GET': siteupdate.site_update_new_get_,
-        'POST': siteupdate.site_update_new_post_,
+    Route("/site-updates/", "site_update_list", {
+        'GET': siteupdate.site_update_list_,
+        'POST': siteupdate.site_update_post_,
     }),
+    Route("/site-updates/new", "site_update_new", siteupdate.site_update_new_get_),
     Route("/site-updates/{update_id:[0-9]+}", "site_update", {
         'GET': siteupdate.site_update_get_,
-        'POST': siteupdate.site_update_post_,
+        'POST': siteupdate.site_update_put_,
     }),
     Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", siteupdate.site_update_edit_),
 

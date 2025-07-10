@@ -34,7 +34,7 @@ def site_update_get_(request):
 
 @admin_only
 @token_checked
-def site_update_post_(request):
+def site_update_put_(request):
     updateid = int(request.matchdict['update_id'])
     title = request.POST["title"].strip()
     content = request.POST["content"].strip()
@@ -63,7 +63,7 @@ def site_update_new_get_(request):
 
 @admin_only
 @token_checked
-def site_update_new_post_(request):
+def site_update_post_(request):
     title = request.POST["title"].strip()
     content = request.POST["content"].strip()
     wesley = "wesley" in request.POST

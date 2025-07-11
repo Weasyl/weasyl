@@ -720,6 +720,18 @@ siteupdatecomment = Table(
 )
 
 
+siteupdateread = Table(
+    'siteupdateread', metadata,
+    Column('readid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), nullable=False),
+    Column('updateid', Integer(), nullable=False),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdateread_userid_fkey'),
+    ForeignKeyConstraint(['updateid'], ['siteupdate.updateid'], name='siteupdateread_updateid_fkey'),
+)
+
+Index('ind_siteupdateread_userid', siteupdateread.c.userid)
+
+
 submission = Table(
     'submission', metadata,
     Column('submitid', Integer(), primary_key=True, nullable=False),

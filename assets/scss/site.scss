@@ -65,7 +65,7 @@ textarea {
 }
 
 .typeface-a, .username, .page-title, a.more span, #header-messages a,
-.content h3, .stage h3, .caption h5 {
+.content h3, .stage h3 {
     font-family: Museo500, Lucida Sans, Lucida Grande, Arial, Roboto, sans-serif;
     font-weight: normal !important;
 }
@@ -271,14 +271,20 @@ a.more-block:last-child {
 }
 
 $content-background: #ddd;
+$content-vpad-dense: 16px;
+$content-vpad-sparse: 32px;
 
 .content {
     background-color: $content-background;
     color: #4d4d4d;
-    padding-bottom: 16px;
-    padding-bottom: 1rem;
+    padding-bottom: $content-vpad-dense;
     position: relative;
     z-index: 1;
+}
+
+// Makes the vertical padding symmetric. Not the default for historical reasons (too many existing components already account for the original layout).
+.content-vpad {
+    padding-top: $content-vpad-dense;
 }
 
 .content h3, .stage h3 {
@@ -316,8 +322,11 @@ $content-background: #ddd;
 
 @media (min-width: 53em) {
     .content {
-        padding-bottom: 32px;
-        padding-bottom: 2rem;
+        padding-bottom: $content-vpad-sparse;
+    }
+
+    .content-vpad {
+        padding-top: $content-vpad-sparse;
     }
 }
 
@@ -930,41 +939,32 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 /* ------------------------------------ =grids -- */
 
-.grid {
-    display: block;
-    padding: 0;
-    margin-right: -15px;
-    letter-spacing: -0.32em;
-    text-rendering: optimizespeed;
-    text-align: center;
+$avatar-grid-gap: 15px;
+
+.avatar-grid {
+    contain: inline-size layout style;
+    container-type: inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $avatar-grid-gap;
+    padding: 0 $avatar-grid-gap;
 }
 
-// TODO: `.avatar-grid > div` is not a thing and every `.grid-unit` is already `.avatar-grid > li`
-.grid-unit, .avatar-grid > li {
+.avatar-grid > * {
     box-sizing: border-box;
     display: inline-block;
-    width: 100%;
-    padding: 0 15px 15px 0;
-    margin: 0;
-    vertical-align: top;
-    letter-spacing: normal;
-    text-rendering: auto;
-    text-align: left;
+    width: 100px;
+    max-width: calc(33.3% - $avatar-grid-gap*2/3);
 }
 
-.avatar-grid > li {
-    width: 115px;
-    max-width: 33.3%;
-    position: relative;
-}
 .avatar-grid > .more {
     width: 100%;
     max-width: none;
-    display: block;
     padding-top: 8px;
-    padding-top: 0.5rem;
-
 }
+
+// Journals and user search results that use `thumbnail_grid_item.html` use `thumb-bounds` markup structure instead of `avatar`. (Since these cases aren’t inside `.content`, `avatar` would actually have different behavior, adding a border.)
 .avatar-grid img {
     display: block;
     max-width: 100%;
@@ -973,8 +973,17 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     display: block;
     position: relative;
 }
+
+// make usernames of users bigger (but not journal authors)
+.avatar-grid h5 .username {
+    font-size: 1.3em;
+}
+
+// journals on top-level browse page and favorites summary page
 .avatar-grid .title {
     padding-top: 8px;
+    text-overflow: ellipsis;
+    overflow: clip;
 }
 .avatar-grid .title a {
     color: #ccc;
@@ -992,30 +1001,34 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .content .avatar-grid .byline i {
     color: #888;
 }
+.avatar-grid .rating {
+    $border-width: 4px;
+    width: 50px;
+    height: 50px;
+    border-style: solid;
+    border-width: 0 $border-width $border-width 0;
+    position: absolute;
+    right: math.div(-$border-width, 2);
+    bottom: math.div(-$border-width, 2);
+    color: transparent;
+    overflow: hidden;
+    text-indent: 150%;
+    z-index: 3;
+}
+
 .avatar-grid .username {
     color: #3ad;
 }
 .content .avatar-grid .username {
     color: $color-a;
 }
+
+// friends and follows actions
 .avatar-grid .button {
     padding: 4px 0;
     border: none;
     box-shadow: none;
     background: transparent;
-}
-.avatar-grid .rating {
-    width: 50px;
-    height: 50px;
-    border-style: solid;
-    border-width: 0 4px 4px 0;
-    position: absolute;
-    right: -2px;
-    bottom: -2px;
-    color: transparent;
-    overflow: hidden;
-    text-indent: 150%;
-    z-index: 3;
 }
 
 
@@ -1213,11 +1226,6 @@ $thumbnail-grid-max-height: 250px;  // `ROW_BASIS` in thumbnail-grid.js
 .thumbnail-grid > .more {
     padding-top: 8px;
     padding-top: 0.5rem;
-}
-
-/* Make character names bigger */
-.thumbnail .caption.big h5, .user-characters .thumbnail .caption h5 {
-    font-size: 1.3em;
 }
 
 .thumbnail-grid:not(.thumbnail-grid-enhanced) {
@@ -3750,10 +3758,6 @@ img + #detail-art-text {
     background-image: url('../img/icon-search-lightbg.png');
     background-repeat: no-repeat;
     background-position: 5px 50%;
-}
-
-#friends-accepted, #friends-pending, #following-users {
-    padding-top: 2em;
 }
 
 /* ------------------------------------ =footer -- */

@@ -32,7 +32,7 @@ $ card_viewer = get_card_viewer()
         <h3>Favorite Characters</h3>
 
         $ cards = card_viewer.get_cards(result['char'])
-        <ul class="grid avatar-grid">
+        <ul class="avatar-grid">
           $for card in cards:
             $:{_GRID_ITEM(card, lazy_load=False)}
           <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=char"><i>More</i> <span>Characters</span></a></li>
@@ -52,7 +52,7 @@ $ card_viewer = get_card_viewer()
         <h3>Favorite Journals</h3>
 
         $ cards = card_viewer.get_cards(result['journal'])
-        <ul class="grid avatar-grid">
+        <ul class="avatar-grid">
           $for card in cards:
             $:{_GRID_ITEM(card, lazy_load=False)}
           <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></li>

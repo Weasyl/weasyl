@@ -179,10 +179,10 @@ $code:
     $if results['journal']:
       <h3 class="pad-left">Journals</h3>
       $ cards = card_viewer.get_cards(results['journal'])
-      <ul class="grid avatar-grid">
+      <ul class="avatar-grid">
         $for i in cards:
           $:{_GRID_ITEM(i)}
-        <li class="clear more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></li>
+        <li class="more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></li>
       </ul>
     $else:
       There are no journals to display.

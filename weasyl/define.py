@@ -662,6 +662,20 @@ def private_messages_unread_count(userid: int) -> int:
         "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
 
 
+def site_updates_unread_count(userid: int) -> int:
+    last_read_updateid = engine.scalar("""
+        SELECT updateid
+        FROM siteupdateread
+        WHERE userid = %(user)s
+    """, user=userid)
+
+    return engine.scalar("""
+        SELECT COUNT(*)
+        FROM siteupdate
+        WHERE updateid > %(update)s
+    """, update=last_read_updateid)
+
+
 notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
 
 
@@ -671,7 +685,8 @@ notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_co
 @notification_count_time.uncached
 def _page_header_info(userid):
     messages = private_messages_unread_count(userid)
-    result = [messages, 0, 0, 0, 0]
+    site_updates = site_updates_unread_count(userid)
+    result = [messages, 0, site_updates, 0, 0]
 
     counts = engine.execute(
         """
@@ -690,7 +705,7 @@ def _page_header_info(userid):
         """, user=userid, rating=get_rating(userid))
 
     for group, count in counts:
-        result[5 - group] = count
+        result[5 - group] += count
 
     return result
 

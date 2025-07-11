@@ -236,20 +236,23 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
 
 
 def select_site_updates(userid):
+    last_read_updateid = d.engine.scalar("""
+        SELECT updateid
+        FROM siteupdateread
+        WHERE userid = %(user)s
+    """, user=userid)
+
     return [{
         "type": 3150,
-        "id": i.welcomeid,
         "unixtime": i.unixtime,
         "updateid": i.updateid,
         "title": i.title,
     } for i in d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, su.updateid, su.title
-        FROM welcome we
-            INNER JOIN siteupdate su ON we.otherid = su.updateid
-        WHERE we.userid = %(user)s
-            AND we.type = 3150
-        ORDER BY we.unixtime DESC
-    """, user=userid)]
+        SELECT updateid, title, unixtime
+        FROM siteupdate
+        WHERE updateid > %(update)s
+        ORDER BY unixtime DESC
+    """, update=last_read_updateid)]
 
 
 def select_notifications(userid):

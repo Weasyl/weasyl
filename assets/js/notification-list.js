@@ -2,6 +2,7 @@
 
 var forEach = Array.prototype.forEach;
 var every = Array.prototype.every;
+var filter = Array.prototype.filter;
 var some = Array.prototype.some;
 var map = Array.prototype.map;
 
@@ -45,7 +46,14 @@ function sectionToggle(section) {
     return sectionCheckbox;
 }
 
-var sectionCheckboxes = map.call(sectionHeaders, function (sectionHeader) {
+function sectionIsRemovable(sectionHeader) {
+    // Site updates (3150) are dismissed by reading them.
+    return sectionHeader.dataset.type != '3150';
+}
+
+var removableSectionHeaders = filter.call(sectionHeaders, sectionIsRemovable);
+
+var sectionCheckboxes = map.call(removableSectionHeaders, function (sectionHeader) {
     var label = document.createElement('label');
     var sectionCheckbox = sectionToggle(sectionHeader.nextElementSibling);
 

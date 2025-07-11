@@ -8,7 +8,6 @@ from libweasyl.legacy import UNIXTIME_NOW_SQL
 from libweasyl.models import tables as t
 from weasyl import define as d
 from weasyl import media
-from weasyl import welcome
 
 
 _SELECT_BASE = (

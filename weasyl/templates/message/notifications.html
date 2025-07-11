@@ -64,7 +64,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
           $if i['section'] not in previous_sections:
             <a name="${i['section']}"></a>
             $ previous_sections.add(i['section'])
-          <h3 class="notification-group-header">
+          <h3 class="notification-group-header" data-type="${i['type']}">
             ${_HEADER(i['type'])}
             $if i['type'] in (3030, 3035):
               $#for collection offers
@@ -114,7 +114,8 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
                   shout_reply = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['commentid']) + '">reply</a>'
                   your_comment = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['replyid']) + '">your comment</a>'
 
-            <input type="checkbox" class="remove" name="remove" value="${i['id']}" />
+            $if 'id' in i:
+              <input type="checkbox" class="remove" name="remove" value="${i['id']}" />
 
             $if i['type'] == 1010:
               $# user journal

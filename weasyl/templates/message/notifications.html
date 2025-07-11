@@ -73,6 +73,8 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $#for friend requests
               <a class="typeface-default" href="/manage/friends?feature=pending">[Manage Friends]</a>
           </h3>
+          $if i['type'] == 3150:
+            <p class="color-lighter tags-help notification-group-description"><em>Site updates may contain important policy or feature changes; please read them to clear them.</em></p>
           <div class="group" id="${group_type}">
           $ previous_types = _PREVIOUS(i['type'])
 

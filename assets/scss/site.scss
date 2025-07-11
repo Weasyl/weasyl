@@ -3648,6 +3648,10 @@ img + #detail-art-text {
 #notification-global-actions-top {
     padding-bottom: 0;
 }
+.notification-group-description {
+    position: relative;
+    top: -1em;
+}
 
 
 @media (max-width: 44.9em) {

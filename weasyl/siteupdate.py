@@ -116,7 +116,6 @@ def create(*, userid, title, content, wesley):
     }).scalar_one()
 
     select_last.invalidate()
-    welcome.site_update_insert(updateid)
 
     return updateid
 

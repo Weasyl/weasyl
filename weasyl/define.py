@@ -664,7 +664,7 @@ def private_messages_unread_count(userid: int) -> int:
 
 def site_updates_unread_count(userid: int) -> int:
     last_read_updateid = engine.scalar("""
-        SELECT updateid
+        SELECT COALESCE(updateid, 0)
         FROM siteupdateread
         WHERE userid = %(user)s
     """, user=userid)

@@ -237,7 +237,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
 
 def select_site_updates(userid):
     last_read_updateid = d.engine.scalar("""
-        SELECT updateid
+        SELECT COALESCE(updateid, 0)
         FROM siteupdateread
         WHERE userid = %(user)s
     """, user=userid)

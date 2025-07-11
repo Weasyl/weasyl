@@ -724,7 +724,9 @@ siteupdateread = Table(
     'siteupdateread', metadata,
     Column('readid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
-    Column('updateid', Integer(), nullable=False),
+    # Nullable for the case where no site updates exist in the database.
+    # Queries should COALESCE(updateid, 0) as appropriate.
+    Column('updateid', Integer(), nullable=True),
     ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdateread_userid_fkey'),
     ForeignKeyConstraint(['updateid'], ['siteupdate.updateid'], name='siteupdateread_updateid_fkey'),
 )

@@ -20,7 +20,7 @@ def upgrade():
     op.create_table('siteupdateread',
         sa.Column('readid', sa.Integer(), nullable=False),
         sa.Column('userid', sa.Integer(), nullable=False),
-        sa.Column('updateid', sa.Integer(), nullable=False),
+        sa.Column('updateid', sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(['updateid'], ['siteupdate.updateid'], name='siteupdateread_updateid_fkey'),
         sa.ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdateread_userid_fkey'),
         sa.PrimaryKeyConstraint('readid')

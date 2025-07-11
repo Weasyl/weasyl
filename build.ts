@@ -627,6 +627,7 @@ const tasks: readonly AnyTask[] = [
 
     new EsbuildFiles([
         'js/message-list.js',
+        'js/notification-list.js',
         'js/tags-edit.js',
         'js/signup.js',
     ], PRIVATE_FIELDS_ESM, {touch}),
@@ -650,7 +651,6 @@ const tasks: readonly AnyTask[] = [
     }, {touch}),
 
     // site
-    new CopyStaticFile('js/notification-list.js', {touch}),
     new CopyStaticFile('js/search.js', {touch}),
     new CopyStaticFile('js/zxcvbn-check.js', {touch}),
 ];

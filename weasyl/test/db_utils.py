@@ -76,6 +76,10 @@ def create_user(full_name="", birthday=None, config=None,
     if user_id is not None:
         d.engine.execute("UPDATE login SET userid = %(newid)s WHERE userid = %(oldid)s", newid=user_id, oldid=user.userid)
         return user_id
+    # Create the latest-read site update counter for this user
+    latest_updateid = d.engine.scalar("SELECT MAX(updateid) FROM siteupdate")
+    d.engine.execute("INSERT INTO siteupdateread (userid, updateid) VALUES (%(userid)s, %(updateid)s)",
+                     userid=user.userid, updateid=latest_updateid)
     return user.userid
 
 

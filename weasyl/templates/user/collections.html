@@ -1,5 +1,6 @@
 $def with (profile, userinfo, relationship, result, post_counts_by_type)
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+$ card_viewer = get_card_viewer()
 
 <div id="collections_stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
@@ -10,8 +11,9 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   <h3>Collections</h3>
 
   $if result.query:
-    <ul class="thumbnail-grid">
-      $for index, item in enumerate(result.query):
+    $ cards = card_viewer.get_cards(result.query)
+    <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+      $for index, item in enumerate(cards):
         $:{_GRID_ITEM(item, lazy_load=index >= 10)}
     </ul>
     $:{RENDER("common/page_navigation.html", [result])}

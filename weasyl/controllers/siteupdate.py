@@ -29,6 +29,16 @@ def site_update_get_(request):
     myself = profile.select_myself(request.userid)
     comments = comment.select(request.userid, updateid=updateid)
 
+    if request.userid:
+        d.engine.execute("""
+            UPDATE siteupdateread
+            SET updateid = %(updateid)s
+            WHERE userid = %(userid)s
+            AND COALESCE(updateid, 0) < %(updateid)s
+        """, userid=request.userid, updateid=updateid)
+
+        d._page_header_info.invalidate(request.userid)
+
     return Response(define.webpage(request.userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
 
 

@@ -19,9 +19,9 @@ _BLANK_SITE_UPDATE = {
 def site_update_list_(request):
     userid = request.userid
     updates = siteupdate.select_list()
-    can_post = request.userid in staff.ADMINS
+    can_post = userid in staff.ADMINS
 
-    if updates and userid is not None:
+    if updates and userid:
         last_read_updateid = siteupdate.get_last_read_updateid(userid)
         max_updateid = updates[0]['updateid']
 

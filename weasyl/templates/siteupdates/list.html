@@ -26,8 +26,8 @@ $:{TITLE("Site Updates")}
             <a href="${request.route_path('site_update', update_id=update['updateid'])}">${update['title']}</a>
             <span class="text-post-actions">
               $if can_post:
-                <a href="${request.route_path('site_update_edit', update_id=update['updateid'])}">Edit</a>
-              $if last_read_updateid and update['updateid'] > last_read_updateid:
+                <a class="text-post-edit" href="${request.route_path('site_update_edit', update_id=update['updateid'])}">Edit</a>
+              $if last_read_updateid is not None and update['updateid'] > last_read_updateid:
                 <span class="text-post-new">New</span>
             </span>
           </h4>

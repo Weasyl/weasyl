@@ -79,7 +79,7 @@ def test_list(app, monkeypatch, site_updates):
     _, updates = site_updates
     resp = app.get('/site-updates/')
     assert len(resp.html.findAll(None, 'text-post-item')) == 3
-    assert resp.html.find(None, 'text-post-actions') is None
+    assert resp.html.find(None, 'text-post-edit') is None
 
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -167,7 +167,7 @@ def test_create_notifications(app, monkeypatch):
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == _FORM['title']
+    assert list(resp.html.find(id='site_updates').find(None, 'item').a.stripped_strings)[0] == _FORM['title']
 
 
 @pytest.mark.usefixtures('db')
@@ -294,7 +294,7 @@ def test_edit_notifications(app, monkeypatch):
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == _FORM['title']
+    assert list(resp.html.find(id='site_updates').find(None, 'item').a.stripped_strings)[0] == _FORM['title']
 
     resp = app.post(
         '/site-updates/%d' % (siteupdate.select_last()['updateid'],),
@@ -305,4 +305,4 @@ def test_edit_notifications(app, monkeypatch):
 
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == 'New title'
+    assert list(resp.html.find(id='site_updates').find(None, 'item').a.stripped_strings)[0] == 'New title'

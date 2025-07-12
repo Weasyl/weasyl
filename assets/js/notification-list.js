@@ -14,7 +14,7 @@ const removeCheckboxes = notificationContainer.getElementsByClassName('remove');
 
 const isChecked = checkbox => {
     return checkbox.checked;
-}
+};
 
 const sectionToggle = section => {
     const itemCheckboxes = section.getElementsByClassName('remove');
@@ -31,23 +31,23 @@ const sectionToggle = section => {
         });
 
         updateRemoveChecked();
-    }
+    };
 
     const updateSectionCheckbox = () => {
         sectionCheckbox.checked = every.call(itemCheckboxes, isChecked);
-    }
+    };
 
     sectionCheckbox.addEventListener('change', updateItemCheckboxes);
     section.addEventListener('change', updateSectionCheckbox);
     updateSectionCheckbox();
 
     return sectionCheckbox;
-}
+};
 
 const sectionIsRemovable = sectionHeader => {
     // Site updates (3150) are dismissed by reading them.
     return sectionHeader.dataset.type != '3150';
-}
+};
 
 const removableSectionHeaders = filter.call(sectionHeaders, sectionIsRemovable);
 
@@ -86,12 +86,12 @@ const checkAllButton = (text, checked) => {
     });
 
     return button;
-}
+};
 
 const updateRemoveChecked = () => {
     removeCheckedButton.disabled = !some.call(removeCheckboxes, isChecked);
     removeCheckedButtonTop.disabled = !some.call(removeCheckboxes, isChecked);
-}
+};
 
 notificationContainer.addEventListener('change', updateRemoveChecked);
 updateRemoveChecked();

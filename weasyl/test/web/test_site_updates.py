@@ -198,6 +198,27 @@ def test_read_counter(app, monkeypatch):
 
 
 @pytest.mark.usefixtures('db')
+def test_read_markers(app, monkeypatch):
+    admin_user = db_utils.create_user()
+    normal_user = db_utils.create_user()
+    admin_cookie = db_utils.create_session(admin_user)
+    normal_cookie = db_utils.create_session(normal_user)
+    monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
+
+    updateids = []
+    for _ in range(3):
+        resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
+        updateid = int(resp.headers['Location'].rpartition('/')[2])
+        updateids.append(updateid)
+
+    resp = app.get('/site-updates/', headers={'Cookie': normal_cookie})
+    assert len(resp.html.find_all(class_='text-post-new')) == 3
+
+    resp = app.get('/site-updates/', headers={'Cookie': normal_cookie})
+    assert len(resp.html.find_all(class_='text-post-new')) == 0
+
+
+@pytest.mark.usefixtures('db')
 def test_edit(app, monkeypatch, site_updates):
     _, updates = site_updates
 

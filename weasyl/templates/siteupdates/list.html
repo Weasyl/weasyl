@@ -1,4 +1,4 @@
-$def with (request, updates, can_post)
+$def with (request, updates, can_post, last_read_updateid)
 $:{TITLE("Site Updates")}
 
 <div class="content">
@@ -24,10 +24,12 @@ $:{TITLE("Site Updates")}
         <div class="text-post-text">
           <h4 class="text-post-title">
             <a href="${request.route_path('site_update', update_id=update['updateid'])}">${update['title']}</a>
-            $if can_post:
-              <span class="text-post-actions">
+            <span class="text-post-actions">
+              $if can_post:
                 <a href="${request.route_path('site_update_edit', update_id=update['updateid'])}">Edit</a>
-              </span>
+              $if last_read_updateid and update['updateid'] > last_read_updateid:
+                <span class="text-post-new">New</span>
+            </span>
           </h4>
 
           <p class="text-post-excerpt">${MARKDOWN_EXCERPT(update['content'])}</p>

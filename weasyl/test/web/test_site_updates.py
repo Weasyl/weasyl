@@ -79,7 +79,7 @@ def test_list(app, monkeypatch, site_updates):
     _, updates = site_updates
     resp = app.get('/site-updates/')
     assert len(resp.html.findAll(None, 'text-post-item')) == 3
-    assert resp.html.find(None, 'text-post-actions') is None
+    assert resp.html.find(None, 'text-post-edit') is None
 
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -167,7 +167,55 @@ def test_create_notifications(app, monkeypatch):
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == _FORM['title']
+    assert list(resp.html.find(id='site_updates').find(None, 'item').a.stripped_strings)[0] == _FORM['title']
+
+
+@pytest.mark.usefixtures('db')
+def test_read_counter(app, monkeypatch):
+    admin_user = db_utils.create_user()
+    normal_user = db_utils.create_user()
+    admin_cookie = db_utils.create_session(admin_user)
+    normal_cookie = db_utils.create_session(normal_user)
+    monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
+
+    updateids = []
+    for _ in range(3):
+        resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
+        updateid = int(resp.headers['Location'].rpartition('/')[2])
+        updateids.append(updateid)
+
+    resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
+    assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '3'
+
+    resp = app.get(f'/site-updates/{updateids[1]}', headers={'Cookie': normal_cookie})
+    assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
+
+    resp = app.get(f'/site-updates/{updateids[0]}', headers={'Cookie': normal_cookie})
+    assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
+
+    resp = app.get(f'/site-updates/{updateids[2]}', headers={'Cookie': normal_cookie})
+    assert not resp.html.find(id='header-messages').find(title='Notifications')
+
+
+@pytest.mark.usefixtures('db')
+def test_read_markers(app, monkeypatch):
+    admin_user = db_utils.create_user()
+    normal_user = db_utils.create_user()
+    admin_cookie = db_utils.create_session(admin_user)
+    normal_cookie = db_utils.create_session(normal_user)
+    monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
+
+    updateids = []
+    for _ in range(3):
+        resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
+        updateid = int(resp.headers['Location'].rpartition('/')[2])
+        updateids.append(updateid)
+
+    resp = app.get('/site-updates/', headers={'Cookie': normal_cookie})
+    assert len(resp.html.find_all(class_='text-post-new')) == 3
+
+    resp = app.get('/site-updates/', headers={'Cookie': normal_cookie})
+    assert len(resp.html.find_all(class_='text-post-new')) == 0
 
 
 @pytest.mark.usefixtures('db')
@@ -267,7 +315,7 @@ def test_edit_notifications(app, monkeypatch):
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == _FORM['title']
+    assert list(resp.html.find(id='site_updates').find(None, 'item').a.stripped_strings)[0] == _FORM['title']
 
     resp = app.post(
         '/site-updates/%d' % (siteupdate.select_last()['updateid'],),
@@ -278,4 +326,4 @@ def test_edit_notifications(app, monkeypatch):
 
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == 'New title'
+    assert list(resp.html.find(id='site_updates').find(None, 'item').a.stripped_strings)[0] == 'New title'

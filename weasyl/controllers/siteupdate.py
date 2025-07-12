@@ -17,10 +17,31 @@ _BLANK_SITE_UPDATE = {
 
 
 def site_update_list_(request):
+    userid = request.userid
     updates = siteupdate.select_list()
-    can_post = request.userid in staff.ADMINS
+    can_post = userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'siteupdates/list.html', (request, updates, can_post), title="Site Updates"))
+    if updates and userid:
+        last_read_updateid = siteupdate.get_last_read_updateid(userid)
+        max_updateid = updates[0]['updateid']
+
+        if max_updateid > last_read_updateid:
+            d.engine.execute("""
+                UPDATE siteupdateread
+                SET updateid = %(max)s
+                WHERE userid = %(user)s
+            """, max=max_updateid, user=userid)
+
+            d._page_header_info.invalidate(userid)
+    else:
+        last_read_updateid = None
+
+    return Response(define.webpage(
+        request.userid,
+        'siteupdates/list.html',
+        (request, updates, can_post, last_read_updateid),
+        title="Site Updates",
+    ))
 
 
 def site_update_get_(request):
@@ -28,6 +49,16 @@ def site_update_get_(request):
     update = siteupdate.select_view(updateid)
     myself = profile.select_myself(request.userid)
     comments = comment.select(request.userid, updateid=updateid)
+
+    if request.userid:
+        d.engine.execute("""
+            UPDATE siteupdateread
+            SET updateid = %(updateid)s
+            WHERE userid = %(userid)s
+            AND COALESCE(updateid, 0) < %(updateid)s
+        """, userid=request.userid, updateid=updateid)
+
+        d._page_header_info.invalidate(request.userid)
 
     return Response(define.webpage(request.userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
 

@@ -3,6 +3,7 @@ from itertools import chain
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
+from weasyl import siteupdate
 
 
 notification_clusters = {
@@ -235,21 +236,26 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
     return results
 
 
-def select_site_updates(userid):
+def select_site_updates(userid: int) -> list[dict]:
+    last_read_updateid = siteupdate.get_last_read_updateid(userid)
+
+    new_updates = d.engine.execute("""
+        SELECT updateid, title, unixtime
+        FROM siteupdate
+        WHERE updateid > %(update)s
+        ORDER BY unixtime DESC
+    """, update=last_read_updateid).fetchall()
+
+    if not new_updates:
+        return []
+
     return [{
         "type": 3150,
-        "id": i.welcomeid,
-        "unixtime": i.unixtime,
-        "updateid": i.updateid,
-        "title": i.title,
-    } for i in d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, su.updateid, su.title
-        FROM welcome we
-            INNER JOIN siteupdate su ON we.otherid = su.updateid
-        WHERE we.userid = %(user)s
-            AND we.type = 3150
-        ORDER BY we.unixtime DESC
-    """, user=userid)]
+        "unixtime": new_updates[0].unixtime,
+        "updateid": new_updates[0].updateid,
+        "title": new_updates[0].title,
+        "count": len(new_updates),
+    }]
 
 
 def select_notifications(userid):

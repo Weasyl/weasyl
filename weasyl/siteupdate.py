@@ -8,7 +8,6 @@ from libweasyl.legacy import UNIXTIME_NOW_SQL
 from libweasyl.models import tables as t
 from weasyl import define as d
 from weasyl import media
-from weasyl import welcome
 
 
 _SELECT_BASE = (
@@ -75,6 +74,14 @@ _EDIT = (
 ).compile()
 
 
+def get_last_read_updateid(userid: int) -> int:
+    return d.engine.scalar("""
+        SELECT COALESCE(updateid, 0)
+        FROM siteupdateread
+        WHERE userid = %(user)s
+    """, user=userid)
+
+
 @region.cache_on_arguments(should_cache_fn=bool)
 def select_view(updateid):
     update = d.engine.execute(_SELECT_VIEW, {"updateid": updateid}).one_or_none()
@@ -116,7 +123,6 @@ def create(*, userid, title, content, wesley):
     }).scalar_one()
 
     select_last.invalidate()
-    welcome.site_update_insert(updateid)
 
     return updateid
 

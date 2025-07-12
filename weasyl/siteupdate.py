@@ -74,6 +74,14 @@ _EDIT = (
 ).compile()
 
 
+def get_last_read_updateid(userid: int) -> int:
+    return d.engine.scalar("""
+        SELECT COALESCE(updateid, 0)
+        FROM siteupdateread
+        WHERE userid = %(user)s
+    """, user=userid)
+
+
 @region.cache_on_arguments(should_cache_fn=bool)
 def select_view(updateid):
     update = d.engine.execute(_SELECT_VIEW, {"updateid": updateid}).one_or_none()

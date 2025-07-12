@@ -73,8 +73,6 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $#for friend requests
               <a class="typeface-default" href="/manage/friends?feature=pending">[Manage Friends]</a>
           </h3>
-          $if i['type'] == 3150:
-            <p class="color-lighter tags-help notification-group-description"><em>Site updates may contain important policy or feature changes; please read them to clear them.</em></p>
           <div class="group" id="${group_type}">
           $ previous_types = _PREVIOUS(i['type'])
 
@@ -160,7 +158,13 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
               $# tag update
               Tags were suggested on your submission $:{item_link}.
             $elif i['type'] == 3150:
-              <a href="/site-updates/${i['updateid']}">${i['title']}</a>
+              $ subpath = i['updateid'] if i['count'] == 1 else ''
+              <a href="/site-updates/$subpath">
+                ${i['title']}
+                $if i['count'] > 1:
+                  $ others = 'others' if i['count'] > 2 else 'other'
+                  and ${i['count'] - 1} $others
+              </a>
             $elif i['type'] == 4010:
               $# shout
               $:{item_user} left a <a href="/shouts/${i['ownername']}#cid${i['commentid']}">comment</a> on your shout page.

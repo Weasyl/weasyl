@@ -242,17 +242,23 @@ def select_site_updates(userid):
         WHERE userid = %(user)s
     """, user=userid)
 
-    return [{
-        "type": 3150,
-        "unixtime": i.unixtime,
-        "updateid": i.updateid,
-        "title": i.title,
-    } for i in d.engine.execute("""
+    new_updates = d.engine.execute("""
         SELECT updateid, title, unixtime
         FROM siteupdate
         WHERE updateid > %(update)s
         ORDER BY unixtime DESC
-    """, update=last_read_updateid)]
+    """, update=last_read_updateid).fetchall()
+
+    if not new_updates:
+        return []
+
+    return [{
+        "type": 3150,
+        "unixtime": new_updates[0].unixtime,
+        "updateid": new_updates[0].updateid,
+        "title": new_updates[0].title,
+        "count": len(new_updates),
+    }]
 
 
 def select_notifications(userid):

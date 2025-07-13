@@ -21,6 +21,7 @@ from weasyl.controllers import (
     user,
     weasyl_collections,
 )
+from weasyl.controllers.decorators import csrf_defined
 from weasyl import oauth2
 
 
@@ -365,7 +366,12 @@ def setup_routes_and_views(config):
         config.add_route(name=route.name, pattern=route.pattern)
         if isinstance(route.view, dict):
             for method in route.view:
-                config.add_view(view=route.view[method], route_name=route.name, request_method=method)
+                handler = route.view[method]
+
+                if method != "GET" and (handler.__module__, handler.__qualname__) not in csrf_defined:
+                    raise RuntimeError(f"{handler} has no explicit CSRF policy")
+
+                config.add_view(view=handler, route_name=route.name, request_method=method)
         else:
             config.add_view(view=route.view, route_name=route.name, request_method="GET")
 

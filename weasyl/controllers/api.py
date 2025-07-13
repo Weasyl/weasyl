@@ -1,8 +1,9 @@
+from functools import wraps
+
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 from pyramid.response import Response
-from pyramid.view import view_config
 
 from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
@@ -47,6 +48,7 @@ _CONTENT_IDS = {
 
 
 def api_method(view_callable):
+    @wraps(view_callable)
     def wrapper(request):
         try:
             return view_callable(request)
@@ -73,6 +75,7 @@ def api_login_required(view_callable):
     Like decorators.login_required, but returning json on an error.
     """
     # TODO: If we replace the regular @login_required checks on POSTs with a tween, what do about this?
+    @wraps(view_callable)
     def inner(request):
         if request.userid == 0:
             raise HTTPUnauthorized(
@@ -83,7 +86,6 @@ def api_login_required(view_callable):
     return inner
 
 
-@view_config(route_name='useravatar', renderer='json')
 @api_method
 def api_useravatar_(request):
     form = request.web_input(username="")
@@ -98,7 +100,6 @@ def api_useravatar_(request):
     raise WeasylError('userRecordMissing')
 
 
-@view_config(route_name='whoami', renderer='json')
 @api_login_required
 def api_whoami_(request):
     return {
@@ -107,7 +108,6 @@ def api_whoami_(request):
     }
 
 
-@view_config(route_name='version', renderer='json')
 @api_method
 def api_version_(request):
     format = request.matchdict.get("format", ".json")
@@ -149,7 +149,6 @@ def tidy_submission(submission):
             "/%s/%d/%s" % (linktype, submitid, slug_for(submission['title'])))
 
 
-@view_config(route_name='api_frontpage', renderer='json')
 @api_method
 def api_frontpage_(request):
     form = request.web_input(since=None, count=0)
@@ -176,7 +175,6 @@ def api_frontpage_(request):
     return ret
 
 
-@view_config(route_name='api_submission_view', renderer='json')
 @api_method
 def api_submission_view_(request):
     form = request.web_input(anyway='', increment_views='')
@@ -185,7 +183,6 @@ def api_submission_view_(request):
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-@view_config(route_name='api_journal_view', renderer='json')
 @api_method
 def api_journal_view_(request):
     form = request.web_input(anyway='', increment_views='')
@@ -194,7 +191,6 @@ def api_journal_view_(request):
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-@view_config(route_name='api_character_view', renderer='json')
 @api_method
 def api_character_view_(request):
     form = request.web_input(anyway='', increment_views='')
@@ -203,7 +199,6 @@ def api_character_view_(request):
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-@view_config(route_name='api_user_view', renderer='json')
 @api_method
 def api_user_view_(request):
     # Helper functions for this view.
@@ -337,7 +332,6 @@ def api_user_view_(request):
     return user
 
 
-@view_config(route_name='api_user_gallery', renderer='json')
 @api_method
 def api_user_gallery_(request):
     userid = profile.resolve_by_username(request.matchdict['login'])
@@ -376,7 +370,6 @@ def api_user_gallery_(request):
     }
 
 
-@view_config(route_name='api_messages_submissions', renderer='json')
 @api_login_required
 @api_method
 def api_messages_submissions_(request):
@@ -405,7 +398,6 @@ def api_messages_submissions_(request):
     }
 
 
-@view_config(route_name='api_messages_summary', renderer='json')
 @api_login_required
 @api_method
 def api_messages_summary_(request):
@@ -422,7 +414,6 @@ def api_messages_summary_(request):
 # TODO(hyena): It's probable that token_checked won't return json from these. Consider writing an api_token_checked.
 
 
-@view_config(route_name='api_favorite', request_method='POST', renderer='json')
 @api_login_required
 @api_method
 @token_checked
@@ -435,7 +426,6 @@ def api_favorite_(request):
     }
 
 
-@view_config(route_name='api_unfavorite', request_method='POST', renderer='json')
 @api_login_required
 @api_method
 @token_checked

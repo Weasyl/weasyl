@@ -3709,17 +3709,22 @@ img + #detail-art-text {
 $journals-column-gap: 8px;
 
 .journals {
-    @extend .constrained;
     contain: inline-size layout style paint;
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: $journals-column-gap;
     row-gap: 16px;
     padding: 0 $journals-column-gap;
 }
 
-.journals > * {
+.journals > .text-post-item {
     contain: inline-size layout style paint;
+    box-sizing: border-box;
     margin: 0;
+    max-width: $constrained-width;
+    width: 100%;
+    flex-grow: 1;
 }
 
 @function em-px($ems) {
@@ -3731,17 +3736,11 @@ $journals-column-gap: 8px;
     @return $column-count * (496px + $journals-column-gap) + $journals-column-gap;
 }
 
-/// The maximum inner width (i.e. excluding padding) for a journals grid with the given number of columns to stop expanding.
-@function journals-max-width($column-count) {
-    @return $column-count * (em-px($constrained-width) + $journals-column-gap) - $journals-column-gap;
-}
-
 @for $column-count from 2 through 3 {
     // NOTE: `.journals` can also be search results, and this measures the viewport width, not the width minus the sidebar. In practice, it’s good enough.
     @media (min-width: journals-min-width($column-count)) {
-        .journals {
-            max-width: journals-max-width($column-count);
-            grid-template-columns: repeat($column-count, 1fr);
+        .journals > .text-post-item {
+            width: calc(100% / $column-count - ($column-count - 1) * $journals-column-gap);
         }
     }
 }

@@ -1,17 +1,17 @@
 $def with (query)
 $:{TITLE("Users You Follow", "Settings", "/control")}
 
-<div class="content" id="following-users">
+<div class="content content-vpad">
   $if(query):
-    <ul class="grid avatar-grid">
+    <ul class="avatar-grid">
     $for i in query:
-      <li class="grid-unit">
-        <figure class="thumbnail">
+      <li>
+        <figure>
           $ avatar = i['user_media']['avatar'][0]
           <a class="avatar" href="/~${LOGIN(i['username'])}" title="${i['username']}">
             <img src="${avatar['display_url']}" alt="avatar of ${i['username']}" />
           </a>
-          <figcaption class="caption centered big">
+          <figcaption>
             <h5><a class="username one-line" href="/~${LOGIN(i['username'])}" title="${i['username']}">${i['username']}</a></h5>
             <a class="button positive" href="/manage/following?userid=${i['userid']}">Edit Settings</a>
             <form action="/unfollowuser" method="post" data-confirm="Unfollow this user?">
@@ -22,10 +22,10 @@ $:{TITLE("Users You Follow", "Settings", "/control")}
         </figure>
 
     </ul>
-    <div>
-      <a class="button" href="/manage/following?backid=${query[0]['userid']}">Back</a>
-      <a class="button" href="/manage/following?nextid=${query[-1]['userid']}">Next</a>
-    </div>
+    <nav class="pages-layout-split pages-vpad">
+      <a class="button" rel="prev" href="/manage/following?backid=${query[0]['userid']}">Back</a>
+      <a class="button" rel="next" href="/manage/following?nextid=${query[-1]['userid']}">Next</a>
+    </nav>
   $else:
     <p>There are no followed users to display.</p>
 </div>

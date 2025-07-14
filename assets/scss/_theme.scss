@@ -1,1 +1,7 @@
 $content-color-lighter: #777;
+$link-color: #336979;
+
+@mixin serif {
+    font-family: Georgia, serif;
+    font-weight: 400;
+}

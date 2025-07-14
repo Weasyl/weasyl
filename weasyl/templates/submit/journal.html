@@ -24,6 +24,7 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
       <h3>Content</h3>
       <label for="journaldesc">Content</label>
       <textarea name="content" class="markdown input expanding" rows="9" id="journaldesc" required></textarea>
+      <p class="color-lighter tags-help"><i>For assistance with formatting, including linking to users, see <a href="/help/markdown" target="_blank">Formatting Help</a>.</i></p>
     </div>
 
     <div class="column tagging">
@@ -42,7 +43,6 @@ $:{RENDER("common/stage_title.html", ["Journal Entry", "Submit", "/submit"])}
 
     <div class="buttons clear">
       <button type="submit" class="button positive" style="float: right;">Continue</button>
-      <a class="button" href="/">Return Home</a>
     </div>
 
   </form>

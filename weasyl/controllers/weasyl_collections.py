@@ -32,8 +32,13 @@ def collection_options_post_(request):
 @login_required
 @token_checked
 def collection_offer_(request):
-    form = request.web_input(submitid="", username="")
-    form.otherid = profile.resolve(None, None, form.username)
+    recipient_name = request.POST.get("recipient")
+    # TODO: remove this fallback name for the recipient field after the replacement has been deployed for a while
+    if recipient_name is None:
+        recipient_name = request.POST.getone("username")
+
+    form = request.web_input(submitid="")
+    form.otherid = profile.resolve(None, None, recipient_name)
     form.submitid = int(form.submitid)
 
     if not form.otherid:
@@ -46,7 +51,7 @@ def collection_offer_(request):
         request.userid,
         "**Success!** Your collection offer has been sent "
         "and the recipient may now add this submission to their gallery.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/"]]))
+    ))
 
 
 @login_required
@@ -69,7 +74,7 @@ def collection_request_(request):
         request.userid,
         "**Success!** Your collection request has been sent. "
         "The submission author may approve or reject this request.",
-        [["Go Back", "/submission/%i" % (form.submitid,)], ["Return to the Home Page", "/"]]))
+    ))
 
 
 @login_required

@@ -12,12 +12,14 @@ from sqlalchemy.dialects.postgresql import psycopg2
 from webtest import TestApp as TestApp_
 
 from weasyl import config
-config._in_test = True  # noqa
+config._in_test = True
 
+# flake8: noqa: E402
 from libweasyl import cache
 from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
+from libweasyl.staff import StaffConfig
 from weasyl import (
     commishinfo,
     define,
@@ -25,6 +27,7 @@ from weasyl import (
     macro,
     media,
     middleware,
+    turnstile,
 )
 from weasyl.controllers.routes import setup_routes_and_views
 from weasyl.wsgi import make_wsgi_app
@@ -40,7 +43,7 @@ define.metric = lambda *a, **kw: None
 configure_libweasyl(
     dbsession=define.sessionmaker,
     base_file_path=macro.MACRO_STORAGE_ROOT,
-    staff_config_dict={},
+    staff_config=StaffConfig(),
     media_link_formatter_callback=media.format_media_link,
 )
 
@@ -167,6 +170,11 @@ def deterministic_marketplace_tests(monkeypatch):
         return json.loads(rates)
 
     monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
+
+
+@pytest.fixture(autouse=True)
+def disable_turnstile(monkeypatch):
+    monkeypatch.setattr(turnstile, "SITE_KEY", None)
 
 
 @pytest.fixture(scope='session')

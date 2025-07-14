@@ -1,14 +1,14 @@
 """Index submissions on new popularity score
 
 Revision ID: 7f0c979aeaeb
-Revises: 63baa2713e72
+Revises: bb2c42b6df18
 Create Date: 2024-08-15 02:45:29.390391
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '7f0c979aeaeb'
-down_revision = '63baa2713e72'
+down_revision = 'bb2c42b6df18'
 
 from alembic import op
 

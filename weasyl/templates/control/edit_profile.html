@@ -39,7 +39,7 @@ $code:
           <label class="form-date-year">
             <span class="sublabel">Year</span>
             $ current_year = arrow.utcnow().year
-            <input class="input" name="birthdate-year" type="number" min="${current_year - 100}" max="${current_year - 12}" value="${'' if birthdate is None else birthdate.year}" autocomplete="bday-year">
+            <input class="input" name="birthdate-year" type="number" min="${current_year - 125}" max="${current_year - 12}" value="${'' if birthdate is None else birthdate.year}" autocomplete="bday-year">
           </label>
         </div>
       </fieldset>
@@ -140,9 +140,8 @@ $code:
       </datalist>
     </div>
 
-    <div class="buttons">
+    <div class="buttons clear">
       <button type="submit" class="button positive" style="float: right;">Save</button>
-      <a class="button" href="/control">Return to Settings</a>
     </div>
 
   </form>

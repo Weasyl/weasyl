@@ -19,6 +19,12 @@ def slug_for(title):
     return "-".join(m.group(0) for m in re.finditer(r"[a-z0-9]+", title.lower()))
 
 
+def summarize(s, max_length=200):
+    if len(s) > max_length:
+        return s[:max_length - 1].rstrip() + '\N{HORIZONTAL ELLIPSIS}'
+    return s
+
+
 AUTOLINK_URL = (
     r"(?P<url>\b(?:https?://|www\d{,3}\.|[a-z0-9.-]+\.[a-z]{2,4}/)[^\s()"
     r"<>\[\]\x02]+(?![^\s`!()\[\]{};:'\".,<>?\x02\xab\xbb\u201c\u201d\u2018"
@@ -324,6 +330,9 @@ def _normalize_whitespace(text):
 def markdown_excerpt(markdown_text, length=300):
     fragment = _markdown_fragment(markdown_text)
     text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
+
+    # TODO: more generic footer removal
+    text = text.removesuffix("Posted using PostyBirb").rstrip()
 
     if len(text) <= length:
         return text

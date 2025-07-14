@@ -49,7 +49,9 @@ class TestRemoveComment:
     def test_commenter_can_not_remove_with_replies(self):
         # reply to the existing comment
         self.create_function(self.another_user, self.target, parentid=self.commentid)
-        pytest.raises(WeasylError, self.remove_function, self.commenter, **self.args)
+        with pytest.raises(WeasylError) as err:
+            self.remove_function(self.commenter, **self.args)
+        assert err.value.value == "InsufficientPermissions"
 
     def test_owner_can_remove(self):
         assert self.target == self.remove_function(self.owner, **self.args)
@@ -58,8 +60,9 @@ class TestRemoveComment:
         assert self.target == self.remove_function(self.moderator, **self.args)
 
     def test_other_user_can_not_remove(self):
-        pytest.raises(
-            WeasylError, self.remove_function, self.another_user, **self.args)
+        with pytest.raises(WeasylError) as err:
+            self.remove_function(self.another_user, **self.args)
+        assert err.value.value == "InsufficientPermissions"
 
 
 @pytest.mark.usefixtures("db")

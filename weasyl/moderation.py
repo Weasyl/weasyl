@@ -120,7 +120,7 @@ BAN_TEMPLATES = {
         "days": -1,
     },
     "10-cp-14": {
-        "name": "Minors In Mature Situations (14 Day Suspension)",
+        "name": "Minors In Mature/Sexual Situations (14 Day Suspension)",
         "reason": (
             "Your account has been suspended for 14 days for repeatedly uploading "
             "content in violation of Section I.C.2 of the [Community "
@@ -131,7 +131,7 @@ BAN_TEMPLATES = {
         "days": 14,
     },
     "11-cp": {
-        "name": "Minors In Mature Situations (Ban)",
+        "name": "Minors In Mature/Sexual Situations (Ban)",
         "reason": (
             "Your account has been banned from Weasyl for repeatedly uploading content "
             "in violation of Section I.C.2 of the [Community "
@@ -306,7 +306,7 @@ def get_suspension_message(userid):
     ) % (suspension.reason, release.date(), MACRO_SUPPORT_ADDRESS)
 
 
-def finduser(targetid, username, email, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,
+def finduser(targetid, username: str, email: str, dateafter, datebefore, excludesuspended, excludebanned, excludeactive, ipaddr,
              row_offset):
     targetid = d.get_int(targetid)
 
@@ -364,12 +364,9 @@ def finduser(targetid, username, email, dateafter, datebefore, excludesuspended,
     if targetid:
         q = q.where(lo.c.userid == targetid)
     elif username:
-        q = q.where(lo.c.login_name.op('~')(username))
+        q = q.where(lo.c.login_name.ilike(f"%{username}%"))
     elif email:
-        q = q.where(sa.or_(
-            lo.c.email.op('~')(email),
-            lo.c.email.op('ilike')('%%%s%%' % email),
-        ))
+        q = q.where(lo.c.email.ilike(f"%{email}%"))
 
     # Filter for banned and/or suspended accounts
     if excludeactive == "on":
@@ -592,7 +589,7 @@ def manageuser(userid, form):
         "profile_text": query[3],
         "catchphrase": query[4],
         "user_media": media.get_user_media(query[0]),
-        "staff_notes": shout.count(query[0], staffnotes=True),
+        "staff_notes": shout.count_staff_notes(query[0]),
     }
 
 
@@ -707,7 +704,14 @@ def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals
     return 'Affected items (%s): \n\n%s' % (action_string, '\n'.join(copyable))
 
 
-def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
+def bulk_edit(
+    userid: int,
+    *,
+    action: str,
+    submissions: list[int],
+    characters: list[int],
+    journals: list[int],
+) -> str:
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
 
@@ -764,7 +768,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         action_string = 'marked as "critique requested"'
         provide_link = True
 
-    else:
+    else:  # pragma: no cover
         raise WeasylError('Unexpected')
 
     db = d.connect()

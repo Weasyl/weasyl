@@ -35,13 +35,11 @@ def test_get_global_searchtag_restrictions_fails_for_non_directors(monkeypatch):
     developer_user_id = db_utils.create_user()
     mod_user_id = db_utils.create_user()
     admin_user_id = db_utils.create_user()
-    technical_user_id = db_utils.create_user()
 
     # Monkeypatch the staff global variables
     monkeypatch.setattr(staff, 'DEVELOPERS', frozenset([developer_user_id]))
     monkeypatch.setattr(staff, 'MODS', frozenset([mod_user_id]))
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user_id]))
-    monkeypatch.setattr(staff, 'TECHNICAL', frozenset([technical_user_id]))
 
     with pytest.raises(WeasylError) as err:
         searchtag.get_global_tag_restrictions(normal_user_id)
@@ -57,8 +55,4 @@ def test_get_global_searchtag_restrictions_fails_for_non_directors(monkeypatch):
 
     with pytest.raises(WeasylError) as err:
         searchtag.get_global_tag_restrictions(admin_user_id)
-    assert err.value.value == 'InsufficientPermissions'
-
-    with pytest.raises(WeasylError) as err:
-        searchtag.get_global_tag_restrictions(technical_user_id)
     assert err.value.value == 'InsufficientPermissions'

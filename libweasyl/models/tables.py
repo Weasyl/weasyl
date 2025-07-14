@@ -376,6 +376,7 @@ message = Table(
     Column('noteid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('otherid', Integer(), nullable=False),
+    # TODO: delete unused columns after deployment of change that removes them from queries
     Column('user_folder', Integer(), nullable=False, server_default='0'),
     Column('other_folder', Integer(), nullable=False, server_default='0'),
     Column('title', String(length=100), nullable=False),

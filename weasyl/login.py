@@ -1,9 +1,7 @@
 import os
-from io import open
 
 import bcrypt
 from publicsuffixlist import PublicSuffixList
-from sqlalchemy.sql.expression import select
 import sqlalchemy
 
 from libweasyl import security
@@ -421,21 +419,6 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
 
     if not cosmetic:
         d._get_userids.invalidate(old_sysname)
-
-
-def get_account_verification_token(email=None, username=None):
-    email = email and emailer.normalize_address(email)
-    username = username and d.get_sysname(username)
-
-    logincreate = d.meta.tables['logincreate']
-    statement = select([logincreate.c.token])
-
-    if email:
-        statement = statement.where(logincreate.c.email.ilike(email))
-    else:
-        statement = statement.where(logincreate.c.login_name == username)
-
-    return d.engine.scalar(statement)
 
 
 with open(os.path.join(m.MACRO_SYS_CONFIG_PATH, "disposable-domains.txt"), encoding='ascii') as f:

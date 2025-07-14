@@ -163,7 +163,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
 
 def select_user_list(userid, rating, limit, backid=None, nextid=None):
     statement = [
-        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime"
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime, jo.content"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
         " WHERE NOT jo.hidden"]
@@ -195,6 +195,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
         "username": i[3],
         "rating": i[4],
         "unixtime": i[5],
+        "content": i.content,
     } for i in d.execute("".join(statement))]
     media.populate_with_user_media(query)
 
@@ -202,7 +203,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
 
 
 def select_list(userid, rating, otherid):
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
+    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.rating, jo.content FROM journal jo WHERE"]
 
     if userid:
         # filter own content in SFW mode
@@ -225,6 +226,7 @@ def select_list(userid, rating, otherid):
         "journalid": i.journalid,
         "title": i.title,
         "created_at": arrow.get(i.unixtime - UNIXTIME_OFFSET),
+        "rating": i.rating,
         "content": i.content,
     } for i in d.engine.execute("".join(statement)).fetchall()]
 

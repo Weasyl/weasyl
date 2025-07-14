@@ -1,8 +1,10 @@
 # encoding: utf-8
+from lxml import html
 from lxml.etree import LIBXML_VERSION
 import pytest
 
-from libweasyl.text import markdown, markdown_excerpt, markdown_link
+from libweasyl.defang import defang
+from libweasyl.text import markdown, markdown_excerpt, markdown_link, strip_outer_tag
 
 
 libxml_xfail = pytest.mark.xfail(LIBXML_VERSION < (2, 9), reason='libxml2 too old to preserve whitespace')
@@ -133,6 +135,7 @@ def test_markdown_strikethrough():
     ('<a href="http://example.com/">external</a>', '<a href="http://example.com/" rel="nofollow ugc">external</a>'),
     ('<a href="http://example.com/" rel="noreferrer">external</a>', '<a href="http://example.com/" rel="nofollow ugc">external</a>'),
     ("[external](//example.com/)", '<a href="//example.com/" rel="nofollow ugc">external</a>'),
+    ('<a href=" //example.com/">external</a>', '<a href="//example.com/" rel="nofollow ugc">external</a>'),
 ])
 def test_markdown_external_link_noreferrer(target, expected):
     assert markdown(target) == "<p>%s</p>\n" % (expected,)
@@ -154,6 +157,24 @@ def test_tag_stripping():
     assert markdown("<button>text</button>") == "<p>text</p>\n"
     assert markdown("<button><button>text</button></button>") == "<p>text</p>\n"
     assert markdown("<!--[if IE]><script>alert(1)</script><![endif]-->") == "\n"
+
+
+@pytest.mark.parametrize(('target', 'expected'), [
+    ('<a href=" javascript:alert(1)">no</a>', "<a>no</a>"),
+    ('<a href="java&#x09;script:alert(1)">no</a>', "<a>no</a>"),
+])
+def test_unsafe_link(target, expected):
+    assert markdown(target) == "<p>%s</p>\n" % (expected,)
+
+
+@pytest.mark.parametrize(('target', 'expected'), [
+    ('<a href="java\nscript:alert(1)">no</a>', "<a>no</a>"),
+])
+def test_unsafe_link_direct(target, expected):
+    fragment = html.fragment_fromstring(target, create_parent=True)
+    defang(fragment)
+    start, stripped, end = strip_outer_tag(html.tostring(fragment, encoding="unicode"))
+    assert stripped == expected
 
 
 markdown_excerpt_tests = [

@@ -9,7 +9,7 @@ $code:
 $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 <div id="home-art" class="stage">
 
-  <ul class="home-latest thumbnail-grid medium-footprint">
+  <ul is="thumbnail-grid" class="home-latest thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(everything)}">
     $# Items that are front and center on the main page, quite close to the top; skip lazy loading entirely.
     $for i in everything:
       $:{_GRID_ITEM(i, lazy_load=False)}
@@ -27,7 +27,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
   <div id="home-panes">
 
     <div id="home-recently-popular" class="pane current">
-      <ul class="thumbnail-grid small-footprint">
+      <ul is="thumbnail-grid" class="thumbnail-grid small-footprint" data-widths="${CARD_WIDTHS(popular)}">
         $for i in popular:
           $:{_GRID_ITEM(i)}
         <li class="more"><a class="more" href="/popular"><i>More</i> <span>Recently Popular</span></a></li>
@@ -35,7 +35,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     </div>
 
     <div id="home-critique" class="pane">
-      <ul class="thumbnail-grid small-footprint">
+      <ul is="thumbnail-grid" class="thumbnail-grid small-footprint" data-widths="${CARD_WIDTHS(critique)}">
         $for i in critique:
           $:{_GRID_ITEM(i)}
         <li class="more"><a class="more" href="/search?find=critique"><i>More</i> <span>Critique Requests</span></a></li>
@@ -43,7 +43,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     </div>
 
     <div id="home-literature" class="pane">
-      <ul class="thumbnail-grid small-footprint">
+      <ul is="thumbnail-grid" class="thumbnail-grid small-footprint" data-widths="${CARD_WIDTHS(literary)}">
         $for i in literary:
           $:{_GRID_ITEM(i)}
         <li class="more"><a class="more" href="/search?find=submit&amp;cat=2000"><i>More</i> <span>Writing</span></a></li>
@@ -51,7 +51,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     </div>
 
     <div id="home-multimedia" class="pane">
-      <ul class="thumbnail-grid small-footprint">
+      <ul is="thumbnail-grid" class="thumbnail-grid small-footprint" data-widths="${CARD_WIDTHS(media)}">
         $for i in media:
           $:{_GRID_ITEM(i)}
         <li class="more"><a class="more" href="/search?find=submit&amp;cat=3000"><i>More</i> <span>Multimedia</span></a></li>
@@ -59,7 +59,7 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     </div>
 
     <div id="home-characters" class="pane">
-      <ul class="thumbnail-grid small-footprint">
+      <ul is="thumbnail-grid" class="thumbnail-grid small-footprint" data-widths="${CARD_WIDTHS(characters)}">
         $for i in characters:
           $:{_GRID_ITEM(i)}
         <li class="more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
@@ -96,5 +96,5 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 </div>
 
 $if update:
-  $ _SITE_UPDATE = COMPILE("etc/site_update.html")
+  $ _SITE_UPDATE = COMPILE("siteupdates/detail.html")
   $:{_SITE_UPDATE(myself=None, update=update, comments=None)}

@@ -17,6 +17,10 @@ def expect_id(s: str) -> int:
     raise WeasylError("Unexpected")
 
 
+def expect_ids(values: Iterable[str]) -> list[int]:
+    return list(map(expect_id, values))
+
+
 def only(iterable: Iterable[_T]) -> _T:
     try:
         x = next(iterable)

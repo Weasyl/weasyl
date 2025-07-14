@@ -1,4 +1,7 @@
 /* global marked */
+import autosize_ from 'autosize';
+import initEmbed from './embed.js';
+import {tryGetLocal, trySetLocal} from './util/storage.js';
 
 (function () {
     'use strict';
@@ -19,112 +22,25 @@
         return false;
     }
 
-    // thumbnails: config
-    var thumbnailContainers = document.getElementsByClassName('thumbnail-grid'),
-        thumbnailOptions = {
-            minWidth: 125,  // minimum width per cell (should match min thumbnail width)
-            rowBasis: 250,  // row height basis (should match max thumbnail height)
-            itemGap: 8,     // common item padding
-            breakpoint: '(max-width: 29.9em)'
-        };
+    var empty = containerNode => {
+        var child;
 
-    // thumbnails: thumbnail data-width attribute helper
-    function getWidthAttr(item) {
-        return Math.max(parseInt(item.getAttribute('data-width')), thumbnailOptions.minWidth) || thumbnailOptions.rowBasis;
-    }
+        while (child = containerNode.firstChild) {
+            containerNode.removeChild(child);
+        }
+    };
 
-    // thumbnails: calculate layout
-    function calculateThumbnailLayout() {
-        forEach(thumbnailContainers, function (container) {
-            if (container.offsetWidth === 0 || container.offsetHeight === 0) {
-                return;
-            }
-            var items = Array.prototype.slice.call(container.getElementsByClassName('thumb-bounds'), 0),
-                containerWidth = container.clientWidth,
-                startHeight = Math.min(Math.floor(containerWidth / 1.65), thumbnailOptions.rowBasis),
-                thumbRatio = startHeight / thumbnailOptions.rowBasis,
-                maxRows = -1, rowCount = -1;
+    var hasModifierKeys = e =>
+        e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
 
-            if (container.classList.contains('tiny-footprint')) {
-                maxRows = 1;
-            } else if (container.classList.contains('small-footprint')) {
-                if (window.matchMedia(thumbnailOptions.breakpoint).matches) {
-                    maxRows = 2;
-                } else {
-                    maxRows = 1;
-                }
-            } else if (container.classList.contains('medium-footprint')) {
-                if (window.matchMedia(thumbnailOptions.breakpoint).matches) {
-                    maxRows = 4;
-                } else {
-                    maxRows = 2;
-                }
-            } else if (container.classList.contains('large-footprint')) {
-                if (window.matchMedia(thumbnailOptions.breakpoint).matches) {
-                    maxRows = 6;
-                } else {
-                    maxRows = 3;
-                }
-            }
-
-            while (items.length > 0) {
-                rowCount++;
-                if (rowCount === maxRows) {
-                    break;
-                }
-
-                var row = [],
-                    rowWidth = thumbnailOptions.itemGap,
-                    difference = 1;
-
-                // construct a row
-                while (rowWidth < containerWidth) {
-                    var item = items.shift();
-                    if (!item) {
-                        break;
-                    }
-                    rowWidth += getWidthAttr(item) * thumbRatio + thumbnailOptions.itemGap;
-                    row.push(item);
-                }
-
-                // fit row
-                if (rowWidth > containerWidth) {
-                    var totalGap = (row.length + 1) * thumbnailOptions.itemGap;
-                    difference = (containerWidth - totalGap) / (rowWidth - totalGap);
-                }
-                forEach(row, function (item) {
-                    var width = getWidthAttr(item) * thumbRatio * difference;
-                    var height = startHeight * difference;
-
-                    item.style.width = width + 'px';
-                    item.style.height = height + 'px';
-
-                    // reset on resize
-                    item.parentNode.parentNode.style.display = '';
-                });
-            }
-
-            // if any items did not get placed, hide them
-            forEach(items, function (item) {
-                item.parentNode.parentNode.style.display = 'none';
-            });
-        });
-    }
-
+    var autosize =
+        CSS.supports('field-sizing', 'content')
+            ? Object.assign(() => {}, {destroy: () => {}})
+            : autosize_;
 
     $(document).ready(function () {
-        // thumbnails
-        // give enhanced layout to modern browsers
-        if ('classList' in document.createElement('_') && typeof window.matchMedia === 'function') {
-            if (thumbnailContainers.length > 0) {
-                calculateThumbnailLayout();
-                window.addEventListener('resize', calculateThumbnailLayout);
-            }
-            document.documentElement.classList.add('enhanced-thumbnails');
-        }
-
-        // call appropriate functions and plugins
-        $('textarea.expanding').autosize();
+        // autosizing textareas
+        autosize($('textarea.expanding'));
 
         // mobile nav
         $('#nav-toggle').on('click', function (ev) {
@@ -161,14 +77,14 @@
         }
 
         function closeLoginIfEscape(e) {
-            if (e.key === 'Escape' && !e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
+            if (e.key === 'Escape' && !hasModifierKeys(e)) {
                 e.preventDefault();
                 closeLogin();
             }
         }
 
         $('#hg-login').on('click', function (ev) {
-            if (ev.metaKey || ev.altKey || ev.ctrlKey || ev.shiftKey) {
+            if (hasModifierKeys(ev)) {
                 return;
             }
 
@@ -188,12 +104,6 @@
         });
 
         // submission notifs buttons
-        $('.selection-toggle').on('click', function (ev) {
-            ev.preventDefault();
-            $(this).closest('form').find('input[type=checkbox]').each(function () {
-                this.checked = !this.checked;
-            }).change();
-        });
         $('.do-check').on('click', function (ev) {
             ev.preventDefault();
             $(this).closest('form').find('input[type=checkbox]').prop('checked', true).change();
@@ -213,7 +123,6 @@
         // Commishinfo prices "autopopulate" dropdown
         $('#commish-edit-select').on('change', function () {
             var selectedID = $(this).val();
-            console.log(selectedID);
             forEach(document.getElementsByClassName('select-priceid'), function (field) {
                 var myID = field.getAttribute('data-priceid');
                 var visible = selectedID == myID;
@@ -321,14 +230,6 @@
         setTimeout(reportInputChanged);
     });
 
-    // all below plugins are under MIT licenses
-
-    // expanding textareas
-    // Jack Moore - jacklmoore.com
-    /* jshint ignore:start */
-    (function(e){var t="hidden",n="border-box",r='<textarea tabindex="-1" style="position:absolute; top:-9999px; left:-9999px; right:auto; bottom:auto; -moz-box-sizing:content-box; -webkit-box-sizing:content-box; box-sizing:content-box; word-wrap:break-word; height:0 !important; min-height:0 !important; overflow:hidden">',i=["fontFamily","fontSize","fontWeight","fontStyle","letterSpacing","textTransform","wordSpacing","textIndent"],s="oninput",o="onpropertychange",u=e(r)[0];u.setAttribute(s,"return"),e.isFunction(u[s])||o in u?e.fn.autosize=function(u){return this.each(function(){function g(){var e,n;p||(p=!0,l.value=a.value,l.style.overflowY=a.style.overflowY,l.style.width=f.css("width"),l.scrollTop=0,l.scrollTop=9e4,e=l.scrollTop,n=t,e>h?(e=h,n="scroll"):e<c&&(e=c),a.style.overflowY=n,a.style.height=e+m+"px",setTimeout(function(){p=!1},1))}var a=this,f=e(a),l,c=f.height(),h=parseInt(f.css("maxHeight"),10),p,d=i.length,v,m=0;if(f.css("box-sizing")===n||f.css("-moz-box-sizing")===n||f.css("-webkit-box-sizing")===n)m=f.outerHeight()-f.height();if(f.data("mirror")||f.data("ismirror"))return;l=e(r).data("ismirror",!0).addClass(u||"autosizejs")[0],v=f.css("resize")==="none"?"none":"horizontal",f.data("mirror",e(l)).css({overflow:t,overflowY:t,wordWrap:"break-word",resize:v}),h=h&&h>0?h:9e4;while(d--)l.style[i[d]]=f.css(i[d]);e("body").append(l),o in a?s in a?a[s]=a.onkeyup=g:a[o]=g:a[s]=g,e(window).resize(g),f.on("autosize",g),g()})}:e.fn.autosize=function(){return this}})(jQuery);
-    /* jshint ignore:end */
-
     $(document).on('submit', 'form[data-confirm]', function (e) {
         if (confirm(this.getAttribute('data-confirm'))) {
             var field = document.createElement('input');
@@ -399,7 +300,7 @@
             }
 
             if (!isBody && allowedTags.indexOf(node.nodeName.toLowerCase()) === -1) {
-                while (node.childNodes.length) {
+                while (node.hasChildNodes()) {
                     node.parentNode.insertBefore(node.firstChild, node);
                 }
 
@@ -636,19 +537,15 @@
         weasylMarkdown(fragment);
         defang(fragment, true);
 
-        while (fragment.childNodes.length) {
+        while (fragment.hasChildNodes()) {
             container.appendChild(fragment.firstChild);
         }
     }
 
     function updateMarkdownPreview(input) {
         if (markedLoadState === 2) {
-            var preview = input.nextSibling.nextSibling;
-
-            while (preview.childNodes.length) {
-                preview.removeChild(preview.firstChild);
-            }
-
+            var preview = input.nextSibling;
+            empty(preview);
             renderMarkdown(input.value, preview);
         } else {
             loadMarked();
@@ -665,40 +562,16 @@
 
         input.parentNode.insertBefore(preview, input.nextSibling);
 
-        input.addEventListener('input', updateMarkdownPreviewListener, false);
+        input.addEventListener('input', updateMarkdownPreviewListener);
 
         if (input.value === '') {
-            input.addEventListener('focus', loadMarked, false);
+            input.addEventListener('focus', loadMarked);
         } else {
             updateMarkdownPreview(input);
         }
     }
 
-    function addMarkdownWarning(input) {
-        var helpLink = document.createElement('a');
-        helpLink.href = '/help/markdown';
-        helpLink.target = '_blank';
-        helpLink.appendChild(document.createTextNode('Read about Markdown!'));
-
-        var warning = document.createElement('div');
-        warning.className = 'bbcode-warning';
-        warning.appendChild(document.createTextNode('Trying to use BBCode? '));
-        warning.appendChild(helpLink);
-
-        function showWarning() {
-            warning.style.display = ATTEMPTED_BBCODE.test(input.value) ? 'block' : 'none';
-        }
-
-        input.addEventListener('input', showWarning, false);
-
-        showWarning();
-        input.parentNode.insertBefore(warning, input.nextSibling);
-    }
-
-    forEach(document.getElementsByClassName('markdown'), function (input) {
-        addMarkdownPreview(input);
-        addMarkdownWarning(input);
-    });
+    forEach(document.getElementsByClassName('markdown'), addMarkdownPreview);
 
     function getCommentInfo(commentActionLink) {
         var comment = commentActionLink;
@@ -843,8 +716,7 @@
             var targetId = parseInt(targetIdField.value, 10);
             var contentField = newFormContent.getElementsByClassName('form-content')[0];
 
-            // Remove the original form’s non-functional Markdown preview and warning elements
-            contentField.parentNode.removeChild(contentField.nextSibling);
+            // Remove the original form’s non-functional Markdown preview element
             contentField.parentNode.removeChild(contentField.nextSibling);
             contentField.value = '';
 
@@ -863,22 +735,23 @@
                 e.stopPropagation();
 
                 target.textContent = 'Reply';
-                target.removeEventListener('click', cancelReply, false);
+                target.removeEventListener('click', cancelReply);
 
-                if (children.childNodes.length === 1) {
+                children.removeChild(newListItem);
+                if (!children.hasChildNodes()) {
                     children.parentNode.removeChild(children);
-                } else {
-                    children.removeChild(newListItem);
                 }
+
+                autosize.destroy(contentField);
 
                 target.focus();
             };
 
             var handleShortcuts = function handleShortcuts(e) {
-                if (e.keyCode === 27 && !contentField.value) {
-                    contentField.removeEventListener('keydown', handleShortcuts, false);
+                if (e.key === 'Escape' && !contentField.value) {
+                    contentField.removeEventListener('keydown', handleShortcuts);
                     cancelReply(e);
-                } else if (e.keyCode === 13 && e.ctrlKey) {
+                } else if (e.key === 'Enter' && e.ctrlKey) {
                     e.preventDefault();
                     submitComment();
                 }
@@ -993,6 +866,8 @@
                                     newComment.classList.remove('submitting');
                                     newForm.parentNode.removeChild(newForm);
 
+                                    autosize.destroy(contentField);
+
                                     if (commentInfo.removalPrivileges !== 'all') {
                                         var parentComment = newComment.parentNode.parentNode.previousElementSibling;
                                         var parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
@@ -1035,8 +910,8 @@
                     );
 
                     target.textContent = 'Reply';
-                    target.removeEventListener('click', cancelReply, false);
-                    contentField.removeEventListener('keydown', handleShortcuts, false);
+                    target.removeEventListener('click', cancelReply);
+                    contentField.removeEventListener('keydown', handleShortcuts);
 
                     newForm.style.display = 'none';
                     newForm.parentNode.insertBefore(newComment, newForm);
@@ -1049,44 +924,45 @@
             };
 
             target.textContent = 'Cancel (esc)';
-            target.addEventListener('click', cancelReply, false);
-            contentField.addEventListener('keydown', handleShortcuts, false);
+            target.addEventListener('click', cancelReply);
+            contentField.addEventListener('keydown', handleShortcuts);
 
             newForm.addEventListener('submit', function (e) {
                 submitComment();
                 e.preventDefault();
-            }, false);
+            });
 
             e.preventDefault();
 
             addMarkdownPreview(contentField);
-            addMarkdownWarning(contentField);
 
-            $(contentField).autosize();
+            autosize(contentField);
             contentField.focus();
         }
-    }, false);
+    });
 
-    function addLocationChangerForKeyCodeAndHref(keyCode, href) {
+    var canTriggerShortcut = e =>
+        ['INPUT', 'SELECT', 'TEXTAREA'].indexOf(e.target.nodeName) === -1;
+
+    function addShortcut(key, action) {
         document.addEventListener('keydown', function (e) {
-            if (e.ctrlKey || e.shiftKey || e.altKey || e.metaKey ||
-                    e.target.nodeName === 'INPUT' || e.target.nodeName === 'TEXTAREA') {
-                return;
-            }
-
-            if (e.keyCode === keyCode) {
-                document.location = href;
+            if (e.key === key && !hasModifierKeys(e) && canTriggerShortcut(e)) {
+                e.preventDefault();
+                action();
             }
         });
     }
 
+    var clickShortcut = element => element.click.bind(element);
+    var focusShortcut = element => element.focus.bind(element);
+
     (function () {
         var folderNavPrev, folderNavNext;
         if ((folderNavPrev = document.getElementById('folder-nav-prev'))) {
-            addLocationChangerForKeyCodeAndHref(37, folderNavPrev.href);
+            addShortcut('ArrowLeft', clickShortcut(folderNavPrev));
         }
         if ((folderNavNext = document.getElementById('folder-nav-next'))) {
-            addLocationChangerForKeyCodeAndHref(39, folderNavNext.href);
+            addShortcut('ArrowRight', clickShortcut(folderNavNext));
         }
 
         if (!document.getElementsByClassName) {
@@ -1103,30 +979,21 @@
 
         // ctrl+enter comment submit
         rootCommentBox.addEventListener('keydown', function (e) {
-            if (e.keyCode === 13 && e.ctrlKey) {
+            if (e.key === 'Enter' && e.ctrlKey) {
                 e.preventDefault();
                 rootCommentForm.submit();
             }
-        }, false);
-
-        // 'c' to focus comment box
-        document.addEventListener('keydown', function (e) {
-            if (e.keyCode === 67 && e.target === document.body &&
-                !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
-                e.preventDefault();
-                rootCommentBox.focus();
-            }
         });
 
+        // 'c' to focus comment box
+        addShortcut('c', focusShortcut(rootCommentBox));
+
         // 'f' to favorite
-        var faveForm = document.getElementById('submission-favorite-form');
-        if (faveForm) {
-            document.addEventListener('keydown', function (e) {
-                if (e.keyCode === 70 && e.target === document.body &&
-                    !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
-                    e.preventDefault();
-                    faveForm.getElementsByTagName('button')[0].click();
-                }
+        var faveButton = document.querySelector('#submission-favorite-form button');
+        if (faveButton) {
+            addShortcut('f', () => {
+                faveButton.focus();
+                faveButton.click();
             });
         }
 
@@ -1195,59 +1062,47 @@
         var favoriteAction = favoriteForm.querySelector('input[name="action"]');
 
         favoriteForm.addEventListener('submit', function (e) {
-            if (favoriteButton.classList.contains('pending')) {
+            if (
+                favoriteButton.classList.contains('pending')
+                || (favoriteAction.value === 'unfavorite' && !confirm('Are you sure you wish to remove this submission from your favorites?'))
+            ) {
                 e.preventDefault();
                 return;
             }
 
-            var rq = new XMLHttpRequest();
-
-            rq.open('POST', favoriteActionBase + favoriteAction.value, true);
-            rq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-            rq.onreadystatechange = function () {
-                if (rq.readyState !== 4) {
-                    return;
-                }
-
-                if (rq.status === 200) {
-                    var success;
-
-                    try {
-                        success = JSON.parse(rq.responseText).success;
-                    } catch (e) {}
-
-                    if (success) {
-                        favoriteButton.classList.remove('pending');
-
-                        var newState = favoriteButton.classList.toggle('active');
-                        favoriteButton.replaceChild(document.createTextNode(newState ? ' Favorited' : ' Favorite'), favoriteButton.lastChild);
-                        favoriteAction.value = newState ? 'unfavorite' : 'favorite';
-
-                        return;
-                    }
-                }
-
-                // If there was any error, resubmit the form so the user can see it in full.
-                favoriteForm.submit();
-            };
-
-            rq.send(null);
-
             favoriteButton.classList.add('pending');
 
+            fetch(favoriteActionBase + favoriteAction.value, { method: 'POST' })
+                .then(response =>
+                    response.ok
+                        ? response.json()
+                        : Promise.reject()
+                )
+                .then(data => {
+                    if (!data.success) {
+                        return Promise.reject();
+                    }
+
+                    favoriteButton.classList.remove('pending');
+
+                    var newState = favoriteButton.classList.toggle('active');
+                    favoriteButton.replaceChild(document.createTextNode(newState ? ' Favorited' : ' Favorite'), favoriteButton.lastChild);
+                    favoriteAction.value = newState ? 'unfavorite' : 'favorite';
+                })
+                // If there was any error, resubmit the form so the user can see it in full.
+                .catch(error => {
+                    favoriteForm.submit();
+                });
+
             e.preventDefault();
-        }, false);
+        });
     })();
+
+    // Embeds
+    initEmbed();
 
     // Home tabs
     (function () {
-        function logStorageError(error) {
-            try {
-                console.warn(error);
-            } catch (consoleError) {}
-        }
-
         var homeTabs = document.getElementById('home-tabs');
         var homePanes = document.getElementById('home-panes');
 
@@ -1258,7 +1113,7 @@
         var currentTab = homeTabs.getElementsByClassName('current')[0];
         var currentPane = homePanes.getElementsByClassName('current')[0];
 
-        $(homeTabs).on('click touchstart', '.home-pane-link', function (e) {
+        $(homeTabs).on('click', '.home-pane-link', function (e) {
             e.preventDefault();
 
             var paneId = this.getAttribute('href').substring(1);
@@ -1278,43 +1133,15 @@
             this.classList.add('current');
             pane.classList.add('current');
 
-            calculateThumbnailLayout();
-
-            try {
-                localStorage['home-tab'] = paneId;
-            } catch (error) {
-                logStorageError(error);
-            }
+            trySetLocal('home-tab', paneId);
         });
 
-        var savedTabId = null;
-
-        try {
-            savedTabId = localStorage['home-tab'];
-        } catch (error) {
-            logStorageError(error);
-        }
+        var savedTabId = tryGetLocal('home-tab');
 
         var savedTab = savedTabId && homeTabs.querySelector('.home-pane-link[href="#' + savedTabId + '"]');
 
         if (savedTab) {
             savedTab.click();
         }
-    })();
-
-    // Confirm removing friends
-    (function () {
-        var hasUnfriend = $('input[name="action"][value="unfriend"]')[0];
-        if (!hasUnfriend) {
-            return;
-        }
-
-        $('form[name="frienduser"]').on('submit', function (e) {
-            var shouldUnfriend = confirm('Are you sure you wish to remove this friend?');
-
-            if (!shouldUnfriend) {
-                e.preventDefault();
-            }
-        });
     })();
 })();

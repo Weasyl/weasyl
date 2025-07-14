@@ -4,9 +4,8 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 
 from libweasyl import ratings
-from libweasyl import staff
 
-from weasyl import comment, define, index, macro, search, profile, siteupdate, submission
+from weasyl import define, index, macro, search, profile, submission
 
 
 # General browsing functions
@@ -20,7 +19,7 @@ def index_(request):
         cache_control = "private, max-age=60"
 
     return Response(
-        define.common_page_end(request.userid, page),
+        define.common_page_end(request.userid, page, options=("index",)),
         cache_control=cache_control,
         vary=["Cookie"],  # SFW mode, sign in/out, account changes
     )
@@ -66,11 +65,18 @@ def search_(request):
 
         if search_query.find == "user":
             query = search.select_users(q)
-            next_count = back_count = 0
+            prev_page = next_page = None
         else:
             search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
 
-            query, next_count, back_count = search.select(
+            if backid:
+                page = search.PrevFilter(meta["backid"])
+            elif nextid:
+                page = search.NextFilter(meta["nextid"])
+            else:
+                page = search.FIRST_PAGE
+
+            query, prev_page, next_page = search.select(
                 userid=request.userid,
                 rating=rating,
                 limit=63,
@@ -78,8 +84,8 @@ def search_(request):
                 within=meta["within"],
                 cat=meta["cat"],
                 subcat=meta["subcat"],
-                backid=meta["backid"],
-                nextid=meta["nextid"])
+                page=page,
+            )
 
         title = "Search results"
         template_args = (
@@ -89,11 +95,16 @@ def search_(request):
             meta,
             # Search results
             query,
-            next_count,
-            back_count,
+            prev_page,
+            next_page,
             # Submission subcategories
             macro.MACRO_SUBCAT_LIST,
-            search.COUNT_LIMIT,
+            # `browse_header`
+            None,
+            # `is_guest`
+            not request.userid,
+            # `rating_limit`
+            rating,
         )
     elif find:
         if find not in ("submit", "char", "journal", "critique"):
@@ -122,9 +133,11 @@ def search_(request):
             meta,
             # Search results
             query,
-            0,
-            0,
+            # `prev_page`
             None,
+            # `next_page`
+            None,
+            # `subcats`
             None,
             browse_header,
         )
@@ -149,7 +162,8 @@ def search_(request):
                 "char": search.browse(
                     userid=request.userid,
                     rating=rating,
-                    limit=22,
+                    # TODO: revisit limit once characters get a different thumbnail layout; currently, 14 is the most that can fit
+                    limit=14,
                     find="char",
                     cat=None,
                     backid=None,
@@ -158,7 +172,7 @@ def search_(request):
                 "journal": search.browse(
                     userid=request.userid,
                     rating=rating,
-                    limit=22,
+                    limit=12,
                     find="journal",
                     cat=None,
                     backid=None,
@@ -176,24 +190,9 @@ def streaming_(request):
                                    title="Streaming"))
 
 
-def site_update_list_(request):
-    updates = siteupdate.select_list()
-    can_edit = request.userid in staff.ADMINS
-
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_edit), title="Site Updates"))
-
-
-def site_update_(request):
-    updateid = int(request.matchdict['update_id'])
-    update = siteupdate.select_view(updateid)
-    myself = profile.select_myself(request.userid)
-    comments = comment.select(request.userid, updateid=updateid)
-
-    return Response(define.webpage(request.userid, 'etc/site_update.html', (myself, update, comments), title="Site Update"))
-
-
 def popular_(request):
+    card_viewer = define.get_card_viewer()
     return Response(define.webpage(request.userid, 'etc/popular.html', [
-        list(itertools.islice(
+        card_viewer.get_cards(itertools.islice(
             index.filter_submissions(request.userid, submission.select_recently_popular(), incidence_limit=1), 66))
     ], title="Recently Popular"))

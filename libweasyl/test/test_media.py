@@ -65,7 +65,9 @@ def test_fetch_or_create_requires_file_type():
     """
     A file type is required if an image isn't being passed in.
     """
-    pytest.raises(ValueError, media.MediaItem.fetch_or_create, b'spam')
+    with pytest.raises(ValueError) as err:
+        media.MediaItem.fetch_or_create(b'spam')
+    assert str(err.value) == "a file type is required"
 
 
 def test_disk_media_item_display_url(db):

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import functools
 import os
 import time
 import hashlib
@@ -9,6 +12,7 @@ import pkgutil
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Literal
+from typing import NewType
 from urllib.parse import urlencode, urljoin
 
 import arrow
@@ -16,6 +20,8 @@ from pyramid.threadlocal import get_current_request
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from ada_url import URL
+from prometheus_client import Histogram
 from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
 from web.template import Template
@@ -24,11 +30,16 @@ import libweasyl.constants
 from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
+from libweasyl.text import slug_for
+from libweasyl.text import summarize
 from libweasyl import html, text, ratings, staff
 
+from weasyl import cards
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
+from weasyl import metrics
+from weasyl import turnstile
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
 
@@ -170,11 +181,13 @@ def _compile(template_name):
                 "SUMMARIZE": summarize,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
-                "THUMB": thumb_for_sub,
-                "WEBP_THUMB": webp_thumb_for_sub,
+
+                "CARD_WIDTHS": cards.get_widths,
+                "get_card_viewer": get_card_viewer,
+
                 "M": macro,
                 "R": ratings,
-                "SLUG": text.slug_for,
+                "SLUG": slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
                 "PATH": _get_path,
@@ -183,9 +196,12 @@ def _compile(template_name):
                 "format": format,
                 "getattr": getattr,
                 "json": json,
+                "map": map,
                 "sorted": sorted,
                 "staff": staff,
+                "turnstile": turnstile,
                 "resource_path": get_resource_path,
+                "zip": zip,
             })
 
     return template
@@ -233,6 +249,13 @@ _ORIGIN = config_obj.get('general', 'origin')
 
 def is_csrf_valid(request):
     return request.headers.get('origin') == _ORIGIN
+
+
+def path_redirect(path_qs: str) -> str:
+    """
+    Return an absolute URL for an internal redirect within the application’s origin.
+    """
+    return _ORIGIN + path_qs
 
 
 @region.cache_on_arguments(namespace='v3')
@@ -328,9 +351,9 @@ def get_premium(userid):
     return "d" in config
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(should_cache_fn=bool)
 @record_timing
-def _get_display_name(userid):
+def _get_display_name(userid: int) -> str | None:
     """
     Return the display name assiciated with `userid`; if no such user exists,
     return None.
@@ -338,10 +361,16 @@ def _get_display_name(userid):
     return engine.scalar("SELECT username FROM profile WHERE userid = %(user)s", user=userid)
 
 
-def get_display_name(userid):
-    if not userid:
-        return None
-    return _get_display_name(userid)
+def get_display_name(userid: int) -> str:
+    username = _get_display_name(userid)
+
+    if username is None:
+        raise WeasylError("Unexpected")
+
+    return username
+
+
+try_get_display_name = _get_display_name
 
 
 def get_int(target):
@@ -429,9 +458,12 @@ def get_userids(usernames):
     return ret
 
 
+def get_sysname_list(s: str) -> list[str]:
+    return list(filter(None, map(get_sysname, s.split(";"))))
+
+
 def get_userid_list(target):
-    usernames = target.split(";")
-    return [userid for userid in get_userids(usernames).values() if userid != 0]
+    return [userid for userid in get_userids(get_sysname_list(target)).values() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):
@@ -464,24 +496,38 @@ def text_price_symbol(target):
     return CURRENCY_CHARMAP[''].symbol
 
 
-def text_first_line(target, strip=False):
+HttpUrl = NewType("HttpUrl", URL)
+
+
+def text_fix_url(s: str) -> HttpUrl | None:
     """
-    Return the first line of text; if `strip` is True, return all but the first
-    line of text.
+    Normalize a user-provided external web link to a URL that always uses `http:` or `https:` (`https:` is assumed when no explicit protocol is provided). The result is safe to use as the `href` attribute of a link in the same sense as `libweasyl.defang`. This also normalizes the domain name to lowercase and Punycode.
+
+    Disallows some weird enough URLs that probably don’t have legitimate uses, indicating a misinterpretation compared to user intent:
+    - URLs containing credentials (`https://username:password@…/`)
+    - URLs with fully-qualified domain names (`https://example.com./`)
+    - URLs with single-component domain names (`https://example/`)
     """
-    first_line, _, rest = target.partition("\n")
+    s = s.strip()
 
-    if strip:
-        return rest
-    else:
-        return first_line
+    try:
+        url = URL(s)
+    except ValueError:
+        try:
+            url = URL("https://" + s)
+        except ValueError:
+            return None
 
+    if (
+        url.protocol in ["http:", "https:"]
+        and not url.username
+        and not url.password
+        and "." in url.hostname
+        and not url.hostname.endswith(".")
+    ):
+        return HttpUrl(url)
 
-def text_fix_url(target):
-    if target.startswith(("http://", "https://")):
-        return target
-
-    return "http://" + target
+    return None
 
 
 def get_arrow(unixtime):
@@ -555,8 +601,6 @@ def age_in_years(birthdate):
 def user_type(userid):
     if userid in staff.DIRECTORS:
         return "director"
-    if userid in staff.TECHNICAL:
-        return "tech"
     if userid in staff.ADMINS:
         return "admin"
     if userid in staff.MODS:
@@ -622,11 +666,20 @@ def posts_count(userid, *, friends: bool):
     return result
 
 
-@region.cache_on_arguments(expiration_time=180)
-@record_timing
-def _page_header_info(userid):
-    messages = engine.scalar(
+def private_messages_unread_count(userid: int) -> int:
+    return engine.scalar(
         "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
+
+
+notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
+
+
+@metrics.separate_timing
+@notification_count_time.cached
+@region.cache_on_arguments(expiration_time=180)
+@notification_count_time.uncached
+def _page_header_info(userid):
+    messages = private_messages_unread_count(userid)
     result = [messages, 0, 0, 0, 0]
 
     counts = engine.execute(
@@ -649,6 +702,12 @@ def _page_header_info(userid):
         result[5 - group] = count
 
     return result
+
+
+def page_header_info_invalidate_multi(userids):
+    namespace = None
+    cache_keys = [*map(region.function_key_generator(namespace, _page_header_info), userids)]
+    region.delete_multi(cache_keys)
 
 
 def get_max_post_rating(userid):
@@ -916,12 +975,6 @@ def absolutify_url(url):
     return urljoin(get_current_request().application_url, url)
 
 
-def summarize(s, max_length=200):
-    if len(s) > max_length:
-        return s[:max_length - 1].rstrip() + '\N{HORIZONTAL ELLIPSIS}'
-    return s
-
-
 def clamp(val, lower_bound, upper_bound):
     return min(max(val, lower_bound), upper_bound)
 
@@ -939,22 +992,18 @@ def query_string(query):
     return urlencode(pairs)
 
 
-def _requests_wrapper(func_name):
-    func = getattr(requests, func_name)
-
+def _requests_wrapper(func):
+    @functools.wraps(func)
     def wrapper(*a, **kw):
         try:
             return func(*a, **kw)
         except Exception as e:
-            w = WeasylError('httpError', level='info')
-            w.error_suffix = 'The original error was: %s' % (e,)
-            raise w from e
+            raise WeasylError('httpError', level='info') from e
 
     return wrapper
 
 
-http_get = _requests_wrapper('get')
-http_post = _requests_wrapper('post')
+http_get = _requests_wrapper(requests.get)
 
 
 def metric(*a, **kw):
@@ -999,50 +1048,17 @@ def paginate(results, backid, nextid, limit, key):
         None if at_end or not results else results[-1][key])
 
 
-def thumb_for_sub(submission):
+_default_thumbs = cards.get_default_thumbnails(get_resource_path)
+
+
+def get_card_viewer() -> cards.Viewer:
     """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb.
+    Gets the card-viewing experience (thumbnail preferences, essentially) for the current user.
     """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    if (profile_settings.disable_custom_thumbs and
-            submission.get('subtype', 9999) < 2000 and
-            submission['userid'] != user_id):
-        thumb_key = 'thumbnail-generated'
-    else:
-        thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
-
-    return submission['sub_media'][thumb_key][0]
-
-
-def webp_thumb_for_sub(submission):
-    """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate WebP media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb, or None.
-    """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    disable_custom_thumb = (
-        profile_settings.disable_custom_thumbs and
-        submission.get('subtype', 9999) < 2000 and
-        submission['userid'] != user_id
+    userid = get_userid()
+    profile_settings = get_profile_settings(userid)
+    return cards.Viewer(
+        userid=userid,
+        disable_custom_thumbs=profile_settings.disable_custom_thumbs,
+        default_thumbs=_default_thumbs,
     )
-
-    if not disable_custom_thumb and 'thumbnail-custom' in submission['sub_media']:
-        return None
-
-    thumbnail_generated_webp = submission['sub_media'].get('thumbnail-generated-webp')
-    return thumbnail_generated_webp and thumbnail_generated_webp[0]

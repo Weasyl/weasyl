@@ -203,7 +203,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
 
 
 def select_list(userid, rating, otherid):
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
+    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.rating, jo.content FROM journal jo WHERE"]
 
     if userid:
         # filter own content in SFW mode
@@ -226,6 +226,7 @@ def select_list(userid, rating, otherid):
         "journalid": i.journalid,
         "title": i.title,
         "created_at": arrow.get(i.unixtime - UNIXTIME_OFFSET),
+        "rating": i.rating,
         "content": i.content,
     } for i in d.engine.execute("".join(statement)).fetchall()]
 

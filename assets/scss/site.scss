@@ -171,7 +171,7 @@ a.more > span, #header-messages a, .page-title a {
 }
 
 // When used on an `<a>`, `.more` is a style of link with an emphasized target and an arrow. It can be combined with `.more-block`.
-// When used on a `<li>`, `.more` is a layout for an `a.more` with a top border (that can be removed with `.more-joined`), and is always part of a `.thumbnail-grid` or `.avatar-grid`. (TODO: no longer part of `.avatar-grid`; `max-width` can be removed)
+// When used on a `<li>`, `.more` is a layout for an `a.more` with a top border (that can be removed with `.more-joined`), and is always part of a `.thumbnail-grid`.
 // `div.more` is like `li.more` but for non-`.thumbnail-grid` cases. It has more of a top margin because `.thumbnail-grid` items have bottom margins and padding.
 
 li.more, div.more {
@@ -182,7 +182,6 @@ li.more, div.more {
 
 li.more {
     margin-top: 8px;
-    max-width: none;
     width: 100%;
 }
 

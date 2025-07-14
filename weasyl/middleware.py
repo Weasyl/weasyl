@@ -308,9 +308,9 @@ _WEBPAGE_PRELOADS_LINK = ", ".join([
         ]
     ),
 
-    # ES modules
+    # JS
     *(
-        f"<{d.get_resource_path(item)}>;rel=modulepreload" for item in [
+        f"<{d.get_resource_path(item)}>;rel=preload;as=script" for item in [
             "js/main.js",
         ]
     ),

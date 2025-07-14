@@ -596,14 +596,19 @@ const touch = new CreateFolders([
 
 const images = new CopyStaticFiles('img', {touch});
 
-const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
-    format: 'esm',
+const PRIVATE_FIELDS: esbuild.BuildOptions = {
     target: [
         'chrome84',
         'firefox90',
         'ios15',
         'safari15',
     ],
+    mangleProps: /^m_/,
+};
+
+const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
+    ...PRIVATE_FIELDS,
+    format: 'esm',
     banner: {},
 };
 
@@ -616,15 +621,15 @@ const tasks: readonly AnyTask[] = [
     new Sass({from: 'scss/mod.scss', to: 'css/mod.css'}, {touch, images}),
     new Sass({from: 'scss/signup.scss', to: 'css/signup.css'}, {touch, images}),
     new EsbuildFiles(['js/scripts.js'], {}, {touch}),
+
+    // main.js has a `Link: …;rel=preload`, and Cloudflare’s Early Hints implementation doesn’t support `modulepreload` yet
+    new EsbuildFiles(['js/main.js'], PRIVATE_FIELDS, {touch}),
+
     new EsbuildFiles([
-        'js/main.js',
         'js/message-list.js',
         'js/tags-edit.js',
         'js/signup.js',
-    ], {
-        ...PRIVATE_FIELDS_ESM,
-        mangleProps: /^m_/,
-    }, {touch}),
+    ], PRIVATE_FIELDS_ESM, {touch}),
     new EsbuildFiles(['js/flash.js'], {
         format: 'esm',
         target: 'es6',

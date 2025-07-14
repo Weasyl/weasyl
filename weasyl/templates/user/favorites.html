@@ -1,6 +1,8 @@
 $def with (profile, userinfo, relationship, feature, result, post_counts_by_type)
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
-$ card_viewer = get_card_viewer()
+$code:
+  _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  _TEXT_POST_ITEM = COMPILE("common/text_post_item.html")
+  card_viewer = get_card_viewer()
 
 <div id="favorites-stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
@@ -18,12 +20,20 @@ $ card_viewer = get_card_viewer()
 
     $if result.query:
       $ cards = card_viewer.get_cards(result.query)
-      <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
-        $for index, card in enumerate(cards):
-          $:{_GRID_ITEM(card, lazy_load=index >= 10)}
-      </ul>
+      $ nav_layout = "pages-layout-split"
+      $if feature == "journal":
+        $ nav_layout += " pages-vpad"
+        <div class="journals">
+          $for journal in cards:
+            $:{_TEXT_POST_ITEM(journal)}
+        </div>
+      $else:
+        <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+          $for index, card in enumerate(cards):
+            $:{_GRID_ITEM(card, lazy_load=index >= 10)}
+        </ul>
 
-      $:{RENDER("common/page_navigation.html", [result])}
+      $:{COMPILE("common/page_navigation.html")(result, layout=nav_layout)}
     $else:
       There are no favorites to display; you may wish to check this user's <a href="/favorites/${LOGIN(profile['username'])}">favorites summary page</a>.
   $else:
@@ -52,11 +62,11 @@ $ card_viewer = get_card_viewer()
         <h3>Favorite Journals</h3>
 
         $ cards = card_viewer.get_cards(result['journal'])
-        <ul class="avatar-grid">
-          $for card in cards:
-            $:{_GRID_ITEM(card, lazy_load=False)}
-          <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></li>
-        </ul>
+        <div class="journals">
+          $for journal in cards:
+            $:{_TEXT_POST_ITEM(journal)}
+        </div>
+        <div class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></div>
 
     $else:
       <h3>Favorites</h3>

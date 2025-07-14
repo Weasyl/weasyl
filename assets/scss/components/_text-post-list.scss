@@ -1,3 +1,6 @@
+$avatar-margin: 12px;
+$avatar-side: 50px;
+
 .text-post-list {
     overflow: hidden;
 }
@@ -13,11 +16,26 @@
     margin: 1em 0;
 }
 
+.text-post-item-with-byline {
+    position: relative;
+    padding-left: 2*$avatar-margin + $avatar-side;
+}
+
+.text-post-byline {
+    color: #888;
+}
+
 .text-post-image {
     align-self: start;
-    height: 50px;
-    margin: 1em;
-    width: 50px;
+    height: $avatar-side;
+    margin: $avatar-margin;
+    width: $avatar-side;
+
+    .text-post-byline & {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
 }
 
 .text-post-text {
@@ -30,7 +48,6 @@
     display: flex;
     font-size: 1.4em;
     justify-content: space-between;
-    margin-bottom: 0.4em;
 }
 
 .text-post-actions {
@@ -62,5 +79,6 @@
 }
 
 .text-post-excerpt {
+    margin-top: 0.4em;
     color: #666;
 }

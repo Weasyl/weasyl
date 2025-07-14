@@ -22,10 +22,10 @@ $:{TITLE("Users You Follow", "Settings", "/control")}
         </figure>
 
     </ul>
-    <div>
-      <a class="button" href="/manage/following?backid=${query[0]['userid']}">Back</a>
-      <a class="button" href="/manage/following?nextid=${query[-1]['userid']}">Next</a>
-    </div>
+    <nav class="pages-layout-split pages-vpad">
+      <a class="button" rel="prev" href="/manage/following?backid=${query[0]['userid']}">Back</a>
+      <a class="button" rel="next" href="/manage/following?nextid=${query[-1]['userid']}">Next</a>
+    </nav>
   $else:
     <p>There are no followed users to display.</p>
 </div>

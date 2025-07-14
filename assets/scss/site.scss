@@ -64,7 +64,7 @@ textarea {
     font-size: 0.75rem;
 }
 
-.typeface-a, .username, .page-title, a.more span, #header-messages a,
+.typeface-a, .username, .page-title, a.more > span, #header-messages a,
 .content h3, .stage h3 {
     font-family: Museo500, Lucida Sans, Lucida Grande, Arial, Roboto, sans-serif;
     font-weight: normal !important;
@@ -89,17 +89,31 @@ i, #header-guest {
 $color-a: #069bc0;
 $color-b: #8cad47;
 
-.color-a, .username, .content .username, .page-title, #header-nav .current,
+.content {
+    @extend %content-like;
+}
+
+.content-like {
+    @extend %content-like;
+}
+
+.color-a,
+.username,
+.content .username,
+.content-like .username,  // @extend doesn’t guarantee the required specificity to override `%content-like a`
+.page-title,
+#header-nav .current,
 #user-nav .current,
-#submissions-stage .sectioned-sidebar .current, #hc-streams h3 {
+#submissions-stage .sectioned-sidebar .current,
+#hc-streams h3 {
     color: $color-a;
 }
 
-a.more span, #header-messages a, .page-title a {
+a.more > span, #header-messages a, .page-title a {
     color: $color-b;
 }
 
-.color-c, .content a {
+.color-c, %content-like a {
     color: theme.$link-color;
 }
 
@@ -135,6 +149,11 @@ a.more span, #header-messages a, .page-title a {
     color: #ddd;
 }
 
+.content-like i {
+    // undo `.stage i` for `.stage .content-like i`
+    color: inherit;
+}
+
 .banned {
     color: #bb2b19;
     text-decoration: line-through;
@@ -150,33 +169,46 @@ a.more span, #header-messages a, .page-title a {
     color: #808080;
 }
 
-li.more, div.more, a.more-block {
+.more-block {
     clear: both;
     display: block;
 }
 
-li.more {
-    margin: 0.75em 0 0;
-    border-top: 1px dashed #334047;
+// When used on an `<a>`, `.more` is a style of link with an emphasized target and an arrow. It can be combined with `.more-block`.
+// When used on a `<li>`, `.more` is a layout for an `a.more` with a top border (that can be removed with `.more-joined`), and is always part of a `.thumbnail-grid` or `.avatar-grid`. (TODO: no longer part of `.avatar-grid`; `max-width` can be removed)
+// `div.more` is like `li.more` but for non-`.thumbnail-grid` cases. It has more of a top margin because `.thumbnail-grid` items have bottom margins and padding.
 
-    &.more-joined {
-        border-top: none;
-    }
+li.more, div.more {
+    border-top: 1px dashed #334047;
+    padding-top: 8px;
+    text-align: right;
 }
 
-hr.more {
-    margin: 2em 0 2em 0;
+li.more {
+    margin-top: 8px;
+    max-width: none;
+    width: 100%;
+}
+
+li.more-joined {
+    border-top: none;
+}
+
+div.more {
+    margin-top: 16px;
+}
+
+.user-header-duo-sep {
+    margin: 2em 0;
     border-top: 1px dashed #66808e;
 }
 
 a.more {
-    clear: both;
-    float: right;
     text-align: right;
     text-decoration: none;
 }
 
-a.more:hover span {
+a.more:hover > span {
     border-bottom: 1px solid #8cad47;
 }
 
@@ -191,14 +223,12 @@ a.more::after {
     border-style: solid;
 }
 
-a.more span {
-    font-size: 16px;
+a.more > span {
     font-size: 1rem;
 }
 
-a.more-block span, a.more {
-    font-size: 14px;
-    font-size: 0.9rem;
+a.more-block > span, a.more {
+    font-size: 0.875rem;
 }
 
 a.more-block {
@@ -227,8 +257,7 @@ a.more-block:last-child {
 }
 
 @media (min-width: 30em) {
-    a.more-block span, a.more span {
-        font-size: 16px;
+    a.more-block > span {
         font-size: 1rem;
     }
 
@@ -243,8 +272,8 @@ a.more-block:last-child {
     }
 }
 
-.content li.more, .content a.more {
-    border-color: #c0c0c0;
+.content .more {
+    border-color: #c0c0c0;  // targets `li.more` and `div.more`, and has no effect on `a.more`
     color: #4d4d4d;
 }
 
@@ -478,8 +507,10 @@ a.bar {
     word-wrap: break-word;
 }
 
+$constrained-width: 50em;
+
 .constrained {
-    max-width: 50em;
+    max-width: $constrained-width;
     margin: 0 auto;
 }
 
@@ -943,7 +974,6 @@ $avatar-grid-gap: 15px;
 
 .avatar-grid {
     contain: inline-size layout style;
-    container-type: inline-size;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
@@ -953,74 +983,26 @@ $avatar-grid-gap: 15px;
 
 .avatar-grid > * {
     box-sizing: border-box;
-    display: inline-block;
     width: 100px;
     max-width: calc(33.3% - $avatar-grid-gap*2/3);
 }
 
-.avatar-grid > .more {
-    width: 100%;
-    max-width: none;
-    padding-top: 8px;
-}
-
-// Journals and user search results that use `thumbnail_grid_item.html` use `thumb-bounds` markup structure instead of `avatar`. (Since these cases aren’t inside `.content`, `avatar` would actually have different behavior, adding a border.)
 .avatar-grid img {
     display: block;
     max-width: 100%;
 }
-.avatar-grid .thumb-bounds {
-    display: block;
-    position: relative;
-}
-
-// make usernames of users bigger (but not journal authors)
-.avatar-grid h5 .username {
-    font-size: 1.3em;
-}
-
-// journals on top-level browse page and favorites summary page
-.avatar-grid .title {
-    padding-top: 8px;
-    text-overflow: ellipsis;
-    overflow: clip;
-}
-.avatar-grid .title a {
-    color: #ccc;
-}
-.content .avatar-grid .title a {
-    color: #336979;
-}
-.avatar-grid .title a:hover {
-    text-decoration: none;
-}
-.avatar-grid .byline i {
-    color: #888;
-    color: rgba(255,255,255,0.35);
-}
-.content .avatar-grid .byline i {
-    color: #888;
-}
-.avatar-grid .rating {
-    $border-width: 4px;
-    width: 50px;
-    height: 50px;
-    border-style: solid;
-    border-width: 0 $border-width $border-width 0;
-    position: absolute;
-    right: math.div(-$border-width, 2);
-    bottom: math.div(-$border-width, 2);
-    color: transparent;
-    overflow: hidden;
-    text-indent: 150%;
-    z-index: 3;
-}
 
 .avatar-grid .username {
+    font-size: 1rem;
     color: #3ad;
+
+    .content & {
+        color: $color-a;
+    }
 }
-.content .avatar-grid .username {
-    color: $color-a;
+
+.avatar-grid a:hover .username {
+    text-decoration: underline;
 }
 
 // friends and follows actions
@@ -1044,7 +1026,8 @@ $thumbnail-grid-max-height: 250px;  // `ROW_BASIS` in thumbnail-grid.js
     flex-wrap: wrap;
     justify-content: center;
 }
-.thumbnail-grid .more {
+.thumbnail-grid > .more {
+    padding-top: 8px;
     width: 100%;
 }
 .thumbnail-grid .item {
@@ -1223,11 +1206,6 @@ $thumbnail-grid-max-height: 250px;  // `ROW_BASIS` in thumbnail-grid.js
     padding-right: 8px;
 }
 
-.thumbnail-grid > .more {
-    padding-top: 8px;
-    padding-top: 0.5rem;
-}
-
 .thumbnail-grid:not(.thumbnail-grid-enhanced) {
     > .tiny-footprint > .item:nth-child(n+6),
     > .small-footprint > .item:nth-child(n+6),
@@ -1275,8 +1253,10 @@ $thumbnail-grid-max-height: 250px;  // `ROW_BASIS` in thumbnail-grid.js
     }
 }
 
-// Thumbnail grids should extend all the way to the edges.
-// Examples: notifications, collections, characters, and favorites pages.
+// Grids should extend all the way to the edges.
+// Examples: notifications, collections, characters, favorites, following, followers, friends.
+.content .avatar-grid,
+.content .journals,
 .content .thumbnail-grid {
     margin: 0 calc(-1 * var(--content-pad-h));
 
@@ -3758,6 +3738,46 @@ img + #detail-art-text {
     background-image: url('../img/icon-search-lightbg.png');
     background-repeat: no-repeat;
     background-position: 5px 50%;
+}
+
+$journals-column-gap: 8px;
+
+.journals {
+    @extend .constrained;
+    contain: inline-size layout style paint;
+    display: grid;
+    gap: $journals-column-gap;
+    row-gap: 16px;
+    padding: 0 $journals-column-gap;
+}
+
+.journals > * {
+    contain: inline-size layout style paint;
+    margin: 0;
+}
+
+@function em-px($ems) {
+    @return math.div($ems, 1em) * 16px;
+}
+
+/// The minimum container width (i.e. including padding) for a journals grid to comfortably show the given number of columns.
+@function journals-min-width($column-count) {
+    @return $column-count * (496px + $journals-column-gap) + $journals-column-gap;
+}
+
+/// The maximum inner width (i.e. excluding padding) for a journals grid with the given number of columns to stop expanding.
+@function journals-max-width($column-count) {
+    @return $column-count * (em-px($constrained-width) + $journals-column-gap) - $journals-column-gap;
+}
+
+@for $column-count from 2 through 3 {
+    // NOTE: `.journals` can also be search results, and this measures the viewport width, not the width minus the sidebar. In practice, it’s good enough.
+    @media (min-width: journals-min-width($column-count)) {
+        .journals {
+            max-width: journals-max-width($column-count);
+            grid-template-columns: repeat($column-count, 1fr);
+        }
+    }
 }
 
 /* ------------------------------------ =footer -- */

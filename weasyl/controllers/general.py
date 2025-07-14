@@ -163,7 +163,8 @@ def search_(request):
                 "char": search.browse(
                     userid=request.userid,
                     rating=rating,
-                    limit=22,
+                    # TODO: revisit limit once characters get a different thumbnail layout; currently, 14 is the most that can fit
+                    limit=14,
                     find="char",
                     cat=None,
                     backid=None,
@@ -172,7 +173,7 @@ def search_(request):
                 "journal": search.browse(
                     userid=request.userid,
                     rating=rating,
-                    limit=22,
+                    limit=12,
                     find="journal",
                     cat=None,
                     backid=None,

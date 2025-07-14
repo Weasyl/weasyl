@@ -49,17 +49,26 @@ class Thumbnail:
 class Avatar:
     file: File
 
-    # TODO: replace with correct dimensions once avatar lists use a different container
-    @property
-    def width(self) -> int:
-        return 120
 
-    @property
-    def height(self) -> int:
-        return 120
+@dataclass(eq=False, frozen=True, kw_only=True, slots=True)
+class JournalCard:
+    rating: int
+    username: str
+    title: str
+    caption: str
+    href: str
+    avatar: Avatar
+    content: str  # TODO: cache excerpt
 
 
-# TODO: different classes for different types of card
+@dataclass(eq=False, frozen=True, kw_only=True, slots=True)
+class UserCard:
+    username: str
+    full_name: str  # XXX: currently unused
+    href: str
+    avatar: Avatar
+
+
 @dataclass(eq=False, frozen=True, kw_only=True, slots=True)
 class Card:
     contype: int
@@ -68,7 +77,6 @@ class Card:
     title: str
     caption: str
     href: str
-    avatar: Avatar
     thumbnail: Thumbnail
 
 
@@ -158,12 +166,9 @@ class Viewer:
             files=files,
         )
 
-    def get_card(self, query: Cardable) -> Card:
+    def get_card(self, query: Cardable) -> Card | JournalCard | UserCard:
         contype = query['contype']
         username = query['username']
-
-        avatar = None
-        thumbnail = None
 
         if contype in [30, 50]:
             avatar = Avatar(query['user_media']['avatar'][0])
@@ -182,10 +187,27 @@ class Viewer:
                 href = "/character/%d/%s" % (query['charid'], slug())
             case 30:
                 href = "/journal/%d/%s" % (query['journalid'], slug())
+
+                return JournalCard(
+                    rating=query['rating'],
+                    username=username,
+                    title=title,
+                    caption=caption,
+                    href=href,
+                    avatar=avatar,
+                    content=query['content'],
+                )
             case 40:
                 href = "/submission/%d/%s" % (query['submitid'], slug())
             case 50:
                 href = "/~%s" % (sysname,)
+
+                return UserCard(
+                    username=username,
+                    full_name=title,
+                    href=href,
+                    avatar=avatar,
+                )
             case _:  # pragma: no cover
                 raise ValueError(f"unknown contype {contype!r}")
 
@@ -196,11 +218,10 @@ class Viewer:
             title=title,
             caption=caption,
             href=href,
-            avatar=avatar,
             thumbnail=thumbnail,
         )
 
-    def get_cards(self, ds: Iterable[Cardable]) -> list[Card]:
+    def get_cards(self, ds: Iterable[Cardable]) -> list[Card | JournalCard | UserCard]:
         return list(map(self.get_card, ds))
 
 
@@ -208,4 +229,4 @@ def get_widths(cards: Iterable[Card]) -> str:
     """
     Gets the value of the `data-widths` attribute for a thumbnail grid.
     """
-    return ",".join(str((card.thumbnail or card.avatar).width or "") for card in cards)
+    return ",".join(str(card.thumbnail.width or "") for card in cards)

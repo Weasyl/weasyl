@@ -163,7 +163,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
 
 def select_user_list(userid, rating, limit, backid=None, nextid=None):
     statement = [
-        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime"
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime, jo.content"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
         " WHERE NOT jo.hidden"]
@@ -195,6 +195,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
         "username": i[3],
         "rating": i[4],
         "unixtime": i[5],
+        "content": i.content,
     } for i in d.execute("".join(statement))]
     media.populate_with_user_media(query)
 

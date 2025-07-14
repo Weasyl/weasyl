@@ -1,4 +1,11 @@
-from collections import namedtuple
+from __future__ import annotations
+
+from collections.abc import Callable
+from collections.abc import Mapping
+from typing import Any
+from typing import Literal
+
+from pyramid.request import Request
 
 from weasyl.controllers import (
     admin,
@@ -16,20 +23,38 @@ from weasyl.controllers import (
     profile,
     search,
     settings,
+    siteupdate,
     two_factor_auth,
     user,
     weasyl_collections,
 )
+from weasyl.controllers.decorators import csrf_defined
 from weasyl import oauth2
 
 
-Route = namedtuple('Route', ['pattern', 'name', 'view'])
-"""
-A route to be added to the Weasyl application.
+HttpMethod = Literal["GET", "POST", "PUT", "DELETE", "PATCH"]
+Handler = Callable[[Request], Any]
 
-`view` may be either a view callable (in which case only GET/HEAD requests are routed to it) or a
-dict mapping http methods to view callables.
-"""
+
+class Route:
+    __slots__ = ("pattern", "name", "handlers", "renderer")
+
+    pattern: str
+    name: str
+    handlers: Mapping[HttpMethod, Handler]
+    renderer: Literal["json"] | None
+
+    def __init__(
+        self,
+        pattern: str,
+        name: str,
+        handlers: dict[HttpMethod, Handler] | Handler,
+        renderer: Literal["json"] | None = None,
+    ):
+        self.pattern = pattern
+        self.name = name
+        self.handlers = handlers if isinstance(handlers, dict) else {"GET": handlers}
+        self.renderer = renderer
 
 
 routes = (
@@ -285,8 +310,6 @@ routes = (
 
     # Admin control routes.
     Route("/admincontrol", "admincontrol", admin.admincontrol_),
-    Route("/admincontrol/siteupdate", "admin_siteupdate",
-          {'GET': admin.admincontrol_siteupdate_get_, 'POST': admin.admincontrol_siteupdate_post_}),
     Route("/admincontrol/manageuser", "admin_manageuser",
           {'GET': admin.admincontrol_manageuser_get_, 'POST': admin.admincontrol_manageuser_post_}),
     Route("/admincontrol/finduser", "admincontrol_finduser", {
@@ -309,12 +332,16 @@ routes = (
         'POST': director.directorcontrol_globaltagrestrictions_post_,
     }),
 
-    Route("/site-updates/", "site_update_list", general.site_update_list_),
-    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
-        'GET': general.site_update_,
-        'POST': admin.site_update_put_,
+    Route("/site-updates/", "site_update_list", {
+        'GET': siteupdate.site_update_list_,
+        'POST': siteupdate.site_update_post_,
     }),
-    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
+    Route("/site-updates/new", "site_update_new", siteupdate.site_update_new_get_),
+    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
+        'GET': siteupdate.site_update_get_,
+        'POST': siteupdate.site_update_put_,
+    }),
+    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", siteupdate.site_update_edit_),
 
     Route("/policy/community", "policy_community", info.policy_community_),
     Route("/policy/copyright", "policy_copyright", info.policy_copyright_),
@@ -348,6 +375,21 @@ routes = (
 
     # Routes for static event pages, such as holidays.
     Route("/events/halloweasyl2014", "events_halloweasyl2014", events.halloweasyl2014_),
+
+    # API routes.
+    Route("/api/useravatar", "useravatar", api.api_useravatar_, renderer="json"),
+    Route("/api/whoami", "whoami", api.api_whoami_, renderer="json"),
+    Route(r"/api/version{format:(\.[^.]+)?}", "version", api.api_version_, renderer="json"),
+    Route("/api/submissions/frontpage", "api_frontpage", api.api_frontpage_, renderer="json"),
+    Route("/api/submissions/{submitid:[0-9]+}/view", "api_submission_view", api.api_submission_view_, renderer="json"),
+    Route("/api/journals/{journalid:[0-9]+}/view", "api_journal_view", api.api_journal_view_, renderer="json"),
+    Route("/api/characters/{charid:[0-9]+}/view", "api_character_view", api.api_character_view_, renderer="json"),
+    Route("/api/users/{login:[^/]+}/view", "api_user_view", api.api_user_view_, renderer="json"),
+    Route("/api/users/{login:[^/]+}/gallery", "api_user_gallery", api.api_user_gallery_, renderer="json"),
+    Route("/api/messages/submissions", "api_messages_submissions", api.api_messages_submissions_, renderer="json"),
+    Route("/api/messages/summary", "api_messages_summary", api.api_messages_summary_, renderer="json"),
+    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite", "api_favorite", {'POST': api.api_favorite_}, renderer="json"),
+    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite", "api_unfavorite", {'POST': api.api_unfavorite_}, renderer="json"),
 )
 
 
@@ -360,25 +402,13 @@ def setup_routes_and_views(config):
     """
     for route in routes:
         config.add_route(name=route.name, pattern=route.pattern)
-        if isinstance(route.view, dict):
-            for method in route.view:
-                config.add_view(view=route.view[method], route_name=route.name, request_method=method)
-        else:
-            config.add_view(view=route.view, route_name=route.name, request_method="GET")
+        for method, handler in route.handlers.items():
+            if method != "GET" and (handler.__module__, handler.__qualname__) not in csrf_defined:
+                raise RuntimeError(f"{handler} has no explicit CSRF policy")
 
-    # API routes.
-    config.add_route("useravatar", "/api/useravatar")
-    config.add_route("whoami", "/api/whoami")
-    config.add_route("version", r"/api/version{format:(\.[^.]+)?}")
-    config.add_route("api_frontpage", "/api/submissions/frontpage")
-    config.add_route("api_submission_view", "/api/submissions/{submitid:[0-9]+}/view")
-    config.add_route("api_journal_view", "/api/journals/{journalid:[0-9]+}/view")
-    config.add_route("api_character_view", "/api/characters/{charid:[0-9]+}/view")
-    config.add_route("api_user_view", "/api/users/{login:[^/]+}/view")
-    config.add_route("api_user_gallery", "/api/users/{login:[^/]+}/gallery")
-    config.add_route("api_messages_submissions", "/api/messages/submissions")
-    config.add_route("api_messages_summary", "/api/messages/summary")
-    config.add_route("api_favorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite")
-    config.add_route("api_unfavorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite")
-
-    config.scan(api)
+            config.add_view(
+                view=handler,
+                route_name=route.name,
+                request_method=method,
+                renderer=route.renderer,
+            )

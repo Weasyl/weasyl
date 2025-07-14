@@ -1,7 +1,12 @@
-$def with (request, updates, can_edit)
+$def with (request, updates, can_post)
 $:{TITLE("Site Updates")}
 
 <div class="content">
+  $if can_post:
+    <div class="form site-update-actions">
+      <a class="button" href="/site-updates/new">Submit new site update...</a>
+    </div>
+
   <div class="constrained text-post-list">
     $ last_created = None
     $for update in updates:
@@ -19,7 +24,7 @@ $:{TITLE("Site Updates")}
         <div class="text-post-text">
           <h4 class="text-post-title">
             <a href="${request.route_path('site_update', update_id=update['updateid'])}">${update['title']}</a>
-            $if can_edit:
+            $if can_post:
               <span class="text-post-actions">
                 <a href="${request.route_path('site_update_edit', update_id=update['updateid'])}">Edit</a>
               </span>

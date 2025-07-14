@@ -95,7 +95,7 @@ def test_create(app, monkeypatch):
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}).follow()
+    resp = app.post('/site-updates/', _FORM, headers={'Cookie': cookie}).follow()
     assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
 
@@ -106,7 +106,7 @@ def test_create_strip(app, monkeypatch):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
     resp = app.post(
-        '/admincontrol/siteupdate',
+        '/site-updates/',
         dict(_FORM, title=' test title \t '),
         headers={'Cookie': cookie},
     ).follow()
@@ -115,29 +115,29 @@ def test_create_strip(app, monkeypatch):
 
 @pytest.mark.usefixtures('db')
 def test_create_restricted(app, monkeypatch):
-    resp = app.get('/admincontrol/siteupdate', status=403)
+    resp = app.get('/site-updates/new', status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.unsigned
-    resp = app.post('/admincontrol/siteupdate', _FORM, status=403)
+    resp = app.post('/site-updates/', _FORM, status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.unsigned
 
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
 
-    resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie}, status=403)
+    resp = app.get('/site-updates/new', headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}, status=403)
+    resp = app.post('/site-updates/', _FORM, headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
     monkeypatch.setattr(staff, 'MODS', frozenset([user]))
 
-    resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie}, status=403)
+    resp = app.get('/site-updates/new', headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': cookie}, status=403)
+    resp = app.post('/site-updates/', _FORM, headers={'Cookie': cookie}, status=403)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.permission
 
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
-    resp = app.get('/admincontrol/siteupdate', headers={'Cookie': cookie})
+    resp = app.get('/site-updates/new', headers={'Cookie': cookie})
     assert resp.html.find(id='error_content') is None
 
 
@@ -147,10 +147,10 @@ def test_create_validation(app, monkeypatch):
     cookie = db_utils.create_session(user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([user]))
 
-    resp = app.post('/admincontrol/siteupdate', {'title': '', 'content': 'Content'}, headers={'Cookie': cookie}, status=422)
+    resp = app.post('/site-updates/', {'title': '', 'content': 'Content'}, headers={'Cookie': cookie}, status=422)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['titleInvalid']
 
-    resp = app.post('/admincontrol/siteupdate', {'title': 'Title', 'content': ''}, headers={'Cookie': cookie}, status=422)
+    resp = app.post('/site-updates/', {'title': 'Title', 'content': ''}, headers={'Cookie': cookie}, status=422)
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['contentInvalid']
 
 
@@ -161,7 +161,7 @@ def test_create_notifications(app, monkeypatch):
     admin_cookie = db_utils.create_session(admin_user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
 
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': admin_cookie}).follow()
+    resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie}).follow()
     assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
     normal_cookie = db_utils.create_session(normal_user)
@@ -261,7 +261,7 @@ def test_edit_notifications(app, monkeypatch):
     admin_cookie = db_utils.create_session(admin_user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
 
-    resp = app.post('/admincontrol/siteupdate', _FORM, headers={'Cookie': admin_cookie}).follow()
+    resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie}).follow()
     assert resp.html.find(id='home-content').h3.string == _FORM['title']
 
     normal_cookie = db_utils.create_session(normal_user)

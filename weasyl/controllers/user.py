@@ -256,6 +256,7 @@ def resetpassword_get_(request):
 
 
 @guest_required
+@token_checked
 def resetpassword_post_(request):
     expect_userid = int(request.POST['userid'])
 

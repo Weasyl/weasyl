@@ -1,4 +1,9 @@
 $def with (profile, userinfo, relationship, journals, post_counts_by_type)
+
+$def rating_span(r):
+  $if r == R.MATURE.code: <span class="rating mature"> (rated Mature)</span>
+  $elif r == R.EXPLICIT.code: <span class="rating explicit"> (rated Explicit)</span>
+
 <div id="journals_stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
   $:{RENDER("common/user_tabs.html", [profile['username'], "journals", profile['show_favorites_tab'], post_counts_by_type])}
@@ -9,9 +14,8 @@ $def with (profile, userinfo, relationship, journals, post_counts_by_type)
     $code:
       avatar = profile['user_media']['avatar'][0]
 
-      avatar_html = '<img class="text-post-image" src="{avatar_url_html}" title="{username_html}" alt="{username_html}’s avatar">'.format(
-        avatar_url_html=escape_(avatar['display_url'], True),
-        username_html=escape_(profile['username'], True),
+      avatar_html = '<img class="text-post-image" src="%s" alt="">' % (
+        escape_(avatar['display_url'], True),
       )
 
       last_created = None
@@ -30,7 +34,7 @@ $def with (profile, userinfo, relationship, journals, post_counts_by_type)
 
         <div class="text-post-text">
           <h4 class="text-post-title">
-            <a href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a>
+            <a href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a>$:{rating_span(journal['rating'])}
           </h4>
 
           <p class="text-post-excerpt">${MARKDOWN_EXCERPT(journal['content'])}</p>

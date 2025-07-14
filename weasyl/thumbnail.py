@@ -2,7 +2,6 @@ import os
 from sanpera import geometry
 
 from libweasyl import images
-from libweasyl import staff
 
 from weasyl import define as d
 from weasyl import files
@@ -60,9 +59,7 @@ def clear_thumbnail(userid, submitid):
     submission = orm.Submission.query.get(submitid)
     if not submission:
         raise WeasylError("Unexpected")
-    elif userid not in staff.MODS and userid != submission.owner.userid:
-        raise WeasylError("Unexpected")
-    elif not submission.media.get('thumbnail-custom'):
+    if not submission.media.get('thumbnail-custom'):
         if submission.subtype < 2000 or not submission.media.get('thumbnail-generated'):
             raise WeasylError("noThumbnail")
 

@@ -474,6 +474,7 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
             banner: {
                 js: '"use strict";',
             },
+            mangleProps: /^m_/,
             ...this.#options,
             write: false,
             metafile: true,
@@ -603,7 +604,6 @@ const PRIVATE_FIELDS: esbuild.BuildOptions = {
         'ios15',
         'safari15',
     ],
-    mangleProps: /^m_/,
 };
 
 const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {

@@ -323,11 +323,11 @@ const getCommentInfo = commentActionLink => {
     } while (!comments.classList.contains('comments'));
 
     return {
-        comment: comment,
-        comments: comments,
-        id: parseInt(comment.dataset.id, 10),
-        feature: comments.dataset.feature,
-        removalPrivileges: comments.dataset.removalPrivileges,
+        m_comment: comment,
+        m_comments: comments,
+        m_id: parseInt(comment.dataset.id, 10),
+        m_feature: comments.dataset.feature,
+        m_removalPrivileges: comments.dataset.removalPrivileges,
     };
 };
 
@@ -369,7 +369,7 @@ document.addEventListener('click', e => {
 
     if (target.classList.contains('comment-hide-link')) {
         const commentInfo = getCommentInfo(target);
-        const comment = commentInfo.comment;
+        const comment = commentInfo.m_comment;
         let children = comment.nextElementSibling;
 
         if (children && children.nodeName !== 'UL') {
@@ -424,8 +424,8 @@ document.addEventListener('click', e => {
             };
 
             rq.send(
-                'format=json&feature=' + commentInfo.feature +
-                '&commentid=' + commentInfo.id);
+                'format=json&feature=' + commentInfo.m_feature +
+                '&commentid=' + commentInfo.m_id);
 
             comment.classList.add('removing');
 
@@ -439,10 +439,10 @@ document.addEventListener('click', e => {
         e.preventDefault();
     } else if (target.classList.contains('comment-reply-link')) {
         const commentInfo = getCommentInfo(target);
-        const comment = commentInfo.comment;
+        const comment = commentInfo.m_comment;
         let children = comment.nextElementSibling;
 
-        const newForm = commentInfo.comments.parentNode.getElementsByClassName('comment-form')[0].cloneNode(true);
+        const newForm = commentInfo.m_comments.parentNode.getElementsByClassName('comment-form')[0].cloneNode(true);
         const newFormContent = newForm.getElementsByClassName('comment-content')[0];
         let newFormError = null;
         const targetIdField = newForm.getElementsByClassName('form-target-id')[0];
@@ -601,7 +601,7 @@ document.addEventListener('click', e => {
 
                                 autosize.destroy(contentField);
 
-                                if (commentInfo.removalPrivileges !== 'all') {
+                                if (commentInfo.m_removalPrivileges !== 'all') {
                                     const parentComment = newComment.parentNode.parentNode.previousElementSibling;
                                     const parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
 
@@ -638,7 +638,7 @@ document.addEventListener('click', e => {
                 rq.send(
                     'format=json' +
                     '&' + targetIdField.name + '=' + targetId +
-                    '&parentid=' + commentInfo.id +
+                    '&parentid=' + commentInfo.m_id +
                     '&content=' + encodeURIComponent(contentField.value)
                 );
 

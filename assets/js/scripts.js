@@ -351,7 +351,7 @@ import {tryGetLocal, trySetLocal} from './util/storage.js';
     var weasylMarkdown = (function () {
         var USER_LINK = /\\(.)|<(!~|[!~])(\w+)>|./gi;
 
-        var NO_USER_LINKING = ['a', 'pre', 'code'];
+        var NO_USER_LINKING = ['A', 'PRE', 'CODE'];
 
         function addUserLinks(fragment) {
             for (var i = 0; i < fragment.childNodes.length; i++) {

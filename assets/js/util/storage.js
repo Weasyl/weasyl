@@ -1,10 +1,10 @@
-var logStorageError = error => {
+const logStorageError = error => {
     try {
         console.warn(error);
     } catch (_consoleError) {}
 };
 
-export var trySetLocal = (key, value) => {
+export const trySetLocal = (key, value) => {
     try {
         localStorage.setItem(key, value);
     } catch (error) {
@@ -12,7 +12,7 @@ export var trySetLocal = (key, value) => {
     }
 };
 
-export var tryGetLocal = key => {
+export const tryGetLocal = key => {
     try {
         return localStorage.getItem(key);
     } catch (error) {

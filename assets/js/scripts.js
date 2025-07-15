@@ -395,7 +395,7 @@ import {tryGetLocal, trySetLocal} from './util/storage.js';
                             if (m[2] === '!') {
                                 image.alt = m[3];
                             } else {
-                                var usernameContainer = document.createTextNode('span');
+                                var usernameContainer = document.createElement('span');
                                 usernameContainer.textContent = m[3];
 
                                 link.appendChild(document.createTextNode(' '));

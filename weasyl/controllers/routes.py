@@ -13,7 +13,6 @@ from weasyl.controllers import (
     content,
     detail,
     director,
-    events,
     general,
     info,
     interaction,
@@ -59,7 +58,7 @@ class Route:
 
 routes = (
     # Front page views.
-    Route("/{index:(index)?}", "index", general.index_),  # 'index' is optional in the URL
+    Route("/", "index", general.index_),
     Route("/search", "search", general.search_),
     Route("/api-unstable/search/navigation-counts", "search_navigation_counts", search.navigation_counts),
     Route("/popular", "popular", general.popular_),
@@ -372,9 +371,6 @@ routes = (
     Route("/api/oauth2/authorize", "oauth2_authorize",
           {'GET': oauth2.authorize_get_, 'POST': oauth2.authorize_post_}),
     Route("/api/oauth2/token", "oauth2_token", {'POST': oauth2.token_}),
-
-    # Routes for static event pages, such as holidays.
-    Route("/events/halloweasyl2014", "events_halloweasyl2014", events.halloweasyl2014_),
 
     # API routes.
     Route("/api/useravatar", "useravatar", api.api_useravatar_, renderer="json"),

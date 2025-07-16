@@ -1,38 +1,38 @@
 import {byClass, make} from './dom.js';
 import {tryGetLocal, trySetLocal} from './util/storage.js';
 
-var initEmbed = () => {
-    var embedLink = byClass('embed-link');
-    var service;
+const initEmbed = () => {
+    const embedLink = byClass('embed-link');
+    let service;
     if (!embedLink || !(service = embedLink.dataset.service)) {
         // no embed or embed failed to load
         return;
     }
 
-    var embedContainer = embedLink.parentNode;
+    const embedContainer = embedLink.parentNode;
 
-    var sourceName = embedLink.textContent.replace('View on ', '');
+    const sourceName = embedLink.textContent.replace('View on ', '');
 
-    var loadButton = make('button', {
+    const loadButton = make('button', {
         type: 'button',
         className: 'embed-load button',
         textContent: `Load ${sourceName}`,
     });
 
-    var autoloadPreference = tryGetLocal(`embed-autoload-${service}`);
+    const autoloadPreference = tryGetLocal(`embed-autoload-${service}`);
 
-    var remember = make('input', {
+    const remember = make('input', {
         type: 'checkbox',
         checked: autoloadPreference !== 'n',
     });
 
-    var rememberLabel = make('span');
+    const rememberLabel = make('span');
     rememberLabel.append(`Always load embeds from ${sourceName} `, make('small', {textContent: 'in this browser'}));
 
-    var controls = make('div', {className: 'embed-controls'});
+    const controls = make('div', {className: 'embed-controls'});
 
-    var load = () => {
-        var frame = make('iframe', {className: 'embed-frame'});
+    const load = () => {
+        const frame = make('iframe', {className: 'embed-frame'});
 
         if (service === 'bandcamp') {
             frame.src = `https://bandcamp.com/EmbeddedPlayer/${embedLink.dataset.bandcampId}/size=large/bgcol=ffffff/linkcol=0687f5/tracklist=false/artwork=small/transparent=true/`;

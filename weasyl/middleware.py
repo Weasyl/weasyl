@@ -308,17 +308,9 @@ _WEBPAGE_PRELOADS_LINK = ", ".join([
         ]
     ),
 
-    # JavaScript
+    # JS
     *(
         f"<{d.get_resource_path(item)}>;rel=preload;as=script" for item in [
-            "js/jquery-2.2.4.min.js",
-            "js/scripts.js",
-        ]
-    ),
-
-    # ES modules
-    *(
-        f"<{d.get_resource_path(item)}>;rel=modulepreload" for item in [
             "js/main.js",
         ]
     ),

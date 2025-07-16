@@ -1,61 +1,52 @@
-'use strict';
+const {forEach, every, filter, some, map} = Array.prototype;
 
-var forEach = Array.prototype.forEach;
-var every = Array.prototype.every;
-var filter = Array.prototype.filter;
-var some = Array.prototype.some;
-var map = Array.prototype.map;
+const notificationContainer = document.getElementById('messages-checkboxes');
+const notificationGlobalActions = document.getElementById('notification-global-actions');
+const notificationGlobalActionsTop = document.getElementById('notification-global-actions-top');
+const removeCheckedButton = document.getElementById('remove-checked');
+const removeCheckedButtonTop = document.getElementById('remove-checked-top');
+const sectionHeaders = notificationContainer.getElementsByClassName('notification-group-header');
+const removeCheckboxes = notificationContainer.getElementsByClassName('remove');
 
-var notificationContainer = document.getElementById('messages-checkboxes');
-var notificationGlobalActions = document.getElementById('notification-global-actions');
-var notificationGlobalActionsTop = document.getElementById('notification-global-actions-top');
-var removeCheckedButton = document.getElementById('remove-checked');
-var removeCheckedButtonTop = document.getElementById('remove-checked-top');
-var sectionHeaders = notificationContainer.getElementsByClassName('notification-group-header');
-var removeCheckboxes = notificationContainer.getElementsByClassName('remove');
+const isChecked = checkbox => checkbox.checked;
 
-function isChecked(checkbox) {
-    return checkbox.checked;
-}
-
-function sectionToggle(section) {
-    var itemCheckboxes = section.getElementsByClassName('remove');
-    var sectionCheckbox = document.createElement('input');
+const sectionToggle = section => {
+    const itemCheckboxes = section.getElementsByClassName('remove');
+    const sectionCheckbox = document.createElement('input');
 
     sectionCheckbox.type = 'checkbox';
 
-    function updateItemCheckboxes() {
-        var checked = sectionCheckbox.checked;
+    const updateItemCheckboxes = () => {
+        const checked = sectionCheckbox.checked;
 
-        forEach.call(itemCheckboxes, function (checkbox) {
+        forEach.call(itemCheckboxes, checkbox => {
             checkbox.checked = checked;
             checkbox.parentNode.classList.toggle('checked', checked);
         });
 
         updateRemoveChecked();
-    }
+    };
 
-    function updateSectionCheckbox() {
+    const updateSectionCheckbox = () => {
         sectionCheckbox.checked = every.call(itemCheckboxes, isChecked);
-    }
+    };
 
     sectionCheckbox.addEventListener('change', updateItemCheckboxes);
     section.addEventListener('change', updateSectionCheckbox);
     updateSectionCheckbox();
 
     return sectionCheckbox;
-}
+};
 
-function sectionIsRemovable(sectionHeader) {
+const sectionIsRemovable = sectionHeader =>
     // Site updates (3150) are dismissed by reading them.
-    return sectionHeader.dataset.type != '3150';
-}
+    sectionHeader.dataset.type != '3150';
 
-var removableSectionHeaders = filter.call(sectionHeaders, sectionIsRemovable);
+const removableSectionHeaders = filter.call(sectionHeaders, sectionIsRemovable);
 
-var sectionCheckboxes = map.call(removableSectionHeaders, function (sectionHeader) {
-    var label = document.createElement('label');
-    var sectionCheckbox = sectionToggle(sectionHeader.nextElementSibling);
+const sectionCheckboxes = map.call(removableSectionHeaders, sectionHeader => {
+    const label = document.createElement('label');
+    const sectionCheckbox = sectionToggle(sectionHeader.nextElementSibling);
 
     label.appendChild(sectionCheckbox);
     label.appendChild(document.createTextNode(' '));
@@ -66,20 +57,20 @@ var sectionCheckboxes = map.call(removableSectionHeaders, function (sectionHeade
     return sectionCheckbox;
 });
 
-function checkAllButton(text, checked) {
-    var button = document.createElement('button');
+const checkAllButton = (text, checked) => {
+    const button = document.createElement('button');
 
     button.type = 'button';
     button.className = checked ? 'button notifs-check-all' : 'button notifs-uncheck-all';
     button.textContent = text;
 
-    button.addEventListener('click', function () {
-        forEach.call(removeCheckboxes, function (checkbox) {
+    button.addEventListener('click', () => {
+        forEach.call(removeCheckboxes, checkbox => {
             checkbox.checked = checked;
             checkbox.parentNode.classList.toggle('checked', checked);
         });
 
-        sectionCheckboxes.forEach(function (checkbox) {
+        sectionCheckboxes.forEach(checkbox => {
             checkbox.checked = checked;
         });
 
@@ -88,12 +79,12 @@ function checkAllButton(text, checked) {
     });
 
     return button;
-}
+};
 
-function updateRemoveChecked() {
+const updateRemoveChecked = () => {
     removeCheckedButton.disabled = !some.call(removeCheckboxes, isChecked);
     removeCheckedButtonTop.disabled = !some.call(removeCheckboxes, isChecked);
-}
+};
 
 notificationContainer.addEventListener('change', updateRemoveChecked);
 updateRemoveChecked();

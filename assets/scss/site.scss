@@ -27,6 +27,10 @@ body {
     background-color: #1d2224;
 }
 
+picture {
+    display: contents;
+}
+
 #page-container {
     max-width: 1650px;
     margin: 0 auto;
@@ -62,8 +66,8 @@ textarea {
     font-size: 0.75rem;
 }
 
-.typeface-a, .username, .page-title, a.more span, #header-messages a,
-.content h3, .stage h3, .caption h5 {
+.typeface-a, .username, .page-title, a.more > span, #header-messages a,
+.content h3, .stage h3 {
     font-family: Museo500, Lucida Sans, Lucida Grande, Arial, Roboto, sans-serif;
     font-weight: normal !important;
 }
@@ -82,17 +86,31 @@ i, #header-guest {
 $color-a: #069bc0;
 $color-b: #8cad47;
 
-.color-a, .username, .content .username, .page-title, #header-nav .current,
+.content {
+    @extend %content-like;
+}
+
+.content-like {
+    @extend %content-like;
+}
+
+.color-a,
+.username,
+.content .username,
+.content-like .username,  // @extend doesn’t guarantee the required specificity to override `%content-like a`
+.page-title,
+#header-nav .current,
 #user-nav .current,
-#submissions-stage .sectioned-sidebar .current, #hc-streams h3 {
+#submissions-stage .sectioned-sidebar .current,
+#hc-streams h3 {
     color: $color-a;
 }
 
-a.more span, #header-messages a, .page-title a {
+a.more > span, #header-messages a, .page-title a {
     color: $color-b;
 }
 
-.color-c, .title, .content a {
+.color-c, %content-like a {
     color: theme.$link-color;
 }
 
@@ -128,6 +146,11 @@ a.more span, #header-messages a, .page-title a {
     color: #ddd;
 }
 
+.content-like i {
+    // undo `.stage i` for `.stage .content-like i`
+    color: inherit;
+}
+
 .banned {
     color: #bb2b19;
     text-decoration: line-through;
@@ -139,41 +162,49 @@ a.more span, #header-messages a, .page-title a {
     text-decoration: line-through;
 }
 
-.thumbnail-grid .title {
-    color: inherit;
-}
-
 .content .byline {
     color: #808080;
 }
 
-li.more, div.more, a.more-block {
+.more-block {
     clear: both;
     display: block;
 }
 
-li.more {
-    margin: 0.75em 0 0;
-    border-top: 1px dashed #334047;
+// When used on an `<a>`, `.more` is a style of link with an emphasized target and an arrow. It can be combined with `.more-block`.
+// When used on a `<li>`, `.more` is a layout for an `a.more` with a top border (that can be removed with `.more-joined`), and is always part of a `.thumbnail-grid`.
+// `div.more` is like `li.more` but for non-`.thumbnail-grid` cases. It has more of a top margin because `.thumbnail-grid` items have bottom margins and padding.
 
-    &.more-joined {
-        border-top: none;
-    }
+li.more, div.more {
+    border-top: 1px dashed #334047;
+    padding-top: 8px;
+    text-align: right;
 }
 
-hr.more {
-    margin: 2em 0 2em 0;
+li.more {
+    margin-top: 8px;
+    width: 100%;
+}
+
+li.more-joined {
+    border-top: none;
+}
+
+div.more {
+    margin-top: 16px;
+}
+
+.user-header-duo-sep {
+    margin: 2em 0;
     border-top: 1px dashed #66808e;
 }
 
 a.more {
-    clear: both;
-    float: right;
     text-align: right;
     text-decoration: none;
 }
 
-a.more:hover span {
+a.more:hover > span {
     border-bottom: 1px solid #8cad47;
 }
 
@@ -188,14 +219,12 @@ a.more::after {
     border-style: solid;
 }
 
-a.more span {
-    font-size: 16px;
+a.more > span {
     font-size: 1rem;
 }
 
-a.more-block span, a.more {
-    font-size: 14px;
-    font-size: 0.9rem;
+a.more-block > span, a.more {
+    font-size: 0.875rem;
 }
 
 a.more-block {
@@ -224,8 +253,7 @@ a.more-block:last-child {
 }
 
 @media (min-width: 30em) {
-    a.more-block span, a.more span {
-        font-size: 16px;
+    a.more-block > span {
         font-size: 1rem;
     }
 
@@ -240,8 +268,8 @@ a.more-block:last-child {
     }
 }
 
-.content li.more, .content a.more {
-    border-color: #c0c0c0;
+.content .more {
+    border-color: #c0c0c0;  // targets `li.more` and `div.more`, and has no effect on `a.more`
     color: #4d4d4d;
 }
 
@@ -268,14 +296,20 @@ a.more-block:last-child {
 }
 
 $content-background: #ddd;
+$content-vpad-dense: 16px;
+$content-vpad-sparse: 32px;
 
 .content {
     background-color: $content-background;
     color: #4d4d4d;
-    padding-bottom: 16px;
-    padding-bottom: 1rem;
+    padding-bottom: $content-vpad-dense;
     position: relative;
     z-index: 1;
+}
+
+// Makes the vertical padding symmetric. Not the default for historical reasons (too many existing components already account for the original layout).
+.content-vpad {
+    padding-top: $content-vpad-dense;
 }
 
 .content h3, .stage h3 {
@@ -313,8 +347,11 @@ $content-background: #ddd;
 
 @media (min-width: 53em) {
     .content {
-        padding-bottom: 32px;
-        padding-bottom: 2rem;
+        padding-bottom: $content-vpad-sparse;
+    }
+
+    .content-vpad {
+        padding-top: $content-vpad-sparse;
     }
 }
 
@@ -330,6 +367,10 @@ $content-background: #ddd;
 
     .sectioned-main {
         margin-left: 30.2%;
+    }
+
+    // A `.sectioned-main` with elements that interact with float-based layout (i.e. ones that `clear`) needs to avoid mixing those with the sidebar.
+    .sectioned-main-floats {
         overflow: hidden;
     }
 }
@@ -342,7 +383,7 @@ $content-background: #ddd;
 
     .sectioned-main {
         margin-left: 302px;
-        margin-left: 18.8em;
+        margin-left: 18.8rem;
     }
 }
 
@@ -422,25 +463,21 @@ a.bar {
     }
 }
 
+:root {
+    --content-pad-h: 16px;
+}
+
 .pad-left, .content, .page-title {
-    padding-left: 16px;
-    padding-left: 1rem;
+    padding-left: var(--content-pad-h);
 }
 
 .pad-right, .content, .stage a.more, .page-title {
-    padding-right: 16px;
-    padding-right: 1rem;
+    padding-right: var(--content-pad-h);
 }
 
 @media (min-width: 53em) {
-    .pad-left, .content, .page-title {
-        padding-left: 32px;
-        padding-left: 2rem;
-    }
-
-    .pad-right, .content, .stage a.more, .page-title {
-        padding-right: 32px;
-        padding-right: 2rem;
+    :root {
+        --content-pad-h: 32px;
     }
 }
 
@@ -466,8 +503,10 @@ a.bar {
     word-wrap: break-word;
 }
 
+$constrained-width: 50em;
+
 .constrained {
-    max-width: 50em;
+    max-width: $constrained-width;
     margin: 0 auto;
 }
 
@@ -874,7 +913,6 @@ a:hover .icon-journals { background-position: -20px -60px; }
 a:hover .icon-messages { background-position: -20px -80px; }
 .icon-nav { background-position: 0 -100px; }
 a:hover .icon-nav { background-position: -20px -100px; }
-.icon-disclosure { background-position: 0 -120px; }
 
 .icon-star { background-position: 0 -140px; }
 a:hover .icon-star, button:hover .icon-star { background-position: -20px -140px; }
@@ -893,11 +931,11 @@ a:hover .icon-arrowDown, button:hover .icon-arrowDown { background-position: -20
 a:hover .icon-report, button:hover .icon-report { background-position: -20px -240px; }
 .active .icon-report { background-position: -40px -240px; }
 
-.icon-file { background-position: -40px 0; }
-.icon-lit { background-position: -40px -20px; }
-.ext-jpg .icon-file, .ext-png .icon-file, .ext-gif .icon-file { background-position: -40px -40px; }
-.icon-music, .ext-mp3 .icon-file { background-position: -40px -60px; }
-.icon-multi, .ext-swf .icon-file { background-position: -40px -80px; }
+%icon-disclosure { background-position: 0 -120px; }
+%icon-file { background-position: -40px 0; }
+%icon-lit { background-position: -40px -20px; }
+%icon-music { background-position: -40px -60px; }
+%icon-multi { background-position: -40px -80px; }
 
 .icon-status::after {
     content: "";
@@ -928,118 +966,85 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 /* ------------------------------------ =grids -- */
 
-.grid {
-    display: block;
-    padding: 0;
-    margin-right: -15px;
-    letter-spacing: -0.32em;
-    text-rendering: optimizespeed;
-    text-align: center;
+$avatar-grid-gap: 15px;
+
+.avatar-grid {
+    contain: inline-size layout style;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $avatar-grid-gap;
+    padding: 0 $avatar-grid-gap;
 }
 
-.grid-unit, .avatar-grid > li, .avatar-grid > div {
+.avatar-grid > * {
     box-sizing: border-box;
-    display: inline-block;
-    width: 100%;
-    padding: 0 15px 15px 0;
-    margin: 0;
-    vertical-align: top;
-    letter-spacing: normal;
-    text-rendering: auto;
-    text-align: left;
+    width: 100px;
+    max-width: calc(33.3% - $avatar-grid-gap*2/3);
 }
 
-.avatar-grid > div, .avatar-grid > li {
-    width: 115px;
-    max-width: 33.3%;
-    position: relative;
-}
-.avatar-grid > .more {
-    width: 100%;
-    max-width: none;
-    display: block;
-    padding-top: 8px;
-    padding-top: 0.5rem;
-
-}
 .avatar-grid img {
     display: block;
     max-width: 100%;
 }
-.avatar-grid .thumb-bounds {
-    display: block;
-    position: relative;
-}
-.avatar-grid .title {
-    padding-top: 8px;
-}
-.avatar-grid .title a {
-    color: #ccc;
-}
-.content .avatar-grid .title a {
-    color: #336979;
-}
-.avatar-grid .title a:hover {
-    text-decoration: none;
-}
-.avatar-grid .byline i {
-    color: #888;
-    color: rgba(255,255,255,0.35);
-}
-.content .avatar-grid .byline i {
-    color: #888;
-}
+
 .avatar-grid .username {
+    font-size: 1rem;
     color: #3ad;
+
+    .content & {
+        color: $color-a;
+    }
 }
-.content .avatar-grid .username {
-    color: $color-a;
+
+.avatar-grid a:hover .username {
+    text-decoration: underline;
 }
+
+// friends and follows actions
 .avatar-grid .button {
     padding: 4px 0;
     border: none;
     box-shadow: none;
     background: transparent;
 }
-.avatar-grid .rating {
-    width: 50px;
-    height: 50px;
-    border-style: solid;
-    border-width: 0 4px 4px 0;
-    position: absolute;
-    right: -2px;
-    bottom: -2px;
-    color: transparent;
-    overflow: hidden;
-    text-indent: 150%;
-    z-index: 3;
-}
 
 
 
 /* ------------------------------------ =thumbnails -- */
 
+$thumbnail-grid-max-height: 250px;  // `ROW_BASIS` in thumbnail-grid.js
+
 .thumbnail-grid {
+    contain: inline-size layout style;
+    container-type: inline-size;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
 }
-.thumbnail-grid .more {
+.thumbnail-grid > .more {
+    padding-top: 8px;
     width: 100%;
 }
 .thumbnail-grid .item {
     box-sizing: border-box;
     display: inline-block;
     vertical-align: bottom;
-    max-width: 43.5%;
+
     margin: 0 4px 8px 4px;
+
+    // ensure that each row always has at least two thumbnails in the non-enhanced layout
+    max-width: 43.5%;
+    max-width: calc(50% - 12px);
 }
-.enhanced-thumbnails .thumbnail-grid .item {
-    max-width: 100%;
-    padding-left: 0;
+.thumbnail-grid-enhanced .item {
+    // undo
+    max-width: none;
 }
 .thumbnail-grid .thumb {
+    box-sizing: border-box;
     display: block;
+    height: 100%;
     padding-bottom: 45px;
     position: relative;
     text-decoration: none;
@@ -1066,81 +1071,99 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .thumbnail-grid .title, .thumbnail-grid .byline {
     display: block;
     max-width: 100%;
-    overflow: hidden;
     white-space: nowrap;
-    text-overflow: ellipsis;
     line-height: 15px;
-    opacity: 0.6
+    opacity: 0.6;
 }
-.content .thumbnail-grid .byline {
-    opacity: 1;
+.thumbnail-grid .byline {
+    display: flex;
+    gap: 0.5ex;  // mimic a normal space
+
+    > * {
+        // The username is more important than the full relationship, and should at least have an active area at all times. The longest label is “collected by”, and there are no ambiguous prefixes (the others are “by” and “character of”).
+        // Shrink and ellipsize the username until the label takes up 50% of the width, then shrink and ellipsize both.
+        // As a future improvement, it might be nicer to omit the label entirely and just show the username if there isn’t room for both.
+        // It’s important to set `overflow` at the innermost element; otherwise, the focus ring of the link gets clipped.
+        flex-shrink: 1;
+        min-width: 0;  // Fall back on default negative space distribution when `calc-size` isn’t supported.
+        min-width: calc-size(max-content, min(50%, size));
+        overflow: clip;
+        text-overflow: ellipsis;
+    }
+
+    > i {
+        color: #666;
+        color: rgba(255,255,255,0.35);
+
+        .content & {
+            color: #888;
+        }
+    }
+
+    > .username {
+        color: #3ad;
+
+        .content & {
+            color: $color-a;
+        }
+    }
+
+    .content & {
+        opacity: 1;
+    }
 }
 .thumbnail-grid .title {
     font-size: 13px;
-    line-height: 15px;
     font-weight: 400;
     padding: 0;
     margin: 0;
-}
-.thumbnail-grid .title a {
-    color: #ccc;
-}
-.content .thumbnail-grid .title, .content .thumbnail-grid .title a {
-    color: #222;
-}
-.thumbnail-grid .title a:hover {
-    text-decoration: none;
-}
-.thumbnail-grid .byline i {
-    color: #666;
-    color: rgba(255,255,255,0.35);
-}
-.content .thumbnail-grid .byline i {
-    color: #888;
-}
-.thumbnail-grid .username {
-    display: inline;
-    color: #3ad;
-}
-.content .thumbnail-grid .username {
-    color: $color-a;
-}
-.thumbnail-grid .username:hover {
-    opacity: 1;
+
+    > a {
+        display: inline-block;
+        max-width: 100%;
+        overflow: clip;  // `overflow-y: clip`: anti-zalgo
+        text-overflow: ellipsis;
+
+        color: #ccc;
+
+        .content & {
+            color: #222;
+        }
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
 }
 .thumbnail-grid .thumb-bounds {
     background: rgba(0,0,0,0.15);
-    box-sizing: border-box;
-    display: block;
-    position: relative;
+    display: flex;
+    height: 100%;
+
+    align-items: center;
+    justify-content: center;
+
+    > picture {
+        height: 100%;
+    }
 
     img {
         display: block;
-        max-width: 100%;
-        max-height: 100%;
-
-        &.has-space {
-            position: absolute;
-        }
-
-        html.enhanced-thumbnails & {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-        }
-    }
-
-    .img-space {
-        display: block;
-        height: auto;
+        width: auto;  // calculate from height and `aspect-ratio`
         max-height: 100%;
         max-width: 100%;
-
-        html.enhanced-thumbnails & {
-            display: none;
-        }
+        object-fit: cover;
     }
+}
+.thumbnail-grid-enhanced .thumb-bounds {
+    // Thumbnail grid CSS variable names are short to keep the generated CSS short.
+    // This requires a `thumbnail-grid-enhanced` class because property values with undefined variables still override fallbacks, like `.thumb-bounds`’s `height: 100%`.
+    contain: size layout style;
+    height: calc((100cqw - var(--g)*1px) * var(--h));
+    aspect-ratio: var(--r);
+
+    // prevent incomplete last row from stretching
+    max-height: $thumbnail-grid-max-height;
 }
 .thumbnail-grid .rating {
     width: 60px;
@@ -1179,68 +1202,36 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     padding-right: 8px;
 }
 
-.thumbnail-grid > .more {
-    padding-top: 8px;
-    padding-top: 0.5rem;
+.thumbnail-grid:not(.thumbnail-grid-enhanced) {
+    > .tiny-footprint > .item:nth-child(n+6),
+    > .small-footprint > .item:nth-child(n+6),
+    > .medium-footprint > .item:nth-child(n+12) {
+        display: none;
+    }
 }
-
-.thumbnail-left .thumb, .thumbnail-left .avatar {
-    float: left;
-    margin-right: 1em;
-    max-width: 50px;
-}
-
-/* Make character names bigger */
-.thumbnail .caption.big h5, .user-characters .thumbnail .caption h5 {
-    font-size: 1.3em;
-}
-
-.tiny-footprint .item:nth-child(n+6),
-.small-footprint .item:nth-child(n+6),
-.medium-footprint .item:nth-child(n+12),
-.large-footprint .item:nth-child(n+28) {
-    display: none;
-}
-.enhanced-thumbnails .tiny-footprint .item:nth-child(n+6),
-.enhanced-thumbnails .small-footprint .item:nth-child(n+6),
-.enhanced-thumbnails .medium-footprint .item:nth-child(n+12),
-.enhanced-thumbnails .large-footprint .item:nth-child(n+28) {
-    display: inline-block;
-}
-
 
 @media (max-width: 479px) {
     .thumbnail-grid .rating {
         width: 30px;
         height: 30px;
     }
-    .tiny-footprint .item:nth-child(n+2),
-    .small-footprint .item:nth-child(n+4),
-    .medium-footprint .item:nth-child(n+8),
-    .large-footprint .item:nth-child(n+12) {
-        display: none;
-    }
-    .enhanced-thumbnails .tiny-footprint .item:nth-child(n+2),
-    .enhanced-thumbnails .small-footprint .item:nth-child(n+4),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+8),
-    .enhanced-thumbnails .large-footprint .item:nth-child(n+12) {
-        display: inline-block;
+    .thumbnail-grid:not(.thumbnail-grid-enhanced) {
+        > .tiny-footprint > .item:nth-child(n+2),
+        > .small-footprint > .item:nth-child(n+4),
+        > .medium-footprint > .item:nth-child(n+8) {
+            display: none;
+        }
     }
 }
 
 
 @media (max-width: 767px) {
-    .tiny-footprint .item:nth-child(n+3),
-    .small-footprint .item:nth-child(n+5),
-    .medium-footprint .item:nth-child(n+10),
-    .large-footprint .item:nth-child(n+16) {
-        display: none;
-    }
-    .enhanced-thumbnails .tiny-footprint .item:nth-child(n+3),
-    .enhanced-thumbnails .small-footprint .item:nth-child(n+5),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+10),
-    .enhanced-thumbnails .large-footprint .item:nth-child(n+16) {
-        display: block;
+    .thumbnail-grid:not(.thumbnail-grid-enhanced) {
+        > .tiny-footprint > .item:nth-child(n+3),
+        > .small-footprint > .item:nth-child(n+5),
+        > .medium-footprint > .item:nth-child(n+10) {
+            display: none;
+        }
     }
 }
 
@@ -1255,6 +1246,19 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     .thumbnail-grid .checkbox {
         left: 10px;
         bottom: 20px;
+    }
+}
+
+// Grids should extend all the way to the edges.
+// Examples: notifications, collections, characters, favorites, following, followers, friends.
+.content .avatar-grid,
+.content .journals,
+.content .thumbnail-grid {
+    margin: 0 calc(-1 * var(--content-pad-h));
+
+    > .more {
+        @extend .pad-left;
+        @extend .pad-right;
     }
 }
 
@@ -2134,6 +2138,10 @@ $small-caps-ratio: 1.2;
 #home-panes > .pane > .thumbnail-grid {
     display: none;
     padding: 8px 0;
+
+    .no-js:root & {
+        display: flex;
+    }
 }
 
 #home-panes > .pane.current > .thumbnail-grid {
@@ -2185,7 +2193,6 @@ $small-caps-ratio: 1.2;
 
 #home-panes .thumbnail-grid {
     padding-bottom: 8px;
-    padding-bottom: 0.5rem;
 }
 
 #home-content {
@@ -2386,11 +2393,6 @@ $small-caps-ratio: 1.2;
     color: #ddd;
 }
 
-#user-thumbs #fav-thumbs {
-    padding-top: 16px;
-    padding-top: 1rem;
-}
-
 #uf-image {
     text-align: center;
 }
@@ -2474,7 +2476,6 @@ $small-caps-ratio: 1.2;
 
 #user-info + .thumbnail-grid {
     margin-top: 16px;
-    margin-top: 1rem;
 }
 
 @media (min-width: 27em) {
@@ -2582,17 +2583,9 @@ $small-caps-ratio: 1.2;
 @media (min-width: 45em) {
     #user-image {
         display: block;
-        width: 100%;
-        overflow: hidden;
     }
 
-    #user-image img {
-        display: block;
-        max-width: 100%;
-        position: absolute;
-    }
-
-    #user-image .img-space {
+    #user-image > img {
         display: block;
         height: auto;
         max-width: 100%;
@@ -2679,7 +2672,6 @@ $small-caps-ratio: 1.2;
 
     #user-info + .thumbnail-grid {
         margin-top: 32px;
-        margin-top: 2rem;
     }
 }
 
@@ -3626,8 +3618,43 @@ img + #detail-art-text {
     background-position: 5px 50%;
 }
 
-#friends-accepted, #friends-pending, #following-users {
-    padding-top: 2em;
+$journals-column-gap: 8px;
+
+.journals {
+    contain: inline-size layout style paint;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $journals-column-gap;
+    row-gap: 16px;
+    padding: 0 $journals-column-gap;
+}
+
+.journals > .text-post-item {
+    contain: inline-size layout style paint;
+    box-sizing: border-box;
+    margin: 0;
+    max-width: $constrained-width;
+    width: 100%;
+    flex-grow: 1;
+}
+
+@function em-px($ems) {
+    @return math.div($ems, 1em) * 16px;
+}
+
+/// The minimum container width (i.e. including padding) for a journals grid to comfortably show the given number of columns.
+@function journals-min-width($column-count) {
+    @return $column-count * (496px + $journals-column-gap) + $journals-column-gap;
+}
+
+@for $column-count from 2 through 3 {
+    // NOTE: `.journals` can also be search results, and this measures the viewport width, not the width minus the sidebar. In practice, it’s good enough.
+    @media (min-width: journals-min-width($column-count)) {
+        .journals > .text-post-item {
+            width: calc(100% / $column-count - ($column-count - 1) * $journals-column-gap);
+        }
+    }
 }
 
 /* ------------------------------------ =footer -- */
@@ -3838,7 +3865,7 @@ img + #detail-art-text {
 
 /* ------------------------------------ =fixes --*/
 
-.clear::after, .thumbnail-grid::after, .content::after, .stage::after {
+.clear::after, .content::after {
     content: ".";
     display: block;
     height: 0;

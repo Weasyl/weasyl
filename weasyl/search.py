@@ -280,6 +280,17 @@ def _prepare_search(
         statement_from_join.append("INNER JOIN login login_exclude ON content.userid = login_exclude.userid")
         statement_where.append("AND login_exclude.login_name != ALL (%(required_user_excludes)s)")
 
+    title_field = "title"
+
+    match search.find:
+        case "char":
+            title_field = "char_name"
+            extra_fields = ", content.settings"
+        case "journal":
+            extra_fields = ", content.content"
+        case _:
+            extra_fields = ""
+
     def make_statement(
         statement_select,
         statement_additional_where,
@@ -302,8 +313,8 @@ def _prepare_search(
             find=search.find,
             select=select,
             subtype=subtype,
-            title_field="char_name" if search.find == "char" else "title",
-            extra_fields=", content.settings" if search.find == "char" else ""
+            title_field=title_field,
+            extra_fields=extra_fields,
         )
 
     all_names = (
@@ -489,7 +500,15 @@ def select(**kwargs) -> tuple[Results, PrevFilter | None, NextFilter | None]:
     return results, prev_page, next_page
 
 
-def browse(userid, rating, limit, find, cat, backid, nextid):
+def browse(
+    userid,
+    rating,
+    limit,
+    find: Literal["submit", "char", "journal", "critique"],
+    cat,
+    backid,
+    nextid,
+):
     if find == "char":
         return character.select_list(userid, rating, limit, backid=backid, nextid=nextid)
     elif find == "journal":

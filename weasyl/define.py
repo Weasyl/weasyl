@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import os
 import time
@@ -28,8 +30,11 @@ import libweasyl.constants
 from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
+from libweasyl.text import slug_for
+from libweasyl.text import summarize
 from libweasyl import html, text, ratings, staff
 
+from weasyl import cards
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
@@ -176,11 +181,13 @@ def _compile(template_name):
                 "SUMMARIZE": summarize,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
-                "THUMB": thumb_for_sub,
-                "WEBP_THUMB": webp_thumb_for_sub,
+
+                "CARD_WIDTHS": cards.get_widths,
+                "get_card_viewer": get_card_viewer,
+
                 "M": macro,
                 "R": ratings,
-                "SLUG": text.slug_for,
+                "SLUG": slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
                 "PATH": _get_path,
@@ -189,10 +196,12 @@ def _compile(template_name):
                 "format": format,
                 "getattr": getattr,
                 "json": json,
+                "map": map,
                 "sorted": sorted,
                 "staff": staff,
                 "turnstile": turnstile,
                 "resource_path": get_resource_path,
+                "zip": zip,
             })
 
     return template
@@ -981,12 +990,6 @@ def absolutify_url(url):
     return urljoin(get_current_request().application_url, url)
 
 
-def summarize(s, max_length=200):
-    if len(s) > max_length:
-        return s[:max_length - 1].rstrip() + '\N{HORIZONTAL ELLIPSIS}'
-    return s
-
-
 def clamp(val, lower_bound, upper_bound):
     return min(max(val, lower_bound), upper_bound)
 
@@ -1060,50 +1063,17 @@ def paginate(results, backid, nextid, limit, key):
         None if at_end or not results else results[-1][key])
 
 
-def thumb_for_sub(submission):
+_default_thumbs = cards.get_default_thumbnails(get_resource_path)
+
+
+def get_card_viewer() -> cards.Viewer:
     """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb.
+    Gets the card-viewing experience (thumbnail preferences, essentially) for the current user.
     """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    if (profile_settings.disable_custom_thumbs and
-            submission.get('subtype', 9999) < 2000 and
-            submission['userid'] != user_id):
-        thumb_key = 'thumbnail-generated'
-    else:
-        thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
-
-    return submission['sub_media'][thumb_key][0]
-
-
-def webp_thumb_for_sub(submission):
-    """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate WebP media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb, or None.
-    """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    disable_custom_thumb = (
-        profile_settings.disable_custom_thumbs and
-        submission.get('subtype', 9999) < 2000 and
-        submission['userid'] != user_id
+    userid = get_userid()
+    profile_settings = get_profile_settings(userid)
+    return cards.Viewer(
+        userid=userid,
+        disable_custom_thumbs=profile_settings.disable_custom_thumbs,
+        default_thumbs=_default_thumbs,
     )
-
-    if not disable_custom_thumb and 'thumbnail-custom' in submission['sub_media']:
-        return None
-
-    thumbnail_generated_webp = submission['sub_media'].get('thumbnail-generated-webp')
-    return thumbnail_generated_webp and thumbnail_generated_webp[0]

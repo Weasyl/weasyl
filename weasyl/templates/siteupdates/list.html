@@ -18,19 +18,20 @@ $:{TITLE("Site Updates")}
         $:{LOCAL_TIME(created, '{date}')}
       </div>
 
-      <article class="text-post-item">
-        <img class="text-post-image" src="${update['user_media']['avatar'][0]['display_url']}" title="${update['username']}" alt="${update['username']}’s avatar" />
-
+      <article class="text-post-item text-post-item-with-byline">
         <div class="text-post-text">
-          <h4 class="text-post-title">
-            <a href="${request.route_path('site_update', update_id=update['updateid'])}">${update['title']}</a>
-            <span class="text-post-actions">
-              $if can_post:
-                <a class="text-post-edit" href="${request.route_path('site_update_edit', update_id=update['updateid'])}">Edit</a>
-              $if last_read_updateid is not None and update['updateid'] > last_read_updateid:
-                <span class="text-post-new">New</span>
-            </span>
-          </h4>
+          <header>
+            <h4 class="text-post-title">
+              <a href="${request.route_path('site_update', update_id=update['updateid'])}">${update['title']}</a>
+              <span class="text-post-actions">
+                $if can_post:
+                  <a class="text-post-edit" href="${request.route_path('site_update_edit', update_id=update['updateid'])}">Edit</a>
+                $if last_read_updateid is not None and update['updateid'] > last_read_updateid:
+                  <span class="text-post-new">New</span>
+              </span>
+            </h4>
+            <p class="text-post-byline"><i>by</i> <a class="username" rel="author" href="/~${LOGIN(update['username'])}"><img class="text-post-image" src="${update['user_media']['avatar'][0]['display_url']}" alt=""> ${update['username']}</a></p>
+          </header>
 
           <p class="text-post-excerpt">${MARKDOWN_EXCERPT(update['content'])}</p>
         </div>

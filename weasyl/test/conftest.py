@@ -78,10 +78,9 @@ def empty_storage():
     os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media'))
     os.symlink('ad', os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media', 'ax'))
 
-    try:
-        yield
-    finally:
-        shutil.rmtree(macro.MACRO_STORAGE_ROOT)
+    yield
+
+    shutil.rmtree(macro.MACRO_STORAGE_ROOT)
 
 
 @pytest.fixture(scope="session")
@@ -89,10 +88,9 @@ def configurator():
     config = pyramid.testing.setUp()
     setup_routes_and_views(config)
 
-    try:
-        yield config
-    finally:
-        pyramid.testing.tearDown()
+    yield config
+
+    pyramid.testing.tearDown()
 
 
 @pytest.fixture(autouse=True)

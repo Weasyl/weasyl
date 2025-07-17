@@ -8,6 +8,7 @@ import shutil
 
 import pytest
 import pyramid.testing
+from psycopg2.extensions import quote_ident
 from sqlalchemy.dialects.postgresql import psycopg2
 from webtest import TestApp as TestApp_
 
@@ -129,9 +130,14 @@ def db(request):
 
     def tear_down():
         """ Clears all rows from the test database. """
-        db.flush()
-        for table in reversed(metadata.sorted_tables):
-            db.execute(table.delete())
+        db.expunge_all()
+        driver_conn = db.connection().connection.driver_connection
+        db.execute(
+            "".join(
+                f"DELETE FROM {quote_ident(table.name, driver_conn)};"
+                for table in reversed(metadata.sorted_tables)
+            )
+        )
 
     request.addfinalizer(tear_down)
 

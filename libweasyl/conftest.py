@@ -21,7 +21,7 @@ sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
 
 
 @pytest.fixture(scope='session', autouse=True)
-def setup(request):
+def setup():
     db = sessionmaker()
     db.execute('DROP SCHEMA public CASCADE')
     db.execute('CREATE SCHEMA public')

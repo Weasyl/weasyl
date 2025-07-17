@@ -402,10 +402,11 @@ def api_messages_submissions_(request):
 @api_method
 def api_messages_summary_(request):
     counts = d._page_header_info(request.userid)
+    site_updates = d.site_update_unread_count(request.userid)
     return {
         'unread_notes': counts[0],
         'comments': counts[1],
-        'notifications': counts[2],
+        'notifications': counts[2] + site_updates,
         'submissions': counts[3],
         'journals': counts[4],
     }

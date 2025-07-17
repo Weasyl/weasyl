@@ -22,7 +22,7 @@ def site_update_list_(request):
     can_post = userid in staff.ADMINS
 
     if updates and userid:
-        last_read_updateid = siteupdate.get_last_read_updateid(userid)
+        last_read_updateid = d.get_last_read_updateid(userid) or 0
         max_updateid = updates[0]['updateid']
 
         if max_updateid > last_read_updateid:
@@ -32,7 +32,7 @@ def site_update_list_(request):
                 WHERE userid = %(user)s
             """, max=max_updateid, user=userid)
 
-            d._page_header_info.invalidate(userid)
+            d.get_last_read_updateid.invalidate(userid)
     else:
         last_read_updateid = None
 
@@ -45,22 +45,22 @@ def site_update_list_(request):
 
 
 def site_update_get_(request):
+    userid = request.userid
     updateid = int(request.matchdict['update_id'])
     update = siteupdate.select_view(updateid)
-    myself = profile.select_myself(request.userid)
-    comments = comment.select(request.userid, updateid=updateid)
+    myself = profile.select_myself(userid)
+    comments = comment.select(userid, updateid=updateid)
 
-    if request.userid:
+    if userid:
         d.engine.execute("""
             UPDATE login
             SET last_read_updateid = %(updateid)s
             WHERE userid = %(userid)s
             AND COALESCE(last_read_updateid, 0) < %(updateid)s
-        """, userid=request.userid, updateid=updateid)
+        """, userid=userid, updateid=updateid)
+        d.get_last_read_updateid.invalidate(userid)
 
-        d._page_header_info.invalidate(request.userid)
-
-    return Response(define.webpage(request.userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
+    return Response(define.webpage(userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
 
 
 @admin_only
@@ -111,6 +111,8 @@ def site_update_post_(request):
         content=content,
         wesley=wesley,
     )
+
+    d.get_updateids.invalidate()
 
     raise HTTPSeeOther(location="/site-updates/%d" % (updateid,))
 

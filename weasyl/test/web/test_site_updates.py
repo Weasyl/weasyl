@@ -1,6 +1,7 @@
 import pytest
 
 from libweasyl import staff
+from weasyl import define
 from weasyl import errorcode
 from weasyl import siteupdate
 from weasyl.test import db_utils
@@ -154,7 +155,7 @@ def test_create_validation(app, monkeypatch):
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['contentInvalid']
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_create_notifications(app, monkeypatch):
     admin_user = db_utils.create_user()
     normal_user = db_utils.create_user()
@@ -170,7 +171,7 @@ def test_create_notifications(app, monkeypatch):
     assert list(resp.html.find(id='site_updates').find(None, 'item').a.stripped_strings)[0] == _FORM['title']
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_read_counter(app, monkeypatch):
     admin_user = db_utils.create_user()
     normal_user = db_utils.create_user()
@@ -178,11 +179,10 @@ def test_read_counter(app, monkeypatch):
     normal_cookie = db_utils.create_session(normal_user)
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
 
-    updateids = []
     for _ in range(3):
         resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
-        updateid = int(resp.headers['Location'].rpartition('/')[2])
-        updateids.append(updateid)
+
+    updateids = define.get_updateids()
 
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '3'
@@ -190,10 +190,10 @@ def test_read_counter(app, monkeypatch):
     resp = app.get(f'/site-updates/{updateids[1]}', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
 
-    resp = app.get(f'/site-updates/{updateids[0]}', headers={'Cookie': normal_cookie})
+    resp = app.get(f'/site-updates/{updateids[2]}', headers={'Cookie': normal_cookie})
     assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
 
-    resp = app.get(f'/site-updates/{updateids[2]}', headers={'Cookie': normal_cookie})
+    resp = app.get(f'/site-updates/{updateids[0]}', headers={'Cookie': normal_cookie})
     assert not resp.html.find(id='header-messages').find(title='Notifications')
 
 

@@ -671,17 +671,28 @@ def private_messages_unread_count(userid: int) -> int:
         "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
 
 
-def site_updates_unread_count(userid: int) -> int:
-    # Avoid weasyl.define <---> weasyl.siteupdate circular import
-    from weasyl import siteupdate
-
-    last_read_updateid = siteupdate.get_last_read_updateid(userid)
-
+@region.cache_on_arguments()
+def get_last_read_updateid(userid: int) -> int | None:
     return engine.scalar("""
-        SELECT COUNT(*)
+        SELECT last_read_updateid
+        FROM login
+        WHERE userid = %(user)s
+    """, user=userid)
+
+
+@region.cache_on_arguments()
+def get_updateids() -> list[int]:
+    results = engine.execute("""
+        SELECT updateid
         FROM siteupdate
-        WHERE updateid > %(update)s
-    """, update=last_read_updateid)
+        ORDER BY updateid DESC
+    """).fetchall()
+
+    return [result.updateid for result in results]
+
+
+def site_update_unread_count(userid: int) -> int:
+    return [*get_updateids(), None].index(get_last_read_updateid(userid))
 
 
 notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
@@ -693,8 +704,7 @@ notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_co
 @notification_count_time.uncached
 def _page_header_info(userid):
     messages = private_messages_unread_count(userid)
-    site_updates = site_updates_unread_count(userid)
-    result = [messages, 0, site_updates, 0, 0]
+    result = [messages, 0, 0, 0, 0]
 
     counts = engine.execute(
         """
@@ -746,8 +756,10 @@ def _is_sfw_locked(userid):
 def page_header_info(userid):
     from weasyl import media
     sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
+    notification_counts = _page_header_info(userid).copy()
+    notification_counts[2] += site_update_unread_count(userid)
     return {
-        "welcome": _page_header_info(userid),
+        "welcome": notification_counts,
         "userid": userid,
         "username": get_display_name(userid),
         "user_media": media.get_user_media(userid),

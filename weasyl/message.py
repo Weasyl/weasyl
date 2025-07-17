@@ -3,7 +3,6 @@ from itertools import chain
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
-from weasyl import siteupdate
 
 
 notification_clusters = {
@@ -237,7 +236,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
 
 
 def select_site_updates(userid: int) -> list[dict]:
-    last_read_updateid = siteupdate.get_last_read_updateid(userid)
+    last_read_updateid = d.get_last_read_updateid(userid) or 0
 
     new_updates = d.engine.execute("""
         SELECT updateid, title, unixtime

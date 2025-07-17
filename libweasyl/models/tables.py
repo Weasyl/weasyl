@@ -328,7 +328,6 @@ login = Table(
     Column('ip_address_at_signup', String(length=39), nullable=True),
     Column('voucher', Integer, ForeignKey('login.userid'), nullable=True),
     # Nullable for the case where no site updates exist in the database.
-    # Queries should COALESCE(updateid, 0) as appropriate.
     Column('last_read_updateid', Integer(), nullable=True),
     ForeignKeyConstraint(['last_read_updateid'], ['siteupdate.updateid'], name='login_last_read_updateid_fkey'),
 )

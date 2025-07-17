@@ -5,6 +5,7 @@ import errno
 import json
 import os
 import shutil
+import warnings
 
 import pytest
 import pyramid.testing
@@ -134,6 +135,7 @@ def db(request):
             {'last_read_updateid': None}
         )
         db.flush()
+        warnings.filterwarnings('ignore', 'Cannot correctly sort tables')
         for table in reversed(metadata.sorted_tables):
             db.execute(table.delete())
 

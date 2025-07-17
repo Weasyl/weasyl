@@ -8,7 +8,6 @@ import shutil
 
 import pytest
 import pyramid.testing
-from psycopg2.extensions import quote_ident
 from sqlalchemy.dialects.postgresql import psycopg2
 from webtest import TestApp as TestApp_
 
@@ -21,6 +20,7 @@ from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from libweasyl.staff import StaffConfig
+from libweasyl.test.common import clear_database
 from weasyl import (
     commishinfo,
     define,
@@ -125,23 +125,9 @@ def drop_email(monkeypatch):
 
 
 @pytest.fixture
-def db(request):
-    db = define.connect()
-
-    def tear_down():
-        """ Clears all rows from the test database. """
-        db.expunge_all()
-        driver_conn = db.connection().connection.driver_connection
-        db.execute(
-            "".join(
-                f"DELETE FROM {quote_ident(table.name, driver_conn)};"
-                for table in reversed(metadata.sorted_tables)
-            )
-        )
-
-    request.addfinalizer(tear_down)
-
-    return db
+def db():
+    yield define.get_current_request().pg_connection
+    clear_database(define.engine)
 
 
 @pytest.fixture(name='cache')

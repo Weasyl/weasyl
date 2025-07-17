@@ -180,7 +180,7 @@ def test_read_counter(app, monkeypatch):
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
 
     for _ in range(3):
-        resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
+        app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
 
     updateids = define.get_updateids()
 

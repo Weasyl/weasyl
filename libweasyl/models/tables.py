@@ -327,6 +327,10 @@ login = Table(
     # Must be nullable, since existing accounts will not have this information
     Column('ip_address_at_signup', String(length=39), nullable=True),
     Column('voucher', Integer, ForeignKey('login.userid'), nullable=True),
+    # Nullable for the case where no site updates exist in the database.
+    # Queries should COALESCE(updateid, 0) as appropriate.
+    Column('last_read_updateid', Integer(), nullable=True),
+    ForeignKeyConstraint(['last_read_updateid'], ['siteupdate.updateid'], name='login_last_read_updateid_fkey'),
 )
 
 Index('ind_login_login_name', login.c.login_name)
@@ -718,20 +722,6 @@ siteupdatecomment = Table(
     CheckConstraint("hidden_by IS NULL OR hidden_at IS NOT NULL", name='siteupdatecomment_hidden_check'),
     UniqueConstraint('targetid', 'commentid'),
 )
-
-
-siteupdateread = Table(
-    'siteupdateread', metadata,
-    Column('readid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), nullable=False),
-    # Nullable for the case where no site updates exist in the database.
-    # Queries should COALESCE(updateid, 0) as appropriate.
-    Column('updateid', Integer(), nullable=True),
-    ForeignKeyConstraint(['userid'], ['login.userid'], name='siteupdateread_userid_fkey'),
-    ForeignKeyConstraint(['updateid'], ['siteupdate.updateid'], name='siteupdateread_updateid_fkey'),
-)
-
-Index('ind_siteupdateread_userid', siteupdateread.c.userid)
 
 
 submission = Table(

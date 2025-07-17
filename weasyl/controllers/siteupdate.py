@@ -27,8 +27,8 @@ def site_update_list_(request):
 
         if max_updateid > last_read_updateid:
             d.engine.execute("""
-                UPDATE siteupdateread
-                SET updateid = %(max)s
+                UPDATE login
+                SET last_read_updateid = %(max)s
                 WHERE userid = %(user)s
             """, max=max_updateid, user=userid)
 
@@ -52,10 +52,10 @@ def site_update_get_(request):
 
     if request.userid:
         d.engine.execute("""
-            UPDATE siteupdateread
-            SET updateid = %(updateid)s
+            UPDATE login
+            SET last_read_updateid = %(updateid)s
             WHERE userid = %(userid)s
-            AND COALESCE(updateid, 0) < %(updateid)s
+            AND COALESCE(last_read_updateid, 0) < %(updateid)s
         """, userid=request.userid, updateid=updateid)
 
         d._page_header_info.invalidate(request.userid)

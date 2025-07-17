@@ -304,11 +304,6 @@ def verify(token, ip_address=None):
         # Update logincreate records
         db.execute(lc.delete().where(lc.c.token == token))
 
-        # Create latest-read site update counter
-        latest_updateid = db.scalar("SELECT MAX(updateid) FROM siteupdate")
-        db.execute("INSERT INTO siteupdateread (userid, updateid) VALUES (:userid, :updateid)",
-                   {"userid": userid, "updateid": latest_updateid})
-
     d.metric('increment', 'verifiedusers')
 
 

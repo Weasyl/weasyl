@@ -672,11 +672,10 @@ def private_messages_unread_count(userid: int) -> int:
 
 
 def site_updates_unread_count(userid: int) -> int:
-    last_read_updateid = engine.scalar("""
-        SELECT COALESCE(updateid, 0)
-        FROM siteupdateread
-        WHERE userid = %(user)s
-    """, user=userid)
+    # Avoid weasyl.define <---> weasyl.siteupdate circular import
+    from weasyl import siteupdate
+
+    last_read_updateid = siteupdate.get_last_read_updateid(userid)
 
     return engine.scalar("""
         SELECT COUNT(*)

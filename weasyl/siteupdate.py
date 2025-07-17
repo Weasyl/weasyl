@@ -76,8 +76,8 @@ _EDIT = (
 
 def get_last_read_updateid(userid: int) -> int:
     return d.engine.scalar("""
-        SELECT COALESCE(updateid, 0)
-        FROM siteupdateread
+        SELECT COALESCE(last_read_updateid, 0)
+        FROM login
         WHERE userid = %(user)s
     """, user=userid)
 

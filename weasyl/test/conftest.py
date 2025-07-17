@@ -129,6 +129,10 @@ def db(request):
 
     def tear_down():
         """ Clears all rows from the test database. """
+        db.execute(
+            define.meta.tables['login'].update(),
+            {'last_read_updateid': None}
+        )
         db.flush()
         for table in reversed(metadata.sorted_tables):
             db.execute(table.delete())

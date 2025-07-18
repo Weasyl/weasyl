@@ -103,7 +103,12 @@ $def with (query, options, extended_options={})
       <ul id="header-messages">
         $if query['unread_updates']:
           $ subpath = query['updateids'][0] if query['unread_updates'] == 1 else ''
-          <li><a href ="/site-updates/$subpath" title="Site Updates"><span class="icon icon-20 icon-site-updates">Site Updates:</span> ${query['unread_updates']}</a></li>
+          <li>
+            <a href="/site-updates/$subpath" title="Site Updates">
+              <svg class="icon icon-svg-20" width="20" height="20" viewBox="0 0 20 20"><title>Site Updates:</title><path d="m 3.109375,17.15625 1.53125,1.25 c 0,0 2.078125,-3.28125 3.046875,-6.0625 0,0 6.8125,0.40625 6.859375,0.671875 0.04687,0.265625 2.25,2.203125 4.09375,-0.234375 1.84375,-2.4375 1.171875,-7.1875 -0.15625,-8.59375 -1.328125,-1.40625 -2.828125,-1.390625 -4,-0.015625 0,0 -3.546875,1.015625 -12.34375,0.921875 0,0 -1.74996084,0.087015 -1.734375,3.625 0.015625,3.546875 1.765625,3.546875 1.765625,3.546875 l 3.40625,0.01563 c 0,0 -0.78125,3.296875 -2.46875,4.875 z" /></svg>
+              ${query['unread_updates']}
+            </a>
+          </li>
         $if query['welcome'][3]:
           <li><a href="/messages/submissions" title="Art"><span class="icon icon-20 icon-art">Art:</span> ${query['welcome'][3]}</a></li>
         $if query['welcome'][1]:

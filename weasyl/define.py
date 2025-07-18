@@ -723,7 +723,7 @@ def _page_header_info(userid):
         """, user=userid, rating=get_rating(userid))
 
     for group, count in counts:
-        result[5 - group] += count
+        result[5 - group] = count
 
     return result
 
@@ -756,10 +756,12 @@ def _is_sfw_locked(userid):
 def page_header_info(userid):
     from weasyl import media
     sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
-    notification_counts = _page_header_info(userid).copy()
-    notification_counts[2] += site_update_unread_count(userid)
+    notification_counts = _page_header_info(userid)
+    unread_updates = site_update_unread_count(userid)
     return {
         "welcome": notification_counts,
+        "unread_updates": unread_updates,
+        "updateids": get_updateids(),
         "userid": userid,
         "username": get_display_name(userid),
         "user_media": media.get_user_media(userid),

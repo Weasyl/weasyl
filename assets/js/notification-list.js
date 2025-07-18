@@ -1,4 +1,4 @@
-const {forEach, every, filter, some, map} = Array.prototype;
+const {forEach, every, some, map} = Array.prototype;
 
 const notificationContainer = document.getElementById('messages-checkboxes');
 const notificationGlobalActions = document.getElementById('notification-global-actions');
@@ -38,13 +38,7 @@ const sectionToggle = section => {
     return sectionCheckbox;
 };
 
-const sectionIsRemovable = sectionHeader =>
-    // Site updates (3150) are dismissed by reading them.
-    sectionHeader.dataset.type != '3150';
-
-const removableSectionHeaders = filter.call(sectionHeaders, sectionIsRemovable);
-
-const sectionCheckboxes = map.call(removableSectionHeaders, sectionHeader => {
+const sectionCheckboxes = map.call(sectionHeaders, sectionHeader => {
     const label = document.createElement('label');
     const sectionCheckbox = sectionToggle(sectionHeader.nextElementSibling);
 

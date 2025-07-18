@@ -101,6 +101,9 @@ $def with (query, options, extended_options={})
       </div>
 
       <ul id="header-messages">
+        $if query['unread_updates']:
+          $ subpath = query['updateids'][0] if query['unread_updates'] == 1 else ''
+          <li><a href ="/site-updates/$subpath" title="Site Updates"><span class="icon icon-20 icon-site-updates">Site Updates:</span> ${query['unread_updates']}</a></li>
         $if query['welcome'][3]:
           <li><a href="/messages/submissions" title="Art"><span class="icon icon-20 icon-art">Art:</span> ${query['welcome'][3]}</a></li>
         $if query['welcome'][1]:

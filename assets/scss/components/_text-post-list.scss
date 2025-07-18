@@ -49,6 +49,16 @@ $avatar-side: 50px;
     }
 }
 
+.text-post-new {
+    background-color: #069bc0;
+    border-radius: 50%;
+    display: inline-block;
+    font-size: 0;
+    height: 10px;
+    overflow: hidden;
+    width: 10px;
+}
+
 .text-post-text {
     background-color: white;
     flex: 1;

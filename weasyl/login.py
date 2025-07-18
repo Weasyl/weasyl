@@ -275,6 +275,9 @@ def verify(token, ip_address=None):
         # If the record is explicitly marked as invalid, treat the record as if it doesn't exist.
         raise WeasylError("logincreateRecordMissing")
 
+    updateids = d.get_updateids()
+    latest_updateid = updateids[0] if updateids else None
+
     db = d.connect()
     with db.begin():
         # Create login record
@@ -283,7 +286,8 @@ def verify(token, ip_address=None):
                 login_name=d.get_sysname(query.username),
                 last_login=sqlalchemy.func.now(),
                 email=query.email,
-                ip_address_at_signup=ip_address
+                ip_address_at_signup=ip_address,
+                last_read_updateid=latest_updateid,
             ).returning(lo.c.userid))
 
         # Create profile records

@@ -9,7 +9,6 @@ $code:
     elif x in [3020, 3100, 3110, 3050]: return [3020, 3100, 3110, 3050]
     elif x in [3070, 3075]:       return [3070, 3075]
     elif x == 3140:               return [3140]
-    elif x == 3150:               return [3150]
     elif x in [4010, 4015]:       return [4010, 4015]
     elif x == 4016:               return [4016]
     elif x in [4020, 4025, 4050]: return [4020, 4025, 4050]
@@ -27,7 +26,6 @@ $code:
     elif x in [3020, 3100, 3110, 3050]: return "User Favorites"
     elif x in [3070, 3075]:       return "Streaming"
     elif x == 3140:               return "Submission Tag Changes"
-    elif x == 3150:               return "Site Updates"
     elif x in [4010, 4015]:       return "Shouts"
     elif x == 4016:               return "Staff Notes"
     elif x in [4020, 4025, 4050]: return "Submission Comments"
@@ -114,7 +112,8 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
                   shout_reply = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['commentid']) + '">reply</a>'
                   your_comment = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['replyid']) + '">your comment</a>'
 
-            <input type="checkbox" class="remove" name="remove" value="${i['id']}" />
+            $if 'id' in i:
+              <input type="checkbox" class="remove" name="remove" value="${i['id']}" />
 
             $if i['type'] == 1010:
               $# user journal
@@ -156,8 +155,6 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
             $elif i['type'] == 3140:
               $# tag update
               Tags were suggested on your submission $:{item_link}.
-            $elif i['type'] == 3150:
-              <a href="/site-updates/${i['updateid']}">${i['title']}</a>
             $elif i['type'] == 4010:
               $# shout
               $:{item_user} left a <a href="/shouts/${i['ownername']}#cid${i['commentid']}">comment</a> on your shout page.

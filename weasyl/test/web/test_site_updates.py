@@ -1,6 +1,7 @@
 import pytest
 
 from libweasyl import staff
+from weasyl import define
 from weasyl import errorcode
 from weasyl import siteupdate
 from weasyl.test import db_utils
@@ -79,7 +80,7 @@ def test_list(app, monkeypatch, site_updates):
     _, updates = site_updates
     resp = app.get('/site-updates/')
     assert len(resp.html.findAll(None, 'text-post-item')) == 3
-    assert resp.html.find(None, 'text-post-actions') is None
+    assert resp.html.find(None, 'text-post-edit') is None
 
     user = db_utils.create_user()
     cookie = db_utils.create_session(user)
@@ -154,7 +155,7 @@ def test_create_validation(app, monkeypatch):
     assert resp.html.find(id='error_content').p.text.strip() == errorcode.error_messages['contentInvalid']
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_create_notifications(app, monkeypatch):
     admin_user = db_utils.create_user()
     normal_user = db_utils.create_user()
@@ -166,8 +167,60 @@ def test_create_notifications(app, monkeypatch):
 
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
-    assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == _FORM['title']
+    assert list(resp.html.find(id='header-messages').find(title='Site Updates').stripped_strings)[1] == '1'
+
+
+@pytest.mark.usefixtures('db', 'cache')
+def test_read_counter(app, monkeypatch):
+    admin_user = db_utils.create_user()
+    normal_user = db_utils.create_user()
+    admin_cookie = db_utils.create_session(admin_user)
+    normal_cookie = db_utils.create_session(normal_user)
+    monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
+
+    for _ in range(3):
+        app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
+
+    updateids = define.get_updateids()
+
+    resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
+    link = resp.html.find(id='header-messages').find(title='Site Updates')
+    assert list(link.stripped_strings)[1] == '3'
+    assert link['href'] == '/site-updates/'
+
+    resp = app.get(f'/site-updates/{updateids[1]}', headers={'Cookie': normal_cookie})
+    link = resp.html.find(id='header-messages').find(title='Site Updates')
+    assert list(link.stripped_strings)[1] == '1'
+    assert link['href'] == f'/site-updates/{updateids[0]}'
+
+    resp = app.get(f'/site-updates/{updateids[2]}', headers={'Cookie': normal_cookie})
+    link = resp.html.find(id='header-messages').find(title='Site Updates')
+    assert list(link.stripped_strings)[1] == '1'
+    assert link['href'] == f'/site-updates/{updateids[0]}'
+
+    resp = app.get(f'/site-updates/{updateids[0]}', headers={'Cookie': normal_cookie})
+    assert not resp.html.find(id='header-messages').find(title='Site Updates')
+
+
+@pytest.mark.usefixtures('db')
+def test_read_markers(app, monkeypatch):
+    admin_user = db_utils.create_user()
+    normal_user = db_utils.create_user()
+    admin_cookie = db_utils.create_session(admin_user)
+    normal_cookie = db_utils.create_session(normal_user)
+    monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user]))
+
+    updateids = []
+    for _ in range(3):
+        resp = app.post('/site-updates/', _FORM, headers={'Cookie': admin_cookie})
+        updateid = int(resp.headers['Location'].rpartition('/')[2])
+        updateids.append(updateid)
+
+    resp = app.get('/site-updates/', headers={'Cookie': normal_cookie})
+    assert len(resp.html.find_all(class_='text-post-new')) == 3
+
+    resp = app.get('/site-updates/', headers={'Cookie': normal_cookie})
+    assert len(resp.html.find_all(class_='text-post-new')) == 0
 
 
 @pytest.mark.usefixtures('db')
@@ -266,8 +319,7 @@ def test_edit_notifications(app, monkeypatch):
 
     normal_cookie = db_utils.create_session(normal_user)
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
-    assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == _FORM['title']
+    assert list(resp.html.find(id='header-messages').find(title='Site Updates').stripped_strings)[1] == '1'
 
     resp = app.post(
         '/site-updates/%d' % (siteupdate.select_last()['updateid'],),
@@ -277,5 +329,4 @@ def test_edit_notifications(app, monkeypatch):
     assert resp.html.find(id='home-content').h3.string == 'New title'
 
     resp = app.get('/messages/notifications', headers={'Cookie': normal_cookie})
-    assert list(resp.html.find(id='header-messages').find(title='Notifications').stripped_strings)[1] == '1'
-    assert resp.html.find(id='site_updates').find(None, 'item').a.string == 'New title'
+    assert list(resp.html.find(id='header-messages').find(title='Site Updates').stripped_strings)[1] == '1'

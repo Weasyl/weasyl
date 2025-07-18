@@ -327,6 +327,9 @@ login = Table(
     # Must be nullable, since existing accounts will not have this information
     Column('ip_address_at_signup', String(length=39), nullable=True),
     Column('voucher', Integer, ForeignKey('login.userid'), nullable=True),
+    # Nullable for the case where no site updates exist in the database.
+    Column('last_read_updateid', Integer(), nullable=True),
+    ForeignKeyConstraint(['last_read_updateid'], ['siteupdate.updateid'], name='login_last_read_updateid_fkey'),
 )
 
 Index('ind_login_login_name', login.c.login_name)

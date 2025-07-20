@@ -1,6 +1,7 @@
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from itertools import chain
 from typing import Any
 from typing import Literal
 from typing import NamedTuple
@@ -101,6 +102,15 @@ class Query:
             self.required_user_excludes or
             self.ratings)
 
+    def get_terms_string(self) -> str:
+        return " ".join(chain(
+            sorted(self.required_includes),
+            (f"|{t}" for t in sorted(self.possible_includes)),
+            (f"-{t}" for t in sorted(self.required_excludes)),
+            (f"user:{u}" for u in sorted(self.required_user_includes)),
+            (f"-user:{u}" for u in sorted(self.required_user_excludes)),
+        ))
+
     @classmethod
     def parse(cls, query_string, find_default):
         """
@@ -125,6 +135,23 @@ class Query:
         query.text = query_string
 
         return query
+
+    def as_simple(self) -> str | None:
+        """
+        Get the single normalized tag name, if this query is for one tag with no other criteria.
+        """
+        if (
+            len(self.required_includes) == 1
+            and not self.possible_includes
+            and not self.required_excludes
+            and not self.required_user_includes
+            and not self.required_user_excludes
+            and not self.ratings
+        ):
+            [tag_name] = self.required_includes
+            return tag_name
+
+        return None
 
 
 def select_users(q):

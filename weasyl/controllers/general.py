@@ -69,23 +69,27 @@ def search_(request):
         else:
             search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
 
-            if backid:
-                page = search.PrevFilter(meta["backid"])
-            elif nextid:
-                page = search.NextFilter(meta["nextid"])
+            resolved = search.resolve(search_query)
+            if resolved is None:
+                query, prev_page, next_page = [], None, None
             else:
-                page = search.FIRST_PAGE
+                if backid:
+                    page = search.PrevFilter(meta["backid"])
+                elif nextid:
+                    page = search.NextFilter(meta["nextid"])
+                else:
+                    page = search.FIRST_PAGE
 
-            query, prev_page, next_page = search.select(
-                userid=request.userid,
-                rating=rating,
-                limit=63,
-                search=search_query,
-                within=meta["within"],
-                cat=meta["cat"],
-                subcat=meta["subcat"],
-                page=page,
-            )
+                query, prev_page, next_page = search.select(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=63,
+                    resolved=resolved,
+                    within=meta["within"],
+                    cat=meta["cat"],
+                    subcat=meta["subcat"],
+                    page=page,
+                )
 
         title = "Search results"
         template_args = (

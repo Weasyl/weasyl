@@ -116,6 +116,9 @@ class Query:
         query.required_excludes.difference_update(query.required_includes)
         query.possible_includes.difference_update(query.required_excludes)
 
+        if len(query.possible_includes) == 1:
+            query.required_includes.add(query.possible_includes.pop())
+
         if query.find is None:
             query.find = find_default
 
@@ -246,17 +249,27 @@ def _prepare_search(
     statement_where = ["WHERE content.rating <= %(rating)s AND NOT content.friends_only AND NOT content.hidden"]
     statement_group = []
 
-    if resolved.find == "submit":
+    # Use the `searchmap*` table, even for submissions, for the fastest possible search if looking for exactly one tag
+    is_single_tag = (
+        not userid  # with no blocktags
+        and len(resolved.required_includes) == 1
+        and not resolved.possible_includes
+        and not resolved.required_excludes
+    )
+
+    if not is_single_tag and resolved.find == "submit":
         statement_from_join.append("INNER JOIN submission_tags ON content.submitid = submission_tags.submitid")
 
     if resolved.required_includes:
-        if resolved.find == "submit":
+        if not is_single_tag and resolved.find == "submit":
             statement_from_join.append("AND submission_tags.tags @> %(required_includes)s")
         else:
             statement_from_join.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
             statement_where.append("AND searchmap{find}.tagid = ANY (%(required_includes)s)")
-            statement_group.append(
-                "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
+
+            if not is_single_tag:
+                statement_group.append(
+                    "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
 
     # Submission category or subcategory
     if resolved.find == "submit":

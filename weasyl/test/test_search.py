@@ -56,8 +56,13 @@ def test_submission_search(db, term, n_results):
     s4 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
     db_utils.create_submission_tag(tag2, s4)
 
+    resolved = search.resolve(search.Query.parse(term, 'submit'))
+    if resolved is None:
+        assert 0 == n_results
+        return
+
     results, _, _ = search.select(
-        search=search.Query.parse(term, 'submit'),
+        resolved=resolved,
         userid=user, rating=ratings.EXPLICIT.code, limit=100,
         cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
@@ -87,7 +92,7 @@ def test_search_blocked_tags(db, rating, block_rating):
 
     def check(term, n_results):
         results, _, _ = search.select(
-            search=search.Query.parse(term, 'submit'),
+            resolved=search.resolve(search.Query.parse(term, 'submit')),
             userid=viewer, rating=ratings.EXPLICIT.code, limit=100,
             cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
@@ -124,13 +129,13 @@ def test_search_pagination(db):
     owner = db_utils.create_user()
     submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
     tag = db_utils.create_tag('penguin')
-    search_query = search.Query.parse('penguin', 'submit')
+    search_query = search.resolve(search.Query.parse('penguin', 'submit'))
 
     for submission in submissions:
         db_utils.create_submission_tag(tag, submission)
 
     r = _select_and_count(
-        search=search_query,
+        resolved=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
         cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
@@ -141,7 +146,7 @@ def test_search_pagination(db):
     assert [item['submitid'] for item in r.results] == submissions[:-_page_limit - 1:-1]
 
     r = _select_and_count(
-        search=search_query,
+        resolved=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
         cat=None, subcat=None, within='', page=search.NextFilter(submissions[-_page_limit]))
 
@@ -152,7 +157,7 @@ def test_search_pagination(db):
     assert [item['submitid'] for item in r.results] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
 
     r = _select_and_count(
-        search=search_query,
+        resolved=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
         cat=None, subcat=None, within='', page=search.PrevFilter(submissions[_page_limit - 1]))
 
@@ -203,9 +208,12 @@ def test_user_search_ordering(db):
 
 
 def test_search_within_friends(db):
+    tag_id = db_utils.create_tag("ferret")
+    resolved = search.resolve(search.Query.parse("ferret", "submit"))
+
     def _select(userid: int):
         results, _, _ = search.select(
-            search=search.Query.parse("ferret", "submit"),
+            resolved=resolved,
             userid=userid, rating=ratings.GENERAL.code, limit=100,
             cat=None, subcat=None, within="friend", page=search.FIRST_PAGE,
         )
@@ -217,8 +225,6 @@ def test_search_within_friends(db):
 
     user1_id = db_utils.create_user("user1", username="user1", config=config)
     user2_id = db_utils.create_user("user2", username="user2", config=config)
-
-    tag_id = db_utils.create_tag("ferret")
 
     submission1_id = db_utils.create_submission(user1_id, rating=ratings.GENERAL.code)
     db_utils.create_submission_tag(tag_id, submission1_id)

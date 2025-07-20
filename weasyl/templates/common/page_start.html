@@ -42,10 +42,15 @@ $def with (query, options, extended_options={})
     $for k, v in extended_options['ogp'].items():
       <meta property="og:${k}" content="${v}" />
 
-  $if 'canonical_url' in extended_options:
-    <link rel="canonical" href="https://www.weasyl.com/${extended_options['canonical_url'].lstrip('/')}" />
-
   <script src="${resource_path('js/main.js')}" async blocking="render"></script>
+
+  $code:
+    canonical_url = extended_options.get('canonical_url')
+    robots = extended_options.get('robots')
+  $if canonical_url:
+    <link rel="canonical" href="https://www.weasyl.com/${canonical_url.lstrip('/')}">
+  $if robots:
+    <meta name="robots" content="${robots}">
 
   <link rel="search" title="Weasyl" type="application/opensearchdescription+xml" href="/opensearch.xml">
 

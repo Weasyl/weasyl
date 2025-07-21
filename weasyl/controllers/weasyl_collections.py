@@ -19,13 +19,12 @@ def collection_options_get_(request):
 @login_required
 @token_checked
 def collection_options_post_(request):
-    form = request.web_input(allow_request="", allow_notification="")
+    profile.set_collection_preferences(
+        request.userid,
+        allow_requests="allow_request" in request.POST,
+        notify="allow_notification" in request.POST,
+    )
 
-    jsonb_settings = define.get_profile_settings(request.userid)
-    jsonb_settings.allow_collection_requests = form.allow_request
-    jsonb_settings.allow_collection_notifs = form.allow_notification
-
-    profile.edit_preferences(request.userid, jsonb_settings=jsonb_settings)
     raise HTTPSeeOther(location="/control")
 
 

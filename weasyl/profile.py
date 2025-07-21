@@ -743,39 +743,64 @@ def invalidate_other_sessions(userid):
     """, userid=userid, currentsession=sess.sessionid if sess is not None else "")
 
 
-def edit_preferences(userid,
-                     preferences=None, jsonb_settings=None):
+_OPTION_CHARACTER = "[%s]" % ("".join(Config.all_option_codes),)
+"""A regex that matches any preference character stored in the `profile.config` column."""
+
+
+def edit_preferences(
+    userid: int,
+    preferences: Config,
+    *,
+    disable_custom_thumbs: bool,
+) -> None:
     """
     Apply changes to stored preferences for a given user.
     :param userid: The userid to apply changes to
-    :param preferences: (optional) old-style char preferences, overwrites all previous settings
-    :param jsonb_settings: (optional) JSON preferences, overwrites all previous settings
-    :return: None
+    :param preferences: old-style char preferences, overwrites all previous settings
     """
-    config = d.get_config(userid)
     user_age = get_user_age(userid)
 
-    if preferences is not None and user_age is not None and user_age < preferences.rating.minimum_age:
+    if user_age is not None and user_age < preferences.rating.minimum_age:
         preferences.rating = ratings.GENERAL
 
-    updates = {}
-    if preferences is not None:
-        # update legacy preferences
-        # clear out the option codes that are being replaced.
-        for i in Config.all_option_codes:
-            config = config.replace(i, "")
-        config_str = config + preferences.to_code()
-        updates['config'] = config_str
-    if jsonb_settings is not None:
-        # update jsonb preferences
-        updates['jsonb_settings'] = jsonb_settings.get_raw()
-
-    if preferences is not None and preferences.rating.minimum_age:
+    if preferences.rating.minimum_age:
         assert_adult(userid)
 
     d.engine.execute(
-        t.profile.update().where(t.profile.c.userid == userid),
-        updates
+        t.profile.update()
+        .where(t.profile.c.userid == userid)
+        .values(
+            config=(
+                func.regexp_replace(t.profile.c.config, _OPTION_CHARACTER, "", "g")
+                .concat(preferences.to_code())
+            ),
+            jsonb_settings=(
+                func.coalesce(t.profile.c.jsonb_settings, sa.text("'{}'"))
+                .concat({"disable_custom_thumbs": disable_custom_thumbs})
+            ),
+        )
+    )
+    d._get_all_config.invalidate(userid)
+
+
+def set_collection_preferences(
+    userid: int,
+    *,
+    allow_requests: bool,
+    notify: bool,
+) -> None:
+    d.engine.execute(
+        t.profile.update()
+        .where(t.profile.c.userid == userid)
+        .values(
+            jsonb_settings=(
+                func.coalesce(t.profile.c.jsonb_settings, sa.text("'{}'"))
+                .concat({
+                    "allow_collection_requests": allow_requests,
+                    "allow_collection_notifs": notify,
+                })
+            ),
+        )
     )
     d._get_all_config.invalidate(userid)
 

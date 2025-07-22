@@ -429,10 +429,13 @@ def select_avatars(userids):
     return {d['userid']: d for d in results}
 
 
-def edit_profile_settings(userid,
-                          set_trade=EXCHANGE_SETTING_NOT_ACCEPTING,
-                          set_request=EXCHANGE_SETTING_NOT_ACCEPTING,
-                          set_commission=EXCHANGE_SETTING_NOT_ACCEPTING):
+def edit_profile_settings(
+    userid,
+    *,
+    set_trade: ExchangeSetting,
+    set_request: ExchangeSetting,
+    set_commission: ExchangeSetting,
+):
     settings = "".join([set_commission.code, set_trade.code, set_request.code])
     d.engine.execute(
         "UPDATE profile SET settings = %(settings)s WHERE userid = %(user)s",
@@ -440,11 +443,17 @@ def edit_profile_settings(userid,
     d._get_all_config.invalidate(userid)
 
 
-def edit_profile(userid, profile,
-                 set_trade=EXCHANGE_SETTING_NOT_ACCEPTING,
-                 set_request=EXCHANGE_SETTING_NOT_ACCEPTING,
-                 set_commission=EXCHANGE_SETTING_NOT_ACCEPTING,
-                 profile_display=''):
+def edit_profile(
+    userid: int,
+    *,
+    full_name: str,
+    catchphrase: str,
+    profile_text: str,
+    set_trade: ExchangeSetting,
+    set_request: ExchangeSetting,
+    set_commission: ExchangeSetting,
+    profile_display: str,
+):
     # Assign settings
     settings = "".join([set_commission.code, set_trade.code, set_request.code])
 
@@ -456,9 +465,9 @@ def edit_profile(userid, profile,
         pr.update()
         .where(pr.c.userid == userid)
         .values({
-            'full_name': profile.full_name,
-            'catchphrase': profile.catchphrase,
-            'profile_text': profile.profile_text,
+            'full_name': full_name,
+            'catchphrase': catchphrase,
+            'profile_text': profile_text,
             'settings': settings,
             'config': sa.func.regexp_replace(pr.c.config, "[OA]", "").concat(profile_display),
         })

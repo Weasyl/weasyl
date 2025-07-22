@@ -60,16 +60,19 @@ def control_editprofile_put_(request):
     if len(form.site_names) != len(form.site_values):
         raise WeasylError('Unexpected')
 
-    p = orm.Profile()
-    p.full_name = form.full_name
-    p.catchphrase = form.catchphrase
-    p.profile_text = form.profile_text
     set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
     set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
     set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
-    profile.edit_profile(request.userid, p, set_trade=set_trade,
-                         set_request=set_request, set_commission=set_commission,
-                         profile_display=form.profile_display)
+    profile.edit_profile(
+        request.userid,
+        full_name=form.full_name,
+        catchphrase=form.catchphrase,
+        profile_text=form.profile_text,
+        set_trade=set_trade,
+        set_request=set_request,
+        set_commission=set_commission,
+        profile_display=form.profile_display,
+    )
 
     profile.edit_userinfo(request.userid, form)
 
@@ -95,7 +98,12 @@ def control_editcommishinfo_(request):
     set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
     set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
 
-    profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
+    profile.edit_profile_settings(
+        request.userid,
+        set_trade=set_trade,
+        set_request=set_request,
+        set_commission=set_commission,
+    )
     commishinfo.edit_content(request.userid, form.content)
 
     if "preferred-tags" in request.POST:

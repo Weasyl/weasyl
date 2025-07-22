@@ -221,7 +221,6 @@ def test_search_within_friends(db):
         return results
 
     config = CharSettings({}, {}, {})
-    config_pending = CharSettings({"pending"}, {}, {})
 
     user1_id = db_utils.create_user("user1", username="user1", config=config)
     user2_id = db_utils.create_user("user2", username="user2", config=config)
@@ -235,12 +234,12 @@ def test_search_within_friends(db):
     assert len(_select(user1_id)) == 0
     assert len(_select(user2_id)) == 0
 
-    db_utils.create_friendship(user1_id, user2_id, config_pending)
+    db_utils.create_friendship(user1_id, user2_id, pending=True)
 
     assert len(_select(user1_id)) == 0
     assert len(_select(user2_id)) == 0
 
-    db_utils.create_friendship(user2_id, user1_id, config)
+    db_utils.create_friendship(user2_id, user1_id)
 
     assert len(_select(user1_id)) == 1
     assert len(_select(user1_id)) == 1

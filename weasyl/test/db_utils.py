@@ -189,22 +189,29 @@ def create_characters(count, userid, name='', age='', gender='', height='', weig
     return results
 
 
-def create_friendship(user1, user2, settings=None):
+def create_friendship(user1: int, user2: int, pending: bool = False) -> None:
     db = d.connect()
-    db.add(users.Friendship(userid=user1, otherid=user2, settings=settings))
-    db.flush()
+    db.execute("INSERT INTO frienduser (userid, otherid, settings) VALUES (:userid, :otherid, :settings)", {
+        "userid": user1,
+        "otherid": user2,
+        "settings": "p" if pending else "",
+    })
 
 
-def create_follow(user1, user2, settings='scftj'):
+def create_follow(user1: int, user2: int) -> None:
     db = d.connect()
-    db.add(users.Follow(userid=user1, otherid=user2, settings=settings))
-    db.flush()
+    db.execute("INSERT INTO watchuser (userid, otherid, settings) VALUES (:userid, :otherid, 'scftj')", {
+        "userid": user1,
+        "otherid": user2,
+    })
 
 
-def create_ignoreuser(ignorer, ignoree):
+def create_ignoreuser(ignorer: int, ignoree: int) -> None:
     db = d.connect()
-    db.add(users.Ignorama(userid=ignorer, otherid=ignoree))
-    db.flush()
+    db.execute("INSERT INTO ignoreuser (userid, otherid) VALUES (:userid, :otherid)", {
+        "userid": ignorer,
+        "otherid": ignoree,
+    })
 
 
 # TODO: do these two in a less bad way

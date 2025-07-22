@@ -84,18 +84,6 @@ def get_exchange_setting(exchange_type, code):
     return EXCHANGE_SETTING_CODE_MAP[code]
 
 
-def exchange_settings_from_settings_string(settings_string):
-    """
-    Given a (terrible and brittle) exchange settings string from a user profile,
-    returns a dict of their exchange settings.
-    """
-    return {
-        EXCHANGE_TYPE_COMMISSION: EXCHANGE_SETTING_CODE_MAP[settings_string[0]],
-        EXCHANGE_TYPE_TRADE: EXCHANGE_SETTING_CODE_MAP[settings_string[1]],
-        EXCHANGE_TYPE_REQUEST: EXCHANGE_SETTING_CODE_MAP[settings_string[2]],
-    }
-
-
 def resolve(userid, otherid, othername):
     """
     Attempts to determine the userid of a specified user; resolves using otherid,

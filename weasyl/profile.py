@@ -1,5 +1,6 @@
 import datetime
 import re
+from collections import namedtuple
 
 import arrow
 import sqlalchemy as sa
@@ -994,6 +995,9 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         moderation.note_about(my_userid, userid, 'The following fields were changed:', '\n'.join(updates))
 
 
+_Setting = namedtuple("_Setting", ("default",))
+
+
 # TODO(hyena): Make this class unnecessary and remove it when we fix up settings.
 class ProfileSettings:
     """
@@ -1003,16 +1007,13 @@ class ProfileSettings:
     exceptions if you try to access a setting that has
     not been properly defined!
     """
-    class Setting:
-        def __init__(self, default, typecast):
-            self.default = default
-            self.typecast = typecast
 
-    _raw_settings = {}
+    __slots__ = ("_raw_settings",)
+
     _settings = {
-        "allow_collection_requests": Setting(True, bool),
-        "allow_collection_notifs": Setting(True, bool),
-        "disable_custom_thumbs": Setting(False, bool),
+        "allow_collection_requests": _Setting(True),
+        "allow_collection_notifs": _Setting(True),
+        "disable_custom_thumbs": _Setting(False),
     }
 
     def __init__(self, json):
@@ -1021,18 +1022,6 @@ class ProfileSettings:
     def __getattr__(self, name):
         setting_config = self._settings[name]
         return self._raw_settings.get(name, setting_config.default)
-
-    def __setattr__(self, name, value):
-        if name.startswith("_"):
-            super(ProfileSettings, self).__setattr__(name, value)
-        else:
-            setting_config = self._settings[name]
-            if setting_config.typecast is not None:
-                value = setting_config.typecast(value)
-            self._raw_settings[name] = value
-
-    def get_raw(self):
-        return self._raw_settings
 
 
 def sort_user_links(links):

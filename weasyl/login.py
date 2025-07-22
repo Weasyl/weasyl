@@ -260,6 +260,15 @@ def create(form):
             "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 
+def initial_profile(userid: int, username: str):
+    return {
+        "userid": userid,
+        "username": username,
+        "full_name": username,
+        "config": "kscftj",
+    }
+
+
 def verify(token, ip_address=None):
     # Delete stale logincreate records before verifying against them
     _delete_expired()
@@ -291,12 +300,10 @@ def verify(token, ip_address=None):
             "userid": userid,
             "hashsum": query.hashpass,
         })
-        db.execute(d.meta.tables["profile"].insert(), {
-            "userid": userid,
-            "username": query.username,
-            "full_name": query.username,
-            "config": "kscftj",
-        })
+        db.execute(
+            d.meta.tables["profile"].insert(),
+            initial_profile(userid, query.username),
+        )
         db.execute(d.meta.tables["userinfo"].insert(), {
             "userid": userid,
         })

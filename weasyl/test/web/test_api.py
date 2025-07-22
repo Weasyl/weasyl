@@ -97,7 +97,7 @@ def test_user_view(app, submission_user):
         'created_at': '1970-01-01T00:00:00Z',
         'featured_submission': None,
         'folders': [],
-        'full_name': '',
+        'full_name': 'submission_test',
         'link': 'http://localhost/~submissiontest',
         'login_name': 'submissiontest',
         'media': {

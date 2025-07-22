@@ -36,7 +36,7 @@ def test_age_set_and_display(app):
     user = db_utils.create_user(username="profiletest")
 
     resp = app.get("/~profiletest")
-    assert resp.html.find(id="user-id").text.strip() == ""
+    assert resp.html.find(id="user-id").text.strip() == "profiletest"
 
     app.set_cookie(*db_utils.create_session(user).split("=", 1))
 
@@ -72,7 +72,7 @@ def test_age_set_and_display(app):
 
     with _guest(app):
         resp = app.get("/~profiletest")
-        assert resp.html.find(id="user-id").text.strip() == "18"
+        assert resp.html.find(id="user-id").text.split() == ["profiletest", "/", "18"]
 
     form["show_age"].checked = False
     form.submit()
@@ -84,7 +84,7 @@ def test_age_set_and_display(app):
 
     with _guest(app):
         resp = app.get("/~profiletest")
-        assert resp.html.find(id="user-id").text.strip() == ""
+        assert resp.html.find(id="user-id").text.strip() == "profiletest"
 
     form["show_age"].checked = True
     form["birthdate-month"] = 1
@@ -114,7 +114,7 @@ def test_age_terms(app):
 
     with _guest(app):
         resp = app.get("/~profiletest")
-        assert resp.html.find(id="user-id").text.strip() == ""
+        assert resp.html.find(id="user-id").text.strip() == "profiletest"
 
 
 def _create_submission(app, user, **kwargs):
@@ -195,14 +195,14 @@ def test_assert_adult(app, create_post, expect_assertion):
 
         with _guest(app):
             resp = app.get("/~forwarduser")
-            assert resp.html.find(id="user-id").text.strip() == ""
+            assert resp.html.find(id="user-id").text.strip() == "forwarduser"
     else:
         resp = form.submit()
         assert resp.status_int == 303, "can display age under 18 after not using age-restricted ratings"
 
         with _guest(app):
             resp = app.get("/~forwarduser")
-            assert resp.html.find(id="user-id").text.strip() == "17"
+            assert resp.html.find(id="user-id").text.split() == ["forwarduser", "/", "17"]
 
 
 @pytest.mark.usefixtures("db", "cache")

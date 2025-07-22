@@ -1,17 +1,19 @@
 import itertools
 
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl.legacy import get_sysname
-from libweasyl.models import content, users
+from libweasyl.models import content
 from libweasyl.models.content import Journal
 import weasyl.define as d
 from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
+from weasyl.profile import Config as ProfileConfig
 
 _user_index = itertools.count()
 
@@ -36,46 +38,56 @@ def create_api_key(userid, token, description=""):
     add_entity(orm.APIToken(userid=userid, token=token, description=description))
 
 
-def create_user(full_name="", birthday=None, config=None,
-                username=None, password=None, email_addr=None, user_id=None,
-                verified=True):
+def create_user(
+    full_name: str | None = None,
+    *,
+    birthday: arrow.Arrow | None = None,
+    config: ProfileConfig | None = None,
+    username: str | None = None,
+    password: str | None = None,
+    email_addr: str = "",
+    verified: bool = True,
+) -> int:
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
         username = "User-" + str(next(_user_index))
 
-    while True:
-        user = add_entity(users.Login(login_name=get_sysname(username),
-                                      last_login=arrow.get(0).datetime))
+    db = d.connect()
 
-        if user.userid not in staff.MODS and user.userid not in staff.DEVELOPERS:
-            break
+    with db.begin():
+        # Find an unprivileged userid
+        while True:
+            userid = db.scalar("SELECT nextval('login_userid_seq')")
+            if userid not in staff.MODS and userid not in staff.DEVELOPERS:
+                break
 
-        db = d.connect()
-        db.delete(user)
-        db.flush()
+        db.execute(d.meta.tables['login'].insert().values({
+            'userid': userid,
+            'login_name': get_sysname(username),
+            'last_login': sa.text("to_timestamp(0)"),
+            'email': email_addr,
+            'voucher': userid if verified else None,
+        }))
 
-    add_entity(users.Profile(userid=user.userid, username=username,
-                             full_name=full_name, created_at=arrow.get(0).datetime, config=config))
-    d.engine.execute(d.meta.tables['userinfo'].insert(), {
-        'userid': user.userid,
-        'birthday': birthday,
-    })
-    # Verify this user
-    if verified:
-        d.engine.execute("UPDATE login SET voucher = userid WHERE userid = %(id)s",
-                         id=user.userid)
-    # Set a password for this user
-    d.engine.execute("INSERT INTO authbcrypt VALUES (%(id)s, %(bcrypthash)s)",
-                     id=user.userid, bcrypthash=_DEFAULT_PASSWORD if password is None else login.passhash(password))
-    # Set an email address for this user
-    if email_addr is not None:
-        d.engine.execute("UPDATE login SET email = %(email)s WHERE userid = %(id)s",
-                         email=email_addr, id=user.userid)
-    # Force the userID to a user-defined value and return it
-    if user_id is not None:
-        d.engine.execute("UPDATE login SET userid = %(newid)s WHERE userid = %(oldid)s", newid=user_id, oldid=user.userid)
-        return user_id
-    return user.userid
+        db.execute(d.meta.tables['profile'].insert().values({
+            **login.initial_profile(userid, username),
+            'created_at': sa.text("to_timestamp(0)"),
+            **({'full_name': full_name} if full_name is not None else {}),
+            **({'config': config} if config is not None else {}),
+        }))
+
+        db.execute(d.meta.tables['userinfo'].insert(), {
+            'userid': userid,
+            'birthday': birthday,
+        })
+
+        # Set a password for this user
+        db.execute(d.meta.tables['authbcrypt'].insert(), {
+            'userid': userid,
+            'hashsum': _DEFAULT_PASSWORD if password is None else login.passhash(password),
+        })
+
+    return userid
 
 
 def create_session(user):

@@ -14,7 +14,6 @@ from weasyl import orm
 from weasyl import sessions
 
 _user_index = itertools.count()
-TEST_DATABASE = "weasyl_test"
 
 _DEFAULT_PASSWORD = "$2b$04$IIdgY7gIpBckJI.YZQ3nHOo.Gh5j2lLhoTEPnWJplnfdpIOSoHYcu"
 

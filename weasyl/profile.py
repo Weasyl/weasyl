@@ -1,6 +1,7 @@
 import datetime
 import re
 from collections import namedtuple
+from dataclasses import dataclass
 
 import arrow
 import sqlalchemy as sa
@@ -36,18 +37,17 @@ EXCHANGE_TYPE_REQUEST = ExchangeType()
 EXCHANGE_TYPE_COMMISSION = ExchangeType()
 
 
+@dataclass(frozen=True, slots=True)
 class ExchangeSetting:
-    __slots__ = ("code",)
-
-    def __init__(self, code):
-        self.code = code
+    code: str
+    value: str
 
 
-EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o")
-EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s")
-EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f")
-EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c")
-EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e")
+EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o", "open")
+EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s", "sometimes")
+EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f", "filled")
+EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c", "closed")
+EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e", "exclude")
 
 ALL_EXCHANGE_SETTINGS = [EXCHANGE_SETTING_ACCEPTING, EXCHANGE_SETTING_SOMETIMES,
                          EXCHANGE_SETTING_FULL_QUEUE, EXCHANGE_SETTING_NOT_ACCEPTING,
@@ -58,6 +58,13 @@ ALLOWABLE_EXCHANGE_CODES = {
     EXCHANGE_TYPE_TRADE: 'osce',
     EXCHANGE_TYPE_REQUEST: 'osce',
     EXCHANGE_TYPE_COMMISSION: 'osfce',
+}
+
+# temporary lookup of old permission names to `permissions` enum values
+_PERMISSIONS = {
+    "anyone": "everyone",
+    "friends_only": "friends",
+    "staff_only": "nobody",
 }
 
 
@@ -426,10 +433,18 @@ def edit_profile_settings(
 ):
     settings = "".join([set_commission.code, set_trade.code, set_request.code])
     d.engine.execute(
-        "UPDATE profile SET settings = %(settings)s"
-        " || (CASE WHEN position('l' in settings) = 0 THEN '' ELSE 'l' END)"
+        "UPDATE profile SET"
+        " settings = %(settings)s || (CASE WHEN position('l' in settings) = 0 THEN '' ELSE 'l' END),"
+        " commissions_status = %(commissions_status)s,"
+        " trades_status = %(trades_status)s,"
+        " requests_status = %(requests_status)s"
         " WHERE userid = %(user)s",
-        settings=settings, user=userid)
+        settings=settings,
+        commissions_status=set_commission.value,
+        trades_status=set_trade.value,
+        requests_status=set_request.value,
+        user=userid,
+    )
     d._get_all_config.invalidate(userid)
 
 
@@ -441,8 +456,14 @@ def edit_profile(
     profile_text: str,
     profile_display: str,
 ):
-    if profile_display not in ('O', 'A'):
-        profile_display = ''
+    match profile_display:
+        case "O":
+            thumbnail_bar = "collections"
+        case "A":
+            thumbnail_bar = "characters"
+        case _:
+            profile_display = ""
+            thumbnail_bar = "submissions"
 
     pr = d.meta.tables['profile']
     d.engine.execute(
@@ -453,6 +474,7 @@ def edit_profile(
             'catchphrase': catchphrase,
             'profile_text': profile_text,
             'config': sa.func.regexp_replace(pr.c.config, "[OA]", "").concat(profile_display),
+            'thumbnail_bar': thumbnail_bar,
         })
     )
     d._get_all_config.invalidate(userid)
@@ -522,6 +544,7 @@ def edit_streaming_settings(
             'stream_text': stream_text,
             'stream_url': "" if stream_url_parsed is None else stream_url_parsed.href,
             'settings': sa.func.regexp_replace(pr.c.settings, "[nli]", "").concat(settings_flag),
+            'streaming_later': settings_flag == 'l',
         })
     )
 
@@ -627,14 +650,14 @@ def edit_userinfo(userid, form):
     if form.show_age:
         d.engine.execute("""
             UPDATE profile
-            SET config = config || 'b'
+            SET config = config || 'b', show_age = TRUE
             WHERE userid = %(userid)s
             AND config !~ 'b'
         """, userid=userid)
     else:
         d.engine.execute("""
             UPDATE profile
-            SET config = REPLACE(config, 'b', '')
+            SET config = REPLACE(config, 'b', ''), show_age = FALSE
             WHERE userid = %(userid)s
         """, userid=userid)
 
@@ -759,6 +782,18 @@ def edit_preferences(
     if preferences.rating.minimum_age:
         assert_adult(userid)
 
+    watch_defaults = ""
+    if preferences.follow_s:
+        watch_defaults += "s"
+    if preferences.follow_c:
+        watch_defaults += "c"
+    if preferences.follow_f:
+        watch_defaults += "f"
+    if preferences.follow_t:
+        watch_defaults += "t"
+    if preferences.follow_j:
+        watch_defaults += "j"
+
     d.engine.execute(
         t.profile.update()
         .where(t.profile.c.userid == userid)
@@ -767,10 +802,20 @@ def edit_preferences(
                 func.regexp_replace(t.profile.c.config, _OPTION_CHARACTER, "", "g")
                 .concat(preferences.to_code())
             ),
+            favorites_visibility="nobody" if preferences.hidefavorites else "everyone",
+            favorites_bar=not preferences.hidefavbar,
+            shouts_from=_PERMISSIONS[preferences.shouts],
+            messages_from=_PERMISSIONS[preferences.notes],
+            profile_guests=not preferences.hideprofile,
+            profile_stats=not preferences.hidestats,
+            max_rating=preferences.rating.name,
+            watch_defaults=watch_defaults,
+
             jsonb_settings=(
                 func.coalesce(t.profile.c.jsonb_settings, sa.text("'{}'"))
                 .concat({"disable_custom_thumbs": disable_custom_thumbs})
             ),
+            custom_thumbs=not disable_custom_thumbs,
         )
     )
     d._get_all_config.invalidate(userid)
@@ -793,6 +838,8 @@ def set_collection_preferences(
                     "allow_collection_notifs": notify,
                 })
             ),
+            allow_collection_requests=allow_requests,
+            collection_notifs=notify,
         )
     )
     d._get_all_config.invalidate(userid)
@@ -823,7 +870,7 @@ def select_manage(userid):
         SELECT
             lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
             pr.created_at, pr.username, pr.full_name, pr.catchphrase,
-            ui.birthday, ui.gender, ui.country, pr.config
+            ui.birthday, ui.gender, ui.country, pr.config, pr.can_suggest_tags
         FROM login lo
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
@@ -862,6 +909,7 @@ def select_manage(userid):
         "gender": query[9],
         "country": query[10],
         "config": query[11],
+        "can_suggest_tags": query.can_suggest_tags,
         "staff_notes": shout.count_staff_notes(userid),
         "sorted_user_links": sort_user_links(user_link_rows),
         "user_sessions": active_user_sessions,
@@ -870,7 +918,7 @@ def select_manage(userid):
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
               birthday=None, gender=None, country=None, remove_social=None,
-              permission_tag=None):
+              permission_tag: bool | None = None):
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
 
@@ -939,7 +987,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g')
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'), max_rating = 'general'
                 WHERE userid = %(user)s
                 """,
                 user=userid,
@@ -969,16 +1017,11 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Permissions
     if permission_tag is not None:
-        if permission_tag:
-            query = (
-                "UPDATE profile SET config = replace(config, 'g', '') "
-                "WHERE userid = %(user)s AND position('g' in config) != 0")
-        else:
-            query = (
-                "UPDATE profile SET config = config || 'g' "
-                "WHERE userid = %(user)s AND position('g' in config) = 0")
+        query = (
+            "UPDATE profile SET can_suggest_tags = %(perm)s"
+            " WHERE userid = %(user)s AND can_suggest_tags != %(perm)s")
 
-        if d.engine.execute(query, user=userid).rowcount != 0:
+        if d.engine.execute(query, user=userid, perm=permission_tag).rowcount != 0:
             updates.append('- Permission to tag: ' + ('yes' if permission_tag else 'no'))
             d._get_all_config.invalidate(userid)
 

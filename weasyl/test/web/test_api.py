@@ -1,8 +1,6 @@
 import pytest
 import webtest
 
-from libweasyl.models.helpers import CharSettings
-
 import weasyl.define as d
 from weasyl.test import db_utils
 from weasyl.test.web.common import create_visual, read_asset
@@ -158,7 +156,7 @@ def test_user_view_unverified(app):
 def test_user_view_no_guests(app):
     db_utils.create_user(
         username='private_test',
-        config=CharSettings({'hide-profile-from-guests'}, {}, {}),
+        profile_guests=False,
     )
     resp = app.get('/api/users/privatetest/view', status=403)
     assert resp.json == {

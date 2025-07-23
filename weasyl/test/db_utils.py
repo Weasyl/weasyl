@@ -8,12 +8,12 @@ from libweasyl import staff
 from libweasyl.legacy import get_sysname
 from libweasyl.models import content
 from libweasyl.models.content import Journal
+from libweasyl.models.helpers import CharSettings
 import weasyl.define as d
 from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
-from weasyl.profile import Config as ProfileConfig
 
 _user_index = itertools.count()
 
@@ -42,15 +42,25 @@ def create_user(
     full_name: str | None = None,
     *,
     birthday: arrow.Arrow | None = None,
-    config: ProfileConfig | None = None,
     username: str | None = None,
     password: str | None = None,
     email_addr: str = "",
     verified: bool = True,
+    premium: bool = False,
+    profile_guests: bool = True,
+    max_rating: ratings.Rating = ratings.GENERAL,
 ) -> int:
     """ Creates a new user and profile, and returns the user ID. """
     if username is None:
         username = "User-" + str(next(_user_index))
+
+    config = CharSettings(set(), {}, {})
+    if premium:
+        config.mutable_settings.add('premium')
+    if not profile_guests:
+        config.mutable_settings.add('hide-profile-from-guests')
+    if max_rating != ratings.GENERAL:
+        config['tagging-level'] = f'max-rating-{max_rating.name}'
 
     db = d.connect()
 
@@ -73,7 +83,8 @@ def create_user(
             **login.initial_profile(userid, username),
             'created_at': sa.text("to_timestamp(0)"),
             **({'full_name': full_name} if full_name is not None else {}),
-            **({'config': config} if config is not None else {}),
+            'config': config,
+            'premium': premium,
         }))
 
         db.execute(d.meta.tables['userinfo'].insert(), {

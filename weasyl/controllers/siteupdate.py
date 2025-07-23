@@ -17,19 +17,50 @@ _BLANK_SITE_UPDATE = {
 
 
 def site_update_list_(request):
+    userid = request.userid
     updates = siteupdate.select_list()
-    can_post = request.userid in staff.ADMINS
+    can_post = userid in staff.ADMINS
 
-    return Response(define.webpage(request.userid, 'siteupdates/list.html', (request, updates, can_post), title="Site Updates"))
+    if updates and userid:
+        last_read_updateid = d.get_last_read_updateid(userid) or 0
+        max_updateid = updates[0]['updateid']
+
+        if max_updateid > last_read_updateid:
+            d.engine.execute("""
+                UPDATE login
+                SET last_read_updateid = %(max)s
+                WHERE userid = %(user)s
+            """, max=max_updateid, user=userid)
+
+            d.get_last_read_updateid.invalidate(userid)
+    else:
+        last_read_updateid = None
+
+    return Response(define.webpage(
+        request.userid,
+        'siteupdates/list.html',
+        (request, updates, can_post, last_read_updateid),
+        title="Site Updates",
+    ))
 
 
 def site_update_get_(request):
+    userid = request.userid
     updateid = int(request.matchdict['update_id'])
     update = siteupdate.select_view(updateid)
-    myself = profile.select_myself(request.userid)
-    comments = comment.select(request.userid, updateid=updateid)
+    myself = profile.select_myself(userid)
+    comments = comment.select(userid, updateid=updateid)
 
-    return Response(define.webpage(request.userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
+    if userid:
+        d.engine.execute("""
+            UPDATE login
+            SET last_read_updateid = %(updateid)s
+            WHERE userid = %(userid)s
+            AND COALESCE(last_read_updateid, 0) < %(updateid)s
+        """, userid=userid, updateid=updateid)
+        d.get_last_read_updateid.invalidate(userid)
+
+    return Response(define.webpage(userid, 'siteupdates/detail.html', (myself, update, comments), title="Site Update"))
 
 
 @admin_only
@@ -80,6 +111,8 @@ def site_update_post_(request):
         content=content,
         wesley=wesley,
     )
+
+    d.get_updateids.invalidate()
 
     raise HTTPSeeOther(location="/site-updates/%d" % (updateid,))
 

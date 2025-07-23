@@ -5,6 +5,7 @@ import errno
 import json
 import os
 import shutil
+import warnings
 
 import pytest
 import pyramid.testing
@@ -129,7 +130,12 @@ def db(request):
 
     def tear_down():
         """ Clears all rows from the test database. """
+        db.execute(
+            define.meta.tables['login'].update(),
+            {'last_read_updateid': None}
+        )
         db.flush()
+        warnings.filterwarnings('ignore', 'Cannot correctly sort tables')
         for table in reversed(metadata.sorted_tables):
             db.execute(table.delete())
 

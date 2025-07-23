@@ -5,6 +5,7 @@ import errno
 import json
 import os
 import shutil
+import warnings
 
 import pytest
 import pyramid.testing

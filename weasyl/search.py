@@ -1,4 +1,7 @@
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
+from itertools import chain
 from typing import Any
 from typing import Literal
 from typing import NamedTuple
@@ -9,7 +12,10 @@ from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
 
 
-_QUERY_FIND_MODIFIERS = {
+PostType = Literal["submit", "char", "journal"]
+SearchType = PostType | Literal["user"]
+
+_QUERY_FIND_MODIFIERS: Mapping[str, SearchType] = {
     "#submission": "submit",
     "#character": "char",
     "#journal": "journal",
@@ -24,7 +30,7 @@ _QUERY_RATING_MODIFIERS = {
 
 _QUERY_DELIMITER = re.compile(r"[\s,;]+")
 
-_TABLE_INFORMATION = {
+_TABLE_INFORMATION: Mapping[PostType, tuple[int, str, str, str, str | int]] = {
     "submit": (10, "s", "submission", "submitid", "subtype"),
     # The subtype values for characters and journals are fake
     # and set to permit us to reuse the same sql query.
@@ -34,6 +40,14 @@ _TABLE_INFORMATION = {
 
 
 class Query:
+    possible_includes: set[str]
+    required_includes: set[str]
+    required_excludes: set[str]
+    required_user_includes: set[str]
+    required_user_excludes: set[str]
+    ratings: set[int]
+    find: SearchType
+
     def __init__(self):
         self.possible_includes = set()
         self.required_includes = set()
@@ -88,6 +102,15 @@ class Query:
             self.required_user_excludes or
             self.ratings)
 
+    def get_terms_string(self) -> str:
+        return " ".join(chain(
+            sorted(self.required_includes),
+            (f"|{t}" for t in sorted(self.possible_includes)),
+            (f"-{t}" for t in sorted(self.required_excludes)),
+            (f"user:{u}" for u in sorted(self.required_user_includes)),
+            (f"-user:{u}" for u in sorted(self.required_user_excludes)),
+        ))
+
     @classmethod
     def parse(cls, query_string, find_default):
         """
@@ -103,12 +126,32 @@ class Query:
         query.required_excludes.difference_update(query.required_includes)
         query.possible_includes.difference_update(query.required_excludes)
 
+        if len(query.possible_includes) == 1:
+            query.required_includes.add(query.possible_includes.pop())
+
         if query.find is None:
             query.find = find_default
 
         query.text = query_string
 
         return query
+
+    def as_simple(self) -> str | None:
+        """
+        Get the single normalized tag name, if this query is for one tag with no other criteria.
+        """
+        if (
+            len(self.required_includes) == 1
+            and not self.possible_includes
+            and not self.required_excludes
+            and not self.required_user_includes
+            and not self.required_user_excludes
+            and not self.ratings
+        ):
+            [tag_name] = self.required_includes
+            return tag_name
+
+        return None
 
 
 def select_users(q):
@@ -153,16 +196,78 @@ class NextFilter(NamedTuple):
     nextid: int
 
 
+@dataclass(frozen=True, slots=True)
+class ResolvedQuery:
+    possible_includes: set[int]
+    required_includes: set[int]
+    required_excludes: set[int]
+    required_user_includes: set[int]
+    required_user_excludes: set[int]
+    ratings: set[int]
+    find: PostType
+
+
+def resolve(search: Query) -> ResolvedQuery | None:
+    if search.find == "user":
+        raise TypeError("user searches not supported")  # pragma: no cover
+
+    all_names = (
+        search.possible_includes
+        | search.required_includes
+        | search.required_excludes
+    )
+
+    all_user_sysnames = (
+        search.required_user_includes
+        | search.required_user_excludes
+    )
+
+    tag_ids = searchtag.get_ids(all_names)
+
+    def get_tag_ids(names: set[str]) -> set[int]:
+        return {tag_ids.get(name, 0) for name in names}
+
+    user_ids = d.get_userids(all_user_sysnames)
+
+    def get_user_ids(names: set[str]) -> set[int]:
+        return {user_ids[name] for name in names}
+
+    required_includes = get_tag_ids(search.required_includes)
+    required_user_includes = get_user_ids(search.required_user_includes)
+
+    if 0 in required_includes or 0 in required_user_includes:
+        return None
+
+    possible_includes = get_tag_ids(search.possible_includes)
+    possible_includes.discard(0)
+
+    required_excludes = get_tag_ids(search.required_excludes)
+    required_excludes.discard(0)
+
+    required_user_excludes = get_user_ids(search.required_user_excludes)
+    required_user_excludes.discard(0)
+
+    return ResolvedQuery(
+        possible_includes=possible_includes,
+        required_includes=required_includes,
+        required_excludes=required_excludes,
+        required_user_includes=required_user_includes,
+        required_user_excludes=required_user_excludes,
+        ratings=search.ratings,
+        find=search.find,
+    )
+
+
 def _prepare_search(
     *,
     userid,
     rating,
-    search,
+    resolved: ResolvedQuery,
     within,
     cat,
     subcat,
 ):
-    _type_code, type_letter, table, select, subtype = _TABLE_INFORMATION[search.find]
+    _type_code, type_letter, table, select, subtype = _TABLE_INFORMATION[resolved.find]
 
     # Begin statement
     statement_with = ""
@@ -171,20 +276,30 @@ def _prepare_search(
     statement_where = ["WHERE content.rating <= %(rating)s AND NOT content.friends_only AND NOT content.hidden"]
     statement_group = []
 
-    if search.find == "submit":
+    # Use the `searchmap*` table, even for submissions, for the fastest possible search if looking for exactly one tag
+    is_single_tag = (
+        not userid  # with no blocktags
+        and len(resolved.required_includes) == 1
+        and not resolved.possible_includes
+        and not resolved.required_excludes
+    )
+
+    if not is_single_tag and resolved.find == "submit":
         statement_from_join.append("INNER JOIN submission_tags ON content.submitid = submission_tags.submitid")
 
-    if search.required_includes:
-        if search.find == "submit":
+    if resolved.required_includes:
+        if not is_single_tag and resolved.find == "submit":
             statement_from_join.append("AND submission_tags.tags @> %(required_includes)s")
         else:
             statement_from_join.append("INNER JOIN searchmap{find} ON targetid = content.{select}")
             statement_where.append("AND searchmap{find}.tagid = ANY (%(required_includes)s)")
-            statement_group.append(
-                "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
+
+            if not is_single_tag:
+                statement_group.append(
+                    "GROUP BY content.{select}, profile.username HAVING COUNT(searchmap{find}.tagid) = %(required_include_count)s")
 
     # Submission category or subcategory
-    if search.find == "submit":
+    if resolved.find == "submit":
         if subcat:
             statement_where.append("AND content.subtype = %(subcategory)s")
         elif cat:
@@ -199,7 +314,7 @@ def _prepare_search(
                 "submit": "AND welcome.type IN (2010, 2030, 2040)",
                 "char": "AND welcome.type = 2050",
                 "journal": "AND welcome.type IN (1010, 1020)",
-            }[search.find])
+            }[resolved.find])
         elif within == "fave":
             # Search within favorites
             statement_from_join.append("INNER JOIN favorite ON favorite.targetid = content.{select}")
@@ -216,7 +331,7 @@ def _prepare_search(
                 "INNER JOIN watchuser ON (watchuser.userid, watchuser.otherid) = (%(userid)s, content.userid)")
 
         # Search within rating
-        if search.ratings:
+        if resolved.ratings:
             statement_where.append("AND content.rating = ANY (%(ratings)s)")
 
         # Blocked tags and ignored users
@@ -227,7 +342,7 @@ def _prepare_search(
                     AND otherid = content.userid)
         """)
 
-        if search.find == "submit":
+        if resolved.find == "submit":
             statement_with = """
                 WITH
                     bg AS (SELECT COALESCE(array_agg(tagid), ARRAY[]::INTEGER[]) AS tags FROM blocktag WHERE userid = %(userid)s AND rating = 10),
@@ -248,8 +363,8 @@ def _prepare_search(
                         AND tagid IN (SELECT tagid FROM blocktag WHERE userid = %(userid)s AND rating <= content.rating))
             """)
 
-    if search.possible_includes:
-        if search.find == "submit":
+    if resolved.possible_includes:
+        if resolved.find == "submit":
             statement_where.append("AND submission_tags.tags && %(possible_includes)s")
         else:
             statement_where.append("""
@@ -260,8 +375,8 @@ def _prepare_search(
                 )
             """)
 
-    if search.required_excludes:
-        if search.find == "submit":
+    if resolved.required_excludes:
+        if resolved.find == "submit":
             statement_where.append("AND NOT submission_tags.tags && %(required_excludes)s")
         else:
             statement_where.append("""
@@ -272,17 +387,15 @@ def _prepare_search(
                 )
             """)
 
-    if search.required_user_includes:
-        statement_from_join.append("INNER JOIN login login_include ON content.userid = login_include.userid")
-        statement_where.append("AND login_include.login_name = ANY (%(required_user_includes)s)")
+    if resolved.required_user_includes:
+        statement_where.append("AND content.userid = ANY (%(required_user_includes)s)")
 
-    if search.required_user_excludes:
-        statement_from_join.append("INNER JOIN login login_exclude ON content.userid = login_exclude.userid")
-        statement_where.append("AND login_exclude.login_name != ALL (%(required_user_excludes)s)")
+    if resolved.required_user_excludes:
+        statement_where.append("AND content.userid != ALL (%(required_user_excludes)s)")
 
     title_field = "title"
 
-    match search.find:
+    match resolved.find:
         case "char":
             title_field = "char_name"
             extra_fields = ", content.settings"
@@ -310,36 +423,26 @@ def _prepare_search(
             statement_order,
         ]).format(
             table=table,
-            find=search.find,
+            find=resolved.find,
             select=select,
             subtype=subtype,
             title_field=title_field,
             extra_fields=extra_fields,
         )
 
-    all_names = (
-        search.possible_includes |
-        search.required_includes |
-        search.required_excludes)
-
-    tag_ids = searchtag.get_ids(all_names)
-
-    def get_ids(names):
-        return [tag_ids.get(name, -1) for name in names]
-
     params = {
-        "possible_includes": get_ids(search.possible_includes),
-        "required_includes": get_ids(search.required_includes),
-        "required_excludes": get_ids(search.required_excludes),
-        "required_user_includes": list(search.required_user_includes),
-        "required_user_excludes": list(search.required_user_excludes),
+        "possible_includes": list(resolved.possible_includes),
+        "required_includes": list(resolved.required_includes),
+        "required_excludes": list(resolved.required_excludes),
+        "required_user_includes": list(resolved.required_user_includes),
+        "required_user_excludes": list(resolved.required_user_excludes),
         "type": type_letter,
         "userid": userid,
         "rating": rating,
-        "ratings": list(search.ratings),
+        "ratings": list(resolved.ratings),
         "category": cat,
         "subcategory": subcat,
-        "required_include_count": len(search.required_includes),
+        "required_include_count": len(resolved.required_includes),
     }
 
     return make_statement, params
@@ -350,17 +453,17 @@ def _find_without_media(
     userid,
     rating,
     limit: int,
-    search,
+    resolved: ResolvedQuery,
     within,
     cat,
     subcat,
     page: _FirstPage | PrevFilter | NextFilter,
 ) -> tuple[Results, PrevFilter | None, NextFilter | None]:
-    type_code, _type_letter, _table, select, _subtype = _TABLE_INFORMATION[search.find]
+    type_code, _type_letter, _table, select, _subtype = _TABLE_INFORMATION[resolved.find]
     make_statement, params = _prepare_search(
         userid=userid,
         rating=rating,
-        search=search,
+        resolved=resolved,
         within=within,
         cat=cat,
         subcat=subcat,
@@ -485,16 +588,16 @@ def select_count(*, page: PrevFilter | NextFilter, **kwargs) -> int:
 
 
 def select(**kwargs) -> tuple[Results, PrevFilter | None, NextFilter | None]:
-    search = kwargs['search']
+    find = kwargs['resolved'].find
     results, prev_page, next_page = _find_without_media(**kwargs)
 
-    if search.find == 'submit':
+    if find == 'submit':
         media.populate_with_submission_media(results)
-    elif search.find == 'char':
+    elif find == 'char':
         for r in results:
             r['sub_media'] = character.fake_media_items(
                 r['charid'], r['userid'], d.get_sysname(r['username']), r['settings'])
-    elif search.find == 'journal':
+    elif find == 'journal':
         media.populate_with_user_media(results)
 
     return results, prev_page, next_page

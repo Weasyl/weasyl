@@ -1,0 +1,77 @@
+#messages-checkboxes .item + .item label {
+    border-top: 1px dashed #b4b4b4;
+}
+
+#messages-checkboxes .item .date {
+    display: block;
+}
+
+#messages-checkboxes .item:first-child label {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+#messages-checkboxes .item:last-child label {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+#manage-collections {
+    padding-top: 16px;
+    padding-top: 1rem;
+}
+
+.notifs-actions {
+    padding: 2em 0;
+}
+
+#notification-global-actions-top {
+    padding-bottom: 0;
+}
+
+@media (max-width: 44.9em) {
+    .notifs-actions {
+        text-align: center;
+    }
+
+    .notifs-remove-buttons {
+        margin-top: 1em;
+    }
+
+    .notifs-remove, .notifs-remove-all {
+        margin-bottom: 1em;
+    }
+}
+
+
+@media (min-width: 36em) {
+    .notifs-remove-buttons {
+        display: inline-block;
+        margin-left: 1em;
+    }
+}
+
+@media (min-width: 45em) {
+    .notifs-paging {
+        float: right;
+    }
+}
+
+@media (min-width: 47em) {
+    #messages-checkboxes .item label {
+        padding: 0.4em 12em 0.4em 0.2em;
+    }
+
+    #messages-checkboxes .item .date {
+        position: absolute;
+        right: 0.5em;
+        top: 0.4em;
+    }
+}
+
+@media (min-width: 53em) {
+    #manage-collections {
+        padding-top: 32px;
+        padding-top: 2rem;
+    }
+}

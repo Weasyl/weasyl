@@ -85,9 +85,10 @@ def clear_database(engine):
         driver_conn.set_session(autocommit=True)
         with driver_conn.cursor() as cur:
             cur.execute(
-                "".join(
-                    f"DELETE FROM {quote_ident(table.name, driver_conn)};"
-                    for table in reversed(tables.metadata.sorted_tables)
+                "SET CONSTRAINTS ALL DEFERRED;"
+                + "".join(
+                    f"DELETE FROM {quote_ident(table_key, driver_conn)};"
+                    for table_key in tables.metadata.tables
                 )
             )
     finally:

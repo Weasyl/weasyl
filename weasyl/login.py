@@ -260,6 +260,34 @@ def create(form):
             "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 
+def initial_profile(userid: int, username: str):
+    return {
+        "userid": userid,
+        "username": username,
+        "full_name": username,
+        "config": "kscftj",
+        "commissions_status": "closed",
+        "trades_status": "closed",
+        "requests_status": "closed",
+        "streaming_later": False,
+        "show_age": False,
+        "can_suggest_tags": True,
+        "premium": False,
+        "favorites_visibility": "everyone",
+        "favorites_bar": True,
+        "shouts_from": "everyone",
+        "messages_from": "everyone",
+        "profile_guests": True,
+        "profile_stats": True,
+        "max_rating": "general",
+        "watch_defaults": "scftj",
+        "thumbnail_bar": "submissions",
+        "allow_collection_requests": True,
+        "collection_notifs": True,
+        "custom_thumbs": True,
+    }
+
+
 def verify(token, ip_address=None):
     # Delete stale logincreate records before verifying against them
     _delete_expired()
@@ -295,12 +323,10 @@ def verify(token, ip_address=None):
             "userid": userid,
             "hashsum": query.hashpass,
         })
-        db.execute(d.meta.tables["profile"].insert(), {
-            "userid": userid,
-            "username": query.username,
-            "full_name": query.username,
-            "config": "kscftj",
-        })
+        db.execute(
+            d.meta.tables["profile"].insert(),
+            initial_profile(userid, query.username),
+        )
         db.execute(d.meta.tables["userinfo"].insert(), {
             "userid": userid,
         })

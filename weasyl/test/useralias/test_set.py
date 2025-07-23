@@ -1,6 +1,5 @@
 import pytest
 
-from libweasyl.models.helpers import CharSettings
 from weasyl.test import db_utils
 from weasyl import useralias
 from weasyl import define as d
@@ -36,16 +35,14 @@ def test_setting_alias_fails_if_user_does_not_have_premium_status():
 
 @pytest.mark.usefixtures('db')
 def test_setting_alias_succeeds_when_previous_alias_does_not_exist():
-    config = CharSettings({'premium'}, {}, {})
-    user_id = db_utils.create_user(config=config)
+    user_id = db_utils.create_user(premium=True)
     useralias.set(user_id, "alias")
     assert useralias.select(userid=user_id) == "alias"
 
 
 @pytest.mark.usefixtures('db')
 def test_setting_alias_succeeds_when_previous_alias_exists():
-    config = CharSettings({'premium'}, {}, {})
-    user_id = db_utils.create_user(config=config)
+    user_id = db_utils.create_user(premium=True)
     useralias.set(user_id, "previousalias")
     useralias.set(user_id, "alias")
     assert useralias.select(userid=user_id) == "alias"

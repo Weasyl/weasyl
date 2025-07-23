@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 import pytest
 
-from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
 from weasyl.test import db_utils
 from weasyl import search
@@ -181,27 +180,25 @@ def test_search_pagination(db):
     ("Marth", 1),
 ])
 def test_user_search(db, term, n_results):
-    config = CharSettings({}, {}, {})
-    db_utils.create_user("Sam Peacock", username="sammy", config=config)
-    db_utils.create_user("LionCub", username="spammer2800", config=config)
-    db_utils.create_user("Samantha Wildlife", username="godall", config=config)
-    db_utils.create_user("Ryan Otherkin", username="bball28", config=config)
-    db_utils.create_user("Pawsome", username="pawsome", config=config)
-    db_utils.create_user("Twisted Calvin", username="twistedcalvin", config=config)
-    db_utils.create_user("JasonAG", username="robert", config=config)
-    db_utils.create_user("Twisted Mindset", username="twistedm", config=config)
-    db_utils.create_user("Martha", config=config)
+    db_utils.create_user("Sam Peacock", username="sammy")
+    db_utils.create_user("LionCub", username="spammer2800")
+    db_utils.create_user("Samantha Wildlife", username="godall")
+    db_utils.create_user("Ryan Otherkin", username="bball28")
+    db_utils.create_user("Pawsome", username="pawsome")
+    db_utils.create_user("Twisted Calvin", username="twistedcalvin")
+    db_utils.create_user("JasonAG", username="robert")
+    db_utils.create_user("Twisted Mindset", username="twistedm")
+    db_utils.create_user("Martha")
 
     results = search.select_users(term)
     assert len(results) == n_results
 
 
 def test_user_search_ordering(db):
-    config = CharSettings({}, {}, {})
-    db_utils.create_user("user_aa", username="useraa", config=config)
-    db_utils.create_user("user_ba", username="userba", config=config)
-    db_utils.create_user("user_Ab", username="userab", config=config)
-    db_utils.create_user("user_Bb", username="userbb", config=config)
+    db_utils.create_user("user_aa", username="useraa")
+    db_utils.create_user("user_ba", username="userba")
+    db_utils.create_user("user_Ab", username="userab")
+    db_utils.create_user("user_Bb", username="userbb")
 
     results = search.select_users("user")
     assert [user["title"] for user in results] == ["user_aa", "user_Ab", "user_ba", "user_Bb"]
@@ -220,11 +217,8 @@ def test_search_within_friends(db):
 
         return results
 
-    config = CharSettings({}, {}, {})
-    config_pending = CharSettings({"pending"}, {}, {})
-
-    user1_id = db_utils.create_user("user1", username="user1", config=config)
-    user2_id = db_utils.create_user("user2", username="user2", config=config)
+    user1_id = db_utils.create_user("user1", username="user1")
+    user2_id = db_utils.create_user("user2", username="user2")
 
     submission1_id = db_utils.create_submission(user1_id, rating=ratings.GENERAL.code)
     db_utils.create_submission_tag(tag_id, submission1_id)
@@ -235,12 +229,12 @@ def test_search_within_friends(db):
     assert len(_select(user1_id)) == 0
     assert len(_select(user2_id)) == 0
 
-    db_utils.create_friendship(user1_id, user2_id, config_pending)
+    db_utils.create_friendship(user1_id, user2_id, pending=True)
 
     assert len(_select(user1_id)) == 0
     assert len(_select(user2_id)) == 0
 
-    db_utils.create_friendship(user2_id, user1_id, config)
+    db_utils.create_friendship(user2_id, user1_id)
 
     assert len(_select(user1_id)) == 1
     assert len(_select(user1_id)) == 1

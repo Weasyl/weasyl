@@ -122,6 +122,8 @@ def create_commish_searchable_user(username, commish_status='o', commishclass='b
     user = db_utils.create_user(username=username)
     profile.edit_profile_settings(
         userid=user,
+        set_trade=profile.EXCHANGE_SETTING_NOT_ACCEPTING,
+        set_request=profile.EXCHANGE_SETTING_NOT_ACCEPTING,
         set_commission=profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, commish_status)
     )
     commishinfo.create_commission_class(user, commishclass)

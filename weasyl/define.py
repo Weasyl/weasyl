@@ -258,7 +258,7 @@ def path_redirect(path_qs: str) -> str:
     return _ORIGIN + path_qs
 
 
-@region.cache_on_arguments(namespace='v3')
+@region.cache_on_arguments(namespace='v4')
 def _get_all_config(userid):
     """
     Queries for, and returns, common user configuration settings.
@@ -270,13 +270,15 @@ def _get_all_config(userid):
       is_vouched_for: Boolean. Is the user vouched for?
       profile_configuration: CharSettings/string. Configuration options in the profile.
       jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
+      premium: Boolean. Is the user a premium user?
     """
     row = engine.execute("""
         SELECT EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
                EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
                lo.voucher IS NOT NULL AS is_vouched_for,
                pr.config AS profile_configuration,
-               pr.jsonb_settings
+               pr.jsonb_settings,
+               pr.premium
         FROM login lo INNER JOIN profile pr USING (userid)
         WHERE userid = %(userid)s
     """, userid=userid).first()
@@ -343,12 +345,11 @@ def is_sfw_mode():
     return get_current_request().cookies.get('sfwmode', "nsfw") == "sfw"
 
 
-def get_premium(userid):
+def get_premium(userid: int) -> bool:
     if not userid:
         return False
 
-    config = get_config(userid)
-    return "d" in config
+    return _get_all_config(userid)["premium"]
 
 
 @region.cache_on_arguments(should_cache_fn=bool)

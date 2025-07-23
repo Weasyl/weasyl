@@ -11,7 +11,7 @@ def test_reply_to_restricted_notes(app):
     session1 = db_utils.create_session(user1)
     session2 = db_utils.create_session(user2)
 
-    d.engine.execute("UPDATE profile SET config = config || 'z' WHERE userid = %(user)s", user=user1)
+    d.engine.execute("UPDATE profile SET config = config || 'z', messages_from = 'friends' WHERE userid = %(user)s", user=user1)
 
     def try_send(status):
         app.post('/notes/compose', {
@@ -58,7 +58,7 @@ def test_reply_when_blocked(app):
 
     try_send(422)
 
-    d.engine.execute("UPDATE profile SET config = config || 'z' WHERE userid = %(user)s", user=user1)
+    d.engine.execute("UPDATE profile SET config = config || 'z', messages_from = 'friends' WHERE userid = %(user)s", user=user1)
 
     try_send(422)
 

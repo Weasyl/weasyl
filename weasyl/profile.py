@@ -426,7 +426,9 @@ def edit_profile_settings(
 ):
     settings = "".join([set_commission.code, set_trade.code, set_request.code])
     d.engine.execute(
-        "UPDATE profile SET settings = %(settings)s WHERE userid = %(user)s",
+        "UPDATE profile SET settings = %(settings)s"
+        " || (CASE WHEN position('l' in settings) = 0 THEN '' ELSE 'l' END)"
+        " WHERE userid = %(user)s",
         settings=settings, user=userid)
     d._get_all_config.invalidate(userid)
 
@@ -437,14 +439,8 @@ def edit_profile(
     full_name: str,
     catchphrase: str,
     profile_text: str,
-    set_trade: ExchangeSetting,
-    set_request: ExchangeSetting,
-    set_commission: ExchangeSetting,
     profile_display: str,
 ):
-    # Assign settings
-    settings = "".join([set_commission.code, set_trade.code, set_request.code])
-
     if profile_display not in ('O', 'A'):
         profile_display = ''
 
@@ -456,7 +452,6 @@ def edit_profile(
             'full_name': full_name,
             'catchphrase': catchphrase,
             'profile_text': profile_text,
-            'settings': settings,
             'config': sa.func.regexp_replace(pr.c.config, "[OA]", "").concat(profile_display),
         })
     )

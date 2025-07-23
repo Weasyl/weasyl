@@ -127,7 +127,7 @@ commishclass = Table(
     Column('classid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('title', String(length=100), nullable=False),
-    ForeignKeyConstraint(['userid'], ['login.userid'], name='commishclass_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='commishclass_userid_fkey'),
 )
 
 Index('ind_userid_title', commishclass.c.userid, commishclass.c.title, unique=True)
@@ -336,7 +336,7 @@ login = Table(
     Column('twofa_secret', String(length=420), nullable=True),
     # Must be nullable, since existing accounts will not have this information
     Column('ip_address_at_signup', String(length=39), nullable=True),
-    Column('voucher', Integer, ForeignKey('login.userid'), nullable=True),
+    Column('voucher', Integer, ForeignKey('login.userid', name='login_voucher_fkey'), nullable=True),
     # Nullable for the case where no site updates exist in the database.
     Column('last_read_updateid', Integer(), nullable=True),
     ForeignKeyConstraint(['last_read_updateid'], ['siteupdate.updateid'], name='login_last_read_updateid_fkey'),
@@ -564,7 +564,7 @@ searchmapchar = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
-    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL', name='searchmapchar_added_by_fkey'), nullable=True),
     cascading_fkey(['targetid'], ['character.charid'], name='searchmapchar_targetid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapchar_tagid_fkey'),
 )
@@ -578,7 +578,7 @@ searchmapjournal = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
-    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL', name='searchmapjournal_added_by_fkey'), nullable=True),
     cascading_fkey(['targetid'], ['journal.journalid'], name='searchmapjournal_targetid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapjournal_tagid_fkey'),
 )
@@ -594,7 +594,7 @@ searchmapsubmit = Table(
     Column('settings', CharSettingsColumn({
         'a': 'artist-tag',
     }), nullable=False, server_default=''),
-    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL', name='searchmapsubmit_added_by_fkey'), nullable=True),
     cascading_fkey(['targetid'], ['submission.submitid'], name='searchmapsubmit_targetid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapsubmit_tagid_fkey'),
 )
@@ -690,7 +690,7 @@ user_agents = Table(
 user_events = Table(
     'user_events', metadata,
     Column('eventid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('userid', Integer(), ForeignKey('login.userid', name='user_events_userid_fkey'), nullable=False),
     Column('event', String(length=100), nullable=False),
     Column('data', JSONB(), nullable=False),
     Column('occurred', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
@@ -813,11 +813,13 @@ suspension = Table(
 
 
 def _tag_suggestion_feedback_table(content_table, id_column):
+    table_name = f'tag_suggestion_feedback_{content_table.name}'
+
     return Table(
-        f'tag_suggestion_feedback_{content_table.name}', metadata,
-        Column('targetid', ForeignKey(id_column, ondelete='CASCADE'), primary_key=True),
-        Column('tagid', ForeignKey(searchtag.c.tagid), primary_key=True),
-        Column('userid', ForeignKey(login.c.userid, ondelete='CASCADE'), primary_key=True),
+        table_name, metadata,
+        Column('targetid', ForeignKey(id_column, ondelete='CASCADE', name=f'{table_name}_targetid_fkey'), primary_key=True),
+        Column('tagid', ForeignKey(searchtag.c.tagid, name=f'{table_name}_tagid_fkey'), primary_key=True),
+        Column('userid', ForeignKey(login.c.userid, ondelete='CASCADE', name=f'{table_name}_userid_fkey'), primary_key=True),
         Column('last_modified', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
         Column('incorrect', Boolean(), nullable=False),
         Column('unwanted', Boolean(), nullable=False),
@@ -908,14 +910,14 @@ userinfo = Table(
 username_history = Table(
     'username_history', metadata,
     Column('historyid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('userid', Integer(), ForeignKey('login.userid', name='username_history_userid_fkey'), nullable=False),
     Column('username', String(length=25), nullable=False),
     Column('login_name', String(length=25), nullable=False),
     Column('replaced_at', TIMESTAMP(timezone=True), nullable=False),
-    Column('replaced_by', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('replaced_by', Integer(), ForeignKey('login.userid', name='username_history_replaced_by_fkey'), nullable=False),
     Column('active', Boolean(), nullable=False),
     Column('deactivated_at', TIMESTAMP(timezone=True), nullable=True),
-    Column('deactivated_by', Integer(), ForeignKey('login.userid'), nullable=True),
+    Column('deactivated_by', Integer(), ForeignKey('login.userid', name='username_history_deactivated_by_fkey'), nullable=True),
     # true if the username changed but the login_name didn't
     Column('cosmetic', Boolean(), nullable=False),
     CheckConstraint("username !~ '[^ -~]' AND username !~ ';'", name='username_history_username_check'),

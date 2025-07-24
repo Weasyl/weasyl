@@ -297,7 +297,7 @@ services:
           printf 'checking if postgres is up in %i seconds...\n' $$i
           sleep $$i
         done
-        exec .venv/bin/alembic upgrade head
+        exec .venv/bin/alembic upgrade heads
     environment:
       # needed for revision f30dc3b5856a
       WEASYL_STORAGE_ROOT: '/fakepath'

@@ -53,7 +53,7 @@ def upgrade():
     op.create_foreign_key('comments_target_user_fkey', 'comments', 'login', ['target_user'], ['userid'], deferrable=True)
     op.create_foreign_key('comments_parentid_fkey', 'comments', 'comments', ['parentid'], ['commentid'], deferrable=True)
     op.drop_constraint('commishclass_userid_fkey', 'commishclass', type_='foreignkey')
-    op.create_foreign_key('commishclass_userid_fkey', 'commishclass', 'login', ['userid'], ['userid'], deferrable=True)
+    op.create_foreign_key('commishclass_userid_fkey', 'commishclass', 'login', ['userid'], ['userid'], onupdate='CASCADE', ondelete='CASCADE', deferrable=True)
     op.drop_constraint('commishdesc_userid_fkey', 'commishdesc', type_='foreignkey')
     op.create_foreign_key('commishdesc_userid_fkey', 'commishdesc', 'login', ['userid'], ['userid'], onupdate='CASCADE', ondelete='CASCADE', deferrable=True)
     op.drop_constraint('commishprice_userid_fkey', 'commishprice', type_='foreignkey')

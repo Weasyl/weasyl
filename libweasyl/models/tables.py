@@ -12,6 +12,32 @@ from libweasyl import constants
 
 metadata = MetaData()
 
+Permissions = ENUM(
+    "nobody",
+    "friends",
+    "everyone",
+    name="permissions",
+    metadata=metadata,
+)
+
+ProfileStatus = ENUM(
+    "exclude",
+    "closed",
+    "filled",
+    "sometimes",
+    "open",
+    name="profile_status",
+    metadata=metadata,
+)
+
+Rating = ENUM(
+    "general",
+    "mature",
+    "explicit",
+    name="rating",
+    metadata=metadata,
+)
+
 
 # Make all foreign keys deferrable by default.
 def ForeignKey(*args, **kwargs) -> _ForeignKey:
@@ -460,6 +486,10 @@ profile = Table(
     Column('latest_submission_time', ArrowColumn(), nullable=False, server_default='epoch'),
     Column('profile_text', String(length=100000), nullable=False, server_default=''),
     Column('settings', String(length=20), nullable=False, server_default='ccci'),
+    Column('commissions_status', ProfileStatus),
+    Column('trades_status', ProfileStatus),
+    Column('requests_status', ProfileStatus),
+    Column('streaming_later', Boolean()),
     Column('stream_url', String(length=500), nullable=False, server_default=''),
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('config', CharSettingsColumn({
@@ -494,9 +524,25 @@ profile = Table(
             'A': 'characters',
         },
     }, length=50), nullable=False, server_default=''),
+    Column('show_age', Boolean()),
+    Column('can_suggest_tags', Boolean(), nullable=False, server_default='t'),
+    Column('premium', Boolean(), nullable=False, server_default='f'),
+    Column('favorites_visibility', Permissions),
+    Column('favorites_bar', Boolean()),
+    Column('shouts_from', Permissions),
+    Column('messages_from', Permissions),
+    Column('profile_guests', Boolean()),
+    Column('profile_stats', Boolean()),
+    Column('max_rating', Rating),
+    Column('watch_defaults', String()),
+    Column('thumbnail_bar', ENUM('submissions', 'collections', 'characters', name="thumbnail_bar")),
     Column('jsonb_settings', JSONB()),
+    Column('allow_collection_requests', Boolean()),
+    Column('collection_notifs', Boolean()),
+    Column('custom_thumbs', Boolean()),
     Column('stream_text', String(length=2000)),
     cascading_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
+    CheckConstraint("watch_defaults ~ '^s?c?f?t?j?$'", name='profile_watch_defaults_check'),
 )
 
 

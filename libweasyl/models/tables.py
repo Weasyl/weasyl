@@ -1,8 +1,9 @@
 from sqlalchemy import (
-    MetaData, Table, Column, CheckConstraint, ForeignKeyConstraint, UniqueConstraint, Index,
+    MetaData, Table, Column, CheckConstraint, UniqueConstraint, Index,
     Boolean, DateTime, Integer, String, Text, func, text)
 from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB, TIMESTAMP
-from sqlalchemy.schema import ForeignKey
+from sqlalchemy.schema import ForeignKey as _ForeignKey
+from sqlalchemy.schema import ForeignKeyConstraint as _ForeignKeyConstraint
 
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn)
@@ -38,7 +39,16 @@ Rating = ENUM(
 )
 
 
-def default_fkey(*args, **kwargs):
+# Make all foreign keys deferrable by default.
+def ForeignKey(*args, **kwargs) -> _ForeignKey:
+    return _ForeignKey(*args, **kwargs, deferrable=True)
+
+
+def ForeignKeyConstraint(*args, **kwargs) -> _ForeignKeyConstraint:
+    return _ForeignKeyConstraint(*args, **kwargs, deferrable=True)
+
+
+def cascading_fkey(*args, **kwargs):
     return ForeignKeyConstraint(*args, onupdate='CASCADE', ondelete='CASCADE', **kwargs)
 
 
@@ -47,7 +57,7 @@ api_tokens = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('token', String(length=64), primary_key=True, nullable=False),
     Column('description', String()),
-    default_fkey(['userid'], ['login.userid'], name='api_tokens_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='api_tokens_userid_fkey'),
 )
 
 
@@ -55,7 +65,7 @@ authbcrypt = Table(
     'authbcrypt', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('hashsum', String(length=100), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='authbcrypt_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='authbcrypt_userid_fkey'),
 )
 
 
@@ -64,8 +74,8 @@ blocktag = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('rating', RatingColumn, nullable=False),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='blocktag_tagid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='blocktag_userid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='blocktag_tagid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='blocktag_userid_fkey'),
 )
 
 Index('ind_blocktag_userid', blocktag.c.userid)
@@ -81,8 +91,8 @@ charcomment = Table(
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default=''),
     Column('hidden_by', Integer(), nullable=True),
-    default_fkey(['targetid'], ['character.charid'], name='charcomment_targetid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='charcomment_userid_fkey'),
+    ForeignKeyConstraint(['targetid'], ['character.charid'], name='charcomment_targetid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='charcomment_userid_fkey'),
     ForeignKeyConstraint(
         ['hidden_by'],
         ['login.userid'],
@@ -100,8 +110,8 @@ collection = Table(
     Column('submitid', Integer(), primary_key=True, nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default='p'),
-    default_fkey(['userid'], ['login.userid'], name='collection_userid_fkey'),
-    default_fkey(['submitid'], ['submission.submitid'], name='collection_submitid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='collection_userid_fkey'),
+    ForeignKeyConstraint(['submitid'], ['submission.submitid'], name='collection_submitid_fkey'),
 )
 
 Index('ind_collection_userid', collection.c.userid)
@@ -121,9 +131,9 @@ comments = Table(
         's': 'staff-note',
     }, length=20), nullable=False, server_default=''),
     Column('hidden_by', Integer(), nullable=True),
-    default_fkey(['userid'], ['login.userid'], name='comments_userid_fkey'),
-    default_fkey(['target_user'], ['login.userid'], name='comments_target_user_fkey'),
-    default_fkey(['target_sub'], ['submission.submitid'], name='comments_target_sub_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='comments_userid_fkey'),
+    ForeignKeyConstraint(['target_user'], ['login.userid'], name='comments_target_user_fkey'),
+    ForeignKeyConstraint(['target_sub'], ['submission.submitid'], name='comments_target_sub_fkey'),
     ForeignKeyConstraint(['parentid'], ['comments.commentid'], name='comments_parentid_fkey'),
     ForeignKeyConstraint(
         ['hidden_by'],
@@ -143,7 +153,7 @@ commishclass = Table(
     Column('classid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('title', String(length=100), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='commishclass_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='commishclass_userid_fkey'),
 )
 
 Index('ind_userid_title', commishclass.c.userid, commishclass.c.title, unique=True)
@@ -154,7 +164,7 @@ commishdesc = Table(
     'commishdesc', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('content', String(length=20000), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='commishdesc_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='commishdesc_userid_fkey'),
 )
 
 
@@ -167,7 +177,7 @@ commishprice = Table(
     Column('amount_min', Integer(), nullable=False),
     Column('amount_max', Integer(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default=''),
-    default_fkey(['userid'], ['login.userid'], name='commishprice_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='commishprice_userid_fkey'),
 )
 
 Index('ind_classid_userid_title', commishprice.c.classid, commishprice.c.userid, commishprice.c.title, unique=True)
@@ -189,7 +199,7 @@ emailverify = Table(
     Column('email', String(length=100), nullable=False, unique=True),
     Column('createtimestamp', DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column('token', String(length=100), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='emailverify_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='emailverify_userid_fkey'),
 )
 
 Index('ind_emailverify_token', emailverify.c.token)
@@ -201,7 +211,7 @@ favorite = Table(
     Column('targetid', Integer(), primary_key=True, nullable=False, autoincrement=False),
     Column('type', String(length=5), primary_key=True, nullable=False, server_default=''),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='favorite_userid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='favorite_userid_fkey'),
 )
 
 Index('ind_favorite_userid', favorite.c.userid)
@@ -222,7 +232,7 @@ folder = Table(
         'm': 'index-filter',
         'f': 'featured-filter',
     }, length=20), nullable=False, server_default=''),
-    default_fkey(['userid'], ['login.userid'], name='folder_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='folder_userid_fkey'),
 )
 
 Index('ind_folder_userid', folder.c.userid)
@@ -246,8 +256,8 @@ frienduser = Table(
         'p': 'pending',
     }, length=20), nullable=False, server_default='p'),
     Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
-    default_fkey(['otherid'], ['login.userid'], name='frienduser_otherid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='frienduser_userid_fkey'),
+    cascading_fkey(['otherid'], ['login.userid'], name='frienduser_otherid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='frienduser_userid_fkey'),
 )
 
 Index('ind_frienduser_otherid', frienduser.c.otherid)
@@ -271,7 +281,7 @@ character = Table(
     Column('hidden', Boolean(), nullable=False, server_default='f'),
     Column('friends_only', Boolean(), nullable=False, server_default='f'),
     Column('page_views', Integer(), nullable=False, server_default='0'),
-    default_fkey(['userid'], ['login.userid'], name='character_userid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='character_userid_fkey'),
 )
 
 Index('ind_character_userid', character.c.userid)
@@ -281,7 +291,7 @@ google_doc_embeds = Table(
     'google_doc_embeds', metadata,
     Column('submitid', Integer(), primary_key=True, nullable=False),
     Column('embed_url', String(length=255), nullable=False),
-    default_fkey(['submitid'], ['submission.submitid'], name='google_doc_embeds_submitid_fkey'),
+    cascading_fkey(['submitid'], ['submission.submitid'], name='google_doc_embeds_submitid_fkey'),
 )
 
 
@@ -289,8 +299,8 @@ ignoreuser = Table(
     'ignoreuser', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('otherid', Integer(), primary_key=True, nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='ignoreuser_userid_fkey'),
-    default_fkey(['otherid'], ['login.userid'], name='ignoreuser_otherid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='ignoreuser_userid_fkey'),
+    cascading_fkey(['otherid'], ['login.userid'], name='ignoreuser_otherid_fkey'),
 )
 
 Index('ind_ignoreuser_userid', ignoreuser.c.userid)
@@ -309,7 +319,7 @@ journal = Table(
     Column('page_views', Integer(), nullable=False, server_default='0'),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
-    default_fkey(['userid'], ['login.userid'], name='journal_userid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='journal_userid_fkey'),
     ForeignKeyConstraint(
         ['submitter_user_agent_id'],
         ['user_agents.user_agent_id'],
@@ -330,8 +340,8 @@ journalcomment = Table(
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default=''),
     Column('hidden_by', Integer(), nullable=True),
-    default_fkey(['targetid'], ['journal.journalid'], name='journalcomment_targetid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='journalcomment_userid_fkey'),
+    ForeignKeyConstraint(['targetid'], ['journal.journalid'], name='journalcomment_targetid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='journalcomment_userid_fkey'),
     ForeignKeyConstraint(
         ['hidden_by'],
         ['login.userid'],
@@ -352,7 +362,7 @@ login = Table(
     Column('twofa_secret', String(length=420), nullable=True),
     # Must be nullable, since existing accounts will not have this information
     Column('ip_address_at_signup', String(length=39), nullable=True),
-    Column('voucher', Integer, ForeignKey('login.userid'), nullable=True),
+    Column('voucher', Integer, ForeignKey('login.userid', name='login_voucher_fkey'), nullable=True),
     # Nullable for the case where no site updates exist in the database.
     Column('last_read_updateid', Integer(), nullable=True),
     ForeignKeyConstraint(['last_read_updateid'], ['siteupdate.updateid'], name='login_last_read_updateid_fkey'),
@@ -366,7 +376,7 @@ twofa_recovery_codes = Table(
     'twofa_recovery_codes', metadata,
     Column('userid', Integer(), nullable=False),
     Column('recovery_code_hash', String(length=100), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='twofa_recovery_codes_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='twofa_recovery_codes_userid_fkey'),
 )
 
 Index('ind_twofa_recovery_codes_userid', twofa_recovery_codes.c.userid)
@@ -412,8 +422,8 @@ message = Table(
     Column('content', String(length=100000), nullable=False),
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('settings', String(length=20), nullable=False, server_default='u'),
-    default_fkey(['otherid'], ['login.userid'], name='message_otherid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='message_userid_fkey'),
+    ForeignKeyConstraint(['otherid'], ['login.userid'], name='message_otherid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='message_userid_fkey'),
 )
 
 Index('ind_message_otherid_noteid', message.c.otherid, message.c.noteid)
@@ -429,8 +439,8 @@ oauth_bearer_tokens = Table(
     Column('access_token', String(length=64), nullable=False, unique=True),
     Column('refresh_token', String(length=64), nullable=False, unique=True),
     Column('expires_at', ArrowColumn(), nullable=False),
-    default_fkey(['clientid'], ['oauth_consumers.clientid'], name='oauth_bearer_tokens_clientid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='oauth_bearer_tokens_userid_fkey'),
+    ForeignKeyConstraint(['clientid'], ['oauth_consumers.clientid'], name='oauth_bearer_tokens_clientid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='oauth_bearer_tokens_userid_fkey'),
 )
 
 
@@ -444,7 +454,7 @@ oauth_consumers = Table(
     Column('scopes', ARRAY(Text()), nullable=False),
     Column('redirect_uris', ARRAY(Text()), nullable=False),
     Column('client_secret', String(length=64), nullable=False),
-    default_fkey(['ownerid'], ['login.userid'], name='oauth_consumers_owner_fkey'),
+    ForeignKeyConstraint(['ownerid'], ['login.userid'], name='oauth_consumers_owner_fkey'),
 )
 
 
@@ -452,7 +462,7 @@ permaban = Table(
     'permaban', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('reason', Text(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='permaban_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='permaban_userid_fkey'),
 )
 
 
@@ -460,8 +470,8 @@ permitted_senders = Table(
     'permitted_senders', metadata,
     Column('userid', Integer(), primary_key=True),
     Column('sender', Integer(), primary_key=True),
-    default_fkey(['userid'], ['login.userid'], name='permitted_senders_userid_fkey'),
-    default_fkey(['sender'], ['login.userid'], name='permitted_senders_sender_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='permitted_senders_userid_fkey'),
+    cascading_fkey(['sender'], ['login.userid'], name='permitted_senders_sender_fkey'),
 )
 
 
@@ -531,7 +541,7 @@ profile = Table(
     Column('collection_notifs', Boolean()),
     Column('custom_thumbs', Boolean()),
     Column('stream_text', String(length=2000)),
-    default_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
     CheckConstraint("watch_defaults ~ '^s?c?f?t?j?$'", name='profile_watch_defaults_check'),
 )
 
@@ -559,11 +569,11 @@ report = Table(
                 values_callable=lambda enum_cls: [e.value for e in enum_cls]),
            nullable=True),
     Column('closure_explanation', Text(), nullable=True),
-    default_fkey(['target_user'], ['login.userid'], name='report_target_user_fkey'),
-    default_fkey(['target_sub'], ['submission.submitid'], name='report_target_sub_fkey'),
-    default_fkey(['target_char'], ['character.charid'], name='report_target_char_fkey'),
-    default_fkey(['target_journal'], ['journal.journalid'], name='report_target_journal_fkey'),
-    default_fkey(['target_comment'], ['comments.commentid'], name='report_target_comment_fkey'),
+    ForeignKeyConstraint(['target_user'], ['login.userid'], name='report_target_user_fkey'),
+    ForeignKeyConstraint(['target_sub'], ['submission.submitid'], name='report_target_sub_fkey'),
+    ForeignKeyConstraint(['target_char'], ['character.charid'], name='report_target_char_fkey'),
+    ForeignKeyConstraint(['target_journal'], ['journal.journalid'], name='report_target_journal_fkey'),
+    ForeignKeyConstraint(['target_comment'], ['comments.commentid'], name='report_target_comment_fkey'),
     ForeignKeyConstraint(
         ['closerid'],
         ['login.userid'],
@@ -591,7 +601,7 @@ reportcomment = Table(
     Column('commentid', Integer(), primary_key=True, nullable=False),
     Column('reportid', Integer(), nullable=False),
     ForeignKeyConstraint(['userid'], ['login.userid'], name='reportcomment_userid_fkey'),
-    default_fkey(['reportid'], ['report.reportid'], name='reportcomment_reportid_fkey'),
+    ForeignKeyConstraint(['reportid'], ['report.reportid'], name='reportcomment_reportid_fkey'),
 )
 
 
@@ -600,9 +610,9 @@ searchmapchar = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
-    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
-    default_fkey(['targetid'], ['character.charid'], name='searchmapchar_targetid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapchar_tagid_fkey'),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL', name='searchmapchar_added_by_fkey'), nullable=True),
+    cascading_fkey(['targetid'], ['character.charid'], name='searchmapchar_targetid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapchar_tagid_fkey'),
 )
 
 Index('ind_searchmapchar_tagid', searchmapchar.c.tagid)
@@ -614,9 +624,9 @@ searchmapjournal = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
-    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
-    default_fkey(['targetid'], ['journal.journalid'], name='searchmapjournal_targetid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapjournal_tagid_fkey'),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL', name='searchmapjournal_added_by_fkey'), nullable=True),
+    cascading_fkey(['targetid'], ['journal.journalid'], name='searchmapjournal_targetid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapjournal_tagid_fkey'),
 )
 
 Index('ind_searchmapjournal_targetid', searchmapjournal.c.targetid)
@@ -630,9 +640,9 @@ searchmapsubmit = Table(
     Column('settings', CharSettingsColumn({
         'a': 'artist-tag',
     }), nullable=False, server_default=''),
-    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL'), nullable=True),
-    default_fkey(['targetid'], ['submission.submitid'], name='searchmapsubmit_targetid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='searchmapsubmit_tagid_fkey'),
+    Column('added_by', Integer(), ForeignKey('login.userid', ondelete='SET NULL', name='searchmapsubmit_added_by_fkey'), nullable=True),
+    cascading_fkey(['targetid'], ['submission.submitid'], name='searchmapsubmit_targetid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='searchmapsubmit_tagid_fkey'),
 )
 
 Index('ind_searchmapsubmit_tagid', searchmapsubmit.c.tagid)
@@ -644,8 +654,8 @@ artist_preferred_tags = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
-    default_fkey(['targetid'], ['login.userid'], name='artist_preferred_tags_targetid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='artist_preferred_tags_tagid_fkey'),
+    cascading_fkey(['targetid'], ['login.userid'], name='artist_preferred_tags_targetid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='artist_preferred_tags_tagid_fkey'),
 )
 
 Index('ind_artist_preferred_tags_tagid', artist_preferred_tags.c.tagid)
@@ -657,8 +667,8 @@ artist_optout_tags = Table(
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
-    default_fkey(['targetid'], ['login.userid'], name='artist_optout_tags_targetid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='artist_optout_tags_tagid_fkey'),
+    cascading_fkey(['targetid'], ['login.userid'], name='artist_optout_tags_targetid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='artist_optout_tags_tagid_fkey'),
 )
 
 Index('ind_artist_optout_tags_tagid', artist_optout_tags.c.tagid)
@@ -669,8 +679,8 @@ globally_restricted_tags = Table(
     'globally_restricted_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='globally_restricted_tags_userid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='globally_restricted_tags_tagid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='globally_restricted_tags_userid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='globally_restricted_tags_tagid_fkey'),
 )
 
 Index('ind_globally_restricted_tags_tagid', globally_restricted_tags.c.tagid)
@@ -681,8 +691,8 @@ user_restricted_tags = Table(
     'user_restricted_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), primary_key=True, nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='user_restricted_tags_userid_fkey'),
-    default_fkey(['tagid'], ['searchtag.tagid'], name='user_restricted_tags_tagid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='user_restricted_tags_userid_fkey'),
+    ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='user_restricted_tags_tagid_fkey'),
 )
 
 Index('ind_user_restricted_tags_tagid', user_restricted_tags.c.tagid)
@@ -707,7 +717,7 @@ sessions = Table(
     Column('additional_data', JSONValuesColumn(), nullable=False, server_default=text("''::hstore")),
     Column('ip_address', String(length=39), nullable=True),
     Column('user_agent_id', Integer(), nullable=True),
-    default_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='sessions_userid_fkey'),
     ForeignKeyConstraint(['user_agent_id'], ['user_agents.user_agent_id'], name='sessions_user_agent_id_fkey'),
     CheckConstraint("userid IS NOT NULL OR additional_data != ''", name='sessions_no_guest_check'),
 )
@@ -726,7 +736,7 @@ user_agents = Table(
 user_events = Table(
     'user_events', metadata,
     Column('eventid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('userid', Integer(), ForeignKey('login.userid', name='user_events_userid_fkey'), nullable=False),
     Column('event', String(length=100), nullable=False),
     Column('data', JSONB(), nullable=False),
     Column('occurred', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
@@ -787,7 +797,7 @@ submission = Table(
     Column('favorites', Integer(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
-    default_fkey(['userid'], ['login.userid'], name='submission_userid_fkey'),
+    ForeignKeyConstraint(['userid'], ['login.userid'], name='submission_userid_fkey'),
     ForeignKeyConstraint(
         ['folderid'],
         ['folder.folderid'],
@@ -821,8 +831,8 @@ submission_media_links = Table(
     Column('mediaid', Integer(), nullable=False),
     Column('submitid', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    default_fkey(['submitid'], ['submission.submitid'], name='submission_media_links_submitid_fkey'),
-    default_fkey(['mediaid'], ['media.mediaid'], name='submission_media_links_mediaid_fkey'),
+    cascading_fkey(['submitid'], ['submission.submitid'], name='submission_media_links_submitid_fkey'),
+    ForeignKeyConstraint(['mediaid'], ['media.mediaid'], name='submission_media_links_mediaid_fkey'),
 )
 
 Index('ind_submission_media_links_submitid', submission_media_links.c.submitid)
@@ -833,7 +843,7 @@ submission_tags = Table(
     'submission_tags', metadata,
     Column('submitid', Integer(), primary_key=True, nullable=False),
     Column('tags', ARRAY(Integer()), nullable=False),
-    default_fkey(['submitid'], ['submission.submitid'], name='submission_tags_submitid_fkey'),
+    cascading_fkey(['submitid'], ['submission.submitid'], name='submission_tags_submitid_fkey'),
 )
 
 Index('ind_submission_tags_tags', submission_tags.c.tags, postgresql_using='gin')
@@ -844,16 +854,18 @@ suspension = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('reason', Text(), nullable=False),
     Column('release', Integer(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='suspension_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='suspension_userid_fkey'),
 )
 
 
 def _tag_suggestion_feedback_table(content_table, id_column):
+    table_name = f'tag_suggestion_feedback_{content_table.name}'
+
     return Table(
-        f'tag_suggestion_feedback_{content_table.name}', metadata,
-        Column('targetid', ForeignKey(id_column, ondelete='CASCADE'), primary_key=True),
-        Column('tagid', ForeignKey(searchtag.c.tagid), primary_key=True),
-        Column('userid', ForeignKey(login.c.userid, ondelete='CASCADE'), primary_key=True),
+        table_name, metadata,
+        Column('targetid', ForeignKey(id_column, ondelete='CASCADE', name=f'{table_name}_targetid_fkey'), primary_key=True),
+        Column('tagid', ForeignKey(searchtag.c.tagid, name=f'{table_name}_tagid_fkey'), primary_key=True),
+        Column('userid', ForeignKey(login.c.userid, ondelete='CASCADE', name=f'{table_name}_userid_fkey'), primary_key=True),
         Column('last_modified', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
         Column('incorrect', Boolean(), nullable=False),
         Column('unwanted', Boolean(), nullable=False),
@@ -875,7 +887,7 @@ tag_updates = Table(
     Column('removed', ARRAY(Text())),
     Column('updated_at', Integer(), nullable=False,
            server_default=text("(date_part('epoch'::text, now()) - (18000)::double precision)")),
-    default_fkey(['submitid'], ['submission.submitid'], name='tag_updates_submitid_fkey'),
+    cascading_fkey(['submitid'], ['submission.submitid'], name='tag_updates_submitid_fkey'),
     ForeignKeyConstraint(['userid'], ['login.userid'], name='tag_updates_userid_fkey'),
 )
 
@@ -888,8 +900,8 @@ user_media_links = Table(
     Column('mediaid', Integer(), nullable=False),
     Column('userid', Integer(), nullable=False),
     Column('link_type', String(length=32), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='user_media_links_userid_fkey'),
-    default_fkey(['mediaid'], ['media.mediaid'], name='user_media_links_mediaid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='user_media_links_userid_fkey'),
+    ForeignKeyConstraint(['mediaid'], ['media.mediaid'], name='user_media_links_mediaid_fkey'),
 )
 
 Index('ind_user_media_links_submitid', user_media_links.c.userid)
@@ -903,7 +915,7 @@ user_links = Table(
     Column('userid', Integer(), nullable=False),
     Column('link_type', String(length=64), nullable=False),
     Column('link_value', String(length=2000), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='user_links_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='user_links_userid_fkey'),
 )
 
 Index('ind_user_links_userid', user_links.c.userid)
@@ -914,7 +926,7 @@ user_streams = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('start_time', Integer(), nullable=False),
     Column('end_time', Integer(), nullable=False),
-    default_fkey(['userid'], ['login.userid'], name='user_streams_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='user_streams_userid_fkey'),
 )
 
 Index('ind_user_streams_end', user_streams.c.end_time)
@@ -926,7 +938,7 @@ useralias = Table(
     Column('userid', Integer(), primary_key=True, nullable=False),
     Column('alias_name', String(length=40), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
-    default_fkey(['userid'], ['login.userid'], name='useralias_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='useralias_userid_fkey'),
 )
 
 
@@ -937,21 +949,21 @@ userinfo = Table(
     Column('asserted_adult', Boolean(), nullable=False, server_default='f'),
     Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),
-    default_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='userinfo_userid_fkey'),
 )
 
 
 username_history = Table(
     'username_history', metadata,
     Column('historyid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('userid', Integer(), ForeignKey('login.userid', name='username_history_userid_fkey'), nullable=False),
     Column('username', String(length=25), nullable=False),
     Column('login_name', String(length=25), nullable=False),
     Column('replaced_at', TIMESTAMP(timezone=True), nullable=False),
-    Column('replaced_by', Integer(), ForeignKey('login.userid'), nullable=False),
+    Column('replaced_by', Integer(), ForeignKey('login.userid', name='username_history_replaced_by_fkey'), nullable=False),
     Column('active', Boolean(), nullable=False),
     Column('deactivated_at', TIMESTAMP(timezone=True), nullable=True),
-    Column('deactivated_by', Integer(), ForeignKey('login.userid'), nullable=True),
+    Column('deactivated_by', Integer(), ForeignKey('login.userid', name='username_history_deactivated_by_fkey'), nullable=True),
     # true if the username changed but the login_name didn't
     Column('cosmetic', Boolean(), nullable=False),
     CheckConstraint("username !~ '[^ -~]' AND username !~ ';'", name='username_history_username_check'),
@@ -988,8 +1000,8 @@ watchuser = Table(
     Column('otherid', Integer(), primary_key=True, nullable=False),
     Column('settings', String(length=20), nullable=False),
     Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
-    default_fkey(['otherid'], ['login.userid'], name='watchuser_otherid_fkey'),
-    default_fkey(['userid'], ['login.userid'], name='watchuser_userid_fkey'),
+    ForeignKeyConstraint(['otherid'], ['login.userid'], name='watchuser_otherid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='watchuser_userid_fkey'),
 )
 
 Index('ind_watchuser_userid', watchuser.c.userid)
@@ -1009,7 +1021,7 @@ welcome = Table(
     Column('unixtime', WeasylTimestampColumn(), nullable=False),
     Column('type', Integer(), nullable=False),
     Column('deleted', ArrowColumn()),
-    default_fkey(['userid'], ['login.userid'], name='welcome_userid_fkey'),
+    cascading_fkey(['userid'], ['login.userid'], name='welcome_userid_fkey'),
 )
 
 Index('ind_welcome_otherid', welcome.c.otherid)

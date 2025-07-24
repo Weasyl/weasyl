@@ -66,16 +66,24 @@ def create(userid, journal, friends_only=False, tags=None):
     return journalid
 
 
-def _select_journal_and_check(userid, journalid, *, rating, ignore, anyway, increment_views=True):
+def _select_journal_and_check(
+    userid,
+    journalid,
+    *,
+    rating,
+    ignore: bool,
+    anyway: bool,
+    increment_views: bool = True,
+):
     """Selects a journal, after checking if the user is authorized, etc.
 
     Args:
         userid (int): Currently authenticating user ID.
         journalid (int): Journal ID to fetch.
         rating (int): Maximum rating to display.
-        ignore (bool): Whether to check for blocked tags and users.
-        anyway (bool): For moderators, whether to ignore checks (including permission checks and deleted status) and display anyway.
-        increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
+        ignore: Whether to check for blocked tags and users.
+        anyway: For moderators, whether to ignore checks (including permission checks and deleted status) and display anyway.
+        increment_views: Whether to increment the number of views on the submission.
 
     Returns:
         A journal and all needed data as a dict.
@@ -108,9 +116,21 @@ def _select_journal_and_check(userid, journalid, *, rating, ignore, anyway, incr
     return query
 
 
-def select_view(userid, rating, journalid, ignore=True, anyway=None):
+def select_view(
+    userid,
+    journalid,
+    *,
+    rating,
+    ignore: bool = True,
+    anyway: bool = False,
+):
     journal = _select_journal_and_check(
-        userid, journalid, rating=rating, ignore=ignore, anyway=anyway == "true")
+        userid,
+        journalid,
+        rating=rating,
+        ignore=ignore,
+        anyway=anyway,
+    )
 
     return {
         'journalid': journalid,
@@ -133,12 +153,23 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
     }
 
 
-def select_view_api(userid, journalid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    journalid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = d.get_rating(userid)
 
     journal = _select_journal_and_check(
-        userid, journalid,
-        rating=rating, ignore=not anyway, anyway=False, increment_views=increment_views)
+        userid,
+        journalid,
+        rating=rating,
+        ignore=not anyway,
+        anyway=False,
+        increment_views=increment_views,
+    )
 
     return {
         'journalid': journalid,

@@ -593,7 +593,14 @@ def get_google_docs_embed_url(submitid):
     return embed_url
 
 
-def select_view(userid, submitid, rating, ignore=True, anyway=None):
+def select_view(
+    userid,
+    submitid,
+    *,
+    rating,
+    ignore: bool = True,
+    anyway: bool = False,
+):
     # TODO(hyena): This `query[n]` stuff is monstrous. Use named fields.
     # Also some of these don't appear to be used? e.g. pr.config
     query = d.engine.execute("""
@@ -607,8 +614,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         WHERE su.submitid = %(id)s
     """, id=submitid).first()
 
-    # Sanity check
-    if query and userid in staff.MODS and anyway == "true":
+    if query and userid in staff.MODS and anyway:
         pass
     elif not query or query[8]:
         raise WeasylError("submissionRecordMissing")
@@ -670,7 +676,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "critique": query[10],
         "embed_type": query[11],
         "page_views": (
-            query[12] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[12]),
+            query[12] + 1 if d.common_view_content(userid, 0 if anyway else submitid, "submit") else query[12]),
         "fave_count": query[14],
 
 
@@ -697,7 +703,13 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     }
 
 
-def select_view_api(userid, submitid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    submitid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = d.get_rating(userid)
     db = d.connect()
     sub = db.query(orm.Submission).get(submitid)

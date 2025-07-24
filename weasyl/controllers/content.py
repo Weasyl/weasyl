@@ -567,7 +567,13 @@ def edit_submission_get_(request):
     form = request.web_input(submitid="", anyway="")
     form.submitid = define.get_int(form.submitid)
 
-    detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = submission.select_view(
+        request.userid,
+        form.submitid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -618,7 +624,13 @@ def edit_character_get_(request):
     form = request.web_input(charid="", anyway="")
     form.charid = define.get_int(form.charid)
 
-    detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = character.select_view(
+        request.userid,
+        form.charid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -664,7 +676,13 @@ def edit_journal_get_(request):
     form = request.web_input(journalid="", anyway="")
     form.journalid = define.get_int(form.journalid)
 
-    detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
+    detail = journal.select_view(
+        request.userid,
+        form.journalid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')

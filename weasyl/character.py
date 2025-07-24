@@ -192,8 +192,8 @@ def _select_character_and_check(userid, charid, *, rating, ignore, anyway, incre
         userid (int): Currently authenticating user ID.
         charid (int): Character ID to fetch.
         rating (int): Maximum rating to display.
-        ignore (bool): Whether to respect ignored or blocked tags
-        anyway (bool): Whether to ignore checks and display anyway.
+        ignore (bool): Whether to check for blocked tags and users.
+        anyway (bool): For moderators, whether to ignore checks (including permission checks and deleted status) and display anyway.
         increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
 
     Returns:
@@ -267,8 +267,8 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
     rating = define.get_rating(userid)
 
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=anyway,
-        anyway=anyway, increment_views=increment_views)
+        userid, charid, rating=rating, ignore=not anyway,
+        anyway=False, increment_views=increment_views)
 
     login = define.get_sysname(query['username'])
 

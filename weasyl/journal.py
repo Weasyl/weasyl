@@ -73,8 +73,8 @@ def _select_journal_and_check(userid, journalid, *, rating, ignore, anyway, incr
         userid (int): Currently authenticating user ID.
         journalid (int): Journal ID to fetch.
         rating (int): Maximum rating to display.
-        ignore (bool): Whether to respect ignored or blocked tags.
-        anyway (bool): Whether ignore checks and display anyway. Defaults to False.
+        ignore (bool): Whether to check for blocked tags and users.
+        anyway (bool): For moderators, whether to ignore checks (including permission checks and deleted status) and display anyway.
         increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
 
     Returns:
@@ -138,7 +138,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
 
     journal = _select_journal_and_check(
         userid, journalid,
-        rating=rating, ignore=False, anyway=anyway, increment_views=increment_views)
+        rating=rating, ignore=not anyway, anyway=False, increment_views=increment_views)
 
     return {
         'journalid': journalid,

@@ -851,10 +851,13 @@ def common_view_content(
     """
     Records a page view, returning the updated view count, or `None` if it didn’t change.
     """
-    if feature == "users" and targetid == userid:
-        return None
-
     typeid, table, pk = _content_types[feature]
+
+    if feature == "users":
+        if targetid == userid:
+            return None
+    elif userid and get_ownerid(**{pk: targetid}) == userid:
+        return None
 
     if userid:
         viewer = 'user:%d' % (userid,)

@@ -675,8 +675,7 @@ def select_view(
         "friends_only": query[9],
         "critique": query[10],
         "embed_type": query[11],
-        "page_views": (
-            query[12] + 1 if d.common_view_content(userid, 0 if anyway else submitid, "submit") else query[12]),
+        "page_views": query[12],
         "fave_count": query[14],
 
 
@@ -733,8 +732,8 @@ def select_view_api(
         embedlink = get_google_docs_embed_url(submitid)
 
     views = sub.page_views
-    if increment_views and d.common_view_content(userid, submitid, 'submit'):
-        views += 1
+    if increment_views and (new_views := d.common_view_content(userid, submitid, 'submissions')) is not None:
+        views = new_views
 
     return {
         'submitid': submitid,

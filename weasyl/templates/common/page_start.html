@@ -44,6 +44,9 @@ $def with (query, options, extended_options={})
 
   <script src="${resource_path('js/main.js')}" async blocking="render"></script>
 
+  $if extended_options.get('view_count'):
+    <script type="module" src="${resource_path('js/view-count.js')}" async fetchpriority="low"></script>
+
   $code:
     canonical_url = extended_options.get('canonical_url')
     robots = extended_options.get('robots')

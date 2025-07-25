@@ -117,6 +117,7 @@ def submission_(request):
         twitter_card=twitter_meta,
         ogp=ogp,
         canonical_url=canonical_path,
+        view_count=True,
         title=item["title"],
         options=("tags-edit",) if _can_edit_tags(request.userid) else (),
     ))
@@ -193,6 +194,7 @@ def character_(request):
         title=item["title"],
         twitter_card=twitter_meta,
         ogp=ogp,
+        view_count=True,
     )
     page.append(define.render('detail/character.html', [
         # Profile
@@ -243,6 +245,7 @@ def journal_(request):
         title=item["title"],
         twitter_card=twitter_meta,
         ogp=ogp,
+        view_count=True,
     )
     page.append(define.render('detail/journal.html', [
         # Myself

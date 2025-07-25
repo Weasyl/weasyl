@@ -1,6 +1,8 @@
 $def with (request, profile, userinfo, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified, post_counts_by_type)
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
-$ card_viewer = get_card_viewer()
+$code:
+  _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  card_viewer = get_card_viewer()
+  viewable = "users/%s" % (profile["userid"],)
 
 <section><div id="user-header" class="stage clear">
 
@@ -151,7 +153,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       <h3>Statistics</h3>
       <p>Joined $:{LOCAL_TIME(profile['unixtime'], '{date}')}</p>
       <dl>
-        <dt>${statistics['page_views']}</dt> <dd>Pageviews</dd>
+        <dt id="page-views" data-viewable="${viewable}">${statistics['page_views']}</dt> <dd>Pageviews</dd>
         <dt>${statistics['followed']}</dt> <dd>Followers</dd>
         <dt>${statistics['faves_sent']}</dt> <dd>Favorites Given</dd>
         <dt>${statistics['faves_received']}</dt> <dd>Favorites Received</dd>
@@ -163,6 +165,9 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
           <dd><a href="/staffnotes/${LOGIN(profile['username'])}">Staff Notes</a></dd>
       </dl>
     </div>
+  $else:
+    $# record page views even when statistics aren’t visible
+    <script type="text/plain" id="page-views" data-viewable="${viewable}"></script>
 
   $if statistics['following'] != 0 or statistics['followed'] != 0 or has_friends():
     <div id="user-connections" class="clear on-side">

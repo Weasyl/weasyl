@@ -776,3 +776,19 @@ def remove_comment_(request):
         raise HTTPSeeOther(location="/character/%i" % (targetid,))
     elif form.feature == "journal":
         raise HTTPSeeOther(location="/journal/%i" % (targetid,))
+
+
+@token_checked
+def views_post(request):
+    feature = request.matchdict["content_type"]
+    targetid = expect_id(request.matchdict["content_id"])
+
+    page_views = define.common_view_content(request.userid, targetid, feature)
+
+    if feature == "users" and not define.shows_statistics(viewer=request.userid, target=targetid):
+        page_views = None
+
+    return HTTPNoContent() if page_views is None else Response(
+        str(page_views),
+        content_type="text/plain;charset=us-ascii",
+    )

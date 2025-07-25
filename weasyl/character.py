@@ -192,7 +192,7 @@ def _select_character_and_check(
     rating,
     ignore: bool,
     anyway: bool,
-    increment_views: bool = True,
+    increment_views: bool,
 ):
     """Selects a character, after checking if the user is authorized, etc.
 
@@ -231,8 +231,8 @@ def _select_character_and_check(
 
     query = dict(query)
 
-    if increment_views and define.common_view_content(userid, charid, 'char'):
-        query['page_views'] += 1
+    if increment_views and (new_views := define.common_view_content(userid, charid, 'characters')) is not None:
+        query['page_views'] = new_views
 
     return query
 
@@ -251,6 +251,7 @@ def select_view(
         rating=rating,
         ignore=ignore,
         anyway=anyway,
+        increment_views=False,
     )
 
     login = define.get_sysname(query['username'])

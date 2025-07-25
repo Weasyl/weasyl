@@ -73,7 +73,7 @@ def _select_journal_and_check(
     rating,
     ignore: bool,
     anyway: bool,
-    increment_views: bool = True,
+    increment_views: bool,
 ):
     """Selects a journal, after checking if the user is authorized, etc.
 
@@ -110,8 +110,8 @@ def _select_journal_and_check(
 
     query = dict(query)
 
-    if increment_views and d.common_view_content(userid, journalid, 'journal'):
-        query['page_views'] += 1
+    if increment_views and (new_views := d.common_view_content(userid, journalid, 'journals')) is not None:
+        query['page_views'] = new_views
 
     return query
 
@@ -130,6 +130,7 @@ def select_view(
         rating=rating,
         ignore=ignore,
         anyway=anyway,
+        increment_views=False,
     )
 
     return {

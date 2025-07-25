@@ -330,8 +330,8 @@ def _select_statistics(userid):
     }
 
 
-def select_statistics(userid):
-    show = "i" not in d.get_config(userid) or d.get_userid() in staff.MODS
+def select_statistics(userid: int):
+    show = d.shows_statistics(viewer=d.get_userid(), target=userid)
     return _select_statistics(userid), show
 
 

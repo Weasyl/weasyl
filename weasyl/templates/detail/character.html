@@ -79,7 +79,7 @@ $def with (myself, query, violations)
       $if query['friends_only']:
         <div id="detail-visibility-restricted">Friends Only</div>
       <dl class="clear">
-        <dt>Views:</dt> <dd>${query['page_views']}</dd>
+        <dt>Views:</dt> <dd id="page-views" data-viewable="characters/${query['charid']}">${query['page_views']}</dd>
         <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
         <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
         <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>

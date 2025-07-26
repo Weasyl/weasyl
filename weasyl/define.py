@@ -10,6 +10,7 @@ import numbers
 import datetime
 import pkgutil
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 from typing import NewType
@@ -828,23 +829,36 @@ def common_status_page(userid, status):
     return response
 
 
-_content_types = {
-    'submit': 110,
-    'char': 120,
-    'journal': 130,
-    'profile': 210,
+def shows_statistics(*, viewer: int, target: int) -> bool:
+    return "i" not in get_config(target) or viewer in staff.MODS
+
+
+Viewable = Literal["submissions", "characters", "journals", "users"]
+
+_content_types: Mapping[Viewable, tuple[int, str, str]] = {
+    'submissions': (110, 'submission', 'submitid'),
+    'characters': (120, 'character', 'charid'),
+    'journals': (130, 'journal', 'journalid'),
+    'users': (210, 'profile', 'userid'),
 }
 
 
-def common_view_content(userid, targetid, feature):
+def common_view_content(
+    userid: int,
+    targetid: int,
+    feature: Viewable,
+) -> int | None:
     """
-    Return True if a record was successfully inserted into the views table
-    and the page view statistic incremented, else False.
+    Records a page view, returning the updated view count, or `None` if it didn’t change.
     """
-    if feature == "profile" and targetid == userid:
-        return
+    typeid, table, pk = _content_types[feature]
 
-    typeid = _content_types.get(feature, 0)
+    if feature == "users":
+        if targetid == userid:
+            return None
+    elif userid and get_ownerid(**{pk: targetid}) == userid:
+        return None
+
     if userid:
         viewer = 'user:%d' % (userid,)
     else:
@@ -857,18 +871,15 @@ def common_view_content(userid, targetid, feature):
         viewer=viewer, targetid=targetid, type=typeid)
 
     if result.rowcount == 0:
-        return False
+        return None
 
-    if feature == "submit":
-        engine.execute("UPDATE submission SET page_views = page_views + 1 WHERE submitid = %(id)s", id=targetid)
-    elif feature == "char":
-        engine.execute("UPDATE character SET page_views = page_views + 1 WHERE charid = %(id)s", id=targetid)
-    elif feature == "journal":
-        engine.execute("UPDATE journal SET page_views = page_views + 1 WHERE journalid = %(id)s", id=targetid)
-    elif feature == "profile":
-        engine.execute("UPDATE profile SET page_views = page_views + 1 WHERE userid = %(id)s", id=targetid)
-
-    return True
+    return engine.scalar(
+        f"UPDATE {table}"
+        " SET page_views = page_views + 1"
+        f" WHERE {pk} = %(id)s"
+        " RETURNING page_views",
+        id=targetid,
+    )
 
 
 def append_to_log(logname, **parameters):

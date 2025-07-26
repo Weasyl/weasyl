@@ -88,8 +88,6 @@ def profile_(request):
     if meta_description:
         twitter_meta["description"] = ogp["description"] = meta_description
 
-    define.common_view_content(request.userid, otherid, "profile")
-
     if 'O' in userprofile['config']:
         submissions = collection.select_list(request.userid, rating, 11, otherid=otherid)
         more_submissions = 'collections'
@@ -151,6 +149,7 @@ def profile_(request):
         ogp=ogp,
         canonical_url=canonical_path,
         title=title,
+        view_count=True,
     ))
 
 

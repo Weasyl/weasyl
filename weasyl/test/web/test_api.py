@@ -38,7 +38,7 @@ def test_submission_view(app, submission_user):
         'tags': ['bar', 'foo'],
         'title': 'Test title',
         'type': 'submission',
-        'views': 1,
+        'views': 0,
     }
     assert set(media) == {'thumbnail', 'submission', 'cover', 'thumbnail-generated-webp', 'thumbnail-generated'}
     assert type(media['submission'][0].pop('mediaid')) is int

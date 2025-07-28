@@ -386,6 +386,7 @@ routes = (
     Route("/api/messages/summary", "api_messages_summary", api.api_messages_summary_, renderer="json"),
     Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite", "api_favorite", {'POST': api.api_favorite_}, renderer="json"),
     Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite", "api_unfavorite", {'POST': api.api_unfavorite_}, renderer="json"),
+    Route("/api-unstable/{content_type:(submissions|characters|journals|users)}/{content_id:[0-9]+}/views/", "view", {'POST': content.views_post}),
 )
 
 

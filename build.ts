@@ -635,6 +635,7 @@ const tasks: readonly AnyTask[] = [
         'js/tags-edit.js',
         'js/signup.js',
         'js/submit.js',
+        'js/view-count.js',
     ], PRIVATE_FIELDS_ESM, {touch}),
     new EsbuildFiles(['js/flash.js'], {
         format: 'esm',

@@ -6,6 +6,7 @@
 @use 'components/date-picker';
 @use 'components/detail-tag-form';
 @use 'components/edit-profile';
+@use 'components/login';
 @use 'components/option';
 @use 'components/page-navigation';
 @use 'components/post/embed';
@@ -336,12 +337,7 @@ $content-vpad-sparse: 32px;
 
 @media (min-width: 45em) {
     .content h3, .stage h3 {
-        font-size: 24px;
-        font-size: 1.5rem;
-        padding-top: 28px;
-        padding-top: 1.75rem;
-        padding-bottom: 20px;
-        padding-bottom: 1.25rem;
+        @include theme.h3-large;
     }
 }
 
@@ -1471,10 +1467,6 @@ blockquote + blockquote {
 
 /* ------------------------------------ =forms -- */
 
-#login-top {
-    display: none;
-}
-
 .form.skinny {
     max-width: 30em;
     margin: 0 auto;
@@ -1495,22 +1487,6 @@ blockquote + blockquote {
 
 .last-input:not(.markdown) {
     margin-bottom: 1.75em;
-}
-
-#login-content {
-    padding-left: 0;
-    padding-right: 0;
-}
-
-#login-box .form {
-    padding-top: 0;
-}
-
-#login-box {
-    margin: 0 auto;
-    padding: 24px 16px 16px;
-    padding: 1.5rem 1rem 1rem;
-    max-width: 30em;
 }
 
 $field-spacing-top: 16px;
@@ -1553,105 +1529,10 @@ $field-spacing-top: 16px;
     padding-top: 1rem;
 }
 
-#login-box .button {
-    padding-left: 2em;
-    padding-right: 2em;
-}
-
-.lb-link {
-    display: block;
-    float: right;
-    clear: right;
-    padding: 0.4em 0 0.4em 1.2em;
-}
-
-#login-top #login-box {
-    padding-top: 0;
-    padding-bottom: 0;
-    overflow: hidden;
-    position: relative;
-}
-
-.modal-login #login-top {
-    display: block;
-}
-
-.modal-login #login-top #login-box {
-    padding-bottom: 24px;
-    padding-bottom: 1.5rem;
-}
-
-#lb-close {
-    position: absolute;
-    top: 20px;
-    top: 1.25rem;
-    right: 0;
-    padding: 16px;
-    padding: 1rem;
-}
-
-#login-box label:first-child {
-    padding-top: 0;
-}
-
-#login-box p {
-    padding-top: 2.1em;
-}
-
-#login-sfw {
-    margin: 0.8em 0;
-}
-
-#login-sfw input {
-    margin: 0;
-}
-
 @media (min-width: 34em) {
     .form {
         padding-top: 8px;
         padding-top: 0.5rem;
-    }
-
-    body.modal-login {
-        overflow: hidden;
-    }
-
-    #login-content #login-box {
-        padding-top: 48px;
-        padding-top: 3rem;
-    }
-
-    .modal-login #login-top {
-        background-color: rgba(128,128,128,0.5);
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        left: 0;
-        top: 0;
-        z-index: 101;
-    }
-
-    .modal-login #login-top #login-box {
-        width: 30em;
-        height: 28em;
-        padding: 0 2em;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -17em;
-        margin-top: -14em;
-        border-radius: 4px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        z-index: 200;
-    }
-
-    #lb-close {
-        padding-right: 32px;
-        padding-right: 2rem;
-    }
-
-    .lb-link {
-        clear: none;
     }
 }
 

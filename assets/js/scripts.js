@@ -4,6 +4,7 @@ import defang from './defang.js';
 import {byClass} from './dom.js';
 import initEmbed from './embed.js';
 import {forEach, some} from './util/array-like.js';
+import hasModifierKeys from './util/has-modifier-keys.js';
 import loginName from './util/login-name.js';
 import {tryGetLocal, trySetLocal} from './util/storage.js';
 import weasylMarkdown from './weasyl-markdown.js';
@@ -15,9 +16,6 @@ const empty = containerNode => {
         containerNode.removeChild(child);
     }
 };
-
-const hasModifierKeys = e =>
-    e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
 
 const autosize =
     CSS.supports('field-sizing', 'content')
@@ -54,39 +52,6 @@ $(document).ready(() => {
 
         comment.required = required;
         reminder.style.visibility = required ? 'visible' : 'hidden';
-    });
-
-    // modal login
-    const closeLogin = () => {
-        $('body').removeClass('modal-login');
-        $(document).off('keyup', closeLoginIfEscape);
-    };
-
-    const closeLoginIfEscape = e => {
-        if (e.key === 'Escape' && !hasModifierKeys(e)) {
-            e.preventDefault();
-            closeLogin();
-        }
-    };
-
-    $('#hg-login').on('click', ev => {
-        if (hasModifierKeys(ev)) {
-            return;
-        }
-
-        ev.preventDefault();
-
-        if (!$('body').hasClass('modal-login')) {
-            $('body').addClass('modal-login');
-            $(document).on('keyup', closeLoginIfEscape);
-        }
-
-        $('#login-user').focus();
-    });
-
-    $('#lb-close').on('click', ev => {
-        ev.preventDefault();
-        closeLogin();
     });
 
     // submission notifs buttons

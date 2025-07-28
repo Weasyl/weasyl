@@ -63,9 +63,8 @@ $def with (query, options, extended_options={})
 
 <div id="page-container">
   $if query is None:
-    <div id="login-top">
-      $:{RENDER("etc/login_box.html", (False, PATH(), False))}
-    </div>
+    $:{RENDER("etc/login_box.html", (False, PATH(), False))}
+    <script type="module" src="${resource_path('js/login-box.js')}" async></script>
 
   <header><div id="header" class="clear">
 

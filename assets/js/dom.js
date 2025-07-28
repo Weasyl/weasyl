@@ -1,3 +1,6 @@
+export const byId = id =>
+    document.getElementById(id);
+
 export const byClass = (class_, within) =>
     (within ?? document).getElementsByClassName(class_)[0];
 

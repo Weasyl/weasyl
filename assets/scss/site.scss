@@ -741,7 +741,6 @@ dl + h4, #uc-info {
     background-color: #eee;
     text-decoration: none;
     box-shadow: 0 1px 2px rgba(6,155,192,0.5);
-    outline: none;
 }
 
 .stage .button:hover {
@@ -4007,13 +4006,17 @@ img.user-icon, a.user-icon > img {
     width: 50px;
 }
 
-a.user-icon:hover {
-    text-decoration: none;
+a.user-icon {
+    display: inline-block;
 }
 
-a.user-icon:hover > span, a.user-icon:focus > span {
-    outline: none;
-    text-decoration: underline;
+// Ensure hover underline doesn’t apply to the space between avatar and username.
+a.user-icon:hover {
+    text-decoration: none;
+
+    > span {
+        text-decoration: underline;
+    }
 }
 
 .hidden-comment {

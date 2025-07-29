@@ -88,6 +88,22 @@ $margin: 0.5rem;
     padding: 16px;
 }
 
+.login-error {
+    background-color: #fd9;
+    border: 2px solid #f93;
+    border-radius: 4px;
+    color: #333;  // darker text for more contrast
+    font-size: 14px;  // more readable font size
+    margin-bottom: 1em;
+    padding: 6px 8px;
+
+    // hints
+    > ul {
+        font-size: 13px;
+        margin-top: 6px;
+    }
+}
+
 .login-sfw {
     margin: 0.8em 0;
 }

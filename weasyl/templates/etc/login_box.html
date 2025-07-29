@@ -1,4 +1,4 @@
-$def with (error, referer, login_page)
+$def with (error, referer, login_page, initial = DEFAULT_LOGIN_FORM)
 
 $if login_page: <div class="login-box">
 $else: <dialog id="login-top" class="login-box content">
@@ -7,18 +7,26 @@ $else: <dialog id="login-top" class="login-box content">
 
     <button type="button" class="link-button" id="lb-close">Close</button>
 
-  $if error:
-    <div id="signin_error"><strong>Whoops!</strong> The login information you entered was not correct.</div>
+  $if error is not None:
+    <div class="login-error">
+      <strong>Login failed:</strong> ${error.message}
+
+      $if error.hints:
+        <ul>
+          $for hint in error.hints:
+            <li>${hint}</li>
+        </ul>
+    </div>
 
   <form class="form" name="signin" action="/signin" method="post">
     <label for="login-user">Username</label>
-    <input type="text" id="login-user" class="input" name="username" placeholder="Username" autofocus autocomplete="username" required />
+    <input type="text" id="login-user" class="input" name="username" value="${initial.username}" placeholder="Username" autofocus autocomplete="username" required />
 
     <label for="login-pass">Password</label>
     <input type="password" id="login-pass" class="input" name="password" placeholder="Password" autocomplete="current-password" required />
 
     <label class="input-checkbox login-sfw">
-      <input type="checkbox" name="sfwmode" value="sfw" /> Sign in using SFW mode
+      <input type="checkbox" name="sfwmode" value="sfw"$:{' checked' if initial.sfw else ''}> Sign in using SFW mode
     </label>
 
     <input type="hidden" name="referer" value="${referer}" />

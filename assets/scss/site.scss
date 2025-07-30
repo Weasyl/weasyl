@@ -6,6 +6,7 @@
 @use 'components/date-picker';
 @use 'components/detail-tag-form';
 @use 'components/edit-profile';
+@use 'components/login';
 @use 'components/option';
 @use 'components/page-navigation';
 @use 'components/post/embed';
@@ -336,12 +337,7 @@ $content-vpad-sparse: 32px;
 
 @media (min-width: 45em) {
     .content h3, .stage h3 {
-        font-size: 24px;
-        font-size: 1.5rem;
-        padding-top: 28px;
-        padding-top: 1.75rem;
-        padding-bottom: 20px;
-        padding-bottom: 1.25rem;
+        @include theme.h3-large;
     }
 }
 
@@ -686,27 +682,23 @@ dl + h4, #uc-info {
 
 /* ------------------------------------ =inputs -- */
 
-// Even when the surrounding text is a different size, keep default button style consistent – extending the existing `<button>` default to `<a class="button">`.
 .button {
+    // Even when the surrounding text is a different size, keep default button style consistent – extending the existing `<button>` default to `<a class="button">`.
     @extend .typeface-default;
-}
 
-.button, .content .button, .stage .content .button {
     display: inline-block;
     vertical-align: baseline;
     padding: 0.4em 1.2em;
-    border: 1px solid #bbb;
-    border-top-color: #ccc;
-    border-bottom-color: #aaa;
     border-radius: 2px;
-    color: #444;
     background-color: transparent;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
     text-decoration: none;
     cursor: pointer;
-    text-shadow: 0 1px 0 #fff;
     transition: background-color 0.25s ease;
 }
+
+// Rules of the form `.button[…], .content.button[…]` exist and appear after `.stage .button` in order to support:
+// - `.stage .content .button` nesting
+// - `.content a.button`, overriding `%content-like a`
 
 .stage .button {
     border-color: #555;
@@ -717,41 +709,39 @@ dl + h4, #uc-info {
     text-shadow: 0 1px 0 rgba(0,0,0,0.2);
 }
 
-.content .button.positive {
+.button, .content .button {
+    border: 1px solid #bbb;
+    border-top-color: #ccc;
+    border-bottom-color: #aaa;
+    color: #444;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+    text-shadow: 0 1px 0 #fff;
+}
+
+.button.positive, .button.negative {
+    font-weight: 700;
+}
+
+.button.positive {
     color: #549f2a;
-    font-weight: 700;
 }
 
-.content .button.negative {
+.button.negative {
     color: #ad322d;
-    font-weight: 700;
 }
 
-.stage .button.positive {
-    color: #3e3;
-    font-weight: 700;
+.stage .button {
+    &:hover, &:focus {
+        background-color: #343e44;
+    }
 }
 
-.stage .button.negative {
-    color: #e33;
-    font-weight: 700;
-}
-
-.button:hover, .button:focus, .hover .button, .stage .content .button:hover, .stage .content .button:focus {
-    background-color: #eee;
-    text-decoration: none;
-    box-shadow: 0 1px 2px rgba(6,155,192,0.5);
-    outline: none;
-}
-
-.stage .button:hover, .stage .hover .button, .stage.hover .button {
-    background-color: #343e44;
-}
-
-.button:active, .stage .content .button:active {
-    border-bottom-color: #fff;
-    border-top-color: #aaa;
-    box-shadow: inset 0 5px 14px -5px rgba(0,0,0,0.5);
+.button, .content .button {
+    &:hover, &:focus {
+        background-color: #eee;
+        text-decoration: none;
+        box-shadow: 0 1px 2px rgba(6,155,192,0.5);
+    }
 }
 
 .stage .button:active {
@@ -759,7 +749,13 @@ dl + h4, #uc-info {
     border-top-color: #555;
 }
 
-.button:disabled {
+.button:active, .content .button:active {
+    border-bottom-color: #fff;
+    border-top-color: #aaa;
+    box-shadow: inset 0 5px 14px -5px rgba(0,0,0,0.5);
+}
+
+.button:disabled, .content .button:disabled {
     background-color: transparent;
     border-bottom-color: #aaa;
     border-top-color: #ccc;
@@ -1471,10 +1467,6 @@ blockquote + blockquote {
 
 /* ------------------------------------ =forms -- */
 
-#login-top {
-    display: none;
-}
-
 .form.skinny {
     max-width: 30em;
     margin: 0 auto;
@@ -1495,22 +1487,6 @@ blockquote + blockquote {
 
 .last-input:not(.markdown) {
     margin-bottom: 1.75em;
-}
-
-#login-content {
-    padding-left: 0;
-    padding-right: 0;
-}
-
-#login-box .form {
-    padding-top: 0;
-}
-
-#login-box {
-    margin: 0 auto;
-    padding: 24px 16px 16px;
-    padding: 1.5rem 1rem 1rem;
-    max-width: 30em;
 }
 
 $field-spacing-top: 16px;
@@ -1553,105 +1529,10 @@ $field-spacing-top: 16px;
     padding-top: 1rem;
 }
 
-#login-box .button {
-    padding-left: 2em;
-    padding-right: 2em;
-}
-
-.lb-link {
-    display: block;
-    float: right;
-    clear: right;
-    padding: 0.4em 0 0.4em 1.2em;
-}
-
-#login-top #login-box {
-    padding-top: 0;
-    padding-bottom: 0;
-    overflow: hidden;
-    position: relative;
-}
-
-.modal-login #login-top {
-    display: block;
-}
-
-.modal-login #login-top #login-box {
-    padding-bottom: 24px;
-    padding-bottom: 1.5rem;
-}
-
-#lb-close {
-    position: absolute;
-    top: 20px;
-    top: 1.25rem;
-    right: 0;
-    padding: 16px;
-    padding: 1rem;
-}
-
-#login-box label:first-child {
-    padding-top: 0;
-}
-
-#login-box p {
-    padding-top: 2.1em;
-}
-
-#login-sfw {
-    margin: 0.8em 0;
-}
-
-#login-sfw input {
-    margin: 0;
-}
-
 @media (min-width: 34em) {
     .form {
         padding-top: 8px;
         padding-top: 0.5rem;
-    }
-
-    body.modal-login {
-        overflow: hidden;
-    }
-
-    #login-content #login-box {
-        padding-top: 48px;
-        padding-top: 3rem;
-    }
-
-    .modal-login #login-top {
-        background-color: rgba(128,128,128,0.5);
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        left: 0;
-        top: 0;
-        z-index: 101;
-    }
-
-    .modal-login #login-top #login-box {
-        width: 30em;
-        height: 28em;
-        padding: 0 2em;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -17em;
-        margin-top: -14em;
-        border-radius: 4px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        z-index: 200;
-    }
-
-    #lb-close {
-        padding-right: 32px;
-        padding-right: 2rem;
-    }
-
-    .lb-link {
-        clear: none;
     }
 }
 
@@ -4007,13 +3888,17 @@ img.user-icon, a.user-icon > img {
     width: 50px;
 }
 
-a.user-icon:hover {
-    text-decoration: none;
+a.user-icon {
+    display: inline-block;
 }
 
-a.user-icon:hover > span, a.user-icon:focus > span {
-    outline: none;
-    text-decoration: underline;
+// Ensure hover underline doesn’t apply to the space between avatar and username.
+a.user-icon:hover {
+    text-decoration: none;
+
+    > span {
+        text-decoration: underline;
+    }
 }
 
 .hidden-comment {

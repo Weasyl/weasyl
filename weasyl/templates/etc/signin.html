@@ -1,6 +1,6 @@
-$def with (error, referer)
+$def with (error, referer, initial = DEFAULT_LOGIN_FORM)
 $:{RENDER("common/stage_title.html", ["Sign In"])}
 
 <div id="login-content" class="content">
-  $:{RENDER("etc/login_box.html", (error, referer, True))}
+  $:{RENDER("etc/login_box.html", (error, referer, True, initial))}
 </div>

@@ -203,6 +203,8 @@ def _compile(template_name):
                 "turnstile": turnstile,
                 "resource_path": get_resource_path,
                 "zip": zip,
+
+                "DEFAULT_LOGIN_FORM": DEFAULT_LOGIN_FORM,
             })
 
     return template
@@ -770,6 +772,15 @@ def page_header_info(userid):
         "sfw": sfw,
         "sfw_locked": _is_sfw_locked(userid),
     }
+
+
+@dataclass(frozen=True, slots=True)
+class LoginForm:
+    username: str
+    sfw: bool
+
+
+DEFAULT_LOGIN_FORM = LoginForm(username="", sfw=False)
 
 
 def common_page_start(userid, options=(), **extended_options):

@@ -1,4 +1,6 @@
 import os
+from dataclasses import dataclass
+from typing import NamedTuple
 
 import bcrypt
 from publicsuffixlist import PublicSuffixList
@@ -98,29 +100,53 @@ def signout(request):
     request.weasyl_session = None
 
 
-def authenticate_bcrypt(username, password, request, ip_address=None, user_agent=None):
+class Success(NamedTuple):
+    userid: int
+
+
+class SecondFactorRequired(NamedTuple):
+    userid: int
+
+
+@dataclass(frozen=True, slots=True)
+class InvalidCredentials:
+    username_exists: bool
+    inactive_username_exists: bool
+
+
+class Banned(NamedTuple):
+    userid: int
+
+
+class Suspended(NamedTuple):
+    userid: int
+
+
+def authenticate_bcrypt(
+    username: str,
+    password: str,
+    request,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Success | SecondFactorRequired | InvalidCredentials | Banned | Suspended:
     """
-    Return a result tuple of the form (userid, error); `error` is None if the
-    login was successful. Pass None as the `request` to authenticate a user
-    without creating a new session.
+    Authenticate a user using a set of credentials.
 
     :param username: The username of the user attempting authentication.
     :param password: The user's claimed password to check against the stored hash.
-    :param request: The request, or None
+    :param request: The request on which to create a new session, or `None` to authenticate without creating a session.
     :param ip_address: The address requesting authentication.
     :param user_agent: The user agent string of the submitting client.
-
-    Possible errors are:
-    - "invalid"
-    - "unexpected"
-    - "banned"
-    - "suspended"
-    - "2fa" - Indicates the user has opted-in to 2FA. Additional authentication required.
     """
+    username = d.get_sysname(username)
+
     # Check that the user entered potentially valid values for `username` and
     # `password` before attempting to authenticate them
     if not username or not password:
-        return 0, "invalid"
+        return InvalidCredentials(
+            username_exists=False,
+            inactive_username_exists=False,
+        )
 
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
@@ -128,11 +154,23 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         "SELECT ab.userid, ab.hashsum, lo.twofa_secret FROM authbcrypt ab"
         " RIGHT JOIN login lo USING (userid)"
         " WHERE lo.login_name = %(name)s",
-        name=d.get_sysname(username),
+        name=username,
     ).first()
 
+    def former_username_exists(found_user: int | None) -> bool:
+        # Check if an attempted username is the former username of some [other] user.
+        # There’s no `NOT active` filter here: even an active former username can’t be used to log in.
+        return d.engine.scalar(
+            "SELECT EXISTS (SELECT FROM username_history WHERE login_name = %(name)s AND userid IS DISTINCT FROM %(found_user)s)",
+            name=username,
+            found_user=found_user,
+        )
+
     if not query:
-        return 0, "invalid"
+        return InvalidCredentials(
+            username_exists=False,
+            inactive_username_exists=former_username_exists(None),
+        )
 
     USERID, HASHSUM, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
@@ -147,13 +185,14 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
             d.append_to_log('login.fail', userid=USERID, ip=d.get_address())
             d.metric('increment', 'failedlogins')
 
-        # Return a zero userid and an error code (indicating the entered password
-        # was incorrect)
-        return 0, "invalid"
+        return InvalidCredentials(
+            username_exists=True,
+            inactive_username_exists=former_username_exists(USERID),
+        )
     elif IS_BANNED:
         # Return the proper userid and an error code (indicating the user's account
         # has been banned)
-        return USERID, "banned"
+        return Banned(USERID)
     elif IS_SUSPENDED:
         from weasyl import moderation
         suspension = moderation.get_suspension(USERID)
@@ -164,19 +203,19 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         else:
             # Return the proper userid and an error code (indicating the user's
             # account has been temporarily suspended)
-            return USERID, "suspended"
+            return Suspended(USERID)
 
     # Attempt to create a new session if this is a request to log in, then log the signin
     # if it succeeded.
     if request is not None:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
-            return USERID, "2fa"
+            return SecondFactorRequired(USERID)
         else:
             signin(request, USERID, ip_address=ip_address, user_agent=user_agent)
 
     # Either way, authentication succeeded, so return the userid and a status.
-    return USERID, None
+    return Success(USERID)
 
 
 def passhash(password):

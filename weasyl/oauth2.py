@@ -37,7 +37,7 @@ def render_form(request, scopes, credentials):
 def authorize_get_(request):
     if not request.userid:
         return Response(d.webpage(request.userid, "etc/signin.html", [
-            False,
+            None,
             request.path_qs,
         ], title="Sign In"))
 

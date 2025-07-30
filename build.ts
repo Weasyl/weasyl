@@ -592,6 +592,7 @@ const touch = new CreateFolders([
     'css',
     'fonts',
     'img/help',
+    'img/social',
     'js/ruffle',
 ]);
 
@@ -630,6 +631,8 @@ const tasks: readonly AnyTask[] = [
     new EsbuildFiles(['js/main.js'], PRIVATE_FIELDS, {touch}),
 
     new EsbuildFiles([
+        'js/combobox.js',
+        'js/edit-profile.js',
         'js/login-box.js',
         'js/message-list.js',
         'js/notification-list.js',
@@ -643,6 +646,7 @@ const tasks: readonly AnyTask[] = [
         banner: {},
     }, {touch}),
     new CopyStaticFiles('img/help', {touch}),
+    new CopyStaticFiles('img/social', {touch}),
     new CopyUnversionedStaticFile('opensearch.xml', {touch}),
 
     // libraries

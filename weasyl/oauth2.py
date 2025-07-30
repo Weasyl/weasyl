@@ -3,7 +3,7 @@ from pyramid.response import Response
 from oauthlib.oauth2 import FatalClientError, OAuth2Error
 
 from libweasyl.oauth import get_consumers_for_user, revoke_consumers_for_user, server
-from weasyl.controllers.decorators import disallow_api, token_checked
+from weasyl.controllers.decorators import disallow_api, token_checked, csrf_skip
 from weasyl import define as d
 from weasyl import media, orm
 from weasyl.controllers.decorators import login_required
@@ -37,7 +37,7 @@ def render_form(request, scopes, credentials):
 def authorize_get_(request):
     if not request.userid:
         return Response(d.webpage(request.userid, "etc/signin.html", [
-            False,
+            None,
             request.path_qs,
         ], title="Sign In"))
 
@@ -59,6 +59,7 @@ def authorize_post_(request):
 
 
 @disallow_api
+@csrf_skip
 def token_(request):
     return HTTPServiceUnavailable()
 

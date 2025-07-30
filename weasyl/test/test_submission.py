@@ -83,7 +83,7 @@ class SelectListTestCase(unittest.TestCase):
             0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # user with a pending friendship cannot view
-        db_utils.create_friendship(user1, user2, settings=CharSettings({'pending'}, {}, {}))
+        db_utils.create_friendship(user1, user2, pending=True)
         self.assertEqual(
             0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
@@ -186,22 +186,22 @@ class SelectListTestCase(unittest.TestCase):
 
         searchtag.associate(userid=owner, target=target, tag_names={'orange'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['orange'], suggested=[], own_suggested=[]))
 
         searchtag.associate(userid=tagger, target=target, tag_names={'apple', 'tomato'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['orange'], suggested=['apple', 'tomato'], own_suggested=[]))
 
         searchtag.associate(userid=tagger, target=target, tag_names={'tomato'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['orange'], suggested=['tomato'], own_suggested=[]))
 
         searchtag.associate(userid=owner, target=target, tag_names={'kale'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['kale'], suggested=['tomato'], own_suggested=[]))
 
     def test_recently_popular(self):

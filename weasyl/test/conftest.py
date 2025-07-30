@@ -5,6 +5,7 @@ import errno
 import json
 import os
 import shutil
+import warnings
 
 import pytest
 import pyramid.testing
@@ -12,13 +13,15 @@ from sqlalchemy.dialects.postgresql import psycopg2
 from webtest import TestApp as TestApp_
 
 from weasyl import config
-config._in_test = True  # noqa
+config._in_test = True
 
+# flake8: noqa: E402
 from libweasyl import cache
 from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from libweasyl.staff import StaffConfig
+from libweasyl.test.common import clear_database
 from weasyl import (
     commishinfo,
     define,
@@ -48,7 +51,7 @@ configure_libweasyl(
 
 
 @pytest.fixture(scope='session', autouse=True)
-def setupdb(request):
+def setupdb():
     define.engine.execute('DROP SCHEMA public CASCADE')
     define.engine.execute('CREATE SCHEMA public')
     define.engine.execute('CREATE EXTENSION HSTORE')
@@ -76,10 +79,9 @@ def empty_storage():
     os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media'))
     os.symlink('ad', os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media', 'ax'))
 
-    try:
-        yield
-    finally:
-        shutil.rmtree(macro.MACRO_STORAGE_ROOT)
+    yield
+
+    shutil.rmtree(macro.MACRO_STORAGE_ROOT)
 
 
 @pytest.fixture(scope="session")
@@ -87,14 +89,13 @@ def configurator():
     config = pyramid.testing.setUp()
     setup_routes_and_views(config)
 
-    try:
-        yield config
-    finally:
-        pyramid.testing.tearDown()
+    yield config
+
+    pyramid.testing.tearDown()
 
 
 @pytest.fixture(autouse=True)
-def setup_request_environment(request, configurator):
+def setup_request_environment(configurator):
     pyramid_request = pyramid.testing.DummyRequest()
     pyramid_request.set_property(middleware.pg_connection_request_property, name='pg_connection', reify=True)
     pyramid_request.set_property(middleware.userid_request_property, name='userid', reify=True)
@@ -103,10 +104,9 @@ def setup_request_environment(request, configurator):
     pyramid_request.client_addr = '127.0.0.1'
     configurator.begin(request=pyramid_request)
 
-    def tear_down():
-        pyramid_request.pg_connection.close()
+    yield
 
-    request.addfinalizer(tear_down)
+    pyramid_request.pg_connection.close()
 
 
 @pytest.fixture(autouse=True)
@@ -123,25 +123,13 @@ def drop_email(monkeypatch):
 
 
 @pytest.fixture
-def db(request):
-    db = define.connect()
-
-    def tear_down():
-        """ Clears all rows from the test database. """
-        db.flush()
-        for table in reversed(metadata.sorted_tables):
-            db.execute(table.delete())
-
-    request.addfinalizer(tear_down)
-
-    if request.cls is not None:
-        request.cls.db = db
-
-    return db
+def db():
+    yield define.get_current_request().pg_connection
+    clear_database(define.engine)
 
 
 @pytest.fixture(name='cache')
-def cache_(request):
+def cache_():
     cache.region.configure(
         'dogpile.cache.memory',
         wrap=[ThreadCacheProxy],

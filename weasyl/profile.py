@@ -1,5 +1,7 @@
 import datetime
 import re
+from collections import namedtuple
+from dataclasses import dataclass
 
 import arrow
 import sqlalchemy as sa
@@ -35,18 +37,17 @@ EXCHANGE_TYPE_REQUEST = ExchangeType()
 EXCHANGE_TYPE_COMMISSION = ExchangeType()
 
 
+@dataclass(frozen=True, slots=True)
 class ExchangeSetting:
-    __slots__ = ("code",)
-
-    def __init__(self, code):
-        self.code = code
+    code: str
+    value: str
 
 
-EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o")
-EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s")
-EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f")
-EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c")
-EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e")
+EXCHANGE_SETTING_ACCEPTING = ExchangeSetting("o", "open")
+EXCHANGE_SETTING_SOMETIMES = ExchangeSetting("s", "sometimes")
+EXCHANGE_SETTING_FULL_QUEUE = ExchangeSetting("f", "filled")
+EXCHANGE_SETTING_NOT_ACCEPTING = ExchangeSetting("c", "closed")
+EXCHANGE_SETTING_NOT_APPLICABLE = ExchangeSetting("e", "exclude")
 
 ALL_EXCHANGE_SETTINGS = [EXCHANGE_SETTING_ACCEPTING, EXCHANGE_SETTING_SOMETIMES,
                          EXCHANGE_SETTING_FULL_QUEUE, EXCHANGE_SETTING_NOT_ACCEPTING,
@@ -57,6 +58,13 @@ ALLOWABLE_EXCHANGE_CODES = {
     EXCHANGE_TYPE_TRADE: 'osce',
     EXCHANGE_TYPE_REQUEST: 'osce',
     EXCHANGE_TYPE_COMMISSION: 'osfce',
+}
+
+# temporary lookup of old permission names to `permissions` enum values
+_PERMISSIONS = {
+    "anyone": "everyone",
+    "friends_only": "friends",
+    "staff_only": "nobody",
 }
 
 
@@ -81,18 +89,6 @@ def get_exchange_setting(exchange_type, code):
     if code not in ALLOWABLE_EXCHANGE_CODES[exchange_type]:
         return EXCHANGE_SETTING_NOT_ACCEPTING
     return EXCHANGE_SETTING_CODE_MAP[code]
-
-
-def exchange_settings_from_settings_string(settings_string):
-    """
-    Given a (terrible and brittle) exchange settings string from a user profile,
-    returns a dict of their exchange settings.
-    """
-    return {
-        EXCHANGE_TYPE_COMMISSION: EXCHANGE_SETTING_CODE_MAP[settings_string[0]],
-        EXCHANGE_TYPE_TRADE: EXCHANGE_SETTING_CODE_MAP[settings_string[1]],
-        EXCHANGE_TYPE_REQUEST: EXCHANGE_SETTING_CODE_MAP[settings_string[2]],
-    }
 
 
 def resolve(userid, otherid, othername):
@@ -333,8 +329,8 @@ def _select_statistics(userid):
     }
 
 
-def select_statistics(userid):
-    show = "i" not in d.get_config(userid) or d.get_userid() in staff.MODS
+def select_statistics(userid: int):
+    show = d.shows_statistics(viewer=d.get_userid(), target=userid)
     return _select_statistics(userid), show
 
 
@@ -427,38 +423,57 @@ def select_avatars(userids):
     return {d['userid']: d for d in results}
 
 
-def edit_profile_settings(userid,
-                          set_trade=EXCHANGE_SETTING_NOT_ACCEPTING,
-                          set_request=EXCHANGE_SETTING_NOT_ACCEPTING,
-                          set_commission=EXCHANGE_SETTING_NOT_ACCEPTING):
+def edit_profile_settings(
+    userid,
+    *,
+    set_trade: ExchangeSetting,
+    set_request: ExchangeSetting,
+    set_commission: ExchangeSetting,
+):
     settings = "".join([set_commission.code, set_trade.code, set_request.code])
     d.engine.execute(
-        "UPDATE profile SET settings = %(settings)s WHERE userid = %(user)s",
-        settings=settings, user=userid)
+        "UPDATE profile SET"
+        " settings = %(settings)s || (CASE WHEN position('l' in settings) = 0 THEN '' ELSE 'l' END),"
+        " commissions_status = %(commissions_status)s,"
+        " trades_status = %(trades_status)s,"
+        " requests_status = %(requests_status)s"
+        " WHERE userid = %(user)s",
+        settings=settings,
+        commissions_status=set_commission.value,
+        trades_status=set_trade.value,
+        requests_status=set_request.value,
+        user=userid,
+    )
     d._get_all_config.invalidate(userid)
 
 
-def edit_profile(userid, profile,
-                 set_trade=EXCHANGE_SETTING_NOT_ACCEPTING,
-                 set_request=EXCHANGE_SETTING_NOT_ACCEPTING,
-                 set_commission=EXCHANGE_SETTING_NOT_ACCEPTING,
-                 profile_display=''):
-    # Assign settings
-    settings = "".join([set_commission.code, set_trade.code, set_request.code])
-
-    if profile_display not in ('O', 'A'):
-        profile_display = ''
+def edit_profile(
+    userid: int,
+    *,
+    full_name: str,
+    catchphrase: str,
+    profile_text: str,
+    profile_display: str,
+):
+    match profile_display:
+        case "O":
+            thumbnail_bar = "collections"
+        case "A":
+            thumbnail_bar = "characters"
+        case _:
+            profile_display = ""
+            thumbnail_bar = "submissions"
 
     pr = d.meta.tables['profile']
     d.engine.execute(
         pr.update()
         .where(pr.c.userid == userid)
         .values({
-            'full_name': profile.full_name,
-            'catchphrase': profile.catchphrase,
-            'profile_text': profile.profile_text,
-            'settings': settings,
+            'full_name': full_name,
+            'catchphrase': catchphrase,
+            'profile_text': profile_text,
             'config': sa.func.regexp_replace(pr.c.config, "[OA]", "").concat(profile_display),
+            'thumbnail_bar': thumbnail_bar,
         })
     )
     d._get_all_config.invalidate(userid)
@@ -472,13 +487,30 @@ STREAMING_ACTION_MAP = {
 }
 
 
-def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_length=0):
+def edit_streaming_settings(
+    my_userid: int,
+    userid: int,
+    *,
+    stream_text: str,
+    stream_url: str,
+    set_stream: str,
+    stream_length: int = 0,
+) -> None:
+
+    stream_url = stream_url.strip()
+
+    if stream_url:
+        stream_url_parsed = d.text_fix_url(stream_url)
+        if stream_url_parsed is None:
+            raise WeasylError("streamLocationInvalid")
+    else:
+        stream_url_parsed = None
 
     if set_stream == 'start':
         if stream_length < 1 or stream_length > 360:
             raise WeasylError("streamDurationOutOfRange")
 
-        if not profile.stream_url:
+        if stream_url_parsed is None:
             raise WeasylError("streamLocationNotSet")
 
     # unless we're specifically still streaming, clear the user_streams record
@@ -508,9 +540,10 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         pr.update()
         .where(pr.c.userid == userid)
         .values({
-            'stream_text': profile.stream_text,
-            'stream_url': profile.stream_url,
+            'stream_text': stream_text,
+            'stream_url': "" if stream_url_parsed is None else stream_url_parsed.href,
             'settings': sa.func.regexp_replace(pr.c.settings, "[nli]", "").concat(settings_flag),
+            'streaming_later': settings_flag == 'l',
         })
     )
 
@@ -522,7 +555,7 @@ def edit_streaming_settings(my_userid, userid, profile, set_stream=None, stream_
         note_body = (
             '- Stream url: %s\n'
             '- Stream description: %s\n'
-            '- Stream status: %s' % (profile.stream_url, profile.stream_text, STREAMING_ACTION_MAP[set_stream]))
+            '- Stream status: %s' % (stream_url, stream_text, STREAMING_ACTION_MAP[set_stream]))
         moderation.note_about(my_userid, userid, 'Streaming settings updated:', note_body)
 
 
@@ -632,14 +665,14 @@ def edit_userinfo(userid, form):
     if form.show_age:
         d.engine.execute("""
             UPDATE profile
-            SET config = config || 'b'
+            SET config = config || 'b', show_age = TRUE
             WHERE userid = %(userid)s
             AND config !~ 'b'
         """, userid=userid)
     else:
         d.engine.execute("""
             UPDATE profile
-            SET config = REPLACE(config, 'b', '')
+            SET config = REPLACE(config, 'b', ''), show_age = FALSE
             WHERE userid = %(userid)s
         """, userid=userid)
 
@@ -741,39 +774,88 @@ def invalidate_other_sessions(userid):
     """, userid=userid, currentsession=sess.sessionid if sess is not None else "")
 
 
-def edit_preferences(userid,
-                     preferences=None, jsonb_settings=None):
+_OPTION_CHARACTER = "[%s]" % ("".join(Config.all_option_codes),)
+"""A regex that matches any preference character stored in the `profile.config` column."""
+
+
+def edit_preferences(
+    userid: int,
+    preferences: Config,
+    *,
+    disable_custom_thumbs: bool,
+) -> None:
     """
     Apply changes to stored preferences for a given user.
     :param userid: The userid to apply changes to
-    :param preferences: (optional) old-style char preferences, overwrites all previous settings
-    :param jsonb_settings: (optional) JSON preferences, overwrites all previous settings
-    :return: None
+    :param preferences: old-style char preferences, overwrites all previous settings
     """
-    config = d.get_config(userid)
     user_age = get_user_age(userid)
 
-    if preferences is not None and user_age is not None and user_age < preferences.rating.minimum_age:
+    if user_age is not None and user_age < preferences.rating.minimum_age:
         preferences.rating = ratings.GENERAL
 
-    updates = {}
-    if preferences is not None:
-        # update legacy preferences
-        # clear out the option codes that are being replaced.
-        for i in Config.all_option_codes:
-            config = config.replace(i, "")
-        config_str = config + preferences.to_code()
-        updates['config'] = config_str
-    if jsonb_settings is not None:
-        # update jsonb preferences
-        updates['jsonb_settings'] = jsonb_settings.get_raw()
-
-    if preferences is not None and preferences.rating.minimum_age:
+    if preferences.rating.minimum_age:
         assert_adult(userid)
 
+    watch_defaults = ""
+    if preferences.follow_s:
+        watch_defaults += "s"
+    if preferences.follow_c:
+        watch_defaults += "c"
+    if preferences.follow_f:
+        watch_defaults += "f"
+    if preferences.follow_t:
+        watch_defaults += "t"
+    if preferences.follow_j:
+        watch_defaults += "j"
+
     d.engine.execute(
-        t.profile.update().where(t.profile.c.userid == userid),
-        updates
+        t.profile.update()
+        .where(t.profile.c.userid == userid)
+        .values(
+            config=(
+                func.regexp_replace(t.profile.c.config, _OPTION_CHARACTER, "", "g")
+                .concat(preferences.to_code())
+            ),
+            favorites_visibility="nobody" if preferences.hidefavorites else "everyone",
+            favorites_bar=not preferences.hidefavbar,
+            shouts_from=_PERMISSIONS[preferences.shouts],
+            messages_from=_PERMISSIONS[preferences.notes],
+            profile_guests=not preferences.hideprofile,
+            profile_stats=not preferences.hidestats,
+            max_rating=preferences.rating.name,
+            watch_defaults=watch_defaults,
+
+            jsonb_settings=(
+                func.coalesce(t.profile.c.jsonb_settings, sa.text("'{}'"))
+                .concat({"disable_custom_thumbs": disable_custom_thumbs})
+            ),
+            custom_thumbs=not disable_custom_thumbs,
+        )
+    )
+    d._get_all_config.invalidate(userid)
+
+
+def set_collection_preferences(
+    userid: int,
+    *,
+    allow_requests: bool,
+    notify: bool,
+) -> None:
+    d.engine.execute(
+        t.profile.update()
+        .where(t.profile.c.userid == userid)
+        .values(
+            jsonb_settings=(
+                func.coalesce(t.profile.c.jsonb_settings, sa.text("'{}'"))
+                .concat({
+                    "allow_collection_requests": allow_requests,
+                    "allow_collection_notifs": notify,
+                })
+            ),
+            allow_collection_requests=allow_requests,
+            collection_notifs=notify,
+        )
     )
     d._get_all_config.invalidate(userid)
 
@@ -803,7 +885,7 @@ def select_manage(userid):
         SELECT
             lo.userid, lo.last_login, lo.email, lo.ip_address_at_signup,
             pr.created_at, pr.username, pr.full_name, pr.catchphrase,
-            ui.birthday, ui.gender, ui.country, pr.config
+            ui.birthday, ui.gender, ui.country, pr.config, pr.can_suggest_tags
         FROM login lo
             INNER JOIN profile pr USING (userid)
             INNER JOIN userinfo ui USING (userid)
@@ -842,6 +924,7 @@ def select_manage(userid):
         "gender": query[9],
         "country": query[10],
         "config": query[11],
+        "can_suggest_tags": query.can_suggest_tags,
         "staff_notes": shout.count_staff_notes(userid),
         "user_links": user_link_rows,
         "user_sessions": active_user_sessions,
@@ -850,7 +933,7 @@ def select_manage(userid):
 
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
               birthday=None, gender=None, country=None, remove_social: list[int] | None = None,
-              permission_tag=None):
+              permission_tag: bool | None = None):
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
 
@@ -919,7 +1002,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
             d.engine.execute(
                 """
                 UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g')
+                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'), max_rating = 'general'
                 WHERE userid = %(user)s
                 """,
                 user=userid,
@@ -954,22 +1037,20 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
 
     # Permissions
     if permission_tag is not None:
-        if permission_tag:
-            query = (
-                "UPDATE profile SET config = replace(config, 'g', '') "
-                "WHERE userid = %(user)s AND position('g' in config) != 0")
-        else:
-            query = (
-                "UPDATE profile SET config = config || 'g' "
-                "WHERE userid = %(user)s AND position('g' in config) = 0")
+        query = (
+            "UPDATE profile SET can_suggest_tags = %(perm)s"
+            " WHERE userid = %(user)s AND can_suggest_tags != %(perm)s")
 
-        if d.engine.execute(query, user=userid).rowcount != 0:
+        if d.engine.execute(query, user=userid, perm=permission_tag).rowcount != 0:
             updates.append('- Permission to tag: ' + ('yes' if permission_tag else 'no'))
             d._get_all_config.invalidate(userid)
 
     if updates:
         from weasyl import moderation
         moderation.note_about(my_userid, userid, 'The following fields were changed:', '\n'.join(updates))
+
+
+_Setting = namedtuple("_Setting", ("default",))
 
 
 # TODO(hyena): Make this class unnecessary and remove it when we fix up settings.
@@ -981,16 +1062,13 @@ class ProfileSettings:
     exceptions if you try to access a setting that has
     not been properly defined!
     """
-    class Setting:
-        def __init__(self, default, typecast):
-            self.default = default
-            self.typecast = typecast
 
-    _raw_settings = {}
+    __slots__ = ("_raw_settings",)
+
     _settings = {
-        "allow_collection_requests": Setting(True, bool),
-        "allow_collection_notifs": Setting(True, bool),
-        "disable_custom_thumbs": Setting(False, bool),
+        "allow_collection_requests": _Setting(True),
+        "allow_collection_notifs": _Setting(True),
+        "disable_custom_thumbs": _Setting(False),
     }
 
     def __init__(self, json):
@@ -999,18 +1077,6 @@ class ProfileSettings:
     def __getattr__(self, name):
         setting_config = self._settings[name]
         return self._raw_settings.get(name, setting_config.default)
-
-    def __setattr__(self, name, value):
-        if name.startswith("_"):
-            super(ProfileSettings, self).__setattr__(name, value)
-        else:
-            setting_config = self._settings[name]
-            if setting_config.typecast is not None:
-                value = setting_config.typecast(value)
-            self._raw_settings[name] = value
-
-    def get_raw(self):
-        return self._raw_settings
 
 
 def sort_user_links(links):

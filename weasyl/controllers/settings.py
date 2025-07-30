@@ -64,16 +64,23 @@ def control_editprofile_put_(request):
     if len(form.site_labels) != len(form.site_names):
         form.site_labels = [''] * len(form.site_names)
 
-    p = orm.Profile()
-    p.full_name = form.full_name
-    p.catchphrase = form.catchphrase
-    p.profile_text = form.profile_text
     set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
     set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
     set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
-    profile.edit_profile(request.userid, p, set_trade=set_trade,
-                         set_request=set_request, set_commission=set_commission,
-                         profile_display=form.profile_display)
+    profile.edit_profile_settings(
+        request.userid,
+        set_trade=set_trade,
+        set_request=set_request,
+        set_commission=set_commission,
+    )
+
+    profile.edit_profile(
+        request.userid,
+        full_name=form.full_name,
+        catchphrase=form.catchphrase,
+        profile_text=form.profile_text,
+        profile_display=form.profile_display,
+    )
 
     profile.edit_userinfo(request.userid, form)
 
@@ -99,7 +106,12 @@ def control_editcommishinfo_(request):
     set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
     set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
 
-    profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
+    profile.edit_profile_settings(
+        request.userid,
+        set_trade=set_trade,
+        set_request=set_request,
+        set_commission=set_commission,
+    )
     commishinfo.edit_content(request.userid, form.content)
 
     if "preferred-tags" in request.POST:
@@ -330,8 +342,6 @@ def control_editpreferences_post_(request):
         follow_j="")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating), ratings.GENERAL)
-    jsonb_settings = define.get_profile_settings(request.userid)
-    jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
 
     preferences = profile.Config()
     preferences.rating = rating
@@ -352,7 +362,8 @@ def control_editpreferences_post_(request):
     preferences.follow_j = bool(form.follow_j)
 
     profile.edit_preferences(request.userid,
-                             preferences=preferences, jsonb_settings=jsonb_settings)
+                             preferences=preferences,
+                             disable_custom_thumbs=form.custom_thumbs == "disable")
     raise HTTPSeeOther(location="/control")
 
 
@@ -468,14 +479,15 @@ def control_streaming_post_(request):
         target = request.userid
 
     stream_length = define.clamp(define.get_int(form.stream_length), 0, 360)
-    p = orm.Profile()
-    p.stream_text = form.stream_text
-    p.stream_url = define.text_fix_url(form.stream_url.strip())
-    set_stream = form.set_stream
 
-    profile.edit_streaming_settings(request.userid, target, p,
-                                    set_stream=set_stream,
-                                    stream_length=stream_length)
+    profile.edit_streaming_settings(
+        request.userid,
+        target,
+        stream_text=form.stream_text,
+        stream_url=form.stream_url,
+        set_stream=form.set_stream,
+        stream_length=stream_length,
+    )
 
     if form.target:
         target_username = define.get_sysname(define.get_display_name(target))

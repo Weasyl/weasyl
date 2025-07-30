@@ -120,7 +120,7 @@ services:
       # currency conversion in `weasyl.commishinfo`
       - -a
       - www.ecb.europa.eu
-      # oEmbed in `weasyl.embed`
+      # oEmbed in `weasyl.embed` and their `thumbnail_url`s
       - -a
       - www.youtube.com
       - -a
@@ -128,10 +128,17 @@ services:
       - -a
       - vimeo.com
       - -a
+      - i.vimeocdn.com
+      - -a
       - soundcloud.com
       - -a
+      - i1.sndcdn.com
+      - -a
       - sketchfab.com
-      # TODO: Bandcamp embeds, which are not oEmbed-based and require arbitrary subdomains
+      - -a
+      - media.sketchfab.com
+      - -a
+      - bandcamp.com
       # crossposting in `weasyl.submission` not included by default
     networks:
       - external-web-outgoing
@@ -290,7 +297,7 @@ services:
           printf 'checking if postgres is up in %i seconds...\n' $$i
           sleep $$i
         done
-        exec .venv/bin/alembic upgrade head
+        exec .venv/bin/alembic upgrade heads
     environment:
       # needed for revision f30dc3b5856a
       WEASYL_STORAGE_ROOT: '/fakepath'

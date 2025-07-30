@@ -1,5 +1,8 @@
 $def with (request, profile, userinfo, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified, post_counts_by_type)
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+$code:
+  _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  card_viewer = get_card_viewer()
+  viewable = "users/%s" % (profile["userid"],)
 
 <section><div id="user-header" class="stage clear">
 
@@ -7,25 +10,27 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 
   $# The submissions/favorite grids are above/straddling the fold, so omit lazy load.
   $if(submissions):
-    <ul id="user-thumbs" class="thumbnail-grid small-footprint">
-      $code:
-        include_byline = {
-          'submissions': False,
-          'characters': False,
-          'collections': True,
-        }[more_submissions]
-      $for i in submissions:
-        $:{_GRID_ITEM(i, include_byline=include_byline, lazy_load=False)}
+    $code:
+      include_byline = {
+        'submissions': False,
+        'characters': False,
+        'collections': True,
+      }[more_submissions]
+      cards = card_viewer.get_cards(submissions)
+    <ul is="thumbnail-grid" id="user-thumbs" class="thumbnail-grid small-footprint" data-widths="${CARD_WIDTHS(cards)}">
+      $for card in cards:
+        $:{_GRID_ITEM(card, include_byline=include_byline, lazy_load=False)}
       <li class="more more-joined"><a class="more" href="/${more_submissions}/${LOGIN(profile['username'])}"><span>${profile['username']}'s ${more_submissions.title()}</span></a></li>
     </ul>
 
   $if submissions and favorites:
-    <hr class="more" />
+    <hr class="user-header-duo-sep" />
 
   $if favorites:
-    <ul id="fav-thumbs" class="thumbnail-grid tiny-footprint">
-      $for i in favorites:
-        $:{_GRID_ITEM(i, lazy_load=False)}
+    $ cards = card_viewer.get_cards(favorites)
+    <ul is="thumbnail-grid" id="fav-thumbs" class="thumbnail-grid tiny-footprint" data-widths="${CARD_WIDTHS(cards)}">
+      $for card in cards:
+        $:{_GRID_ITEM(card, lazy_load=False)}
       <li class="more more-joined"><a class="more" href="/favorites/${LOGIN(profile['username'])}"><span>${profile['username']}'s Favorites</span></a></li>
     </ul>
 
@@ -157,7 +162,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       <h3>Statistics</h3>
       <p>Joined $:{LOCAL_TIME(profile['unixtime'], '{date}')}</p>
       <dl>
-        <dt>${statistics['page_views']}</dt> <dd>Pageviews</dd>
+        <dt id="page-views" data-viewable="${viewable}">${statistics['page_views']}</dt> <dd>Pageviews</dd>
         <dt>${statistics['followed']}</dt> <dd>Followers</dd>
         <dt>${statistics['faves_sent']}</dt> <dd>Favorites Given</dd>
         <dt>${statistics['faves_received']}</dt> <dd>Favorites Received</dd>
@@ -169,6 +174,9 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
           <dd><a href="/staffnotes/${LOGIN(profile['username'])}">Staff Notes</a></dd>
       </dl>
     </div>
+  $else:
+    $# record page views even when statistics aren’t visible
+    <script type="text/plain" id="page-views" data-viewable="${viewable}"></script>
 
   $if statistics['following'] != 0 or statistics['followed'] != 0 or has_friends():
     <div id="user-connections" class="clear on-side">
@@ -183,14 +191,13 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       <h3>Folders</h3>
       <div id="uf-folders">
         $for i in folders:
+          $ thumb_files = card_viewer.get_thumbnail_files(i)
           <a class="clear" href="/submissions?userid=${profile['userid']}&amp;folderid=${i['folderid']}">
-            $ thumb = THUMB(i)
-            $ webp_thumb = WEBP_THUMB(i)
             <div class="stack">
               <picture>
-                $if webp_thumb is not None:
-                  <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-                <img src="${thumb['display_url']}" alt="" />
+                $if thumb_files.webp is not None:
+                  <source type="image/webp" srcset="${thumb_files.webp['display_url']}" />
+                <img src="${thumb_files.fallback['display_url']}" alt="" />
               </picture>
             </div>
             <h5 class="color-c">${i['title']}</h5>

@@ -48,7 +48,6 @@ def messages_notifications_(request):
     """ todo finish listing of message types in the template """
 
     notifications = (
-        tag_section(message.select_site_updates(request.userid), 'notifications') +
         tag_section(message.select_comments(request.userid), 'comments') +
         tag_section(message.select_notifications(request.userid), 'notifications') +
         tag_section(message.select_journals(request.userid), 'journals')

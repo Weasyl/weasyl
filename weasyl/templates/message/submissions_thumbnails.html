@@ -1,6 +1,9 @@
 $def with (query)
 $:{TITLE("Submissions", "Messages", "/messages/submissions")}
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+$code:
+  _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  card_viewer = get_card_viewer()
+  cards = card_viewer.get_cards(query)
 
 <div class="content">
   <form action="/messages/remove" method="post">
@@ -10,9 +13,9 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
     <h3>Submission Notifications</h3>
 
     $if query:
-      <ul class="thumbnail-grid">
-        $for index, item in enumerate(query):
-          $:{_GRID_ITEM(item, notifications=True, lazy_load=index >= 10)}
+      <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+        $for index, (item, card) in enumerate(zip(query, cards)):
+          $:{_GRID_ITEM(card, welcomeid=item['welcomeid'], lazy_load=index >= 10)}
       </ul>
 
       <div class="notifs-actions sub-notifs-actions clear">

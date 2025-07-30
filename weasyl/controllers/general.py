@@ -1,12 +1,12 @@
 import itertools
+from typing import Literal
 
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.response import Response
 
 from libweasyl import ratings
-from libweasyl import staff
 
-from weasyl import comment, define, index, macro, search, profile, siteupdate, submission
+from weasyl import define, index, macro, search, profile, submission
 
 
 # General browsing functions
@@ -26,12 +26,59 @@ def index_(request):
     )
 
 
+_SEARCH_RESULTS = {
+    "submit": "Posts",
+    "char": "Characters",
+    "journal": "Journals",
+}
+
+
 _BROWSE = {
     'submit': ("Submissions", "Browse Submissions"),
     'char': ("Characters", "Browse Characters"),
     'journal': ("Journals", "Browse Journals"),
     'critique': ("Critique requests", "Browse Critique Requests"),
 }
+
+
+# NOTE: Most canonical paths are good candidates for a `history.replaceState`, but ones that include freeform user input (like this one) are exceptions: it would be annoying to the user to process and rearrange the input if they want to continue making changes to it, especially in cases where the original input was slightly wrong in a way that dramatically changed its interpretation. TODO: Consider a similar function for the purpose of `replaceState`-style use cases, leaving the form state intact while removing defaults. TODO: Display the interpretation of the query.
+def _get_search_canonical_path(
+    search_query: search.Query,
+    *,
+    within: Literal["", "notify", "fave", "friend", "follow"],
+    cat: int | None,
+    subcat: int | None,
+    backid: int | None,
+    nextid: int | None,
+) -> str:
+    params = {
+        "q": search_query.get_terms_string(),
+    }
+
+    find = search_query.find
+
+    if find != "submit":
+        params["find"] = find
+
+    if find != "user" and within:
+        params["within"] = within
+
+    if find != "user" and ratings:
+        params["rated"] = [ratings.CODE_MAP[r].character for r in sorted(search_query.ratings)]
+
+    if find == "submit":
+        if subcat:
+            params["subcat"] = str(subcat)
+        elif cat:
+            params["cat"] = str(cat)
+
+    if find != "user":
+        if backid:
+            params["backid"] = str(backid)
+        elif nextid:
+            params["nextid"] = str(nextid)
+
+    return f"/search?{define.query_string(params)}"
 
 
 def search_(request):
@@ -46,9 +93,21 @@ def search_(request):
     backid = request.params.get('backid')
     nextid = request.params.get('nextid')
 
+    canonical_path = None
+    robots = None
+
     if q:
         if find not in ("submit", "char", "journal", "user"):
             find = "submit"
+
+        if (
+            not request.userid
+            or within not in ["", "notify", "fave", "friend", "follow"]
+        ):
+            within = ""
+
+        if find != "submit":
+            cat = subcat = None
 
         q = q.strip()
         search_query = search.Query.parse(q, find)
@@ -66,22 +125,59 @@ def search_(request):
 
         if search_query.find == "user":
             query = search.select_users(q)
-            next_count = back_count = 0
+            prev_page = next_page = None
         else:
             search_query.ratings.update(ratings.CHARACTER_MAP[rating_code].code for rating_code in meta["rated"])
+            if len(search_query.ratings) == len(ratings.ALL_RATINGS):
+                search_query.ratings.clear()
 
-            query, next_count, back_count = search.select(
-                userid=request.userid,
-                rating=rating,
-                limit=63,
-                search=search_query,
-                within=meta["within"],
-                cat=meta["cat"],
-                subcat=meta["subcat"],
-                backid=meta["backid"],
-                nextid=meta["nextid"])
+            resolved = search.resolve(search_query)
+            if resolved is None:
+                query, prev_page, next_page = [], None, None
+            else:
+                if backid:
+                    page = search.PrevFilter(meta["backid"])
+                elif nextid:
+                    page = search.NextFilter(meta["nextid"])
+                else:
+                    page = search.FIRST_PAGE
 
-        title = "Search results"
+                query, prev_page, next_page = search.select(
+                    userid=request.userid,
+                    rating=rating,
+                    limit=63,
+                    resolved=resolved,
+                    within=within,
+                    cat=meta["cat"],
+                    subcat=meta["subcat"],
+                    page=page,
+                )
+
+        if (
+            search_query.find != "user"
+            and not within
+            and not cat
+            and not subcat
+            and (simple := search_query.as_simple())
+        ):
+            title = f'{_SEARCH_RESULTS[search_query.find]} tagged “{simple}”'
+
+            # Don’t index reverse pagination or empty result sets.
+            if backid or not query:
+                robots = "noindex"
+        else:
+            title = "Search results"
+            robots = "noindex"
+
+        canonical_path = _get_search_canonical_path(
+            search_query,
+            within=meta["within"],
+            cat=meta["cat"],
+            subcat=meta["subcat"],
+            backid=meta["backid"],
+            nextid=meta["nextid"],
+        )
+
         template_args = (
             # Search method
             "search",
@@ -89,11 +185,16 @@ def search_(request):
             meta,
             # Search results
             query,
-            next_count,
-            back_count,
+            prev_page,
+            next_page,
             # Submission subcategories
             macro.MACRO_SUBCAT_LIST,
-            search.COUNT_LIMIT,
+            # `browse_header`
+            None,
+            # `is_guest`
+            not request.userid,
+            # `rating_limit`
+            rating,
         )
     elif find:
         if find not in ("submit", "char", "journal", "critique"):
@@ -122,9 +223,11 @@ def search_(request):
             meta,
             # Search results
             query,
-            0,
-            0,
+            # `prev_page`
             None,
+            # `next_page`
+            None,
+            # `subcats`
             None,
             browse_header,
         )
@@ -149,7 +252,8 @@ def search_(request):
                 "char": search.browse(
                     userid=request.userid,
                     rating=rating,
-                    limit=22,
+                    # TODO: revisit limit once characters get a different thumbnail layout; currently, 14 is the most that can fit
+                    limit=14,
                     find="char",
                     cat=None,
                     backid=None,
@@ -158,7 +262,7 @@ def search_(request):
                 "journal": search.browse(
                     userid=request.userid,
                     rating=rating,
-                    limit=22,
+                    limit=12,
                     find="journal",
                     cat=None,
                     backid=None,
@@ -167,7 +271,17 @@ def search_(request):
             },
         )
 
-    return Response(define.webpage(request.userid, "etc/search.html", template_args, options=('search',), title=title))
+    return Response(
+        define.webpage(
+            request.userid,
+            "etc/search.html",
+            template_args,
+            options=('search',),
+            title=title,
+            canonical_url=canonical_path,
+            robots=robots,
+        )
+    )
 
 
 def streaming_(request):
@@ -176,24 +290,9 @@ def streaming_(request):
                                    title="Streaming"))
 
 
-def site_update_list_(request):
-    updates = siteupdate.select_list()
-    can_edit = request.userid in staff.ADMINS
-
-    return Response(define.webpage(request.userid, 'etc/site_update_list.html', (request, updates, can_edit), title="Site Updates"))
-
-
-def site_update_(request):
-    updateid = int(request.matchdict['update_id'])
-    update = siteupdate.select_view(updateid)
-    myself = profile.select_myself(request.userid)
-    comments = comment.select(request.userid, updateid=updateid)
-
-    return Response(define.webpage(request.userid, 'etc/site_update.html', (myself, update, comments), title="Site Update"))
-
-
 def popular_(request):
+    card_viewer = define.get_card_viewer()
     return Response(define.webpage(request.userid, 'etc/popular.html', [
-        list(itertools.islice(
+        card_viewer.get_cards(itertools.islice(
             index.filter_submissions(request.userid, submission.select_recently_popular(), incidence_limit=1), 66))
     ], title="Recently Popular"))

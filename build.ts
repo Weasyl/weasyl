@@ -470,10 +470,11 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
             outbase: ctx.assetsRoot,
             bundle: true,
             minify: true,
-            target: 'es5',
+            target: 'es6',
             banner: {
                 js: '"use strict";',
             },
+            mangleProps: /^m_/,
             ...this.#options,
             write: false,
             metafile: true,
@@ -597,14 +598,18 @@ const touch = new CreateFolders([
 
 const images = new CopyStaticFiles('img', {touch});
 
-const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
-    format: 'esm',
+const PRIVATE_FIELDS: esbuild.BuildOptions = {
     target: [
         'chrome84',
         'firefox90',
         'ios15',
         'safari15',
     ],
+};
+
+const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
+    ...PRIVATE_FIELDS,
+    format: 'esm',
     banner: {},
 };
 
@@ -616,18 +621,28 @@ const tasks: readonly AnyTask[] = [
     new Sass({from: 'scss/imageselect.scss', to: 'css/imageselect.css'}, {touch, images}),
     new Sass({from: 'scss/mod.scss', to: 'css/mod.css'}, {touch, images}),
     new Sass({from: 'scss/signup.scss', to: 'css/signup.css'}, {touch, images}),
-    new EsbuildFiles(['js/scripts.js'], {}, {touch}),
+    new EsbuildFiles([
+        'js/scripts.js',
+        'js/search.js',
+        'js/zxcvbn-check.js',
+    ], {}, {touch}),
+
+    // main.js has a `Link: …;rel=preload`, and Cloudflare’s Early Hints implementation doesn’t support `modulepreload` yet
+    new EsbuildFiles(['js/main.js'], PRIVATE_FIELDS, {touch}),
+
     new EsbuildFiles([
         'js/combobox.js',
         'js/edit-profile.js',
-        'js/main.js',
+        'js/login-box.js',
         'js/message-list.js',
+        'js/notification-list.js',
         'js/tags-edit.js',
         'js/signup.js',
+        'js/submit.js',
+        'js/view-count.js',
     ], PRIVATE_FIELDS_ESM, {touch}),
     new EsbuildFiles(['js/flash.js'], {
         format: 'esm',
-        target: 'es6',
         banner: {},
     }, {touch}),
     new CopyStaticFiles('img/help', {touch}),
@@ -644,11 +659,6 @@ const tasks: readonly AnyTask[] = [
         from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
         to: 'js/ruffle/ruffle.js',
     }, {touch}),
-
-    // site
-    new CopyStaticFile('js/notification-list.js', {touch}),
-    new CopyStaticFile('js/search.js', {touch}),
-    new CopyStaticFile('js/zxcvbn-check.js', {touch}),
 ];
 
 const ORDER_UNSET = -1;

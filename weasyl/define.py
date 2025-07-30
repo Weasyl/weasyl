@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import os
 import time
@@ -8,8 +10,10 @@ import numbers
 import datetime
 import pkgutil
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
+from typing import NewType
 from urllib.parse import urlencode, urljoin
 
 import arrow
@@ -17,6 +21,7 @@ from pyramid.threadlocal import get_current_request
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from ada_url import URL
 from prometheus_client import Histogram
 from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
@@ -26,8 +31,11 @@ import libweasyl.constants
 from libweasyl.cache import region
 from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
 from libweasyl.models.tables import metadata as meta
+from libweasyl.text import slug_for
+from libweasyl.text import summarize
 from libweasyl import html, text, ratings, staff
 
+from weasyl import cards
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
@@ -174,11 +182,13 @@ def _compile(template_name):
                 "SUMMARIZE": summarize,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
-                "THUMB": thumb_for_sub,
-                "WEBP_THUMB": webp_thumb_for_sub,
+
+                "CARD_WIDTHS": cards.get_widths,
+                "get_card_viewer": get_card_viewer,
+
                 "M": macro,
                 "R": ratings,
-                "SLUG": text.slug_for,
+                "SLUG": slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
                 "PATH": _get_path,
@@ -187,10 +197,14 @@ def _compile(template_name):
                 "format": format,
                 "getattr": getattr,
                 "json": json,
+                "map": map,
                 "sorted": sorted,
                 "staff": staff,
                 "turnstile": turnstile,
                 "resource_path": get_resource_path,
+                "zip": zip,
+
+                "DEFAULT_LOGIN_FORM": DEFAULT_LOGIN_FORM,
             })
 
     return template
@@ -247,7 +261,7 @@ def path_redirect(path_qs: str) -> str:
     return _ORIGIN + path_qs
 
 
-@region.cache_on_arguments(namespace='v3')
+@region.cache_on_arguments(namespace='v4')
 def _get_all_config(userid):
     """
     Queries for, and returns, common user configuration settings.
@@ -259,13 +273,15 @@ def _get_all_config(userid):
       is_vouched_for: Boolean. Is the user vouched for?
       profile_configuration: CharSettings/string. Configuration options in the profile.
       jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
+      premium: Boolean. Is the user a premium user?
     """
     row = engine.execute("""
         SELECT EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
                EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
                lo.voucher IS NOT NULL AS is_vouched_for,
                pr.config AS profile_configuration,
-               pr.jsonb_settings
+               pr.jsonb_settings,
+               pr.premium
         FROM login lo INNER JOIN profile pr USING (userid)
         WHERE userid = %(userid)s
     """, userid=userid).first()
@@ -332,12 +348,11 @@ def is_sfw_mode():
     return get_current_request().cookies.get('sfwmode', "nsfw") == "sfw"
 
 
-def get_premium(userid):
+def get_premium(userid: int) -> bool:
     if not userid:
         return False
 
-    config = get_config(userid)
-    return "d" in config
+    return _get_all_config(userid)["premium"]
 
 
 @region.cache_on_arguments(should_cache_fn=bool)
@@ -485,24 +500,38 @@ def text_price_symbol(target):
     return CURRENCY_CHARMAP[''].symbol
 
 
-def text_first_line(target, strip=False):
+HttpUrl = NewType("HttpUrl", URL)
+
+
+def text_fix_url(s: str) -> HttpUrl | None:
     """
-    Return the first line of text; if `strip` is True, return all but the first
-    line of text.
+    Normalize a user-provided external web link to a URL that always uses `http:` or `https:` (`https:` is assumed when no explicit protocol is provided). The result is safe to use as the `href` attribute of a link in the same sense as `libweasyl.defang`. This also normalizes the domain name to lowercase and Punycode.
+
+    Disallows some weird enough URLs that probably don’t have legitimate uses, indicating a misinterpretation compared to user intent:
+    - URLs containing credentials (`https://username:password@…/`)
+    - URLs with fully-qualified domain names (`https://example.com./`)
+    - URLs with single-component domain names (`https://example/`)
     """
-    first_line, _, rest = target.partition("\n")
+    s = s.strip()
 
-    if strip:
-        return rest
-    else:
-        return first_line
+    try:
+        url = URL(s)
+    except ValueError:
+        try:
+            url = URL("https://" + s)
+        except ValueError:
+            return None
 
+    if (
+        url.protocol in ["http:", "https:"]
+        and not url.username
+        and not url.password
+        and "." in url.hostname
+        and not url.hostname.endswith(".")
+    ):
+        return HttpUrl(url)
 
-def text_fix_url(target):
-    if target.startswith(("http://", "https://")):
-        return target
-
-    return "http://" + target
+    return None
 
 
 def get_arrow(unixtime):
@@ -646,6 +675,30 @@ def private_messages_unread_count(userid: int) -> int:
         "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
 
 
+@region.cache_on_arguments()
+def get_last_read_updateid(userid: int) -> int | None:
+    return engine.scalar("""
+        SELECT last_read_updateid
+        FROM login
+        WHERE userid = %(user)s
+    """, user=userid)
+
+
+@region.cache_on_arguments()
+def get_updateids() -> list[int]:
+    results = engine.execute("""
+        SELECT updateid
+        FROM siteupdate
+        ORDER BY updateid DESC
+    """).fetchall()
+
+    return [result.updateid for result in results]
+
+
+def site_update_unread_count(userid: int) -> int:
+    return [*get_updateids(), None].index(get_last_read_updateid(userid))
+
+
 notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
 
 
@@ -707,14 +760,27 @@ def _is_sfw_locked(userid):
 def page_header_info(userid):
     from weasyl import media
     sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
+    notification_counts = _page_header_info(userid)
+    unread_updates = site_update_unread_count(userid)
     return {
-        "welcome": _page_header_info(userid),
+        "welcome": notification_counts,
+        "unread_updates": unread_updates,
+        "updateids": get_updateids(),
         "userid": userid,
         "username": get_display_name(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
         "sfw_locked": _is_sfw_locked(userid),
     }
+
+
+@dataclass(frozen=True, slots=True)
+class LoginForm:
+    username: str
+    sfw: bool
+
+
+DEFAULT_LOGIN_FORM = LoginForm(username="", sfw=False)
 
 
 def common_page_start(userid, options=(), **extended_options):
@@ -774,23 +840,36 @@ def common_status_page(userid, status):
     return response
 
 
-_content_types = {
-    'submit': 110,
-    'char': 120,
-    'journal': 130,
-    'profile': 210,
+def shows_statistics(*, viewer: int, target: int) -> bool:
+    return "i" not in get_config(target) or viewer in staff.MODS
+
+
+Viewable = Literal["submissions", "characters", "journals", "users"]
+
+_content_types: Mapping[Viewable, tuple[int, str, str]] = {
+    'submissions': (110, 'submission', 'submitid'),
+    'characters': (120, 'character', 'charid'),
+    'journals': (130, 'journal', 'journalid'),
+    'users': (210, 'profile', 'userid'),
 }
 
 
-def common_view_content(userid, targetid, feature):
+def common_view_content(
+    userid: int,
+    targetid: int,
+    feature: Viewable,
+) -> int | None:
     """
-    Return True if a record was successfully inserted into the views table
-    and the page view statistic incremented, else False.
+    Records a page view, returning the updated view count, or `None` if it didn’t change.
     """
-    if feature == "profile" and targetid == userid:
-        return
+    typeid, table, pk = _content_types[feature]
 
-    typeid = _content_types.get(feature, 0)
+    if feature == "users":
+        if targetid == userid:
+            return None
+    elif userid and get_ownerid(**{pk: targetid}) == userid:
+        return None
+
     if userid:
         viewer = 'user:%d' % (userid,)
     else:
@@ -803,18 +882,15 @@ def common_view_content(userid, targetid, feature):
         viewer=viewer, targetid=targetid, type=typeid)
 
     if result.rowcount == 0:
-        return False
+        return None
 
-    if feature == "submit":
-        engine.execute("UPDATE submission SET page_views = page_views + 1 WHERE submitid = %(id)s", id=targetid)
-    elif feature == "char":
-        engine.execute("UPDATE character SET page_views = page_views + 1 WHERE charid = %(id)s", id=targetid)
-    elif feature == "journal":
-        engine.execute("UPDATE journal SET page_views = page_views + 1 WHERE journalid = %(id)s", id=targetid)
-    elif feature == "profile":
-        engine.execute("UPDATE profile SET page_views = page_views + 1 WHERE userid = %(id)s", id=targetid)
-
-    return True
+    return engine.scalar(
+        f"UPDATE {table}"
+        " SET page_views = page_views + 1"
+        f" WHERE {pk} = %(id)s"
+        " RETURNING page_views",
+        id=targetid,
+    )
 
 
 def append_to_log(logname, **parameters):
@@ -950,12 +1026,6 @@ def absolutify_url(url):
     return urljoin(get_current_request().application_url, url)
 
 
-def summarize(s, max_length=200):
-    if len(s) > max_length:
-        return s[:max_length - 1].rstrip() + '\N{HORIZONTAL ELLIPSIS}'
-    return s
-
-
 def clamp(val, lower_bound, upper_bound):
     return min(max(val, lower_bound), upper_bound)
 
@@ -979,9 +1049,7 @@ def _requests_wrapper(func):
         try:
             return func(*a, **kw)
         except Exception as e:
-            w = WeasylError('httpError', level='info')
-            w.error_suffix = 'The original error was: %s' % (e,)
-            raise w from e
+            raise WeasylError('httpError', level='info') from e
 
     return wrapper
 
@@ -1031,50 +1099,17 @@ def paginate(results, backid, nextid, limit, key):
         None if at_end or not results else results[-1][key])
 
 
-def thumb_for_sub(submission):
+_default_thumbs = cards.get_default_thumbnails(get_resource_path)
+
+
+def get_card_viewer() -> cards.Viewer:
     """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb.
+    Gets the card-viewing experience (thumbnail preferences, essentially) for the current user.
     """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    if (profile_settings.disable_custom_thumbs and
-            submission.get('subtype', 9999) < 2000 and
-            submission['userid'] != user_id):
-        thumb_key = 'thumbnail-generated'
-    else:
-        thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
-
-    return submission['sub_media'][thumb_key][0]
-
-
-def webp_thumb_for_sub(submission):
-    """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate WebP media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb, or None.
-    """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    disable_custom_thumb = (
-        profile_settings.disable_custom_thumbs and
-        submission.get('subtype', 9999) < 2000 and
-        submission['userid'] != user_id
+    userid = get_userid()
+    profile_settings = get_profile_settings(userid)
+    return cards.Viewer(
+        userid=userid,
+        disable_custom_thumbs=profile_settings.disable_custom_thumbs,
+        default_thumbs=_default_thumbs,
     )
-
-    if not disable_custom_thumb and 'thumbnail-custom' in submission['sub_media']:
-        return None
-
-    thumbnail_generated_webp = submission['sub_media'].get('thumbnail-generated-webp')
-    return thumbnail_generated_webp and thumbnail_generated_webp[0]

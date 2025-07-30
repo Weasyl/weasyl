@@ -71,13 +71,16 @@ def submission_(request):
 
     rating = define.get_rating(request.userid)
     submitid = define.get_int(submitid) if submitid else define.get_int(request.params.get('submitid'))
-    ignore = request.params.get('ignore', '')
-    anyway = request.params.get('anyway', '')
+    ignore = request.GET.get('ignore') != "false"
+    anyway = request.GET.get('anyway') == "true"
 
     try:
         item = submission.select_view(
-            request.userid, submitid, rating,
-            ignore=ignore != 'false', anyway=anyway
+            request.userid,
+            submitid,
+            rating=rating,
+            ignore=ignore,
+            anyway=anyway,
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
@@ -89,7 +92,7 @@ def submission_(request):
     login = define.get_sysname(item['username'])
     canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
 
-    if request.GET.get('anyway'):
+    if anyway:
         canonical_path += '?anyway=true'
 
     if login != username:
@@ -114,6 +117,7 @@ def submission_(request):
         twitter_card=twitter_meta,
         ogp=ogp,
         canonical_url=canonical_path,
+        view_count=True,
         title=item["title"],
         options=("tags-edit",) if _can_edit_tags(request.userid) else (),
     ))
@@ -147,7 +151,13 @@ def submission_tag_history_(request):
     page_title = "Tag updates"
     page = define.common_page_start(request.userid, title=page_title)
     page.append(define.render('detail/tag_history.html', [
-        submission.select_view_api(request.userid, submitid),
+        submission.select_view_api(
+            request.userid,
+            submitid,
+            # TODO: use mod version of `anyway`; `anyway=True` here only means `ignore=False`
+            anyway=True,
+            increment_views=False,
+        ),
         searchtag.tag_history(submitid),
     ]))
     return Response(define.common_page_end(request.userid, page))
@@ -156,13 +166,16 @@ def submission_tag_history_(request):
 def character_(request):
     rating = define.get_rating(request.userid)
     charid = define.get_int(request.matchdict.get('charid', request.params.get('charid')))
-    ignore = request.params.get('ignore', '')
-    anyway = request.params.get('anyway', '')
+    ignore = request.GET.get('ignore') != "false"
+    anyway = request.GET.get('anyway') == "true"
 
     try:
         item = character.select_view(
-            request.userid, charid, rating,
-            ignore=ignore != 'false', anyway=anyway
+            request.userid,
+            charid,
+            rating=rating,
+            ignore=ignore,
+            anyway=anyway,
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
@@ -181,6 +194,7 @@ def character_(request):
         title=item["title"],
         twitter_card=twitter_meta,
         ogp=ogp,
+        view_count=True,
     )
     page.append(define.render('detail/character.html', [
         # Profile
@@ -203,13 +217,16 @@ def character_(request):
 def journal_(request):
     rating = define.get_rating(request.userid)
     journalid = define.get_int(request.matchdict.get('journalid', request.params.get('journalid')))
-    ignore = request.params.get('ignore', '')
-    anyway = request.params.get('anyway', '')
+    ignore = request.GET.get('ignore') != "false"
+    anyway = request.GET.get('anyway') == "true"
 
     try:
         item = journal.select_view(
-            request.userid, rating, journalid,
-            ignore=ignore != 'false', anyway=anyway
+            request.userid,
+            journalid,
+            rating=rating,
+            ignore=ignore,
+            anyway=anyway,
         )
     except WeasylError as we:
         if we.value in ("UserIgnored", "TagBlocked"):
@@ -228,6 +245,7 @@ def journal_(request):
         title=item["title"],
         twitter_card=twitter_meta,
         ogp=ogp,
+        view_count=True,
     )
     page.append(define.render('detail/journal.html', [
         # Myself

@@ -1,8 +1,6 @@
 import pytest
 import webtest
 
-from libweasyl.models.helpers import CharSettings
-
 import weasyl.define as d
 from weasyl.test import db_utils
 from weasyl.test.web.common import create_visual, read_asset
@@ -40,7 +38,7 @@ def test_submission_view(app, submission_user):
         'tags': ['bar', 'foo'],
         'title': 'Test title',
         'type': 'submission',
-        'views': 1,
+        'views': 0,
     }
     assert set(media) == {'thumbnail', 'submission', 'cover', 'thumbnail-generated-webp', 'thumbnail-generated'}
     assert type(media['submission'][0].pop('mediaid')) is int
@@ -97,7 +95,7 @@ def test_user_view(app, submission_user):
         'created_at': '1970-01-01T00:00:00Z',
         'featured_submission': None,
         'folders': [],
-        'full_name': '',
+        'full_name': 'submission_test',
         'link': 'http://localhost/~submissiontest',
         'login_name': 'submissiontest',
         'media': {
@@ -157,7 +155,7 @@ def test_user_view_unverified(app):
 def test_user_view_no_guests(app):
     db_utils.create_user(
         username='private_test',
-        config=CharSettings({'hide-profile-from-guests'}, {}, {}),
+        profile_guests=False,
     )
     resp = app.get('/api/users/privatetest/view', status=403)
     assert resp.json == {

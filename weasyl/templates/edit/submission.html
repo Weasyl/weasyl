@@ -23,7 +23,7 @@ $code:
 
     $if 'other' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
-      <input type="text" name="embedlink" class="input" value="${query['embedlink']}" id="embedlink" />
+      <input type="url" name="embedlink" class="input" value="${query['embed'].embedlink.href}" id="embedlink" required />
 
     $if 'google-drive' == query['embed_type']:
       <label for="embedlink">Embed Link</label>

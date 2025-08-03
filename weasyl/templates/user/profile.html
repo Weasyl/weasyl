@@ -101,7 +101,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
                 src="${resource_path(info['icon'])}"
               $else:
                 src="${resource_path('img/social/generic.svg')}"
-              class="contact-icon" alt="${label}" />
+              class="contact-icon" alt="">
             ${name}
             $if label:
               <span class="color-lighter">&ndash; ${label}</span>

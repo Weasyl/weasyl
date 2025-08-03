@@ -96,12 +96,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
         $for name, value, label, _ in userinfo['user_links']:
           $ info = M.SOCIAL_SITES_BY_NAME.get(name, {})
           <dt>
-            <img
-              $if info.get("icon"):
-                src="${resource_path(info['icon'])}"
-              $else:
-                src="${resource_path('img/social/generic.svg')}"
-              class="contact-icon" alt="">
+            <img src="${resource_path(info.get('icon', 'img/social/generic.svg'))}" class="contact-icon" alt="">
             ${name}
             $if label:
               <span class="color-lighter">&ndash; ${label}</span>

@@ -1,14 +1,54 @@
+$cell-spacing: 4px;
+
 #edit-profile {
     .buttons {
         padding-top: 1em;
     }
 
     .contact-editor {
-        margin-top: 2em;
+        margin: 2em auto 0;
+        max-width: 100%;
+        width: 60em;
+
+        // add spacing to all cells
+        > * > * > th,
+        > * > * > td {
+            border: $cell-spacing solid transparent;
+
+            // no spacing to the left of the first column…
+            &:first-child {
+                border-left: none;
+            }
+
+            // … or to the right of the last
+            &:last-child {
+                border-right: none;
+            }
+        }
+
+        // no spacing above the first row…
+        > thead > * > th {
+            border-top: none;
+        }
+
+        // … or below the last
+        > tbody > :last-child > td {
+            border-bottom: none;
+        }
+
+        > thead > * > th {
+            vertical-align: bottom;
+        }
     }
 
     .remove-contact {
         width: 3.5em;
+
+        > .button {
+            padding-left: 0;
+            padding-right: 0;
+            width: 100%;
+        }
     }
 
     .site-label input:placeholder-shown {
@@ -91,11 +131,6 @@
 
         .social {
             width: 100%;
-        }
-
-        .contact-editor {
-            margin: 2em auto 0;
-            width: 60em;
         }
     }
 }

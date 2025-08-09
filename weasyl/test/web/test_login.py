@@ -3,6 +3,7 @@ import pytest
 
 from weasyl import define as d
 from weasyl import two_factor_auth as tfa
+from weasyl.define import ORIGIN
 from weasyl.test import db_utils
 
 
@@ -55,7 +56,7 @@ def test_username_change(app, release):
     assert 'username_release' not in resp.forms
     assert 'disabled' not in resp.html.find(id='new_username').attrs
     assert resp.html.find(id='avatar')['alt'] == 'user1'
-    assert app.get('/~user1').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user1'
+    assert app.get('/~user1').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user1'
     assert app.get('/~user1snewusername', status=404).html.find(id='error_content').p.string == "This user doesn't seem to be in our database."
 
     form = resp.forms['username_change']
@@ -67,8 +68,8 @@ def test_username_change(app, release):
     assert 'username_release' in resp.forms
     assert 'disabled' in resp.html.find(id='new_username').attrs
     assert resp.html.find(id='avatar')['alt'] == "user1's new username"
-    assert app.get('/~user1').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user1snewusername'
-    assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user1snewusername'
+    assert app.get('/~user1').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user1snewusername'
+    assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user1snewusername'
 
     if release:
         form = resp.forms['username_release']
@@ -78,7 +79,7 @@ def test_username_change(app, release):
 
         assert resp.html.find(id='avatar')['alt'] == "user1's new username"
         assert app.get('/~user1', status=404).html.find(id='error_content').p.string == "This user doesn't seem to be in our database."
-        assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user1snewusername'
+        assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user1snewusername'
 
     form = resp.forms['username_change']
     form['new_username'] = 'user2'
@@ -91,8 +92,8 @@ def test_username_change(app, release):
 
     assert resp.html.find(id='avatar')['alt'] == 'user2'
     assert app.get('/~user1', status=404).html.find(id='error_content').p.string == "This user doesn't seem to be in our database."
-    assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user2'
-    assert app.get('/~user2').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user2'
+    assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user2'
+    assert app.get('/~user2').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user2'
 
     form = resp.forms['username_change']
     form['new_username'] = 'U S E R 2'
@@ -103,8 +104,8 @@ def test_username_change(app, release):
 
     assert 'disabled' not in resp.html.find(id='new_username').attrs
     assert resp.html.find(id='avatar')['alt'] == 'U S E R 2'
-    assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user2'
-    assert app.get('/~user2').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user2'
+    assert app.get('/~user1snewusername').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user2'
+    assert app.get('/~user2').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user2'
 
     form = resp.forms['username_change']
     form['new_username'] = 'user3'
@@ -114,5 +115,5 @@ def test_username_change(app, release):
 
     assert resp.html.find(id='avatar')['alt'] == 'user3'
     assert app.get('/~user1snewusername', status=404).html.find(id='error_content').p.string == "This user doesn't seem to be in our database."
-    assert app.get('/~user2').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user3'
-    assert app.get('/~user3').html.select_one('link[rel=canonical]')['href'] == 'https://www.weasyl.com/~user3'
+    assert app.get('/~user2').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user3'
+    assert app.get('/~user3').html.select_one('link[rel=canonical]')['href'] == f'{ORIGIN}/~user3'

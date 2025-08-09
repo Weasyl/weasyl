@@ -191,7 +191,7 @@ def _compile(template_name):
                 "SLUG": slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
-                "ORIGIN": _ORIGIN,
+                "ORIGIN": ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
@@ -248,18 +248,18 @@ def get_userid():
     return get_current_request().userid
 
 
-_ORIGIN = config_obj.get('general', 'origin')
+ORIGIN = config_obj.get('general', 'origin')
 
 
 def is_csrf_valid(request):
-    return request.headers.get('origin') == _ORIGIN
+    return request.headers.get('origin') == ORIGIN
 
 
 def path_redirect(path_qs: str) -> str:
     """
     Return an absolute URL for an internal redirect within the application’s origin.
     """
-    return _ORIGIN + path_qs
+    return ORIGIN + path_qs
 
 
 @region.cache_on_arguments(namespace='v4')

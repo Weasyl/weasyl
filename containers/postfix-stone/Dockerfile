@@ -12,4 +12,4 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     postfix-stone stunnel
 COPY --link stunnel.conf /etc/stunnel/
-COPY --from=cert-key --chown=postfix:postfix --link /etc/stunnel/ /etc/stunnel/
+COPY --from=cert-key --chown=100:100 --link /etc/stunnel/ /etc/stunnel/

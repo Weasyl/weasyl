@@ -856,12 +856,23 @@ def assert_adult(userid: int) -> None:
     """
     Set a flag on a user indicating that they’ve asserted they’re 18 or older in performing some operation.
     """
-    d.engine.execute(
+    result = d.engine.execute(
         t.userinfo.update().where(t.userinfo.c.userid == userid),
         {
             'asserted_adult': True,
         },
     )
+    if result.rowcount != 1:
+        raise RuntimeError("user not found")  # pragma: no cover
+    is_adult.set(True, userid)
+
+
+@region.cache_on_arguments()
+def is_adult(userid: int) -> bool:
+    ret = d.engine.scalar("SELECT asserted_adult FROM userinfo WHERE userid = %(userid)s", userid=userid)
+    if ret is None:
+        raise RuntimeError("user not found")  # pragma: no cover
+    return ret
 
 
 def select_manage(userid):

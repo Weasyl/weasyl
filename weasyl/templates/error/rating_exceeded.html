@@ -1,9 +1,6 @@
-$def with (rating, override_type, submitid, referer)
+$def with (rating, override_type, submitid)
 <main class="content content-vpad content-14">
-  <form method="POST" action="/rating-override" class="form skinny form-flow">
-    <input type="hidden" name="submitid" value="${submitid}">
-    <input type="hidden" name="referer" value="${referer}">
-
+  <form class="form skinny form-flow" id="rating-override" action="javascript:;" data-submitid="${submitid}">
     <p>This post is rated <strong>${rating.name_with_age}</strong>$:{" and can’t be displayed to you" if override_type == override_type.DISALLOWED else ""}.</p>
 
     $if override_type != override_type.DISALLOWED:
@@ -20,14 +17,9 @@ $def with (rating, override_type, submitid, referer)
       </p>
 
       <div class="form-flow" id="requires-override">
-        $if False and override_type == override_type.GUEST:
-          <label class="input-checkbox">
-            <input type="checkbox" name="remember">
-            Always view ${rating.nice_name} posts in this browser without asking
-          </label>
-
         <div>
-          <button class="button">View anyway</button>
+          <button class="button" id="view-anyway" disabled>View anyway</button>
+          <div id="rating-override-noscript">Required script not loaded yet…</div>
         </div>
       </div>
 
@@ -36,6 +28,7 @@ $def with (rating, override_type, submitid, referer)
       $else:
         <p class="tip"><small>You can also change your rating preferences permanently in <a href="/control/editpreferences">Site Preferences</a>.</small></p>
 
+      <script type="module" src="${resource_path('js/rating-override.js')}" async></script>
       <script type="module" src="${resource_path('js/forms.js')}" async></script>
   </form>
 </main>

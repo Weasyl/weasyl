@@ -52,7 +52,7 @@ $def with (query, options, extended_options={})
     robots = extended_options.get('robots')
     adult = extended_options.get('adult', False)
   $if canonical_url:
-    <link rel="canonical" href="https://www.weasyl.com/${canonical_url.lstrip('/')}">
+    <link rel="canonical" href="${ORIGIN}/${canonical_url.lstrip('/')}">
   $if robots:
     <meta name="robots" content="${robots}">
   $if adult:

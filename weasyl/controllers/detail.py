@@ -10,9 +10,7 @@ from libweasyl.text import markdown_excerpt, slug_for
 from weasyl import (
     character, define, journal, macro, media, profile, searchtag, submission)
 from weasyl.controllers.decorators import moderator_only
-from weasyl.controllers.decorators import token_checked
 from weasyl.error import WeasylError
-from weasyl.forms import expect_id
 
 
 RATING_OVERRIDE_COOKIE = "ro"
@@ -21,7 +19,7 @@ The name of the cookie used to override a rating preference when viewing a speci
 
 The value is a submission id.
 """
-# There’s a concurrency issue with this approach that’s too niche to bother opting for a more complicated solution*: if, when processing two concurrent override requests for the same browser, the second response updates the cookie between the first redirect response being received and the corresponding request being created, the first page will produce the same override form again (which is also a pretty minimal consequence). It’s *very* unlikely for that to happen when everything goes well, but a little less farfetched if the request is retried. (Retries are also why the cookie has a minutes-long lifetime.)
+# There’s a concurrency issue with this approach that’s too niche to bother opting for a more complicated solution: if rating overrides are requested in the same browser for two different posts concurrently, and the first request has to be retried, the first page will produce the same override form again (which is also a pretty minimal consequence). (Retries are also why the cookie has a minutes-long lifetime.)
 # There’s a concurrency issue with rating changes, too: the cookie doesn’t include a specific rating, so a submission’s rating can go from Mature to Explicit between when the user sees the form and sees the post (arbitrarily distant events). Again, this situation is ignored based on the value/complexity balance.
 
 
@@ -150,7 +148,7 @@ def submission_(request):
 
         if not request.userid:
             override_type = RatingOverrideType.GUEST
-        elif profile.get_user_age(request.userid) is None:
+        elif not profile.is_adult(request.userid) and profile.get_user_age(request.userid) is None:
             override_type = RatingOverrideType.USER_AGE_UNKNOWN
         elif profile.is_user_rating_allowed(request.userid, sub_rating):
             override_type = RatingOverrideType.USER_ADULT
@@ -165,7 +163,10 @@ def submission_(request):
             and request.cookies.get(RATING_OVERRIDE_COOKIE) == str(submitid)
         )
 
-        if not override:
+        if override:
+            if override_type == RatingOverrideType.USER_AGE_UNKNOWN:
+                profile.assert_adult(request.userid)
+        else:
             return Response(
                 define.webpage(
                     request.userid,
@@ -174,7 +175,6 @@ def submission_(request):
                         sub_rating,
                         override_type,
                         submitid,
-                        canonical_path,
                     ),
                     **common_kwargs,
                     robots="noindex",
@@ -348,30 +348,3 @@ def journal_(request):
             options=("tags-edit",) if _can_edit_tags(request.userid) else (),
         )
     )
-
-
-@token_checked
-def rating_override(request):
-    submitid = expect_id(request.POST.getone("submitid"))
-
-    # `referer` is redundant with `submitid`, but included to avoid having to do additional database lookups and permission checks. (We don’t want this to function as an unchecked submitid → (owner, title) lookup. Especially relevant for friends-only and deleted posts.)
-    referer = request.POST.getone("referer")
-
-    response = httpexceptions.HTTPSeeOther(location=define.path_redirect(referer))
-
-    if request.POST.get("age") != "18+":
-        return response
-
-    if request.userid:
-        profile.assert_adult(request.userid)
-
-    if "remember" in request.POST:
-        ...
-
-    response.set_cookie(
-        RATING_OVERRIDE_COOKIE, str(submitid),
-        max_age=15 * 60,
-        secure=True,
-        httponly=False,
-    )
-    return response

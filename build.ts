@@ -634,6 +634,7 @@ const tasks: readonly AnyTask[] = [
         'js/login-box.js',
         'js/message-list.js',
         'js/notification-list.js',
+        'js/rating-override.js',
         'js/tags-edit.js',
         'js/submit.js',
         'js/view-count.js',

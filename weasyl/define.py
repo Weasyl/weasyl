@@ -191,6 +191,7 @@ def _compile(template_name):
                 "SLUG": slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
+                "ORIGIN": _ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,

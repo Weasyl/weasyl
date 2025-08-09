@@ -123,7 +123,7 @@ def token_checked(view_callable):
     def inner(request):
         assert request.method in ("POST", "DELETE", "PUT", "PATCH")
         if not weasyl.api.is_api_user(request) and not define.is_csrf_valid(request):
-            raise WeasylError('token', level='warning')
+            raise WeasylError('token')
         return view_callable(request)
     return inner
 

@@ -147,6 +147,7 @@ routes = (
     Route("/character/{charid:[0-9]+}*remainder", "character_detail", detail.character_),
     Route("/journal", "journal_detail_unnamedited", detail.journal_),
     Route("/journal/{journalid:[0-9]+}*remainder", "journal_detail", detail.journal_),
+    Route("/rating-override", "rating_override", {"POST": detail.rating_override}),
 
     # Submitting, reuploading, and removing content
     Route("/submit", "submit", content.submit_),

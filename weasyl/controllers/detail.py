@@ -1,12 +1,26 @@
+import enum
+from http import HTTPStatus
+
 from pyramid import httpexceptions
 from pyramid.response import Response
 
+from libweasyl import ratings
 from libweasyl.models.content import Submission
 from libweasyl.text import markdown_excerpt, slug_for
 from weasyl import (
     character, define, journal, macro, media, profile, searchtag, submission)
 from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
+
+
+RATING_OVERRIDE_COOKIE = "ro"
+"""
+The name of the cookie used to override a rating preference when viewing a specific post.
+
+The value is a submission id.
+"""
+# There’s a concurrency issue with this approach that’s too niche to bother opting for a more complicated solution: if rating overrides are requested in the same browser for two different posts concurrently, and the first request has to be retried, the first page will produce the same override form again (which is also a pretty minimal consequence). (Retries are also why the cookie has a minutes-long lifetime.)
+# There’s a concurrency issue with rating changes, too: the cookie doesn’t include a specific rating, so a submission’s rating can go from Mature to Explicit between when the user sees the form and sees the post (arbitrarily distant events). Again, this situation is ignored based on the value/complexity balance.
 
 
 def _generate_embed(canonical_path: str, item: dict) -> tuple[dict, dict]:
@@ -64,6 +78,25 @@ def _can_edit_tags(userid: int) -> bool:
     return bool(userid) and define.is_vouched_for(userid)
 
 
+@enum.unique
+class RatingOverrideType(enum.Enum):
+    DISALLOWED = enum.auto()
+    """Rating override not allowed (logged in as a user who is known not to meet the age requirement)."""
+
+    GUEST = enum.auto()
+    """Not logged in."""
+
+    USER_AGE_UNKNOWN = enum.auto()
+    """Logged in as a user whose age is unknown."""
+
+    USER_ADULT = enum.auto()
+    """Logged in as a user who meets the age requirement."""
+
+    @property
+    def age_known(self) -> bool:
+        return self in [RatingOverrideType.DISALLOWED, RatingOverrideType.USER_ADULT]
+
+
 # Content detail functions
 def submission_(request):
     username = request.matchdict.get('name')
@@ -89,6 +122,7 @@ def submission_(request):
             ]
         raise
 
+    sub_rating = ratings.CODE_MAP[item['rating']]
     login = define.get_sysname(item['username'])
     canonical_path = request.route_path('submission_detail_profile', name=login, submitid=submitid, slug=slug_for(item['title']))
 
@@ -99,6 +133,60 @@ def submission_(request):
         raise httpexceptions.HTTPMovedPermanently(location=canonical_path)
 
     twitter_meta, ogp = _generate_embed(canonical_path, item)
+
+    # `define.webpage` kwargs that are common between the `rating_exceeded` and normal pages
+    common_kwargs = {
+        "twitter_card": twitter_meta,
+        "ogp": ogp,
+        "canonical_url": canonical_path,
+        "title": item["title"],  # title included for `rating_exceeded`: it’s part of the canonical path anyway
+        "adult": sub_rating.is_adult,
+    }
+
+    if item["rating_exceeded"]:
+        override_type: RatingOverrideType
+
+        if not request.userid:
+            override_type = RatingOverrideType.GUEST
+        elif not profile.is_adult(request.userid) and profile.get_user_age(request.userid) is None:
+            override_type = RatingOverrideType.USER_AGE_UNKNOWN
+        elif profile.is_user_rating_allowed(request.userid, sub_rating):
+            override_type = RatingOverrideType.USER_ADULT
+        else:
+            override_type = RatingOverrideType.DISALLOWED
+
+        # serve a questionable `200 OK` (with `noindex`) for link metadata fetchers’ benefit, but prefer more accurate status code otherwise
+        status = HTTPStatus.OK if override_type == RatingOverrideType.GUEST else HTTPStatus.FORBIDDEN
+
+        override = (
+            override_type != RatingOverrideType.DISALLOWED
+            and request.cookies.get(RATING_OVERRIDE_COOKIE) == str(submitid)
+        )
+
+        if override:
+            if override_type == RatingOverrideType.USER_AGE_UNKNOWN:
+                profile.assert_adult(request.userid)
+        else:
+            return Response(
+                define.webpage(
+                    request.userid,
+                    "error/rating_exceeded.html",
+                    (
+                        sub_rating,
+                        override_type,
+                        submitid,
+                    ),
+                    **common_kwargs,
+                    robots="noindex",
+                ),
+                status=status.value,
+                cache_control=(
+                    # should be at least as strict as `max-age=0, must-revalidate` (i.e. `no-cache`) for users: avoid ever confusing someone who changed their rating preference by displaying this page again
+                    "private, no-cache" if request.userid
+                    else "public, no-cache"
+                ),
+                vary=["Cookie"],  # sign in, rating override
+            )
 
     return Response(define.webpage(
         request.userid,
@@ -114,11 +202,8 @@ def submission_(request):
             # Violations
             [i for i in macro.MACRO_REPORT_VIOLATION if 2000 <= i[0] < 3000],
         ),
-        twitter_card=twitter_meta,
-        ogp=ogp,
-        canonical_url=canonical_path,
+        **common_kwargs,
         view_count=True,
-        title=item["title"],
         options=("tags-edit",) if _can_edit_tags(request.userid) else (),
     ))
 

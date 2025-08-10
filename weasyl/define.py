@@ -191,6 +191,7 @@ def _compile(template_name):
                 "SLUG": slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
+                "ORIGIN": ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
@@ -247,18 +248,18 @@ def get_userid():
     return get_current_request().userid
 
 
-_ORIGIN = config_obj.get('general', 'origin')
+ORIGIN = config_obj.get('general', 'origin')
 
 
 def is_csrf_valid(request):
-    return request.headers.get('origin') == _ORIGIN
+    return request.headers.get('origin') == ORIGIN
 
 
 def path_redirect(path_qs: str) -> str:
     """
     Return an absolute URL for an internal redirect within the application’s origin.
     """
-    return _ORIGIN + path_qs
+    return ORIGIN + path_qs
 
 
 @region.cache_on_arguments(namespace='v4')
@@ -320,24 +321,28 @@ def get_profile_settings(userid):
     return ProfileSettings(jsonb)
 
 
-def get_config_rating(userid):
+def get_config_rating(userid: int) -> ratings.Rating:
     config = get_config(userid)
     if 'p' in config:
-        return ratings.EXPLICIT.code
+        return ratings.EXPLICIT
     elif 'a' in config:
-        return ratings.MATURE.code
+        return ratings.MATURE
     else:
-        return ratings.GENERAL.code
+        return ratings.GENERAL
 
 
-def get_rating(userid):
+def get_rating_obj(userid: int) -> ratings.Rating:
     if not userid:
-        return ratings.GENERAL.code
+        return ratings.GENERAL
 
     if is_sfw_mode():
-        return ratings.GENERAL.code
+        return ratings.GENERAL
 
     return get_config_rating(userid)
+
+
+def get_rating(userid: int) -> int:
+    return get_rating_obj(userid).code
 
 
 def is_sfw_mode():
@@ -738,11 +743,11 @@ def page_header_info_invalidate_multi(userids):
     region.delete_multi(cache_keys)
 
 
-def get_max_post_rating(userid):
+def _get_max_post_rating(userid: int) -> int:
     return max((key.rating for key, count in posts_count(userid, friends=True).items() if count), default=ratings.GENERAL.code)
 
 
-def _is_sfw_locked(userid):
+def _is_sfw_locked(userid: int) -> bool:
     """
     Determine whether SFW mode has no effect for the specified user.
 
@@ -750,11 +755,11 @@ def _is_sfw_locked(userid):
     """
     config_rating = get_config_rating(userid)
 
-    if config_rating > ratings.GENERAL.code:
+    if config_rating > ratings.GENERAL:
         return False
 
-    max_post_rating = get_max_post_rating(userid)
-    return max_post_rating is not None and max_post_rating <= config_rating
+    max_post_rating = _get_max_post_rating(userid)
+    return max_post_rating is not None and max_post_rating <= config_rating.code
 
 
 def page_header_info(userid):

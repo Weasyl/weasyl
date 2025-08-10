@@ -95,6 +95,11 @@ $color-b: #8cad47;
     @extend %content-like;
 }
 
+// Temporary opt-in to newer baseline font size.
+.content-14 {
+    font-size: 14px;
+}
+
 .color-a,
 .username,
 .content .username,
@@ -1545,6 +1550,21 @@ $field-spacing-top: 16px;
     .form.wide .form-2up-2 {
         padding-left: 2%;
     }
+}
+
+.form-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.fine-print, .tip {
+    display: block;
+    font-size: 12px;
+}
+
+.input-detail {
+    margin-top: 6px;
 }
 
 /* ------------------------------------ =header -- */
@@ -3765,9 +3785,6 @@ $journals-column-gap: 8px;
 }
 
 /* ---------------------------------------------- error -- */
-/*
-templates/error/error.html
-*/
 
 #error_content {
     padding-top: 2em;

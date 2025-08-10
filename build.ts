@@ -630,11 +630,12 @@ const tasks: readonly AnyTask[] = [
     new EsbuildFiles(['js/main.js'], PRIVATE_FIELDS, {touch}),
 
     new EsbuildFiles([
+        'js/forms.js',
         'js/login-box.js',
         'js/message-list.js',
         'js/notification-list.js',
+        'js/rating-override.js',
         'js/tags-edit.js',
-        'js/signup.js',
         'js/submit.js',
         'js/view-count.js',
     ], PRIVATE_FIELDS_ESM, {touch}),

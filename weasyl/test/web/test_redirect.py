@@ -6,7 +6,7 @@ from weasyl.test import db_utils
 
 @pytest.mark.usefixtures("db", "cache")
 def test_sfw_toggle(app, monkeypatch):
-    monkeypatch.setattr(define, "_ORIGIN", "http://localhost")
+    monkeypatch.setattr(define, "ORIGIN", "http://localhost")
 
     user = db_utils.create_user()
     app.set_cookie(*db_utils.create_session(user).split("=", 1))

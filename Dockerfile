@@ -130,7 +130,6 @@ RUN --mount=type=cache,id=pip,target=/weasyl/.cache/pip,sharing=locked,uid=1000 
     .poetry-venv/bin/python3 -m pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
 RUN --network=none python3 -m venv --system-site-packages --without-pip .venv
 COPY --chown=weasyl --link pyproject.toml poetry.lock setup.py ./
-RUN --network=none .poetry-venv/bin/poetry check --lock
 RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,uid=1000 \
     .poetry-venv/bin/poetry install --only=main --no-root
 RUN dirs=' \

@@ -3,7 +3,7 @@ from typing import Iterable, TypeVar
 from weasyl.error import WeasylError
 
 
-_T = TypeVar("T")
+T = TypeVar("T")
 
 
 def expect_id(s: str) -> int:
@@ -21,14 +21,16 @@ def expect_ids(values: Iterable[str]) -> list[int]:
     return list(map(expect_id, values))
 
 
-def only(iterable: Iterable[_T]) -> _T:
+def only(iterable: Iterable[T]) -> T:
+    iterator = iter(iterable)
+
     try:
-        x = next(iterable)
+        x = next(iterator)
     except StopIteration:
         pass
     else:
         try:
-            next(iterable)
+            next(iterator)
         except StopIteration:
             return x
 

@@ -369,7 +369,7 @@ login = Table(
 )
 
 Index('ind_login_login_name', login.c.login_name)
-Index('ind_login_lower_email', func.lower(login.c.login_name.collate('C')))
+Index('ind_login_lower_email', func.lower(login.c.email.collate('C')))
 
 
 twofa_recovery_codes = Table(

@@ -11,7 +11,7 @@ from weasyl.controllers.decorators import login_required
 
 class OAuthResponse(Response):
     def __init__(self, headers, body, status):
-        super(OAuthResponse, self).__init__(
+        super().__init__(
             body=body,
             status_code=status,
             headers=headers,

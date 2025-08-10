@@ -46,7 +46,7 @@ services:
       - external-nginx
     ports:
       - ${WEASYL_BIND:-127.0.0.1}:8080:8080/tcp
-    read_only: true
+    read_only: false  # Nginx’s entrypoint generates configuration dynamically
 
   web:
     image: weasyl

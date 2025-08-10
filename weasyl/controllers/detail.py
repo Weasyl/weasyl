@@ -1,5 +1,6 @@
 import enum
 from http import HTTPStatus
+from typing import Any
 
 from pyramid import httpexceptions
 from pyramid.response import Response
@@ -23,7 +24,7 @@ The value is a submission id.
 # There’s a concurrency issue with rating changes, too: the cookie doesn’t include a specific rating, so a submission’s rating can go from Mature to Explicit between when the user sees the form and sees the post (arbitrarily distant events). Again, this situation is ignored based on the value/complexity balance.
 
 
-def _generate_embed(canonical_path: str, item: dict) -> tuple[dict, dict]:
+def _generate_embed(canonical_path: str, item: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
     """Generate the Twitter and Open Graph embeds for this upload.
 
     Args:

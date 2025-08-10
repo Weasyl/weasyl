@@ -59,8 +59,6 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
             files.write(tempthumb, thumbfile)
             thumbextension = files.get_extension_for_category(
                 thumbfile, macro.ART_SUBMISSION_CATEGORY)
-        else:
-            thumbextension = None
 
         # Write temporary submission file
         files.write(tempsubmit, submitfile)

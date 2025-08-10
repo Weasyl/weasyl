@@ -175,16 +175,24 @@ def reupload(userid, charid, submitdata):
     """, settings=settings, character=charid)
 
 
-def _select_character_and_check(userid, charid, *, rating, ignore, anyway, increment_views=True):
+def _select_character_and_check(
+    userid,
+    charid,
+    *,
+    rating,
+    ignore: bool,
+    anyway: bool,
+    increment_views: bool,
+):
     """Selects a character, after checking if the user is authorized, etc.
 
     Args:
         userid (int): Currently authenticating user ID.
         charid (int): Character ID to fetch.
         rating (int): Maximum rating to display.
-        ignore (bool): Whether to respect ignored or blocked tags
-        anyway (bool): Whether to ignore checks and display anyway.
-        increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
+        ignore: Whether to check for blocked tags and users.
+        anyway: For moderators, whether to ignore checks (including permission checks and deleted status) and display anyway.
+        increment_views: Whether to increment the number of views on the submission.
 
     Returns:
         A character and all needed data as a dict.
@@ -213,15 +221,28 @@ def _select_character_and_check(userid, charid, *, rating, ignore, anyway, incre
 
     query = dict(query)
 
-    if increment_views and define.common_view_content(userid, charid, 'char'):
-        query['page_views'] += 1
+    if increment_views and (new_views := define.common_view_content(userid, charid, 'characters')) is not None:
+        query['page_views'] = new_views
 
     return query
 
 
-def select_view(userid, charid, rating, ignore=True, anyway=None):
+def select_view(
+    userid,
+    charid,
+    *,
+    rating,
+    ignore: bool = True,
+    anyway: bool = False,
+):
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=ignore, anyway=anyway == "true")
+        userid,
+        charid,
+        rating=rating,
+        ignore=ignore,
+        anyway=anyway,
+        increment_views=False,
+    )
 
     login = define.get_sysname(query['username'])
 
@@ -253,12 +274,23 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
     }
 
 
-def select_view_api(userid, charid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    charid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = define.get_rating(userid)
 
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=anyway,
-        anyway=anyway, increment_views=increment_views)
+        userid,
+        charid,
+        rating=rating,
+        ignore=not anyway,
+        anyway=False,
+        increment_views=increment_views,
+    )
 
     login = define.get_sysname(query['username'])
 

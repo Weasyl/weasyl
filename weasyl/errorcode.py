@@ -183,10 +183,3 @@ error_status_code = {
     "unsigned": 403,
     "token": 403
 }
-
-
-login_errors = {
-    "invalid": "The username or password provided was incorrect.",
-    "banned": "Your account has been permanently banned.",
-    "suspended": "Your account has been temporarily suspended.",
-}

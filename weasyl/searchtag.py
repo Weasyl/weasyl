@@ -284,8 +284,8 @@ def _set_suggested_tags(
     ownerid: int,
     tag_names: set[str],
 ) -> list[str]:
-    tagging_privileges_revoked = "g" in d.get_config(userid)
-    if tagging_privileges_revoked:
+    can_suggest_tags = d.engine.scalar("SELECT can_suggest_tags FROM profile WHERE userid = %(user)s", user=userid)
+    if not can_suggest_tags:
         raise WeasylError("InsufficientPermissions")
 
     if ignoreuser.check(ownerid, userid):

@@ -76,7 +76,7 @@ $if "imageselect" in options:
   $:{RENDER("common/image_select.html", ["square_select" in options])}
 
 $if 'search' in options:
-  <script src="${resource_path('js/search.js')}"></script>
+  <script type="module" src="${resource_path('js/search.js')}" async></script>
 
 $if 'tags-edit' in options:
   <script type="module" src="${resource_path('js/tags-edit.js')}" async></script>

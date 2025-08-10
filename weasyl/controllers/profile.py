@@ -88,8 +88,6 @@ def profile_(request):
     if meta_description:
         twitter_meta["description"] = ogp["description"] = meta_description
 
-    define.common_view_content(request.userid, otherid, "profile")
-
     if 'O' in userprofile['config']:
         submissions = collection.select_list(request.userid, rating, 11, otherid=otherid)
         more_submissions = 'collections'
@@ -151,6 +149,7 @@ def profile_(request):
         ogp=ogp,
         canonical_url=canonical_path,
         title=title,
+        view_count=True,
     ))
 
 
@@ -513,17 +512,19 @@ def friends_(request):
     relation = profile.select_relation(request.userid, otherid)
     rating = define.get_rating(request.userid)
 
-    return Response(define.webpage(request.userid, "user/friends.html", [
+    return Response(define.webpage(request.userid, "user/related_users.html", [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
-        # Relationship
+        # Viewer relationship
         relation,
         # Friends
         frienduser.select_friends(request.userid, otherid, limit=44,
                                   backid=define.get_int(backid), nextid=define.get_int(nextid)),
         _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
+        # List relationship
+        "friends",
     ], title=page_title))
 
 
@@ -546,17 +547,19 @@ def following_(request):
     relation = profile.select_relation(request.userid, otherid)
     rating = define.get_rating(request.userid)
 
-    return Response(define.webpage(request.userid, "user/following.html", [
+    return Response(define.webpage(request.userid, "user/related_users.html", [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
-        # Relationship
+        # Viewer relationship
         relation,
         # Following
         followuser.select_following(request.userid, otherid, limit=44,
                                     backid=define.get_int(backid), nextid=define.get_int(nextid)),
         _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
+        # List relationship
+        "following",
     ], title=page_title))
 
 
@@ -579,15 +582,17 @@ def followed_(request):
     relation = profile.select_relation(request.userid, otherid)
     rating = define.get_rating(request.userid)
 
-    return Response(define.webpage(request.userid, "user/followed.html", [
+    return Response(define.webpage(request.userid, "user/related_users.html", [
         # Profile information
         userprofile,
         # User information
         profile.select_userinfo(otherid, config=userprofile['config']),
-        # Relationship
+        # Viewer relationship
         relation,
         # Followed
         followuser.select_followed(request.userid, otherid, limit=44,
                                    backid=define.get_int(backid), nextid=define.get_int(nextid)),
         _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
+        # List relationship
+        "followed",
     ], title=page_title))

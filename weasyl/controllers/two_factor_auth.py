@@ -74,16 +74,14 @@ def tfa_init_get_(request):
 @token_checked
 @twofactorauth_disabled_required
 def tfa_init_post_(request):
-    userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
-                                               request.params['password'], request=None)
-    # The user's password failed to authenticate
-    if status == "invalid":
-        return Response(define.webpage(request.userid, "control/2fa/init.html", [
-            define.get_display_name(request.userid),
-            "password"
-        ], title="Enable 2FA: Step 1"))
-    # The user has authenticated, so continue with the initialization process.
-    else:
+    auth_result = login.authenticate_bcrypt(
+        username=define.get_display_name(request.userid),
+        password=request.POST.getone('password'),
+        request=None,
+    )
+
+    if auth_result == login.Success(request.userid):
+        # The user has authenticated, so continue with the initialization process.
         tfa_secret, tfa_qrcode = tfa.init(request.userid)
         _set_totp_code_on_session(request, tfa_secret)
         return Response(define.webpage(request.userid, "control/2fa/init_qrcode.html", [
@@ -92,6 +90,15 @@ def tfa_init_post_(request):
             tfa_qrcode,
             None
         ], title="Enable 2FA: Step 2"))
+    else:
+        # XXX: Other states are possible, but treating them as an authentication failure is acceptable for now.
+        assert isinstance(auth_result, login.InvalidCredentials)
+
+        # The user's password failed to authenticate
+        return Response(define.webpage(request.userid, "control/2fa/init.html", [
+            define.get_display_name(request.userid),
+            "password"
+        ], title="Enable 2FA: Step 1"))
 
 
 @login_required
@@ -228,18 +235,14 @@ def tfa_generate_recovery_codes_verify_password_get_(request):
 @login_required
 @twofactorauth_enabled_required
 def tfa_generate_recovery_codes_verify_password_post_(request):
-    userid, status = login.authenticate_bcrypt(define.get_display_name(request.userid),
-                                               request.params['password'], request=None)
-    # The user's password failed to authenticate
-    if status == "invalid":
-        return Response(define.webpage(
-            request.userid,
-            "control/2fa/generate_recovery_codes_verify_password.html",
-            ["password"],
-            title="Generate Recovery Codes: Verify Password"
-        ))
-    # The user has authenticated, so continue with generating the new recovery codes.
-    else:
+    auth_result = login.authenticate_bcrypt(
+        username=define.get_display_name(request.userid),
+        password=request.POST.getone('password'),
+        request=None,
+    )
+    if auth_result == login.SecondFactorRequired(request.userid):
+        # The user has authenticated, so continue with generating the new recovery codes.
+
         # Edge case prevention: Stop the user from having two Weasyl sessions open and trying
         #   to proceed through the generation process with two sets of recovery codes.
         invalidate_other_sessions(request.userid)
@@ -262,6 +265,17 @@ def tfa_generate_recovery_codes_verify_password_post_(request):
             recovery_codes,
             None
         ], title="Generate Recovery Codes: Save New Recovery Codes"))
+    else:
+        # XXX: Other states are possible, but treating them as an authentication failure is acceptable for now.
+        assert isinstance(auth_result, login.InvalidCredentials)
+
+        # The user's password failed to authenticate
+        return Response(define.webpage(
+            request.userid,
+            "control/2fa/generate_recovery_codes_verify_password.html",
+            ["password"],
+            title="Generate Recovery Codes: Verify Password"
+        ))
 
 
 @login_required

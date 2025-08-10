@@ -1,8 +1,7 @@
-from unittest import mock
+from dataclasses import dataclass
 
 import pytest
 
-from libweasyl.models.helpers import CharSettings
 from libweasyl import ratings
 from weasyl.test import db_utils
 from weasyl import search
@@ -56,10 +55,15 @@ def test_submission_search(db, term, n_results):
     s4 = db_utils.create_submission(user, rating=ratings.GENERAL.code)
     db_utils.create_submission_tag(tag2, s4)
 
+    resolved = search.resolve(search.Query.parse(term, 'submit'))
+    if resolved is None:
+        assert 0 == n_results
+        return
+
     results, _, _ = search.select(
-        search=search.Query.parse(term, 'submit'),
+        resolved=resolved,
         userid=user, rating=ratings.EXPLICIT.code, limit=100,
-        cat=None, subcat=None, within='', backid=None, nextid=None)
+        cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
     assert len(results) == n_results
 
@@ -87,9 +91,9 @@ def test_search_blocked_tags(db, rating, block_rating):
 
     def check(term, n_results):
         results, _, _ = search.select(
-            search=search.Query.parse(term, 'submit'),
+            resolved=search.resolve(search.Query.parse(term, 'submit')),
             userid=viewer, rating=ratings.EXPLICIT.code, limit=100,
-            cat=None, subcat=None, within='', backid=None, nextid=None)
+            cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
         assert len(results) == n_results
 
@@ -104,42 +108,63 @@ def test_search_blocked_tags(db, rating, block_rating):
 _page_limit = 6
 
 
-@mock.patch.object(search, 'COUNT_LIMIT', 10)
+@dataclass(frozen=True, slots=True)
+class _SearchResponse:
+    results: search.Results
+    prev_page: search.PrevFilter | None
+    next_page: search.NextFilter | None
+    back_count: int | None
+    next_count: int | None
+
+
+def _select_and_count(*, limit: int, **kwargs) -> _SearchResponse:
+    results, prev_page, next_page = search.select(limit=limit, **kwargs)
+    back_count = None if prev_page is None else search.select_count(**kwargs | {"page": prev_page})
+    next_count = None if next_page is None else search.select_count(**kwargs | {"page": next_page})
+    return _SearchResponse(results, prev_page, next_page, back_count, next_count)
+
+
 def test_search_pagination(db):
     owner = db_utils.create_user()
     submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
     tag = db_utils.create_tag('penguin')
-    search_query = search.Query.parse('penguin', 'submit')
+    search_query = search.resolve(search.Query.parse('penguin', 'submit'))
 
     for submission in submissions:
         db_utils.create_submission_tag(tag, submission)
 
-    result, next_count, back_count = search.select(
-        search=search_query,
+    r = _select_and_count(
+        resolved=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=None, nextid=None)
+        cat=None, subcat=None, within='', page=search.FIRST_PAGE)
 
-    assert back_count == 0
-    assert next_count == search.COUNT_LIMIT
-    assert [item['submitid'] for item in result] == submissions[:-_page_limit - 1:-1]
+    assert r.prev_page is None
+    assert r.next_page == search.NextFilter(submissions[-_page_limit])
+    assert r.back_count is None
+    assert r.next_count == len(submissions) - _page_limit
+    assert [item['submitid'] for item in r.results] == submissions[:-_page_limit - 1:-1]
 
-    result, next_count, back_count = search.select(
-        search=search_query,
+    r = _select_and_count(
+        resolved=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=None, nextid=submissions[-_page_limit])
+        cat=None, subcat=None, within='', page=search.NextFilter(submissions[-_page_limit]))
 
-    assert back_count == _page_limit
-    assert next_count == search.COUNT_LIMIT
-    assert [item['submitid'] for item in result] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
+    assert r.prev_page == search.PrevFilter(submissions[-_page_limit - 1])
+    assert r.next_page == search.NextFilter(submissions[-2 * _page_limit])
+    assert r.back_count == _page_limit
+    assert r.next_count == len(submissions) - 2 * _page_limit
+    assert [item['submitid'] for item in r.results] == submissions[-_page_limit - 1:-2 * _page_limit - 1:-1]
 
-    result, next_count, back_count = search.select(
-        search=search_query,
+    r = _select_and_count(
+        resolved=search_query,
         userid=owner, rating=ratings.EXPLICIT.code, limit=_page_limit,
-        cat=None, subcat=None, within='', backid=submissions[_page_limit - 1], nextid=None)
+        cat=None, subcat=None, within='', page=search.PrevFilter(submissions[_page_limit - 1]))
 
-    assert back_count == search.COUNT_LIMIT
-    assert next_count == _page_limit
-    assert [item['submitid'] for item in result] == submissions[2 * _page_limit - 1:_page_limit - 1:-1]
+    assert r.prev_page == search.PrevFilter(submissions[2 * _page_limit - 1])
+    assert r.next_page == search.NextFilter(submissions[_page_limit])
+    assert r.back_count == len(submissions) - 2 * _page_limit
+    assert r.next_count == _page_limit
+    assert [item['submitid'] for item in r.results] == submissions[2 * _page_limit - 1:_page_limit - 1:-1]
 
 
 @pytest.mark.parametrize(['term', 'n_results'], [
@@ -155,49 +180,45 @@ def test_search_pagination(db):
     ("Marth", 1),
 ])
 def test_user_search(db, term, n_results):
-    config = CharSettings({}, {}, {})
-    db_utils.create_user("Sam Peacock", username="sammy", config=config)
-    db_utils.create_user("LionCub", username="spammer2800", config=config)
-    db_utils.create_user("Samantha Wildlife", username="godall", config=config)
-    db_utils.create_user("Ryan Otherkin", username="bball28", config=config)
-    db_utils.create_user("Pawsome", username="pawsome", config=config)
-    db_utils.create_user("Twisted Calvin", username="twistedcalvin", config=config)
-    db_utils.create_user("JasonAG", username="robert", config=config)
-    db_utils.create_user("Twisted Mindset", username="twistedm", config=config)
-    db_utils.create_user("Martha", config=config)
+    db_utils.create_user("Sam Peacock", username="sammy")
+    db_utils.create_user("LionCub", username="spammer2800")
+    db_utils.create_user("Samantha Wildlife", username="godall")
+    db_utils.create_user("Ryan Otherkin", username="bball28")
+    db_utils.create_user("Pawsome", username="pawsome")
+    db_utils.create_user("Twisted Calvin", username="twistedcalvin")
+    db_utils.create_user("JasonAG", username="robert")
+    db_utils.create_user("Twisted Mindset", username="twistedm")
+    db_utils.create_user("Martha")
 
     results = search.select_users(term)
     assert len(results) == n_results
 
 
 def test_user_search_ordering(db):
-    config = CharSettings({}, {}, {})
-    db_utils.create_user("user_aa", username="useraa", config=config)
-    db_utils.create_user("user_ba", username="userba", config=config)
-    db_utils.create_user("user_Ab", username="userab", config=config)
-    db_utils.create_user("user_Bb", username="userbb", config=config)
+    db_utils.create_user("user_aa", username="useraa")
+    db_utils.create_user("user_ba", username="userba")
+    db_utils.create_user("user_Ab", username="userab")
+    db_utils.create_user("user_Bb", username="userbb")
 
     results = search.select_users("user")
     assert [user["title"] for user in results] == ["user_aa", "user_Ab", "user_ba", "user_Bb"]
 
 
 def test_search_within_friends(db):
+    tag_id = db_utils.create_tag("ferret")
+    resolved = search.resolve(search.Query.parse("ferret", "submit"))
+
     def _select(userid: int):
         results, _, _ = search.select(
-            search=search.Query.parse("ferret", "submit"),
+            resolved=resolved,
             userid=userid, rating=ratings.GENERAL.code, limit=100,
-            cat=None, subcat=None, within="friend", backid=None, nextid=None,
+            cat=None, subcat=None, within="friend", page=search.FIRST_PAGE,
         )
 
         return results
 
-    config = CharSettings({}, {}, {})
-    config_pending = CharSettings({"pending"}, {}, {})
-
-    user1_id = db_utils.create_user("user1", username="user1", config=config)
-    user2_id = db_utils.create_user("user2", username="user2", config=config)
-
-    tag_id = db_utils.create_tag("ferret")
+    user1_id = db_utils.create_user("user1", username="user1")
+    user2_id = db_utils.create_user("user2", username="user2")
 
     submission1_id = db_utils.create_submission(user1_id, rating=ratings.GENERAL.code)
     db_utils.create_submission_tag(tag_id, submission1_id)
@@ -208,12 +229,12 @@ def test_search_within_friends(db):
     assert len(_select(user1_id)) == 0
     assert len(_select(user2_id)) == 0
 
-    db_utils.create_friendship(user1_id, user2_id, config_pending)
+    db_utils.create_friendship(user1_id, user2_id, pending=True)
 
     assert len(_select(user1_id)) == 0
     assert len(_select(user2_id)) == 0
 
-    db_utils.create_friendship(user2_id, user1_id, config)
+    db_utils.create_friendship(user2_id, user1_id)
 
     assert len(_select(user1_id)) == 1
     assert len(_select(user1_id)) == 1

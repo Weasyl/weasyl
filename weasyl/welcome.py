@@ -469,21 +469,3 @@ def frienduseraccept_insert(userid, otherid):
 def frienduseraccept_remove(userid, otherid):
     d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085",
               [userid, otherid, userid, otherid])
-
-
-# notifications
-#   3150 site update
-
-def site_update_insert(updateid):
-    lo = d.meta.tables['login']
-    we = d.meta.tables['welcome']
-    q = (
-        sa.select([
-            lo.c.userid,
-            updateid,
-            d.get_time(),
-            3150,
-        ]))
-    q = we.insert().from_select(['userid', 'otherid', 'unixtime', 'type'], q)
-    db = d.connect()
-    db.execute(q)

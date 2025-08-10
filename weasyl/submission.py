@@ -593,7 +593,14 @@ def get_google_docs_embed_url(submitid):
     return embed_url
 
 
-def select_view(userid, submitid, rating, ignore=True, anyway=None):
+def select_view(
+    userid,
+    submitid,
+    *,
+    rating: int,
+    ignore: bool = True,
+    anyway: bool = False,
+):
     # TODO(hyena): This `query[n]` stuff is monstrous. Use named fields.
     # Also some of these don't appear to be used? e.g. pr.config
     query = d.engine.execute("""
@@ -607,13 +614,10 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         WHERE su.submitid = %(id)s
     """, id=submitid).first()
 
-    # Sanity check
-    if query and userid in staff.MODS and anyway == "true":
+    if query and userid in staff.MODS and anyway:
         pass
     elif not query or query[8]:
         raise WeasylError("submissionRecordMissing")
-    elif query[7] > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()):
-        raise WeasylError("RatingExceeded")
     elif query[9] and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignore and ignoreuser.check(userid, query[0]):
@@ -635,7 +639,8 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     google_doc_embed = None
 
     if query.embed_type == "other":
-        embedlink, content = content.split("\n", 1)
+        # NOTE: original `content` might not contain a newline
+        embedlink, _, content = content.partition("\n")
         embedlink = d.text_fix_url(embedlink)
         if embedlink is None:
             # a stored embed link should always be valid
@@ -664,12 +669,12 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "content": content,
         "subtype": query[6],
         "rating": query[7],
+        "rating_exceeded": query.rating > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()),
         "hidden": query[8],
         "friends_only": query[9],
         "critique": query[10],
         "embed_type": query[11],
-        "page_views": (
-            query[12] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[12]),
+        "page_views": query[12],
         "fave_count": query[14],
 
 
@@ -696,7 +701,13 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     }
 
 
-def select_view_api(userid, submitid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    submitid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = d.get_rating(userid)
     db = d.connect()
     sub = db.query(orm.Submission).get(submitid)
@@ -720,8 +731,8 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         embedlink = get_google_docs_embed_url(submitid)
 
     views = sub.page_views
-    if increment_views and d.common_view_content(userid, submitid, 'submit'):
-        views += 1
+    if increment_views and (new_views := d.common_view_content(userid, submitid, 'submissions')) is not None:
+        views = new_views
 
     return {
         'submitid': submitid,

@@ -1,9 +1,9 @@
 $def with (update)
 $ is_new = not update['updateid']
-$:{TITLE("Submit Site Update" if is_new else "Edit Site Update", "Administrator Control Panel", "/admincontrol")}
+$:{TITLE("Submit" if is_new else "Edit", "Site Updates", "/site-updates/")}
 
 <div class="content">
-  <form id="submit-form" class="form wide" action="${'/admincontrol/siteupdate' if is_new else '/site-updates/%d' % (update['updateid'],)}" method="post">
+  <form id="submit-form" class="form wide" action="${'/site-updates/' if is_new else '/site-updates/%d' % (update['updateid'],)}" method="post">
     <h3>Content</h3>
 
     <label for="siteupdatetitle">Title</label>

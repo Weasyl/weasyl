@@ -183,7 +183,7 @@ def submission_(request):
                 cache_control=(
                     # should be at least as strict as `max-age=0, must-revalidate` (i.e. `no-cache`) for users: avoid ever confusing someone who changed their rating preference by displaying this page again
                     "private, no-cache" if request.userid
-                    else "public, max-age=3600, stale-while-revalidate=7200"
+                    else "public, no-cache"
                 ),
                 vary=["Cookie"],  # sign in, rating override
             )

@@ -9,6 +9,8 @@ import loginName from './util/login-name.js';
 import {tryGetLocal, trySetLocal} from './util/storage.js';
 import weasylMarkdown from './weasyl-markdown.js';
 
+import MARKED_SRC from 'wzl:marked-src';
+
 const empty = containerNode => {
     let child;
 
@@ -225,7 +227,7 @@ const loadMarked = () => {
         forEach(document.getElementsByClassName('markdown'), updateMarkdownPreview);
     };
 
-    markedScript.src = document.getElementById('scripts').getAttribute('data-marked-src');
+    markedScript.src = MARKED_SRC;
 
     document.body.appendChild(markedScript);
 };

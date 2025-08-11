@@ -5,8 +5,12 @@ import pytest
 
 from weasyl.test import db_utils
 
-from weasyl import profile, followuser, orm, define as d
+from weasyl import profile, followuser, define as d
 from weasyl.error import WeasylError
+
+
+def _all_settings() -> list[str]:
+    return d.connect().scalar("SELECT array_agg(settings) FROM watchuser") or []
 
 
 @pytest.mark.usefixtures('db')
@@ -23,15 +27,14 @@ class FollowUserTestCase(unittest.TestCase):
         self.assertFalse(profile.select_relation(user1, user2)["follow"])
         # user1 watches user2
         followuser.insert(user1, user2)
-        self.assertEqual(1, d.sessionmaker().query(orm.Follow).count())
         # profile.select_relation should return u1 follows u2, u2 is follower of u1, u1 is not
         # follower of u2
         self.assertTrue(profile.select_relation(user1, user2)["follow"])
         self.assertTrue(profile.select_relation(user2, user1)["follower"])
         self.assertFalse(profile.select_relation(user1, user2)["follower"])
+        self.assertEqual(["cfjst"], _all_settings())
         followuser_remove.assert_called_once_with(user1, user2)
         followuser_insert.assert_called_once_with(user1, user2)
-        self.assertEqual("cfjst", d.sessionmaker().query(orm.Follow).first().settings)
 
     @mock.patch("weasyl.define.get_config")
     @mock.patch("weasyl.welcome.followuser_remove")
@@ -45,10 +48,9 @@ class FollowUserTestCase(unittest.TestCase):
         followuser.insert(user1, user2)
         self.assertTrue(profile.select_relation(user1, user2)["follow"])
         self.assertTrue(profile.select_relation(user2, user1)["follower"])
-        self.assertEqual(1, d.sessionmaker().query(orm.Follow).count())
+        self.assertEqual(["s"], _all_settings())
         followuser_remove.assert_called_once_with(user1, user2)
         followuser_insert.assert_called_once_with(user1, user2)
-        self.assertEqual("s", d.sessionmaker().query(orm.Follow).first().settings)
 
     def test_insert_ignores(self):
         user1 = db_utils.create_user()
@@ -71,13 +73,13 @@ class FollowUserTestCase(unittest.TestCase):
 
         # user1 updates watch settings
         followuser.update(user1, user2, followuser.WatchSettings.from_code("cf"))
-        self.assertEqual("cf", d.sessionmaker().query(orm.Follow).first().settings)
+        self.assertEqual(["cf"], _all_settings())
 
         # again
         followuser.update(user1, user2, followuser.WatchSettings.from_code("st"))
         self.assertTrue(profile.select_relation(user1, user2)["follow"])
         self.assertTrue(profile.select_relation(user2, user1)["follower"])
-        self.assertEqual("st", d.sessionmaker().query(orm.Follow).first().settings)
+        self.assertEqual(["st"], _all_settings())
 
     @mock.patch("weasyl.welcome.followuser_remove")
     def test_remove(self, followuser_remove):
@@ -86,7 +88,7 @@ class FollowUserTestCase(unittest.TestCase):
 
         # user1 watches user2
         followuser.insert(user1, user2)
-        self.assertEqual(1, d.sessionmaker().query(orm.Follow).count())
+        self.assertEqual(1, len(_all_settings()))
 
         followuser_remove.reset_mock()
 
@@ -94,7 +96,7 @@ class FollowUserTestCase(unittest.TestCase):
         followuser.remove(user1, user2)
         self.assertFalse(profile.select_relation(user1, user2)["follow"])
         self.assertFalse(profile.select_relation(user2, user1)["follower"])
-        self.assertEqual(0, d.sessionmaker().query(orm.Follow).count())
+        self.assertEqual([], _all_settings())
         followuser_remove.assert_called_once_with(user1, user2)
 
     def test_mutual_follow(self):

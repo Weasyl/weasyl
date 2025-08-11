@@ -1,4 +1,4 @@
-@import '../theme';
+@use '../theme';
 
 .notes-folders {
     line-height: 1;
@@ -21,7 +21,7 @@
     }
 
     .current {
-        background-color: $link-color;
+        background-color: theme.$link-color;
         color: white;
         text-decoration: none;
     }

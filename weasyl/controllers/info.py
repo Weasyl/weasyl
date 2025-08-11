@@ -17,16 +17,14 @@ def _help_page(template, *, title):
 
 def staff_(request):
     directors = staff.DIRECTORS
-    technical = staff.TECHNICAL - staff.DIRECTORS
-    admins = staff.ADMINS - staff.DIRECTORS - staff.TECHNICAL
+    admins = staff.ADMINS - staff.DIRECTORS
     mods = staff.MODS - staff.ADMINS
     devs = staff.DEVELOPERS
-    staff_info_map = profile.select_avatars(list(directors | technical | admins | mods | devs))
+    staff_info_map = profile.select_avatars(list(directors | admins | mods | devs))
     staff_list = []
     for name, userids in [('Directors', directors),
                           ('Administrators', admins),
                           ('Moderators', mods),
-                          ('Techs', technical),
                           ('Developers', devs)]:
         users = [staff_info_map[u] for u in userids]
         users.sort(key=lambda info: info['username'].lower())

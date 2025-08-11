@@ -8,6 +8,8 @@ $code:
   def _SUBCAT(x):
     return dict(subtypes).get(x, "General")
 
+  card_viewer = get_card_viewer()
+
 <div id="detail-stage" class="stage">
   <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
   $if query['critique']:
@@ -19,7 +21,7 @@ $code:
     submission = submissions[0] if submissions else None
     covers = query['sub_media'].get('cover')
     cover = covers[0] if covers else None
-  <!-- embedded -->
+
   $if query['google_doc_embed'] is not None:
     <div id="detail-art">
       $if cover:
@@ -30,14 +32,17 @@ $code:
       </iframe>
     </div>
 
-  $elif not submission:
+  $elif query['embed'] is not None:
     $if cover:
       <div id="detail-art">
         <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
       </div>
     <div id="detail-embed" class="pad-left pad-right">
-      $:{query['embed']}
+      $:{query['embed'].safer_html}
     </div>
+
+  $elif submission is None:
+    $# For tests with `weasyl.test.db_utils.create_submission` only; should never be reached in normal operation. TODO: improve tests to not rely on this, and use transactions to create submissions + media so normal operation never reaches this
 
   $elif submission['file_type'] in ["jpg", "png", "gif"] and cover:
     <!-- VISUAL -->
@@ -116,7 +121,7 @@ $code:
       $if older:
         $for e, i in enumerate(older, start=1):
           $code:
-            thumb = THUMB(i)
+            thumb = card_viewer.get_thumbnail_files(i).fallback
             id = 'id="folder-nav-prev"' if e == len(older) else ''
             link = request.route_path(
               'submission_detail_profile',
@@ -136,7 +141,7 @@ $code:
       $if query['folder_more']['newer']:
         $for e, i in enumerate(query['folder_more']['newer']):
           $code:
-            thumb = THUMB(i)
+            thumb = card_viewer.get_thumbnail_files(i).fallback
             id = 'id="folder-nav-next"' if e == 0 else ''
             link = request.route_path(
               'submission_detail_profile',
@@ -166,10 +171,10 @@ $code:
         $if not query['mine']:
           $if query['favorited']:
             <input type="hidden" name="action" value="unfavorite" />
-            <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
+            <button class="active" accesskey="f"><span class="icon icon-20 icon-star"></span> Favorited</button>
           $else:
             <input type="hidden" name="action" value="favorite" />
-            <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+            <button accesskey="f"><span class="icon icon-20 icon-star"></span> Favorite</button>
       </form></li>
       $if submission:
         <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
@@ -212,7 +217,7 @@ $code:
       $if query['friends_only']:
         <div id="detail-visibility-restricted">Friends Only</div>
       <dl class="clear">
-        <dt>Views:</dt> <dd>${query['page_views']}</dd>
+        <dt>Views:</dt> <dd id="page-views" data-viewable="submissions/${query['submitid']}">${query['page_views']}</dd>
         <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
         <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
         <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
@@ -249,10 +254,12 @@ $code:
             $if query['friends_only']:
               <p>This submission is marked friends only, and cannot be offered as a collection.</p>
             $else:
-              <label for="detail_collection_offer_username">Offer to User:</label>
-              <input type="text" id="detail_collection_offer_username" name="username" class="input last-input">
+              <label class="label-around">
+                <span class="label">Offer to User:</span>
+                <input type="text" name="recipient" class="input last-input" required>
+              </label>
 
-              <button type="submit" class="button" style="float: right;">Send Offer</button>
+              <button class="button" style="float: right;">Send Offer</button>
           </form>
         $else:
           <h3>Request Collection</h3>

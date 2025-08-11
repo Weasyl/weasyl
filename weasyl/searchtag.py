@@ -172,15 +172,13 @@ def _get_or_create(*names: str) -> list[int]:
         ON CONFLICT (title) DO NOTHING
     ''', names=names_list)
 
-    result = d.engine.execute(
-        'SELECT tagid FROM searchtag WHERE title = ANY (%(names)s)',
-        names=names_list)
+    tag_ids = get_ids(names)
 
-    return result.scalars().all()
+    return [tag_ids[name] for name in names]
 
 
 def get_or_create(name):
-    return _get_or_create(d.get_search_tag(name))
+    return _get_or_create(d.get_search_tag(name))[0]
 
 
 def get_or_create_many(normalized_names: Iterable[str]) -> list[int]:
@@ -286,8 +284,8 @@ def _set_suggested_tags(
     ownerid: int,
     tag_names: set[str],
 ) -> list[str]:
-    tagging_privileges_revoked = "g" in d.get_config(userid)
-    if tagging_privileges_revoked:
+    can_suggest_tags = d.engine.scalar("SELECT can_suggest_tags FROM profile WHERE userid = %(user)s", user=userid)
+    if not can_suggest_tags:
         raise WeasylError("InsufficientPermissions")
 
     if ignoreuser.check(ownerid, userid):

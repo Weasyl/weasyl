@@ -3,7 +3,7 @@ from pyramid.response import Response
 
 from libweasyl import staff
 
-from weasyl import moderation, profile, siteupdate
+from weasyl import moderation, profile
 from weasyl.error import WeasylError
 from weasyl.controllers.decorators import admin_only
 from weasyl.controllers.decorators import token_checked
@@ -18,80 +18,13 @@ def admincontrol_(request):
     return Response(d.webpage(request.userid, "admincontrol/admincontrol.html", title="Admin Control Panel"))
 
 
-_BLANK_SITE_UPDATE = {
-    'updateid': None,
-    'title': "",
-    'content': "",
-    'wesley': False,
-}
-
-
-@admin_only
-def admincontrol_siteupdate_get_(request):
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (_BLANK_SITE_UPDATE,), title="Submit Site Update"))
-
-
-@admin_only
-@token_checked
-def admincontrol_siteupdate_post_(request):
-    title = request.POST["title"].strip()
-    content = request.POST["content"].strip()
-    wesley = "wesley" in request.POST
-
-    if not title:
-        raise WeasylError("titleInvalid")
-
-    if not content:
-        raise WeasylError("contentInvalid")
-
-    updateid = siteupdate.create(
-        userid=request.userid,
-        title=title,
-        content=content,
-        wesley=wesley,
-    )
-
-    raise HTTPSeeOther(location="/site-updates/%d" % (updateid,))
-
-
-@admin_only
-def site_update_edit_(request):
-    updateid = int(request.matchdict['update_id'])
-    update = siteupdate.select_view(updateid)
-    return Response(d.webpage(request.userid, "admincontrol/siteupdate.html", (update,), title="Edit Site Update"))
-
-
-@admin_only
-@token_checked
-def site_update_put_(request):
-    updateid = int(request.matchdict['update_id'])
-    title = request.POST["title"].strip()
-    content = request.POST["content"].strip()
-    wesley = "wesley" in request.POST
-
-    if not title:
-        raise WeasylError("titleInvalid")
-
-    if not content:
-        raise WeasylError("contentInvalid")
-
-    siteupdate.edit(
-        updateid=updateid,
-        title=title,
-        content=content,
-        wesley=wesley,
-    )
-
-    return HTTPSeeOther(location="/site-updates/%d" % (updateid,))
-
-
 @admin_only
 def admincontrol_manageuser_get_(request):
     otherid = profile.resolve(None, None, request.params.get('name', ''))
 
     if not otherid:
         raise WeasylError("userRecordMissing")
-    if request.userid != otherid and otherid in staff.ADMINS and request.userid not in staff.TECHNICAL:
+    if request.userid != otherid and otherid in staff.ADMINS and request.userid not in staff.DIRECTORS:
         raise WeasylError('InsufficientPermissions')
 
     return Response(d.webpage(request.userid, "admincontrol/manageuser.html", [
@@ -105,7 +38,7 @@ def admincontrol_manageuser_get_(request):
 def admincontrol_manageuser_post_(request):
     userid = d.get_int(request.params.get('userid', ''))
 
-    if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.TECHNICAL:
+    if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.DIRECTORS:
         raise WeasylError('InsufficientPermissions')
 
     profile.do_manage(request.userid, userid,

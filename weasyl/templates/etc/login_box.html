@@ -1,30 +1,45 @@
-$def with (error, referer, login_page)
+$def with (error, referer, login_page, initial = DEFAULT_LOGIN_FORM)
 
-<div id="login-box" class="clear content">
+$if login_page: <div class="login-box">
+$else: <dialog id="login-top" class="login-box content">
   $if not login_page:
     <h3>Sign In</h3>
 
-    <a id="lb-close" href="#">Close</a>
+    <button type="button" class="link-button" id="lb-close">Close</button>
 
-  $if error:
-    <div id="signin_error"><strong>Whoops!</strong> The login information you entered was not correct.</div>
+  $if error is not None:
+    <div class="login-error">
+      <strong>Login failed:</strong> ${error.message}
+
+      $if error.hints:
+        <ul>
+          $for hint in error.hints:
+            <li>${hint}</li>
+        </ul>
+    </div>
 
   <form class="form" name="signin" action="/signin" method="post">
     <label for="login-user">Username</label>
-    <input type="text" id="login-user" class="input" name="username" placeholder="Username"$:{" autofocus" if login_page else ""} />
+    <input type="text" id="login-user" class="input" name="username" value="${initial.username}" placeholder="Username" autofocus autocomplete="username" required />
 
     <label for="login-pass">Password</label>
-    <input type="password" id="login-pass" class="input" name="password" placeholder="Password" />
+    <input type="password" id="login-pass" class="input" name="password" placeholder="Password" autocomplete="current-password" required />
 
-    <label id="login-sfw" class="input-checkbox">
-      <input type="checkbox" name="sfwmode" value="sfw" /> Sign in using SFW mode
+    <label class="input-checkbox login-sfw">
+      <input type="checkbox" name="sfwmode" value="sfw"$:{' checked' if initial.sfw else ''}> Sign in using SFW mode
     </label>
 
     <input type="hidden" name="referer" value="${referer}" />
 
-    <a href="/forgotpassword" class="lb-link">Forgot your password?</a>
-    <a href="/signup" class="lb-link">No account yet?</a>
-    <button type="submit" class="button">Sign In</button>
+    <div class="login-actions">
+      <button type="submit" class="button">Sign In</button>
+
+      <span class="lb-links">
+        <a href="/signup" class="lb-link">No account yet?</a>
+        <a href="/forgotpassword" class="lb-link">Forgot your password?</a>
+      </span>
+    </div>
   </form>
 
-</div>
+$if login_page: </div>
+$else: </dialog>

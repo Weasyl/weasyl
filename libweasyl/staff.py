@@ -2,50 +2,52 @@
 Sets of Weasyl staff user ids.
 """
 
-DIRECTORS = frozenset()
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable
+
+
+DIRECTORS: frozenset[int] = frozenset()
 """ Directors have the same powers as admins. """
 
-TECHNICAL = frozenset()
-""" Technical staff can moderate all content and manage all users. """
-
-ADMINS = frozenset()
+ADMINS: frozenset[int] = frozenset()
 """ Site administrators can update site news and moderate user content. """
 
-MODS = frozenset()
+MODS: frozenset[int] = frozenset()
 """ Site moderators can hide submissions, manage non-admin users, etc. """
 
-DEVELOPERS = frozenset()
+DEVELOPERS: frozenset[int] = frozenset()
 """ Purely cosmetic group for users who contribute to site development. """
 
-WESLEY = None
+WESLEY: int | None = None
 """ The site mascot. Option for the owner of a site update. """
 
 
-def _init_staff(directors=(), technical_staff=(), admins=(), mods=(), developers=(), wesley=None):
-    """
-    Populates staff members from passed kwargs.
+@dataclass(frozen=True, slots=True)
+class StaffConfig:
+    directors: Iterable[int] = ()
+    admins: Iterable[int] = ()
+    mods: Iterable[int] = ()
+    developers: Iterable[int] = ()
+    wesley: int | None = None
 
-    Parameters:
-        directors: Array with directors
-        technical_staff: Array with technical staff
-        admins: array with admins
-        mods: Array with mods
-        developers: Array with developers
+
+def _init_staff(config: StaffConfig) -> None:
+    """
+    Populate staff members.
     """
     global DIRECTORS
-    DIRECTORS = frozenset(directors)
-
-    global TECHNICAL
-    TECHNICAL = DIRECTORS | frozenset(technical_staff)
+    DIRECTORS = frozenset(config.directors)
 
     global ADMINS
-    ADMINS = TECHNICAL | frozenset(admins)
+    ADMINS = DIRECTORS | frozenset(config.admins)
 
     global MODS
-    MODS = ADMINS | frozenset(mods)
+    MODS = ADMINS | frozenset(config.mods)
 
     global DEVELOPERS
-    DEVELOPERS = frozenset(developers)
+    DEVELOPERS = frozenset(config.developers)
 
     global WESLEY
-    WESLEY = wesley
+    WESLEY = config.wesley

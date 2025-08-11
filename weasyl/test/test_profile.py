@@ -8,6 +8,18 @@ from weasyl.error import WeasylError
 from weasyl.test import db_utils
 
 
+def _exchange_settings_from_settings_string(settings_string):
+    """
+    Given a (terrible and brittle) exchange settings string from a user profile,
+    returns a dict of their exchange settings.
+    """
+    return {
+        profile.EXCHANGE_TYPE_COMMISSION: profile.EXCHANGE_SETTING_CODE_MAP[settings_string[0]],
+        profile.EXCHANGE_TYPE_TRADE: profile.EXCHANGE_SETTING_CODE_MAP[settings_string[1]],
+        profile.EXCHANGE_TYPE_REQUEST: profile.EXCHANGE_SETTING_CODE_MAP[settings_string[2]],
+    }
+
+
 @pytest.mark.usefixtures('db')
 class ProfileManageTestCase(unittest.TestCase):
     def setUp(self):
@@ -91,7 +103,7 @@ class ProfileManageTestCase(unittest.TestCase):
                                       set_request=profile.EXCHANGE_SETTING_NOT_ACCEPTING,
                                       set_commission=profile.EXCHANGE_SETTING_FULL_QUEUE)
         test_user_profile = profile.select_profile(user)
-        exchange_settings = profile.exchange_settings_from_settings_string(test_user_profile['settings'])
+        exchange_settings = _exchange_settings_from_settings_string(test_user_profile['settings'])
         self.assertEqual(exchange_settings[profile.EXCHANGE_TYPE_TRADE], profile.EXCHANGE_SETTING_ACCEPTING)
         self.assertEqual(exchange_settings[profile.EXCHANGE_TYPE_REQUEST], profile.EXCHANGE_SETTING_NOT_ACCEPTING)
         self.assertEqual(exchange_settings[profile.EXCHANGE_TYPE_COMMISSION], profile.EXCHANGE_SETTING_FULL_QUEUE)

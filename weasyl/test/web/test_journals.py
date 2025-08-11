@@ -2,7 +2,6 @@ import arrow
 import pytest
 
 from libweasyl import ratings
-from libweasyl.models.helpers import CharSettings
 from weasyl.test import db_utils
 
 
@@ -35,7 +34,7 @@ def test_profile_guest(app):
 
 @pytest.mark.usefixtures('db', 'cache', 'journal_user', 'journals')
 def test_profile_user(app):
-    user = db_utils.create_user(config=CharSettings(frozenset(), {}, {'tagging-level': 'max-rating-mature'}))
+    user = db_utils.create_user(max_rating=ratings.MATURE)
     cookie = db_utils.create_session(user)
 
     resp = app.get('/~journal_test', headers={'Cookie': cookie})

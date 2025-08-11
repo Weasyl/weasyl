@@ -1,4 +1,5 @@
 import functools
+from collections.abc import Collection
 
 
 @functools.total_ordering
@@ -40,6 +41,13 @@ class Rating:
     def __hash__(self):
         return self.code
 
+    @property
+    def is_adult(self) -> bool:
+        """
+        Whether this rating is restricted to adults.
+        """
+        return self > GENERAL
+
 
 GENERAL = Rating(10, "g", "general", "General", 0, "Block all ratings")
 MATURE = Rating(30, "a", "mature", "Mature", 18, "Block Mature and higher", "non-sexual")
@@ -52,7 +60,7 @@ CHARACTER_MAP = {rating.character: rating for rating in ALL_RATINGS}
 CODE_TO_NAME = {rating.code: rating.name for rating in ALL_RATINGS}
 
 
-def get_ratings_for_age(age):
+def get_ratings_for_age(age: int | None) -> Collection[Rating]:
     if age is None:
         return ALL_RATINGS
 

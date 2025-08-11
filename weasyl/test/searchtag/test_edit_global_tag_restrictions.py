@@ -29,12 +29,10 @@ def test_edit_global_tag_restrictions_when_user_is_not_a_director_fails(monkeypa
     developer_user_id = db_utils.create_user()
     mod_user_id = db_utils.create_user()
     admin_user_id = db_utils.create_user()
-    technical_user_id = db_utils.create_user()
 
     monkeypatch.setattr(staff, 'DEVELOPERS', frozenset([developer_user_id]))
     monkeypatch.setattr(staff, 'MODS', frozenset([mod_user_id]))
     monkeypatch.setattr(staff, 'ADMINS', frozenset([admin_user_id]))
-    monkeypatch.setattr(staff, 'TECHNICAL', frozenset([technical_user_id]))
 
     # Function under test; users and staff (except director) should error
     with pytest.raises(WeasylError) as err:
@@ -48,9 +46,6 @@ def test_edit_global_tag_restrictions_when_user_is_not_a_director_fails(monkeypa
     assert 'InsufficientPermissions' == err.value.value
     with pytest.raises(WeasylError) as err:
         searchtag.edit_global_tag_restrictions(admin_user_id, combined_tags)
-    assert 'InsufficientPermissions' == err.value.value
-    with pytest.raises(WeasylError) as err:
-        searchtag.edit_global_tag_restrictions(technical_user_id, combined_tags)
     assert 'InsufficientPermissions' == err.value.value
 
 

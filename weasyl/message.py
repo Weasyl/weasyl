@@ -21,7 +21,6 @@ notification_clusters = {
     4020: 10, 4025: 10, 4050: 10,
     4030: 11, 4035: 11, 4060: 11, 4065: 11,
     4040: 12, 4045: 12,
-    3150: 13,
 }
 
 _CONTYPE_CHAR = 20
@@ -234,23 +233,6 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
         [i for i in results if i["contype"] != _CONTYPE_CHAR])
 
     return results
-
-
-def select_site_updates(userid):
-    return [{
-        "type": 3150,
-        "id": i.welcomeid,
-        "unixtime": i.unixtime,
-        "updateid": i.updateid,
-        "title": i.title,
-    } for i in d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, su.updateid, su.title
-        FROM welcome we
-            INNER JOIN siteupdate su ON we.otherid = su.updateid
-        WHERE we.userid = %(user)s
-            AND we.type = 3150
-        ORDER BY we.unixtime DESC
-    """, user=userid)]
 
 
 def select_notifications(userid):

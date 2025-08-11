@@ -1,2 +1,13 @@
 $content-color-lighter: #777;
 $link-color: #336979;
+
+@mixin serif {
+    font-family: Georgia, serif;
+    font-weight: 400;
+}
+
+@mixin h3-large {
+    font-size: 1.5rem;
+    padding-top: 1.75rem;
+    padding-bottom: 1.25rem;
+}

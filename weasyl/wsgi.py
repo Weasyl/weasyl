@@ -27,7 +27,7 @@ config.add_tween("weasyl.middleware.session_tween_factory")
 config.add_tween("weasyl.middleware.db_timer_tween_factory")
 config.add_tween("weasyl.middleware.cache_clear_tween_factory")
 config.add_tween("weasyl.middleware.database_session_cleanup_tween_factory")
-config.add_tween("weasyl.middleware.http2_server_push_tween_factory")
+config.add_tween("weasyl.middleware.preload_tween_factory")
 config.add_tween("weasyl.middleware.query_debug_tween_factory")
 config.add_tween("pyramid.tweens.excview_tween_factory")  # Required to catch exceptions thrown in tweens.
 config.add_tween("weasyl.middleware.utf8_path_tween_factory")
@@ -66,7 +66,7 @@ def make_wsgi_app(*, configure_cache=True):
     configure_libweasyl(
         dbsession=d.sessionmaker,
         base_file_path=m.MACRO_STORAGE_ROOT,
-        staff_config_dict=staff_config.load(),
+        staff_config=staff_config.load(),
         media_link_formatter_callback=format_media_link,
     )
 

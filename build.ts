@@ -645,22 +645,9 @@ const tasks: readonly AnyTask[] = [
         }
 
         return ({
-            plugins: [
-                {
-                    name: 'wzl-marked',
-                    setup(build) {
-                        build.onResolve({filter: /^wzl:marked-src$/}, _args => ({
-                            namespace: 'wzl',
-                            path: 'marked-src',
-                        }));
-
-                        build.onLoad({filter: /(?:)/, namespace: 'wzl'}, _args => ({
-                            contents: '/' + markedEntry[1],
-                            loader: 'text',
-                        }));
-                    },
-                },
-            ],
+            define: {
+                MARKED_SRC: JSON.stringify('/' + markedEntry[1]),
+            },
         });
     }, {touch, marked}),
     new EsbuildFiles([

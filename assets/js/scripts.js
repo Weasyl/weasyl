@@ -9,8 +9,6 @@ import loginName from './util/login-name.js';
 import {tryGetLocal, trySetLocal} from './util/storage.js';
 import weasylMarkdown from './weasyl-markdown.js';
 
-import MARKED_SRC from 'wzl:marked-src';
-
 const empty = containerNode => {
     let child;
 

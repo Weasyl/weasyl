@@ -450,20 +450,20 @@ class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
     }
 }
 
-class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
+class EsbuildFilesWithDeps<Deps extends AnyDependencies> implements Task<Touch & Deps, TaskResult, esbuild.BuildContext> {
     #relativePaths: readonly SourceOutputSame[];
-    #options: esbuild.BuildOptions;
+    #options: (d: Provided<Deps>) => Awaitable<esbuild.BuildOptions>;
 
     constructor(
         relativePaths: readonly SourceOutputSame[],
-        options: esbuild.BuildOptions,
-        readonly dependencies: Providers<Touch>,
+        options: (d: Provided<Deps>) => Awaitable<esbuild.BuildOptions>,
+        readonly dependencies: Providers<Touch & Deps>,
     ) {
         this.#relativePaths = relativePaths;
         this.#options = options;
     }
 
-    private createBuildContext(ctx: Context, entryPoints: string[]) {
+    private async createBuildContext(ctx: Context, deps: Provided<Deps>, entryPoints: string[]) {
         return esbuild.context({
             entryPoints,
             outdir: '.',  // `outdir` is required even when `write: false`
@@ -475,7 +475,7 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
                 js: '"use strict";',
             },
             mangleProps: /^m_/,
-            ...this.#options,
+            ...await this.#options(deps),
             write: false,
             metafile: true,
         });
@@ -483,13 +483,13 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
 
     async run(
         ctx: Context,
-        deps: Provided<Touch>,
+        deps: Provided<Touch & Deps>,
         buildContext: Awaited<ReturnType<typeof this.createBuildContext>> | null,
     ): Promise<TaskResultWithCache<typeof buildContext & NonNullable<unknown>>> {
         const entryPoints = this.#relativePaths.map(p => ctx.resolveSource(p));
         const cwd = Deno.cwd();
 
-        buildContext ??= await this.createBuildContext(ctx, entryPoints);
+        buildContext ??= await this.createBuildContext(ctx, deps, entryPoints);
 
         const result = await buildContext.rebuild();
 
@@ -551,6 +551,16 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
     }
 }
 
+class EsbuildFiles extends EsbuildFilesWithDeps<Touch> {
+    constructor(
+        relativePaths: readonly SourceOutputSame[],
+        options: esbuild.BuildOptions,
+        dependencies: Providers<Touch>,
+    ) {
+        super(relativePaths, () => options, dependencies);
+    }
+}
+
 const showUsage = () => {
     console.error('Usage: deno run build.ts --assets=<asset-dir> --output=<output-dir>');
 };
@@ -597,6 +607,8 @@ const touch = new CreateFolders([
 
 const images = new CopyStaticFiles('img', {touch});
 
+const marked = new CopyStaticFile('js/marked.js', {touch});
+
 const PRIVATE_FIELDS: esbuild.BuildOptions = {
     target: [
         'chrome84',
@@ -615,13 +627,30 @@ const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
 const tasks: readonly AnyTask[] = [
     touch,
     images,
+    marked,
     new Sass({from: 'scss/site.scss', to: 'css/site.css'}, {touch, images}),
     new Sass({from: 'scss/help.scss', to: 'css/help.css'}, {touch, images}),
     new Sass({from: 'scss/imageselect.scss', to: 'css/imageselect.css'}, {touch, images}),
     new Sass({from: 'scss/mod.scss', to: 'css/mod.css'}, {touch, images}),
     new Sass({from: 'scss/signup.scss', to: 'css/signup.css'}, {touch, images}),
-    new EsbuildFiles([
+    new EsbuildFilesWithDeps<{marked: TaskResult}>([
         'js/scripts.js',
+    ], async (deps) => {
+        const markedEntry =
+            (await deps.marked).entries
+                .find(([k, _v]) => k === 'js/marked.js');
+
+        if (markedEntry === undefined) {
+            throw new Error('missing marked.js');
+        }
+
+        return ({
+            define: {
+                MARKED_SRC: JSON.stringify('/' + markedEntry[1]),
+            },
+        });
+    }, {touch, marked}),
+    new EsbuildFiles([
         'js/search.js',
         'js/zxcvbn-check.js',
     ], {}, {touch}),
@@ -649,7 +678,6 @@ const tasks: readonly AnyTask[] = [
     // libraries
     new CopyStaticFile('js/jquery-2.2.4.min.js', {touch}),
     new CopyStaticFile('js/imageselect.js', {touch}),
-    new CopyStaticFile('js/marked.js', {touch}),
     new CopyStaticFile('js/zxcvbn.js', {touch}),
     new CopyRuffleComponents({touch}),
     new CopyStaticFile({

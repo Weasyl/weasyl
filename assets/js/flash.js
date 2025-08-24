@@ -4,11 +4,6 @@ const detailFlash = document.getElementById('detail-flash');
 
 const player = RufflePlayer.newest().createPlayer();
 player.className = 'flash-player';
-player.config = {
-    publicPath: '/js/ruffle/',
-    allowNetworking: 'none',
-    autoplay: 'on',
-};
 
 detailFlash.appendChild(player);
 
@@ -22,7 +17,7 @@ const play = () => {
 
     player.style.visibility = 'visible';
 
-    player.load({
+    player.ruffle().load({
         url: detailFlash.dataset.flashUrl,
     });
 };
@@ -40,7 +35,7 @@ const playFullscreenButton = make('button', {
 });
 
 playFullscreenButton.addEventListener('click', () => {
-    player.enterFullscreen();
+    player.ruffle().requestFullscreen();
     play();
 });
 

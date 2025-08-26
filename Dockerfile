@@ -4,8 +4,7 @@ WORKDIR /weasyl-build
 RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
 USER deno
 
-# package.json because `deno install [--vendor=true]` by itself doesn’t seem to be able to use the cache.
-COPY --chown=deno:deno --link deno.json deno.lock package.json ./
+COPY --chown=deno:deno --link deno.json deno.lock ./
 
 RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
 

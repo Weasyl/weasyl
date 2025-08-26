@@ -5,7 +5,7 @@
         "@std/collections": "jsr:@std/collections@^1.1.1",
         "@std/encoding": "jsr:@std/encoding@^1.0.10",
         "@std/path": "jsr:@std/path@^1.1.0",
-        "@ruffle-rs/ruffle": "npm:@ruffle-rs/ruffle@^0.1.0-nightly.2023.8.17",
+        "@ruffle-rs/ruffle": "npm:@ruffle-rs/ruffle@0.2.0-nightly.2025.8.26",
         "autoprefixer": "npm:autoprefixer@^10.4.20",
         "autosize": "npm:autosize@^6.0.1",
         "esbuild": "npm:esbuild@^0.25.5",

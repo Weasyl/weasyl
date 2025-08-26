@@ -11,6 +11,8 @@
 !build.ts
 !deno.json
 !deno.lock
+!package.json
+
 !imagemagick-policy.xml
 !setup.cfg
 !setup.py

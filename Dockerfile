@@ -3,11 +3,11 @@ FROM docker.io/denoland/deno:alpine-2.3.5 AS asset-builder
 WORKDIR /weasyl-build
 RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
 USER deno
-COPY --chown=deno:deno --link deno.json deno.lock ./
 
-# `deno install --frozen [--vendor=true]` by itself doesn’t seem to be able to use the cache.
-RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen --vendor=false
-RUN --network=none --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
+# package.json because `deno install [--vendor=true]` by itself doesn’t seem to be able to use the cache.
+COPY --chown=deno:deno --link deno.json deno.lock package.json ./
+
+RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
 
 COPY --link build.ts build.ts
 

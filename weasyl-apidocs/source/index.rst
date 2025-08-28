@@ -174,48 +174,6 @@ Basic endpoints
       only every three minutes or when a note arrives.
 
 
-OAuth2 endpoints
-----------------
-
-.. http:get:: /api/oauth2/authorize
-
-   The standard OAuth2 authorization endpoint. Currently only authorization
-   code grants with callback URIs are supported.
-
-   :query client_id: The client identifier issued to the consumer by Weasyl.
-
-   :query redirect_uri: The callback URI the consumer provided to Weasyl before
-      the *client_id* was issued.
-
-   :query scope: Currently, only one scope is allowed: ``"wholesite"``
-
-   :query state: A random unguessable string.
-
-   :query response_type: Currently, only one response type is allowed:
-      ``"code"``.
-
-   On a successful authorization, the user agent will be redirected to the
-   *redirect_uri* with query parameters of *code* and *state*. *code* will be a
-   random string used to retrieve the authorization code grant, and *state*
-   will be the same *state* as was passed originally.
-
-
-.. http:post:: /api/oauth2/token
-
-   The endpoint for fetching and refreshing OAuth2 tokens.
-
-   :form client_secret: The client secret issued to the consumer by Weasyl.
-
-   Other form parameters are described for authorization code grants at
-   <http://tools.ietf.org/html/rfc6749#section-4.1> and for refreshing tokens
-   at <http://tools.ietf.org/html/rfc6749#section-6>.
-
-   .. note::
-
-      Access tokens currently expire after an hour, to be sure to use the
-      provided refresh token before then.
-
-
 .. _submissions:
 
 Submissions
@@ -583,17 +541,12 @@ specifying that *backid* as a query parameter.
 Authentication
 --------------
 
-Authentication can be done in one of two ways: a Weasyl API key, or an OAuth2
-bearer token.
+Authentication can be done with a Weasyl API key.
 
 Weasyl API keys are managed at <https://www.weasyl.com/control/apikeys>, and
 are extremely simple to use. To authenticate a request, set the
 ``X-Weasyl-API-Key`` header to the value of an API key, and the user agent will
 be authenticated as the user who created the key.
-
-To authenticate a request with an OAuth2 bearer token, pass an ``Authorization:
-Bearer`` header along with the token, as described in
-<http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20#section-2.1>.
 
 
 Errors
@@ -636,13 +589,6 @@ An error response resembles the following::
         "name": "RatingExceeded"
       }
     }
-
-
-OAuth2 errors
-~~~~~~~~~~~~~
-
-If a bearer token has expired, the :http:header:`WWW-Authenticate` header in
-the response will include ``error="invalid_token"``.
 
 
 Glossary

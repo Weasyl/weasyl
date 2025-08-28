@@ -160,7 +160,7 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     libgcc libgomp lcms2 libpng libxml2 libwebpdemux libwebpmux \
     libmemcached-libs \
     libpq
-RUN adduser -S weasyl -h /weasyl
+RUN adduser -S weasyl -h /weasyl -u 1000
 WORKDIR /weasyl
 USER weasyl
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/

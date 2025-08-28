@@ -74,9 +74,9 @@ services:
       - type: tmpfs
         target: /tmp
     tmpfs:
-      - '/weasyl/storage/prometheus:mode=700,uid=100'
-      - '/weasyl/storage/temp:mode=700,uid=100'
-      - '/magick-tmp:mode=700,uid=100'
+      - '/weasyl/storage/prometheus:mode=700,uid=1000'
+      - '/weasyl/storage/temp:mode=700,uid=1000'
+      - '/magick-tmp:mode=700,uid=1000'
     networks:
       - prometheus-web
       - web-memcached

@@ -109,17 +109,6 @@ $code:
         <li><a href="${submission['display_url']}">View Flash animation</a></li>
       </menu>
     </div>
-    <script type="module">
-    window.RufflePlayer = {
-        config: {
-            publicPath: '/js/ruffle/',
-            polyfills: false,
-            allowNetworking: 'none',
-            autoplay: 'on',
-        },
-    };
-    </script>
-    <script type="module" src="${resource_path('js/ruffle/ruffle.js')}"></script>
     <script type="module" src="${resource_path('js/flash.js')}"></script>
 
   $if query['folder_more']['older'] or query['folder_more']['newer']:

@@ -14,7 +14,7 @@ COPY --link build.ts build.ts
 
 FROM asset-builder AS assets
 COPY --link assets assets
-RUN --network=none deno run \
+RUN --network=none mkdir build && deno run \
     --cached-only \
     --frozen \
     --allow-env \

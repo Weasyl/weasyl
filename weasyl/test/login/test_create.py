@@ -179,17 +179,7 @@ def test_verify_correct_information_creates_account():
 class TestAccountCreationBlacklist:
     @pytest.mark.usefixtures('db')
     def test_create_fails_if_email_domain_is_blacklisted(self):
-        """
-        Test verifies that login.create() will properly fail to register new accounts
-        when the domain portion of the email address is contained in the emailblacklist
-        table.
-        """
-        d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
-            "domain_name": "blacklisted.com",
-            "reason": "test case for login.create()",
-            "added_by": db_utils.create_user(),
-        })
-        blacklisted_email = "test@blacklisted.com"
+        blacklisted_email = "test@blacklisted.example"
         form = Bag(username=user_name, password='0123456789',
                    email=blacklisted_email,
                    age="13+")
@@ -199,18 +189,7 @@ class TestAccountCreationBlacklist:
 
     @pytest.mark.usefixtures('db')
     def test_verify_subdomains_of_blocked_sites_blocked(self):
-        """
-        Blacklisted: badsite.net
-        Blocked: badsite.net
-        Also blocked: subdomain.badsite.net
-        """
-        d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
-            "domain_name": "blacklisted.com",
-            "reason": "test case for login.create()",
-            "added_by": db_utils.create_user(),
-        })
-        # Test the domains from the emailblacklist table
-        blacklisted_email = "test@subdomain.blacklisted.com"
+        blacklisted_email = "test@subdomain.blacklisted.example"
         form = Bag(username=user_name, password='0123456789',
                    email=blacklisted_email,
                    age="13+")
@@ -218,17 +197,7 @@ class TestAccountCreationBlacklist:
             login.create(form)
         assert 'emailBlacklisted' == err.value.value
 
-        # Test the domains from the code that would download the list of disposable domains
-        blacklisted_email = "test@mail.sub.sharklasers.com"
-        form = Bag(username=user_name, password='0123456789',
-                   email=blacklisted_email,
-                   age="13+")
-        with pytest.raises(WeasylError) as err:
-            login.create(form)
-        assert 'emailBlacklisted' == err.value.value
-
-        # Ensure address in the form of <domain.domain> is blocked
-        blacklisted_email = "test@sharklasers.com.sharklasers.com"
+        blacklisted_email = "test@deeper.subdomain.blacklisted.example"
         form = Bag(username=user_name, password='0123456789',
                    email=blacklisted_email,
                    age="13+")
@@ -238,29 +207,19 @@ class TestAccountCreationBlacklist:
 
     @pytest.mark.usefixtures('db')
     def test_similarly_named_domains_are_not_blocked(self):
-        """
-        Blacklisted: badsite.net
-        /Not/ Blocked: notabadsite.net
-        Also /Not/ blocked: subdomain.notabadsite.net
-        """
-        d.engine.execute(d.meta.tables["emailblacklist"].insert(), {
-            "domain_name": "blacklisted.com",
-            "reason": "test case for login.create()",
-            "added_by": db_utils.create_user(),
-        })
-        mail = "test@notblacklisted.com"
+        mail = "test@notblacklisted.example"
         form = Bag(username=user_name, password='0123456789',
                    email=mail,
                    age="13+")
         login.create(form)
 
-        mail = "test@also.notblacklisted.com"
+        mail = "test@also.notblacklisted.example"
         form = Bag(username=user_name + "1", password='0123456789',
                    email=mail,
                    age="13+")
         login.create(form)
 
-        mail = "test@blacklisted.com.notblacklisted.com"
+        mail = "test@blacklisted.example.notblacklisted.example"
         form = Bag(username=user_name + "2", password='0123456789',
                    email=mail,
                    age="13+")

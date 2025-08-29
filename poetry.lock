@@ -1116,22 +1116,6 @@ files = [
 ]
 
 [[package]]
-name = "publicsuffixlist"
-version = "0.6.13"
-description = "publicsuffixlist implement"
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "publicsuffixlist-0.6.13-py2.py3-none-any.whl", hash = "sha256:dd8d30caffc72ced69517384b4e620e83e9c4e32ad866dbcb1eee3caca34617f"},
-    {file = "publicsuffixlist-0.6.13.tar.gz", hash = "sha256:d9c847b72847a6077eca0f3d2ddbb2691b11586aab75bd61c8c902b2dc587de5"},
-]
-
-[package.extras]
-readme = ["pandoc"]
-update = ["requests"]
-
-[[package]]
 name = "pycparser"
 version = "2.21"
 description = "C parser in Python"
@@ -1670,4 +1654,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "1f08f2ed2ad3bef9be7a639a521741d69382f871c669763bb8b43a3ec52cc8d0"
+content-hash = "3578b7fdb719a1fcf4549d7a3bc81b8c010f04d926186bf6123446d991a6fffb"

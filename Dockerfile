@@ -139,6 +139,7 @@ RUN dirs=' \
         weasyl/test/resetpassword \
         weasyl/test/useralias \
         weasyl/test/web \
+        weasyl/util \
     '; \
     mkdir -p $dirs \
     && for dir in $dirs; do touch "$dir/__init__.py"; done

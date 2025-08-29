@@ -15,7 +15,6 @@ dependencies = [
     "pyotp==2.3.0",
     "qrcodegen==1.2.0",
     "cryptography~=44.0",
-    "publicsuffixlist==0.6.13",
     "alembic~=1.11",
     "arrow==1.2.2",
     "bcrypt==4.0.1",

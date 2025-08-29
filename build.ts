@@ -598,6 +598,17 @@ class CreateFolders implements Task<Record<string, never>> {
     }
 }
 
+const getSingleEntry = (result: TaskResult, expectedKey: string): string => {
+    const {entries} = result;
+
+    if (entries.length !== 1 || entries[0][0] !== expectedKey) {
+        console.error('Expected task to produce single entry with key %o, but got %o.', expectedKey, entries);
+        throw new Error();
+    }
+
+    return entries[0][1];
+};
+
 const touch = new CreateFolders([
     'css',
     'fonts',
@@ -608,6 +619,11 @@ const touch = new CreateFolders([
 const images = new CopyStaticFiles('img', {touch});
 
 const marked = new CopyStaticFile('js/marked.js', {touch});
+
+const ruffle = new CopyStaticFile({
+    from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
+    to: 'js/ruffle/ruffle.js',
+}, {touch});
 
 const PRIVATE_FIELDS: esbuild.BuildOptions = {
     target: [
@@ -636,17 +652,11 @@ const tasks: readonly AnyTask[] = [
     new EsbuildFilesWithDeps<{marked: TaskResult}>([
         'js/scripts.js',
     ], async (deps) => {
-        const markedEntry =
-            (await deps.marked).entries
-                .find(([k, _v]) => k === 'js/marked.js');
-
-        if (markedEntry === undefined) {
-            throw new Error('missing marked.js');
-        }
+        const markedSrc = getSingleEntry(await deps.marked, 'js/marked.js');
 
         return ({
             define: {
-                MARKED_SRC: JSON.stringify('/' + markedEntry[1]),
+                MARKED_SRC: JSON.stringify('/' + markedSrc),
             },
         });
     }, {touch, marked}),
@@ -668,10 +678,18 @@ const tasks: readonly AnyTask[] = [
         'js/submit.js',
         'js/view-count.js',
     ], PRIVATE_FIELDS_ESM, {touch}),
-    new EsbuildFiles(['js/flash.js'], {
-        format: 'esm',
-        banner: {},
-    }, {touch}),
+    new EsbuildFilesWithDeps<{ruffle: TaskResult}>([
+        'js/flash.js',
+    ], async (deps) => {
+        const ruffleSrc = getSingleEntry(await deps.ruffle, 'js/ruffle/ruffle.js');
+
+        return ({
+            ...PRIVATE_FIELDS_ESM,
+            define: {
+                RUFFLE_SRC: JSON.stringify('/' + ruffleSrc),
+            },
+        });
+    }, {touch, ruffle}),
     new CopyStaticFiles('img/help', {touch}),
     new CopyUnversionedStaticFile('opensearch.xml', {touch}),
 
@@ -680,10 +698,7 @@ const tasks: readonly AnyTask[] = [
     new CopyStaticFile('js/imageselect.js', {touch}),
     new CopyStaticFile('js/zxcvbn.js', {touch}),
     new CopyRuffleComponents({touch}),
-    new CopyStaticFile({
-        from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
-        to: 'js/ruffle/ruffle.js',
-    }, {touch}),
+    ruffle,
 ];
 
 const ORDER_UNSET = -1;

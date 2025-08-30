@@ -30,7 +30,7 @@ class UsernameInvalid(WeasylError):
 
 
 class UsernameTooLong(UsernameInvalid):
-    level = "warning"
+    level = "warning"  # client-side `maxlength` makes this logworthy
 
 
 class UsernameBanned(UsernameInvalid):
@@ -67,7 +67,7 @@ class Username:
             or ";" in stored
         ):
             # reaching this indicates incorrect use of the function; don’t rely on this behavior
-            raise ValueError("invalid username")
+            raise ValueError("invalid username")  # pragma: no cover
 
         return cls(
             display=stored,

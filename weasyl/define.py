@@ -45,6 +45,7 @@ from weasyl import turnstile
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
 from weasyl.forms import parse_sysname
+from weasyl.forms import parse_sysname_list
 from weasyl.users import Username
 
 
@@ -483,12 +484,8 @@ def get_userids(usernames):
     return ret
 
 
-def get_sysname_list(s: str) -> list[str]:
-    return list(filter(None, map(parse_sysname, s.split(";"))))
-
-
-def get_userid_list(target):
-    return [userid for userid in get_userids(get_sysname_list(target)).values() if userid != 0]
+def get_userid_list(target: str) -> list[int]:
+    return [userid for userid in get_userids(parse_sysname_list(target)).values() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):

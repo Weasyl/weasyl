@@ -53,7 +53,7 @@ class Avatar:
 @dataclass(eq=False, frozen=True, kw_only=True, slots=True)
 class JournalCard:
     rating: int
-    username: str
+    username: Username
     title: str
     caption: str
     href: str
@@ -63,7 +63,7 @@ class JournalCard:
 
 @dataclass(eq=False, frozen=True, kw_only=True, slots=True)
 class UserCard:
-    username: str
+    username: Username
     full_name: str  # XXX: currently unused
     href: str
     avatar: Avatar
@@ -73,7 +73,7 @@ class UserCard:
 class Card:
     contype: int
     rating: int
-    username: str
+    username: Username
     title: str
     caption: str
     href: str
@@ -168,7 +168,7 @@ class Viewer:
 
     def get_card(self, query: Cardable) -> Card | JournalCard | UserCard:
         contype = query['contype']
-        username = query['username']
+        username = Username.from_stored(query['username'])
 
         if contype in [30, 50]:
             avatar = Avatar(query['user_media']['avatar'][0])
@@ -177,12 +177,11 @@ class Viewer:
 
         title = query['title']  # full name, if user
         caption = username if contype == 50 else summarize(title, 52)
-        sysname = Username.from_stored(username).sysname
         slug = partial(slug_for, title)
 
         match contype:
             case 10:
-                href = "/~%s/submissions/%d/%s" % (sysname, query['submitid'], slug())
+                href = "/~%s/submissions/%d/%s" % (username.sysname, query['submitid'], slug())
             case 20:
                 href = "/character/%d/%s" % (query['charid'], slug())
             case 30:
@@ -200,7 +199,7 @@ class Viewer:
             case 40:
                 href = "/submission/%d/%s" % (query['submitid'], slug())
             case 50:
-                href = "/~%s" % (sysname,)
+                href = "/~%s" % (username.sysname,)
 
                 return UserCard(
                     username=username,

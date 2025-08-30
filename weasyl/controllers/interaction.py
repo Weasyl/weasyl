@@ -3,6 +3,7 @@ from pyramid.response import Response
 
 from weasyl.controllers.decorators import login_required, token_checked
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname_list
 from weasyl import (
     define, favorite, followuser, frienduser, ignoreuser, note, pagination, profile)
 
@@ -146,7 +147,7 @@ def notes_(request):
 
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
-    filter_sysnames = define.get_sysname_list(form.filter)
+    filter_sysnames = parse_sysname_list(form.filter)
     filter_userids = define.get_userids(filter_sysnames)
 
     url_format = f"/notes?folder={form.folder}"
@@ -179,7 +180,7 @@ def notes_compose_get_(request):
 
     return Response(define.webpage(request.userid, "note/compose.html", [
         # Recipient
-        "; ".join(define.get_sysname_list(form.recipient)),
+        "; ".join(parse_sysname_list(form.recipient)),
         profile.select_myself(request.userid),
     ], title="Compose message"))
 
@@ -209,7 +210,7 @@ def notes_remove_(request):
 
     note.remove_list(request.userid, list(map(int, form.notes)))
     link = "/notes?folder=" + form.folder
-    filter_sysnames = define.get_sysname_list(form.filter)
+    filter_sysnames = parse_sysname_list(form.filter)
 
     if filter_sysnames:
         # ';', URL-quoted

@@ -12,7 +12,7 @@ $def with (query, card, caption)
       $if caption == "collection_requested":
         requested by <a class="username" href="/~${LOGIN(query['collector'])}">${query['collector']}</a>
       $else:
-        submitted by <a class="username" href="/~${LOGIN(card.username)}">${card.username}</a>
+        submitted by <a class="username" href="/~${card.username.sysname}">${card.username.display}</a>
         $if caption == "collection_pending":
           and offered
         $else:

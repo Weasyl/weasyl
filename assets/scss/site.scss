@@ -3918,6 +3918,11 @@ a.user-icon:hover {
     }
 }
 
+.invalid-markup {
+    cursor: help;
+    text-decoration: wavy #f90 underline;
+}
+
 .hidden-comment {
     opacity: 0.5;
 }

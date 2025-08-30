@@ -121,6 +121,7 @@ def create_link(t, username):
     if sysname is None:
         e = etree.Element("span")
         e.set("class", "invalid-markup")
+        e.set("title", "invalid username")
         e.text = f"<{t}{username}>"
         return e
 

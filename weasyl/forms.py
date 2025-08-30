@@ -60,3 +60,10 @@ def parse_sysname(s: str) -> str | None:
     sysname = _NON_SYSNAME.sub("", normalized)
 
     return sysname if 0 < len(sysname) <= USERNAME_MAX_LENGTH else None
+
+
+def parse_sysname_list(s: str) -> list[str]:
+    """
+    Parse a list of sysnames (in the sense of `parse_sysname`) from a string of semicolon-delimited usernames, leaving out entries that aren’t well-formed usernames.
+    """
+    return list(filter(None, map(parse_sysname, s.split(";"))))

@@ -28,7 +28,6 @@ from weasyl.controllers import (
     weasyl_collections,
 )
 from weasyl.controllers.decorators import csrf_defined
-from weasyl import oauth2
 
 
 HttpMethod = Literal["GET", "POST", "PUT", "DELETE", "PATCH"]
@@ -366,11 +365,6 @@ routes = (
     Route("/help/tagging", "help_tagging", info.help_tagging_),
     Route("/help/two_factor_authentication", "help_two_factor_authentication", info.help_two_factor_authentication_),
     Route("/help/verification", "help_verification", info.help_verification_),
-
-    # OAuth2 routes.
-    Route("/api/oauth2/authorize", "oauth2_authorize",
-          {'GET': oauth2.authorize_get_, 'POST': oauth2.authorize_post_}),
-    Route("/api/oauth2/token", "oauth2_token", {'POST': oauth2.token_}),
 
     # API routes.
     Route("/api/useravatar", "useravatar", api.api_useravatar_, renderer="json"),

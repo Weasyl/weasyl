@@ -12,7 +12,7 @@ from weasyl.users import Username
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, folder, followuser, frienduser, ignoreuser,
-    login, oauth2, profile, searchtag, thumbnail, useralias, orm)
+    login, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -498,7 +498,6 @@ def control_streaming_post_(request):
 def control_apikeys_get_(request):
     return Response(define.webpage(request.userid, "control/edit_apikeys.html", [
         api.get_api_keys(request.userid),
-        oauth2.get_consumers_for_user(request.userid),
     ], title="API Keys"))
 
 
@@ -510,8 +509,6 @@ def control_apikeys_post_(request):
         api.add_api_key(request.userid, request.POST.getone('add-key-description'))
     if 'delete-api-keys' in request.POST:
         api.delete_api_keys(request.userid, request.POST.getall('delete-api-keys'))
-    if 'revoke-oauth2-consumers' in request.POST:
-        oauth2.revoke_consumers_for_user(request.userid, request.POST.getall('revoke-oauth2-consumers'))
 
     raise HTTPSeeOther(location="/control/apikeys")
 

@@ -42,7 +42,7 @@ $code:
         <h3>Favorite Characters</h3>
 
         $ cards = card_viewer.get_cards(result['char'])
-        <ul class="avatar-grid">
+        <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
           $for card in cards:
             $:{_GRID_ITEM(card, lazy_load=False)}
           <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=char"><i>More</i> <span>Characters</span></a></li>

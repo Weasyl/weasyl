@@ -126,12 +126,13 @@ $code:
               $:{_GRID_ITEM(card, lazy_load=index >= 10)}
           </ul>
 
-        <nav id="search-nav" class="pages-layout-split pages-vpad pad-left pad-right">
-          $if prev_page is not None:
-            <a id="search-back" class="button" href="/search?${QUERY_STRING(dict(meta, backid=prev_page.backid, nextid=None))}" rel="prev">Back</a>
-          $if next_page is not None:
-            <a id="search-next" class="button" href="/search?${QUERY_STRING(dict(meta, nextid=next_page.nextid, backid=None))}" rel="next">Next</a>
-        </nav>
+        $if prev_page is not None or next_page is not None:
+          <nav id="search-nav" class="pages-layout-split pages-vpad pad-left pad-right">
+            $if prev_page is not None:
+              <a id="search-back" class="button" href="/search?${QUERY_STRING(dict(meta, backid=prev_page.backid, nextid=None))}" rel="prev">Back</a>
+            $if next_page is not None:
+              <a id="search-next" class="button" href="/search?${QUERY_STRING(dict(meta, nextid=next_page.nextid, backid=None))}" rel="next">Next</a>
+          </nav>
       $else:
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>
     </div>

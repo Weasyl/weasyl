@@ -10,6 +10,7 @@ import numbers
 import datetime
 import pkgutil
 from collections import defaultdict
+from collections.abc import Iterable
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
@@ -465,10 +466,10 @@ def _get_userids(*sysnames):
     return [sysname_userid.get(sysname, 0) for sysname in sysnames]
 
 
-def get_userids(usernames):
-    ret = {}
-    lookup_usernames = []
-    sysnames = []
+def get_userids(usernames: Iterable[str]) -> Mapping[str, int]:
+    ret: dict[str, int] = {}
+    lookup_usernames: list[str] = []
+    sysnames: list[str] = []
 
     for username in usernames:
         sysname = parse_sysname(username)

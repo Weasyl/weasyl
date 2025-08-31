@@ -42,7 +42,7 @@ def select(userid):
     } for ignored, username in results]
 
 
-def insert(userid, ignore):
+def insert(userid: int, ignore: list[int]) -> None:
     if not ignore:
         return
 
@@ -72,7 +72,7 @@ def insert(userid, ignore):
     cached_list_ignoring.invalidate(userid)
 
 
-def remove(userid, ignore):
+def remove(userid: int, ignore: list[int]) -> None:
     if not ignore:
         return
 

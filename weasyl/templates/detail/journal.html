@@ -25,7 +25,7 @@ $def with (myself, query, violations)
             <button accesskey="f"><span class="icon icon-20 icon-star"></span> Favorite</button>
       </form></li>
       <li>
-        $if query['reported'] and myself and myself['userid'] in staff.MODS:
+        $if query['reported']:
           <a id="detail-report-button" class="active" href="#"><span class="icon icon-20 icon-report"></span> Reported</a>
         $elif not query['hidden']:
           <a id="detail-report-button" href="#"><span class="icon icon-20 icon-report"></span> Report</a>

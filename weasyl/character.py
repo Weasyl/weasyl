@@ -259,7 +259,7 @@ def select_view(
         'species': query['species'],
         'content': query['content'],
         'rating': query['rating'],
-        'reported': report.check(charid=charid),
+        'reported': report.check(charid=charid) if userid in staff.MODS else None,
         'favorited': favorite.check(userid, charid=charid),
         'page_views': query['page_views'],
         'friends_only': query['friends_only'],

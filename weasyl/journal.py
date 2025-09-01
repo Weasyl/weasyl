@@ -144,7 +144,7 @@ def select_view(
         'content': journal['content'],
         'rating': journal['rating'],
         'page_views': journal['page_views'],
-        'reported': report.check(journalid=journalid),
+        'reported': report.check(journalid=journalid) if userid in staff.MODS else None,
         'favorited': favorite.check(userid, journalid=journalid),
         'friends_only': journal['friends_only'],
         'hidden': journal['hidden'],

@@ -679,7 +679,7 @@ def select_view(
 
 
         "mine": userid == query[0],
-        "reported": report.check(submitid=submitid),
+        "reported": report.check(submitid=submitid) if userid in staff.MODS else None,
         "favorited": favorite.check(userid, submitid=submitid),
         "collected": collection.owns(userid, submitid),
         "no_request": not settings.allow_collection_requests,

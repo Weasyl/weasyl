@@ -106,6 +106,11 @@ def downgrade():
         'profile',
         type_='check',
     )
+    op.drop_constraint(
+        'useralias_alias_name_format_check',
+        'useralias',
+        type_='check',
+    )
 
     # username_history_username_check
     op.drop_constraint(

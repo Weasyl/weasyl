@@ -15,6 +15,9 @@ import sqlalchemy as sa
 
 
 def upgrade():
+    # redundant index (there’s already a `UNIQUE` constraint on `login_name`)
+    op.drop_index('ind_login_login_name', table_name='login')
+
     # new constraints
     op.create_check_constraint(
         'login_login_name_format_check',
@@ -149,3 +152,5 @@ def downgrade():
                existing_type=sa.String(length=25),
                type_=sa.VARCHAR(length=40),
                existing_nullable=False)
+
+    op.create_index('ind_login_login_name', 'login', ['login_name'], unique=False)

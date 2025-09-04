@@ -31,9 +31,9 @@ $code:
             'character of' if card.contype == 20 else
             'by'
           )
-        <p class="byline" title="$:{byline_prefix} ${card.username}">
+        <p class="byline" title="$:{byline_prefix} ${card.username.display}">
           <i>$:{byline_prefix}</i>
-          <a href="/~${LOGIN(card.username)}" class="username">${card.username}</a>
+          <a href="/~${card.username.sysname}" class="username">${card.username.display}</a>
         </p>
     </figcaption>
   </figure>

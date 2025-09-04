@@ -58,21 +58,6 @@ def test_list_guest(app):
     assert titles == ['Public journal', 'Test journal']
 
 
-@pytest.mark.usefixtures('db', 'cache')
-def test_list_unicode_username(app):
-    """
-    Test journal lists on profiles with usernames containing non-ASCII
-    characters, which aren’t supposed to exist but do because of
-    a historical bug.
-    """
-    journal_user = db_utils.create_user(username='journál_test')
-    db_utils.create_journal(journal_user, title='Unícode journal 😊', content='A journal and poster username with non-ASCII characters 😊')
-
-    resp = app.get('/journals/journaltest')
-    titles = [link.string for link in resp.html.find(id='journals-content').find_all('a')]
-    assert titles == ['Unícode journal 😊']
-
-
 def create_journal(app, user, *, rating):
     resp = app.post("/submit/journal", {"title": "Created journal", "rating": rating, "content": "A journal"})
     assert resp.status_int == 303

@@ -5,7 +5,6 @@ import sqlalchemy as sa
 
 from libweasyl import ratings
 from libweasyl import staff
-from libweasyl.legacy import get_sysname
 from libweasyl.models import content
 from libweasyl.models.content import Journal
 from libweasyl.models.helpers import CharSettings
@@ -14,6 +13,7 @@ from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
+from weasyl.users import Username
 
 _user_index = itertools.count()
 
@@ -73,7 +73,7 @@ def create_user(
 
         db.execute(d.meta.tables['login'].insert().values({
             'userid': userid,
-            'login_name': get_sysname(username),
+            'login_name': Username.from_stored(username).sysname,
             'last_login': sa.text("to_timestamp(0)"),
             'email': email_addr,
             'voucher': userid if verified else None,

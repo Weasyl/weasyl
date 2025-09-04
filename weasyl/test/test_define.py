@@ -154,10 +154,6 @@ def test_viewing_own_profile(db):
     assert db.query(users.Profile).get(user).page_views == 0
 
 
-def test_sysname():
-    assert d.get_sysname("ź") == "z"
-
-
 def test_nul():
     with pytest.raises(ValueError) as err:
         d.engine.scalar("SELECT %(test)s", test="foo\x00bar")

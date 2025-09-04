@@ -110,11 +110,11 @@ $code:
           <ul class="avatar-grid">
             $for card in cards:
               <li>
-                <a href="${card.href}" title="${card.username}">
+                <a href="${card.href}" title="${card.username.display}">
                   <figure>
                     <img src="${card.avatar.file['display_url']}">
                     <figcaption>
-                      <h5 class="username one-line">${card.username}</h5>
+                      <h5 class="username one-line">${card.username.display}</h5>
                     </figcaption>
                   </figure>
                 </a>

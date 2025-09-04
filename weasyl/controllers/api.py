@@ -10,6 +10,7 @@ from libweasyl import ratings
 
 from weasyl.controllers.decorators import token_checked
 from weasyl.error import WeasylError
+from weasyl.users import Username
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
@@ -132,8 +133,11 @@ def tidy_submission(submission):
     if contype:
         submission['type'] = m.CONTYPE_PARSABLE_MAP[contype]
     submission['rating'] = ratings.CODE_TO_NAME[submission['rating']]
-    submission['owner'] = submission.pop('username')
-    submission['owner_login'] = d.get_sysname(submission['owner'])
+
+    username = Username.from_stored(submission.pop('username'))
+    submission['owner'] = username.display
+    submission['owner_login'] = username.sysname
+
     submission['media'] = submission.pop('sub_media')
     submitid = 0
     if 'submitid' in submission:
@@ -245,7 +249,7 @@ def api_user_view_(request):
 
     user['created_at'] = d.iso8601(user.pop('unixtime'))
     user['media'] = api.tidy_all_media(user.pop('user_media'))
-    user['login_name'] = d.get_sysname(user['username'])
+    user['login_name'] = Username.from_stored(user['username']).sysname
     user['profile_text'] = markdown(user['profile_text'])
 
     user['folders'] = folder.select_list(otherid)

@@ -20,6 +20,7 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.users import Username
 
 
 def create(userid, journal, friends_only=False, tags=None):
@@ -172,11 +173,13 @@ def select_view_api(
         increment_views=increment_views,
     )
 
+    username = Username.from_stored(journal['username'])
+
     return {
         'journalid': journalid,
         'title': journal['title'],
-        'owner': journal['username'],
-        'owner_login': d.get_sysname(journal['username']),
+        'owner': username.display,
+        'owner_login': username.sysname,
         'owner_media': api.tidy_all_media(
             media.get_user_media(journal['userid'])),
         'content': text.markdown(journal['content']),

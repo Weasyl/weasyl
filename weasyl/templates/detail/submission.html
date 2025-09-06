@@ -8,6 +8,15 @@ $code:
   def _SUBCAT(x):
     return dict(subtypes).get(x, "General")
 
+  def _SIZE_ATTRIBUTES(cover):
+    attrs = cover['attributes']
+    width = attrs.get('width')
+    height = attrs.get('height')
+    return (
+      ' width="%d" height="%d"' % (width, height)
+      if width and height else ''
+    )
+
   card_viewer = get_card_viewer()
 
 <div id="detail-stage" class="stage">
@@ -25,7 +34,7 @@ $code:
   $if query['google_doc_embed'] is not None:
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em"$:{_SIZE_ATTRIBUTES(cover)}>
       <iframe
           src="${query['google_doc_embed']}" class="content gdoc"
           style="width: 100%; height: 40em; max-width: 80em; padding: 0">
@@ -35,7 +44,7 @@ $code:
   $elif query['embed'] is not None:
     $if cover:
       <div id="detail-art">
-        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em"$:{_SIZE_ATTRIBUTES(cover)}>
       </div>
     <div id="detail-embed" class="pad-left pad-right">
       $:{query['embed'].safer_html}
@@ -48,7 +57,7 @@ $code:
     <!-- VISUAL -->
     <div id="detail-art">
       <a href="${submission['display_url']}">
-      <img src="${cover['display_url']}" alt="${query['title']}" />
+      <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       </a>
     </div>
 
@@ -56,7 +65,7 @@ $code:
     <!-- TEXTUAL -->
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail-art-text" class="content formatted-content">
         $:{MARKDOWN(query['text'])}
       </div>
@@ -65,7 +74,7 @@ $code:
   $elif submission['file_type'] == "pdf":
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail-art-text" class="content pdf">
         <a href="${submission['display_url']}" id="pdf-download" class="button">View PDF</a>
       </div>
@@ -75,7 +84,7 @@ $code:
     <!-- COMPOSITION -->
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail-art-text" class="content formatted-content">
         $:{query['text']}
       </div>
@@ -85,7 +94,7 @@ $code:
     <!-- MULTIMEDIA -->
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail_submission_media" style="display:inline-block;width:500px;">
         <audio type="audio/mpeg" src="${submission['display_url']}" controls>
           <p>Your browser doesn’t support audio playback.</p>

@@ -24,13 +24,13 @@ def upgrade():
         'login',
         "login_name SIMILAR TO '[0-9a-z]+'",
     )
-    op.execute("UPDATE logincreate SET username = regexp_replace(trim(username), ' {2,}', ' ') WHERE username ~ '^ | {2}| $'")
+    op.execute("UPDATE logincreate SET username = regexp_replace(trim(username), ' {2,}', ' ', 'g') WHERE username ~ '^ | {2}| $'")
     op.create_check_constraint(
         'logincreate_username_format_check',
         'logincreate',
         """username SIMILAR TO '[!-~]+( [!-~]+)*' AND login_name <> '' AND login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', '', 'g') COLLATE "C")""",
     )
-    op.execute("UPDATE profile SET username = regexp_replace(trim(username), ' {2,}', ' ') WHERE username ~ '^ | {2}| $'")
+    op.execute("UPDATE profile SET username = regexp_replace(trim(username), ' {2,}', ' ', 'g') WHERE username ~ '^ | {2}| $'")
     op.create_check_constraint(
         'profile_username_format_check',
         'profile',
@@ -43,7 +43,7 @@ def upgrade():
     )
 
     # username_history_username_check
-    op.execute("UPDATE username_history SET username = regexp_replace(trim(username), ' {2,}', ' ') WHERE username ~ '^ | {2}| $'")
+    op.execute("UPDATE username_history SET username = regexp_replace(trim(username), ' {2,}', ' ', 'g') WHERE username ~ '^ | {2}| $'")
     op.drop_constraint(
         'username_history_username_check',
         'username_history',

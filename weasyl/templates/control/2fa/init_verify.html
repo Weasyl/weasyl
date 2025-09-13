@@ -34,7 +34,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Final Step", "Two-Factor Auth
     </p>
   </div>
 
-  <form method="POST" class="form skinny clear" action="/control/2fa/init_verify">
+  <form method="post" class="form skinny clear" action="/control/2fa/init_verify">
     <h3>Your recovery codes are:</h3>
     <ol>
       $for code in tfa_recovery_codes:

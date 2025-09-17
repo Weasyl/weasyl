@@ -2,7 +2,7 @@ $def with (username, referer, remaining_recovery_codes, error)
 $:{RENDER("common/stage_title.html", ["Two-Factor Authentication", "Sign In"])}
 
 <div class="content form clear">
-  <form method="POST" class="form skinny clear" action="/signin/2fa-auth">
+  <form method="post" class="form skinny clear" action="/signin/2fa-auth">
     $if error == "2fa":
       <div id="signin_error"><strong>Whoops!</strong> The 2FA response token or recovery code you provided did not validate.</div>
     <h3>Two-Factor Authentication</h3>

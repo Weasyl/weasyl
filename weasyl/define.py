@@ -124,13 +124,6 @@ def execute(statement, argv=None):
         query.close()
 
 
-def column(results):
-    """
-    Get a list of values from a single-column ResultProxy.
-    """
-    return [x for x, in results]
-
-
 def serializable_retry(action, limit=16):
     """
     Runs an action accepting a `Connection` parameter in a serializable

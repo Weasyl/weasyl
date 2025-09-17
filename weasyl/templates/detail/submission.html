@@ -244,7 +244,7 @@ $code:
           <p><a href="/reupload/submission?submitid=${query['submitid']}">Edit Submission File</a></p>
         <p><a href="/edit/submission?submitid=${query['submitid']}">Edit Submission Details</a></p>
 
-        <form action="/remove/submission" method="POST" data-confirm="Are you sure you want to remove this submission?">
+        <form action="/remove/submission" method="post" data-confirm="Are you sure you want to remove this submission?">
           <input type="hidden" name="submitid" value="${query['submitid']}">
 
           <input type="submit" value="Remove Submission from Gallery" class="link-button">
@@ -282,7 +282,7 @@ $code:
             <form name="collectionrequest" action="/collection/request" method="post" class="form clear">
               <input type="hidden" name="submitid" value="${query['submitid']}" style="display:block">
 
-              <button type="submit" class="button" style="display:block">Request This Submission</button>
+              <button class="button" style="display:block">Request This Submission</button>
             </form>
       </div>
 
@@ -292,7 +292,7 @@ $code:
         $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/submission?submitid=${query['submitid']}&amp;anyway=true">Edit Submission Details</a></p>
-        <form action="/modcontrol/massaction" method="POST">
+        <form action="/modcontrol/massaction" method="post">
           <input type="hidden" name="submissions" value="${query['submitid']}">
           <select name="action" class="input">
             $for value, name in M.get_mod_actions(query, "submission").items():

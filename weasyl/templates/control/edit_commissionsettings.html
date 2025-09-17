@@ -52,7 +52,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="button positive" style="float: right;">Save Info</button>
+            <button class="button positive" style="float: right;">Save Info</button>
           </div>
         </form>
       </div>
@@ -115,7 +115,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
             $for char, info in currencies.items():
               <option value="${char if char else '$'}">${info.name}</option>
           </select>
-          <button type="submit" class="button positive" style="float: right;">Create Type</button>
+          <button class="button positive" style="float: right;">Create Type</button>
         </div>
       </div><!-- commish-row -->
     </form>
@@ -158,7 +158,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
               <label class="input-checkbox">
                 <input type="radio" name="settings" value="a">This price is an additional cost
               </label>
-            <button type="submit" class="button positive" style="float: right;">Create Price</button>
+            <button class="button positive" style="float: right;">Create Price</button>
           </div>
         </div>
       </form>
@@ -181,8 +181,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
 
             <label for="commishprices-renameclass">Rename To</label>
             <input type="text" id="commishprices-renameclass" class="input last-input" name="title" required="required" placeholder="ex: 'Sketch', 'Badge'" />
-            <button type="submit" formaction="/control/editcommishclass" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Type</button>
-            <button type="submit" formaction="/control/removecommishclass" class="button negative" formnovalidate="formnovalidate" style="float: right;">Remove Type</button>
+            <button formaction="/control/editcommishclass" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Type</button>
+            <button formaction="/control/removecommishclass" class="button negative" formnovalidate="formnovalidate" style="float: right;">Remove Type</button>
           </form>
         </div>
 
@@ -231,8 +231,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
                        $:{'checked="checked"' if 'a' in price['settings'] else ""}>This price is an additional cost
               </label>
 
-              <button type="submit" formaction="/control/editcommishprice" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Price</button>
-              <button type="submit" formaction="/control/removecommishprice" formnovalidate="formnovalidate" class="button negative" style="float: right;">Remove Price</button>
+              <button formaction="/control/editcommishprice" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Price</button>
+              <button formaction="/control/removecommishprice" formnovalidate="formnovalidate" class="button negative" style="float: right;">Remove Price</button>
             </form>
         </div>
       </div>

@@ -12,7 +12,7 @@ In this module, `userid` is typically the user performing the action, whereas
 """
 
 
-def _insert(sender, referid, targetid, type, notify_users):
+def _insert(sender, referid, targetid, type, notify_users: list[int]) -> None:
     """
     Creates message notifications.
     """
@@ -60,7 +60,7 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, friends_onl
         "targetid = %(sub)s AND tagid IN (SELECT tagid FROM blocktag WHERE userid = "
         "wu.userid AND rating <= %(rating)s))")
 
-    _insert(userid, 0, submitid, 2010, d.column(d.engine.execute("".join(statement), sender=userid, sub=submitid, rating=rating)))
+    _insert(userid, 0, submitid, 2010, d.engine.execute("".join(statement), sender=userid, sub=submitid, rating=rating).scalars().all())
 
 
 # notifications

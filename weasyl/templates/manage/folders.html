@@ -16,7 +16,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
         <option value="${i['folderid']}">${i['title']}</option>
     </select>
 
-    <button type="submit" class="button positive" style="float: right;">Create Folder</button>
+    <button class="button positive" style="float: right;">Create Folder</button>
   </form>
 
   <form id="rename-folder" action="/control/renamefolder" method="post" class="form skinny">
@@ -32,7 +32,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
         <option value="${i['folderid']}">${i['title']}</option>
     </select>
 
-    <button type="submit" class="button positive" style="float: right;">Rename Folder</button>
+    <button class="button positive" style="float: right;">Rename Folder</button>
   </form>
 
   <form id="move-folder" action="/control/movefolder" method="post" class="form skinny">
@@ -52,7 +52,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
         <option value="${i['folderid']}">${i['title']}</option>
     </select>
 
-    <button type="submit" class="button positive" style="float: right;">Move Folder</button>
+    <button class="button positive" style="float: right;">Move Folder</button>
   </form>
 
   <form id="remove-folder" action="/control/removefolder" method="post" class="form skinny">
@@ -67,7 +67,7 @@ $:{RENDER("common/stage_title.html", ["Submission Folders", "Settings"])}
         <option value="${i['folderid']}">${i['title']}</option>
     </select>
 
-    <button type="submit" class="button negative" style="float: right;">Remove Folder</button>
+    <button class="button negative" style="float: right;">Remove Folder</button>
   </form>
 
   $if folders:

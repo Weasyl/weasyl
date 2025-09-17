@@ -94,7 +94,7 @@ $def with (myself, query, violations)
         <p><a href="/reupload/character?charid=${query['charid']}">Edit Submission File</a></p>
         <p><a href="/edit/character?charid=${query['charid']}">Edit Character Details</a></p>
 
-        <form action="/remove/character" method="POST" data-confirm="Are you sure you want to remove this character?">
+        <form action="/remove/character" method="post" data-confirm="Are you sure you want to remove this character?">
           <input type="hidden" name="charid" value="${query['charid']}" />
 
           <button class="link-button">Remove Character from Gallery</button>
@@ -107,7 +107,7 @@ $def with (myself, query, violations)
         $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/character?charid=${query['charid']}&amp;anyway=true">Edit Character Details</a></p>
-        <form action="/modcontrol/massaction" method="POST">
+        <form action="/modcontrol/massaction" method="post">
           <input type="hidden" name="characters" value="${query['charid']}">
           <select name="action" class="input">
             $for value, name in M.get_mod_actions(query, "character").items():

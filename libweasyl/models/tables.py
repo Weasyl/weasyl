@@ -821,6 +821,14 @@ submission = Table(
                 + unixtime / 180000.0
         )"""),
     ),
+    Index(
+        'ind_submission_score2',
+        text("""(
+            log(favorites)
+                + unixtime / 180000.0
+        )"""),
+        postgresql_where=text("favorites > 0"),
+    ),
 )
 
 Index('ind_submission_folderid', submission.c.folderid)

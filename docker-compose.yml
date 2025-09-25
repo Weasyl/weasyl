@@ -37,16 +37,16 @@ services:
       - assets:/weasyl/build:ro
       - storage:/weasyl/static:ro
       - test-coverage:/weasyl/coverage:ro
-      - type: tmpfs
-        target: /var/cache/nginx
-      - type: tmpfs
-        target: /run
       - uds-nginx-web:/run/uds-nginx-web
+    tmpfs:
+      # owner nginx:nginx
+      - '/run/nginx:mode=700,uid=101,gid=102'
+      - '/var/lib/nginx/tmp:mode=700,uid=101,gid=102'
     networks:
       - external-nginx
     ports:
       - ${WEASYL_BIND:-127.0.0.1}:8080:8080/tcp
-    read_only: false  # Nginx’s entrypoint generates configuration dynamically
+    read_only: true
 
   web:
     image: weasyl

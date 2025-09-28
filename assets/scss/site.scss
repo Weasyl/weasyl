@@ -96,6 +96,11 @@ $color-b: #8cad47;
     @extend %content-like;
 }
 
+// Temporary opt-in to newer baseline font size.
+.content-14 {
+    font-size: 14px;
+}
+
 .color-a,
 .username,
 .content .username,
@@ -1556,6 +1561,21 @@ $field-spacing-top: 16px;
     }
 }
 
+.form-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.fine-print, .tip {
+    display: block;
+    font-size: 12px;
+}
+
+.input-detail {
+    margin-top: 6px;
+}
+
 /* ------------------------------------ =header -- */
 
 #header {
@@ -2742,6 +2762,7 @@ $small-caps-ratio: 1.2;
 
 #detail-art img {
     display: block;
+    height: auto;
     max-width: 100%;
     margin: 0 auto;
 }
@@ -3774,9 +3795,6 @@ $journals-column-gap: 8px;
 }
 
 /* ---------------------------------------------- error -- */
-/*
-templates/error/error.html
-*/
 
 #error_content {
     padding-top: 2em;
@@ -3908,6 +3926,11 @@ a.user-icon:hover {
     > span {
         text-decoration: underline;
     }
+}
+
+.invalid-markup {
+    cursor: help;
+    text-decoration: wavy #f90 underline;
 }
 
 .hidden-comment {

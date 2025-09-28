@@ -8,6 +8,7 @@ from sqlalchemy.schema import ForeignKeyConstraint as _ForeignKeyConstraint
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn)
 from libweasyl import constants
+from weasyl.users import USERNAME_MAX_LENGTH
 
 
 metadata = MetaData()
@@ -356,7 +357,7 @@ Index('ind_journalcomment_targetid_commentid', journalcomment.c.targetid, journa
 login = Table(
     'login', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('login_name', String(length=40), nullable=False, unique=True),
+    Column('login_name', String(length=USERNAME_MAX_LENGTH), nullable=False, unique=True),
     Column('last_login', TIMESTAMP(timezone=True), nullable=False),
     Column('email', String(length=100), nullable=False, server_default=''),
     Column('twofa_secret', String(length=420), nullable=True),
@@ -366,10 +367,10 @@ login = Table(
     # Nullable for the case where no site updates exist in the database.
     Column('last_read_updateid', Integer(), nullable=True),
     ForeignKeyConstraint(['last_read_updateid'], ['siteupdate.updateid'], name='login_last_read_updateid_fkey'),
+    CheckConstraint("login_name SIMILAR TO '[0-9a-z]+'", name='login_login_name_format_check'),
 )
 
-Index('ind_login_login_name', login.c.login_name)
-Index('ind_login_lower_email', func.lower(login.c.login_name.collate('C')))
+Index('ind_login_lower_email', func.lower(login.c.email.collate('C')))
 
 
 twofa_recovery_codes = Table(
@@ -385,8 +386,8 @@ Index('ind_twofa_recovery_codes_userid', twofa_recovery_codes.c.userid)
 logincreate = Table(
     'logincreate', metadata,
     Column('token', String(length=100), primary_key=True, nullable=False),
-    Column('username', String(length=40), nullable=False),
-    Column('login_name', String(length=40), nullable=False, unique=True),
+    Column('username', String(length=USERNAME_MAX_LENGTH), nullable=False),
+    Column('login_name', String(length=USERNAME_MAX_LENGTH), nullable=False, unique=True),
     Column('hashpass', String(length=100), nullable=False),
     Column('email', String(length=100), nullable=False, unique=True),
     Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
@@ -396,6 +397,8 @@ logincreate = Table(
     Column('invalid', Boolean(), server_default='f', nullable=False),
     Column('invalid_email_addr', String(length=100), nullable=True, server_default=None),
     Column('ip_address_signup_request', String(length=39), nullable=True),
+    # TODO: Make `login_name` a generated column in PostgreSQL 12+
+    CheckConstraint("""username SIMILAR TO '[!-~]+( [!-~]+)*' AND login_name <> '' AND login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', '', 'g') COLLATE "C")""", name='logincreate_username_format_check'),
 )
 
 
@@ -478,7 +481,7 @@ permitted_senders = Table(
 profile = Table(
     'profile', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('username', String(length=40), nullable=False, unique=True),
+    Column('username', String(length=USERNAME_MAX_LENGTH), nullable=False, unique=True),
     Column('full_name', String(length=100), nullable=False),
     Column('catchphrase', String(length=200), nullable=False, server_default=''),
     Column('artist_type', String(length=100), nullable=False, server_default=''),
@@ -542,6 +545,7 @@ profile = Table(
     Column('custom_thumbs', Boolean()),
     Column('stream_text', String(length=2000)),
     cascading_fkey(['userid'], ['login.userid'], name='profile_userid_fkey'),
+    CheckConstraint("username SIMILAR TO '[!-~]+( [!-~]+)*' AND username !~ ';'", name='profile_username_format_check'),
     CheckConstraint("watch_defaults ~ '^s?c?f?t?j?$'", name='profile_watch_defaults_check'),
 )
 
@@ -937,9 +941,11 @@ Index('ind_user_streams_end_time', user_streams.c.end_time)
 useralias = Table(
     'useralias', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('alias_name', String(length=40), primary_key=True, nullable=False),
+    Column('alias_name', String(length=USERNAME_MAX_LENGTH), primary_key=True, nullable=False),
     Column('settings', String(), nullable=False, server_default=''),
     cascading_fkey(['userid'], ['login.userid'], name='useralias_userid_fkey'),
+    UniqueConstraint('alias_name', name='useralias_alias_name_key'),
+    CheckConstraint("alias_name SIMILAR TO '[0-9a-z]+'", name='useralias_alias_name_format_check'),
 )
 
 
@@ -958,8 +964,8 @@ username_history = Table(
     'username_history', metadata,
     Column('historyid', Integer(), primary_key=True, nullable=False),
     Column('userid', Integer(), ForeignKey('login.userid', name='username_history_userid_fkey'), nullable=False),
-    Column('username', String(length=25), nullable=False),
-    Column('login_name', String(length=25), nullable=False),
+    Column('username', String(length=USERNAME_MAX_LENGTH), nullable=False),
+    Column('login_name', String(length=USERNAME_MAX_LENGTH), nullable=False),
     Column('replaced_at', TIMESTAMP(timezone=True), nullable=False),
     Column('replaced_by', Integer(), ForeignKey('login.userid', name='username_history_replaced_by_fkey'), nullable=False),
     Column('active', Boolean(), nullable=False),
@@ -967,9 +973,9 @@ username_history = Table(
     Column('deactivated_by', Integer(), ForeignKey('login.userid', name='username_history_deactivated_by_fkey'), nullable=True),
     # true if the username changed but the login_name didn't
     Column('cosmetic', Boolean(), nullable=False),
-    CheckConstraint("username !~ '[^ -~]' AND username !~ ';'", name='username_history_username_check'),
+    CheckConstraint("username SIMILAR TO '[!-~]+( [!-~]+)*' AND username !~ ';'", name='username_history_username_check'),
     # TODO: replace with generated column once on PostgreSQL 12
-    CheckConstraint("login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', '', 'g'))", name='username_history_login_name_check'),
+    CheckConstraint("""login_name <> '' AND login_name = lower(regexp_replace(username, '[^0-9A-Za-z]', '', 'g') COLLATE "C")""", name='username_history_login_name_check'),
     CheckConstraint("(active OR cosmetic) = (deactivated_at IS NULL) AND (active OR cosmetic) = (deactivated_by IS NULL)", name='username_history_active_check'),
     CheckConstraint("NOT (cosmetic AND active)", name='username_history_cosmetic_inactive_check'),
 )

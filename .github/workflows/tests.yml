@@ -101,21 +101,10 @@ jobs:
       - name: Test libweasyl
         env:
           WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@weasyl-database/weasyl_test
-        run: .venv/bin/coverage run -m pytest libweasyl.test libweasyl.models.test
+        run: .venv/bin/python -m pytest libweasyl.test libweasyl.models.test
 
       - name: Test weasyl
         env:
           WEASYL_APP_ROOT: .
           WEASYL_STORAGE_ROOT: testing
-        run: .venv/bin/coverage run -m pytest weasyl.test
-
-      - name: Create coverage report
-        run: |
-          .venv/bin/coverage combine
-          .venv/bin/coverage xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.xml
-          use_oidc: true
+        run: .venv/bin/python -m pytest weasyl.test

@@ -3,6 +3,7 @@ from itertools import chain
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
+from weasyl.users import Username
 
 
 notification_clusters = {
@@ -30,7 +31,7 @@ def _fake_media_items(i):
         return character.fake_media_items(
             i.id,
             i.userid,
-            d.get_sysname(i.username),
+            Username.from_stored(i.username).sysname,
             i.settings)
     else:
         return None
@@ -369,7 +370,7 @@ def select_comments(userid):
     queries = []
 
     # Shout comments
-    current_username = d.get_sysname(d.get_display_name(userid))
+    current_username = d.get_username(userid).sysname
     queries.append({
         "type": 4010,
         "id": i.welcomeid,

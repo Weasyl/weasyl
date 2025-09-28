@@ -7,7 +7,7 @@ $code:
 
 <div id="manage-collections" class="content">
   $if query:
-    <form method="POST">
+    <form method="post">
       <div id="messages-checkboxes">
         $for i, card in zip(query, cards):
           $:{_LIST_ITEM(i, card, caption="collection_pending" if i["collectorid"] == userid else "collection_requested")}

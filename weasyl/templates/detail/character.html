@@ -30,7 +30,7 @@ $def with (myself, query, violations)
             <button accesskey="f"><span class="icon icon-20 icon-star"></span> Favorite</button>
       </form></li>
       <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
-      $if query['reported'] and myself and myself['userid'] in staff.MODS:
+      $if query['reported']:
         <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
       $elif not query['hidden']:
         <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
@@ -94,7 +94,7 @@ $def with (myself, query, violations)
         <p><a href="/reupload/character?charid=${query['charid']}">Edit Submission File</a></p>
         <p><a href="/edit/character?charid=${query['charid']}">Edit Character Details</a></p>
 
-        <form action="/remove/character" method="POST" data-confirm="Are you sure you want to remove this character?">
+        <form action="/remove/character" method="post" data-confirm="Are you sure you want to remove this character?">
           <input type="hidden" name="charid" value="${query['charid']}" />
 
           <button class="link-button">Remove Character from Gallery</button>
@@ -107,7 +107,7 @@ $def with (myself, query, violations)
         $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/character?charid=${query['charid']}&amp;anyway=true">Edit Character Details</a></p>
-        <form action="/modcontrol/massaction" method="POST">
+        <form action="/modcontrol/massaction" method="post">
           <input type="hidden" name="characters" value="${query['charid']}">
           <select name="action" class="input">
             $for value, name in M.get_mod_actions(query, "character").items():

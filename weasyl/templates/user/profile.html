@@ -49,7 +49,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
         This account hasn’t been <a href="/help/verification">verified</a> yet, so it’s only visible to staff.
       </p>
 
-      <form id="error_buttons" method="POST" action="${request.route_path('vouch')}">
+      <form id="error_buttons" method="post" action="${request.route_path('vouch')}">
         <input type="hidden" name="targetid" value="${profile['userid']}">
         <button class="button positive">Vouch for ${profile['username']}</button>
       </form>

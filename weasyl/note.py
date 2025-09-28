@@ -6,6 +6,7 @@ from weasyl import define as d
 from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname_list
 
 
 """
@@ -180,7 +181,7 @@ def send(userid, form):
     elif len(form.title) > 100:
         raise WeasylError("titleTooLong")
 
-    recipient_sysnames = d.get_sysname_list(form.recipient)
+    recipient_sysnames = parse_sysname_list(form.recipient)
     if len(recipient_sysnames) > 1:
         raise WeasylError("recipientExcessive")
 

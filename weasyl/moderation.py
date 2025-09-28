@@ -19,6 +19,7 @@ from weasyl import shout
 from weasyl import submission
 from weasyl import thumbnail
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname
 from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
@@ -576,7 +577,7 @@ def manageuser(userid, form):
     query = d.engine.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
         " WHERE userid = (SELECT userid FROM login WHERE login_name = %(name)s)",
-        name=d.get_sysname(form.name),
+        name=parse_sysname(form.name),
     ).first()
 
     if not query:

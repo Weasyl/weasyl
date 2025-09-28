@@ -13,7 +13,7 @@ INVALID_IDS = (
     '\0',
     '٨',
     '+1',
-    pytest.param('01', marks=pytest.mark.xfail()),
+    '01',
     '1.',
     ' 1',
     '1\n',

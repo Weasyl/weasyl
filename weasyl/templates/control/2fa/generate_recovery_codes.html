@@ -27,7 +27,7 @@ $:{RENDER("common/stage_title.html", ["Generate Recovery Codes", "Two-Factor Aut
     </p>
   </div>
 
-  <form method="POST" class="form skinny clear" action="/control/2fa/generate_recovery_codes">
+  <form method="post" class="form skinny clear" action="/control/2fa/generate_recovery_codes">
     <h3>Your new recovery codes will be:</h3>
     <ol>
       $for code in tfa_recovery_codes:

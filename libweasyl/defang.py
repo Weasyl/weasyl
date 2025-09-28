@@ -57,7 +57,8 @@ removed.
 
 allowed_classes = {
     "align-left", "align-center", "align-right", "align-justify",
-    "user-icon"
+    "user-icon",
+    "invalid-markup",
 }
 """
 All allowed CSS classes.

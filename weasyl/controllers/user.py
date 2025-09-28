@@ -328,14 +328,14 @@ def vouch_(request):
         target=targetid,
     ).first()
 
-    target_username = define.try_get_display_name(targetid)
+    target_username = define.try_get_username(targetid)
 
     if updated is not None:
         define._get_all_config.invalidate(targetid)
-        emailer.send(updated.email, "Weasyl Account Verified", define.render("email/verified.html", [target_username]))
+        emailer.send(updated.email, "Weasyl Account Verified", define.render("email/verified.html", [target_username.sysname]))
 
     if target_username is None:
         assert updated is None
         raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location=request.route_path('profile_tilde', name=define.get_sysname(target_username)))
+    raise HTTPSeeOther(location=request.route_path('profile_tilde', name=target_username.sysname))

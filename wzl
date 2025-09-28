@@ -119,6 +119,10 @@ deno)
     exit $exit_code
     ;;
 
+psql)
+    exec $docker_compose exec postgres psql -U weasyl "$@"
+    ;;
+
 push-templates)
     docker cp weasyl/templates weasyl-web-1:/weasyl/weasyl/
     ;;

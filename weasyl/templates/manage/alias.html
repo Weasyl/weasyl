@@ -4,8 +4,8 @@ $:{RENDER("common/stage_title.html", ["Username Alias", "Settings"])}
 <div class="content">
   <form name="managealias" action="/manage/alias" method="post" class="form skinny clear">
     <label for="editaliasusername">Alias</label>
-    <input type="text" name="username" class="input last-input" id="editaliasusername" value="${query if query else ''}" />
+    <input type="text" name="username" class="input last-input" id="editaliasusername" value="${query if query else ''}" maxlength="25" />
 
-    <button type="submit" class="button positive" style="float: right;">Save Alias</button>
+    <button class="button positive" style="float: right;">Save Alias</button>
   </form>
 </div>

@@ -37,11 +37,11 @@ services:
       - assets:/weasyl/build:ro
       - storage:/weasyl/static:ro
       - test-coverage:/weasyl/coverage:ro
-      - type: tmpfs
-        target: /var/cache/nginx
-      - type: tmpfs
-        target: /run
       - uds-nginx-web:/run/uds-nginx-web
+    tmpfs:
+      # owner nginx:nginx
+      - '/run/nginx:mode=700,uid=101,gid=102'
+      - '/var/lib/nginx/tmp:mode=700,uid=101,gid=102'
     networks:
       - external-nginx
     ports:
@@ -74,9 +74,9 @@ services:
       - type: tmpfs
         target: /tmp
     tmpfs:
-      - '/weasyl/storage/prometheus:mode=700,uid=100'
-      - '/weasyl/storage/temp:mode=700,uid=100'
-      - '/magick-tmp:mode=700,uid=100'
+      - '/weasyl/storage/prometheus:mode=700,uid=1000'
+      - '/weasyl/storage/temp:mode=700,uid=1000'
+      - '/magick-tmp:mode=700,uid=1000'
     networks:
       - prometheus-web
       - web-memcached

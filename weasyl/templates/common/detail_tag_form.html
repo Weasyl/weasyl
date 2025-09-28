@@ -35,7 +35,7 @@ $def with (targetid, feature, query, myself)
 
   $if edit_type != 'none':
     <div class="tags-manage" hidden>
-      <form class="tags-form" action="/submit/tags" method="POST">
+      <form class="tags-form" action="/submit/tags" method="post">
         <input type="hidden" name="${feature}id" value="${targetid}" />
 
         <textarea class="input tags-textarea" name="tags">${" ".join(tags.artist if edit_type == 'edit' else tags.own_suggested)}</textarea>

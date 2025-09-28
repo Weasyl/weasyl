@@ -1,4 +1,4 @@
-$def with (api_keys, consumers)
+$def with (api_keys)
 $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
 
 <div id="apikeys-content" class="content form clear">
@@ -35,7 +35,7 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
           $for token, description in api_keys:
             <li>
               <label class="input-checkbox">
-                <input type="checkbox" name="delete-api-keys" value="${token}" /></th>
+                <input type="checkbox" name="delete-api-keys" value="${token}" />
 
                 <em>
                   $if description:
@@ -54,27 +54,6 @@ $:{RENDER("common/stage_title.html", ["API Keys", "Settings"])}
         <button class="button negative" style="float: right;">Delete Selected Keys</button>
       $else:
         <p style="padding-top: 1em;">You have no API keys!</p>
-
-    </form>
-
-    <h3>Manage OAuth2 Consumers</h3>
-
-    <form action="" method="post" class="clear">
-      $if consumers:
-        $for consumer in consumers:
-          <label class="input-checkbox">
-            <input type="checkbox" name="revoke-oauth2-consumers" value="${consumer.clientid}" />
-            <strong>${consumer.description}</strong>,
-            by <a href="/~${LOGIN(consumer.owner.profile.username)}">${consumer.owner.profile.username}</a>
-          </label>
-        <p style="margin: 0.5em;">
-          Revoking an OAuth2 consumer will make it immediately unable to issue
-          requests.
-        </p>
-        <button class="button negative" style="float: right;">Revoke Selected Consumers</button>
-      $else:
-        <p style="padding-top: 1em;">You have no OAuth2 consumers!</p>
-
 
     </form>
   </div>

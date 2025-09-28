@@ -1,6 +1,7 @@
 import datetime
 import re
 from collections import namedtuple
+from collections.abc import Collection
 from dataclasses import dataclass
 
 import arrow
@@ -211,21 +212,27 @@ def select_myself(userid):
     }
 
 
-def get_user_age(userid):
+def get_user_age(userid: int) -> int | None:
     assert userid
     birthday = d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid)
     return None if birthday is None else d.convert_age(birthday)
 
 
-def get_user_ratings(userid):
+def get_user_ratings(userid: int) -> Collection[ratings.Rating]:
     return ratings.get_ratings_for_age(get_user_age(userid))
 
 
-def check_user_rating_allowed(userid, rating):
-    # TODO(kailys): ensure usages always pass a Rating
-    minimum_age = rating.minimum_age if isinstance(rating, ratings.Rating) else ratings.CODE_MAP[rating].minimum_age
+def is_user_rating_allowed(userid: int, rating: ratings.Rating) -> bool:
     user_age = get_user_age(userid)
-    if user_age is not None and user_age < minimum_age:
+    return user_age is None or user_age >= rating.minimum_age
+
+
+def check_user_rating_allowed(userid: int, rating: int | ratings.Rating) -> None:
+    # TODO(kailys): ensure usages always pass a Rating
+    if not isinstance(rating, ratings.Rating):
+        rating = ratings.CODE_MAP[rating]
+
+    if not is_user_rating_allowed(userid, rating):
         raise WeasylError("ratingInvalid")
 
 
@@ -860,16 +867,27 @@ def set_collection_preferences(
     d._get_all_config.invalidate(userid)
 
 
-def assert_adult(userid):
+def assert_adult(userid: int) -> None:
     """
     Set a flag on a user indicating that they’ve asserted they’re 18 or older in performing some operation.
     """
-    d.engine.execute(
+    result = d.engine.execute(
         t.userinfo.update().where(t.userinfo.c.userid == userid),
         {
             'asserted_adult': True,
         },
     )
+    if result.rowcount != 1:
+        raise RuntimeError("user not found")  # pragma: no cover
+    is_adult.set(True, userid)
+
+
+@region.cache_on_arguments()
+def is_adult(userid: int) -> bool:
+    ret = d.engine.scalar("SELECT asserted_adult FROM userinfo WHERE userid = %(userid)s", userid=userid)
+    if ret is None:
+        raise RuntimeError("user not found")  # pragma: no cover
+    return ret
 
 
 def select_manage(userid):

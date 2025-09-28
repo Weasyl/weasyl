@@ -2,7 +2,7 @@ $def with (blocktag, filter_ratings)
 $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
 
 <div id="filters-content" class="content">
-  <form method="POST" class="form skinny clear">
+  <form method="post" class="form skinny clear">
     <h3>Block New Tags</h3>
 
     <p>Enter tags to block if you don't want to see content marked with any of these tags. You can choose the range of ratings for which these tags will be blocked.</p>
@@ -22,7 +22,7 @@ $:{RENDER("common/stage_title.html", ["Blocked Tags", "Settings"])}
     </div>
   </form>
 
-  <form method="POST" class="filters-blocked">
+  <form method="post" class="filters-blocked">
     <h3>Blocked Tags</h3>
 
     $if blocktag:

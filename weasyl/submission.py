@@ -597,7 +597,7 @@ def select_view(
     userid,
     submitid,
     *,
-    rating,
+    rating: int,
     ignore: bool = True,
     anyway: bool = False,
 ):
@@ -618,8 +618,6 @@ def select_view(
         pass
     elif not query or query[8]:
         raise WeasylError("submissionRecordMissing")
-    elif query[7] > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()):
-        raise WeasylError("RatingExceeded")
     elif query[9] and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignore and ignoreuser.check(userid, query[0]):
@@ -671,6 +669,7 @@ def select_view(
         "content": content,
         "subtype": query[6],
         "rating": query[7],
+        "rating_exceeded": query.rating > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()),
         "hidden": query[8],
         "friends_only": query[9],
         "critique": query[10],
@@ -680,7 +679,7 @@ def select_view(
 
 
         "mine": userid == query[0],
-        "reported": report.check(submitid=submitid),
+        "reported": report.check(submitid=submitid) if userid in staff.MODS else None,
         "favorited": favorite.check(userid, submitid=submitid),
         "collected": collection.owns(userid, submitid),
         "no_request": not settings.allow_collection_requests,

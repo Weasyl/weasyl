@@ -81,7 +81,7 @@ $code:
     There are no reports to display.
   <div id="report-filters" class="form">
     <span style="float: right">
-      <form action="/modcontrol/reports" method="get">
+      <form action="/modcontrol/reports">
         <label for="status">Report status</label>
         <select name="status" class="input">
           <option value=""></option>
@@ -100,7 +100,7 @@ $code:
         <label for="submitter">Owner username</label>
         <input type="text" name="submitter" class="input" value="${method['submitter']}">
         <div style="padding-top: 1em">
-          <button style="float: right" type="submit" class="button positive">Filter</button>
+          <button style="float: right" class="button positive">Filter</button>
         </div>
       </form>
     </span>

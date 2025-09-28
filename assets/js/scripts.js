@@ -207,7 +207,7 @@ const loadMarked = () => {
         forEach(document.getElementsByClassName('markdown'), updateMarkdownPreview);
     };
 
-    markedScript.src = document.getElementById('scripts').getAttribute('data-marked-src');
+    markedScript.src = MARKED_SRC;
 
     document.body.appendChild(markedScript);
 };

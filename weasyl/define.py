@@ -10,6 +10,7 @@ import numbers
 import datetime
 import pkgutil
 from collections import defaultdict
+from collections.abc import Iterable
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
@@ -23,13 +24,14 @@ import sqlalchemy as sa
 import sqlalchemy.orm
 from ada_url import URL
 from prometheus_client import Histogram
+from psycopg2.errorcodes import SERIALIZATION_FAILURE
 from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
 from web.template import Template
 
 import libweasyl.constants
 from libweasyl.cache import region
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
+from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl.text import slug_for
 from libweasyl.text import summarize
@@ -43,6 +45,9 @@ from weasyl import metrics
 from weasyl import turnstile
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname
+from weasyl.forms import parse_sysname_list
+from weasyl.users import Username
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -119,16 +124,6 @@ def execute(statement, argv=None):
         query.close()
 
 
-def column(results):
-    """
-    Get a list of values from a single-column ResultProxy.
-    """
-    return [x for x, in results]
-
-
-_PG_SERIALIZATION_FAILURE = '40001'
-
-
 def serializable_retry(action, limit=16):
     """
     Runs an action accepting a `Connection` parameter in a serializable
@@ -142,8 +137,12 @@ def serializable_retry(action, limit=16):
                 with db.begin():
                     return action(db)
             except OperationalError as e:
-                if i == limit or e.orig.pgcode != _PG_SERIALIZATION_FAILURE:
+                if i == limit or e.orig.pgcode != SERIALIZATION_FAILURE:
                     raise
+
+
+def _sysname_for_stored_username(s: str) -> str:
+    return Username.from_stored(s).sysname
 
 
 with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
@@ -167,7 +166,7 @@ def _compile(template_name):
             filename=template_name,
             globals={
                 "STR": str,
-                "LOGIN": get_sysname,
+                "LOGIN": _sysname_for_stored_username,
                 "USER_TYPE": user_type,
                 "ARROW": get_arrow,
                 "LOCAL_TIME": _get_local_time_html,
@@ -191,6 +190,7 @@ def _compile(template_name):
                 "SLUG": slug_for,
                 "QUERY_STRING": query_string,
                 "INLINE_JSON": html.inline_json,
+                "ORIGIN": ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
@@ -247,18 +247,18 @@ def get_userid():
     return get_current_request().userid
 
 
-_ORIGIN = config_obj.get('general', 'origin')
+ORIGIN = config_obj.get('general', 'origin')
 
 
 def is_csrf_valid(request):
-    return request.headers.get('origin') == _ORIGIN
+    return request.headers.get('origin') == ORIGIN
 
 
 def path_redirect(path_qs: str) -> str:
     """
     Return an absolute URL for an internal redirect within the application’s origin.
     """
-    return _ORIGIN + path_qs
+    return ORIGIN + path_qs
 
 
 @region.cache_on_arguments(namespace='v4')
@@ -320,24 +320,28 @@ def get_profile_settings(userid):
     return ProfileSettings(jsonb)
 
 
-def get_config_rating(userid):
+def get_config_rating(userid: int) -> ratings.Rating:
     config = get_config(userid)
     if 'p' in config:
-        return ratings.EXPLICIT.code
+        return ratings.EXPLICIT
     elif 'a' in config:
-        return ratings.MATURE.code
+        return ratings.MATURE
     else:
-        return ratings.GENERAL.code
+        return ratings.GENERAL
 
 
-def get_rating(userid):
+def get_rating_obj(userid: int) -> ratings.Rating:
     if not userid:
-        return ratings.GENERAL.code
+        return ratings.GENERAL
 
     if is_sfw_mode():
-        return ratings.GENERAL.code
+        return ratings.GENERAL
 
     return get_config_rating(userid)
+
+
+def get_rating(userid: int) -> int:
+    return get_rating_obj(userid).code
 
 
 def is_sfw_mode():
@@ -374,7 +378,19 @@ def get_display_name(userid: int) -> str:
     return username
 
 
-try_get_display_name = _get_display_name
+def try_get_username(userid: int) -> Username | None:
+    username = _get_display_name(userid)
+    return Username.from_stored(username) if username is not None else None
+
+
+def get_username(userid: int) -> Username:
+    return Username.from_stored(get_display_name(userid))
+
+
+username_invalidate = _get_display_name.invalidate
+"""
+Invalidate the cached username for a user.
+"""
 
 
 def get_int(target):
@@ -443,15 +459,15 @@ def _get_userids(*sysnames):
     return [sysname_userid.get(sysname, 0) for sysname in sysnames]
 
 
-def get_userids(usernames):
-    ret = {}
-    lookup_usernames = []
-    sysnames = []
+def get_userids(usernames: Iterable[str]) -> Mapping[str, int]:
+    ret: dict[str, int] = {}
+    lookup_usernames: list[str] = []
+    sysnames: list[str] = []
 
     for username in usernames:
-        sysname = get_sysname(username)
+        sysname = parse_sysname(username)
 
-        if sysname:
+        if sysname is not None:
             lookup_usernames.append(username)
             sysnames.append(sysname)
         else:
@@ -462,12 +478,8 @@ def get_userids(usernames):
     return ret
 
 
-def get_sysname_list(s: str) -> list[str]:
-    return list(filter(None, map(get_sysname, s.split(";"))))
-
-
-def get_userid_list(target):
-    return [userid for userid in get_userids(get_sysname_list(target)).values() if userid != 0]
+def get_userid_list(target: str) -> list[int]:
+    return [userid for userid in get_userids(parse_sysname_list(target)).values() if userid != 0]
 
 
 def get_ownerid(submitid=None, charid=None, journalid=None):
@@ -738,11 +750,11 @@ def page_header_info_invalidate_multi(userids):
     region.delete_multi(cache_keys)
 
 
-def get_max_post_rating(userid):
+def _get_max_post_rating(userid: int) -> int:
     return max((key.rating for key, count in posts_count(userid, friends=True).items() if count), default=ratings.GENERAL.code)
 
 
-def _is_sfw_locked(userid):
+def _is_sfw_locked(userid: int) -> bool:
     """
     Determine whether SFW mode has no effect for the specified user.
 
@@ -750,11 +762,11 @@ def _is_sfw_locked(userid):
     """
     config_rating = get_config_rating(userid)
 
-    if config_rating > ratings.GENERAL.code:
+    if config_rating > ratings.GENERAL:
         return False
 
-    max_post_rating = get_max_post_rating(userid)
-    return max_post_rating is not None and max_post_rating <= config_rating
+    max_post_rating = _get_max_post_rating(userid)
+    return max_post_rating is not None and max_post_rating <= config_rating.code
 
 
 def page_header_info(userid):
@@ -767,7 +779,7 @@ def page_header_info(userid):
         "unread_updates": unread_updates,
         "updateids": get_updateids(),
         "userid": userid,
-        "username": get_display_name(userid),
+        "username": get_username(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
         "sfw_locked": _is_sfw_locked(userid),

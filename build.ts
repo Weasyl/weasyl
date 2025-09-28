@@ -450,20 +450,20 @@ class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
     }
 }
 
-class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
+class EsbuildFilesWithDeps<Deps extends AnyDependencies> implements Task<Touch & Deps, TaskResult, esbuild.BuildContext> {
     #relativePaths: readonly SourceOutputSame[];
-    #options: esbuild.BuildOptions;
+    #options: (d: Provided<Deps>) => Awaitable<esbuild.BuildOptions>;
 
     constructor(
         relativePaths: readonly SourceOutputSame[],
-        options: esbuild.BuildOptions,
-        readonly dependencies: Providers<Touch>,
+        options: (d: Provided<Deps>) => Awaitable<esbuild.BuildOptions>,
+        readonly dependencies: Providers<Touch & Deps>,
     ) {
         this.#relativePaths = relativePaths;
         this.#options = options;
     }
 
-    private createBuildContext(ctx: Context, entryPoints: string[]) {
+    private async createBuildContext(ctx: Context, deps: Provided<Deps>, entryPoints: string[]) {
         return esbuild.context({
             entryPoints,
             outdir: '.',  // `outdir` is required even when `write: false`
@@ -475,7 +475,7 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
                 js: '"use strict";',
             },
             mangleProps: /^m_/,
-            ...this.#options,
+            ...await this.#options(deps),
             write: false,
             metafile: true,
         });
@@ -483,13 +483,13 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
 
     async run(
         ctx: Context,
-        deps: Provided<Touch>,
+        deps: Provided<Touch & Deps>,
         buildContext: Awaited<ReturnType<typeof this.createBuildContext>> | null,
     ): Promise<TaskResultWithCache<typeof buildContext & NonNullable<unknown>>> {
         const entryPoints = this.#relativePaths.map(p => ctx.resolveSource(p));
         const cwd = Deno.cwd();
 
-        buildContext ??= await this.createBuildContext(ctx, entryPoints);
+        buildContext ??= await this.createBuildContext(ctx, deps, entryPoints);
 
         const result = await buildContext.rebuild();
 
@@ -551,6 +551,16 @@ class EsbuildFiles implements Task<Touch, TaskResult, esbuild.BuildContext> {
     }
 }
 
+class EsbuildFiles extends EsbuildFilesWithDeps<Touch> {
+    constructor(
+        relativePaths: readonly SourceOutputSame[],
+        options: esbuild.BuildOptions,
+        dependencies: Providers<Touch>,
+    ) {
+        super(relativePaths, () => options, dependencies);
+    }
+}
+
 const showUsage = () => {
     console.error('Usage: deno run build.ts --assets=<asset-dir> --output=<output-dir>');
 };
@@ -588,6 +598,17 @@ class CreateFolders implements Task<Record<string, never>> {
     }
 }
 
+const getSingleEntry = (result: TaskResult, expectedKey: string): string => {
+    const {entries} = result;
+
+    if (entries.length !== 1 || entries[0][0] !== expectedKey) {
+        console.error('Expected task to produce single entry with key %o, but got %o.', expectedKey, entries);
+        throw new Error();
+    }
+
+    return entries[0][1];
+};
+
 const touch = new CreateFolders([
     'css',
     'fonts',
@@ -597,6 +618,13 @@ const touch = new CreateFolders([
 ]);
 
 const images = new CopyStaticFiles('img', {touch});
+
+const marked = new CopyStaticFile('js/marked.js', {touch});
+
+const ruffle = new CopyStaticFile({
+    from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
+    to: 'js/ruffle/ruffle.js',
+}, {touch});
 
 const PRIVATE_FIELDS: esbuild.BuildOptions = {
     target: [
@@ -616,13 +644,24 @@ const PRIVATE_FIELDS_ESM: esbuild.BuildOptions = {
 const tasks: readonly AnyTask[] = [
     touch,
     images,
+    marked,
     new Sass({from: 'scss/site.scss', to: 'css/site.css'}, {touch, images}),
     new Sass({from: 'scss/help.scss', to: 'css/help.css'}, {touch, images}),
     new Sass({from: 'scss/imageselect.scss', to: 'css/imageselect.css'}, {touch, images}),
     new Sass({from: 'scss/mod.scss', to: 'css/mod.css'}, {touch, images}),
     new Sass({from: 'scss/signup.scss', to: 'css/signup.css'}, {touch, images}),
-    new EsbuildFiles([
+    new EsbuildFilesWithDeps<{marked: TaskResult}>([
         'js/scripts.js',
+    ], async (deps) => {
+        const markedSrc = getSingleEntry(await deps.marked, 'js/marked.js');
+
+        return ({
+            define: {
+                MARKED_SRC: JSON.stringify('/' + markedSrc),
+            },
+        });
+    }, {touch, marked}),
+    new EsbuildFiles([
         'js/search.js',
         'js/zxcvbn-check.js',
     ], {}, {touch}),
@@ -633,18 +672,27 @@ const tasks: readonly AnyTask[] = [
     new EsbuildFiles([
         'js/combobox.js',
         'js/edit-profile.js',
+        'js/forms.js',
         'js/login-box.js',
         'js/message-list.js',
         'js/notification-list.js',
+        'js/rating-override.js',
         'js/tags-edit.js',
-        'js/signup.js',
         'js/submit.js',
         'js/view-count.js',
     ], PRIVATE_FIELDS_ESM, {touch}),
-    new EsbuildFiles(['js/flash.js'], {
-        format: 'esm',
-        banner: {},
-    }, {touch}),
+    new EsbuildFilesWithDeps<{ruffle: TaskResult}>([
+        'js/flash.js',
+    ], async (deps) => {
+        const ruffleSrc = getSingleEntry(await deps.ruffle, 'js/ruffle/ruffle.js');
+
+        return ({
+            ...PRIVATE_FIELDS_ESM,
+            define: {
+                RUFFLE_SRC: JSON.stringify('/' + ruffleSrc),
+            },
+        });
+    }, {touch, ruffle}),
     new CopyStaticFiles('img/help', {touch}),
     new CopyStaticFiles('img/social', {touch}),
     new CopyUnversionedStaticFile('opensearch.xml', {touch}),
@@ -652,13 +700,9 @@ const tasks: readonly AnyTask[] = [
     // libraries
     new CopyStaticFile('js/jquery-2.2.4.min.js', {touch}),
     new CopyStaticFile('js/imageselect.js', {touch}),
-    new CopyStaticFile('js/marked.js', {touch}),
     new CopyStaticFile('js/zxcvbn.js', {touch}),
     new CopyRuffleComponents({touch}),
-    new CopyStaticFile({
-        from: new PackageSource('@ruffle-rs/ruffle', 'ruffle.js'),
-        to: 'js/ruffle/ruffle.js',
-    }, {touch}),
+    ruffle,
 ];
 
 const ORDER_UNSET = -1;

@@ -3,18 +3,17 @@ FROM docker.io/denoland/deno:alpine-2.3.5 AS asset-builder
 WORKDIR /weasyl-build
 RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
 USER deno
+
 COPY --chown=deno:deno --link deno.json deno.lock ./
 
-# `deno install --frozen [--vendor=true]` by itself doesn’t seem to be able to use the cache.
-RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen --vendor=false
-RUN --network=none --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
+RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
 
 COPY --link build.ts build.ts
 
 
 FROM asset-builder AS assets
 COPY --link assets assets
-RUN --network=none deno run \
+RUN --network=none mkdir build && deno run \
     --cached-only \
     --frozen \
     --allow-env \
@@ -130,7 +129,6 @@ RUN --mount=type=cache,id=pip,target=/weasyl/.cache/pip,sharing=locked,uid=1000 
     .poetry-venv/bin/python3 -m pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
 RUN --network=none python3 -m venv --system-site-packages --without-pip .venv
 COPY --chown=weasyl --link pyproject.toml poetry.lock setup.py ./
-RUN --network=none .poetry-venv/bin/poetry check --lock
 RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,uid=1000 \
     .poetry-venv/bin/poetry install --only=main --no-root
 RUN dirs=' \
@@ -161,7 +159,7 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     libgcc libgomp lcms2 libpng libxml2 libwebpdemux libwebpmux \
     libmemcached-libs \
     libpq
-RUN adduser -S weasyl -h /weasyl
+RUN adduser -S weasyl -h /weasyl -u 1000
 WORKDIR /weasyl
 USER weasyl
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/

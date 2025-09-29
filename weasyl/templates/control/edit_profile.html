@@ -132,6 +132,16 @@ $code:
         </p>
       </noscript>
 
+      $# This is used for the auto-completion.
+      <datalist id="known-social-sites" data-default-img-src="${resource_path('img/social/generic.svg')}">
+        $for site in M.SOCIAL_SITES.values():
+          $if not site.get('hidden'):
+            <option value="${site['name']}"
+              $if site.get("icon"):
+                data-img-src="${resource_path(site['icon'])}"
+            ></option>
+      </datalist>
+
       <table class="contact-editor">
         <thead>
           <tr>
@@ -157,15 +167,6 @@ $code:
           </tr>
         </tbody>
       </table>
-      $# This is used for the auto-completion.
-      <datalist id="known-social-sites" data-default-img-src="${resource_path('img/social/generic.svg')}">
-        $for site in M.SOCIAL_SITES.values():
-          $if not site.get('hidden'):
-            <option value="${site['name']}"
-              $if site.get("icon"):
-                data-img-src="${resource_path(site['icon'])}"
-            ></option>
-      </datalist>
     </div>
 
     <div class="buttons clear">

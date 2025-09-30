@@ -24,7 +24,7 @@ function markEntryForRemoval() {
         element.disabled = true;
     });
 
-    this.textContent = '🔄';
+    this.textContent = '⎌';
     this.ariaLabel = 'Undo';
     this.className.replace('negative', 'positive');
     this.removeEventListener('click', markEntryForRemoval);

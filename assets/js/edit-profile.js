@@ -25,7 +25,7 @@ function markEntryForRemoval() {
     });
 
     this.textContent = '⎌';
-    this.ariaLabel = 'Undo';
+    this.title = 'Undo';
     this.classList.remove('negative');
     this.classList.add('positive');
     this.removeEventListener('click', markEntryForRemoval);
@@ -38,7 +38,7 @@ function unmarkEntryForRemoval() {
     });
 
     this.textContent = '❌';
-    this.ariaLabel = 'Remove';
+    this.title = 'Remove';
     this.classList.remove('positive');
     this.classList.add('negative');
     this.removeEventListener('click', unmarkEntryForRemoval);

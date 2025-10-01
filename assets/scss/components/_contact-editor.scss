@@ -34,16 +34,6 @@ $cell-spacing: 4px;
     > thead > * > th {
         vertical-align: bottom;
     }
-
-    .site-label input:placeholder-shown {
-        background-color: #ddd;
-        border: none;
-        box-shadow: none;
-    }
-
-    tr:last-child .site-label input:placeholder-shown {
-        box-shadow: 0 2px 0 #336979;
-    }
 }
 
 .remove-contact {

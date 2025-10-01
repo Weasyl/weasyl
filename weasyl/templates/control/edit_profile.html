@@ -155,13 +155,13 @@ $code:
           $for site, value, label, _ in userinfo['user_links']:
             <tr>
               <td class="site-name"><input is="weasyl-combobox" type="text" class="input" name="site_names" value="${site}" placeholder="Site name" list="known-social-sites" aria-labelledby="site-name-header" autocomplete="off"></td>
-              <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="✏️ Label" aria-labelledby="site-label-header"></td>
+              <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="Label" aria-labelledby="site-label-header"></td>
               <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL" aria-labelledby="site-label-header"></td>
               <td class="remove-contact" hidden><button class="button negative" type="button" title="Remove">❌</button></td>
             </tr>
           <tr id="new-social-group">
             <td class="site-name"><input is="weasyl-combobox" type="text" class="input" name="site_names" placeholder="Site name" list="known-social-sites" aria-labelledby="site-name-header" autocomplete="off"></td>
-            <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="✏️ Label" aria-labelledby="site-label-header"></td>
+            <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="Label" aria-labelledby="site-label-header"></td>
             <td><input type="text" class="input" name="site_values" placeholder="Username or URL" aria-labelledby="site-value-header"></td>
             <td class="remove-contact" hidden><button class="button negative" type="button" title="Remove">❌</button></td>
           </tr>

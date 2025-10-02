@@ -1,22 +1,8 @@
-.social .group input {
-    margin-bottom: 6px;
-}
-
-.social .group {
-    margin-bottom: 12px;
-}
+@use './contact-editor';
 
 #edit-profile {
     .buttons {
         padding-top: 1em;
-    }
-
-    @media (min-width: 30em) {
-        .social .group {
-            width: 48%;
-            float: left;
-            padding-right: 2%;
-        }
     }
 
     @media (min-width: 45em) {
@@ -43,8 +29,8 @@
             width: 100%;
         }
 
-        .social .group {
-            width: 23%;
+        .site-name, .site-label {
+            width: 15em;
         }
     }
 
@@ -69,10 +55,6 @@
         .social {
             width: 100%;
         }
-
-        .social .group {
-            width: 18%;
-        }
     }
 
     @media (min-width: 80em) {
@@ -93,10 +75,6 @@
 
         .social {
             width: 100%;
-        }
-
-        .social .group {
-            width: 14.6%;
         }
     }
 }

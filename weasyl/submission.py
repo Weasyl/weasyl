@@ -1121,12 +1121,10 @@ def select_recently_popular():
 
     To calculate scores, this method performs the following evaluation:
 
-    item_score = log(item_fave_count + 1) + log(item_view_counts) / 2 + submission_time / 180000
+    item_score = log(item_fave_count) + submission_time / 180000
 
     180000 is roughly two days. So intuitively an item two days old needs an order of
-    magnitude more favorites/views compared to a fresh one. Also the favorites are
-    quadratically more influential than views. The result is that this algorithm favors
-    recent, heavily favorited items.
+    magnitude more favorites compared to a fresh one.
 
     :return: A list of submission dictionaries, in score-rank order.
     """
@@ -1145,9 +1143,9 @@ def select_recently_popular():
         WHERE
             NOT submission.hidden
             AND NOT submission.friends_only
+            AND submission.favorites > 0
         ORDER BY
-            log(submission.favorites + 1) +
-                log(submission.page_views + 1) / 2 +
+            log(submission.favorites) +
                 submission.unixtime / 180000.0
                 DESC
         LIMIT 128

@@ -101,7 +101,7 @@ routes = (
     Route("/user/{name}", "profile_user", profile.profile_),
     Route("/profile", "profile_unnamed", profile.profile_),
     Route("/profile/{name}", "profile", profile.profile_),
-    Route("/~{name}/{link_type}", "profile_media", profile.profile_media_),
+    Route("/~{name}/avatar", "profile_avatar", profile.profile_avatar_),
     Route("/~{name}/submission/{submitid:[0-9]+}",
           "submission_detail_profile;no_s;no_slug", detail.submission_),
     Route("/~{name}/submission/{submitid:[0-9]+}/{slug:[^/.]*}",

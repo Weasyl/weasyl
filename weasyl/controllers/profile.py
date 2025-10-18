@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from pyramid import httpexceptions
 from pyramid.response import Response
 
@@ -157,17 +159,20 @@ def profile_(request):
     ))
 
 
-def profile_media_(request):
+def profile_avatar_(request):
     name = request.matchdict['name']
-    link_type = request.matchdict['link_type']
     userid = profile.resolve_by_username(name)
-    media_items = media.get_user_media(userid)
-    if not media_items.get(link_type):
-        raise httpexceptions.HTTPNotFound()
-    return Response(headerlist=[
-        ('X-Accel-Redirect', str(media_items[link_type][0]['file_url']),),
-        ('Cache-Control', 'max-age=0',),
-    ])
+
+    if not userid:
+        raise WeasylError('userRecordMissing')
+
+    avatar = media.get_user_media(userid)['avatar'][0]
+
+    return Response(
+        status=HTTPStatus.TEMPORARY_REDIRECT.value,
+        location=avatar['display_url'],
+        cache_control="public, max-age=300, stale-if-error=2592000",
+    )
 
 
 def submissions_(request):

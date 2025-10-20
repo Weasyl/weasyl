@@ -9,12 +9,13 @@ from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
 
 from weasyl.controllers.decorators import token_checked
+from weasyl.controllers.profile import resolve_avatar
 from weasyl.error import WeasylError
 from weasyl.users import Username
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
-    index, journal, media, message, profile, submission)
+    index, journal, message, profile, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -89,16 +90,14 @@ def api_login_required(view_callable):
 
 @api_method
 def api_useravatar_(request):
-    form = request.web_input(username="")
-    userid = profile.resolve_by_username(form.username)
+    username = request.GET.get("username")
+    if username is None:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
 
-    if userid:
-        media_items = media.get_user_media(userid)
-        return {
-            "avatar": d.absolutify_url(media_items['avatar'][0]['display_url']),
-        }
-
-    raise WeasylError('userRecordMissing')
+    display_url = resolve_avatar(username)
+    return {
+        "avatar": d.absolutify_url(display_url),
+    }
 
 
 @api_login_required

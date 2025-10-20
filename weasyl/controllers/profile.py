@@ -159,18 +159,22 @@ def profile_(request):
     ))
 
 
-def profile_avatar_(request):
-    name = request.matchdict['name']
-    userid = profile.resolve_by_username(name)
+def resolve_avatar(username: str) -> str:
+    userid = profile.resolve_by_username(username)
 
     if not userid:
         raise WeasylError('userRecordMissing')
 
     avatar = media.get_user_media(userid)['avatar'][0]
+    return avatar['display_url']
+
+
+def profile_avatar_(request):
+    display_url = resolve_avatar(request.matchdict['name'])
 
     return Response(
         status=HTTPStatus.TEMPORARY_REDIRECT.value,
-        location=avatar['display_url'],
+        location=display_url,
         cache_control="public, max-age=300, stale-if-error=2592000",
     )
 

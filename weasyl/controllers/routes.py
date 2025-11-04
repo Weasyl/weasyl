@@ -110,8 +110,6 @@ routes = (
           "submission_detail_profile;no_slug", detail.submission_),
     Route("/~{name}/submissions/{submitid:[0-9]+}/{slug:[^/.]*}",
           "submission_detail_profile", detail.submission_),
-    Route("/~{name}/{linktype}/{submitid:[0-9]+}/{ignore_name:.*}",
-          "submission_detail_media", detail.submission_media_),
     Route("/submissions", "profile_submissions_unnamed", profile.submissions_),
     Route("/submissions/{name:[^/]*}", "profile_submissions", profile.submissions_),
     Route("/journals", "profile_journals_unnamed", profile.journals_),

@@ -169,7 +169,7 @@ def api_frontpage_(request):
     ret = []
 
     for e, sub in enumerate(submissions, start=1):
-        if (since is not None and since >= sub['unixtime']) or (count and e > count):
+        if (since is not None and since >= sub['unixtime']) or e > count:
             break
 
         tidy_submission(sub)

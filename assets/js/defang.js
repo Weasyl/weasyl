@@ -40,7 +40,7 @@ export const tryGetCleanHref = s => {
     let u;
 
     try {
-        u = new URL(href);
+        u = new URL(s);
     } catch {
         u = null;
     }

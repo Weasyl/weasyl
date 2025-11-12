@@ -55,7 +55,7 @@ const checkAllButton = (text, checked) => {
     const button = document.createElement('button');
 
     button.type = 'button';
-    button.className = checked ? 'button notifs-check-all' : 'button notifs-uncheck-all';
+    button.className = 'button';
     button.textContent = text;
 
     button.addEventListener('click', () => {

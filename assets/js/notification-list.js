@@ -68,16 +68,16 @@ const checkAllButton = (text, checked) => {
             checkbox.checked = checked;
         });
 
-        removeCheckedButton.disabled = !checked;
-        removeCheckedButtonTop.disabled = !checked;
+        removeCheckedButton.disabled = removeCheckedButtonTop.disabled =
+            !checked;
     });
 
     return button;
 };
 
 const updateRemoveChecked = () => {
-    removeCheckedButton.disabled = !some.call(removeCheckboxes, isChecked);
-    removeCheckedButtonTop.disabled = !some.call(removeCheckboxes, isChecked);
+    removeCheckedButton.disabled = removeCheckedButtonTop.disabled =
+        !some.call(removeCheckboxes, isChecked);
 };
 
 notificationContainer.addEventListener('change', updateRemoveChecked);

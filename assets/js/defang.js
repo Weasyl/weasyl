@@ -1,17 +1,17 @@
 const allowedTags = new Set([
-    'section', 'nav', 'article', 'aside',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'header', 'footer', 'address',
-    'p', 'hr', 'pre', 'blockquote', 'ol', 'ul', 'li',
-    'dl', 'dt', 'dd', 'figure', 'figcaption', 'div',
-    'em', 'strong', 'small', 's', 'cite', 'q', 'dfn',
-    'abbr', 'time', 'code', 'var', 'samp', 'kbd',
-    'sub', 'sup', 'i', 'b', 'u', 'mark',
-    'ruby', 'rt', 'rp', 'bdi', 'bdo', 'span', 'br', 'wbr',
-    'del',
-    'table', 'caption',
-    'tbody', 'thead', 'tfoot', 'tr', 'td', 'th',
-    'a', 'img',
+    'SECTION', 'NAV', 'ARTICLE', 'ASIDE',
+    'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+    'HEADER', 'FOOTER', 'ADDRESS',
+    'P', 'HR', 'PRE', 'BLOCKQUOTE', 'OL', 'UL', 'LI',
+    'DL', 'DT', 'DD', 'FIGURE', 'FIGCAPTION', 'DIV',
+    'EM', 'STRONG', 'SMALL', 'S', 'CITE', 'Q', 'DFN',
+    'ABBR', 'TIME', 'CODE', 'VAR', 'SAMP', 'KBD',
+    'SUB', 'SUP', 'I', 'B', 'U', 'MARK',
+    'RUBY', 'RT', 'RP', 'BDI', 'BDO', 'SPAN', 'BR', 'WBR',
+    'DEL',
+    'TABLE', 'CAPTION',
+    'TBODY', 'THEAD', 'TFOOT', 'TR', 'TD', 'TH',
+    'A', 'IMG',
 ]);
 
 const allowedAttributes = new Set([
@@ -75,7 +75,7 @@ const defang = (node, isBody) => {
         }
     }
 
-    if (!isBody && !allowedTags.has(node.nodeName.toLowerCase())) {
+    if (!isBody && !allowedTags.has(node.nodeName)) {
         while (node.hasChildNodes()) {
             node.parentNode.insertBefore(node.firstChild, node);
         }

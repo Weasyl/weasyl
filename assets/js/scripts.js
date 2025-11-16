@@ -9,14 +9,6 @@ import loginName from './util/login-name.js';
 import {tryGetLocal, trySetLocal} from './util/storage.js';
 import weasylMarkdown from './weasyl-markdown.js';
 
-const empty = containerNode => {
-    let child;
-
-    while (child = containerNode.firstChild) {
-        containerNode.removeChild(child);
-    }
-};
-
 const autosize =
     CSS.supports('field-sizing', 'content')
         ? Object.assign(() => {}, {destroy: () => {}})
@@ -246,7 +238,7 @@ const renderMarkdown = (content, container) => {
 const updateMarkdownPreview = input => {
     if (markedLoadState === 2) {
         const preview = input.nextSibling;
-        empty(preview);
+        preview.textContent = '';
         renderMarkdown(input.value, preview);
     } else {
         loadMarked();

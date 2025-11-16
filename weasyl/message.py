@@ -513,6 +513,26 @@ def select_comments(userid):
         ORDER BY we.unixtime DESC
     """, user=userid))
 
+    # Collection comments
+    queries.append({
+        "type": 4050,
+        "id": i.welcomeid,
+        "unixtime": i.unixtime,
+        "userid": i.otherid,
+        "username": i.username,
+        "submitid": i.referid,
+        "title": i.title,
+        "commentid": i.targetid,
+    } for i in d.engine.execute("""
+        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, su.title
+        FROM welcome we
+            INNER JOIN profile pr ON we.otherid = pr.userid
+            INNER JOIN submission su ON we.referid = su.submitid
+        WHERE we.userid = %(user)s
+            AND we.type = 4050
+        ORDER BY we.unixtime DESC
+    """, user=userid))
+
     # Character comments
     queries.append({
         "type": 4040,
@@ -636,26 +656,6 @@ def select_comments(userid):
             INNER JOIN siteupdate up ON uc.targetid = up.updateid
         WHERE we.userid = %(user)s
             AND we.type = 4065
-        ORDER BY we.unixtime DESC
-    """, user=userid))
-
-    # Collection comments
-    queries.append({
-        "type": 4050,
-        "id": i.welcomeid,
-        "unixtime": i.unixtime,
-        "userid": i.otherid,
-        "username": i.username,
-        "submitid": i.referid,
-        "title": i.title,
-        "commentid": i.targetid,
-    } for i in d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, su.title
-        FROM welcome we
-            INNER JOIN profile pr ON we.otherid = pr.userid
-            INNER JOIN submission su ON we.referid = su.submitid
-        WHERE we.userid = %(user)s
-            AND we.type = 4050
         ORDER BY we.unixtime DESC
     """, user=userid))
 

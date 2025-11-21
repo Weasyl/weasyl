@@ -313,9 +313,9 @@ def _prepare_search(
             statement_from_join.append("INNER JOIN welcome ON welcome.targetid = content.{select}")
             statement_where.append("AND welcome.userid = %(userid)s")
             statement_where.append({
-                "submit": "AND welcome.type IN (2010, 2030, 2040)",
+                "submit": "AND welcome.type IN (2010, 2030)",
                 "char": "AND welcome.type = 2050",
-                "journal": "AND welcome.type IN (1010, 1020)",
+                "journal": "AND welcome.type = 1010",
             }[resolved.find])
         elif within == "fave":
             # Search within favorites

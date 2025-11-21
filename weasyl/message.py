@@ -117,7 +117,7 @@ def remove_all_before(userid, before):
 
 def remove_all_submissions(userid, only_before):
     d.engine.execute(
-        "DELETE FROM welcome WHERE userid = %(user)s AND type IN (2010, 2030, 2040, 2050) AND unixtime < %(before)s",
+        "DELETE FROM welcome WHERE userid = %(user)s AND type IN (2010, 2030, 2050) AND unixtime < %(before)s",
         user=userid, before=only_before)
 
     d._page_header_info.invalidate(userid)

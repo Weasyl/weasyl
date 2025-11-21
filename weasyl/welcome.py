@@ -69,7 +69,6 @@ def submission_insert(userid, submitid, rating=ratings.GENERAL.code, friends_onl
 #   3020 user favorited submission
 #   3030 offered collection to user
 #   3050 user favourited collected submission
-#   3060 character featured in submission
 #   4020 user posted submission comment
 #   4025 user replied to submission comment
 #   4050 comment on item collected by other user
@@ -82,13 +81,13 @@ def _queries_for_submission_notifications(submitid):
     db = d.connect()
     return [
         ((site.SavedNotification.targetid == submitid) &
-         (site.SavedNotification.type.in_([2010, 2030, 2040]))),
+         (site.SavedNotification.type.in_([2010, 2030]))),
         ((site.SavedNotification.otherid == submitid) &
          (site.SavedNotification.type == 3140)),
         sa.or_(sa.and_(site.SavedNotification.targetid == submitid,
-                       site.SavedNotification.type.in_([3030, 3040, 3060])),
+                       site.SavedNotification.type == 3030),
                sa.and_(site.SavedNotification.referid == submitid,
-                       site.SavedNotification.type.in_([3020, 3025, 3050, 4050]))),
+                       site.SavedNotification.type.in_([3020, 3050, 4050]))),
         ((site.SavedNotification.targetid.in_(db.query(content.Comment.commentid)
                                               .filter(content.Comment.target_sub == submitid))) &
          site.SavedNotification.type.in_([4020, 4025]))
@@ -131,14 +130,13 @@ def character_insert(userid, charid, rating=ratings.GENERAL.code, *, friends_onl
 
 # notifications
 #   2050 user submitted character
-#   3060 character featured in submission
 #   3100 user favorited character
 #   4040 user posted character comment
 #   4045 user replied to character comment
 
 def character_remove(charid):
     d.execute("DELETE FROM welcome WHERE (targetid, type) = (%i, 2050)", [charid])
-    d.execute("DELETE FROM welcome WHERE referid = %i AND type IN (3060, 3100, 3105)", [charid])
+    d.execute("DELETE FROM welcome WHERE (referid, type) = (%i, 3100)", [charid])
     d.execute("DELETE FROM welcome WHERE targetid IN (SELECT commentid FROM charcomment WHERE targetid = %i)"
               " AND type IN (4040, 4045)", [charid])
 
@@ -212,8 +210,8 @@ def journal_insert(userid, journalid, *, rating, friends_only):
 
 def journal_remove(journalid):
     d.engine.execute(
-        "DELETE FROM welcome WHERE targetid = %(journal)s AND type IN (1010, 1020)"
-        " OR referid = %(journal)s AND type IN (3110, 3115)"
+        "DELETE FROM welcome WHERE targetid = %(journal)s AND type = 1010"
+        " OR referid = %(journal)s AND type = 3110"
         " OR targetid IN (SELECT commentid FROM journalcomment WHERE targetid = %(journal)s) AND type IN (4030, 4035)",
         journal=journalid)
 

@@ -114,7 +114,7 @@ def insert(
     # Create notification
     if parentid and userid != parentuserid:
         welcome.shoutreply_insert(userid, commentid, parentuserid, parentid)
-    elif not staffnotes and target_user and userid != target_user:
+    elif not staffnotes and userid != target_user:
         welcome.shout_insert(userid, commentid, otherid=target_user)
 
     d.metric('increment', 'shouts')

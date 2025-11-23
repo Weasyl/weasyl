@@ -1077,7 +1077,7 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
     _invalidate_collectors_posts_count(submission.submitid)
 
 
-def remove(userid, submitid):
+def remove(userid, submitid: int):
     ownerid = d.get_ownerid(submitid=submitid)
 
     if userid not in staff.MODS and userid != ownerid:

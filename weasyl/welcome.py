@@ -256,9 +256,9 @@ def collectrequest_remove(userid, otherid, submitid):
 #   3100 user favorited character
 #   3110 user favorited journal
 
-def favorite_insert(db, userid, *, submitid, charid, journalid, otherid):
+def favorite_insert(db, userid, *, submitid: int | None, charid, journalid, otherid):
     if submitid:
-        ownerid = d.get_ownerid(submitid, charid, journalid)
+        ownerid = d.get_ownerid(submitid=submitid)
         notiftype = 3020 if ownerid == otherid else 3050
     elif charid:
         notiftype = 3100
@@ -311,11 +311,11 @@ def shoutreply_insert(userid, commentid, otherid, parentid):
 #   4050 collection comment
 #   4060 site update comment
 
-def comment_insert(userid, commentid, otherid, submitid, charid, journalid, updateid):
+def comment_insert(userid, commentid, otherid, submitid: int, charid, journalid, updateid):
     assert otherid
 
     if submitid:
-        ownerid = d.get_ownerid(submitid, charid, journalid)
+        ownerid = d.get_ownerid(submitid=submitid)
         notiftype = 4020 if ownerid == otherid else 4050
     elif charid:
         notiftype = 4040

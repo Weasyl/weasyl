@@ -15,6 +15,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 from typing import NewType
+from typing import overload
 from urllib.parse import urlencode, urljoin
 
 import arrow
@@ -482,13 +483,30 @@ def get_userid_list(target: str) -> list[int]:
     return [userid for userid in get_userids(parse_sysname_list(target)).values() if userid != 0]
 
 
-def get_ownerid(submitid=None, charid=None, journalid=None):
+@overload
+def get_ownerid(*, submitid: int) -> int | None:
+    ...
+
+
+@overload
+def get_ownerid(*, charid: int) -> int | None:
+    ...
+
+
+@overload
+def get_ownerid(*, journalid: int) -> int | None:
+    ...
+
+
+def get_ownerid(*, submitid=None, charid=None, journalid=None):
     if submitid:
         return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
         return engine.scalar("SELECT userid FROM character WHERE charid = %(id)s", id=charid)
     if journalid:
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
+
+    return None
 
 
 def get_address():

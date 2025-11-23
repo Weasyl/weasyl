@@ -136,6 +136,6 @@ def remove(userid, *, commentid):
     welcome.comment_remove(commentid, 'shout')
 
     # hide comment
-    d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i", [userid, commentid])
+    d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i AND settings !~ 'h'", [userid, commentid])
 
     return query[1]

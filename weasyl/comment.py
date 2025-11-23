@@ -302,20 +302,20 @@ def remove(userid, *, feature, commentid):
     # mark comments as hidden
     if feature == 'submit':
         d.engine.execute(
-            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'",
             comment=commentid,
             hidden_by=userid,
         )
     elif feature == 'siteupdate':
         d.engine.execute(
-            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND hidden_at IS NULL",
             comment=commentid,
             hidden_by=userid,
         )
         siteupdate.select_last.invalidate()
     else:
         d.engine.execute(
-            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),
+            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'".format(feature=feature),
             comment=commentid,
             hidden_by=userid,
         )

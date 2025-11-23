@@ -72,7 +72,7 @@ def insert(
     if parentid:
         # NOTE: Replying to deleted comments is intentionally allowed.
         parentuserid = d.engine.scalar(
-            "SELECT userid, target_user FROM comments"
+            "SELECT userid FROM comments"
             " WHERE commentid = %(parent)s"
             " AND target_user = %(target)s"
             " AND (settings ~ 's') = %(staffnotes)s",

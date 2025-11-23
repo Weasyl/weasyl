@@ -237,18 +237,21 @@ def insert(
     if parentid and (userid != parentuserid):
         welcome.commentreply_insert(userid, commentid, parentuserid, parentid, submitid, charid, journalid, updateid)
     elif not parentid:
-        # build a list of people this comment should notify
-        # circular imports are cool and fun
-        from weasyl.collection import find_owners
-        notified = set(find_owners(submitid))
+        if submitid:
+            # build a list of people this comment should notify
+            # circular imports are cool and fun
+            from weasyl.collection import find_owners
 
-        # check to see who we should deliver comment notifications to
-        def can_notify(other):
-            other_jsonb = d.get_profile_settings(other)
-            allow_notify = other_jsonb.allow_collection_notifs
-            ignored = ignoreuser.check(other, userid)
-            return allow_notify and not ignored
-        notified = set(filter(can_notify, notified))
+            # check to see who we should deliver comment notifications to
+            def can_notify(other):
+                other_jsonb = d.get_profile_settings(other)
+                allow_notify = other_jsonb.allow_collection_notifs
+                ignored = ignoreuser.check(other, userid)
+                return allow_notify and not ignored
+            notified = set(filter(can_notify, find_owners(submitid)))
+        else:
+            notified = set()
+
         # always give notification on own content
         notified.add(otherid)
         # don't give me a notification for my own comment

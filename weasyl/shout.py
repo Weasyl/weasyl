@@ -114,7 +114,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
 
 def remove(userid, *, commentid):
     query = d.engine.execute(
-        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND settings !~ 'h'",
+        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND target_user IS NOT NULL AND settings !~ 'h'",
         id=commentid,
     ).first()
 

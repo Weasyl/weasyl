@@ -297,11 +297,12 @@ def shout_insert(userid, commentid, otherid):
 
 # notifications
 #   4015 shout comment reply
+#   4016 staff note reply
 
-def shoutreply_insert(userid, commentid, otherid, parentid):
+def shoutreply_insert(userid, commentid, otherid, parentid, staffnote=False):
     d.execute("INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) "
-              "VALUES (%i, %i, %i, %i, %i, 4015)",
-              [otherid, userid, parentid, commentid, d.get_time()])
+              "VALUES (%i, %i, %i, %i, %i, %i)",
+              [otherid, userid, parentid, commentid, d.get_time(), 4016 if staffnote else 4015])
 
 
 # notifications

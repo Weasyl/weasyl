@@ -70,6 +70,10 @@ def insert(
 
     # Determine parent userid
     if parentid:
+        if staffnotes:
+            # Staff notes don't support adding new replies. (NOTE: There are preexisting staff note replies in the database from earlier implementations.)
+            raise WeasylError("Unexpected")
+
         parentuserid = d.engine.scalar(
             "SELECT userid FROM comments WHERE commentid = %(parent)s",
             parent=parentid,
@@ -109,8 +113,7 @@ def insert(
 
     # Create notification
     if parentid and userid != parentuserid:
-        if not staffnotes or parentuserid in staff.MODS:
-            welcome.shoutreply_insert(userid, commentid, parentuserid, parentid, staffnotes)
+        welcome.shoutreply_insert(userid, commentid, parentuserid, parentid)
     elif not staffnotes and target_user and userid != target_user:
         welcome.shout_insert(userid, commentid, otherid=target_user)
 

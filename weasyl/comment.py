@@ -12,6 +12,7 @@ from weasyl import macro as m
 from weasyl import media
 from weasyl import siteupdate
 from weasyl import welcome
+from weasyl.collection import find_owners
 from weasyl.error import WeasylError
 
 
@@ -239,10 +240,6 @@ def insert(
     elif not parentid:
         if submitid:
             # build a list of people this comment should notify
-            # circular imports are cool and fun
-            from weasyl.collection import find_owners
-
-            # check to see who we should deliver comment notifications to
             def can_notify(other):
                 other_jsonb = d.get_profile_settings(other)
                 allow_notify = other_jsonb.allow_collection_notifs

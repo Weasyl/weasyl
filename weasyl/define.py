@@ -393,7 +393,7 @@ Invalidate the cached username for a user.
 """
 
 
-def get_int(target):
+def get_int(target) -> int:
     if target is None:
         return 0
 

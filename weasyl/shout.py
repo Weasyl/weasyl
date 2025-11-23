@@ -54,7 +54,14 @@ def count_staff_notes(ownerid):
     return ret
 
 
-def insert(userid, target_user, parentid, content, staffnotes):
+def insert(
+    userid: int,
+    *,
+    target_user: int,
+    parentid: int,
+    content: str,
+    staffnotes: bool,
+) -> int:
     # Check invalid content
     if not content:
         raise WeasylError("commentInvalid")

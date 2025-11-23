@@ -116,7 +116,16 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
     return result
 
 
-def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, parentid=None, content=None):
+def insert(
+    userid: int,
+    *,
+    submitid: int = 0,
+    charid: int = 0,
+    journalid: int = 0,
+    updateid: int = 0,
+    parentid: int,
+    content: str,
+) -> int:
     if submitid:
         table = "comments"
     elif charid:
@@ -141,9 +150,6 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
         if parentuserid is None:
             raise WeasylError("Unexpected")
     else:
-        if updateid:
-            parentid = None  # parentid == 0
-
         parentuserid = None
 
     if updateid:
@@ -197,7 +203,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             " RETURNING commentid",
             user=userid,
             update=updateid,
-            parent=parentid,
+            parent=parentid or None,
             content=content,
         )
         siteupdate.select_last.invalidate()
@@ -208,7 +214,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
             user=userid,
             target=d.get_targetid(charid, journalid),
-            parent=parentid or 0,
+            parent=parentid,
             content=content,
             now=d.get_time(),
         )

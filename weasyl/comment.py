@@ -137,6 +137,9 @@ def insert(
     else:
         raise WeasylError("Unexpected")
 
+    if sum(map(bool, (submitid, charid, journalid, updateid))) > 1:
+        raise WeasylError("Unexpected")
+
     if not content:
         raise WeasylError("commentInvalid")
 

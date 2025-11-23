@@ -126,14 +126,21 @@ def insert(
     parentid: int,
     content: str,
 ) -> int:
+    targetid_col = "targetid"
+
     if submitid:
         table = "comments"
+        targetid_col = "target_sub"
+        targetid = submitid
     elif charid:
         table = "charcomment"
+        targetid = charid
     elif journalid:
         table = "journalcomment"
+        targetid = journalid
     elif updateid:
         table = "siteupdatecomment"
+        targetid = updateid
     else:
         raise WeasylError("Unexpected")
 
@@ -145,9 +152,13 @@ def insert(
 
     # Determine parent userid
     if parentid:
+        # NOTE: Replying to deleted comments is intentionally allowed.
         parentuserid = d.engine.scalar(
-            "SELECT userid FROM {table} WHERE commentid = %(parent)s".format(table=table),
+            f"SELECT userid FROM {table}"
+            " WHERE commentid = %(parent)s"
+            f" AND {targetid_col} = %(target)s",
             parent=parentid,
+            target=targetid,
         )
 
         if parentuserid is None:
@@ -212,11 +223,11 @@ def insert(
         siteupdate.select_last.invalidate()
     else:
         commentid = d.engine.scalar(
-            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
+            f"INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
             " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
-            " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
+            " RETURNING commentid",
             user=userid,
-            target=d.get_targetid(charid, journalid),
+            target=targetid,
             parent=parentid,
             content=content,
             now=d.get_time(),

@@ -74,9 +74,14 @@ def insert(
             # Staff notes don't support adding new replies. (NOTE: There are preexisting staff note replies in the database from earlier implementations.)
             raise WeasylError("Unexpected")
 
+        # NOTE: Replying to deleted comments is intentionally allowed.
         parentuserid = d.engine.scalar(
-            "SELECT userid FROM comments WHERE commentid = %(parent)s",
+            "SELECT userid, target_user FROM comments"
+            " WHERE commentid = %(parent)s"
+            " AND target_user = %(target)s"
+            " AND settings !~ 's'",
             parent=parentid,
+            target=target_user,
         )
 
         if parentuserid is None:

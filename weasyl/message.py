@@ -21,6 +21,7 @@ _NOTIFICATION_CLUSTERS: Sequence[tuple[list[int], str, str]] = [
     ([3085], "Friend Confirmations", "friend_confirmations"),
     ([3140], "Submission Tag Changes", "submission_tag_changes"),
     ([4010, 4015], "Shouts", "shouts"),
+    ([4016], "Staff Notes", "staff_notes"),
     ([4020, 4025, 4050], "Submission Comments", "submission_comments"),
     ([4030, 4035, 4060, 4065], "Journal Comments", "journal_comments"),
     ([4040, 4045], "Character Comments", "character_comments"),
@@ -468,6 +469,30 @@ def select_comments(userid):
             INNER JOIN profile px ON sh.target_user = px.userid
         WHERE we.userid = %(user)s
             AND we.type = 4015
+        ORDER BY we.unixtime DESC
+    """, user=userid))
+
+    # Staff note replies
+    queries.append({
+        "type": 4016,
+        "id": i.welcomeid,
+        "unixtime": i.unixtime,
+        "userid": i.otherid,
+        "username": i.username,
+        "ownerid": i.ownerid,
+        "ownername": i.owner_username,
+        "replyid": i.referid,
+        "commentid": i.targetid,
+    } for i in d.engine.execute("""
+        SELECT
+            we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, px.userid AS ownerid,
+            px.username AS owner_username
+        FROM welcome we
+            INNER JOIN profile pr ON we.otherid = pr.userid
+            INNER JOIN comments sh ON we.referid = sh.commentid
+            INNER JOIN profile px ON sh.target_user = px.userid
+        WHERE we.userid = %(user)s
+            AND we.type = 4016
         ORDER BY we.unixtime DESC
     """, user=userid))
 

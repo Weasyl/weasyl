@@ -17,7 +17,7 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     statement = ["""
         SELECT
             sh.commentid, sh.parentid, sh.userid, pr.username,
-            sh.content, sh.unixtime, sh.settings, sh.hidden_by
+            sh.content, sh.unixtime, sh.settings ~ 'h', sh.hidden_by
         FROM comments sh
             INNER JOIN profile pr USING (userid)
         WHERE sh.target_user = %i
@@ -118,7 +118,7 @@ def remove(userid, *, commentid):
         id=commentid,
     ).first()
 
-    if not query or ('s' in query[2] and userid not in staff.MODS):
+    if not query or ((is_staff_note := 's' in query[2]) and userid not in staff.MODS):
         raise WeasylError("shoutRecordMissing")
 
     if userid != query[1] and userid not in staff.MODS:
@@ -132,8 +132,9 @@ def remove(userid, *, commentid):
             # a commenter cannot remove their comment if it has replies
             raise WeasylError("InsufficientPermissions")
 
-    # remove notifications
-    welcome.comment_remove(commentid, 'shout')
+    # Remove notifications. Top-level staff notes don't create notifications. For simplicity, staff note replies aren't removed; mods can see the removed comment anyway.
+    if not is_staff_note:
+        welcome.comment_remove(commentid, 'shout')
 
     # hide comment
     d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i AND settings !~ 'h'", [userid, commentid])

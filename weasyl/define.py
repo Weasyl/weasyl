@@ -586,10 +586,9 @@ def convert_unixdate(day, month, year):
     return ret
 
 
-def age_in_years(birthdate):
+def age_in_years(birthdate: datetime.date) -> int:
     """
-    Determines an age in years based off of the given arrow.Arrow birthdate
-    and the current date.
+    Calculate an age in years based on the given birthdate and the current UTC date.
     """
     now = arrow.utcnow()
     is_upcoming = (now.month, now.day) < (birthdate.month, birthdate.day)

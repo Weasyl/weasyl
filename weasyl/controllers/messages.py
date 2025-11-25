@@ -1,5 +1,3 @@
-import itertools
-
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
@@ -28,36 +26,22 @@ def messages_remove_(request):
         raise HTTPSeeOther(location="/messages/notifications")
 
 
-def tag_section(results, section):
-    for row in results:
-        row['section'] = section
-    return results
-
-
-def sort_notifications(notifications):
-    return [
-        row
-        for key, group in itertools.groupby(
-            notifications, lambda row: message.notification_clusters.get(row['type']))
-        for row in sorted(group, key=lambda row: row['unixtime'], reverse=True)
-    ]
-
-
 @login_required
 def messages_notifications_(request):
-    """ todo finish listing of message types in the template """
-
-    notifications = (
-        tag_section(message.select_site_updates(request.userid), 'notifications') +
-        tag_section(message.select_comments(request.userid), 'comments') +
-        tag_section(message.select_notifications(request.userid), 'notifications') +
-        tag_section(message.select_journals(request.userid), 'journals')
-    )
+    sections = [
+        (message.cluster(section_notifications), section_id)
+        for section_notifications, section_id in [
+            (message.select_comments(request.userid), 'comments'),
+            (message.select_notifications(request.userid), 'notifications'),
+            (message.select_journals(request.userid), None),
+        ]
+        if section_notifications
+    ]
 
     define._page_header_info.refresh(request.userid)
-    return Response(define.webpage(request.userid, "message/notifications.html", [
-        sort_notifications(notifications),
-    ]))
+    return Response(define.webpage(request.userid, "message/notifications.html", (
+        sections,
+    ), title='Notifications'))
 
 
 @login_required
@@ -70,4 +54,4 @@ def messages_submissions_(request):
         # Submissions
         message.select_submissions(request.userid, 66, include_tags=False,
                                    backtime=define.get_int(backtime), nexttime=define.get_int(nexttime)),
-    )))
+    ), title='Submission Notifications'))

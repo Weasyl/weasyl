@@ -17,8 +17,7 @@ $def with (profile, userinfo, relationship)
   $ banner = profile['user_media'].get('banner', [None])[0]
   $if banner:
     <div id="user-image">
-      <img src="${banner['display_url']}" alt="" loading="lazy" />
-      <svg class="img-space" width="${banner['attributes']['width']}" height="${banner['attributes']['height']}"></svg>
+      <img src="${banner['display_url']}" alt="" width="${banner['attributes']['width']}" height="${banner['attributes']['height']}" loading="lazy" />
     </div>
 
   $ avatar = profile['user_media']['avatar'][0]
@@ -44,40 +43,49 @@ $def with (profile, userinfo, relationship)
       <ul id="user-actions" class="toolset clear">
 
         $if not relationship['is_self']:
-          <li><form name="followuser" action="/followuser" method="post">
+          <li><form name="followuser" action="/followuser" method="post"
+            $if relationship['follow']:
+              data-confirm="Are you sure you wish to unfollow this user?"
+          >
             <input type="hidden" name="userid" value="${profile['userid']}" />
             $if(relationship['follow']):
               <input type="hidden" name="action" value="unfollow" />
-              <button type="submit" class="active"><span class="icon icon-20 icon-star"></span> Following</button>
+              <button class="active"><span class="icon icon-20 icon-star"></span> Following</button>
             $else:
               <input type="hidden" name="action" value="follow" />
-              <button type="submit"><span class="icon icon-20 icon-star"></span> Follow</button>
+              <button><span class="icon icon-20 icon-star"></span> Follow</button>
           </form></li>
 
-          <li><form name="frienduser" action="/frienduser" method="post">
+          <li><form name="frienduser" action="/frienduser" method="post"
+            $if relationship['friend']:
+              data-confirm="Are you sure you wish to remove this friend?"
+          >
             <input type="hidden" name="userid" value="${profile['userid']}" />
             <input type="hidden" name="feature" value="user" />
             $if(relationship['friendreq']):
               <input type="hidden" name="action" value="withdrawfriendrequest" />
-              <button type="submit" class="active"><span class="icon icon-20 icon-heart"></span> Friend Request Sent</button>
+              <button class="active"><span class="icon icon-20 icon-heart"></span> Friend Request Sent</button>
             $elif(relationship['friend']):
               <input type="hidden" name="action" value="unfriend" />
-              <button type="submit" class="active"><span class="icon icon-20 icon-heart"></span> Friends</button>
+              <button class="active"><span class="icon icon-20 icon-heart"></span> Friends</button>
             $else:
               <input type="hidden" name="action" value="sendfriendrequest" />
-              <button type="submit"><span class="icon icon-20 icon-heart"></span> Friend</button>
+              <button><span class="icon icon-20 icon-heart"></span> Friend</button>
           </form></li>
 
           <li><a href="/notes/compose?recipient=${LOGIN(profile['username'])}"><span class="icon icon-20 icon-pencil"></span> Message</a></li>
 
-          <li><form name="ignoreuser" action="/ignoreuser" method="post">
+          <li><form name="ignoreuser" action="/ignoreuser" method="post"
+            $if not relationship['ignore']:
+              data-confirm="Are you sure you wish to ignore this user?"
+          >
             <input type="hidden" name="userid" value="${profile['userid']}" />
             $if(relationship['ignore']):
               <input type="hidden" name="action" value="unignore" />
-              <button type="submit" class="active"><span class="icon icon-20 icon-cancel"></span> Ignored</button>
+              <button class="active"><span class="icon icon-20 icon-cancel"></span> Ignored</button>
             $else:
               <input type="hidden" name="action" value="ignore" />
-              <button type="submit"><span class="icon icon-20 icon-cancel"></span> Ignore</button>
+              <button><span class="icon icon-20 icon-cancel"></span> Ignore</button>
           </form></li>
 
         <li class="stream-status">

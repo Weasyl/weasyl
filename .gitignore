@@ -8,6 +8,7 @@ __pycache__/
 /backup
 /log
 /node_modules
+/vendor
 /save
 /static/character
 /static/media

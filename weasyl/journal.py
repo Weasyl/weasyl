@@ -20,6 +20,7 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.users import Username
 
 
 def create(userid, journal, friends_only=False, tags=None):
@@ -66,16 +67,24 @@ def create(userid, journal, friends_only=False, tags=None):
     return journalid
 
 
-def _select_journal_and_check(userid, journalid, *, rating, ignore, anyway, increment_views=True):
+def _select_journal_and_check(
+    userid,
+    journalid,
+    *,
+    rating,
+    ignore: bool,
+    anyway: bool,
+    increment_views: bool,
+):
     """Selects a journal, after checking if the user is authorized, etc.
 
     Args:
         userid (int): Currently authenticating user ID.
         journalid (int): Journal ID to fetch.
         rating (int): Maximum rating to display.
-        ignore (bool): Whether to respect ignored or blocked tags.
-        anyway (bool): Whether ignore checks and display anyway. Defaults to False.
-        increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
+        ignore: Whether to check for blocked tags and users.
+        anyway: For moderators, whether to ignore checks (including permission checks and deleted status) and display anyway.
+        increment_views: Whether to increment the number of views on the submission.
 
     Returns:
         A journal and all needed data as a dict.
@@ -102,15 +111,28 @@ def _select_journal_and_check(userid, journalid, *, rating, ignore, anyway, incr
 
     query = dict(query)
 
-    if increment_views and d.common_view_content(userid, journalid, 'journal'):
-        query['page_views'] += 1
+    if increment_views and (new_views := d.common_view_content(userid, journalid, 'journals')) is not None:
+        query['page_views'] = new_views
 
     return query
 
 
-def select_view(userid, rating, journalid, ignore=True, anyway=None):
+def select_view(
+    userid,
+    journalid,
+    *,
+    rating,
+    ignore: bool = True,
+    anyway: bool = False,
+):
     journal = _select_journal_and_check(
-        userid, journalid, rating=rating, ignore=ignore, anyway=anyway == "true")
+        userid,
+        journalid,
+        rating=rating,
+        ignore=ignore,
+        anyway=anyway,
+        increment_views=False,
+    )
 
     return {
         'journalid': journalid,
@@ -123,7 +145,7 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
         'content': journal['content'],
         'rating': journal['rating'],
         'page_views': journal['page_views'],
-        'reported': report.check(journalid=journalid),
+        'reported': report.check(journalid=journalid) if userid in staff.MODS else None,
         'favorited': favorite.check(userid, journalid=journalid),
         'friends_only': journal['friends_only'],
         'hidden': journal['hidden'],
@@ -133,18 +155,31 @@ def select_view(userid, rating, journalid, ignore=True, anyway=None):
     }
 
 
-def select_view_api(userid, journalid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    journalid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = d.get_rating(userid)
 
     journal = _select_journal_and_check(
-        userid, journalid,
-        rating=rating, ignore=False, anyway=anyway, increment_views=increment_views)
+        userid,
+        journalid,
+        rating=rating,
+        ignore=not anyway,
+        anyway=False,
+        increment_views=increment_views,
+    )
+
+    username = Username.from_stored(journal['username'])
 
     return {
         'journalid': journalid,
         'title': journal['title'],
-        'owner': journal['username'],
-        'owner_login': d.get_sysname(journal['username']),
+        'owner': username.display,
+        'owner_login': username.sysname,
         'owner_media': api.tidy_all_media(
             media.get_user_media(journal['userid'])),
         'content': text.markdown(journal['content']),
@@ -163,7 +198,7 @@ def select_view_api(userid, journalid, anyway=False, increment_views=False):
 
 def select_user_list(userid, rating, limit, backid=None, nextid=None):
     statement = [
-        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime"
+        "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime, jo.content"
         " FROM journal jo"
         " JOIN profile pr ON jo.userid = pr.userid"
         " WHERE NOT jo.hidden"]
@@ -195,6 +230,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
         "username": i[3],
         "rating": i[4],
         "unixtime": i[5],
+        "content": i.content,
     } for i in d.execute("".join(statement))]
     media.populate_with_user_media(query)
 
@@ -202,7 +238,7 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
 
 
 def select_list(userid, rating, otherid):
-    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.content FROM journal jo WHERE"]
+    statement = ["SELECT jo.journalid, jo.title, jo.unixtime, jo.rating, jo.content FROM journal jo WHERE"]
 
     if userid:
         # filter own content in SFW mode
@@ -225,6 +261,7 @@ def select_list(userid, rating, otherid):
         "journalid": i.journalid,
         "title": i.title,
         "created_at": arrow.get(i.unixtime - UNIXTIME_OFFSET),
+        "rating": i.rating,
         "content": i.content,
     } for i in d.engine.execute("".join(statement)).fetchall()]
 

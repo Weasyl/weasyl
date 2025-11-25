@@ -1,6 +1,5 @@
 from sqlalchemy import orm
 
-from libweasyl.models.helpers import clauses_for
 from libweasyl.models.meta import Base
 from libweasyl.models import tables
 
@@ -38,14 +37,3 @@ class Session(Base):
 
 class Friendship(Base):
     __table__ = tables.frienduser
-
-    with clauses_for(__table__) as c:
-        is_pending = c('pending')
-
-
-class Ignorama(Base):
-    __table__ = tables.ignoreuser
-
-
-class Follow(Base):
-    __table__ = tables.watchuser

@@ -1,95 +1,44 @@
-$def with (query, *, notifications=False, include_byline=True, lazy_load=True)
+$def with (card, *, welcomeid=None, include_byline=True, lazy_load=True)
+$code:
+  thumb_url = card.thumbnail.files.fallback['display_url']
 
 <li class="item">
-  $if notifications:
+  $if welcomeid is not None:
     <label class="input-checkbox">
 
   <figure class="thumb$:{'' if include_byline else ' thumb-no-byline'}">
-    $code:
-      if query['contype'] in (30, 50):
-        width = "120"
-        avatar = query['user_media']['avatar'][0]
-      else:
-        thumb = THUMB(query)
-        webp_thumb = WEBP_THUMB(query)
-        width = thumb['attributes']['width'] if 'attributes' in thumb else ""
-
-        display_url = thumb['display_url']
-
-        if display_url == resource_path('img/default-visual.png'):
-          subtype = query.get('subtype', 0)
-
-          if 2000 <= subtype < 3000:
-            display_url = resource_path('img/default-lit.png')
-          elif 3000 <= subtype < 3040:
-            display_url = resource_path('img/default-music.png')
-          elif 3040 <= subtype < 4000:
-            display_url = resource_path('img/default-multi.png')
-
-        if width:
-          spacer = '<svg class="img-space" width="%i" height="%i"></svg>' % (int(width), int(thumb['attributes']['height']))
-        else:
-          spacer = None
-
-    <a class="thumb-bounds" data-width="${width}"
-      $if query['contype'] == 20:
-        href="/character/${query['charid']}/${SLUG(query['title'])}">
-      $elif query['contype'] == 30:
-        href="/journal/${query['journalid']}/${SLUG(query['title'])}">
-      $elif query['contype'] == 40:
-        href="/submission/${query['submitid']}/${SLUG(query['title'])}">
-      $elif query['contype'] == 50:
-        href="/~${LOGIN(query['username'])}">
-      $else:
-        href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">
-
-      $if query['rating'] == R.MATURE.code:
+    <a class="thumb-bounds" href="${card.href}">
+      $if card.rating == R.MATURE.code:
         <span class="rating mature">The following submission is rated Mature:</span>
-      $elif query['rating'] == R.EXPLICIT.code:
+      $elif card.rating == R.EXPLICIT.code:
         <span class="rating explicit">The following submission is rated Explicit:</span>
 
-      $if query['contype'] in (30, 50):
-        <img src="${avatar['display_url']}" alt="avatar" />
-      $elif webp_thumb is not None:
+      $if card.thumbnail.files.webp is not None:
         <picture>
-          <source type="image/webp" srcset="${webp_thumb['display_url']}" />
-          <img src="${display_url}" alt=""$:{' loading="lazy"' if lazy_load else ''}$:{' class="has-space"' if spacer else ''} />
+          <source type="image/webp" srcset="${card.thumbnail.files.webp['display_url']}" />
+          <img src="${thumb_url}" alt="" width="${card.thumbnail.width}" height="${card.thumbnail.height}"$:{' loading="lazy"' if lazy_load else ''} />
         </picture>
-        $:{spacer}
       $else:
-        <img src="${display_url}" alt=""$:{' loading="lazy"' if lazy_load else ''}$:{' class="has-space"' if spacer else ''} />
-        $:{spacer}
-
+        <img src="${thumb_url}" alt="" width="${card.thumbnail.width}" height="${card.thumbnail.height}"$:{' loading="lazy"' if lazy_load else ''} />
     </a>
 
     <figcaption>
-      <h6 class="title" title="${query['title']}"><a
-        $if query['contype'] == 20:
-          href="/character/${query['charid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
-        $elif query['contype'] == 30:
-          href="/journal/${query['journalid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
-        $elif query['contype'] == 40:
-          href="/submission/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
-        $elif query['contype'] == 50:
-          href="/~${LOGIN(query['username'])}">${query['username']}
-        $else:
-          href="/~${LOGIN(query['username'])}/submissions/${query['submitid']}/${SLUG(query['title'])}">${SUMMARIZE(query['title'], 52)}
-      </a></h6>
+      <h6 class="title" title="${card.title}"><a href="${card.href}">${card.caption}</a></h6>
       $if include_byline:
         $code:
           byline_prefix = (
-            'collected by' if query['contype'] == 40 else
-            'character of' if query['contype'] == 20 else
+            'collected by' if card.contype == 40 else
+            'character of' if card.contype == 20 else
             'by'
           )
-        <p class="byline" title="$:{byline_prefix} ${query['username']}">
+        <p class="byline" title="$:{byline_prefix} ${card.username.display}">
           <i>$:{byline_prefix}</i>
-          <a href="/~${LOGIN(query['username'])}" class="username">${query['username']}</a>
+          <a href="/~${card.username.sysname}" class="username">${card.username.display}</a>
         </p>
     </figcaption>
   </figure>
 
-  $if notifications:
-    <input type="checkbox" name="remove" value="${query['welcomeid']}" class="checkbox" />
+  $if welcomeid is not None:
+    <input type="checkbox" name="remove" value="${welcomeid}" class="checkbox" />
     </label>
 </li>

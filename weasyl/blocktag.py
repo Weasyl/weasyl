@@ -73,24 +73,37 @@ def select_ids(userid):
     ]
 
 
-def insert(userid, title, rating):
+def insert(userid: int, tags: str, rating: int):
     if rating not in ratings.CODE_MAP:
         rating = ratings.GENERAL.code
 
     profile.check_user_rating_allowed(userid, rating)
 
-    d.engine.execute(
-        'INSERT INTO blocktag (userid, tagid, rating) VALUES (%(user)s, %(tag)s, %(rating)s) ON CONFLICT DO NOTHING',
-        user=userid, tag=searchtag.get_or_create(title), rating=rating)
+    parsed_tags = searchtag.parse_tags(tags)
+
+    d.engine.execute('''
+        INSERT INTO blocktag (userid, tagid, rating)
+        SELECT %(user)s, tag, %(rating)s
+        FROM UNNEST (%(tag)s::integer[]) AS tag
+        ON CONFLICT (userid, tagid) DO UPDATE
+        SET rating = EXCLUDED.rating
+    ''', user=userid, tag=searchtag.get_or_create_many(parsed_tags), rating=rating)
 
     select_ids.invalidate(userid)
 
 
-def remove(userid, title):
-    d.engine.execute(
-        "DELETE FROM blocktag WHERE (userid, tagid) = (%(user)s, (SELECT tagid FROM searchtag WHERE title = %(tag)s))",
-        user=userid,
-        tag=d.get_search_tag(title),
-    )
+def remove_list(userid: int, tags: list[str]):
+    if not tags:
+        return
+
+    d.engine.execute('''
+        DELETE FROM blocktag
+        WHERE userid = %(userid)s
+        AND tagid IN (
+            SELECT tagid
+            FROM searchtag
+            WHERE title = ANY (%(tags)s)
+        )
+    ''', userid=userid, tags=tags)
 
     select_ids.invalidate(userid)

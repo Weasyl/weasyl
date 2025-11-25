@@ -5,8 +5,9 @@ import re
 from lxml import etree, html
 import misaka
 
+from weasyl.forms import parse_sysname
+from .defang import CleanHref
 from .defang import defang
-from .legacy import get_sysname
 
 try:
     from html.parser import locatestarttagend_tolerant as locatestarttagend
@@ -14,9 +15,15 @@ except ImportError:
     from html.parser import locatestarttagend
 
 
-def slug_for(title):
+def slug_for(title: str) -> str:
     title = title.replace("&", " and ")
     return "-".join(m.group(0) for m in re.finditer(r"[a-z0-9]+", title.lower()))
+
+
+def summarize(s, max_length=200):
+    if len(s) > max_length:
+        return s[:max_length - 1].rstrip() + '\N{HORIZONTAL ELLIPSIS}'
+    return s
 
 
 AUTOLINK_URL = (
@@ -38,6 +45,9 @@ _EXCERPT_BLOCK_ELEMENTS = frozenset([
     "blockquote", "br", "div", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "ol",
     "p", "pre", "ul", "li",
 ])
+
+# C0 minus [\t\n\r]
+_LXML_INCOMPATIBLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
 def _furaffinity(target):
@@ -111,8 +121,16 @@ def _markdown(target):
 
 
 def create_link(t, username):
+    sysname = parse_sysname(username)
+    if sysname is None:
+        e = etree.Element("span")
+        e.set("class", "invalid-markup")
+        e.set("title", "invalid username")
+        e.text = f"<{t}{username}>"
+        return e
+
     link = etree.Element("a")
-    link.set("href", "/~" + get_sysname(username))
+    link.set("href", f"/~{sysname}")
 
     if t == "~":
         link.text = username
@@ -120,7 +138,7 @@ def create_link(t, username):
         link.set("class", "user-icon")
 
         image = etree.SubElement(link, "img")
-        image.set("src", "/~{username}/avatar".format(username=get_sysname(username)))
+        image.set("src", f"/~{sysname}/avatar")
 
         if t == "!":
             image.set("alt", username)
@@ -225,8 +243,8 @@ def _convert_autolinks(fragment):
             if href:
                 t, _, user = href.partition(":")
 
-                if t == "user":
-                    link.set("href", "/~{user}".format(user=get_sysname(user)))
+                if t == "user" and (sysname := parse_sysname(user)) is not None:
+                    link.set("href", f"/~{sysname}")
                 elif t == "da":
                     link.set("href", "https://www.deviantart.com/{user}".format(user=_deviantart(user)))
                 elif t == "ib":
@@ -244,6 +262,21 @@ def _convert_autolinks(fragment):
             _convert_autolinks(child)
 
 
+def _replace_bad_links(fragment) -> None:
+    """
+    Expands unsupported links to `.invalid-markup` elements to provide a better user experience than `libweasyl.defang`'s simple removal.
+    """
+    for link in list(fragment.iter("a")):
+        href = link.get("href")
+        if href is not None and CleanHref.try_from(href) is None:
+            e = etree.Element("span")
+            e.tail = link.tail
+            e.set("class", "invalid-markup")
+            e.set("title", "invalid link")
+            e.text = f"{link.text} [{_LXML_INCOMPATIBLE.sub('', href)}]"
+            link.getparent().replace(link, e)
+
+
 def _markdown_fragment(target):
     rendered = _markdown(target)
     fragment = html.fragment_fromstring(rendered, create_parent=True)
@@ -255,7 +288,7 @@ def _markdown_fragment(target):
 
         t, _, user = src.partition(":")
 
-        if t != "user":
+        if t != "user" or (sysname := parse_sysname(user)) is None:
             link = etree.Element("a")
             link.tail = image.tail
             link.set("href", src)
@@ -263,10 +296,10 @@ def _markdown_fragment(target):
             image.getparent().replace(image, link)
             continue
 
-        image.set("src", "/~{user}/avatar".format(user=get_sysname(user)))
+        image.set("src", f"/~{sysname}/avatar")
 
         link = etree.Element("a")
-        link.set("href", "/~{user}".format(user=get_sysname(user)))
+        link.set("href", f"/~{sysname}")
         link.set("class", "user-icon")
         link.tail = image.tail
         image.getparent().replace(image, link)
@@ -281,6 +314,8 @@ def _markdown_fragment(target):
         else:
             image.tail = None
             image.set("alt", user)
+
+    _replace_bad_links(fragment)
 
     add_user_links(fragment, None, True)
 
@@ -324,6 +359,9 @@ def _normalize_whitespace(text):
 def markdown_excerpt(markdown_text, length=300):
     fragment = _markdown_fragment(markdown_text)
     text = _normalize_whitespace("".join(_itertext_spaced(fragment)))
+
+    # TODO: more generic footer removal
+    text = text.removesuffix("Posted using PostyBirb").rstrip()
 
     if len(text) <= length:
         return text

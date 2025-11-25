@@ -26,7 +26,9 @@ $def with (options)
       <div class="column clear">
         <h2 class="typeface-a color-a">Community</h2>
         <ul class="clear">
-          <li><a href="/site-updates/">(coming soon!)</a></li>
+          $ site_social_rel = ' rel="me"' if 'index' in options else ''
+          <li><a$:{site_social_rel} class="footer-icon-link" href="https://bsky.app/profile/weasyl.com"><img src="${resource_path('img/bluesky.svg')}" alt="" fetchpriority="low"> Bluesky</a></li>
+          <li><a$:{site_social_rel} class="footer-icon-link" href="https://sunny.garden/@weasyl"><img src="${resource_path('img/mastodon.svg')}" alt="" fetchpriority="low"> Mastodon</a></li>
         </ul>
       </div>
 
@@ -67,14 +69,14 @@ $def with (options)
 
 <script src="${resource_path('js/jquery-2.2.4.min.js')}"></script>
 
-<script id="scripts" src="${resource_path('js/scripts.js')}" data-marked-src="${resource_path('js/marked.js')}"></script>
+<script src="${resource_path('js/scripts.js')}"></script>
 
 $if "imageselect" in options:
   <script src="${resource_path('js/imageselect.js')}"></script>
   $:{RENDER("common/image_select.html", ["square_select" in options])}
 
 $if 'search' in options:
-  <script src="${resource_path('js/search.js')}"></script>
+  <script type="module" src="${resource_path('js/search.js')}" async></script>
 
 $if 'tags-edit' in options:
   <script type="module" src="${resource_path('js/tags-edit.js')}" async></script>

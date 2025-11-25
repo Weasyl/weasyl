@@ -1,216 +1,167 @@
-$def with (query)
-$code:
-  def _PREVIOUS(x):
-    if x in [1010, 1015]:         return [1010, 1015]
-    elif x in [3030, 3035, 3040]: return [3030, 3035, 3040]
-    elif x == 3010:               return [3010]
-    elif x == 3080:               return [3080]
-    elif x == 3085:               return [3085]
-    elif x in [3020, 3100, 3110, 3050]: return [3020, 3100, 3110, 3050]
-    elif x in [3070, 3075]:       return [3070, 3075]
-    elif x == 3140:               return [3140]
-    elif x == 3150:               return [3150]
-    elif x in [4010, 4015]:       return [4010, 4015]
-    elif x == 4016:               return [4016]
-    elif x in [4020, 4025, 4050]: return [4020, 4025, 4050]
-    elif x in [4030, 4035, 4060, 4065]:
-      return [4030, 4035, 4060, 4065]
-    elif x in [4040, 4045]:       return [4040, 4045]
-    else:                         return []
-
-  def _HEADER(x):
-    if x in [1010, 1015]:         return "Journals"
-    elif x in [3030, 3035, 3040]: return "Collection Offers"
-    elif x == 3010:               return "Followers"
-    elif x == 3080:               return "Friend Requests"
-    elif x == 3085:               return "Friend Confirmations"
-    elif x in [3020, 3100, 3110, 3050]: return "User Favorites"
-    elif x in [3070, 3075]:       return "Streaming"
-    elif x == 3140:               return "Submission Tag Changes"
-    elif x == 3150:               return "Site Updates"
-    elif x in [4010, 4015]:       return "Shouts"
-    elif x == 4016:               return "Staff Notes"
-    elif x in [4020, 4025, 4050]: return "Submission Comments"
-    elif x in [4030, 4035, 4060, 4065]:
-      return "Journal Comments"
-    elif x in [4040, 4045]:       return "Character Comments"
-    else:                         return "Miscellaneous"
-
-$ previous_types = []
-$ previous_sections = set()
+$def with (sections)
 $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
 
 <div id="messages-content" class="content">
 
-  $if not query:
+  $if not sections:
     <br>
     There are no notifications to display.
-
-  <form action="/messages/remove" method="post">
-    $if query:
+  $else:
+    <form action="/messages/remove" method="post">
       <div class="notifs-actions" id="notification-global-actions-top">
         <div class="notifs-remove-buttons">
           <button class="button negative notifs-remove" id="remove-checked-top" data-confirm="Are you sure you want to remove the selected notifications?">Remove Selected</button>
-          <button class="button negative remove-all notifs-remove-all" name="remove-all-before" value="${NOW()}" data-confirm="Are you sure you want to remove all the notifications on this page?">Remove All</button>
+          <button class="button negative notifs-remove-all" name="remove-all-before" value="${NOW()}" data-confirm="Are you sure you want to remove all the notifications on this page?">Remove All</button>
         </div>
       </div>
 
-    <div id="messages-checkboxes">
-      <div>$# blank div to be closed by type not in previous logic
-      $for i in query:
-        $if i['type'] not in previous_types:
-          $ group_type = _HEADER(i['type']).replace(" ", "_").lower()
-          </div>
-          $if i['section'] not in previous_sections:
-            <a name="${i['section']}"></a>
-            $ previous_sections.add(i['section'])
-          <h3 class="notification-group-header">
-            ${_HEADER(i['type'])}
-            $if i['type'] in (3030, 3035):
-              $#for collection offers
-              <a class="typeface-default" href="/manage/collections?feature=pending">[Manage Collections]</a>
-            $elif i['type'] == 3080:
-              $#for friend requests
-              <a class="typeface-default" href="/manage/friends?feature=pending">[Manage Friends]</a>
-          </h3>
-          <div class="group" id="${group_type}">
-          $ previous_types = _PREVIOUS(i['type'])
+      <div id="messages-checkboxes">
+        $for section_groups, section_id in sections:
+          $if section_id is not None:
+            <a name="${section_id}"></a>
+          $for group in section_groups:
+            <div class="group" id="${group.id}">
+              <h3 class="notification-group-header">
+                ${group.heading}
+                $if group.id == "collection_offers":
+                  <a class="typeface-default" href="/manage/collections?feature=pending">[Manage Collections]</a>
+                $elif group.id == "friend_requests":
+                  <a class="typeface-default" href="/manage/friends?feature=pending">[Manage Friends]</a>
+              </h3>
 
-        <div class="item">
-          <label class="input-checkbox">
+              $for i in group.items:
+                <div class="item">
+                  <label class="input-checkbox">
+                    $code:
+                      if 'username' in i:
+                        item_user = '<a href="/~' + LOGIN(i['username']) + '" class="username">' + escape_(i['username'], True) + '</a>'
 
-            $code:
-              if 'username' in i:
-                item_user = '<a href="/~' + LOGIN(i['username']) + '" class="username">' + escape_(i['username'], True) + '</a>'
+                      if 'submitid' in i or 'journalid' in i or 'charid' in i or 'updateid' in i:
+                        if 'submitid' in i:
+                          folder = 'submission'
+                          id = i['submitid']
+                        elif 'journalid' in i:
+                          folder = 'journal'
+                          id = i['journalid']
+                        elif 'charid' in i:
+                          folder = 'character'
+                          id = i['charid']
+                        elif 'updateid' in i:
+                          folder = 'site-updates'
+                          id = i['updateid']
+                        if 'title' in i:
+                          slug = '' if 'updateid' in i else '/%s' % (SLUG(i['title']),)
+                          item_base_url = '/%s/%i%s' % (folder, id, slug)
+                          item_link = '<a href="' + item_base_url + '">' + escape_(i['title'], True) + '</a>'
+                          if 'commentid' in i:
+                            comment_url = lambda id: item_base_url + '#cid' + STR(id)
+                            if 'replyid' in i:
+                              item_your_comment = '<a href="' + comment_url(i['replyid']) + '">your comment</a>'
+                              item_reply = '<a href="' + comment_url(i['commentid']) + '">reply</a>'
+                            else:
+                              item_comment = '<a href="' + comment_url(i['commentid']) + '">comment</a>'
 
-              if 'submitid' in i or 'journalid' in i or 'charid' in i or 'updateid' in i:
-                if 'submitid' in i:
-                  folder = 'submission'
-                  id = i['submitid']
-                elif 'journalid' in i:
-                  folder = 'journal'
-                  id = i['journalid']
-                elif 'charid' in i:
-                  folder = 'character'
-                  id = i['charid']
-                elif 'updateid' in i:
-                  folder = 'site-updates'
-                  id = i['updateid']
-                if 'title' in i:
-                  slug = '' if 'updateid' in i else '/%s' % (SLUG(i['title']),)
-                  item_base_url = '/%s/%i%s' % (folder, id, slug)
-                  item_link = '<a href="' + item_base_url + '">' + escape_(i['title'], True) + '</a>'
-                  if 'commentid' in i:
-                    comment_url = lambda id: item_base_url + '#cid' + STR(id)
-                    if 'replyid' in i:
-                      item_your_comment = '<a href="' + comment_url(i['replyid']) + '">your comment</a>'
-                      item_reply = '<a href="' + comment_url(i['commentid']) + '">reply</a>'
-                    else:
-                      item_comment = '<a href="' + comment_url(i['commentid']) + '">comment</a>'
+                      if 'ownername' in i:
+                        item_ownername = '<a href="/~' + LOGIN(i['ownername']) + '" class="username">' + escape_(i['ownername'], True) + '</a>'
+                        if 'commentid' in i and 'replyid' in i:
+                          shout_reply = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['commentid']) + '">reply</a>'
+                          your_comment = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['replyid']) + '">your comment</a>'
 
-              if 'ownername' in i:
-                item_ownername = '<a href="/~' + LOGIN(i['ownername']) + '" class="username">' + escape_(i['ownername'], True) + '</a>'
-                if 'commentid' in i and 'replyid' in i:
-                  shout_reply = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['commentid']) + '">reply</a>'
-                  your_comment = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['replyid']) + '">your comment</a>'
+                    $if 'id' in i:
+                      <input type="checkbox" class="remove" name="remove" value="${i['id']}" />
 
-            <input type="checkbox" class="remove" name="remove" value="${i['id']}" />
+                    $if i['type'] == 1010:
+                      $# user journal
+                      $:{item_user} posted a journal entry titled $:{item_link}.
+                    $elif i['type'] == 3010:
+                      $# followed
+                      $:{item_user} is now following you.
+                    $elif i['type'] == 3020:
+                      $# submission favorite
+                      $:{item_user} favorited your submission titled $:{item_link}.
+                    $elif i['type'] == 3030:
+                      $# collection offer
+                      $:{item_user} offered their submission $:{item_link} to you as a collection.
+                    $elif i['type'] == 3035:
+                      $# collection request
+                      $:{item_user} would like to add your submission $:{item_link} to their collection.
+                    $elif i['type'] == 3050:
+                      $# collected submission favorite
+                      $:{item_user} favorited your collected submission titled $:{item_link}.
+                    $elif i['type'] == 3070:
+                      $# upcoming streams
+                      $:{item_user} will be streaming artwork later.
+                    $elif i['type'] == 3075:
+                      $# streaming now
+                      $:{item_user} is now streaming artwork live.
+                      <a href="${i['stream_url']}">[View Stream]</a>
+                    $elif i['type'] == 3080:
+                      $# friend request
+                      $:{item_user} sent you a friend request.
+                    $elif i['type'] == 3085:
+                      $# friend accepted
+                      $:{item_user} accepted your friend request.
+                    $elif i['type'] == 3100:
+                      $# character favorite
+                      $:{item_user} favorited your character titled $:{item_link}.
+                    $elif i['type'] == 3110:
+                      $# journal favorite
+                      $:{item_user} favorited your journal titled $:{item_link}.
+                    $elif i['type'] == 3140:
+                      $# tag update
+                      Tags were suggested on your submission $:{item_link}.
+                    $elif i['type'] == 4010:
+                      $# shout
+                      $:{item_user} left a <a href="/shouts/${i['ownername']}#cid${i['commentid']}">comment</a> on your shout page.
+                    $elif i['type'] == 4015:
+                      $# shout reply
+                      $:{item_user} left a $:{shout_reply('shouts')} to $:{your_comment('shouts')} on $:{item_ownername}'s shout page.
+                    $elif i['type'] == 4016:
+                      $# staff note reply
+                      $:{item_user} left a $:{shout_reply('staffnotes')} to $:{your_comment('staffnotes')} on $:{item_ownername}'s staff notes.
+                    $elif i['type'] == 4020:
+                      $# submission comment
+                      $:{item_user} left a $:{item_comment} on your submission $:{item_link}.
+                    $elif i['type'] == 4025:
+                      $# submission comment reply
+                      $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the submission $:{item_link}.
+                    $elif i['type'] == 4030:
+                      $# journal comment
+                      $:{item_user} left a $:{item_comment} on your journal $:{item_link}.
+                    $elif i['type'] == 4035:
+                      $# journal comment reply
+                      $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the journal $:{item_link}.
+                    $elif i['type'] == 4040:
+                      $# character comment
+                      $:{item_user} left a $:{item_comment} on your character $:{item_link}.
+                    $elif i['type'] == 4045:
+                      $# character comment reply
+                      $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the character $:{item_link}.
+                    $elif i['type'] == 4050:
+                      $# comment on collected item
+                      $:{item_user} left a $:{item_comment} on your collected submission $:{item_link}.
+                    $elif i['type'] == 4060:
+                      $# site update comment
+                      $:{item_user} left a $:{item_comment} on your site update $:{item_link}.
+                    $elif i['type'] == 4065:
+                      $# site update comment reply
+                      $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the site update $:{item_link}.
+                    $else:
+                      ${i}
+                    <span class="date color-lighter">$:{LOCAL_TIME(i['unixtime'], '{date} <i>at</i> {time}')}</span>
+                  </label>
+                </div>
+            </div>
+      </div>
 
-            $if i['type'] == 1010:
-              $# user journal
-              $:{item_user} posted a journal entry titled $:{item_link}.
-            $elif i['type'] == 3010:
-              $# followed
-              $:{item_user} is now following you.
-            $elif i['type'] == 3020:
-              $# submission favorite
-              $:{item_user} favorited your submission titled $:{item_link}.
-            $elif i['type'] == 3030:
-              $# collection offer
-              $:{item_user} offered their submission $:{item_link} to you as a collection.
-            $elif i['type'] == 3035:
-              $# collection request
-              $:{item_user} would like to add your submission $:{item_link} to their collection.
-            $elif i['type'] == 3050:
-              $# collected submission favorite
-              $:{item_user} favorited your collected submission titled $:{item_link}.
-            $elif i['type'] == 3070:
-              $# upcoming streams
-              $:{item_user} will be streaming artwork later.
-            $elif i['type'] == 3075:
-              $# streaming now
-              $:{item_user} is now streaming artwork live.
-              <a href="${i['stream_url']}">[View Stream]</a>
-            $elif i['type'] == 3080:
-              $# friend request
-              $:{item_user} sent you a friend request.
-            $elif i['type'] == 3085:
-              $# friend accepted
-              $:{item_user} accepted your friend request.
-            $elif i['type'] == 3100:
-              $# character favorite
-              $:{item_user} favorited your character titled $:{item_link}.
-            $elif i['type'] == 3110:
-              $# journal favorite
-              $:{item_user} favorited your journal titled $:{item_link}.
-            $elif i['type'] == 3140:
-              $# tag update
-              Tags were suggested on your submission $:{item_link}.
-            $elif i['type'] == 3150:
-              <a href="/site-updates/${i['updateid']}">${i['title']}</a>
-            $elif i['type'] == 4010:
-              $# shout
-              $:{item_user} left a <a href="/shouts/${i['ownername']}#cid${i['commentid']}">comment</a> on your shout page.
-            $elif i['type'] == 4015:
-              $# shout reply
-              $:{item_user} left a $:{shout_reply('shouts')} to $:{your_comment('shouts')} on $:{item_ownername}'s shout page.
-            $elif i['type'] == 4016:
-              $# staff note reply
-              $:{item_user} left a $:{shout_reply('staffnotes')} to $:{your_comment('staffnotes')} on $:{item_ownername}'s staff notes.
-            $elif i['type'] == 4020:
-              $# submission comment
-              $:{item_user} left a $:{item_comment} on your submission $:{item_link}.
-            $elif i['type'] == 4025:
-              $# submission comment reply
-              $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the submission $:{item_link}.
-            $elif i['type'] == 4030:
-              $# journal comment
-              $:{item_user} left a $:{item_comment} on your journal $:{item_link}.
-            $elif i['type'] == 4035:
-              $# journal comment reply
-              $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the journal $:{item_link}.
-            $elif i['type'] == 4040:
-              $# character comment
-              $:{item_user} left a $:{item_comment} on your character $:{item_link}.
-            $elif i['type'] == 4045:
-              $# character comment reply
-              $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the character $:{item_link}.
-            $elif i['type'] == 4050:
-              $# comment on collected item
-              $:{item_user} left a $:{item_comment} on your collected submission $:{item_link}.
-            $elif i['type'] == 4060:
-              $# site update comment
-              $:{item_user} left a $:{item_comment} on your site update $:{item_link}.
-            $elif i['type'] == 4065:
-              $# site update comment reply
-              $:{item_user} left a $:{item_reply} to $:{item_your_comment} on the site update $:{item_link}.
-            $else:
-              ${i}
-            <span class="date color-lighter">$:{LOCAL_TIME(i['unixtime'], '{date} <i>at</i> {time}')}</span>
-          </label>
-        </div>
-      </div>$# close last group div
-    </div>
-
-    $if query:
       <div class="notifs-actions" id="notification-global-actions">
         <div class="notifs-remove-buttons">
           <button class="button negative notifs-remove" id="remove-checked" data-confirm="Are you sure you want to remove the selected notifications?">Remove Selected</button>
-          <button class="button negative remove-all notifs-remove-all" name="remove-all-before" value="${NOW()}" data-confirm="Are you sure you want to remove all the notifications on this page?">Remove All</button>
+          <button class="button negative notifs-remove-all" name="remove-all-before" value="${NOW()}" data-confirm="Are you sure you want to remove all the notifications on this page?">Remove All</button>
         </div>
       </div>
 
-    <script src="${resource_path('js/notification-list.js')}"></script>
-  </form>
+      <script type="module" src="${resource_path('js/notification-list.js')}"></script>
+    </form>
 
 </div>

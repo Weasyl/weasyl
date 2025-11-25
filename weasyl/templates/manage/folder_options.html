@@ -11,7 +11,7 @@ $code:
 
   <div class="form skinny clear">
     <h3>${info.title}</h3>
-    <form method="POST">
+    <form method="post">
       <p>
       <label class="input-checkbox">
         <input type="checkbox" name="settings" $:{_CHECKED("f", "featured-filter")} />
@@ -40,8 +40,7 @@ $code:
       </label>
       </p>
 
-      <button type="submit" class="button positive" style="float: right;">Update Settings</button>
-      <a class="button" href="/manage/folders">Back</a>
+      <button class="button positive" style="float: right;">Update Settings</button>
     </form>
   </div>
 </div>

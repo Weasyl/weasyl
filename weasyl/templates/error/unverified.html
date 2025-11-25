@@ -9,11 +9,9 @@ $:{RENDER("common/stage_title.html", ["Unverified Account"])}
       If you know its owner, please vouch for their non-spamminess!
   </p>
 
-  <form id="error_buttons" method="POST" action="${request.route_path('vouch')}">
-    $if can_vouch:
+  $if can_vouch:
+    <form id="error_buttons" method="post" action="${request.route_path('vouch')}">
       <input type="hidden" name="targetid" value="${targetid}">
       <button class="button positive">Vouch for ${target_username}</button>
-
-    <a href="javascript:;" onclick="history.back()" class="button">Go Back</a>
-  </form>
+    </form>
 </div>

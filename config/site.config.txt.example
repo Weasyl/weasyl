@@ -3,26 +3,37 @@ allow_submit = true
 # Whether currency exchange rates should be fetched for /marketplace
 convert_currency = false
 
-# value checked against the Origin header to prevent CSRF
+# Value checked against the Origin header to prevent CSRF.
+# Also used to build absolute URLs.
 origin = http://weasyl.localhost:8080
 
 [backend]
 profile_responses = false
 
 [sqlalchemy]
-url = postgresql+psycopg2cffi://weasyl@postgres/weasyl
-# url = postgresql+psycopg2cffi:///weasyl
+url = postgresql+psycopg2://weasyl@postgres/weasyl
+# url = postgresql+psycopg2:///weasyl
+
+[outgoing_requests]
+# This SHOULD be changed when in production to an identifying User-Agent, e.g.
+#embed_user_agent = Weasyl-User-Embed (+https://www.weasyl.com)
+embed_user_agent = python-urllib3/2.4.0
 
 [memcached]
 servers = memcached
 
 [smtp]
-host = localhost
+host = mail-logger:587
 
 [two_factor_auth]
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()
 secret_key = 2iY4trxnpmNLlQifnQ21pFF0nb-VlmpxRUI6W_uP1oQ=
+
+[turnstile]
+site_key = 3x00000000000000000000FF
+secret_key = 1x0000000000000000000000000000000AA
+enforce = true
 
 # These keys MUST be changed when in production
 [secret_keys]

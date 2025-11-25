@@ -1,0 +1,18 @@
+{
+    "imports": {
+        "@std/async": "jsr:@std/async@^1.0.13",
+        "@std/cli": "jsr:@std/cli@^1.0.19",
+        "@std/collections": "jsr:@std/collections@^1.1.1",
+        "@std/encoding": "jsr:@std/encoding@^1.0.10",
+        "@std/path": "jsr:@std/path@^1.1.0",
+        "@ruffle-rs/ruffle": "npm:@ruffle-rs/ruffle@0.2.0-nightly.2025.8.26",
+        "autoprefixer": "npm:autoprefixer@^10.4.20",
+        "autosize": "npm:autosize@^6.0.1",
+        "esbuild": "npm:esbuild@^0.25.10",
+        "postcss": "npm:postcss@^8.5.4",
+        "sass-embedded": "npm:sass-embedded@^1.89.1"
+    },
+    "vendor": true,
+    "nodeModulesDir": "manual",
+    "unstable": ["lockfile-v5"]
+}

@@ -361,12 +361,12 @@ def submit_report_(request):
 @login_required
 @token_checked
 def submit_tags_(request):
-    # TODO: remove preferred/opt-out tag handling here when corresponding changes to `/control/editcommissionsettings` have been deployed for a while
+    if not define.is_vouched_for(request.userid):
+        raise WeasylError("vouchRequired")
+
     target_key, targetid = only(
         (key, expect_id(request.POST[key]))
         for key in (
-            "preferred_tags_userid",
-            "optout_tags_userid",
             "submitid",
             "charid",
             "journalid",
@@ -374,28 +374,6 @@ def submit_tags_(request):
         if key in request.POST
     )
     tags = searchtag.parse_tags(request.POST["tags"])
-
-    match target_key:
-        case "preferred_tags_userid":
-            if targetid != request.userid:
-                raise WeasylError("Unexpected")
-            searchtag.set_commission_preferred_tags(
-                userid=request.userid,
-                tag_names=tags,
-            )
-            raise HTTPSeeOther(location="/control/editcommissionsettings")
-
-        case "optout_tags_userid":
-            if targetid != request.userid:
-                raise WeasylError("Unexpected")
-            searchtag.set_commission_optout_tags(
-                userid=request.userid,
-                tag_names=tags,
-            )
-            raise HTTPSeeOther(location="/control/editcommissionsettings")
-
-    if not define.is_vouched_for(request.userid):
-        raise WeasylError("vouchRequired")
 
     match target_key:
         case "submitid":
@@ -589,7 +567,13 @@ def edit_submission_get_(request):
     form = request.web_input(submitid="", anyway="")
     form.submitid = define.get_int(form.submitid)
 
-    detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = submission.select_view(
+        request.userid,
+        form.submitid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -640,7 +624,13 @@ def edit_character_get_(request):
     form = request.web_input(charid="", anyway="")
     form.charid = define.get_int(form.charid)
 
-    detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = character.select_view(
+        request.userid,
+        form.charid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -686,7 +676,13 @@ def edit_journal_get_(request):
     form = request.web_input(journalid="", anyway="")
     form.journalid = define.get_int(form.journalid)
 
-    detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
+    detail = journal.select_view(
+        request.userid,
+        form.journalid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -780,3 +776,19 @@ def remove_comment_(request):
         raise HTTPSeeOther(location="/character/%i" % (targetid,))
     elif form.feature == "journal":
         raise HTTPSeeOther(location="/journal/%i" % (targetid,))
+
+
+@token_checked
+def views_post(request):
+    feature = request.matchdict["content_type"]
+    targetid = expect_id(request.matchdict["content_id"])
+
+    page_views = define.common_view_content(request.userid, targetid, feature)
+
+    if feature == "users" and not define.shows_statistics(viewer=request.userid, target=targetid):
+        page_views = None
+
+    return HTTPNoContent() if page_views is None else Response(
+        str(page_views),
+        content_type="text/plain;charset=us-ascii",
+    )

@@ -30,39 +30,39 @@ class StatusReporter {
         this.#display = display;
     }
 
-    start() {
-        this.#progressDelayTimer = setTimeout(this.#display.showProgress, SAVE_PROGRESS_DELAY);
+    m_start() {
+        this.#progressDelayTimer = setTimeout(this.#display.m_showProgress, SAVE_PROGRESS_DELAY);
     }
 
-    reportSuccess(...args) {
+    m_reportSuccess(...args) {
         clearTimeout(this.#progressDelayTimer);
-        this.#display.stopProgress();
-        this.#display.showSuccess(...args);
+        this.#display.m_stopProgress();
+        this.#display.m_showSuccess(...args);
     }
 
-    reportFailure() {
+    m_reportFailure() {
         clearTimeout(this.#progressDelayTimer);
-        this.#display.stopProgress();
-        this.#display.showFailure();
+        this.#display.m_stopProgress();
+        this.#display.m_showFailure();
     }
 }
 
 const undoTagAction = (target, tag, actionsFieldset) => {
     const reporter = new StatusReporter({
-        showProgress: () => {
+        m_showProgress: () => {
             actionsFieldset.classList.add('tag-form-status-saving');
             actionsFieldset.textContent = 'Undoing…';
         },
-        stopProgress: () => {
+        m_stopProgress: () => {
             actionsFieldset.classList.remove('tag-form-status-saving');
         },
-        showSuccess: () => {
+        m_showSuccess: () => {
             actionsFieldset.disabled = false;
             actionsFieldset.textContent = '';
             actionsFieldset.appendChild(actionsFieldset[ACTION_BUTTONS]);
             actionsFieldset[ACTION_BUTTONS] = null;
         },
-        showFailure: () => {
+        m_showFailure: () => {
             actionsFieldset[ACTION_BUTTONS] = null;
             actionsFieldset.textContent = 'Error.';
             animateFlash(actionsFieldset, FAILURE_COLOR);
@@ -80,10 +80,10 @@ const undoTagAction = (target, tag, actionsFieldset) => {
                 return Promise.reject({});
             }
 
-            reporter.reportSuccess();
+            reporter.m_reportSuccess();
         })
         .catch((err) => {
-            reporter.reportFailure();
+            reporter.m_reportFailure();
             return Promise.reject(err);
         });
 
@@ -101,15 +101,15 @@ const applyTagAction = (target, tag, actionsFieldset, isApproveAction) => {
     };
 
     const reporter = new StatusReporter({
-        showProgress: () => {
+        m_showProgress: () => {
             storeActionButtons();
             actionsFieldset.classList.add('tag-form-status-saving');
             actionsFieldset.textContent = `${isApproveAction ? 'Approv' : 'Reject'}ing…`;
         },
-        stopProgress: () => {
+        m_stopProgress: () => {
             actionsFieldset.classList.remove('tag-form-status-saving');
         },
-        showSuccess: (canUndo) => {
+        m_showSuccess: (canUndo) => {
             storeActionButtons();
 
             const undoButton = make('button', {
@@ -129,7 +129,7 @@ const applyTagAction = (target, tag, actionsFieldset, isApproveAction) => {
                 }, UNDO_TOKEN_VALIDITY * 1000);
             }
         },
-        showFailure: () => {
+        m_showFailure: () => {
             actionsFieldset[ACTION_BUTTONS] = null;
             actionsFieldset.textContent = 'Error.';  // don’t imply that the action definitely didn’t go through; prompt refresh at user’s convenience
             animateFlash(actionsFieldset, FAILURE_COLOR);
@@ -154,10 +154,10 @@ const applyTagAction = (target, tag, actionsFieldset, isApproveAction) => {
                 actionsFieldset[UNDO_TOKEN] = body.slice(1);
             }
 
-            reporter.reportSuccess(canUndo);
+            reporter.m_reportSuccess(canUndo);
         })
         .catch((err) => {
-            reporter.reportFailure();
+            reporter.m_reportFailure();
             return Promise.reject(err);
         });
 };
@@ -200,18 +200,18 @@ if (tagEditType !== 'none') {
         let abortController = null;
 
         const feedbackReporter = new StatusReporter({
-            showProgress: () => {
+            m_showProgress: () => {
                 statusOutput.classList.add('tag-form-status-saving');
                 statusOutput.value = 'Saving…';
             },
-            stopProgress: () => {
+            m_stopProgress: () => {
                 statusOutput.classList.remove('tag-form-status-saving');
             },
-            showSuccess: () => {
+            m_showSuccess: () => {
                 statusOutput.value = 'Feedback saved.';
                 animateFlash(statusOutput, SUCCESS_COLOR);
             },
-            showFailure: () => {
+            m_showFailure: () => {
                 statusOutput.value = 'Error saving feedback.';
                 animateFlash(statusOutput, FAILURE_COLOR);
             },
@@ -233,15 +233,15 @@ if (tagEditType !== 'none') {
                         return Promise.reject({});
                     }
 
-                    feedbackReporter.reportSuccess();
+                    feedbackReporter.m_reportSuccess();
                 })
                 .catch((err) => {
                     if (err.name !== 'AbortError') {
-                        feedbackReporter.reportFailure();
+                        feedbackReporter.m_reportFailure();
                         return Promise.reject(err);
                     }
                 });
-            feedbackReporter.start();
+            feedbackReporter.m_start();
         });
 
         byClass('suggested-tags', manage).addEventListener('click', (e) => {

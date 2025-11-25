@@ -21,7 +21,7 @@ def test_get_ratings_for_age(age, expected):
 @pytest.mark.parametrize(('rating', 'expected'), [
     (ratings.GENERAL, "General"),
     (ratings.MATURE, "Mature (18+ non-sexual)"),
-    (ratings.EXPLICIT, "Explicit (18+ sexual)"),
+    (ratings.EXPLICIT, "Explicit (18+ sexual or harder fetishes)"),
 ])
 def test_name_with_age(rating, expected):
     assert rating.name_with_age == expected

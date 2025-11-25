@@ -1,10 +1,13 @@
+import logging
 import os
 import re
 from io import BytesIO
 from urllib.parse import urlparse
 
 import arrow
+import requests
 import sqlalchemy as sa
+from requests import RequestException
 from sqlalchemy import bindparam
 
 from libweasyl.cache import region
@@ -53,6 +56,8 @@ _LIMITS = {
     ".mp3": 15 * _MEGABYTE,
     ".swf": 50 * _MEGABYTE,
 }
+
+logger = logging.getLogger(__name__)
 
 
 def _limit(size, extension):
@@ -269,8 +274,8 @@ def create_visual(userid, submission,
 
 
 _GOOGLE_DOCS_EMBED = re.compile(
-    r"\bdocs\.google\.com/document/d/e/([0-9a-z_\-]+)/pub\b",
-    re.IGNORECASE,
+    r"\bdocs\.google\.com/document/d/((?:e/)?[0-9a-z_\-]+)/pub\b",
+    re.ASCII | re.IGNORECASE,
 )
 
 
@@ -280,7 +285,7 @@ def _normalize_google_docs_embed(embedlink):
     if match is None:
         raise WeasylError('googleDocsEmbedLinkInvalid', level='info')
 
-    return f"https://docs.google.com/document/d/e/{match.group(1)}/pub?embedded=true"
+    return f"https://docs.google.com/document/d/{match.group(1)}/pub?embedded=true"
 
 
 @_create_submission(expected_type=2)
@@ -374,18 +379,29 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 def create_multimedia(userid, submission, embedlink=None, friends_only=None,
                       tags=None, coverfile=None, thumbfile=None, submitfile=None,
                       critique=False, create_notifications=True, auto_thumb=False):
-    embedlink = embedlink.strip()
-
     # Determine filesizes
     coversize = len(coverfile)
     thumbsize = len(thumbfile)
     submitsize = len(submitfile)
 
-    if not submitsize and not embedlink:
+    if submitsize:
+        embedded = None
+    elif (embedlink := embedlink.strip()):
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            raise WeasylError("embedlinkInvalid")
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UnrecognizedLink as e:
+            raise WeasylError("embedlinkInvalid") from e
+        except embed.UpstreamFailure as e:
+            raise WeasylError("embedlinkFailed") from e
+    else:
         raise WeasylError("submitSizeZero")
-    elif embedlink and not embed.check_valid(embedlink):
-        raise WeasylError("embedlinkInvalid")
-    elif coversize > 10 * _MEGABYTE:
+    del embedlink
+
+    if coversize > 10 * _MEGABYTE:
         raise WeasylError("coverSizeExceedsLimit")
     elif thumbsize > 10 * _MEGABYTE:
         raise WeasylError("thumbSizeExceedsLimit")
@@ -393,8 +409,6 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
     if submitsize:
         submitextension = files.get_extension_for_category(submitfile, m.MULTIMEDIA_SUBMISSION_CATEGORY)
         if submitextension is None:
-            raise WeasylError("submitType")
-        elif submitextension not in [".mp3", ".swf"] and not embedlink:
             raise WeasylError("submitType")
         elif _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
@@ -411,15 +425,20 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
 
     tempthumb_media_item = None
     im = None
-    if auto_thumb:
-        if thumbsize == 0 and coversize == 0:
-            # Fetch default thumbnail from source if available
-            thumb_url = embed.thumbnail(embedlink)
-            if thumb_url:
-                resp = d.http_get(thumb_url, timeout=5)
-                im = image.from_string(resp.content)
-    if not im and (thumbsize or coversize):
+    if thumbsize or coversize:
         im = image.from_string(thumbfile or coverfile)
+    elif auto_thumb and embedded is not None:
+        # Fetch default thumbnail from source if available
+        if embedded.thumbnail_url:
+            try:
+                # TODO: limit permitted destinations for this, including redirects
+                resp = requests.get(embedded.thumbnail_url, timeout=5, headers={
+                    "User-Agent": embed.user_agent,
+                })
+            except RequestException as e:
+                logger.error("Fetching thumbnail at %s for embed %s failed: %s", embedded.thumbnail_url, embedded.embedlink.href, e)
+            else:
+                im = image.from_string(resp.content)
     if im:
         tempthumb = images.make_thumbnail(im)
         tempthumb_type = images.image_file_type(tempthumb)
@@ -429,8 +448,8 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             im=tempthumb)
 
     # Inject embedlink
-    if embedlink:
-        submission.content = "".join([embedlink, "\n", submission.content])
+    if embedded:
+        submission.content = "".join([embedded.embedlink.href, "\n", submission.content])
 
     # Create submission
     db = d.connect()
@@ -446,7 +465,7 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             "rating": submission.rating,
             "friends_only": friends_only,
             "critique": critique,
-            "embed_type": 'other' if embedlink else None,
+            "embed_type": 'other' if embedded else None,
             "favorites": 0,
             "submitter_ip_address": submission.submitter_ip_address,
             "submitter_user_agent_id": submission.submitter_user_agent_id,
@@ -574,7 +593,14 @@ def get_google_docs_embed_url(submitid):
     return embed_url
 
 
-def select_view(userid, submitid, rating, ignore=True, anyway=None):
+def select_view(
+    userid,
+    submitid,
+    *,
+    rating: int,
+    ignore: bool = True,
+    anyway: bool = False,
+):
     # TODO(hyena): This `query[n]` stuff is monstrous. Use named fields.
     # Also some of these don't appear to be used? e.g. pr.config
     query = d.engine.execute("""
@@ -588,13 +614,10 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         WHERE su.submitid = %(id)s
     """, id=submitid).first()
 
-    # Sanity check
-    if query and userid in staff.MODS and anyway == "true":
+    if query and userid in staff.MODS and anyway:
         pass
     elif not query or query[8]:
         raise WeasylError("submissionRecordMissing")
-    elif query[7] > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()):
-        raise WeasylError("RatingExceeded")
     elif query[9] and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignore and ignoreuser.check(userid, query[0]):
@@ -611,10 +634,24 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     else:
         submittext = None
 
-    embedlink = d.text_first_line(query[5]) if query[11] == 'other' else None
-
+    content = query.content
+    embedded = None
     google_doc_embed = None
-    if query[11] == 'google-drive':
+
+    if query.embed_type == "other":
+        # NOTE: original `content` might not contain a newline
+        embedlink, _, content = content.partition("\n")
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            # a stored embed link should always be valid
+            raise RuntimeError("invalid stored embed link")  # pragma: no cover
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UpstreamFailure as e:
+            embedded = e.failed_embed
+        del embedlink
+    elif query.embed_type == "google-drive":
         google_doc_embed = get_google_docs_embed_url(submitid)
 
     grouped_tags = searchtag.select_grouped(userid, searchtag.SubmissionTarget(submitid))
@@ -629,20 +666,20 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "folderid": query[2],
         "unixtime": query[3],
         "title": query[4],
-        "content": (d.text_first_line(query[5], strip=True) if 'other' == query[11] else query[5]),
+        "content": content,
         "subtype": query[6],
         "rating": query[7],
+        "rating_exceeded": query.rating > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()),
         "hidden": query[8],
         "friends_only": query[9],
         "critique": query[10],
         "embed_type": query[11],
-        "page_views": (
-            query[12] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[12]),
+        "page_views": query[12],
         "fave_count": query[14],
 
 
         "mine": userid == query[0],
-        "reported": report.check(submitid=submitid),
+        "reported": report.check(submitid=submitid) if userid in staff.MODS else None,
         "favorited": favorite.check(userid, submitid=submitid),
         "collected": collection.owns(userid, submitid),
         "no_request": not settings.allow_collection_requests,
@@ -651,8 +688,7 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "sub_media": sub_media,
         "user_media": media.get_user_media(query[0]),
         "submit": submitfile,
-        "embedlink": embedlink,
-        "embed": embed.html(embedlink) if embedlink is not None else None,
+        "embed": embedded,
         "google_doc_embed": google_doc_embed,
 
 
@@ -665,7 +701,13 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
     }
 
 
-def select_view_api(userid, submitid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    submitid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = d.get_rating(userid)
     db = d.connect()
     sub = db.query(orm.Submission).get(submitid)
@@ -689,8 +731,8 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         embedlink = get_google_docs_embed_url(submitid)
 
     views = sub.page_views
-    if increment_views and d.common_view_content(userid, submitid, 'submit'):
-        views += 1
+    if increment_views and (new_views := d.common_view_content(userid, submitid, 'submissions')) is not None:
+        views = new_views
 
     return {
         'submitid': submitid,
@@ -712,7 +754,7 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         'rating': sub.rating.name,
 
         'views': views,
-        'favorites': favorite.count(submitid),
+        'favorites': sub.favorites,
         'comments': comment.count(submitid),
         'favorited': favorite.check(userid, submitid=submitid),
         'friends_only': sub.friends_only,
@@ -972,8 +1014,19 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("Unexpected")
     elif submission.subtype // 1000 != query[1] // 1000:
         raise WeasylError("Unexpected")
-    elif 'other' == query[3] and not embed.check_valid(embedlink):
-        raise WeasylError("embedlinkInvalid")
+    elif 'other' == query[3]:
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            raise WeasylError("embedlinkInvalid")
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UnrecognizedLink as e:
+            raise WeasylError("embedlinkInvalid") from e
+        except embed.UpstreamFailure as e:
+            raise WeasylError("embedlinkFailed") from e
+
+        embedlink = embedded.embedlink.href
     elif 'google-drive' == query[3]:
         embedlink = _normalize_google_docs_embed(embedlink)
 
@@ -1068,12 +1121,10 @@ def select_recently_popular():
 
     To calculate scores, this method performs the following evaluation:
 
-    item_score = log(item_fave_count + 1) + log(item_view_counts) / 2 + submission_time / 180000
+    item_score = log(item_fave_count) + submission_time / 180000
 
     180000 is roughly two days. So intuitively an item two days old needs an order of
-    magnitude more favorites/views compared to a fresh one. Also the favorites are
-    quadratically more influential than views. The result is that this algorithm favors
-    recent, heavily favorited items.
+    magnitude more favorites compared to a fresh one.
 
     :return: A list of submission dictionaries, in score-rank order.
     """
@@ -1092,9 +1143,9 @@ def select_recently_popular():
         WHERE
             NOT submission.hidden
             AND NOT submission.friends_only
+            AND submission.favorites > 0
         ORDER BY
-            log(submission.favorites + 1) +
-                log(submission.page_views + 1) / 2 +
+            log(submission.favorites) +
                 submission.unixtime / 180000.0
                 DESC
         LIMIT 128

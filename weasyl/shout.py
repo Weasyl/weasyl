@@ -17,7 +17,7 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     statement = ["""
         SELECT
             sh.commentid, sh.parentid, sh.userid, pr.username,
-            sh.content, sh.unixtime, sh.settings, sh.hidden_by
+            sh.content, sh.unixtime, sh.settings ~ 'h', sh.hidden_by
         FROM comments sh
             INNER JOIN profile pr USING (userid)
         WHERE sh.target_user = %i
@@ -42,14 +42,13 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     return result
 
 
-def count(ownerid, staffnotes=False):
+def count_staff_notes(ownerid):
     db = d.connect()
     sh = d.meta.tables['comments']
-    op = '~' if staffnotes else '!~'
     q = (
         sa.select([sa.func.count()])
         .select_from(sh)
-        .where(sh.c.settings.op(op)('s'))
+        .where(sh.c.settings.op('~')('s'))
         .where(sh.c.target_user == ownerid))
     (ret,), = db.execute(q)
     return ret
@@ -113,13 +112,13 @@ def insert(userid, target_user, parentid, content, staffnotes):
     return commentid
 
 
-def remove(userid, commentid=None):
+def remove(userid, *, commentid):
     query = d.engine.execute(
-        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND settings !~ 'h'",
+        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND target_user IS NOT NULL AND settings !~ 'h'",
         id=commentid,
     ).first()
 
-    if not query or ('s' in query[2] and userid not in staff.MODS):
+    if not query or ((is_staff_note := 's' in query[2]) and userid not in staff.MODS):
         raise WeasylError("shoutRecordMissing")
 
     if userid != query[1] and userid not in staff.MODS:
@@ -133,11 +132,11 @@ def remove(userid, commentid=None):
             # a commenter cannot remove their comment if it has replies
             raise WeasylError("InsufficientPermissions")
 
-    # remove notifications
-    welcome.comment_remove(commentid, 'shout')
-    d._page_header_info.invalidate(userid)
+    # Remove notifications. Top-level staff notes don't create notifications. For simplicity, staff note replies aren't removed; mods can see the removed comment anyway.
+    if not is_staff_note:
+        welcome.comment_remove(commentid, 'shout')
 
     # hide comment
-    d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i", [userid, commentid])
+    d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i AND settings !~ 'h'", [userid, commentid])
 
     return query[1]

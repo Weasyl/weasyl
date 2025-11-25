@@ -1,5 +1,8 @@
 $def with (profile, userinfo, relationship, feature, result, post_counts_by_type)
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+$code:
+  _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  _TEXT_POST_ITEM = COMPILE("common/text_post_item.html")
+  card_viewer = get_card_viewer()
 
 <div id="favorites-stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
@@ -16,12 +19,21 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       <h3>Favorite Journals</h3>
 
     $if result.query:
-      <ul class="thumbnail-grid">
-        $for index, item in enumerate(result.query):
-          $:{_GRID_ITEM(item, lazy_load=index >= 10)}
-      </ul>
+      $ cards = card_viewer.get_cards(result.query)
+      $ nav_layout = "pages-layout-split"
+      $if feature == "journal":
+        $ nav_layout += " pages-vpad"
+        <div class="journals">
+          $for journal in cards:
+            $:{_TEXT_POST_ITEM(journal)}
+        </div>
+      $else:
+        <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+          $for index, card in enumerate(cards):
+            $:{_GRID_ITEM(card, lazy_load=index >= 10)}
+        </ul>
 
-      $:{RENDER("common/page_navigation.html", [result])}
+      $:{COMPILE("common/page_navigation.html")(result, layout=nav_layout)}
     $else:
       There are no favorites to display; you may wish to check this user's <a href="/favorites/${LOGIN(profile['username'])}">favorites summary page</a>.
   $else:
@@ -29,29 +41,32 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
       $if(result['char']):
         <h3>Favorite Characters</h3>
 
-        <ul class="grid avatar-grid">
-          $for i in result['char']:
-            $:{_GRID_ITEM(i, lazy_load=False)}
+        $ cards = card_viewer.get_cards(result['char'])
+        <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+          $for card in cards:
+            $:{_GRID_ITEM(card, lazy_load=False)}
           <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=char"><i>More</i> <span>Characters</span></a></li>
         </ul>
 
       $if(result['submit']):
         <h3>Favorite Submissions</h3>
 
-        <ul class="thumbnail-grid medium-footprint">
-          $for i in result['submit']:
-            $:{_GRID_ITEM(i, lazy_load=False)}
+        $ cards = card_viewer.get_cards(result['submit'])
+        <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+          $for card in cards:
+            $:{_GRID_ITEM(card, lazy_load=False)}
           <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=submit"><i>More</i> <span>Submissions</span></a></li>
         </ul>
 
       $if(result['journal']):
         <h3>Favorite Journals</h3>
 
-        <ul class="grid avatar-grid">
-          $for i in result['journal']:
-            $:{_GRID_ITEM(i, lazy_load=False)}
-          <li class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></li>
-        </ul>
+        $ cards = card_viewer.get_cards(result['journal'])
+        <div class="journals">
+          $for journal in cards:
+            $:{_TEXT_POST_ITEM(journal)}
+        </div>
+        <div class="more"><a class="more" href="/favorites?userid=${profile['userid']}&amp;feature=journal"><i>More</i> <span>Journals</span></a></div>
 
     $else:
       <h3>Favorites</h3>

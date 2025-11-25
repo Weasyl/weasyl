@@ -27,6 +27,7 @@ $code:
 
     <label for="editjournalcontent">Content</label>
     <textarea name="content" class="markdown input expanding" rows="9" id="editjournalcontent">${query['content']}</textarea>
+    <p class="color-lighter tags-help"><i>For assistance with formatting, including linking to users, see <a href="/help/markdown" target="_blank">Formatting Help</a>.</i></p>
 
     <h3>Additional Options</h3>
 
@@ -36,8 +37,7 @@ $code:
     </label>
 
     <div class="buttons clear" style="padding-top: 1em;">
-      <button type="submit" class="button" style="float: right;">Save</button>
-      <a class="button" href="/journal/${query['journalid']}/${SLUG(query['title'])}">Cancel</a>
+      <button class="button" style="float: right;">Save</button>
     </div>
 
   </form>

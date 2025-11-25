@@ -5,6 +5,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from struct import Struct
+from typing import Iterable
 
 import sqlalchemy as sa
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
@@ -160,22 +161,28 @@ def select_list(map_table, targetids):
     return dict(list(db.execute(q)))
 
 
-@region.cache_on_arguments()
-def _get_or_create(name):
-    tag = d.engine.scalar(
-        'INSERT INTO searchtag (title) VALUES (%(name)s) ON CONFLICT (title) DO NOTHING RETURNING tagid',
-        name=name)
+@region.cache_multi_on_arguments()
+def _get_or_create(*names: str) -> list[int]:
+    names_list = list(names)
 
-    if tag is not None:
-        return tag
+    d.engine.execute('''
+        INSERT INTO searchtag (title)
+        SELECT title
+        FROM UNNEST(%(names)s::text[]) AS title
+        ON CONFLICT (title) DO NOTHING
+    ''', names=names_list)
 
-    return d.engine.scalar(
-        'SELECT tagid FROM searchtag WHERE title = %(name)s',
-        name=name)
+    tag_ids = get_ids(names)
+
+    return [tag_ids[name] for name in names]
 
 
 def get_or_create(name):
-    return _get_or_create(d.get_search_tag(name))
+    return _get_or_create(d.get_search_tag(name))[0]
+
+
+def get_or_create_many(normalized_names: Iterable[str]) -> list[int]:
+    return _get_or_create(*normalized_names)
 
 
 def get_ids(names):
@@ -186,7 +193,7 @@ def get_ids(names):
     return {row.title: row.tagid for row in result}
 
 
-def parse_tags(text):
+def parse_tags(text: str) -> set[str]:
     tags = set()
 
     for i in _TAG_DELIMITER.split(text):
@@ -277,8 +284,8 @@ def _set_suggested_tags(
     ownerid: int,
     tag_names: set[str],
 ) -> list[str]:
-    tagging_privileges_revoked = "g" in d.get_config(userid)
-    if tagging_privileges_revoked:
+    can_suggest_tags = d.engine.scalar("SELECT can_suggest_tags FROM profile WHERE userid = %(user)s", user=userid)
+    if not can_suggest_tags:
         raise WeasylError("InsufficientPermissions")
 
     if ignoreuser.check(ownerid, userid):

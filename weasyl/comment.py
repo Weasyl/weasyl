@@ -242,7 +242,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
     return commentid
 
 
-def remove(userid, feature=None, commentid=None):
+def remove(userid, *, feature, commentid):
     if feature not in ["submit", "char", "journal", "siteupdate"]:
         raise WeasylError("Unexpected")
 
@@ -298,25 +298,24 @@ def remove(userid, feature=None, commentid=None):
 
     # remove notifications
     welcome.comment_remove(commentid, feature)
-    d._page_header_info.invalidate(userid)
 
     # mark comments as hidden
     if feature == 'submit':
         d.engine.execute(
-            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'",
             comment=commentid,
             hidden_by=userid,
         )
     elif feature == 'siteupdate':
         d.engine.execute(
-            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND hidden_at IS NULL",
             comment=commentid,
             hidden_by=userid,
         )
         siteupdate.select_last.invalidate()
     else:
         d.engine.execute(
-            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),
+            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'".format(feature=feature),
             comment=commentid,
             hidden_by=userid,
         )

@@ -6,6 +6,7 @@ from weasyl import define as d
 from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname_list
 
 
 """
@@ -16,26 +17,54 @@ user who received it.
 """
 
 
-def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
-    statement = ["""
-        SELECT ms.noteid, ms.userid, ps.username, ms.title, ms.unixtime, ms.settings
+PAGE_SIZE = 50
+COUNT_LIMIT = 1000
+
+
+def _select_inbox_query(with_backid: bool, with_nextid: bool, with_filter: bool):
+    yield """
         FROM message ms
             INNER JOIN profile ps USING (userid)
-        WHERE (ms.otherid, ms.other_folder) = (%(recipient)s, 0)
+        WHERE ms.otherid = %(recipient)s
             AND ms.settings !~ 'r'
-    """]
+    """
 
-    if filter:
-        statement.append(" AND ms.userid = ANY (%(filter)s)")
+    if with_filter:
+        yield " AND ms.userid = ANY (%(filter)s)"
 
-    if backid:
-        statement.append(" AND ms.noteid > %(backid)s ORDER BY ms.noteid")
-    elif nextid:
-        statement.append(" AND ms.noteid < %(nextid)s ORDER BY ms.noteid DESC")
-    else:
-        statement.append(" ORDER BY ms.noteid DESC")
+    if with_backid:
+        yield " AND ms.noteid > %(backid)s"
+    elif with_nextid:
+        yield " AND ms.noteid < %(nextid)s"
 
-    statement.append(" LIMIT %(limit)s")
+
+def _select_outbox_query(with_backid: bool, with_nextid: bool, with_filter: bool):
+    yield """
+        FROM message ms
+            INNER JOIN profile pr ON ms.otherid = pr.userid
+        WHERE ms.userid = %(sender)s
+            AND ms.settings !~ 's'
+    """
+
+    if with_filter:
+        yield " AND ms.otherid = ANY (%(filter)s)"
+
+    if with_backid:
+        yield " AND ms.noteid > %(backid)s"
+    elif with_nextid:
+        yield " AND ms.noteid < %(nextid)s"
+
+
+def select_inbox(userid, *, limit: None, backid, nextid, filter):
+    statement = "".join((
+        "SELECT ms.noteid, ms.userid, ps.username, ms.title, ms.unixtime, ms.settings",
+        *_select_inbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" ORDER BY ms.noteid {'DESC' if backid is None else ''} LIMIT {PAGE_SIZE}",
+    ))
 
     query = [{
         "noteid": i.noteid,
@@ -45,31 +74,21 @@ def select_inbox(userid, limit, backid=None, nextid=None, filter=[]):
         "title": i.title,
         "unixtime": i.unixtime,
     } for i in d.engine.execute(
-        "".join(statement), recipient=userid, filter=filter, backid=backid, nextid=nextid, limit=limit)]
+        statement, recipient=userid, filter=filter, backid=backid, nextid=nextid)]
 
-    return list(reversed(query)) if backid else query
+    return query if backid is None else query[::-1]
 
 
-def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
-    statement = ["""
-        SELECT ms.noteid, ms.otherid, pr.username, ms.title, ms.unixtime
-        FROM message ms
-            INNER JOIN profile pr ON ms.otherid = pr.userid
-        WHERE (ms.userid, ms.user_folder) = (%(sender)s, 0)
-            AND ms.settings !~ 's'
-    """]
-
-    if filter:
-        statement.append(" AND ms.otherid = ANY (%(filter)s)")
-
-    if backid:
-        statement.append(" AND ms.noteid > %(backid)s ORDER BY ms.noteid")
-    elif nextid:
-        statement.append(" AND ms.noteid < %(nextid)s ORDER BY ms.noteid DESC")
-    else:
-        statement.append(" ORDER BY ms.noteid DESC")
-
-    statement.append(" LIMIT %(limit)s")
+def select_outbox(userid, *, limit: None, backid, nextid, filter):
+    statement = "".join((
+        "SELECT ms.noteid, ms.otherid, pr.username, ms.title, ms.unixtime",
+        *_select_outbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" ORDER BY ms.noteid {'DESC' if backid is None else ''} LIMIT {PAGE_SIZE}",
+    ))
 
     query = [{
         "noteid": i.noteid,
@@ -78,9 +97,37 @@ def select_outbox(userid, limit, backid=None, nextid=None, filter=[]):
         "title": i.title,
         "unixtime": i.unixtime,
     } for i in d.engine.execute(
-        "".join(statement), sender=userid, filter=filter, backid=backid, nextid=nextid, limit=limit)]
+        statement, sender=userid, filter=filter, backid=backid, nextid=nextid)]
 
-    return list(reversed(query)) if backid else query
+    return query if backid is None else query[::-1]
+
+
+def select_inbox_count(userid, *, backid, nextid, filter):
+    statement = "".join((
+        "SELECT count(*) FROM (SELECT ",
+        *_select_inbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" LIMIT {COUNT_LIMIT}) t",
+    ))
+    return d.engine.scalar(
+        statement, recipient=userid, filter=filter, backid=backid, nextid=nextid)
+
+
+def select_outbox_count(userid, *, backid, nextid, filter):
+    statement = "".join((
+        "SELECT count(*) FROM (SELECT ",
+        *_select_outbox_query(
+            with_backid=backid is not None,
+            with_nextid=nextid is not None,
+            with_filter=bool(filter),
+        ),
+        f" LIMIT {COUNT_LIMIT}) t",
+    ))
+    return d.engine.scalar(
+        statement, sender=userid, filter=filter, backid=backid, nextid=nextid)
 
 
 def select_view(userid, noteid):
@@ -134,70 +181,71 @@ def send(userid, form):
     elif len(form.title) > 100:
         raise WeasylError("titleTooLong")
 
-    users = set(d.get_userid_list(form.recipient))
+    recipient_sysnames = parse_sysname_list(form.recipient)
+    if len(recipient_sysnames) > 1:
+        raise WeasylError("recipientExcessive")
+
+    recipientids = d.get_userids(recipient_sysnames)
+    if not recipientids:
+        raise WeasylError("recipientInvalid")
+
+    [recipientid] = recipientids.values()
+    del recipient_sysnames, recipientids
 
     # can't send a note to yourself
-    users.discard(userid)
+    if recipientid == userid:
+        raise WeasylError("recipientInvalid")
 
     # can't send a note to a user who ignores you
-    users.difference_update(
-        d.column(d.engine.execute("SELECT userid FROM ignoreuser WHERE otherid = %(user)s", user=userid)))
+    if ignoreuser.check(recipientid, userid):
+        raise WeasylError("recipientInvalid")
 
     # can't send a note to an unverified user
-    users.difference_update(
-        d.column(d.engine.execute("SELECT userid FROM login WHERE userid = ANY (%(users)s) AND voucher IS NULL", users=list(users))))
+    if not d.is_vouched_for(recipientid):
+        raise WeasylError("recipientInvalid")
 
     # can't send a note to a user you're ignoring
-    users.difference_update(ignoreuser.cached_list_ignoring(userid))
-
-    if not users:
+    if ignoreuser.check(userid, recipientid):
         raise WeasylError("recipientInvalid")
-
-    configs = d.engine.execute(
-        "SELECT userid, config FROM profile WHERE userid = ANY (%(recipients)s)",
-        recipients=list(users)).fetchall()
 
     if userid not in staff.MODS:
-        ignore_global_restrictions = {i for (i,) in d.engine.execute(
-            "SELECT userid FROM permitted_senders WHERE sender = %(user)s",
-            user=userid)}
+        recipient_config = d.get_config(recipientid)
 
-        remove = (
-            # Staff notes only
-            {j[0] for j in configs if "y" in j[1]} |
-            # Friend notes only
-            {j[0] for j in configs if "z" in j[1] and not frienduser.check(userid, j[0])}
-        )
+        def is_permitted_sender():
+            return d.engine.scalar(
+                "SELECT EXISTS (SELECT FROM permitted_senders WHERE (userid, sender) = (%(recipient)s, %(user)s))",
+                recipient=recipientid,
+                user=userid,
+            )
 
-        users.difference_update(remove - ignore_global_restrictions)
+        # Staff notes only
+        if "y" in recipient_config and not is_permitted_sender():
+            raise WeasylError("recipientInvalid")
 
-    if not users:
-        raise WeasylError("recipientInvalid")
-    elif len(users) > 10:
-        raise WeasylError("recipientExcessive")
+        # Friend notes only
+        if "z" in recipient_config and not frienduser.check(userid, recipientid) and not is_permitted_sender():
+            raise WeasylError("recipientInvalid")
 
     d.engine.execute(
         "INSERT INTO message (userid, otherid, title, content, unixtime)"
-        " SELECT %(sender)s, recipient, %(title)s, %(content)s, %(now)s"
-        " FROM UNNEST (%(recipients)s) AS recipient",
+        " VALUES (%(sender)s, %(recipient)s, %(title)s, %(content)s, %(now)s)",
         sender=userid,
         title=form.title,
         content=form.content,
         now=d.get_time(),
-        recipients=list(users),
+        recipient=recipientid,
     )
 
-    for u in users:
-        d._page_header_info.invalidate(u)
+    d._page_header_info.invalidate(recipientid)
 
     d.engine.execute(
         """
         INSERT INTO permitted_senders (userid, sender)
-            SELECT %(user)s, sender FROM UNNEST (%(recipients)s) AS sender
+            VALUES (%(user)s, %(recipient)s)
             ON CONFLICT (userid, sender) DO NOTHING
         """,
         user=userid,
-        recipients=list(users),
+        recipient=recipientid,
     )
 
     if form.mod_copy and userid in staff.MODS:
@@ -207,18 +255,15 @@ def send(userid, form):
         if form.staff_note:
             mod_content = '%s\n\n%s' % (form.staff_note, mod_content)
         now = arrow.utcnow()
-        mod_copies = []
-        for target in users:
-            mod_copies.append({
+        d.engine.execute(
+            d.meta.tables['comments'].insert()
+            .values({
                 'userid': userid,
-                'target_user': target,
+                'target_user': recipientid,
                 'unixtime': now,
                 'settings': 's',
                 'content': mod_content,
-            })
-        d.engine.execute(
-            d.meta.tables['comments'].insert()
-            .values(mod_copies))
+            }))
 
 
 def remove_list(userid, noteids):
@@ -238,3 +283,6 @@ def remove_list(userid, noteids):
         user=userid,
         ids=noteids,
     )
+
+
+unread_count = d.private_messages_unread_count

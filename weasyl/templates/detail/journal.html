@@ -19,13 +19,13 @@ $def with (myself, query, violations)
         $if not query['mine']:
           $if query['favorited']:
             <input type="hidden" name="action" value="unfavorite" />
-            <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
+            <button class="active" accesskey="f"><span class="icon icon-20 icon-star"></span> Favorited</button>
           $else:
             <input type="hidden" name="action" value="favorite" />
-            <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+            <button accesskey="f"><span class="icon icon-20 icon-star"></span> Favorite</button>
       </form></li>
       <li>
-        $if query['reported'] and myself and myself['userid'] in staff.MODS:
+        $if query['reported']:
           <a id="detail-report-button" class="active" href="#"><span class="icon icon-20 icon-report"></span> Reported</a>
         $elif not query['hidden']:
           <a id="detail-report-button" href="#"><span class="icon icon-20 icon-report"></span> Report</a>
@@ -57,7 +57,7 @@ $def with (myself, query, violations)
       $if query['friends_only']:
         <div id="detail-visibility-restricted">Friends Only</div>
       <dl>
-        <dt>Views:</dt> <dd>${query['page_views']}</dd>
+        <dt>Views:</dt> <dd id="page-views" data-viewable="journals/${query['journalid']}">${query['page_views']}</dd>
         <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
         <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
         <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
@@ -75,7 +75,7 @@ $def with (myself, query, violations)
 
         <p><a href="/edit/journal?journalid=${query['journalid']}">Edit Journal Details</a></p>
 
-        <form action="/remove/journal" method="POST" data-confirm="Are you sure you want to remove this journal?">
+        <form action="/remove/journal" method="post" data-confirm="Are you sure you want to remove this journal?">
           <input type="hidden" name="journalid" value="${query['journalid']}" />
 
           <button class="link-button">Remove Journal Entry</button>
@@ -88,7 +88,7 @@ $def with (myself, query, violations)
         $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/journal?journalid=${query['journalid']}&amp;anyway=true">Edit Journal Details</a></p>
-        <form action="/modcontrol/massaction" method="POST">
+        <form action="/modcontrol/massaction" method="post">
           <input type="hidden" name="journals" value="${query['journalid']}">
           <select name="action" class="input">
             $for value, name in M.get_mod_actions(query, "journal").items():

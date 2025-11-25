@@ -1,13 +1,16 @@
 $def with (query, userid)
 $:{RENDER("common/stage_title.html", ["Pending Collections", "Settings"])}
 $ _LIST_ITEM = COMPILE("common/thumbnail_list_item.html")
+$code:
+  card_viewer = get_card_viewer()
+  cards = card_viewer.get_cards(query)
 
 <div id="manage-collections" class="content">
   $if query:
-    <form method="POST">
+    <form method="post">
       <div id="messages-checkboxes">
-        $for i in query:
-          $:{_LIST_ITEM(i, caption="collection_pending" if i["collectorid"] == userid else "collection_requested")}
+        $for i, card in zip(query, cards):
+          $:{_LIST_ITEM(i, card, caption="collection_pending" if i["collectorid"] == userid else "collection_requested")}
 
         <div id="buttons">
           <a class="button back" href="/manage/collections?feature=pending&amp;backid=${query[0]['submitid']}">Back</a>

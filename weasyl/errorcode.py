@@ -1,3 +1,6 @@
+from weasyl import macro as m
+
+
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
 charid = "This character doesn't seem to be in our database."
@@ -68,6 +71,7 @@ error_messages = {
         "Consequently, registrations from this domain have been blacklisted."),
     "emailIncorrect": "The email you entered is not associated with the account you specified.",
     "emailInvalid": "The email you entered does not appear to be valid.",
+    "embedlinkFailed": "Weasyl failed to load the embed link you entered. It might be a broken or unsupported link, or this might be a temporary communication failure between Weasyl and the other service. Please check your link and try again later.",
     "embedlinkInvalid": "The embed link you entered does not point to a valid resource or supported service.",
     "FeatureDisabled": "This feature has been temporarily disabled.",
     "FileType": "The file you uploaded is not of a valid type.",
@@ -108,7 +112,7 @@ error_messages = {
     "priceidInvalid": "You did not specify a price to edit.",
     "RatingExceeded": rating,
     "ratingInvalid": "The specified rating is invalid.",
-    "recipientExcessive": "You specified too many recipients for this message.",
+    "recipientExcessive": "Private messages can only be sent to one recipient at a time.",
     "recipientInvalid": (
         "Your message could not be delivered because you did not specify any valid recipients. The users "
         "you specified may restrict who can send them private messages, or you might be on their ignore list."),
@@ -121,6 +125,7 @@ error_messages = {
     "streamDurationNotSet": "Please set a stream length.",
     "streamDurationOutOfRange": "Please enter a number up to 360 minutes for stream length.",
     "streamLocationNotSet": "Please set a stream location.",
+    "streamLocationInvalid": "The stream location you entered is not a valid link.",
     "submissionRecordMissing": submitid,
     "submitSizeExceedsLimit": (
         "The submission file you uploaded exceeds the allowed filesize for this submission category."),
@@ -136,6 +141,9 @@ error_messages = {
     "titleTooLong": "That title is too long.",
     "token": token,
     "tooManyPreferenceTags": "You cannot have more than 50 preference tags.",
+    "turnstileMissing": (
+        "A required bot check failed. Please go back, refresh the page, and try again.\n\n"
+        f"If issues persist, contact support at [{m.MACRO_SUPPORT_ADDRESS}](mailto:{m.MACRO_SUPPORT_ADDRESS})."),
     "TwoFactorAuthenticationAuthenticationAttemptsExceeded": (
         "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),
     "TwoFactorAuthenticationAuthenticationTimeout": "Your authentication session has timed out. Please try logging in again.",
@@ -149,6 +157,8 @@ error_messages = {
     "UserIgnored": "This content was posted by a user you have chosen to ignore.",
     "userRecordMissing": userid,
     "usernameChangedTooRecently": "You can't change your username within 30 days of a previous change.",
+    "usernameBanned": (
+        "The username you entered is reserved. Please choose a different username."),
     "usernameExists": "The username you entered is already registered by another user.",
     "usernameInvalid": (
         "The username you entered is not valid. Usernames must contain one or more alphanumeric characters."),
@@ -174,11 +184,4 @@ error_status_code = {
     "signed": 403,
     "unsigned": 403,
     "token": 403
-}
-
-
-login_errors = {
-    "invalid": "The username or password provided was incorrect.",
-    "banned": "Your account has been permanently banned.",
-    "suspended": "Your account has been temporarily suspended.",
 }

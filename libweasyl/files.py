@@ -2,36 +2,11 @@
 File manipulation and detection.
 """
 
-import errno
-import os
-
 from sanpera.exception import SanperaError
 
 from libweasyl.constants import Category
 from libweasyl.exceptions import InvalidFileFormat, UnknownFileFormat
 from libweasyl import images
-
-
-def makedirs_exist_ok(path):
-    """
-    Ensure a directory and all of its parent directories exist.
-
-    This is different from :py:func:`os.makedirs` in that it will not raise an
-    exception if the directory already exists. Any other exceptions (e.g.
-    permissions failure; filesystem out of inodes) will still propagate.
-
-    This is functionally equivalent to specifying ``os.makedirs(path,
-    exist_ok=True)`` in python 3.2+, but exists in libweasyl for compatibility
-    with python 2.7.
-
-    Parameters:
-        path: The directory whose existence must be ensured.
-    """
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
 
 
 def fanout(name, fanout):
@@ -96,7 +71,7 @@ def file_type_for_category(data, category):
         try:
             im = images.from_buffer(data)
         except SanperaError:
-            raise UnknownFileFormat('The image data provided could not be decoded.')
+            raise UnknownFileFormat('The image data provided could not be decoded. Image files must be in the GIF, JPG, or PNG formats.')
         fmt = im.original_format.decode()
         if fmt == 'JPEG':
             fmt = 'JPG'

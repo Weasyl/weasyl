@@ -1,10 +1,22 @@
-@import 'theme';
-@import 'reset';
-@import 'components/date-picker';
-@import 'components/option';
-@import 'components/text-post-list';
-@import 'components/user-tabs';
-@import 'pages/marketplace';
+@use 'sass:color';
+@use 'sass:math';
+@use 'fonts/museo500';
+@use 'theme';
+@use 'reset';
+@use 'components/date-picker';
+@use 'components/detail-tag-form';
+@use 'components/edit-profile';
+@use 'components/login';
+@use 'components/option';
+@use 'components/page-navigation';
+@use 'components/post/embed';
+@use 'components/private-messages';
+@use 'components/tag-filters';
+@use 'components/text-post-list';
+@use 'components/user-tabs';
+@use 'pages/marketplace';
+@use 'pages/notifications';
+@use 'pages/site-update';
 
 /* Basic styles
 --------------------------------*/
@@ -14,6 +26,10 @@ html {
 
 body {
     background-color: #1d2224;
+}
+
+picture {
+    display: contents;
 }
 
 #page-container {
@@ -37,40 +53,6 @@ a:hover {
     display: none;
 }
 
-/* single, two-column dl list items with dashed borders between them */
-dl.leaders dt + dd {
-    border-top: 1px dashed #b4b4b4;
-    margin-top: 0.375em;
-    padding-top: 0.375em;
-}
-
-dl.leaders dt:first-child + dd {
-    border-top: none;
-}
-
-dl.leaders dt {
-    clear: left;
-    float: left;
-    font-weight: 700;
-    padding-top: 0.375em;
-}
-
-dl.leaders dd + dt, dl.leaders dt + dt {
-    padding-top: 0.75em;
-}
-
-dl.leaders dd {
-    text-align: right;
-}
-
-.social .group input {
-    margin-bottom: 6px;
-}
-
-.social .group {
-    margin-bottom: 12px;
-}
-
 /* Typefaces
 --------------------------------*/
 #page-container, textarea, .typeface-default, button {
@@ -85,19 +67,14 @@ textarea {
     font-size: 0.75rem;
 }
 
-.typeface-a, .username, .page-title, a.more span, #header-messages a,
-.content h3, .stage h3, .caption h5 {
+.typeface-a, .username, .page-title, a.more > span, #header-messages a,
+.content h3, .stage h3 {
     font-family: Museo500, Lucida Sans, Lucida Grande, Arial, Roboto, sans-serif;
     font-weight: normal !important;
 }
 
-@mixin serif {
-    font-family: Georgia, serif;
-    font-weight: 400;
-}
-
 i, #header-guest {
-    @include serif;
+    @include theme.serif;
 }
 
 .formatted-content i {
@@ -109,20 +86,38 @@ i, #header-guest {
 --------------------------------*/
 $color-a: #069bc0;
 $color-b: #8cad47;
-$link-color: #336979;
 
-.color-a, .username, .content .username, .page-title, #header-nav .current,
+.content {
+    @extend %content-like;
+}
+
+.content-like {
+    @extend %content-like;
+}
+
+// Temporary opt-in to newer baseline font size.
+.content-14 {
+    font-size: 14px;
+}
+
+.color-a,
+.username,
+.content .username,
+.content-like .username,  // @extend doesn’t guarantee the required specificity to override `%content-like a`
+.page-title,
+#header-nav .current,
 #user-nav .current,
-#submissions-stage .sectioned-sidebar .current, #hc-streams h3 {
+#submissions-stage .sectioned-sidebar .current,
+#hc-streams h3 {
     color: $color-a;
 }
 
-a.more span, #header-messages a, .page-title a {
+a.more > span, #header-messages a, .page-title a {
     color: $color-b;
 }
 
-.color-c, .title, .content a {
-    color: $link-color;
+.color-c, %content-like a {
+    color: theme.$link-color;
 }
 
 .color-on {
@@ -138,7 +133,7 @@ a.more span, #header-messages a, .page-title a {
 }
 
 .content .color-lighter {
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .stage .color-lighter {
@@ -157,6 +152,11 @@ a.more span, #header-messages a, .page-title a {
     color: #ddd;
 }
 
+.content-like i {
+    // undo `.stage i` for `.stage .content-like i`
+    color: inherit;
+}
+
 .banned {
     color: #bb2b19;
     text-decoration: line-through;
@@ -168,41 +168,49 @@ a.more span, #header-messages a, .page-title a {
     text-decoration: line-through;
 }
 
-.thumbnail-grid .title {
-    color: inherit;
-}
-
 .content .byline {
     color: #808080;
 }
 
-li.more, div.more, a.more-block {
+.more-block {
     clear: both;
     display: block;
 }
 
-li.more {
-    margin: 0.75em 0 0;
-    border-top: 1px dashed #334047;
+// When used on an `<a>`, `.more` is a style of link with an emphasized target and an arrow. It can be combined with `.more-block`.
+// When used on a `<li>`, `.more` is a layout for an `a.more` with a top border (that can be removed with `.more-joined`), and is always part of a `.thumbnail-grid`.
+// `div.more` is like `li.more` but for non-`.thumbnail-grid` cases. It has more of a top margin because `.thumbnail-grid` items have bottom margins and padding.
 
-    &.more-joined {
-        border-top: none;
-    }
+li.more, div.more {
+    border-top: 1px dashed #334047;
+    padding-top: 8px;
+    text-align: right;
 }
 
-hr.more {
-    margin: 2em 0 2em 0;
+li.more {
+    margin-top: 8px;
+    width: 100%;
+}
+
+li.more-joined {
+    border-top: none;
+}
+
+div.more {
+    margin-top: 16px;
+}
+
+.user-header-duo-sep {
+    margin: 2em 0;
     border-top: 1px dashed #66808e;
 }
 
 a.more {
-    clear: both;
-    float: right;
     text-align: right;
     text-decoration: none;
 }
 
-a.more:hover span {
+a.more:hover > span {
     border-bottom: 1px solid #8cad47;
 }
 
@@ -217,14 +225,12 @@ a.more::after {
     border-style: solid;
 }
 
-a.more span {
-    font-size: 16px;
+a.more > span {
     font-size: 1rem;
 }
 
-a.more-block span, a.more {
-    font-size: 14px;
-    font-size: 0.9rem;
+a.more-block > span, a.more {
+    font-size: 0.875rem;
 }
 
 a.more-block {
@@ -253,8 +259,7 @@ a.more-block:last-child {
 }
 
 @media (min-width: 30em) {
-    a.more-block span, a.more span {
-        font-size: 16px;
+    a.more-block > span {
         font-size: 1rem;
     }
 
@@ -269,8 +274,8 @@ a.more-block:last-child {
     }
 }
 
-.content li.more, .content a.more {
-    border-color: #c0c0c0;
+.content .more {
+    border-color: #c0c0c0;  // targets `li.more` and `div.more`, and has no effect on `a.more`
     color: #4d4d4d;
 }
 
@@ -296,13 +301,21 @@ a.more-block:last-child {
     }
 }
 
+$content-background: #ddd;
+$content-vpad-dense: 16px;
+$content-vpad-sparse: 32px;
+
 .content {
-    background-color: #ddd;
+    background-color: $content-background;
     color: #4d4d4d;
-    padding-bottom: 16px;
-    padding-bottom: 1rem;
+    padding-bottom: $content-vpad-dense;
     position: relative;
     z-index: 1;
+}
+
+// Makes the vertical padding symmetric. Not the default for historical reasons (too many existing components already account for the original layout).
+.content-vpad {
+    padding-top: $content-vpad-dense;
 }
 
 .content h3, .stage h3 {
@@ -329,19 +342,17 @@ a.more-block:last-child {
 
 @media (min-width: 45em) {
     .content h3, .stage h3 {
-        font-size: 24px;
-        font-size: 1.5rem;
-        padding-top: 28px;
-        padding-top: 1.75rem;
-        padding-bottom: 20px;
-        padding-bottom: 1.25rem;
+        @include theme.h3-large;
     }
 }
 
 @media (min-width: 53em) {
     .content {
-        padding-bottom: 32px;
-        padding-bottom: 2rem;
+        padding-bottom: $content-vpad-sparse;
+    }
+
+    .content-vpad {
+        padding-top: $content-vpad-sparse;
     }
 }
 
@@ -357,6 +368,10 @@ a.more-block:last-child {
 
     .sectioned-main {
         margin-left: 30.2%;
+    }
+
+    // A `.sectioned-main` with elements that interact with float-based layout (i.e. ones that `clear`) needs to avoid mixing those with the sidebar.
+    .sectioned-main-floats {
         overflow: hidden;
     }
 }
@@ -369,7 +384,7 @@ a.more-block:last-child {
 
     .sectioned-main {
         margin-left: 302px;
-        margin-left: 18.8em;
+        margin-left: 18.8rem;
     }
 }
 
@@ -449,25 +464,21 @@ a.bar {
     }
 }
 
+:root {
+    --content-pad-h: 16px;
+}
+
 .pad-left, .content, .page-title {
-    padding-left: 16px;
-    padding-left: 1rem;
+    padding-left: var(--content-pad-h);
 }
 
 .pad-right, .content, .stage a.more, .page-title {
-    padding-right: 16px;
-    padding-right: 1rem;
+    padding-right: var(--content-pad-h);
 }
 
 @media (min-width: 53em) {
-    .pad-left, .content, .page-title {
-        padding-left: 32px;
-        padding-left: 2rem;
-    }
-
-    .pad-right, .content, .stage a.more, .page-title {
-        padding-right: 32px;
-        padding-right: 2rem;
+    :root {
+        --content-pad-h: 32px;
     }
 }
 
@@ -493,8 +504,10 @@ a.bar {
     word-wrap: break-word;
 }
 
+$constrained-width: 50em;
+
 .constrained {
-    max-width: 50em;
+    max-width: $constrained-width;
     margin: 0 auto;
 }
 
@@ -674,22 +687,23 @@ dl + h4, #uc-info {
 
 /* ------------------------------------ =inputs -- */
 
-.button, .stage .content .button {
+.button {
+    // Even when the surrounding text is a different size, keep default button style consistent – extending the existing `<button>` default to `<a class="button">`.
+    @extend .typeface-default;
+
     display: inline-block;
     vertical-align: baseline;
     padding: 0.4em 1.2em;
-    border: 1px solid #bbb;
-    border-top-color: #ccc;
-    border-bottom-color: #aaa;
     border-radius: 2px;
-    color: #444;
     background-color: transparent;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
     text-decoration: none;
     cursor: pointer;
-    text-shadow: 0 1px 0 #fff;
     transition: background-color 0.25s ease;
 }
+
+// Rules of the form `.button[…], .content.button[…]` exist and appear after `.stage .button` in order to support:
+// - `.stage .content .button` nesting
+// - `.content a.button`, overriding `%content-like a`
 
 .stage .button {
     border-color: #555;
@@ -700,41 +714,39 @@ dl + h4, #uc-info {
     text-shadow: 0 1px 0 rgba(0,0,0,0.2);
 }
 
-.content .button.positive {
+.button, .content .button {
+    border: 1px solid #bbb;
+    border-top-color: #ccc;
+    border-bottom-color: #aaa;
+    color: #444;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+    text-shadow: 0 1px 0 #fff;
+}
+
+.button.positive, .button.negative {
+    font-weight: 700;
+}
+
+.button.positive {
     color: #549f2a;
-    font-weight: 700;
 }
 
-.content .button.negative {
+.button.negative {
     color: #ad322d;
-    font-weight: 700;
 }
 
-.stage .button.positive {
-    color: #3e3;
-    font-weight: 700;
+.stage .button {
+    &:hover, &:focus {
+        background-color: #343e44;
+    }
 }
 
-.stage .button.negative {
-    color: #e33;
-    font-weight: 700;
-}
-
-.button:hover, .button:focus, .hover .button, .stage .content .button:hover, .stage .content .button:focus {
-    background-color: #eee;
-    text-decoration: none;
-    box-shadow: 0 1px 2px rgba(6,155,192,0.5);
-    outline: none;
-}
-
-.stage .button:hover, .stage .hover .button, .stage.hover .button {
-    background-color: #343e44;
-}
-
-.button:active, .stage .content .button:active {
-    border-bottom-color: #fff;
-    border-top-color: #aaa;
-    box-shadow: inset 0 5px 14px -5px rgba(0,0,0,0.5);
+.button, .content .button {
+    &:hover, &:focus {
+        background-color: #eee;
+        text-decoration: none;
+        box-shadow: 0 1px 2px rgba(6,155,192,0.5);
+    }
 }
 
 .stage .button:active {
@@ -742,7 +754,13 @@ dl + h4, #uc-info {
     border-top-color: #555;
 }
 
-.button:disabled {
+.button:active, .content .button:active {
+    border-bottom-color: #fff;
+    border-top-color: #aaa;
+    box-shadow: inset 0 5px 14px -5px rgba(0,0,0,0.5);
+}
+
+.button:disabled, .content .button:disabled {
     background-color: transparent;
     border-bottom-color: #aaa;
     border-top-color: #ccc;
@@ -752,6 +770,7 @@ dl + h4, #uc-info {
 }
 
 $input-background: #e4e4e4;
+$input-bottom-line-width: 2px;
 
 .input {
     box-sizing: border-box;
@@ -761,8 +780,10 @@ $input-background: #e4e4e4;
     border-color: #aaa #bbb #ccc;
     border-radius: 0;
     background-color: $input-background;
-    box-shadow: 0 4px 0 #336979, inset 0 1px 2px #aaa;
+    box-shadow: 0 $input-bottom-line-width 0 #336979, inset 0 1px 2px #aaa;
+    margin-bottom: $input-bottom-line-width;
     transition: all 0.15s linear;
+    transition-property: background-color, box-shadow;
 
     &:hover,
     &:focus {
@@ -771,7 +792,7 @@ $input-background: #e4e4e4;
 
     &:disabled {
         background-color: $input-background;
-        box-shadow: 0 4px 0 #aaa;
+        box-shadow: 0 $input-bottom-line-width 0 #aaa;
     }
 }
 
@@ -791,7 +812,7 @@ select.input {
 }
 
 .input:focus {
-    box-shadow: 0 4px 0 #069bc0;
+    box-shadow: 0 $input-bottom-line-width 0 #069bc0;
 }
 
 .input-checkbox {
@@ -818,13 +839,29 @@ select.input {
     opacity: 0.75;
 }
 
+$comment-textbox-empty-height: 1.5em;  // 1lh
+
+@supports (field-sizing: content) {
+    .expanding {
+        // All `.expanding` fields should have a constrained width (in practice, currently always `width: 100%`) already.
+        field-sizing: content;
+        height: auto !important;  // override `.no-js:root .comment.hypothetical textarea`
+        min-height: 4em;  // Fallback in case any relevant browser decides to implement `field-sizing: content` before extended `attr()`. We don’t care about Chrome 123–132 so much (132 is no longer Chrome OS LTS).
+        min-height: attr(rows lh, 2lh);  // `.input`s have `box-sizing: border-box`, so this isn’t exactly the same as the default `rows` behavior, but it’s close enough.
+    }
+
+    // Comment textboxes are our only textareas without `rows`. (They also have `box-sizing: content-box`.)
+    .comment-content > .expanding {
+        min-height: $comment-textbox-empty-height;
+    }
+}
+
 
 /* ------------------------------------ =icons -- */
 
 .icon {
     display: inline-block;
     vertical-align: middle;
-    background-repeat: no-repeat;
     font-size: 0;
     line-height: 0;
     overflow: hidden;
@@ -853,7 +890,7 @@ select.input {
     overflow: visible;
 }
 
-@media only screen and (min-resolution: 1.5dppx) {
+@media (min-resolution: 1.5x) {
     .icon-20 {
         background-image: url('../img/icons-20@2x.png');
         background-size: 60px 260px;
@@ -877,7 +914,6 @@ a:hover .icon-journals { background-position: -20px -60px; }
 a:hover .icon-messages { background-position: -20px -80px; }
 .icon-nav { background-position: 0 -100px; }
 a:hover .icon-nav { background-position: -20px -100px; }
-.icon-disclosure { background-position: 0 -120px; }
 
 .icon-star { background-position: 0 -140px; }
 a:hover .icon-star, button:hover .icon-star { background-position: -20px -140px; }
@@ -896,11 +932,11 @@ a:hover .icon-arrowDown, button:hover .icon-arrowDown { background-position: -20
 a:hover .icon-report, button:hover .icon-report { background-position: -20px -240px; }
 .active .icon-report { background-position: -40px -240px; }
 
-.icon-file { background-position: -40px 0; }
-.icon-lit { background-position: -40px -20px; }
-.ext-jpg .icon-file, .ext-png .icon-file, .ext-gif .icon-file { background-position: -40px -40px; }
-.icon-music, .ext-mp3 .icon-file { background-position: -40px -60px; }
-.icon-multi, .ext-swf .icon-file { background-position: -40px -80px; }
+%icon-disclosure { background-position: 0 -120px; }
+%icon-file { background-position: -40px 0; }
+%icon-lit { background-position: -40px -20px; }
+%icon-music { background-position: -40px -60px; }
+%icon-multi { background-position: -40px -80px; }
 
 .icon-status::after {
     content: "";
@@ -931,118 +967,85 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 /* ------------------------------------ =grids -- */
 
-.grid {
-    display: block;
-    padding: 0;
-    margin-right: -15px;
-    letter-spacing: -0.32em;
-    text-rendering: optimizespeed;
-    text-align: center;
+$avatar-grid-gap: 15px;
+
+.avatar-grid {
+    contain: inline-size layout style;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $avatar-grid-gap;
+    padding: 0 $avatar-grid-gap;
 }
 
-.grid-unit, .avatar-grid > li, .avatar-grid > div {
+.avatar-grid > * {
     box-sizing: border-box;
-    display: inline-block;
-    width: 100%;
-    padding: 0 15px 15px 0;
-    margin: 0;
-    vertical-align: top;
-    letter-spacing: normal;
-    text-rendering: auto;
-    text-align: left;
+    width: 100px;
+    max-width: calc(33.3% - $avatar-grid-gap*2/3);
 }
 
-.avatar-grid > div, .avatar-grid > li {
-    width: 115px;
-    max-width: 33.3%;
-    position: relative;
-}
-.avatar-grid > .more {
-    width: 100%;
-    max-width: none;
-    display: block;
-    padding-top: 8px;
-    padding-top: 0.5rem;
-
-}
 .avatar-grid img {
     display: block;
     max-width: 100%;
 }
-.avatar-grid .thumb-bounds {
-    display: block;
-    position: relative;
-}
-.avatar-grid .title {
-    padding-top: 8px;
-}
-.avatar-grid .title a {
-    color: #ccc;
-}
-.content .avatar-grid .title a {
-    color: #336979;
-}
-.avatar-grid .title a:hover {
-    text-decoration: none;
-}
-.avatar-grid .byline i {
-    color: #888;
-    color: rgba(255,255,255,0.35);
-}
-.content .avatar-grid .byline i {
-    color: #888;
-}
+
 .avatar-grid .username {
+    font-size: 1rem;
     color: #3ad;
+
+    .content & {
+        color: $color-a;
+    }
 }
-.content .avatar-grid .username {
-    color: $color-a;
+
+.avatar-grid a:hover .username {
+    text-decoration: underline;
 }
+
+// friends and follows actions
 .avatar-grid .button {
     padding: 4px 0;
     border: none;
     box-shadow: none;
     background: transparent;
 }
-.avatar-grid .rating {
-    width: 50px;
-    height: 50px;
-    border-style: solid;
-    border-width: 0 4px 4px 0;
-    position: absolute;
-    right: -2px;
-    bottom: -2px;
-    color: transparent;
-    overflow: hidden;
-    text-indent: 150%;
-    z-index: 3;
-}
 
 
 
 /* ------------------------------------ =thumbnails -- */
 
+$thumbnail-grid-max-height: 250px;  // `ROW_BASIS` in thumbnail-grid.js
+
 .thumbnail-grid {
+    contain: inline-size layout style;
+    container-type: inline-size;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
 }
-.thumbnail-grid .more {
+.thumbnail-grid > .more {
+    padding-top: 8px;
     width: 100%;
 }
 .thumbnail-grid .item {
     box-sizing: border-box;
     display: inline-block;
     vertical-align: bottom;
-    max-width: 43.5%;
+
     margin: 0 4px 8px 4px;
+
+    // ensure that each row always has at least two thumbnails in the non-enhanced layout
+    max-width: 43.5%;
+    max-width: calc(50% - 12px);
 }
-.enhanced-thumbnails .thumbnail-grid .item {
-    max-width: 100%;
-    padding-left: 0;
+.thumbnail-grid-enhanced .item {
+    // undo
+    max-width: none;
 }
 .thumbnail-grid .thumb {
+    box-sizing: border-box;
     display: block;
+    height: 100%;
     padding-bottom: 45px;
     position: relative;
     text-decoration: none;
@@ -1069,81 +1072,99 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 .thumbnail-grid .title, .thumbnail-grid .byline {
     display: block;
     max-width: 100%;
-    overflow: hidden;
     white-space: nowrap;
-    text-overflow: ellipsis;
     line-height: 15px;
-    opacity: 0.6
+    opacity: 0.6;
 }
-.content .thumbnail-grid .byline {
-    opacity: 1;
+.thumbnail-grid .byline {
+    display: flex;
+    gap: 0.5ex;  // mimic a normal space
+
+    > * {
+        // The username is more important than the full relationship, and should at least have an active area at all times. The longest label is “collected by”, and there are no ambiguous prefixes (the others are “by” and “character of”).
+        // Shrink and ellipsize the username until the label takes up 50% of the width, then shrink and ellipsize both.
+        // As a future improvement, it might be nicer to omit the label entirely and just show the username if there isn’t room for both.
+        // It’s important to set `overflow` at the innermost element; otherwise, the focus ring of the link gets clipped.
+        flex-shrink: 1;
+        min-width: 0;  // Fall back on default negative space distribution when `calc-size` isn’t supported.
+        min-width: calc-size(max-content, min(50%, size));
+        overflow: clip;
+        text-overflow: ellipsis;
+    }
+
+    > i {
+        color: #666;
+        color: rgba(255,255,255,0.35);
+
+        .content & {
+            color: #888;
+        }
+    }
+
+    > .username {
+        color: #3ad;
+
+        .content & {
+            color: $color-a;
+        }
+    }
+
+    .content & {
+        opacity: 1;
+    }
 }
 .thumbnail-grid .title {
     font-size: 13px;
-    line-height: 15px;
     font-weight: 400;
     padding: 0;
     margin: 0;
-}
-.thumbnail-grid .title a {
-    color: #ccc;
-}
-.content .thumbnail-grid .title, .content .thumbnail-grid .title a {
-    color: #222;
-}
-.thumbnail-grid .title a:hover {
-    text-decoration: none;
-}
-.thumbnail-grid .byline i {
-    color: #666;
-    color: rgba(255,255,255,0.35);
-}
-.content .thumbnail-grid .byline i {
-    color: #888;
-}
-.thumbnail-grid .username {
-    display: inline;
-    color: #3ad;
-}
-.content .thumbnail-grid .username {
-    color: $color-a;
-}
-.thumbnail-grid .username:hover {
-    opacity: 1;
+
+    > a {
+        display: inline-block;
+        max-width: 100%;
+        overflow: clip;  // `overflow-y: clip`: anti-zalgo
+        text-overflow: ellipsis;
+
+        color: #ccc;
+
+        .content & {
+            color: #222;
+        }
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
 }
 .thumbnail-grid .thumb-bounds {
     background: rgba(0,0,0,0.15);
-    box-sizing: border-box;
-    display: block;
-    position: relative;
+    display: flex;
+    height: 100%;
+
+    align-items: center;
+    justify-content: center;
+
+    > picture {
+        height: 100%;
+    }
 
     img {
         display: block;
-        max-width: 100%;
-        max-height: 100%;
-
-        &.has-space {
-            position: absolute;
-        }
-
-        html.enhanced-thumbnails & {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-        }
-    }
-
-    .img-space {
-        display: block;
-        height: auto;
+        width: auto;  // calculate from height and `aspect-ratio`
         max-height: 100%;
         max-width: 100%;
-
-        html.enhanced-thumbnails & {
-            display: none;
-        }
+        object-fit: cover;
     }
+}
+.thumbnail-grid-enhanced .thumb-bounds {
+    // Thumbnail grid CSS variable names are short to keep the generated CSS short.
+    // This requires a `thumbnail-grid-enhanced` class because property values with undefined variables still override fallbacks, like `.thumb-bounds`’s `height: 100%`.
+    contain: size layout style;
+    height: calc((100cqw - var(--g)*1px) * var(--h));
+    aspect-ratio: var(--r);
+
+    // prevent incomplete last row from stretching
+    max-height: $thumbnail-grid-max-height;
 }
 .thumbnail-grid .rating {
     width: 60px;
@@ -1182,68 +1203,36 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     padding-right: 8px;
 }
 
-.thumbnail-grid > .more {
-    padding-top: 8px;
-    padding-top: 0.5rem;
+.thumbnail-grid:not(.thumbnail-grid-enhanced) {
+    > .tiny-footprint > .item:nth-child(n+6),
+    > .small-footprint > .item:nth-child(n+6),
+    > .medium-footprint > .item:nth-child(n+12) {
+        display: none;
+    }
 }
-
-.thumbnail-left .thumb, .thumbnail-left .avatar {
-    float: left;
-    margin-right: 1em;
-    max-width: 50px;
-}
-
-/* Make character names bigger */
-.thumbnail .caption.big h5, .user-characters .thumbnail .caption h5 {
-    font-size: 1.3em;
-}
-
-.tiny-footprint .item:nth-child(n+6),
-.small-footprint .item:nth-child(n+6),
-.medium-footprint .item:nth-child(n+12),
-.large-footprint .item:nth-child(n+28) {
-    display: none;
-}
-.enhanced-thumbnails .tiny-footprint .item:nth-child(n+6),
-.enhanced-thumbnails .small-footprint .item:nth-child(n+6),
-.enhanced-thumbnails .medium-footprint .item:nth-child(n+12),
-.enhanced-thumbnails .large-footprint .item:nth-child(n+28) {
-    display: inline-block;
-}
-
 
 @media (max-width: 479px) {
     .thumbnail-grid .rating {
         width: 30px;
         height: 30px;
     }
-    .tiny-footprint .item:nth-child(n+2),
-    .small-footprint .item:nth-child(n+4),
-    .medium-footprint .item:nth-child(n+8),
-    .large-footprint .item:nth-child(n+12) {
-        display: none;
-    }
-    .enhanced-thumbnails .tiny-footprint .item:nth-child(n+2),
-    .enhanced-thumbnails .small-footprint .item:nth-child(n+4),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+8),
-    .enhanced-thumbnails .large-footprint .item:nth-child(n+12) {
-        display: inline-block;
+    .thumbnail-grid:not(.thumbnail-grid-enhanced) {
+        > .tiny-footprint > .item:nth-child(n+2),
+        > .small-footprint > .item:nth-child(n+4),
+        > .medium-footprint > .item:nth-child(n+8) {
+            display: none;
+        }
     }
 }
 
 
 @media (max-width: 767px) {
-    .tiny-footprint .item:nth-child(n+3),
-    .small-footprint .item:nth-child(n+5),
-    .medium-footprint .item:nth-child(n+10),
-    .large-footprint .item:nth-child(n+16) {
-        display: none;
-    }
-    .enhanced-thumbnails .tiny-footprint .item:nth-child(n+3),
-    .enhanced-thumbnails .small-footprint .item:nth-child(n+5),
-    .enhanced-thumbnails .medium-footprint .item:nth-child(n+10),
-    .enhanced-thumbnails .large-footprint .item:nth-child(n+16) {
-        display: block;
+    .thumbnail-grid:not(.thumbnail-grid-enhanced) {
+        > .tiny-footprint > .item:nth-child(n+3),
+        > .small-footprint > .item:nth-child(n+5),
+        > .medium-footprint > .item:nth-child(n+10) {
+            display: none;
+        }
     }
 }
 
@@ -1258,6 +1247,19 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     .thumbnail-grid .checkbox {
         left: 10px;
         bottom: 20px;
+    }
+}
+
+// Grids should extend all the way to the edges.
+// Examples: notifications, collections, characters, favorites, following, followers, friends.
+.content .avatar-grid,
+.content .journals,
+.content .thumbnail-grid {
+    margin: 0 calc(-1 * var(--content-pad-h));
+
+    > .more {
+        @extend .pad-left;
+        @extend .pad-right;
     }
 }
 
@@ -1301,11 +1303,6 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     padding-bottom: 1rem;
 }
 
-.js .comment.hypothetical .comment-content {
-    padding-bottom: 16px;
-    padding-bottom: 1rem;
-}
-
 .comment .actions {
     float: right;
     padding-left: 2em;
@@ -1323,10 +1320,9 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
 
 .comment.hypothetical textarea {
     width: 100%;
-    height: 1.5em;
-    margin-top: 0.9em;
-    padding-bottom: 1.5em;
-    margin-bottom: -1.5em;
+    height: $comment-textbox-empty-height;
+    margin: 0.625rem -1rem -1rem;
+    padding: 0 1rem 1rem;
     background-color: transparent;
     resize: none;
     outline: none;
@@ -1335,11 +1331,11 @@ a:hover .icon-report, button:hover .icon-report { background-position: -20px -24
     &::placeholder {
         font-style: italic;
     }
-}
 
-.no-js .comment.hypothetical textarea {
-    height: 8em;
-    border: 1px solid #c0c0c0;
+    .no-js:root & {
+        height: 8em;
+        resize: vertical;
+    }
 }
 
 .comment.hypothetical .markdown-preview {
@@ -1474,126 +1470,7 @@ blockquote + blockquote {
     }
 }
 
-/* ------------------------------------ =tags -- */
-
-.tags-textarea {
-    font-size: 14px;
-    box-sizing: border-box;
-    width: 100% !important;
-}
-
-.tags-with-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;  // for “(No tags)”
-}
-
-.tags {
-    // fallback if `display: contents` not supported
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-
-    display: contents;
-}
-
-$tag-background: #eee;
-
-.tag {
-    display: inline-block;
-    line-height: 1.75rem;
-    padding: 0 1em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: $tag-background;
-    font-weight: normal;
-}
-
-.tag-suggested,
-.content .tag-suggested {
-    background-color: scale-color($tag-background, $alpha: -30%);
-    border-style: dashed;
-    color: scale-color($link-color, $alpha: -20%);
-}
-
-.tag-actions {
-    display: flex;
-    align-items: center;
-    height: 1.75rem;
-    padding-left: 1em;
-    gap: 16px;
-}
-
-.suggested-tags {
-    display: flex;
-    flex-direction: column;
-    margin-top: 16px;
-    gap: 8px;
-
-    > li {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-}
-
-.suggested-tag-actions {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-    gap: 4px;
-}
-
-$tag-reject-deemphasize-size: 11px;
-
-.tag-reject-feedback {
-    display: flex;
-    flex-direction: column;
-    margin-top: 16px;
-    gap: 4px;
-
-    > label {
-        display: flex;
-        align-items: flex-start;
-        gap: 4px;
-    }
-
-    > output {
-        font-size: $tag-reject-deemphasize-size;
-    }
-}
-
-.tag-reject-feedback[hidden] {
-    display: none;
-}
-
-.tag-reject-label {
-    flex: 1;
-
-    > p {
-        font-size: $tag-reject-deemphasize-size;
-        color: $content-color-lighter;
-    }
-}
-
-@keyframes pulse {
-    from {
-    }
-    to {
-        color: #777;
-    }
-}
-
-.tag-form-status-saving {
-    animation: pulse 0.75s linear alternate infinite;
-}
-
 /* ------------------------------------ =forms -- */
-
-#login-top {
-    display: none;
-}
 
 .form.skinny {
     max-width: 30em;
@@ -1617,31 +1494,18 @@ $tag-reject-deemphasize-size: 11px;
     margin-bottom: 1.75em;
 }
 
-#login-content {
-    padding-left: 0;
-    padding-right: 0;
-}
-
-#login-box .form {
-    padding-top: 0;
-}
-
-#login-box {
-    margin: 0 auto;
-    padding: 24px 16px 16px;
-    padding: 1.5rem 1rem 1rem;
-    max-width: 30em;
-}
+$field-spacing-top: 16px;
 
 .label,
-.form label:not(.input-checkbox),
-.form-actions {
+.form label:not(.input-checkbox):not(.label-around),
+.form-actions,
+.input-group,
+{
     display: block;
-    padding: 16px 0 4px;
-    padding: 1rem 0 0.25rem;
+    padding: $field-spacing-top 0 4px;
 }
 
-.label, .form label:not(.input-checkbox) {
+.label, .form label:not(.input-checkbox):not(.label-around) {
     font-size: 14px;
     font-size: 0.9rem;
     font-weight: 700;
@@ -1649,7 +1513,7 @@ $tag-reject-deemphasize-size: 11px;
 
 .optional-indicator {
     font-weight: normal;
-    color: $content-color-lighter;
+    color: theme.$content-color-lighter;
 }
 
 .form:not(.wide) .form-2up-1, .form:not(.wide) .form-2up-2 {
@@ -1670,105 +1534,10 @@ $tag-reject-deemphasize-size: 11px;
     padding-top: 1rem;
 }
 
-#login-box .button {
-    padding-left: 2em;
-    padding-right: 2em;
-}
-
-.lb-link {
-    display: block;
-    float: right;
-    clear: right;
-    padding: 0.4em 0 0.4em 1.2em;
-}
-
-#login-top #login-box {
-    padding-top: 0;
-    padding-bottom: 0;
-    overflow: hidden;
-    position: relative;
-}
-
-.modal-login #login-top {
-    display: block;
-}
-
-.modal-login #login-top #login-box {
-    padding-bottom: 24px;
-    padding-bottom: 1.5rem;
-}
-
-#lb-close {
-    position: absolute;
-    top: 20px;
-    top: 1.25rem;
-    right: 0;
-    padding: 16px;
-    padding: 1rem;
-}
-
-#login-box label:first-child {
-    padding-top: 0;
-}
-
-#login-box p {
-    padding-top: 2.1em;
-}
-
-#login-sfw {
-    margin: 0.8em 0;
-}
-
-#login-sfw input {
-    margin: 0;
-}
-
 @media (min-width: 34em) {
     .form {
         padding-top: 8px;
         padding-top: 0.5rem;
-    }
-
-    body.modal-login {
-        overflow: hidden;
-    }
-
-    #login-content #login-box {
-        padding-top: 48px;
-        padding-top: 3rem;
-    }
-
-    .modal-login #login-top {
-        background-color: rgba(128,128,128,0.5);
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        left: 0;
-        top: 0;
-        z-index: 101;
-    }
-
-    .modal-login #login-top #login-box {
-        width: 30em;
-        height: 28em;
-        padding: 0 2em;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -17em;
-        margin-top: -14em;
-        border-radius: 4px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        z-index: 200;
-    }
-
-    #lb-close {
-        padding-right: 32px;
-        padding-right: 2rem;
-    }
-
-    .lb-link {
-        clear: none;
     }
 }
 
@@ -1781,6 +1550,21 @@ $tag-reject-deemphasize-size: 11px;
     .form.wide .form-2up-2 {
         padding-left: 2%;
     }
+}
+
+.form-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.fine-print, .tip {
+    display: block;
+    font-size: 12px;
+}
+
+.input-detail {
+    margin-top: 6px;
 }
 
 /* ------------------------------------ =header -- */
@@ -1954,7 +1738,7 @@ $notifs-color-active: #b9b9b9;
     color: #ddd;
     background: transparent url('../img/icon-search.png') no-repeat 5px 50%;
     background-color: rgba(255,255,255,0.02);
-    box-shadow: 0 4px 0 #19354e;
+    box-shadow: 0 $input-bottom-line-width 0 #19354e;
     transition: all 0.15s linear;
 
     &::placeholder {
@@ -1964,7 +1748,7 @@ $notifs-color-active: #b9b9b9;
 }
 
 #header-search input:focus {
-    box-shadow: 0 4px 0 #336979;
+    box-shadow: 0 $input-bottom-line-width 0 #336979;
 }
 
 #header-nav {
@@ -1977,11 +1761,13 @@ $notifs-color-active: #b9b9b9;
     max-height: 23em;
 }
 
+// Chrome and Firefox render small caps significantly differently, so implement small caps manually in the originally intended proportions used by Firefox
+$small-caps-ratio: 1.2;
+
 #header-nav a {
     display: block;
-    font-size: 14px;
-    font-size: 0.9rem;
-    padding: 0.7em 1.25em;
+    font-size: 0.875rem;
+    padding: 0.625rem 1.125rem;
 }
 
 #header-nav a:hover {
@@ -2075,8 +1861,8 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav ul {
-        font-variant: small-caps;
         letter-spacing: 0.1ex;
+        text-transform: uppercase;
         overflow: hidden;
     }
 
@@ -2086,20 +1872,14 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        height: 72px;
         height: 4.5rem;
-        line-height: 72px;
         line-height: 4.5rem;
-        font-size: 12px;
-        font-size: 0.75rem;
-        padding: 0 0.5em;
-    }
-}
-/* webkit sucks at small caps */
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 45em) {
-    #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
+        font-size: math.div(0.75rem, $small-caps-ratio);
+        padding: 0 0.4375rem;
+
+        &::first-letter {
+            font-size: $small-caps-ratio * 1em;
+        }
     }
 }
 
@@ -2125,15 +1905,7 @@ $notifs-color-active: #b9b9b9;
     }
 
     #header-nav a {
-        font-size: 14px;
-        font-size: 0.9rem;
-    }
-}
-
-@media screen and (-webkit-min-device-pixel-ratio:0) and (min-width: 48em) {
-    #header-nav a {
-        font-size: 16px;
-        font-size: 1rem;
+        font-size: math.div(0.9rem, $small-caps-ratio);
     }
 }
 
@@ -2267,6 +2039,10 @@ $notifs-color-active: #b9b9b9;
 #home-panes > .pane > .thumbnail-grid {
     display: none;
     padding: 8px 0;
+
+    .no-js:root & {
+        display: flex;
+    }
 }
 
 #home-panes > .pane.current > .thumbnail-grid {
@@ -2318,7 +2094,6 @@ $notifs-color-active: #b9b9b9;
 
 #home-panes .thumbnail-grid {
     padding-bottom: 8px;
-    padding-bottom: 0.5rem;
 }
 
 #home-content {
@@ -2380,8 +2155,8 @@ $notifs-color-active: #b9b9b9;
 }
 
 .stream-header {
-    @include serif;
-    color: scale-color($color-a, $saturation: -75%, $lightness: 15%);
+    @include theme.serif;
+    color: color.scale($color-a, $saturation: -75%, $lightness: 15%);
     font-style: italic;
 }
 
@@ -2420,36 +2195,6 @@ $notifs-color-active: #b9b9b9;
             column-gap: 40px;
             padding: 0 40px;
         }
-    }
-}
-
-.hc-update-header {
-    padding-bottom: 24px;
-}
-
-#hc-update .hc-update-title {
-    padding-bottom: 4px;
-    text-align: center;
-}
-
-.hc-update-footer {
-    margin-top: 8px;
-}
-
-.hc-update-attribution {
-    @include serif;
-    font-style: italic;
-    text-align: center;
-
-    > .username {
-        font-style: normal;
-        text-decoration: none;
-    }
-
-    > .username > img {
-        vertical-align: middle;
-        width: 25px;
-        height: 25px;
     }
 }
 
@@ -2549,11 +2294,6 @@ $notifs-color-active: #b9b9b9;
     color: #ddd;
 }
 
-#user-thumbs #fav-thumbs {
-    padding-top: 16px;
-    padding-top: 1rem;
-}
-
 #uf-image {
     text-align: center;
 }
@@ -2637,7 +2377,6 @@ $notifs-color-active: #b9b9b9;
 
 #user-info + .thumbnail-grid {
     margin-top: 16px;
-    margin-top: 1rem;
 }
 
 @media (min-width: 27em) {
@@ -2745,17 +2484,9 @@ $notifs-color-active: #b9b9b9;
 @media (min-width: 45em) {
     #user-image {
         display: block;
-        width: 100%;
-        overflow: hidden;
     }
 
-    #user-image img {
-        display: block;
-        max-width: 100%;
-        position: absolute;
-    }
-
-    #user-image .img-space {
+    #user-image > img {
         display: block;
         height: auto;
         max-width: 100%;
@@ -2842,7 +2573,6 @@ $notifs-color-active: #b9b9b9;
 
     #user-info + .thumbnail-grid {
         margin-top: 32px;
-        margin-top: 2rem;
     }
 }
 
@@ -3023,6 +2753,7 @@ $notifs-color-active: #b9b9b9;
 
 #detail-art img {
     display: block;
+    height: auto;
     max-width: 100%;
     margin: 0 auto;
 }
@@ -3129,15 +2860,6 @@ img + #detail-art-text {
     visibility: hidden;
 }
 
-#detail-embed, #detail-embed iframe {
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-#detail-embed {
-    text-align: center;
-}
-
 #detail-bar-title, #detail-bar .avatar, #detail-bar .username {
     display: none;
 }
@@ -3204,14 +2926,6 @@ img + #detail-art-text {
 
 #char-stats dd {
     font-weight: 400;
-}
-
-.tags-manage {
-    margin-top: 12px;
-}
-
-.tags-actions {
-    margin-top: 8px;
 }
 
 #detail-comments {
@@ -3485,51 +3199,6 @@ img + #detail-art-text {
     }
 }
 
-/* ------------------------------------ =messages -- */
-
-#messages-checkboxes .item + .item label {
-    border-top: 1px dashed #b4b4b4;
-}
-
-#messages-checkboxes .item .date {
-    display: block;
-}
-
-#messages-checkboxes .item:first-child label {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-}
-
-#messages-checkboxes .item:last-child label {
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-}
-
-#manage-collections {
-    padding-top: 16px;
-    padding-top: 1rem;
-}
-
-
-@media (min-width: 47em) {
-    #messages-checkboxes .item label {
-        padding: 0.4em 12em 0.4em 0.2em;
-    }
-
-    #messages-checkboxes .item .date {
-        position: absolute;
-        right: 0.5em;
-        top: 0.4em;
-    }
-}
-
-@media (min-width: 53em) {
-    #manage-collections {
-        padding-top: 32px;
-        padding-top: 2rem;
-    }
-}
-
 /* ------------------------------------ =control/upload -- */
 
 #control-content, #submit-content {
@@ -3574,6 +3243,46 @@ img + #detail-art-text {
 }
 
 /* ------------------------------------ =search, =submissions -- */
+
+.search-fieldset {
+    // When no legend exists, give the same layout as no fieldset at all.
+    margin-top: $field-spacing-top;
+
+    > legend {
+        $line-width: 1px;
+
+        position: relative;
+        width: 100%;
+        border-top: $line-width solid #aaa;
+
+        // 0.5em top and bottom: create 1em of evenly distributed space for actual text, and position legend fully inside fieldset.
+        // Additional 0.5em top: additional separation for fieldset when it has a legend, so it’s clear which controls are inside it.
+        margin: 1em 0 0.5em;
+
+        // Replaces the top padding of the first label.
+        padding-bottom: 8px;
+
+        font-style: italic;
+        color: #555;
+
+        > span {
+            // position along border
+            position: absolute;
+            top: -0.5em;
+            line-height: 1;
+            margin: math.div($line-width, 2) 8px 0;
+
+            // create gap in border
+            padding: 0 2px;
+            background: $content-background;
+        }
+    }
+
+    > label:first-child,
+    > legend + label {
+        padding-top: 0 !important;
+    }
+}
 
 #search-stage h2.page-title {
     margin-bottom: 0px;
@@ -3668,35 +3377,18 @@ img + #detail-art-text {
     padding-top: 2em;
 }
 
-#edit-profile .buttons {
-    padding-top: 1em;
-}
-
 .tags-help {
     padding-top: 0.5em;
 }
 
-@media (min-width: 30em) {
-    #edit-profile .social .group {
-        width: 48%;
-        float: left;
-        padding-right: 2%;
-    }
-}
-
 @media (min-width: 45em) {
-    #submit-form .column, #edit-profile .column, #commishprices-content .column {
+    #submit-form .column, #commishprices-content .column {
         width: 48%;
     }
 
-    #submit-form .files, #submit-form .info, #edit-profile .info, #commishprices-content .classes {
+    #submit-form .files, #submit-form .info, #commishprices-content .classes {
         float: left;
         clear: left;
-    }
-
-    #edit-profile .settings {
-        float: left;
-        padding-left: 4%;
     }
 
     #submit-form .description, #submit-form .tagging, #submit-form .options {
@@ -3717,22 +3409,13 @@ img + #detail-art-text {
         padding-top: 1em;
     }
 
-    #submit-form .description, #submit-form .tagging, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging {
         padding-bottom: 4px;
     }
 
     #submit-form .buttons {
         clear: both;
         padding-top: 2em;
-    }
-
-    #edit-profile .social, #edit-profile .profile {
-        clear: both;
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 23%;
     }
 }
 
@@ -3762,11 +3445,11 @@ img + #detail-art-text {
         margin: 0 auto;
     }
 
-    #submit-form .column, #submit-form.journal .column, #edit-profile .column, #commishprices-content .column {
+    #submit-form .column, #submit-form.journal .column, #commishprices-content .column {
         width: 31%;
     }
 
-    #submit-form .info, #edit-profile .settings {
+    #submit-form .info {
         clear: none;
         padding-left: 3.5%;
         margin-left: 0;
@@ -3776,7 +3459,7 @@ img + #detail-art-text {
         padding-left: 0;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging, #submit-form .options {
         margin-left: 65.5%;
         padding-left: 3.5%;
         clear: none;
@@ -3788,78 +3471,24 @@ img + #detail-art-text {
         margin-left: 34.5%;
         padding-left: 0;
     }
-
-    #edit-profile .social {
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 18%;
-    }
 }
 
 @media (min-width: 80em) {
-    #submit-form .column, #edit-profile .column {
+    #submit-form .column {
         width: 23%;
     }
 
-    #submit-form .info, #edit-profile .settings {
+    #submit-form .info {
         padding-left: 2%;
     }
 
-    #submit-form .description, #submit-form .tagging, #submit-form .options, #edit-profile .profile {
+    #submit-form .description, #submit-form .tagging, #submit-form .options {
         width: 50%;
         margin-left: 48%;
         padding-left: 2%;
         overflow: hidden;
     }
-
-    #edit-profile .social {
-        width: 100%;
-    }
-
-    #edit-profile .social .group {
-        width: 14.6%;
-    }
 }
-
-
-/* ------------------------------------ =notifications -- */
-
-.notifs-actions {
-    padding: 2em 0;
-}
-#notification-global-actions-top {
-    padding-bottom: 0;
-}
-
-
-@media (max-width: 44.9em) {
-    .notifs-actions {
-        text-align: center;
-    }
-    .notifs-remove-buttons {
-        margin-top: 1em;
-    }
-    .notifs-remove, .notifs-remove-all {
-        margin-bottom: 1em;
-    }
-}
-
-
-@media (min-width: 36em) {
-    .notifs-remove-buttons {
-        display: inline-block;
-        margin-left: 1em;
-    }
-}
-
-@media (min-width: 45em) {
-    .notifs-paging {
-        float: right;
-    }
-}
-
 
 /* ------------------------------------ =misc -- */
 
@@ -3891,32 +3520,43 @@ img + #detail-art-text {
     background-position: 5px 50%;
 }
 
-#friends-accepted, #friends-pending, #following-users {
-    padding-top: 2em;
+$journals-column-gap: 8px;
+
+.journals {
+    contain: inline-size layout style paint;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $journals-column-gap;
+    row-gap: 16px;
+    padding: 0 $journals-column-gap;
 }
 
-#note-content {
-    padding-top: 2em;
+.journals > .text-post-item {
+    contain: inline-size layout style paint;
+    box-sizing: border-box;
+    margin: 0;
+    max-width: $constrained-width;
+    width: 100%;
+    flex-grow: 1;
 }
 
-#note-content .formatted-content {
-    padding-top: 1.5em;
+@function em-px($ems) {
+    @return math.div($ems, 1em) * 16px;
 }
 
-#notes-content {
-    padding-top: 2em;
+/// The minimum container width (i.e. including padding) for a journals grid to comfortably show the given number of columns.
+@function journals-min-width($column-count) {
+    @return $column-count * (496px + $journals-column-gap) + $journals-column-gap;
 }
 
-#notes-content th {
-    text-align: left;
-}
-
-#notes-content .unread {
-    font-weight: bold;
-}
-
-#notes-content .buttons {
-    padding-top: 1em;
+@for $column-count from 2 through 3 {
+    // NOTE: `.journals` can also be search results, and this measures the viewport width, not the width minus the sidebar. In practice, it’s good enough.
+    @media (min-width: journals-min-width($column-count)) {
+        .journals > .text-post-item {
+            width: calc(100% / $column-count - ($column-count - 1) * $journals-column-gap);
+        }
+    }
 }
 
 /* ------------------------------------ =footer -- */
@@ -3968,6 +3608,19 @@ img + #detail-art-text {
     padding: 0.5em 8px;
     padding: 0.5em 0.5rem;
     color: #bbb;
+}
+
+// This flex layout achieves a similar effect to `vertical-align: middle` without extending the hover underline to the gap.
+#footer .footer-icon-link {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    > img {
+        width: 14px;
+        height: 14px;
+        margin-bottom: -2px;
+    }
 }
 
 #footer-wesley {
@@ -4114,7 +3767,7 @@ img + #detail-art-text {
 
 /* ------------------------------------ =fixes --*/
 
-.clear::after, .thumbnail-grid::after, .content::after, .stage::after {
+.clear::after, .content::after {
     content: ".";
     display: block;
     height: 0;
@@ -4133,9 +3786,6 @@ img + #detail-art-text {
 }
 
 /* ---------------------------------------------- error -- */
-/*
-templates/error/error.html
-*/
 
 #error_content {
     padding-top: 2em;
@@ -4158,16 +3808,6 @@ templates/error/error.html
 **
 *******************************************************************************
 ******************************************************************************/
-
-.tagfilters span {
-    display: block;
-    float: left;
-    padding: 0.3em 0.5em;
-    margin: 0 0.5em 0.5em 0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    background-color: #f5f5f5;
-}
 
 body input[type="checkbox"] {
     position: relative;
@@ -4202,6 +3842,11 @@ body input[type="checkbox"] {
     padding: 0.8rem 1rem;
     background-color: #f7f7f7;
     border: 1px solid #ccc;
+
+    .input + & {
+        margin-top: -$input-bottom-line-width - 1px;  // -1px to overlap borders
+        margin-bottom: $input-bottom-line-width;
+    }
 }
 
 .markdown-preview::after {
@@ -4261,20 +3906,22 @@ img.user-icon, a.user-icon > img {
     width: 50px;
 }
 
+a.user-icon {
+    display: inline-block;
+}
+
+// Ensure hover underline doesn’t apply to the space between avatar and username.
 a.user-icon:hover {
     text-decoration: none;
+
+    > span {
+        text-decoration: underline;
+    }
 }
 
-a.user-icon:hover > span, a.user-icon:focus > span {
-    outline: none;
-    text-decoration: underline;
-}
-
-.bbcode-warning {
-    display: none;
-    margin: 1em 0;
-    color: #ad322d;
-    font-style: italic;
+.invalid-markup {
+    cursor: help;
+    text-decoration: wavy #f90 underline;
 }
 
 .hidden-comment {
@@ -4285,7 +3932,7 @@ a.user-icon:hover > span, a.user-icon:focus > span {
     color: #304bb2;
 }
 
-.user-type-tech, .user-type-dev {
+.user-type-dev {
     color: #c90;
 }
 
@@ -4362,12 +4009,6 @@ a.user-icon:hover > span, a.user-icon:focus > span {
 
 #api-token-list .api-token {
     margin-left: 1.8rem;
-}
-
-/* Tag filters
---------------------------------*/
-#tagfilters_content_buttons {
-    margin-top: 0.6em;
 }
 
 /* Submission favorite button

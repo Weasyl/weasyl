@@ -1,23 +1,25 @@
 $def with (query)
 $:{TITLE("Submissions", "Messages", "/messages/submissions")}
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+$code:
+  _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  card_viewer = get_card_viewer()
+  cards = card_viewer.get_cards(query)
 
 <div class="content">
   <form action="/messages/remove" method="post">
-    <input type="hidden" id="recall" name="recall" value="submissions" />
-    <input type="hidden" id="content" name="content" />
+    <input type="hidden" name="recall" value="submissions" />
 
     <h3>Submission Notifications</h3>
 
     $if query:
-      <ul class="thumbnail-grid">
-        $for index, item in enumerate(query):
-          $:{_GRID_ITEM(item, notifications=True, lazy_load=index >= 10)}
+      <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+        $for index, (item, card) in enumerate(zip(query, cards)):
+          $:{_GRID_ITEM(card, welcomeid=item['welcomeid'], lazy_load=index >= 10)}
       </ul>
 
-      <div class="notifs-actions sub-notifs-actions clear">
-        <button type="button" class="button needs-js notifs-check-all do-check">Check All</button>
-        <button type="button" class="button needs-js notifs-uncheck-all do-uncheck">Uncheck All</button>
+      <div class="notifs-actions clear">
+        <button type="button" class="button needs-js do-check">Check All</button>
+        <button type="button" class="button needs-js do-uncheck">Uncheck All</button>
         <div class="notifs-remove-buttons">
           <button class="button highlighted negative notifs-remove" data-confirm="Are you sure you want to remove the selected submissions?">Remove Selected</button>
           <button class="button negative notifs-remove-all"
@@ -26,8 +28,8 @@ $ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
             Remove All Notifications</button>
         </div>
         <div class="notifs-paging">
-          <a class="button notifs-prev" href="/messages/submissions?backtime=${query[0]['unixtime']}">Back</a>
-          <a class="button notifs-next" href="/messages/submissions?nexttime=${query[-1]['unixtime']}">Next</a>
+          <a class="button" href="/messages/submissions?backtime=${query[0]['unixtime']}">Back</a>
+          <a class="button" href="/messages/submissions?nexttime=${query[-1]['unixtime']}">Next</a>
         </div>
       </div>
     $else:

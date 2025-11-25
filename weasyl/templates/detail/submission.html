@@ -8,6 +8,17 @@ $code:
   def _SUBCAT(x):
     return dict(subtypes).get(x, "General")
 
+  def _SIZE_ATTRIBUTES(cover):
+    attrs = cover['attributes']
+    width = attrs.get('width')
+    height = attrs.get('height')
+    return (
+      ' width="%d" height="%d"' % (width, height)
+      if width and height else ''
+    )
+
+  card_viewer = get_card_viewer()
+
 <div id="detail-stage" class="stage">
   <h1 id="detail-title" class="pad-left pad-right">${query['title']} <i>by</i> <a class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a>
   $if query['critique']:
@@ -19,31 +30,34 @@ $code:
     submission = submissions[0] if submissions else None
     covers = query['sub_media'].get('cover')
     cover = covers[0] if covers else None
-  <!-- embedded -->
+
   $if query['google_doc_embed'] is not None:
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em"$:{_SIZE_ATTRIBUTES(cover)}>
       <iframe
           src="${query['google_doc_embed']}" class="content gdoc"
           style="width: 100%; height: 40em; max-width: 80em; padding: 0">
       </iframe>
     </div>
 
-  $elif not submission:
+  $elif query['embed'] is not None:
     $if cover:
       <div id="detail-art">
-        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em" />
+        <img src="${cover['display_url']}" alt="" style="margin-bottom: 3em"$:{_SIZE_ATTRIBUTES(cover)}>
       </div>
     <div id="detail-embed" class="pad-left pad-right">
-      $:{query['embed']}
+      $:{query['embed'].safer_html}
     </div>
+
+  $elif submission is None:
+    $# For tests with `weasyl.test.db_utils.create_submission` only; should never be reached in normal operation. TODO: improve tests to not rely on this, and use transactions to create submissions + media so normal operation never reaches this
 
   $elif submission['file_type'] in ["jpg", "png", "gif"] and cover:
     <!-- VISUAL -->
     <div id="detail-art">
       <a href="${submission['display_url']}">
-      <img src="${cover['display_url']}" alt="${query['title']}" />
+      <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       </a>
     </div>
 
@@ -51,7 +65,7 @@ $code:
     <!-- TEXTUAL -->
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail-art-text" class="content formatted-content">
         $:{MARKDOWN(query['text'])}
       </div>
@@ -60,7 +74,7 @@ $code:
   $elif submission['file_type'] == "pdf":
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail-art-text" class="content pdf">
         <a href="${submission['display_url']}" id="pdf-download" class="button">View PDF</a>
       </div>
@@ -70,7 +84,7 @@ $code:
     <!-- COMPOSITION -->
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail-art-text" class="content formatted-content">
         $:{query['text']}
       </div>
@@ -80,7 +94,7 @@ $code:
     <!-- MULTIMEDIA -->
     <div id="detail-art">
       $if cover:
-        <img src="${cover['display_url']}" alt="${query['title']}" />
+        <img src="${cover['display_url']}" alt="${query['title']}"$:{_SIZE_ATTRIBUTES(cover)}>
       <div id="detail_submission_media" style="display:inline-block;width:500px;">
         <audio type="audio/mpeg" src="${submission['display_url']}" controls>
           <p>Your browser doesn’t support audio playback.</p>
@@ -104,7 +118,6 @@ $code:
         <li><a href="${submission['display_url']}">View Flash animation</a></li>
       </menu>
     </div>
-    <script type="module" src="${resource_path('js/ruffle/ruffle.js')}"></script>
     <script type="module" src="${resource_path('js/flash.js')}"></script>
 
   $if query['folder_more']['older'] or query['folder_more']['newer']:
@@ -116,7 +129,7 @@ $code:
       $if older:
         $for e, i in enumerate(older, start=1):
           $code:
-            thumb = THUMB(i)
+            thumb = card_viewer.get_thumbnail_files(i).fallback
             id = 'id="folder-nav-prev"' if e == len(older) else ''
             link = request.route_path(
               'submission_detail_profile',
@@ -136,7 +149,7 @@ $code:
       $if query['folder_more']['newer']:
         $for e, i in enumerate(query['folder_more']['newer']):
           $code:
-            thumb = THUMB(i)
+            thumb = card_viewer.get_thumbnail_files(i).fallback
             id = 'id="folder-nav-next"' if e == 0 else ''
             link = request.route_path(
               'submission_detail_profile',
@@ -166,14 +179,14 @@ $code:
         $if not query['mine']:
           $if query['favorited']:
             <input type="hidden" name="action" value="unfavorite" />
-            <button class="active"><span class="icon icon-20 icon-star"></span> Favorited</button>
+            <button class="active" accesskey="f"><span class="icon icon-20 icon-star"></span> Favorited</button>
           $else:
             <input type="hidden" name="action" value="favorite" />
-            <button><span class="icon icon-20 icon-star"></span> Favorite</button>
+            <button accesskey="f"><span class="icon icon-20 icon-star"></span> Favorite</button>
       </form></li>
       $if submission:
         <li><a href="${submission['display_url']}" download><span class="icon icon-20 icon-arrowDown"></span> Download</a></li>
-    $if query['reported'] and myself and myself['userid'] in staff.MODS:
+    $if query['reported']:
       <li><a class="active" href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Reported</a></li>
     $elif not query['hidden']:
       <li><a href="#" id="detail-report-button"><span class="icon icon-20 icon-report"></span> Report</a></li>
@@ -212,7 +225,7 @@ $code:
       $if query['friends_only']:
         <div id="detail-visibility-restricted">Friends Only</div>
       <dl class="clear">
-        <dt>Views:</dt> <dd>${query['page_views']}</dd>
+        <dt>Views:</dt> <dd id="page-views" data-viewable="submissions/${query['submitid']}">${query['page_views']}</dd>
         <dt>Comments:</dt> <dd>${len(query['comments'])}</dd>
         <dt>Favorites:</dt> <dd>${query['fave_count']}</dd>
         <dt>Rating:</dt> <dd>${R.CODE_MAP[query['rating']].name_with_age}</dd>
@@ -231,10 +244,10 @@ $code:
           <p><a href="/reupload/submission?submitid=${query['submitid']}">Edit Submission File</a></p>
         <p><a href="/edit/submission?submitid=${query['submitid']}">Edit Submission Details</a></p>
 
-        <form action="/remove/submission" method="POST" data-confirm="Are you sure you want to remove this submission?">
+        <form action="/remove/submission" method="post" data-confirm="Are you sure you want to remove this submission?">
           <input type="hidden" name="submitid" value="${query['submitid']}">
 
-          <input type="submit" value="Remove Submission from Gallery" class="link-button">
+          <button class="link-button">Remove Submission from Gallery</button>
         </form>
       </div>
 
@@ -246,10 +259,15 @@ $code:
 
             <input type="hidden" name="submitid" value="${query['submitid']}">
 
-            <label for="detail_collection_offer_username">Offer to User:</label>
-            <input type="text" id="detail_collection_offer_username" name="username" class="input last-input">
+            $if query['friends_only']:
+              <p>This submission is marked friends only, and cannot be offered as a collection.</p>
+            $else:
+              <label class="label-around">
+                <span class="label">Offer to User:</span>
+                <input type="text" name="recipient" class="input last-input" required>
+              </label>
 
-            <button type="submit" class="button" style="float: right;">Send Offer</button>
+              <button class="button" style="float: right;">Send Offer</button>
           </form>
         $else:
           <h3>Request Collection</h3>
@@ -264,7 +282,7 @@ $code:
             <form name="collectionrequest" action="/collection/request" method="post" class="form clear">
               <input type="hidden" name="submitid" value="${query['submitid']}" style="display:block">
 
-              <button type="submit" class="button" style="display:block">Request This Submission</button>
+              <button class="button" style="display:block">Request This Submission</button>
             </form>
       </div>
 
@@ -274,7 +292,7 @@ $code:
         $if query['hidden']:
           <div id="detail-visibility-restricted">Hidden Submission</div>
         <p><a href="/edit/submission?submitid=${query['submitid']}&amp;anyway=true">Edit Submission Details</a></p>
-        <form action="/modcontrol/massaction" method="POST">
+        <form action="/modcontrol/massaction" method="post">
           <input type="hidden" name="submissions" value="${query['submitid']}">
           <select name="action" class="input">
             $for value, name in M.get_mod_actions(query, "submission").items():

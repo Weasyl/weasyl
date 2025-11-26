@@ -14,16 +14,17 @@ T = TypeVar("T")
 
 def expect_id(s: str) -> int:
     """
-    Parse the default (`%d`-like) string representation of a PostgreSQL generated `integer` identity column to an `int`, throwing if it doesn't match this format.
+    Parse the default (`%d`-like) string representation of a PostgreSQL generated `integer` identity column to an `int`, throwing if it doesn't match this format and range.
 
     `expect_id(a) == expect_id(b)` implies `a == b`.
     """
     if (
-        1 <= len(s) <= 10  # len(str(2**31-1))
+        1 <= len(s) <= 10  # len(str(2**31 - 1))
         and (bs := s.encode()).isdigit()
         and not bs.startswith(b"0")
+        and (n := int(bs)) <= 2**31 - 1
     ):
-        return int(bs)
+        return n
 
     raise WeasylError("Unexpected")
 

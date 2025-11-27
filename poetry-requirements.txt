@@ -314,9 +314,9 @@ jaraco-functools==4.1.0 ; python_version >= "3.10" and python_version < "4.0" \
 jeepney==0.9.0 ; python_version >= "3.10" and python_version < "4.0" and sys_platform == "linux" \
     --hash=sha256:97e5714520c16fc0a45695e5365a2e11b81ea79bba796e26f9f1d178cb182683 \
     --hash=sha256:cf0e9e845622b81e4a28df94c40345400256ec608d0e55bb8a3feaa9163f5732
-keyring==25.6.0 ; python_version >= "3.10" and python_version < "4.0" \
-    --hash=sha256:0b39998aa941431eb3d9b0d4b2460bc773b9df6fed7621c2dfb291a7e0187a66 \
-    --hash=sha256:552a3f7af126ece7ed5c89753650eec89c7eaae8617d0aa4d9ad2b75111266bd
+keyring==25.7.0 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f \
+    --hash=sha256:fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b
 more-itertools==10.7.0 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:9fddd5403be01a94b204faadcff459ec3568cf110265d3c54323e1e866ad29d3 \
     --hash=sha256:d43980384673cb07d2f7d2d918c616b30c659c089ee23953f601d6609c67510e

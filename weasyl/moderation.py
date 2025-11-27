@@ -4,7 +4,7 @@ import datetime
 import arrow
 import sqlalchemy as sa
 
-from libweasyl.legacy import UNIXTIME_OFFSET
+from libweasyl.legacy import get_offset_unixtime
 from libweasyl.models.content import Submission
 from libweasyl import ratings, staff, text
 
@@ -458,7 +458,7 @@ def setusermode(userid, form):
         if release_date is None:
             raise WeasylError("releaseInvalid")
 
-        release_unixtime = arrow.get(release_date).int_timestamp + UNIXTIME_OFFSET
+        release_unixtime = get_offset_unixtime(arrow.get(release_date).datetime)
 
         with d.engine.begin() as db:
             db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)

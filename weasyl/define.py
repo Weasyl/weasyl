@@ -569,23 +569,6 @@ def _get_local_time_html(target, template):
     return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
 
 
-def convert_unixdate(day, month, year):
-    """
-    Returns the unixtime corresponding to the beginning of the specified date; if
-    the date is not valid, None is returned.
-    """
-    day, month, year = (get_int(i) for i in [day, month, year])
-
-    try:
-        ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except ValueError:
-        return None
-    # range of a postgres integer
-    if ret > 2147483647 or ret < -2147483648:
-        return None
-    return ret
-
-
 def age_in_years(birthdate: datetime.date) -> int:
     """
     Calculate an age in years based on the given birthdate and the current UTC date.

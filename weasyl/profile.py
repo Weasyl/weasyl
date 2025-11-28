@@ -14,6 +14,8 @@ from libweasyl import ratings
 from libweasyl import security
 from libweasyl import staff
 from libweasyl.cache import region
+from libweasyl.legacy import birthdate_adapt
+from libweasyl.legacy import birthdate_retry
 from libweasyl.legacy import UNIXTIME_NOW_SQL
 from libweasyl.models import tables as t
 
@@ -213,7 +215,7 @@ def select_myself(userid):
 
 def get_user_age(userid: int) -> int | None:
     assert userid
-    birthday = d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid)
+    birthday = birthdate_adapt(d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid))
     return None if birthday is None else d.age_in_years(birthday)
 
 
@@ -249,10 +251,12 @@ def select_userinfo(userid, config):
         GROUP BY link_type
     """, userid=userid).fetchall()
 
+    birthdate = birthdate_adapt(query.birthday)
+
     show_age = "b" in config or d.get_userid() in staff.MODS
     return {
-        "birthday": query.birthday,
-        "age": d.age_in_years(query.birthday) if show_age and query.birthday is not None else None,
+        "birthday": birthdate,
+        "age": d.age_in_years(birthdate) if show_age and birthdate is not None else None,
         "show_age": "b" in config,
         "gender": query.gender,
         "country": query.country,
@@ -641,10 +645,13 @@ def edit_userinfo(userid, form):
         if is_age_restricted:
             birthdate_update = birthdate_update.where(~t.userinfo.c.asserted_adult)
 
-        result = d.engine.execute(birthdate_update, {
-            "update_userid": userid,
-            "birthday": datetime.date(year=birthdate_year, month=birthdate_month, day=1),
-        })
+        def update_birthdate(birthdate_value):
+            return d.engine.execute(birthdate_update, {
+                "update_userid": userid,
+                "birthday": birthdate_value,
+            })
+
+        result = birthdate_retry(update_birthdate, datetime.date(year=birthdate_year, month=birthdate_month, day=1))
 
         if result.rowcount != 1:
             assert result.rowcount == 0
@@ -922,7 +929,7 @@ def select_manage(userid):
         "username": query[5],
         "full_name": query[6],
         "catchphrase": query[7],
-        "birthday": query[8],
+        "birthday": birthdate_adapt(query[8]),
         "gender": query[9],
         "country": query[10],
         "config": query[11],
@@ -986,21 +993,27 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
     # Birthday
     if birthday is not None:
         if birthday == "":
-            unixtime = None
+            birthday_date = None
             age = None
         else:
             # HTML5 date format is yyyy-mm-dd
             split = birthday.split("-")
             if len(split) == 3:
                 try:
-                    unixtime = datetime.date(day=int(split[2]), month=int(split[1]), year=int(split[0]))
+                    birthday_date = datetime.date(day=int(split[2]), month=int(split[1]), year=int(split[0]))
                 except ValueError:
                     raise WeasylError("birthdayInvalid")
             else:
                 raise WeasylError("birthdayInvalid")
-            age = d.age_in_years(unixtime)
+            age = d.age_in_years(birthday_date)
 
-        result = d.engine.execute("UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s", birthday=unixtime, user=userid)
+        def update_birthdate(birthdate_value):
+            return d.engine.execute(
+                "UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s",
+                birthday=birthdate_value,
+                user=userid,
+            )
+        result = birthdate_retry(update_birthdate, birthday_date)
         assert result.rowcount == 1
 
         if age is not None and age < ratings.EXPLICIT.minimum_age:

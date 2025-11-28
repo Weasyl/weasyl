@@ -940,8 +940,21 @@ def select_manage(userid):
     }
 
 
+class _NoUpdate:
+    __slots__ = ()
+
+
+class _Removal:
+    __slots__ = ()
+
+
+NO_UPDATE = _NoUpdate()
+REMOVAL = _Removal()
+
+
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None, remove_social=None,
+              birthday: _NoUpdate | _Removal | datetime.date = NO_UPDATE,
+              gender=None, country=None, remove_social=None,
               permission_tag: bool | None = None):
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
@@ -954,7 +967,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         username (str): New username for user. Defaults to None.
         full_name (str): New full name for user. Defaults to None.
         catchphrase (str): New catchphrase for user. Defaults to None.
-        birthday (str): New birthday for user, in HTML5 date format (ISO 8601 yyyy-mm-dd). Defaults to None.
+        birthday: New birthday for user.
         gender (str): New gender for user. Defaults to None.
         country (str): New country for user. Defaults to None.
         remove_social (list): Items to remove from the user's social/contact links. Defaults to None.
@@ -991,43 +1004,37 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         updates.append('- Catchphrase: %s' % (catchphrase,))
 
     # Birthday
-    if birthday is not None:
-        if birthday == "":
-            birthday_date = None
-            age = None
-        else:
-            # HTML5 date format is yyyy-mm-dd
-            split = birthday.split("-")
-            if len(split) == 3:
-                try:
-                    birthday_date = datetime.date(day=int(split[2]), month=int(split[1]), year=int(split[0]))
-                except ValueError:
-                    raise WeasylError("birthdayInvalid")
-            else:
-                raise WeasylError("birthdayInvalid")
-            age = d.age_in_years(birthday_date)
-
+    if birthday is not NO_UPDATE:
         def update_birthdate(birthdate_value):
             return d.engine.execute(
                 "UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s",
                 birthday=birthdate_value,
                 user=userid,
             )
-        result = birthdate_retry(update_birthdate, birthday_date)
-        assert result.rowcount == 1
 
-        if age is not None and age < ratings.EXPLICIT.minimum_age:
-            # reset rating preference and SFW mode rating preference to General
-            d.engine.execute(
-                """
-                UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'), max_rating = 'general'
-                WHERE userid = %(user)s
-                """,
-                user=userid,
-            )
-            d._get_all_config.invalidate(userid)
-        updates.append('- Birthday: %s' % (birthday or 'removal',))
+        if birthday is REMOVAL:
+            result = update_birthdate(None)
+            assert result.rowcount == 1
+        else:
+            result = birthdate_retry(update_birthdate, birthday)
+            assert result.rowcount == 1
+
+            age = d.age_in_years(birthday)
+
+            if age < ratings.EXPLICIT.minimum_age:
+                # reset rating preference and SFW mode rating preference to General
+                result = d.engine.execute(
+                    """
+                    UPDATE profile
+                    SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'), max_rating = 'general'
+                    WHERE userid = %(user)s
+                    """,
+                    user=userid,
+                )
+                assert result.rowcount == 1
+                d._get_all_config.invalidate(userid)
+
+        updates.append('- Birthday: %s' % ('removal' if birthday is REMOVAL else birthday,))
 
     # Gender
     if gender is not None:

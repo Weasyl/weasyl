@@ -1,7 +1,10 @@
-import pytest
+import datetime
 import json
 
+import pytest
+
 from libweasyl import staff
+from libweasyl.legacy import get_offset_unixtime
 from weasyl import define as d
 from weasyl import login
 from weasyl import macro
@@ -97,7 +100,7 @@ def test_login_fails_if_user_is_suspended():
 @pytest.mark.usefixtures('db')
 def test_login_succeeds_if_suspension_duration_has_expired():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    release_date = d.convert_unixdate(31, 12, 2015)
+    release_date = get_offset_unixtime(datetime.datetime(2015, 12, 31, tzinfo=datetime.timezone.utc))
     db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
     assert result == login.Success(user_id)

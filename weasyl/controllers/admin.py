@@ -1,3 +1,5 @@
+import datetime
+
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
@@ -41,11 +43,24 @@ def admincontrol_manageuser_post_(request):
     if request.userid != userid and userid in staff.ADMINS and request.userid not in staff.DIRECTORS:
         raise WeasylError('InsufficientPermissions')
 
+    if 'ch_birthday' in request.POST:
+        birthday_str = request.POST.getone('birthday')
+
+        if birthday_str:
+            try:
+                birthday = datetime.datetime.strptime(birthday_str, "%Y-%m-%d").date()
+            except ValueError:
+                raise WeasylError("birthdayInvalid")
+        else:
+            birthday = profile.REMOVAL
+    else:
+        birthday = profile.NO_UPDATE
+
     profile.do_manage(request.userid, userid,
                       username=request.params.get('username', '').strip() if 'ch_username' in request.params else None,
                       full_name=request.params.get('full_name', '').strip() if 'ch_full_name' in request.params else None,
                       catchphrase=request.params.get('catchphrase', '').strip() if 'ch_catchphrase' in request.params else None,
-                      birthday=request.params.get('birthday', '') if 'ch_birthday' in request.params else None,
+                      birthday=birthday,
                       gender=request.params.get('gender', '') if 'ch_gender' in request.params else None,
                       country=request.params.get('country', '') if 'ch_country' in request.params else None,
                       remove_social=request.params.getall('remove_social'),

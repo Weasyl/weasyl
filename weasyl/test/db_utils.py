@@ -1,3 +1,4 @@
+import datetime
 import itertools
 
 import arrow
@@ -41,7 +42,7 @@ def create_api_key(userid, token, description=""):
 def create_user(
     full_name: str | None = None,
     *,
-    birthday: arrow.Arrow | None = None,
+    birthday: datetime.date | None = None,
     username: str | None = None,
     password: str | None = None,
     email_addr: str = "",

@@ -1,6 +1,6 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, UniqueConstraint, Index,
-    Boolean, DateTime, Integer, String, Text, func, text)
+    Boolean, Date, DateTime, Integer, String, Text, func, text)
 from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB, TIMESTAMP
 from sqlalchemy.schema import ForeignKey as _ForeignKey
 from sqlalchemy.schema import ForeignKeyConstraint as _ForeignKeyConstraint
@@ -959,7 +959,7 @@ useralias = Table(
 userinfo = Table(
     'userinfo', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
-    Column('birthday', WeasylTimestampColumn(), nullable=True),
+    Column('birthday', Date(), nullable=True),
     Column('asserted_adult', Boolean(), nullable=False, server_default='f'),
     Column('gender', String(length=100), nullable=False, server_default=''),
     Column('country', String(length=50), nullable=False, server_default=''),

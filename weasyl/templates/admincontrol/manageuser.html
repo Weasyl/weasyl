@@ -69,7 +69,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
 
     <span class="label">Date of Birth</span>
     <p><input type="checkbox" name="ch_birthday" />Update value</p>
-    <input type="date" class="input" name="birthday" value="${'' if profile['birthday'] is None else ISO8601_DATE(profile['birthday'])}" />
+    <input type="date" class="input" name="birthday" value="${'' if profile['birthday'] is None else profile['birthday'].isoformat()}" />
 
     <span class="label">Gender</span>
     <p><input type="checkbox" name="ch_gender" />Update value</p>

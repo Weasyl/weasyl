@@ -83,7 +83,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         kwargs['content'] = 'hello'
 
         # commenter1 posts a comment c1 on submission s
-        c1 = comment.insert(self.commenter1, **kwargs)
+        c1 = comment.insert(self.commenter1, parentid=0, **kwargs)
         self.assertEqual(1, self.count_notifications(self.owner))
 
         # commenter2 posts a reply to c1
@@ -118,7 +118,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
     def test_add_and_remove_shout(self):
         # commenter1 posts a shout on owner's page
-        c1 = shout.insert(self.commenter1, target_user=self.owner, parentid=None, content="hello", staffnotes=False)
+        c1 = shout.insert(self.commenter1, target_user=self.owner, parentid=0, content="hello", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)
@@ -150,7 +150,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[3].items() >= {"content": "reply 3"}.items())
 
         # commenter1 posts a new root shout
-        shout.insert(self.commenter1, target_user=self.owner, parentid=None, content="root 2", staffnotes=False)
+        shout.insert(self.commenter1, target_user=self.owner, parentid=0, content="root 2", staffnotes=False)
         self.assertEqual(3, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)

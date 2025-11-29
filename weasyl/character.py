@@ -428,7 +428,7 @@ def edit(userid, character, friends_only):
     define.cached_posts_count.invalidate(query.userid)
 
 
-def remove(userid, charid):
+def remove(userid, charid: int):
     ownerid = define.get_ownerid(charid=charid)
 
     if userid not in staff.MODS and userid != ownerid:

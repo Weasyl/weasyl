@@ -54,7 +54,14 @@ def count_staff_notes(ownerid):
     return ret
 
 
-def insert(userid, target_user, parentid, content, staffnotes):
+def insert(
+    userid: int,
+    *,
+    target_user: int,
+    parentid: int,
+    content: str,
+    staffnotes: bool,
+) -> int:
     # Check invalid content
     if not content:
         raise WeasylError("commentInvalid")
@@ -63,13 +70,19 @@ def insert(userid, target_user, parentid, content, staffnotes):
 
     # Determine parent userid
     if parentid:
+        # NOTE: Replying to deleted comments is intentionally allowed.
         parentuserid = d.engine.scalar(
-            "SELECT userid FROM comments WHERE commentid = %(parent)s",
+            "SELECT userid FROM comments"
+            " WHERE commentid = %(parent)s"
+            " AND target_user = %(target)s"
+            " AND (settings ~ 's') = %(staffnotes)s",
             parent=parentid,
+            target=target_user,
+            staffnotes=staffnotes,
         )
 
         if parentuserid is None:
-            raise WeasylError("shoutRecordMissing")
+            raise WeasylError("Unexpected")
     else:
         parentuserid = None
 
@@ -104,7 +117,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
     if parentid and userid != parentuserid:
         if not staffnotes or parentuserid in staff.MODS:
             welcome.shoutreply_insert(userid, commentid, parentuserid, parentid, staffnotes)
-    elif not staffnotes and target_user and userid != target_user:
+    elif not staffnotes and userid != target_user:
         welcome.shout_insert(userid, commentid, otherid=target_user)
 
     d.metric('increment', 'shouts')

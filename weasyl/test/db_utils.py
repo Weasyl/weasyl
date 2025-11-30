@@ -177,7 +177,7 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False):
+def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False) -> int:
     journal = add_entity(Journal(
         userid=userid, title=title, rating=rating, unixtime=unixtime, content=content,
         hidden=hidden, friends_only=friends_only))

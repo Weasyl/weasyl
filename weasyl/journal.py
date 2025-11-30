@@ -345,7 +345,7 @@ def edit(userid, journal, friends_only=False):
     d.cached_posts_count.invalidate(query[0])
 
 
-def remove(userid, journalid):
+def remove(userid, journalid: int):
     ownerid = d.get_ownerid(journalid=journalid)
 
     if userid not in staff.MODS and userid != ownerid:

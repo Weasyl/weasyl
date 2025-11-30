@@ -1,3 +1,4 @@
+import datetime
 from contextlib import contextmanager
 
 import arrow
@@ -95,9 +96,14 @@ def test_age_set_and_display(app):
     assert (form["show_age"].checked, form["birthdate-month"].value, form["birthdate-year"].value) == (True, str(birthdate.month), str(birthdate.year)), "birthdate can’t be changed once set"
 
 
+def _get_birthdate_under_age(age: int) -> datetime.date:
+    # `days=4`: A test run sufficiently late on February 28 (UTC) in a non-leap year needs to produce April, not March, since it could already be March in the most advanced time zone.
+    return arrow.utcnow().shift(years=-age, months=1, days=4).date()
+
+
 @pytest.mark.usefixtures("db", "cache")
 def test_age_terms(app):
-    u13_birthdate = arrow.utcnow().shift(years=-13, months=1, days=1)
+    u13_birthdate = _get_birthdate_under_age(13)
 
     user = db_utils.create_user(username="profiletest")
     app.set_cookie(*db_utils.create_session(user).split("=", 1))
@@ -174,7 +180,7 @@ def _edit_journal(app, user):
     (_edit_journal, True),
 ])
 def test_assert_adult(app, create_post, expect_assertion):
-    u18_birthdate = arrow.utcnow().shift(years=-18, months=1, days=1)
+    u18_birthdate = _get_birthdate_under_age(18)
 
     forward_user = db_utils.create_user(username="forwarduser")
     app.set_cookie(*db_utils.create_session(forward_user).split("=", 1))

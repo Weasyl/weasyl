@@ -146,7 +146,7 @@ services:
     read_only: true
 
   memcached:
-    image: docker.io/library/memcached:1.6-alpine3.20
+    image: docker.io/library/memcached:1.6-alpine3.22
     command: --memory-limit=64
     networks:
       - web-memcached
@@ -213,7 +213,7 @@ services:
 
   configure:
     profiles: [ configure ]
-    image: docker.io/library/alpine:3.20
+    image: docker.io/library/alpine:3.22
     entrypoint:
       - sh
       - -c

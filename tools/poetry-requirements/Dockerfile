@@ -1,4 +1,4 @@
-FROM docker.io/library/python:3.10-alpine3.20
+FROM docker.io/library/python:3.10-alpine3.22
 RUN python3 -m venv .poetry-venv && .poetry-venv/bin/pip install poetry
 RUN .poetry-venv/bin/poetry self add poetry-plugin-export
 COPY pyproject.toml ./

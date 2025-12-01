@@ -143,7 +143,7 @@ def reupload(userid: int, charid: int, submitdata) -> None:
     """, character=charid)
 
     if userid != ownerid:
-        raise WeasylError("Unexpected")
+        raise WeasylError("InsufficientPermissions")
 
     im = image.from_string(submitdata)
     submitextension = images.image_extension(im)

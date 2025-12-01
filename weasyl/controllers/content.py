@@ -505,9 +505,6 @@ def reupload_submission_post_(request):
     form = request.web_input(targetid="", submitfile="")
     form.targetid = define.get_int(form.targetid)
 
-    if request.userid != define.get_ownerid(submitid=form.targetid):
-        raise WeasylError('InsufficientPermissions')
-
     submission.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/submission/%i" % (form.targetid,))
 
@@ -532,9 +529,6 @@ def reupload_character_get_(request):
 def reupload_character_post_(request):
     form = request.web_input(targetid="", submitfile="")
     form.targetid = define.get_int(form.targetid)
-
-    if request.userid != define.get_ownerid(charid=form.targetid):
-        raise WeasylError('InsufficientPermissions')
 
     character.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/character/%i" % (form.targetid,))

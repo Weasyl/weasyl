@@ -142,6 +142,9 @@ def reupload(userid: int, charid: int, submitdata) -> None:
         SELECT userid FROM character WHERE charid = %(character)s AND NOT hidden
     """, character=charid)
 
+    if ownerid is None:
+        raise WeasylError("characterRecordMissing")
+
     if userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 

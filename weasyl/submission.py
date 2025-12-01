@@ -1101,7 +1101,7 @@ def reupload_cover(userid, submitid, coverfile):
 
     if not query:
         raise WeasylError("Unexpected")
-    elif userid not in staff.MODS and userid != query[0]:
+    elif userid != query[0]:
         raise WeasylError("InsufficientPermissions")
     elif query[1] < 2000:
         raise WeasylError("Unexpected")

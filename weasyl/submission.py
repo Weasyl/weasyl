@@ -510,9 +510,9 @@ def reupload(userid, submitid, submitfile):
     ).first()
 
     if not query:
-        raise WeasylError("Unexpected")
+        raise WeasylError("submissionRecordMissing")
     elif userid != query[0]:
-        raise WeasylError("Unexpected")
+        raise WeasylError("InsufficientPermissions")
     elif query[2] is not None:
         raise WeasylError("Unexpected")
 
@@ -1100,9 +1100,9 @@ def reupload_cover(userid, submitid, coverfile):
         id=submitid).first()
 
     if not query:
-        raise WeasylError("Unexpected")
-    elif userid not in staff.MODS and userid != query[0]:
-        raise WeasylError("Unexpected")
+        raise WeasylError("submissionRecordMissing")
+    elif userid != query[0]:
+        raise WeasylError("InsufficientPermissions")
     elif query[1] < 2000:
         raise WeasylError("Unexpected")
 

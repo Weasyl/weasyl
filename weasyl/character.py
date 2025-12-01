@@ -131,19 +131,18 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     return charid
 
 
-def reupload(userid, charid, submitdata):
+def reupload(userid: int, charid: int, submitdata) -> None:
     submitsize = len(submitdata)
     if not submitsize:
         raise WeasylError("submitSizeZero")
     elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         raise WeasylError("submitSizeExceedsLimit")
 
-    # Select character data
-    query, = define.engine.execute("""
-        SELECT userid, settings FROM character WHERE charid = %(character)s AND NOT hidden
+    ownerid: int | None = define.engine.scalar("""
+        SELECT userid FROM character WHERE charid = %(character)s AND NOT hidden
     """, character=charid)
 
-    if userid != query.userid:
+    if userid != ownerid:
         raise WeasylError("Unexpected")
 
     im = image.from_string(submitdata)

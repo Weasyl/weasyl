@@ -363,5 +363,8 @@ services:
     build:
       context: .
       target: flake8
+    init: true
+    command:
+      - sleep
+      - infinity
     network_mode: none
-    tty: true

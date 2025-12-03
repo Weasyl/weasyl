@@ -190,12 +190,9 @@ FROM docker.io/library/alpine:3.22 AS flake8
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     py3-flake8
-RUN adduser -S weasyl -h /weasyl
+RUN adduser -S weasyl -h /weasyl -u 101
 WORKDIR /weasyl
 USER weasyl
-STOPSIGNAL SIGINT
-ENTRYPOINT ["/usr/bin/flake8"]
-COPY --link . .
 
 FROM package
 RUN mkdir storage storage/log storage/static storage/profile-stats uds-nginx-web \

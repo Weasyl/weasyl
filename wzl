@@ -48,8 +48,18 @@ assets-watch)
     ;;
 
 check)
-    _build flake8
-    exec $docker_compose run --rm -T flake8 "$@"
+    $docker_compose up -d flake8
+    tar -c --owner=weasyl:101 --group=root:0 \
+        --exclude=weasyl/templates \
+        --exclude=libweasyl/test/data \
+        libweasyl/ weasyl/ setup.cfg \
+        | $docker_compose cp - flake8:/weasyl/
+    exec $docker_compose exec flake8 sh -c '
+        flake8 "$@"
+        exit_code=$?
+        rm -r libweasyl/* weasyl/*
+        exit $exit_code
+    ' sh "$@"
     ;;
 
 configure)

@@ -221,9 +221,9 @@ cryptography==45.0.3 ; python_version >= "3.10" and python_version < "4.0" and s
     --hash=sha256:f22af3c78abfbc7cbcdf2c55d23c3e022e1a462ee2481011d518c7fb9c9f3d65 \
     --hash=sha256:fae1e637f527750811588e4582988932c222f8251f7b7ea93739acb624e1487f \
     --hash=sha256:fed5aaca1750e46db870874c9c273cd5182a9e9deb16f06f7bdffdb5c2bde4b9
-distlib==0.3.9 ; python_version >= "3.10" and python_version < "4.0" \
-    --hash=sha256:47f8c22fd27c27e25a65601af709b38e4f0a45ea4fc2e710f65755fa8caaaf87 \
-    --hash=sha256:a60f20dea646b8a33f3e7772f74dc0b2d0772d2837ee1342a00645c81edf9403
+distlib==0.4.0 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16 \
+    --hash=sha256:feec40075be03a04501a973d81f633735b4b69f98b05450592310c0f401a4e0d
 dulwich==0.22.8 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:00e7d9a3d324f9e0a1b27880eec0e8e276ff76519621b66c1a429ca9eb3f5a8d \
     --hash=sha256:017152c51b9a613f0698db28c67cf3e0a89392d28050dbf4f4ac3f657ea4c0dc \

@@ -171,7 +171,6 @@ def _compile(template_name):
                 "USER_TYPE": user_type,
                 "ARROW": get_arrow,
                 "LOCAL_TIME": _get_local_time_html,
-                "ISO8601_DATE": iso8601_date,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
@@ -588,43 +587,9 @@ def _get_local_time_html(target, template):
     return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
 
 
-def iso8601_date(target):
+def age_in_years(birthdate: datetime.date) -> int:
     """
-    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
-
-    NB: Target is offset by _UNIXTIME_OFFSET
-
-    :param target: The target Weasyl timestamp to convert.
-    :return: An ISO 8601 string representing the date of `target`.
-    """
-    return arrow.get(target - _UNIXTIME_OFFSET).format("YYYY-MM-DD")
-
-
-def convert_unixdate(day, month, year):
-    """
-    Returns the unixtime corresponding to the beginning of the specified date; if
-    the date is not valid, None is returned.
-    """
-    day, month, year = (get_int(i) for i in [day, month, year])
-
-    try:
-        ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except ValueError:
-        return None
-    # range of a postgres integer
-    if ret > 2147483647 or ret < -2147483648:
-        return None
-    return ret
-
-
-def convert_age(target):
-    return (get_time() - target) // 31556926
-
-
-def age_in_years(birthdate):
-    """
-    Determines an age in years based off of the given arrow.Arrow birthdate
-    and the current date.
+    Calculate an age in years based on the given birthdate and the current UTC date.
     """
     now = arrow.utcnow()
     is_upcoming = (now.month, now.day) < (birthdate.month, birthdate.day)

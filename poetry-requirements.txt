@@ -10,9 +10,9 @@ build==1.2.2.post1 ; python_version >= "3.10" and python_version < "4.0" \
 cachecontrol==0.14.3 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:73e7efec4b06b20d9267b441c1f733664f989fb8688391b670ca812d70795d11 \
     --hash=sha256:b35e44a3113f17d2a31c1e6b27b9de6d4405f84ae51baa8c1d3cc5b633010cae
-certifi==2025.6.15 ; python_version >= "3.10" and python_version < "4.0" \
-    --hash=sha256:2e0c7ce7cb5d8f8634ca55d2ba7e6ec2689a2fd6537d8dec1296a477a4910057 \
-    --hash=sha256:d747aa5a8b9bbbb1bb8c22bb13e22bd1f18e9796defa16bab421f7f7a317323b
+certifi==2025.11.12 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:97de8790030bbd5c2d96b7ec782fc2f7820ef8dba6db909ccf95449f2d062d4b \
+    --hash=sha256:d8ab5478f2ecd78af242878415affce761ca6bc54a22a27e026d7c25357c3316
 cffi==1.17.1 ; python_version >= "3.10" and python_version < "4.0" and (sys_platform == "linux" or sys_platform == "darwin" or platform_python_implementation == "PyPy") \
     --hash=sha256:045d61c734659cc045141be4bae381a41d89b741f795af1dd018bfb532fd0df8 \
     --hash=sha256:0984a4925a435b1da406122d4d7968dd861c1385afe3b45ba82b750f229811e2 \

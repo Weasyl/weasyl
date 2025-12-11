@@ -2,6 +2,9 @@ version: 2
 updates:
 - package-ecosystem: pip
   directory: /
+  exclude-paths:
+    - "**/*.txt"  # especially config/disposable-domains.txt; this is a terrible default
+    - poetry-requirements.txt  # excessive noise (should already be covered by `**/*.txt`, but is listed separately as it’s for a separate reason)
   schedule:
     interval: daily
   open-pull-requests-limit: 10

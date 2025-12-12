@@ -11,8 +11,7 @@ def _journal_user(db, cache):
 
 
 @pytest.fixture(name='journals')
-@pytest.mark.usefixtures('db', 'journal_user')
-def _journals(journal_user):
+def _journals(db, journal_user):
     db_utils.create_journal(journal_user, title='Test journal', unixtime=arrow.get(1), content='A test journal')
     db_utils.create_journal(journal_user, title='Public journal', unixtime=arrow.get(2), content='A public journal')
     db_utils.create_journal(journal_user, title='Hidden journal', unixtime=arrow.get(3), content='A hidden journal', hidden=True)

@@ -10,6 +10,7 @@ from weasyl.config import config_obj
 EMAIL_ADDRESS = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\Z")
 
 smtp_host = config_obj.get("smtp", "host", fallback="localhost")
+local_hostname = config_obj.get("smtp", "local_hostname", fallback="weasyl-dev.invalid")
 
 
 def normalize_address(address):
@@ -38,7 +39,7 @@ def send(mailto, subject, content):
     message["From"] = f"Weasyl <{macro.MACRO_EMAIL_ADDRESS}>"
     message["Subject"] = subject
 
-    with SMTP(host=smtp_host) as smtp:
+    with SMTP(host=smtp_host, local_hostname=local_hostname) as smtp:
         smtp.starttls()
         smtp.send_message(
             message,

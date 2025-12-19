@@ -23,7 +23,12 @@ embed_user_agent = python-urllib3/2.4.0
 servers = memcached
 
 [smtp]
+# The SMTP server for outgoing mail.
 host = mail-logger:587
+
+# Whether to verify that the mail server's certificate is issued by a trusted CA.
+# This MUST be changed to `true` (the default value) in production.
+cert_verify = false
 
 [two_factor_auth]
 # This key MUST be changed when in production;

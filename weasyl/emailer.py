@@ -1,5 +1,6 @@
 import email.policy
 import re
+import ssl
 from email.mime.text import MIMEText
 from smtplib import SMTP
 
@@ -11,6 +12,7 @@ EMAIL_ADDRESS = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\Z")
 
 smtp_host = config_obj.get("smtp", "host", fallback="localhost")
 local_hostname = config_obj.get("smtp", "local_hostname", fallback="weasyl-dev.invalid")
+smtp_cert_verify = config_obj.getboolean("smtp", "cert_verify", fallback=True)
 smtp_username = config_obj.get("smtp", "username", fallback=None)
 smtp_password = config_obj.get("smtp", "password", fallback=None)
 if (smtp_username is None) != (smtp_password is None):
@@ -44,7 +46,13 @@ def send(mailto, subject, content):
     message["Subject"] = subject
 
     with SMTP(host=smtp_host, local_hostname=local_hostname) as smtp:
-        smtp.starttls()
+        ctx = ssl.create_default_context()
+
+        if not smtp_cert_verify:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.VerifyMode.CERT_NONE
+
+        smtp.starttls(context=ctx)
 
         if smtp_username is not None:
             smtp.login(smtp_username, smtp_password)

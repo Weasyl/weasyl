@@ -11,6 +11,10 @@ EMAIL_ADDRESS = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\Z")
 
 smtp_host = config_obj.get("smtp", "host", fallback="localhost")
 local_hostname = config_obj.get("smtp", "local_hostname", fallback="weasyl-dev.invalid")
+smtp_username = config_obj.get("smtp", "username", fallback=None)
+smtp_password = config_obj.get("smtp", "password", fallback=None)
+if (smtp_username is None) != (smtp_password is None):
+    raise RuntimeError("SMTP username and password must be provided together")  # pragma: no cover
 
 
 def normalize_address(address):
@@ -41,6 +45,10 @@ def send(mailto, subject, content):
 
     with SMTP(host=smtp_host, local_hostname=local_hostname) as smtp:
         smtp.starttls()
+
+        if smtp_username is not None:
+            smtp.login(smtp_username, smtp_password)
+
         smtp.send_message(
             message,
             from_addr=macro.MACRO_EMAIL_ADDRESS,

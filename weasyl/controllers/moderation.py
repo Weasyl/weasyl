@@ -19,7 +19,7 @@ def modcontrol_(request):
 @moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
-                                   (moderation.BAN_TEMPLATES,),
+                                   (),
                                    options=("mod",),
                                    title="User Suspensions"))
 

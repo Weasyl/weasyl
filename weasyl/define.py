@@ -36,7 +36,7 @@ from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl.text import slug_for
 from libweasyl.text import summarize
-from libweasyl import html, text, ratings, staff
+from libweasyl import text, ratings, staff
 
 from weasyl import cards
 from weasyl import config
@@ -189,7 +189,6 @@ def _compile(template_name):
                 "R": ratings,
                 "SLUG": slug_for,
                 "QUERY_STRING": query_string,
-                "INLINE_JSON": html.inline_json,
                 "ORIGIN": ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,

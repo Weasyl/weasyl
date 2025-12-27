@@ -1,0 +1,107 @@
+{
+    "01-incorrect-rating": {
+        "name": "Incorrect Rating (3 Day Suspension)",
+        "reason": "Your account has been suspended for 3 days for repeated incorrect rating of submissions.\n\nYou may wish to review our [Ratings Guidelines](https://www.weasyl.com/help/ratings) during this time.",
+        "days": 3
+    },
+    "02-incorrect-tag": {
+        "name": "Incorrect Tags - Creator (3 Day Suspension)",
+        "reason": "Your account has been suspended for 3 days for repeated incorrect tagging of submissions.\n\nYou may wish to review our [Tagging Guide](https://www.weasyl.com/help/tagging) during this time.",
+        "days": 3
+    },
+    "03-byfor-14": {
+        "name": "Right to Submit (14 Day Suspension)",
+        "reason": "Your account has been suspended for 14 days for repeatedly uploading content you do not have permission to upload.\n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 14
+    },
+    "04-byfor": {
+        "name": "Right to Submit (Ban)",
+        "reason": "Your account has been permanently banned from Weasyl for repeatedly uploading content you do not have permission to upload.",
+        "days": -1
+    },
+    "05-epilepsy-7": {
+        "name": "Seizure Inducing Images (7 Day Suspension)",
+        "reason": "Your account has been suspended for 7 days for repeatedly uploading images in violation of Section I.C.4 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Seizure-Inducing Images:** Do not upload any avatars, banners, profile images, or submissions that feature rapidly flashing lights, colors, or rapid movement, as this may induce seizures in some users.\n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 7
+    },
+    "06-epilepsy": {
+        "name": "Seizure Inducing Images (Ban)",
+        "reason": "Your account has been permanently banned from Weasyl for repeatedly uploading images in violation of Section I.C.4 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Seizure-Inducing Images:** Do not upload any avatars, banners, profile images, or submissions that feature rapidly flashing lights, colors, or rapid movement, as this may induce seizures in some users.",
+        "days": -1
+    },
+    "07-offensive-3": {
+        "name": "Offensive Material (3 Day Suspension)",
+        "reason": "Your account has been suspended for 3 days for uploading content in violation of Section I.C.1 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Offensive Content:** Submissions should avoid expressing bigoted or hateful material (e.g. racist, sexist, homophobic, etc.) to the extent possible without compromising the artistic integrity of the piece. Material that appears intended for the sole purpose of provoking hostile responses is not permitted. ",
+        "days": 3
+    },
+    "08-offensive-7": {
+        "name": "Offensive Material (7 Day Suspension)",
+        "reason": "Your account has been suspended for 7 days for repeatedly uploading content in violation of Section I.C.1 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Offensive Content:** Submissions should avoid expressing bigoted or hateful material (e.g. racist, sexist, homophobic, etc.) to the extent possible without compromising the artistic integrity of the piece. Material that appears intended for the sole purpose of provoking hostile responses is not permitted.\n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 7
+    },
+    "09-offensive": {
+        "name": "Offensive Material (Ban)",
+        "reason": "Your account has been permanently banned from Weasyl for repeatedly uploading content in violation of Section I.C.1 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Offensive Content:** Submissions should avoid expressing bigoted or hateful material (e.g. racist, sexist, homophobic, etc.) to the extent possible without compromising the artistic integrity of the piece. Material that appears intended for the sole purpose of provoking hostile responses is not permitted.",
+        "days": -1
+    },
+    "10-cp-14": {
+        "name": "Minors In Mature/Sexual Situations (14 Day Suspension)",
+        "reason": "Your account has been suspended for 14 days for repeatedly uploading content in violation of Section I.C.2 of the [Community Guidelines](https://www.weasyl.com/policy/community), which prohibits uploading content containing minors in mature/sexual situations.\n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 14
+    },
+    "11-cp": {
+        "name": "Minors In Mature/Sexual Situations (Ban)",
+        "reason": "Your account has been banned from Weasyl for repeatedly uploading content in violation of Section I.C.2 of the [Community Guidelines](https://www.weasyl.com/policy/community), which prohibits uploading content containing minors in mature/sexual situations.",
+        "days": -1
+    },
+    "12-theft-7": {
+        "name": "Plagiarism - Single Submission (7 Day Suspension)",
+        "reason": "Your account has been suspended for 7 days for uploading content in violation of Section I.A.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Tracing and Plagiarism:** You may incorporate the work of others into new works; however, the use of borrowed content must either abide by fair use or you must obtain permission from the copyright holder. The submission will be removed if it meets neither of these requirements. If it does meet these requirements, you must still cite the content's source in the submission description.\n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl. ",
+        "days": 7
+    },
+    "13-theft-14": {
+        "name": "Plagiarism - Multiple Submissions (14 Day Suspension)",
+        "reason": "Your account has been suspended for 14 days for uploading content in violation of Section I.A.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Tracing and Plagiarism:** You may incorporate the work of others into new works; however, the use of borrowed content must either abide by fair use or you must obtain permission from the copyright holder. The submission will be removed if it meets neither of these requirements. If it does meet these requirements, you must still cite the content's source in the submission description.\n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 14
+    },
+    "14-theft": {
+        "name": "Plagiarism (Ban)",
+        "reason": "Your account has been permanently banned from Weasyl for repeatedly uploading content in violation of Section I.A.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Tracing and Plagiarism:** You may incorporate the work of others into new works; however, the use of borrowed content must either abide by fair use or you must obtain permission from the copyright holder. The submission will be removed if it meets neither of these requirements. If it does meet these requirements, you must still cite the content's source in the submission description.",
+        "days": -1
+    },
+    "15-tracing-single-3": {
+        "name": "Tracing - Single Submission (3 Day Suspension)",
+        "reason": "Your account has been suspended for 3 days for uploading content in violation of Section I.C.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Stolen Work:** Whether the work is traced, incorporates others' work, or outright plagiarizes, stealing others' work and either making it a part of your own submission without their permission or claiming it as your own is strictly forbidden. If another person has contributed to the submission in any way, they should receive credit for their participation.",
+        "days": 3
+    },
+    "16-tracing-single-7": {
+        "name": "Tracing - Single Submission (7 Day Suspension)",
+        "reason": "Your account has been suspended for 7 days for repeatedly uploading content in violation of Section I.C.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Stolen Work:** Whether the work is traced, incorporates others' work, or outright plagiarizes, stealing others' work and either making it a part of your own submission without their permission or claiming it as your own is strictly forbidden. If another person has contributed to the submission in any way, they should receive credit for their participation. \n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 7
+    },
+    "17-tracing-multiple-7": {
+        "name": "Tracing - Multiple Submissions (7 Day Suspension)",
+        "reason": "Your account has been suspended for 7 days for uploading content in violation of Section I.C.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Stolen Work:** Whether the work is traced, incorporates others' work, or outright plagiarizes, stealing others' work and either making it a part of your own submission without their permission or claiming it as your own is strictly forbidden. If another person has contributed to the submission in any way, they should receive credit for their participation. \n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 7
+    },
+    "18-tracing": {
+        "name": "Tracing (Ban)",
+        "reason": "Your account has been permanently banned from Weasyl for repeatedly uploading content in violation of Section I.C.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Stolen Work:** Whether the work is traced, incorporates others' work, or outright plagiarizes, stealing others' work and either making it a part of your own submission without their permission or claiming it as your own is strictly forbidden. If another person has contributed to the submission in any way, they should receive credit for their participation.",
+        "days": -1
+    },
+    "19-eyeball-7": {
+        "name": "Eyeballing (7 Day Suspension)",
+        "reason": "Your account has been suspended for 7 days for repeatedly uploading content in violation of Section I.C.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Stolen Work:** Whether the work is traced, incorporates others' work, or outright plagiarizes, stealing others' work and either making it a part of your own submission without their permission or claiming it as your own is strictly forbidden. If another person has contributed to the submission in any way, they should receive credit for their participation. \n\nThis is a final warning - any further removals of submissions for this reason will result in a permanent ban from Weasyl.",
+        "days": 7
+    },
+    "20-eyeball": {
+        "name": "Eyeballing (Ban)",
+        "reason": "Your account has been permanently banned from Weasyl for repeatedly uploading content in violation of Section I.C.3 of the [Community Guidelines](https://www.weasyl.com/policy/community), which states the following:\n> **Stolen Work:** Whether the work is traced, incorporates others' work, or outright plagiarizes, stealing others' work and either making it a part of your own submission without their permission or claiming it as your own is strictly forbidden. If another person has contributed to the submission in any way, they should receive credit for their participation.",
+        "days": -1
+    },
+    "21-spammer": {
+        "name": "Spam (Ban)",
+        "reason": "Your account has been permanently banned from Weasyl for spam.",
+        "days": -1
+    }
+}

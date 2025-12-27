@@ -505,9 +505,6 @@ def reupload_submission_post_(request):
     form = request.web_input(targetid="", submitfile="")
     form.targetid = define.get_int(form.targetid)
 
-    if request.userid != define.get_ownerid(submitid=form.targetid):
-        raise WeasylError('InsufficientPermissions')
-
     submission.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/submission/%i" % (form.targetid,))
 
@@ -532,9 +529,6 @@ def reupload_character_get_(request):
 def reupload_character_post_(request):
     form = request.web_input(targetid="", submitfile="")
     form.targetid = define.get_int(form.targetid)
-
-    if request.userid != define.get_ownerid(charid=form.targetid):
-        raise WeasylError('InsufficientPermissions')
 
     character.reupload(request.userid, form.targetid, form.submitfile)
     raise HTTPSeeOther(location="/character/%i" % (form.targetid,))
@@ -567,7 +561,13 @@ def edit_submission_get_(request):
     form = request.web_input(submitid="", anyway="")
     form.submitid = define.get_int(form.submitid)
 
-    detail = submission.select_view(request.userid, form.submitid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = submission.select_view(
+        request.userid,
+        form.submitid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -618,7 +618,13 @@ def edit_character_get_(request):
     form = request.web_input(charid="", anyway="")
     form.charid = define.get_int(form.charid)
 
-    detail = character.select_view(request.userid, form.charid, ratings.EXPLICIT.code, False, anyway=form.anyway)
+    detail = character.select_view(
+        request.userid,
+        form.charid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -664,7 +670,13 @@ def edit_journal_get_(request):
     form = request.web_input(journalid="", anyway="")
     form.journalid = define.get_int(form.journalid)
 
-    detail = journal.select_view(request.userid, ratings.EXPLICIT.code, form.journalid, False, anyway=form.anyway)
+    detail = journal.select_view(
+        request.userid,
+        form.journalid,
+        rating=ratings.EXPLICIT.code,
+        ignore=False,
+        anyway=form.anyway == "true",
+    )
 
     if request.userid != detail['userid'] and request.userid not in staff.MODS:
         raise WeasylError('InsufficientPermissions')
@@ -758,3 +770,19 @@ def remove_comment_(request):
         raise HTTPSeeOther(location="/character/%i" % (targetid,))
     elif form.feature == "journal":
         raise HTTPSeeOther(location="/journal/%i" % (targetid,))
+
+
+@token_checked
+def views_post(request):
+    feature = request.matchdict["content_type"]
+    targetid = expect_id(request.matchdict["content_id"])
+
+    page_views = define.common_view_content(request.userid, targetid, feature)
+
+    if feature == "users" and not define.shows_statistics(viewer=request.userid, target=targetid):
+        page_views = None
+
+    return HTTPNoContent() if page_views is None else Response(
+        str(page_views),
+        content_type="text/plain;charset=us-ascii",
+    )

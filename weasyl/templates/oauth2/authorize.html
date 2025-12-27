@@ -138,12 +138,12 @@ $def with (scopes, credentials, client, myself, my_media)
       </a>
       Welcome,
       <a href="/~${myself.login_name}">${myself.profile.username}</a>
-      <form class="signout" method="POST" action="/signout">
+      <form class="signout" method="post" action="/signout">
         <button class="not-me">(Not ${myself.profile.username}?)</button>
       </form>
     </div>
 
-    <form method="POST" action="">
+    <form method="post" action="">
       <p>Please confirm that the application <strong>${client.description}</strong>
         (by <a href="/~${LOGIN(client.owner.profile.username)}">${client.owner.profile.username}</a>)
         should be authorized to make requests on your behalf.</p>

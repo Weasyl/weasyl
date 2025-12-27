@@ -25,4 +25,5 @@ def search_(request):
     next_index = offset + limit if rcount - limit > 0 else None
     return Response(define.webpage(request.userid, "etc/marketplace.html",
                     [results, form, commishinfo.CURRENCY_CHARMAP, commishinfo.PRESET_COMMISSION_CLASSES,
-                     prev_index, next_index]))
+                     prev_index, next_index],
+                    title='Marketplace'))

@@ -1,7 +1,8 @@
-$def with (method, meta, results, next_count=0, back_count=0, subcats=None, count_limit=None, browse_header=None)
+$def with (method, meta, results, prev_page=None, next_page=None, subcats=None, browse_header=None, is_guest=None, rating_limit=None)
 $#:{TITLE("Weasyl Search")}
-$ _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
 $code:
+  _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  _TEXT_POST_ITEM = COMPILE("common/text_post_item.html")
   id_fields = {
     'submit': 'submitid',
     'critique': 'submitid',
@@ -9,6 +10,7 @@ $code:
     'journal': 'journalid',
     'user': 'userid',
   }
+  card_viewer = get_card_viewer()
 
 <div id="search-stage" class="stage clear">
 
@@ -22,61 +24,70 @@ $code:
         <input class="input" type="text" name="q" id="search-q" value="${meta['q']}" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
 
-        <label for="search_find">Find</label>
+        <label for="search-find">Find</label>
 
-        <select class="input${' last-input' if meta['find'] == 'user' else ''}" id="search-find" name="find">
+        <select class="input" id="search-find" name="find">
           <option value="submit">Submissions</option>
           <option value="char"${' selected' if meta['find'] == 'char' else ''}>Character Profiles</option>
           <option value="journal"${' selected' if meta['find'] == 'journal' else ''}>Journal Entries</option>
           <option value="user"${' selected' if meta['find'] == 'user' else ''}>Users</option>
         </select>
 
-        <div id="search-cat-container">
+        <fieldset class="search-fieldset" id="search-cat-container">
+          <legend><span>Submissions</span></legend>
 
-          <label for="search_cat">Category</label>
+          <label for="search-cat">Category</label>
           <select class="input" id="search-cat" name="cat">
+            <option value="">(all)</option>
             <option value="1000"$:{' selected' if meta['cat'] == 1000 else ''}>Visual Artwork</option>
             <option value="2000"$:{' selected' if meta['cat'] == 2000 else ''}>Literary Artwork</option>
             <option value="3000"$:{' selected' if meta['cat'] == 3000 else ''}>Multimedia Artwork</option>
           </select>
 
-          <label for="search_subcat">Subcategory</label>
+          <label for="search-subcat">Subcategory</label>
           <select class="input" id="search-subcat" name="subcat">
-            <option></option>
+            <option value="">(all)</option>
             $for i in subcats:
               $if i[0] % 1000 != 999:
                 <option value="${i[0]}"$:{' selected' if meta['subcat'] == i[0] else ''}>${i[1]}</option>
           </select>
 
+        </fieldset>
+
+        $if not is_guest:
+          <fieldset class="search-fieldset" id="search-specs-container">
+            <legend><span>Posts</span></legend>
+
+            <label for="search-within">Within</label>
+            <select class="input" name="within" id="search-within">
+              <option value="all">Everything</option>
+              <option value="notify"$:{' selected' if meta['within'] == 'notify' else ''}>Notifications</option>
+              <option value="fave"$:{' selected' if meta['within'] == 'fave' else ''}>Favorites</option>
+              <option value="friend"$:{' selected' if meta['within'] == 'friend' else ''}>Friends</option>
+              <option value="follow"$:{' selected' if meta['within'] == 'follow' else ''}>Following</option>
+            </select>
+
+            <fieldset class="input-group">
+              <label class="input-checkbox">
+                <input type="checkbox" name="rated" value="g"$:{' checked disabled' if rating_limit < R.MATURE.code else ' checked' if 'g' in meta['rated'] else ''} />
+                General
+              </label>
+              $if rating_limit >= R.MATURE.code:
+                <label class="input-checkbox">
+                  <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
+                  Mature (18+)
+                </label>
+              $if rating_limit >= R.EXPLICIT.code:
+                <label class="input-checkbox">
+                  <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
+                  Explicit (18+)
+                </label>
+            </fieldset>
+          </fieldset>
+
+        <div class="form-actions">
+          <button class="button">Search</button>
         </div>
-
-        <div id="search-specs-container" style="display:${'block' if meta['find'] != 'user' else 'none'};">
-
-          <label for="search-within">Within</label>
-          <select class="input last-input" name="within" id="search-within">
-            <option value="all">Everything</option>
-            <option value="notify"$:{' selected' if meta['within'] == 'notify' else ''}>Notifications</option>
-            <option value="fave"$:{' selected' if meta['within'] == 'fave' else ''}>Favorites</option>
-            <option value="friend"$:{' selected' if meta['within'] == 'friend' else ''}>Friends</option>
-            <option value="follow"$:{' selected' if meta['within'] == 'follow' else ''}>Following</option>
-          </select>
-
-          <label class="input-checkbox">
-            <input type="checkbox" name="rated" value="g"$:{' checked' if 'g' in meta['rated'] else ''} />
-            General
-          </label>
-          <label class="input-checkbox">
-            <input type="checkbox" name="rated" value="a"$:{' checked' if 'a' in meta['rated'] else ''} />
-            Mature (18+)
-          </label>
-          <label class="input-checkbox last-input">
-            <input type="checkbox" name="rated" value="p"$:{' checked' if 'p' in meta['rated'] else ''} />
-            Explicit (18+)
-          </label>
-
-        </div>
-
-        <button class="button">Search</button>
 
       </form>
     </div>
@@ -89,17 +100,39 @@ $code:
           <p style="text-align: center; padding:1.4em 0;">
             Your search terms are too broad. Only the first 100 results will be displayed.
           </p>
-        <ul class="thumbnail-grid sectioned">
-          $for index, result in enumerate(results):
-            $:{_GRID_ITEM(result, lazy_load=index >= 10)}
-        </ul>
+        $ cards = card_viewer.get_cards(results)
+        $if meta['find'] == 'journal':
+          <div class="journals">
+            $for journal in cards:
+              $:{_TEXT_POST_ITEM(journal)}
+          </div>
+        $elif meta['find'] == 'user':
+          <ul class="avatar-grid">
+            $for card in cards:
+              <li>
+                <a href="${card.href}" title="${card.username.display}">
+                  <figure>
+                    <img src="${card.avatar.file['display_url']}">
+                    <figcaption>
+                      <h5 class="username one-line">${card.username.display}</h5>
+                    </figcaption>
+                  </figure>
+                </a>
+              </li>
+          </ul>
+        $else:
+          <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+            $for index, card in enumerate(cards):
+              $:{_GRID_ITEM(card, lazy_load=index >= 10)}
+          </ul>
 
-        <div style="padding-top: 1.4em;" class="pad-left pad-right">
-          $if back_count:
-            <a class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]], nextid=None))}" rel="prev">Back (${back_count}$:{'+' if back_count == count_limit else ''} more)</a>
-          $if next_count:
-            <a class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]], backid=None))}" rel="next">Next (${next_count}$:{'+' if next_count == count_limit else ''} more)</a>
-        </div>
+        $if prev_page is not None or next_page is not None:
+          <nav id="search-nav" class="pages-layout-split pages-vpad pad-left pad-right">
+            $if prev_page is not None:
+              <a id="search-back" class="button" href="/search?${QUERY_STRING(dict(meta, backid=prev_page.backid, nextid=None))}" rel="prev">Back</a>
+            $if next_page is not None:
+              <a id="search-next" class="button" href="/search?${QUERY_STRING(dict(meta, nextid=next_page.nextid, backid=None))}" rel="next">Next</a>
+          </nav>
       $else:
         <p class="pad-left pad-right" style="padding-top: 2em;">There are no search results to display. You may want to <a class="color-a" href="/search">browse for content</a> or edit your search criteria.</p>
     </div>
@@ -109,7 +142,7 @@ $code:
     <h2 class="page-title">${browse_header}</h2>
 
     <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
-      <form id="search-backup-search" action="/search" method="GET" class="form">
+      <form id="search-backup-search" action="/search" class="form">
         $if meta['find'] not in ('submit', 'critique'):
           <input type="hidden" name="find" value="${meta['find']}">
 
@@ -119,15 +152,22 @@ $code:
     </div>
 
     $if results:
-      <ul class="thumbnail-grid">
-        $for index, result in enumerate(results):
-          $:{_GRID_ITEM(result, lazy_load=index >= 10)}
-      </ul>
+      $ cards = card_viewer.get_cards(results)
+      $if meta['find'] == 'journal':
+        <div class="journals">
+          $for journal in cards:
+            $:{_TEXT_POST_ITEM(journal)}
+        </div>
+      $else:
+        <ul is="thumbnail-grid" class="thumbnail-grid" data-widths="${CARD_WIDTHS(cards)}">
+          $for index, card in enumerate(cards):
+            $:{_GRID_ITEM(card, lazy_load=index >= 10)}
+        </ul>
 
-      <div style="padding-top: 1.4em;" class="pad-left pad-right">
+      <nav class="pages-layout-split pages-vpad pad-left pad-right">
         <a class="button" href="/search?${QUERY_STRING(dict(meta, backid=results[0][id_fields[meta['find']]]))}" rel="prev">Back</a>
-        <a class="button" style="float:right;" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]]))}" rel="next">Next</a>
-      </div>
+        <a class="button" href="/search?${QUERY_STRING(dict(meta, nextid=results[-1][id_fields[meta['find']]]))}" rel="next">Next</a>
+      </nav>
     $else:
       <p class="pad-left pad-right" style="padding-top: 2em;">There is no more content to display in this category. You may want to <a class="color-a" href="/search">browse all content</a>.</p>
 
@@ -136,7 +176,7 @@ $code:
     <h2 class="page-title">Browse Content</h2>
 
     <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
-      <form id="search-backup-search" action="/search" method="GET" class="form">
+      <form id="search-backup-search" action="/search" class="form">
         <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="2" class="input" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
       </form>
@@ -144,8 +184,9 @@ $code:
 
     $if results['submit']:
       <h3 class="pad-left">Submissions</h3>
-      <ul class="thumbnail-grid medium-footprint">
-        $for i in results['submit']:
+      $ cards = card_viewer.get_cards(results['submit'])
+      <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+        $for i in cards:
           $:{_GRID_ITEM(i, lazy_load=False)}
         <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
       </ul>
@@ -154,21 +195,22 @@ $code:
 
     $if results['char']:
       <h3 class="pad-left">Characters</h3>
-      <ul class="grid avatar-grid">
-        $for i in results['char']:
+      $ cards = card_viewer.get_cards(results['char'])
+      <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+        $for i in cards:
           $:{_GRID_ITEM(i)}
-        <li class="clear more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
+        <li class="more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
       </ul>
     $else:
       There are no characters to display.
 
     $if results['journal']:
       <h3 class="pad-left">Journals</h3>
-      <ul class="grid avatar-grid">
-        $for i in results['journal']:
-          $:{_GRID_ITEM(i)}
-        <li class="clear more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></li>
-      </ul>
+      <div class="journals">
+        $for journal in card_viewer.get_cards(results['journal']):
+          $:{_TEXT_POST_ITEM(journal)}
+      </div>
+      <div class="more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></div>
     $else:
       There are no journals to display.
 

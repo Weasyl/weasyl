@@ -1,10 +1,14 @@
-import pytest
+import datetime
 import json
 
+import pytest
+
 from libweasyl import staff
+from libweasyl.legacy import get_offset_unixtime
 from weasyl import define as d
 from weasyl import login
 from weasyl import macro
+from weasyl.login import InvalidCredentials
 from weasyl.test import db_utils
 
 
@@ -17,19 +21,21 @@ raw_password = "0123456789"
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_no_username_provided():
     result = login.authenticate_bcrypt(username='', password='password', request=None)
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=False, inactive_username_exists=False)
 
 
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_no_password_provided():
     result = login.authenticate_bcrypt(username=user_name, password='', request=None)
-    assert result == (0, 'invalid')
+
+    # Not a possible case with HTML form validation, so we don’t care what the specific result is
+    assert isinstance(result, InvalidCredentials)
 
 
 @pytest.mark.usefixtures('db')
 def test_login_fails_if_incorrect_username_is_provided():
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=False, inactive_username_exists=False)
 
 
 @pytest.mark.usefixtures('db')
@@ -38,7 +44,7 @@ def test_login_fails_for_incorrect_credentials():
     db_utils.create_user(password=random_password, username=user_name)
     another_random_password = "ThisIsNotTheSamePassword"
     result = login.authenticate_bcrypt(username=user_name, password=another_random_password, request=None)
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=True, inactive_username_exists=False)
 
 
 @pytest.mark.usefixtures('db')
@@ -71,7 +77,7 @@ def test_login_fails_for_invalid_auth_and_logs_failure_if_mod_account(tmp_path, 
     last_line_dict = json.loads(last_line)
     assert postrun_loglines > prerun_loglines
     assert last_line_dict['userid'] == user_id
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=True, inactive_username_exists=False)
 
 
 @pytest.mark.usefixtures('db')
@@ -79,7 +85,7 @@ def test_login_fails_if_user_is_banned():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
     db_utils.create_banuser(userid=user_id, reason="Testing")
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
-    assert result == (user_id, 'banned')
+    assert result == login.Banned(user_id)
 
 
 @pytest.mark.usefixtures('db')
@@ -88,42 +94,42 @@ def test_login_fails_if_user_is_suspended():
     release_date = d.get_time() + 60
     db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
-    assert result == (user_id, 'suspended')
+    assert result == login.Suspended(user_id)
 
 
 @pytest.mark.usefixtures('db')
 def test_login_succeeds_if_suspension_duration_has_expired():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
-    release_date = d.convert_unixdate(31, 12, 2015)
+    release_date = get_offset_unixtime(datetime.datetime(2015, 12, 31, tzinfo=datetime.timezone.utc))
     db_utils.create_suspenduser(userid=user_id, reason="Testing", release=release_date)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
-    assert result == (user_id, None)
+    assert result == login.Success(user_id)
 
 
 @pytest.mark.usefixtures('db')
 def test_login_succeeds_for_valid_username_and_password():
     user_id = db_utils.create_user(password=raw_password, username=user_name)
     result = login.authenticate_bcrypt(username=user_name, password=raw_password, request=None)
-    assert result == (user_id, None)
+    assert result == login.Success(user_id)
 
 
 @pytest.mark.usefixtures('db')
 def test_unicode_password():
     user_id = db_utils.create_user(password="passwordé", username=user_name)
     result = login.authenticate_bcrypt(username=user_name, password="passwordé", request=None)
-    assert result == (user_id, None)
+    assert result == login.Success(user_id)
     result = login.authenticate_bcrypt(username=user_name, password="passworde", request=None)
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=True, inactive_username_exists=False)
     result = login.authenticate_bcrypt(username=user_name, password="password", request=None)
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=True, inactive_username_exists=False)
 
 
 @pytest.mark.usefixtures('db')
 def test_unicode_attempts():
     user_id = db_utils.create_user(password="password", username=user_name)
     result = login.authenticate_bcrypt(username=user_name, password="passwordé", request=None)
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=True, inactive_username_exists=False)
     result = login.authenticate_bcrypt(username=user_name, password="passwörd", request=None)
-    assert result == (0, 'invalid')
+    assert result == InvalidCredentials(username_exists=True, inactive_username_exists=False)
     result = login.authenticate_bcrypt(username=user_name, password="password", request=None)
-    assert result == (user_id, None)
+    assert result == login.Success(user_id)

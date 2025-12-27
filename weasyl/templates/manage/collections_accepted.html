@@ -1,12 +1,15 @@
 $def with (query)
 $:{RENDER("common/stage_title.html", ["Accepted Collections", "Settings"])}
 $ _LIST_ITEM = COMPILE("common/thumbnail_list_item.html")
+$code:
+  card_viewer = get_card_viewer()
+  cards = card_viewer.get_cards(query)
 
 <div id="manage_collections_content" class="content" style="padding-top: 2.5em;">
   $if query:
-    <form action="/collection/remove" method="POST" data-confirm="Are you sure you want to remove the selected collections?">
-      $for i in query:
-        $:{_LIST_ITEM(i, caption="collection_accepted")}
+    <form action="/collection/remove" method="post" data-confirm="Are you sure you want to remove the selected collections?">
+      $for i, card in zip(query, cards):
+        $:{_LIST_ITEM(i, card, caption="collection_accepted")}
 
       <div id="buttons">
         <a class="button back" href="/manage/collections?feature=accepted&amp;backid=${query[0]['submitid']}">Back</a>

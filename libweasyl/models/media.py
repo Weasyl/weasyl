@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import hashlib
-from io import BytesIO
 import os
+from io import BytesIO
+from typing import Callable
 
 from sqlalchemy.orm import relationship, foreign, remote, joinedload, lazyload, load_only
 from sqlalchemy.sql.expression import any_
 
-from libweasyl.files import fanout, makedirs_exist_ok
+from libweasyl.files import fanout
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
@@ -35,7 +38,7 @@ class MediaItem(Base):
 
             # Write our file to disk
             real_path = obj.full_file_path
-            makedirs_exist_ok(os.path.dirname(real_path))
+            os.makedirs(os.path.dirname(real_path), exist_ok=True)
             with open(real_path, 'wb') as outfile:
                 outfile.write(data)
 
@@ -43,8 +46,8 @@ class MediaItem(Base):
         return obj
 
     # set by configure_libweasyl
-    _media_link_formatter_callback = None
-    _base_file_path = None
+    _media_link_formatter_callback: Callable[[MediaItem, str], str]
+    _base_file_path: str
 
     def _to_dict(self):
         return {

@@ -6,7 +6,7 @@ $code:
   def _SELECTED(x):
     return ' selected="selected"' if x in config else ''
   def _RATING(current, x):
-    return ' selected="selected"' if current == x.code else ''
+    return ' selected="selected"' if current == x else ''
 
 <div class="content">
   <form name="controleditpreferences" class="form skinny" action="/control/editpreferences" method="post">
@@ -19,17 +19,19 @@ $code:
         Use only generated thumbnails for all visual submissions
       </option>
     </select>
-    <p class="color-lighter" style="padding-top: 0.5em;">This does not apply to your own submissions.</p>
+    <p class="input-detail color-lighter">This does not apply to your own submissions.</p>
 
-    <label for="siterating">Maximum Viewable Content Rating</label>
-    <select name="rating" class="input" id="siterating"$:{'' if len(allowed_ratings) > 1 else ' disabled'}>
-      $for rating in allowed_ratings
-        <option value="${rating.code}"$:{_RATING(current_rating, rating)}>${rating.name_with_age}</option>
-    </select>
-    $if len(allowed_ratings) > 1:
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as those in the <a href="/policy/tos">Weasyl Terms of Service</a></i></p>
-    $else:
-      <p class="color-lighter" style="padding-top: 0.5em;"><i>You can’t select age-restricted ratings while you’re under 18.</i></p>
+    <p>
+      <label for="siterating">Maximum Viewable Content Rating</label>
+      <select name="rating" class="input" id="siterating"$:{'' if len(allowed_ratings) > 1 else ' disabled'}>
+        $for rating in allowed_ratings
+          <option value="${rating.code}"$:{_RATING(current_rating, rating)}>${rating.name_with_age}</option>
+      </select>
+      $if len(allowed_ratings) > 1:
+        <small class="input-detail fine-print color-lighter">By selecting "Mature (18+)" or "Explicit (18+)", you agree that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as by the <a href="/policy/tos">Weasyl Terms of Service</a>.</small>
+      $else:
+        <small class="input-detail fine-print color-lighter">You can’t select age-restricted ratings while you’re under 18.</small>
+    </p>
 
     <label>Custom Profile Settings</label>
 
@@ -98,9 +100,8 @@ $code:
       Journals posted by the followed user
     </label>
 
-    <div style="padding-top: 1em;">
-      <button type="submit" class="button positive" style="float:right;">Save</button>
-      <a class="button" href="/control">Go Back</a>
+    <div class="clear" style="padding-top: 1em;">
+      <button class="button positive" style="float:right;">Save</button>
     </div>
   </form>
 </div>

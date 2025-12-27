@@ -12,6 +12,9 @@ profile_responses = false
 [sqlalchemy]
 url = postgresql+psycopg2://weasyl@weasyl-database/weasyl
 
+[outgoing_requests]
+embed_user_agent = Weasyl-User-Embed (+https://www.weasyl.com)
+
 [memcached]
 servers = weasyl-memcached
 

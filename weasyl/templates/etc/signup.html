@@ -9,7 +9,7 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
 
     <label for="signup-password">Password</label>
     <input type="password" id="signup-password" class="input" name="password" minlength="10" maxlength="72" required autocomplete="new-password" />
-    <p class="color-lighter" style="padding-top: 0.5em;"><i>Passwords must be a minimum of 10 characters.</i></p>
+    <p class="input-detail color-lighter"><i>Passwords must be a minimum of 10 characters.</i></p>
 
     <div id="password-strength" class="password-strength password-strength-empty" data-password-input="signup-password" data-personal-inputs="signup-username,signup-email"></div>
 
@@ -26,13 +26,12 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
 
     $:{COMPILE("common/turnstile.html")(action="signup")}
 
-    <script type="module" src="${resource_path('js/signup.js')}" async></script>
+    <script type="module" src="${resource_path('js/forms.js')}" async></script>
     <script src="${resource_path('js/zxcvbn.js')}" async></script>
     <script src="${resource_path('js/zxcvbn-check.js')}" async></script>
 
     <div style="padding-top: 1em">
-      <button type="submit" class="button positive" style="float: right;">Join Weasyl</button>
-      <a class="button" href="/">Cancel</a>
+      <button class="button positive" style="float: right;">Join Weasyl</button>
     </div>
 
     <div id="signup-terms">
@@ -40,7 +39,7 @@ $:{RENDER("common/stage_title.html", ["Create a Weasyl Account"])}
       <a href="/policy/tos">Terms of Service</a> and the <a href="/policy/community">Community Guidelines</a>,
       and that you agree to the terms outlined in the <a href="/policy/privacy">Privacy Policy</a>.
       If you accept these policies and conditions, click the <strong>Join Weasyl</strong> button to register;
-      otherwise, click <strong>Cancel</strong> to continue browsing as a guest.
+      otherwise, you may continue browsing as a guest.
     </div>
 
   </form>

@@ -69,14 +69,14 @@ $def with (options)
 
 <script src="${resource_path('js/jquery-2.2.4.min.js')}"></script>
 
-<script id="scripts" src="${resource_path('js/scripts.js')}" data-marked-src="${resource_path('js/marked.js')}"></script>
+<script src="${resource_path('js/scripts.js')}"></script>
 
 $if "imageselect" in options:
   <script src="${resource_path('js/imageselect.js')}"></script>
   $:{RENDER("common/image_select.html", ["square_select" in options])}
 
 $if 'search' in options:
-  <script src="${resource_path('js/search.js')}"></script>
+  <script type="module" src="${resource_path('js/search.js')}" async></script>
 
 $if 'tags-edit' in options:
   <script type="module" src="${resource_path('js/tags-edit.js')}" async></script>

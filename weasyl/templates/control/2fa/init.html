@@ -22,7 +22,7 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
 
     <h3>Begin setting up 2FA</h3>
 
-    <p><strong>Username: ${username}</strong></p>
+    <p><strong>Username: ${username.display}</strong></p>
     <p>
       You are about to enable 2FA for the Weasyl account identified above.
       In order to proceed through this process, you will need a compatible app such as
@@ -34,12 +34,11 @@ $:{RENDER("common/stage_title.html", ["Enable 2FA: Step 1", "Two-Factor Authenti
       To begin, we need to confirm that you have control over this account. Please enter your password to continue.
     </p>
 
-    <form method="POST" class="form skinny clear" action="/control/2fa/init">
+    <form method="post" class="form skinny clear" action="/control/2fa/init">
       <label for="login-pass">Confirm your Password</label>
       <input type="password" id="login-pass" class="input" name="password" placeholder="Password" required />
 
       <div style="padding-top: 1em;">
-        <a class="button negative" href="/control/2fa/status">Cancel</a>
         <button class="button positive">Continue</button>
       </div>
     </form>

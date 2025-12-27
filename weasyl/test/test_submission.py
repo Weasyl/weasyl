@@ -83,7 +83,7 @@ class SelectListTestCase(unittest.TestCase):
             0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
         # user with a pending friendship cannot view
-        db_utils.create_friendship(user1, user2, settings=CharSettings({'pending'}, {}, {}))
+        db_utils.create_friendship(user1, user2, pending=True)
         self.assertEqual(
             0, len(submission.select_list(user2, ratings.GENERAL.code, limit=10)))
 
@@ -139,8 +139,8 @@ class SelectListTestCase(unittest.TestCase):
 
     def test_duplicate_blocked_tag(self):
         user = db_utils.create_user()
-        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code)
-        blocktag.insert(user, title="orange", rating=ratings.GENERAL.code)
+        blocktag.insert(user, tags="orange", rating=ratings.GENERAL.code)
+        blocktag.insert(user, tags="orange", rating=ratings.GENERAL.code)
 
     def test_profile_page_filter(self):
         user1 = db_utils.create_user()
@@ -186,24 +186,25 @@ class SelectListTestCase(unittest.TestCase):
 
         searchtag.associate(userid=owner, target=target, tag_names={'orange'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['orange'], suggested=[], own_suggested=[]))
 
         searchtag.associate(userid=tagger, target=target, tag_names={'apple', 'tomato'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['orange'], suggested=['apple', 'tomato'], own_suggested=[]))
 
         searchtag.associate(userid=tagger, target=target, tag_names={'tomato'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['orange'], suggested=['tomato'], own_suggested=[]))
 
         searchtag.associate(userid=owner, target=target, tag_names={'kale'})
         self.assertEqual(
-            submission.select_view(owner, s, ratings.GENERAL.code)['tags'],
+            submission.select_view(owner, s, rating=ratings.GENERAL.code)['tags'],
             GroupedTags(artist=['kale'], suggested=['tomato'], own_suggested=[]))
 
+    @pytest.mark.usefixtures('cache')
     def test_recently_popular(self):
         owner = db_utils.create_user()
         now = arrow.utcnow()
@@ -213,9 +214,11 @@ class SelectListTestCase(unittest.TestCase):
         sub3 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now - datetime.timedelta(days=2))
         sub4 = db_utils.create_submission(owner, rating=ratings.GENERAL.code, unixtime=now)
         tag = db_utils.create_tag('tag')
+        favoriter = db_utils.create_user()
 
         for s in [sub1, sub2, sub3, sub4]:
             db_utils.create_submission_tag(tag, s)
+            db_utils.create_favorite(favoriter, submitid=s, unixtime=now)
 
         for i in range(100):
             favoriter = db_utils.create_user()

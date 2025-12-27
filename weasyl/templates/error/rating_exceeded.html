@@ -1,0 +1,34 @@
+$def with (rating, override_type, submitid)
+<main class="content content-vpad content-14">
+  <form class="form skinny form-flow" id="rating-override" action="javascript:;" data-submitid="${submitid}">
+    <p>This post is rated <strong>${rating.name_with_age}</strong>$:{" and can’t be displayed to you" if override_type == override_type.DISALLOWED else ""}.</p>
+
+    $if override_type != override_type.DISALLOWED:
+      <p>
+        $if not override_type.age_known:
+          <label class="input-checkbox">
+            <input type="checkbox" name="age" value="18+" required title="You need to be at least 18 years old to view this post." class="invalid-use-title" data-shows="requires-override">
+            I am at least 18 years old
+          </label>
+          <small class="input-detail fine-print">By checking this box, you assert that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as by the <a href="/policy/tos">Weasyl Terms of Service</a>.</small>
+        $else:
+          <input type="hidden" name="age" value="18+">
+          <small class="fine-print">By continuing, you assert that you are 18 years of age or older, and that you are abiding by laws governed by your local state and/or country as well as by the <a href="/policy/tos">Weasyl Terms of Service</a>.</small>
+      </p>
+
+      <div class="form-flow" id="requires-override">
+        <div>
+          <button class="button" id="view-anyway" disabled>View anyway</button>
+          <div id="rating-override-noscript">Required script not loaded yet…</div>
+        </div>
+      </div>
+
+      $if override_type == override_type.GUEST:
+        <p class="tip"><small>You can browse other posts, plus set rating and tag preferences, by <a href="/signup">creating an account</a>.</small></p>
+      $else:
+        <p class="tip"><small>You can also change your rating preferences permanently in <a href="/control/editpreferences">Site Preferences</a>.</small></p>
+
+      <script type="module" src="${resource_path('js/rating-override.js')}" async></script>
+      <script type="module" src="${resource_path('js/forms.js')}" async></script>
+  </form>
+</main>

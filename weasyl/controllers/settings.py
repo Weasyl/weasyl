@@ -8,10 +8,11 @@ from libweasyl import staff
 
 from weasyl.controllers.decorators import disallow_api, login_required, token_checked
 from weasyl.error import WeasylError
+from weasyl.users import Username
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, folder, followuser, frienduser, ignoreuser,
-    login, oauth2, profile, searchtag, thumbnail, useralias, orm)
+    login, profile, searchtag, thumbnail, useralias, orm)
 
 
 # Control panel functions
@@ -60,23 +61,23 @@ def control_editprofile_put_(request):
     if len(form.site_names) != len(form.site_values):
         raise WeasylError('Unexpected')
 
-    if 'more' in form:
-        form.username = define.get_display_name(request.userid)
-        form.sorted_user_links = [(name, [value]) for name, value in zip(form.site_names, form.site_values)]
-        form.settings = form.set_commish + form.set_trade + form.set_request
-        form.config = form.profile_display
-        return Response(define.webpage(request.userid, "control/edit_profile.html", [form, form], title="Edit Profile"))
-
-    p = orm.Profile()
-    p.full_name = form.full_name
-    p.catchphrase = form.catchphrase
-    p.profile_text = form.profile_text
     set_trade = profile.get_exchange_setting(profile.EXCHANGE_TYPE_TRADE, form.set_trade)
     set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
     set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
-    profile.edit_profile(request.userid, p, set_trade=set_trade,
-                         set_request=set_request, set_commission=set_commission,
-                         profile_display=form.profile_display)
+    profile.edit_profile_settings(
+        request.userid,
+        set_trade=set_trade,
+        set_request=set_request,
+        set_commission=set_commission,
+    )
+
+    profile.edit_profile(
+        request.userid,
+        full_name=form.full_name,
+        catchphrase=form.catchphrase,
+        profile_text=form.profile_text,
+        profile_display=form.profile_display,
+    )
 
     profile.edit_userinfo(request.userid, form)
 
@@ -102,7 +103,12 @@ def control_editcommishinfo_(request):
     set_request = profile.get_exchange_setting(profile.EXCHANGE_TYPE_REQUEST, form.set_request)
     set_commission = profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, form.set_commish)
 
-    profile.edit_profile_settings(request.userid, set_trade, set_request, set_commission)
+    profile.edit_profile_settings(
+        request.userid,
+        set_trade=set_trade,
+        set_request=set_request,
+        set_commission=set_commission,
+    )
     commishinfo.edit_content(request.userid, form.content)
 
     if "preferred-tags" in request.POST:
@@ -226,13 +232,13 @@ def control_username_get_(request):
         existing_redirect = None
         days = None
     else:
-        existing_redirect = latest_change.username if latest_change.active else None
+        existing_redirect = Username.from_stored(latest_change.username) if latest_change.active else None
         days = latest_change.seconds // (3600 * 24)
 
     return Response(define.webpage(
         request.userid,
         "control/username.html",
-        (define.get_display_name(request.userid), existing_redirect, days if days is not None and days < 30 else None),
+        (define.get_username(request.userid), existing_redirect, days if days is not None and days < 30 else None),
         title="Change Username",
     ))
 
@@ -251,7 +257,6 @@ def control_username_post_(request):
         return Response(define.errorpage(
             request.userid,
             "Your username has been changed.",
-            [["Go Back", "/control/username"], ["Return Home", "/"]],
         ))
     elif request.POST['do'] == 'release':
         login.release_username(
@@ -263,7 +268,6 @@ def control_username_post_(request):
         return Response(define.errorpage(
             request.userid,
             "Your old username has been released.",
-            [["Go Back", "/control/username"], ["Return Home", "/"]],
         ))
     else:
         raise WeasylError("Unexpected")
@@ -304,10 +308,7 @@ def control_editemailpassword_post_(request):
     else:  # Changes were made, so inform the user of this
         message = "**Success!** " + return_message
     # Finally return the message about what (if anything) changed to the user
-    return Response(define.errorpage(
-        request.userid, message,
-        [["Go Back", "/control"], ["Return Home", "/"]])
-    )
+    return Response(define.errorpage(request.userid, message))
 
 
 @login_required
@@ -338,8 +339,6 @@ def control_editpreferences_post_(request):
         follow_j="")
 
     rating = ratings.CODE_MAP.get(define.get_int(form.rating), ratings.GENERAL)
-    jsonb_settings = define.get_profile_settings(request.userid)
-    jsonb_settings.disable_custom_thumbs = form.custom_thumbs == "disable"
 
     preferences = profile.Config()
     preferences.rating = rating
@@ -360,7 +359,8 @@ def control_editpreferences_post_(request):
     preferences.follow_j = bool(form.follow_j)
 
     profile.edit_preferences(request.userid,
-                             preferences=preferences, jsonb_settings=jsonb_settings)
+                             preferences=preferences,
+                             disable_custom_thumbs=form.custom_thumbs == "disable")
     raise HTTPSeeOther(location="/control")
 
 
@@ -476,18 +476,19 @@ def control_streaming_post_(request):
         target = request.userid
 
     stream_length = define.clamp(define.get_int(form.stream_length), 0, 360)
-    p = orm.Profile()
-    p.stream_text = form.stream_text
-    p.stream_url = define.text_fix_url(form.stream_url.strip())
-    set_stream = form.set_stream
 
-    profile.edit_streaming_settings(request.userid, target, p,
-                                    set_stream=set_stream,
-                                    stream_length=stream_length)
+    profile.edit_streaming_settings(
+        request.userid,
+        target,
+        stream_text=form.stream_text,
+        stream_url=form.stream_url,
+        set_stream=form.set_stream,
+        stream_length=stream_length,
+    )
 
     if form.target:
-        target_username = define.get_sysname(define.get_display_name(target))
-        raise HTTPSeeOther(location="/modcontrol/manageuser?name=" + target_username)
+        target_username = define.get_username(target)
+        raise HTTPSeeOther(location="/modcontrol/manageuser?name=" + target_username.sysname)
     else:
         raise HTTPSeeOther(location="/control")
 
@@ -497,7 +498,6 @@ def control_streaming_post_(request):
 def control_apikeys_get_(request):
     return Response(define.webpage(request.userid, "control/edit_apikeys.html", [
         api.get_api_keys(request.userid),
-        oauth2.get_consumers_for_user(request.userid),
     ], title="API Keys"))
 
 
@@ -509,8 +509,6 @@ def control_apikeys_post_(request):
         api.add_api_key(request.userid, request.POST.getone('add-key-description'))
     if 'delete-api-keys' in request.POST:
         api.delete_api_keys(request.userid, request.POST.getall('delete-api-keys'))
-    if 'revoke-oauth2-consumers' in request.POST:
-        oauth2.revoke_consumers_for_user(request.userid, request.POST.getall('revoke-oauth2-consumers'))
 
     raise HTTPSeeOther(location="/control/apikeys")
 
@@ -712,19 +710,20 @@ def manage_tagfilters_get_(request):
         blocktag.select(request.userid),
         # filterable ratings
         profile.get_user_ratings(request.userid),
-    ], title="Tag Filters"))
+    ], title="Blocked Tags"))
 
 
 @login_required
 @token_checked
 def manage_tagfilters_post_(request):
     do = request.POST["do"]
-    title = request.POST["title"]
 
     if do == "create":
-        blocktag.insert(request.userid, title=title, rating=define.get_int(request.POST["rating"]))
+        tags = request.POST.getone("title")
+        blocktag.insert(request.userid, tags=tags, rating=define.get_int(request.POST["rating"]))
     elif do == "remove":
-        blocktag.remove(request.userid, title=title)
+        tags = request.POST.getall("title")
+        blocktag.remove_list(request.userid, tags)
     else:
         raise WeasylError("Unexpected")  # pragma: no cover
 
@@ -790,7 +789,7 @@ def manage_alias_get_(request):
 def manage_alias_post_(request):
     form = request.web_input(username="")
 
-    useralias.set(request.userid, define.get_sysname(form.username))
+    useralias.set(request.userid, Username.create(form.username).sysname)
     raise HTTPSeeOther(location="/control")
 
 
@@ -798,10 +797,10 @@ def manage_alias_post_(request):
 @token_checked
 @disallow_api
 def sfw_toggle_(request):
-    form = request.web_input(redirect="/")
+    redirect = request.POST.get("redirect", "/")
 
     currentstate = request.cookies.get('sfwmode', "nsfw")
     newstate = "sfw" if currentstate == "nsfw" else "nsfw"
-    response = HTTPSeeOther(location=form.redirect)
+    response = HTTPSeeOther(location=define.path_redirect(redirect))
     response.set_cookie("sfwmode", newstate, max_age=60 * 60 * 24 * 365)
     return response

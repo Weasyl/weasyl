@@ -3,14 +3,14 @@ $:{TITLE("Change Username", "Settings", "/control")}
 <div class="content">
   <form id="username_change" class="form skinny clear" action="/control/username" method="post">
     <label for="new_username">New username</label>
-    <input id="new_username" class="input" type="text" name="new_username" value="${username}" required maxlength="25"
+    <input id="new_username" class="input" type="text" name="new_username" value="${username.display}" required maxlength="25"
       $if insufficient_days is not None:
         disabled
       >
 
     $code:
-      old_link = "/~" + LOGIN(username)
-      older_link = None if existing_redirect is None else "/~" + LOGIN(existing_redirect)
+      old_link = "/~" + username.sysname
+      older_link = None if existing_redirect is None else "/~" + existing_redirect.sysname
 
     <div class="formatted-content" style="margin-top: 1em">
       <ul>
@@ -27,18 +27,17 @@ $:{TITLE("Change Username", "Settings", "/control")}
     $if insufficient_days is not None:
       <p style="margin-top: 1em"><strong>You last changed your username ${insufficient_days} day${'' if insufficient_days == 1 else 's'} ago, so it’s too soon to change it again.</strong></p>
 
-    <div style="margin-top: 1em">
+    <div class="clear" style="margin-top: 1em">
       <button name="do" value="change" class="button positive" style="float:right;"
         $if insufficient_days is not None:
           disabled
         >Change Username</button>
-      <a class="button" href="/control">Go Back</a>
     </div>
   </form>
 
   $if existing_redirect is not None:
     <form id="username_release" class="form skinny clear" action="/control/username" method="post">
-      <p style="margin-top: 2em">Your old username, <strong>${existing_redirect}</strong>, is reserved, and anyone visiting <a href="${older_link}">https://www.weasyl.com${older_link}</a> will be redirected to your current one.</p>
+      <p style="margin-top: 2em">Your old username, <strong>${existing_redirect.display}</strong>, is reserved, and anyone visiting <a href="${older_link}">https://www.weasyl.com${older_link}</a> will be redirected to your current one.</p>
 
       <p style="margin-top: 1em">You can release your old username. The link will stop working and the name will be free for someone else to claim.</p>
 

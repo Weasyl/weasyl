@@ -1,27 +1,87 @@
+from collections.abc import Iterable
+from collections.abc import Sequence
+from dataclasses import dataclass
 from itertools import chain
+from itertools import groupby
+from typing import Any
 
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
+from weasyl.users import Username
 
 
-notification_clusters = {
-    1010: 0, 1015: 0,
-    3010: 1,
-    3020: 2, 3100: 2, 3110: 2, 3050: 2,
-    3030: 3, 3040: 3,
+_NOTIFICATION_CLUSTERS: Sequence[tuple[list[int], str, str]] = [
+    ([1010], "Journals", "journals"),
+    ([3010], "Followers", "followers"),
+    ([3020, 3100, 3110, 3050], "User Favorites", "user_favorites"),
+    ([3030, 3035], "Collection Offers", "collection_offers"),
+    ([3070, 3075], "Streaming", "streaming"),
+    ([3080], "Friend Requests", "friend_requests"),
+    ([3085], "Friend Confirmations", "friend_confirmations"),
+    ([3140], "Submission Tag Changes", "submission_tag_changes"),
+    ([4010, 4015], "Shouts", "shouts"),
+    ([4016], "Staff Notes", "staff_notes"),
+    ([4020, 4025, 4050], "Submission Comments", "submission_comments"),
+    ([4030, 4035, 4060, 4065], "Journal Comments", "journal_comments"),
+    ([4040, 4045], "Character Comments", "character_comments"),
+]
+"""
+(type codes, subsection heading, subsection id) tuples defining which type codes have their notifications merged together into a single sorted group under one heading.
 
-    3070: 5, 3075: 5,
-    3080: 6,
-    3085: 7,
-    3140: 8,
-    4010: 8, 4015: 8,
-    4016: 9,
-    4020: 10, 4025: 10, 4050: 10,
-    4030: 11, 4035: 11, 4060: 11, 4065: 11,
-    4040: 12, 4045: 12,
-    3150: 13,
+This list is laid out in order of the lowest code in a group; the order isn't used by the app, which instead relies on how `weasyl.controllers.messages.messages_notifications_` concatenates the sections and how each section concatenates its query results.
+
+Subsection ids are user-facing in a low-importance way (`/messages/notifications#followers`), and are also used by the `message/notifications.html` template for subsection-specific behavior.
+
+The type codes included in this list also determine which notifications are deleted by the "Remove All" button: see `_NOTIFICATIONS_PAGE_TYPES`. As such, exactly the type codes that can be returned by `select_comments`, `select_notifications`, and `select_journals` should be listed here, and no others.
+"""
+
+
+_CLUSTER_INDEXES = {
+    t: i
+    for i, (types, _heading, _id) in enumerate(_NOTIFICATION_CLUSTERS)
+    for t in types
 }
+assert len(_CLUSTER_INDEXES) == sum(len(types) for types, _heading, _id in _NOTIFICATION_CLUSTERS), "notification clusters shouldn't overlap"
+
+
+_NOTIFICATIONS_PAGE_TYPES = [
+    t
+    for (types, _heading, _id) in _NOTIFICATION_CLUSTERS
+    for t in types
+]
+"""
+All notification type codes displayed by the notifications page, i.e. the ones deleted by the "Remove All" button on that page.
+"""
+
+
+Notification = dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class Cluster:
+    heading: str
+    id: str
+    items: list[Notification]
+
+
+def _get_cluster_index(notification: Notification) -> int:
+    return _CLUSTER_INDEXES[notification["type"]]
+
+
+def cluster(notifications: Iterable[Notification]) -> Iterable[Cluster]:
+    for cluster_index, group_notifications in groupby(notifications, _get_cluster_index):
+        _types, heading, id = _NOTIFICATION_CLUSTERS[cluster_index]
+        yield Cluster(
+            heading=heading,
+            id=id,
+            items=sorted(
+                group_notifications,
+                key=lambda n: n["unixtime"],
+                reverse=True,
+            ),
+        )
+
 
 _CONTYPE_CHAR = 20
 
@@ -31,7 +91,7 @@ def _fake_media_items(i):
         return character.fake_media_items(
             i.id,
             i.userid,
-            d.get_sysname(i.username),
+            Username.from_stored(i.username).sysname,
             i.settings)
     else:
         return None
@@ -51,14 +111,14 @@ def remove(userid, messages):
 def remove_all_before(userid, before):
     d.engine.execute(
         "DELETE FROM welcome WHERE userid = %(user)s AND type = ANY (%(types)s) AND unixtime < %(before)s",
-        user=userid, types=list(notification_clusters), before=before)
+        user=userid, types=_NOTIFICATIONS_PAGE_TYPES, before=before)
 
     d._page_header_info.invalidate(userid)
 
 
 def remove_all_submissions(userid, only_before):
     d.engine.execute(
-        "DELETE FROM welcome WHERE userid = %(user)s AND type IN (2010, 2030, 2040, 2050) AND unixtime < %(before)s",
+        "DELETE FROM welcome WHERE userid = %(user)s AND type IN (2010, 2030, 2050) AND unixtime < %(before)s",
         user=userid, before=only_before)
 
     d._page_header_info.invalidate(userid)
@@ -235,23 +295,6 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
     return results
 
 
-def select_site_updates(userid):
-    return [{
-        "type": 3150,
-        "id": i.welcomeid,
-        "unixtime": i.unixtime,
-        "updateid": i.updateid,
-        "title": i.title,
-    } for i in d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, su.updateid, su.title
-        FROM welcome we
-            INNER JOIN siteupdate su ON we.otherid = su.updateid
-        WHERE we.userid = %(user)s
-            AND we.type = 3150
-        ORDER BY we.unixtime DESC
-    """, user=userid)]
-
-
 def select_notifications(userid):
     queries = []
 
@@ -387,7 +430,7 @@ def select_comments(userid):
     queries = []
 
     # Shout comments
-    current_username = d.get_sysname(d.get_display_name(userid))
+    current_username = d.get_username(userid).sysname
     queries.append({
         "type": 4010,
         "id": i.welcomeid,
@@ -429,7 +472,7 @@ def select_comments(userid):
         ORDER BY we.unixtime DESC
     """, user=userid))
 
-    # Staff comment replies
+    # Staff note replies
     queries.append({
         "type": 4016,
         "id": i.welcomeid,
@@ -492,6 +535,26 @@ def select_comments(userid):
             INNER JOIN submission su ON sc.target_sub = su.submitid
         WHERE we.userid = %(user)s
             AND we.type = 4025
+        ORDER BY we.unixtime DESC
+    """, user=userid))
+
+    # Collection comments
+    queries.append({
+        "type": 4050,
+        "id": i.welcomeid,
+        "unixtime": i.unixtime,
+        "userid": i.otherid,
+        "username": i.username,
+        "submitid": i.referid,
+        "title": i.title,
+        "commentid": i.targetid,
+    } for i in d.engine.execute("""
+        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, su.title
+        FROM welcome we
+            INNER JOIN profile pr ON we.otherid = pr.userid
+            INNER JOIN submission su ON we.referid = su.submitid
+        WHERE we.userid = %(user)s
+            AND we.type = 4050
         ORDER BY we.unixtime DESC
     """, user=userid))
 
@@ -618,26 +681,6 @@ def select_comments(userid):
             INNER JOIN siteupdate up ON uc.targetid = up.updateid
         WHERE we.userid = %(user)s
             AND we.type = 4065
-        ORDER BY we.unixtime DESC
-    """, user=userid))
-
-    # Collection comments
-    queries.append({
-        "type": 4050,
-        "id": i.welcomeid,
-        "unixtime": i.unixtime,
-        "userid": i.otherid,
-        "username": i.username,
-        "submitid": i.referid,
-        "title": i.title,
-        "commentid": i.targetid,
-    } for i in d.engine.execute("""
-        SELECT we.welcomeid, we.unixtime, we.otherid, we.referid, we.targetid, pr.username, su.title
-        FROM welcome we
-            INNER JOIN profile pr ON we.otherid = pr.userid
-            INNER JOIN submission su ON we.referid = su.submitid
-        WHERE we.userid = %(user)s
-            AND we.type = 4050
         ORDER BY we.unixtime DESC
     """, user=userid))
 

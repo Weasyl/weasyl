@@ -4,18 +4,17 @@ $:{TITLE("Staff List")}
 <div class="content">
   $for title, users in staff:
     <h3 style="text-align: center;">${title}</h3>
-    <ul class="grid avatar-grid">
+    <ul class="avatar-grid">
     $for info in users:
-      <li class="grid-item">
-        <figure class="thumbnail">
-          $ avatar = info['user_media']['avatar'][0]
-          <a class="avatar" href="/~${LOGIN(info['username'])}">
-            <img src="${avatar['display_url']}" alt="avatar of ${info['username']}" />
-          </a>
-          <figcaption class="caption centered big">
-            <h5><a class="username one-line" href="/~${LOGIN(info['username'])}">${info['username']}</a></h5>
-          </figcaption>
-        </figure>
-
+      <li>
+        <a href="/~${LOGIN(info['username'])}" title="${info['username']}">
+          <figure>
+            $ avatar = info['user_media']['avatar'][0]
+            <img src="${avatar['display_url']}">
+            <figcaption>
+              <h5 class="username one-line">${info['username']}</h5>
+            </figcaption>
+          </figure>
+        </a>
     </ul>
 </div>

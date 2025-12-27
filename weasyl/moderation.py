@@ -4,7 +4,7 @@ import datetime
 import arrow
 import sqlalchemy as sa
 
-from libweasyl.legacy import UNIXTIME_OFFSET
+from libweasyl.legacy import get_offset_unixtime
 from libweasyl.models.content import Submission
 from libweasyl import ratings, staff, text
 
@@ -19,6 +19,7 @@ from weasyl import shout
 from weasyl import submission
 from weasyl import thumbnail
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname
 from weasyl.macro import MACRO_SUPPORT_ADDRESS
 
 
@@ -457,7 +458,7 @@ def setusermode(userid, form):
         if release_date is None:
             raise WeasylError("releaseInvalid")
 
-        release_unixtime = arrow.get(release_date).int_timestamp + UNIXTIME_OFFSET
+        release_unixtime = get_offset_unixtime(arrow.get(release_date).datetime)
 
         with d.engine.begin() as db:
             db.execute("DELETE FROM permaban WHERE userid = %(target)s", target=form.userid)
@@ -576,7 +577,7 @@ def manageuser(userid, form):
     query = d.engine.execute(
         "SELECT userid, username, config, profile_text, catchphrase FROM profile"
         " WHERE userid = (SELECT userid FROM login WHERE login_name = %(name)s)",
-        name=d.get_sysname(form.name),
+        name=parse_sysname(form.name),
     ).first()
 
     if not query:
@@ -704,7 +705,14 @@ def bulk_edit_rating(userid, new_rating, submissions=(), characters=(), journals
     return 'Affected items (%s): \n\n%s' % (action_string, '\n'.join(copyable))
 
 
-def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
+def bulk_edit(
+    userid: int,
+    *,
+    action: str,
+    submissions: list[int],
+    characters: list[int],
+    journals: list[int],
+) -> str:
     if not submissions and not characters and not journals or action == 'null':
         return 'Nothing to do.'
 
@@ -761,7 +769,7 @@ def bulk_edit(userid, action, submissions=(), characters=(), journals=()):
         action_string = 'marked as "critique requested"'
         provide_link = True
 
-    else:
+    else:  # pragma: no cover
         raise WeasylError('Unexpected')
 
     db = d.connect()

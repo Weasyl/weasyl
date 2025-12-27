@@ -2,7 +2,6 @@ import arrow
 import pytest
 
 from libweasyl import ratings
-from libweasyl.models.helpers import CharSettings
 from weasyl.test import db_utils
 
 
@@ -12,8 +11,7 @@ def _journal_user(db, cache):
 
 
 @pytest.fixture(name='journals')
-@pytest.mark.usefixtures('db', 'journal_user')
-def _journals(journal_user):
+def _journals(db, journal_user):
     db_utils.create_journal(journal_user, title='Test journal', unixtime=arrow.get(1), content='A test journal')
     db_utils.create_journal(journal_user, title='Public journal', unixtime=arrow.get(2), content='A public journal')
     db_utils.create_journal(journal_user, title='Hidden journal', unixtime=arrow.get(3), content='A hidden journal', hidden=True)
@@ -35,7 +33,7 @@ def test_profile_guest(app):
 
 @pytest.mark.usefixtures('db', 'cache', 'journal_user', 'journals')
 def test_profile_user(app):
-    user = db_utils.create_user(config=CharSettings(frozenset(), {}, {'tagging-level': 'max-rating-mature'}))
+    user = db_utils.create_user(max_rating=ratings.MATURE)
     cookie = db_utils.create_session(user)
 
     resp = app.get('/~journal_test', headers={'Cookie': cookie})
@@ -57,21 +55,6 @@ def test_list_guest(app):
     resp = app.get('/journals/journal_test')
     titles = [link.string for link in resp.html.find(id='journals-content').find_all('a')]
     assert titles == ['Public journal', 'Test journal']
-
-
-@pytest.mark.usefixtures('db', 'cache')
-def test_list_unicode_username(app):
-    """
-    Test journal lists on profiles with usernames containing non-ASCII
-    characters, which aren’t supposed to exist but do because of
-    a historical bug.
-    """
-    journal_user = db_utils.create_user(username='journál_test')
-    db_utils.create_journal(journal_user, title='Unícode journal 😊', content='A journal and poster username with non-ASCII characters 😊')
-
-    resp = app.get('/journals/journaltest')
-    titles = [link.string for link in resp.html.find(id='journals-content').find_all('a')]
-    assert titles == ['Unícode journal 😊']
 
 
 def create_journal(app, user, *, rating):

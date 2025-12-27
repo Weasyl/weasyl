@@ -5,7 +5,7 @@ from weasyl import useralias
 from weasyl import define as d
 
 
-test_alias = "test_alias"
+test_alias = "testalias"
 
 
 @pytest.mark.usefixtures('db')

@@ -23,7 +23,7 @@ $code:
 
     $if 'other' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
-      <input type="text" name="embedlink" class="input" value="${query['embedlink']}" id="embedlink" />
+      <input type="url" name="embedlink" class="input" value="${query['embed'].embedlink.href}" id="embedlink" required />
 
     $if 'google-drive' == query['embed_type']:
       <label for="embedlink">Embed Link</label>
@@ -70,8 +70,7 @@ $code:
     </label>
 
     <div class="buttons clear" style="padding-top: 1em;">
-      <button type="submit" class="button" style="float: right;">Save</button>
-      <a class="button" href="/submission/${query['submitid']}/${SLUG(query['title'])}">Cancel</a>
+      <button class="button" style="float: right;">Save</button>
     </div>
 
   </form>

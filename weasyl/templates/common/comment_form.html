@@ -24,7 +24,7 @@ $if myself['is_verified']:
 
       <div class="comment-content">
         <p class="byline"><a class="username" href="/~${LOGIN(myself['username'])}">${myself['username']}</a> <span id="comment_form_reply_text"></span></p>
-        <textarea class="form-content markdown expanding" name="content" placeholder="Leave a comment" required></textarea>
+        <textarea class="form-content markdown expanding" name="content" placeholder="Leave a comment" required maxlength="10000"></textarea>
       </div>
 
       <div class="comment-submit clear">

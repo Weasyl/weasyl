@@ -3,6 +3,7 @@ from pyramid.response import Response
 
 from weasyl.controllers.decorators import login_required, token_checked
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname_list
 from weasyl import (
     define, favorite, followuser, frienduser, ignoreuser, note, pagination, profile)
 
@@ -21,8 +22,14 @@ def followuser_(request):
         followuser.insert(request.userid, otherid)
     elif form.action == "unfollow":
         followuser.remove(request.userid, otherid)
+    else:
+        raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+    target_username = define.try_get_username(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 @login_required
@@ -56,11 +63,17 @@ def frienduser_(request):
             frienduser.remove_request(request.userid, otherid)
     elif form.action == "unfriend":
         frienduser.remove(request.userid, otherid)
+    else:
+        raise WeasylError("Unexpected")
+
+    target_username = define.try_get_username(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
 
     if form.feature == "pending":
         raise HTTPSeeOther(location="/manage/friends?feature=pending")
     else:  # typical value will be user
-        raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+        raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 @login_required
@@ -87,8 +100,14 @@ def ignoreuser_(request):
         ignoreuser.insert(request.userid, [otherid])
     elif form.action == "unignore":
         ignoreuser.remove(request.userid, [otherid])
+    else:
+        raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+    target_username = define.try_get_username(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 # Private messaging functions
@@ -105,7 +124,7 @@ def note_(request):
         # Private message
         data,
         profile.select_myself(request.userid),
-    ]))
+    ], title=data['title']))
 
 
 @login_required
@@ -128,19 +147,26 @@ def notes_(request):
 
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
-    filter_ = define.get_userids(define.get_sysname_list(form.filter))
+    filter_sysnames = parse_sysname_list(form.filter)
+    filter_userids = define.get_userids(filter_sysnames)
+
+    url_format = f"/notes?folder={form.folder}"
+    if filter_sysnames:
+        # ';', URL-quoted, then escaped for printf-style formatting in PaginatedResult
+        url_format += f"&filter={'%%3B'.join(filter_sysnames)}"
+    url_format += "&%s"
 
     result = pagination.PaginatedResult(
-        select_list, select_count, "noteid", f"/notes?folder={form.folder}&%s",
-        request.userid, filter=list(set(filter_.values())),
+        select_list, select_count, "noteid", url_format,
+        request.userid, filter=list(set(filter_userids.values())),
         backid=backid,
         nextid=nextid,
         count_limit=note.COUNT_LIMIT,
     )
     return Response(define.webpage(request.userid, "note/message_list.html", (
-        form.folder,
+        form,
         result,
-        [(sysname, userid != 0) for sysname, userid in filter_.items()],
+        [(sysname, userid != 0) for sysname, userid in filter_userids.items()],
         note.unread_count(request.userid),
     ), title=title))
 
@@ -154,7 +180,7 @@ def notes_compose_get_(request):
 
     return Response(define.webpage(request.userid, "note/compose.html", [
         # Recipient
-        "; ".join(define.get_sysname_list(form.recipient)),
+        "; ".join(parse_sysname_list(form.recipient)),
         profile.select_myself(request.userid),
     ], title="Compose message"))
 
@@ -178,13 +204,17 @@ def notes_compose_post_(request):
 @login_required
 @token_checked
 def notes_remove_(request):
-    form = request.web_input(folder="", backid="", nextid="", notes=[])
+    form = request.web_input(folder="", filter="", backid="", nextid="", notes=[])
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
 
     note.remove_list(request.userid, list(map(int, form.notes)))
     link = "/notes?folder=" + form.folder
+    filter_sysnames = parse_sysname_list(form.filter)
 
+    if filter_sysnames:
+        # ';', URL-quoted
+        link += f"&filter={'%3B'.join(filter_sysnames)}"
     if backid:
         link += "&backid=%i" % backid
     elif nextid:

@@ -7,10 +7,14 @@ module are supporting old, crufty code, and newly-written code should not need
 to use them.
 """
 
-import string
-import unicodedata
+import datetime
+from collections.abc import Callable
+from typing import NoReturn
+from typing import TypeVar
+from typing import overload
 
 import sqlalchemy as sa
+from psycopg2.errors import DatatypeMismatch
 from sqlalchemy import func
 
 
@@ -23,18 +27,60 @@ The offset added to UNIX timestamps before storing them in the database.
 UNIXTIME_NOW_SQL = func.extract('epoch', func.now()).cast(sa.BigInteger()) + sa.bindparam('offset', UNIXTIME_OFFSET, literal_execute=True)
 
 
-_SYSNAME_CHARACTERS = frozenset(string.ascii_lowercase + string.digits)
+def get_offset_unixtime(dt: datetime.datetime) -> int:
+    if dt.tzinfo is None:
+        raise ValueError("datetime must be time-zone-aware")
+
+    return int(dt.timestamp()) + UNIXTIME_OFFSET
 
 
-def get_sysname(target):
+T = TypeVar("T")
+
+
+@overload
+def birthdate_retry(action: Callable[[int | datetime.date], T], value: datetime.date) -> T:
+    ...
+
+
+@overload
+def birthdate_retry(action: Callable[[int | datetime.date | None], T], value: datetime.date | None) -> T:
+    ...
+
+
+def birthdate_retry(action, value):
     """
-    Convert a username to a login name.
+    Try an action with an `int` offset-unixtime value first, where that `int` might be used in one or more SQL queries where a `date` is expected, then re-run the action with a `date` if the action fails due to an SQL data type error.
 
-    Parameters:
-        target: :term:`str`.
+    For use as part of a migration that updates the type of the `birthday` column in-place.
 
-    Returns:
-        :term:`str` stripped of characters other than ASCII alphanumerics and lowercased.
+    The old schema is tried first, since the migration could happen between the first attempt and the fallback.
     """
-    normalized = unicodedata.normalize("NFD", target.lower())
-    return "".join(i for i in normalized if i in _SYSNAME_CHARACTERS)
+    if value is None:
+        return action(None)
+
+    # midnight at the given date
+    dt = datetime.datetime.combine(value, datetime.time.min, tzinfo=datetime.timezone.utc)
+    offset_unixtime = get_offset_unixtime(dt)
+
+    try:
+        return action(offset_unixtime)
+    except sa.exc.ProgrammingError as e:
+        if not isinstance(e.orig, DatatypeMismatch):
+            raise
+
+        return action(value)
+
+
+MaybeNone = TypeVar("MaybeNone", None, NoReturn)
+
+
+def birthdate_adapt(value: int | datetime.date | MaybeNone) -> datetime.date | MaybeNone:
+    """
+    Convert a value that might have originated from either an offset-unixtime SQL `integer` or an SQL `date` to a `date`.
+
+    For use as part of a migration that updates the type of the `birthday` column in-place.
+    """
+    if value is None or isinstance(value, datetime.date):
+        return value
+
+    return datetime.datetime.fromtimestamp(value - UNIXTIME_OFFSET, datetime.timezone.utc).date()

@@ -13,6 +13,8 @@ $code:
       names.append("Critique requested")
     return "; ".join(names)
 
+  card_viewer = get_card_viewer()
+
 <div class="content content-by-user-page">
   <form action="/modcontrol/massaction" method="post">
     <table class="content-by-user">
@@ -33,7 +35,7 @@ $code:
           </td>
           <td class="thumb-cell">
             $if 'sub_media' in i:
-              $ thumb = THUMB(i)
+              $ thumb = card_viewer.get_thumbnail_files(i).fallback
               <img src="${thumb['display_url']}" alt="" class="thumb" />
             $else:
               <span class="journal-thumb">&lt;journal&gt;</span>
@@ -66,7 +68,7 @@ $code:
           $for value, name in M.MACRO_MOD_ACTIONS.items():
             <option value="${value}">${name}</option>
         </select>
-        <button class="button positive" type="submit">Moderate Selection</button>
+        <button class="button positive">Moderate Selection</button>
       </div>
     </div>
   </form>

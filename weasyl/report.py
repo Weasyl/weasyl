@@ -9,6 +9,7 @@ from libweasyl.models.content import Report, ReportComment
 from libweasyl.models.users import Login
 from libweasyl import constants, staff
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname
 from weasyl import macro as m, define as d, media, note
 
 
@@ -147,8 +148,8 @@ def select_list(userid, form):
     # If filtering by the report's content's owner, iterate over the previously
     # collected Login model aliases to compare against Login.login_name.
     if form.submitter:
-        submitter = d.get_sysname(form.submitter)
-        q = q.filter(sa.or_(l.login_name == submitter for l in login_aliases))
+        submitter = parse_sysname(form.submitter)
+        q = q.filter(sa.or_(login.login_name == submitter for login in login_aliases))
 
     # If filtering by violation type, see if the violation is in the array
     # aggregate of unique violations for this report.
@@ -215,7 +216,8 @@ def close(userid, form):
         q = (
             q
             .filter_by(is_closed=False)
-            .filter(sa.or_(l.login_name == root_report.target.owner.login_name for l in login_aliases)))
+            .filter(sa.or_(login.login_name == root_report.target.owner.login_name
+                           for login in login_aliases)))
         reports = q.all()
 
     else:

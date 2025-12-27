@@ -1,3 +1,4 @@
+import datetime
 from contextlib import contextmanager
 
 import arrow
@@ -36,7 +37,7 @@ def test_age_set_and_display(app):
     user = db_utils.create_user(username="profiletest")
 
     resp = app.get("/~profiletest")
-    assert resp.html.find(id="user-id").text.strip() == ""
+    assert resp.html.find(id="user-id").text.strip() == "profiletest"
 
     app.set_cookie(*db_utils.create_session(user).split("=", 1))
 
@@ -72,7 +73,7 @@ def test_age_set_and_display(app):
 
     with _guest(app):
         resp = app.get("/~profiletest")
-        assert resp.html.find(id="user-id").text.strip() == "18"
+        assert resp.html.find(id="user-id").text.split() == ["profiletest", "/", "18"]
 
     form["show_age"].checked = False
     form.submit()
@@ -84,7 +85,7 @@ def test_age_set_and_display(app):
 
     with _guest(app):
         resp = app.get("/~profiletest")
-        assert resp.html.find(id="user-id").text.strip() == ""
+        assert resp.html.find(id="user-id").text.strip() == "profiletest"
 
     form["show_age"].checked = True
     form["birthdate-month"] = 1
@@ -95,9 +96,14 @@ def test_age_set_and_display(app):
     assert (form["show_age"].checked, form["birthdate-month"].value, form["birthdate-year"].value) == (True, str(birthdate.month), str(birthdate.year)), "birthdate can’t be changed once set"
 
 
+def _get_birthdate_under_age(age: int) -> datetime.date:
+    # `days=4`: A test run sufficiently late on February 28 (UTC) in a non-leap year needs to produce April, not March, since it could already be March in the most advanced time zone.
+    return arrow.utcnow().shift(years=-age, months=1, days=4).date()
+
+
 @pytest.mark.usefixtures("db", "cache")
 def test_age_terms(app):
-    u13_birthdate = arrow.utcnow().shift(years=-13, months=1, days=1)
+    u13_birthdate = _get_birthdate_under_age(13)
 
     user = db_utils.create_user(username="profiletest")
     app.set_cookie(*db_utils.create_session(user).split("=", 1))
@@ -114,7 +120,7 @@ def test_age_terms(app):
 
     with _guest(app):
         resp = app.get("/~profiletest")
-        assert resp.html.find(id="user-id").text.strip() == ""
+        assert resp.html.find(id="user-id").text.strip() == "profiletest"
 
 
 def _create_submission(app, user, **kwargs):
@@ -174,7 +180,7 @@ def _edit_journal(app, user):
     (_edit_journal, True),
 ])
 def test_assert_adult(app, create_post, expect_assertion):
-    u18_birthdate = arrow.utcnow().shift(years=-18, months=1, days=1)
+    u18_birthdate = _get_birthdate_under_age(18)
 
     forward_user = db_utils.create_user(username="forwarduser")
     app.set_cookie(*db_utils.create_session(forward_user).split("=", 1))
@@ -195,11 +201,40 @@ def test_assert_adult(app, create_post, expect_assertion):
 
         with _guest(app):
             resp = app.get("/~forwarduser")
-            assert resp.html.find(id="user-id").text.strip() == ""
+            assert resp.html.find(id="user-id").text.strip() == "forwarduser"
     else:
         resp = form.submit()
         assert resp.status_int == 303, "can display age under 18 after not using age-restricted ratings"
 
         with _guest(app):
             resp = app.get("/~forwarduser")
-            assert resp.html.find(id="user-id").text.strip() == "17"
+            assert resp.html.find(id="user-id").text.split() == ["forwarduser", "/", "17"]
+
+
+@pytest.mark.usefixtures("db", "cache")
+@pytest.mark.parametrize(("site_names", "site_values", "rel_me_expected"), [
+    ("Bluesky", "weasyl.invalid", True),
+    ("Email", "weasyl@weasyl.invalid", False),
+    ("Something non-default", "not a URL", False),
+    ("Something non-default", "https://weasyl.invalid/", True),
+])
+def test_profile_links_rel_me(app, site_names: str, site_values: str, rel_me_expected: bool):
+    user = db_utils.create_user(username="profiletest")
+    app.set_cookie(*db_utils.create_session(user).split("=", 1))
+
+    app.post("/control/editprofile", {
+        # Unrelated, but necessary for successful form submission
+        "set_commish": "e",
+        "set_request": "e",
+        "set_trade": "e",
+
+        "site_names": site_names,
+        "site_values": site_values,
+    })
+
+    resp = app.get("/~profiletest")
+    assert resp.html.find(string=site_names)
+    assert resp.html.find(string=site_values)
+
+    rel = resp.html.find(string=site_values).parent.get("rel", [])
+    assert ("me" in rel) is rel_me_expected

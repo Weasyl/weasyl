@@ -1,0 +1,113 @@
+@use '../theme';
+
+$max-width: 26rem;
+$margin: 0.5rem;
+
+.login-box {
+    box-sizing: border-box;
+    margin: auto;
+    padding: 1.5rem 1rem 1rem;
+    --content-pad-h: 1.5rem;
+    max-width: $max-width;
+
+    > .form {
+        padding-top: 0;
+    }
+
+    label:first-child {
+        padding-top: 0 !important;
+    }
+}
+
+.login-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+
+    // “Sign In”
+    > .button {
+        padding-left: 2em;
+        padding-right: 2em;
+    }
+}
+
+.lb-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    text-align: right;  // for when the text of individual links wraps
+
+    flex-basis: 0;
+    flex-grow: 1;
+}
+
+.lb-link {
+    margin-left: 1.2em;
+    padding: 0.4em 0;
+}
+
+#login-top {
+    width: 100%;
+
+    border: none;  // override default `<dialog>` style
+
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 50%);
+    padding-bottom: 1.5rem;
+    padding-top: 0;
+
+    &::backdrop {
+        background-color: rgb(128 128 128 / 50%);
+    }
+
+    // Ensure close button always stays aligned with header; there’s no need to shrink it on small viewports.
+    > h3 {
+        @include theme.h3-large;
+    }
+
+    // Override unwanted parts of `.content`:
+    position: fixed;
+
+    &::after {
+        content: none;
+    }
+
+    // Ensure some space to either side.
+    @media (max-width: $max-width + 2 * $margin) {
+        left: $margin;
+        right: $margin;
+        width: auto;
+    }
+}
+
+#lb-close {
+    position: absolute;
+    top: 20px;
+    right: 8px;
+    padding: 16px;
+}
+
+.login-error {
+    background-color: #fd9;
+    border: 2px solid #f93;
+    border-radius: 4px;
+    color: #333;  // darker text for more contrast
+    font-size: 14px;  // more readable font size
+    margin-bottom: 1em;
+    padding: 6px 8px;
+
+    // hints
+    > ul {
+        font-size: 13px;
+        margin-top: 6px;
+    }
+}
+
+.login-sfw {
+    margin: 0.8em 0;
+}
+
+.login-sfw > input {
+    margin: 0;
+}

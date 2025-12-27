@@ -1,4 +1,3 @@
-$def with (templates)
 $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Panel", "/modcontrol"])}
 
 <div class="content clear" style="padding-top: 2em;">
@@ -30,10 +29,8 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
       </div>
 
       <label for="template_id">Predefined Action</label>
-      <select id="template_id" class="input">
+      <select id="template_id" class="input" disabled>
         <option value="">Custom Action</option>
-        $for key in sorted(templates):
-          <option value="${key}">${templates[key]['name']}</option>
       </select>
 
       <label for="suspendaction">Action</label>
@@ -64,7 +61,6 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
         </div>
       </div>
 
-      <script id="ban-templates" type="application/json">$:{INLINE_JSON(templates)}</script>
       <script type="module" src="${resource_path('js/mod/suspenduser.js')}"></script>
 
       <br/>

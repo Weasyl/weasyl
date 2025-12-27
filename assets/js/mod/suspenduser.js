@@ -24,7 +24,7 @@ function fillCustomAction() {
     suspendDuration.value = tmpl.days;
   }
 
-  suspendReason.textContent = tmpl.reason;
+  suspendReason.defaultValue = tmpl.reason;
 }
 
 templateId.addEventListener("change", fillCustomAction);

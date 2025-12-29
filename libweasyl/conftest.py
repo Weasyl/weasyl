@@ -8,7 +8,6 @@ from libweasyl.models.tables import metadata
 from libweasyl.staff import StaffConfig
 from libweasyl.test.common import clear_database
 from libweasyl.test.common import dummy_format_media_link
-from libweasyl.test.common import initialize_database
 from libweasyl import cache
 
 
@@ -50,8 +49,6 @@ def staticdir(tmpdir):
 
 @pytest.fixture
 def db():
-    initialize_database(engine)
-
     with sessionmaker() as db:
         yield db
 

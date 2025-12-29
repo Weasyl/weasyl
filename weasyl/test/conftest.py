@@ -19,7 +19,6 @@ from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.staff import StaffConfig
 from libweasyl.test.common import clear_database
-from libweasyl.test.common import initialize_database
 from weasyl import (
     commishinfo,
     define,
@@ -30,6 +29,7 @@ from weasyl import (
     turnstile,
 )
 from weasyl.controllers.routes import setup_routes_and_views
+from weasyl.test.common import initialize_database
 from weasyl.wsgi import make_wsgi_app
 
 

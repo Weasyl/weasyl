@@ -7,7 +7,6 @@ from psycopg2.extensions import quote_ident
 
 from libweasyl.models import content, tables, users
 from libweasyl import media, ratings
-from weasyl.rate_limits import RateLimitId
 
 
 datadir = py.path.local(__file__).dirpath('data')
@@ -77,7 +76,7 @@ def make_submission(db):
 
 
 @contextmanager
-def _autocommit_cursor(engine):
+def autocommit_cursor(engine):
     conn = engine.raw_connection()
     driver_conn = conn.driver_connection
     assert driver_conn.autocommit is False
@@ -94,7 +93,7 @@ def clear_database(engine):
     """
     Delete all rows from all tables in the test database.
     """
-    with _autocommit_cursor(engine) as cur:
+    with autocommit_cursor(engine) as cur:
         cur.execute(
             "SET CONSTRAINTS ALL DEFERRED;"
             + "".join(
@@ -102,8 +101,3 @@ def clear_database(engine):
                 for table_key in tables.metadata.tables
             )
         )
-
-
-def initialize_database(engine):
-    with _autocommit_cursor(engine) as cur:
-        cur.execute("INSERT INTO global_rate_limits (id) VALUES (%s)", (RateLimitId.MAIL_OUT.value,))

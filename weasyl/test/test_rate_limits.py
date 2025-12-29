@@ -20,14 +20,14 @@ def test_rate_limits(db) -> None:
         rate_limit.take_one()
 
     # Simulate time passing. One unit of new capacity in 60/5 = 12 ticks, but the test might have started just before a tick.
-    d.engine.execute("UPDATE global_rate_limits SET last_update = last_update - 10")
+    d.engine.execute("UPDATE global_rate_limits SET last_update = last_update - 10 WHERE id = %(id)s", id=rate_limit.id.value)
 
     # still at capacity
     with raises_app_error("globalLimit"):
         rate_limit.take_one()
 
     # one unit of new capacity
-    d.engine.execute("UPDATE global_rate_limits SET last_update = last_update - 2")
+    d.engine.execute("UPDATE global_rate_limits SET last_update = last_update - 2 WHERE id = %(id)s", id=rate_limit.id.value)
     rate_limit.take_one()
     assert time.monotonic() - start_time < 0.5  # ensure time-based test isn't invalidated by unexpected latency
 

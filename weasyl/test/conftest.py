@@ -19,6 +19,7 @@ from libweasyl.cache import ThreadCacheProxy
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.staff import StaffConfig
 from libweasyl.test.common import clear_database
+from libweasyl.test.common import initialize_database
 from weasyl import (
     commishinfo,
     define,
@@ -121,6 +122,7 @@ def drop_email(monkeypatch):
 
 @pytest.fixture
 def db():
+    initialize_database(define.engine)
     yield define.get_current_request().pg_connection
     clear_database(define.engine)
 

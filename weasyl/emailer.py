@@ -6,6 +6,8 @@ from smtplib import SMTP
 
 from weasyl import define, macro
 from weasyl.config import config_obj
+from weasyl.rate_limits import GlobalRateLimit
+from weasyl.rate_limits import RateLimitId
 
 
 EMAIL_ADDRESS = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\Z")
@@ -17,6 +19,8 @@ smtp_username = config_obj.get("smtp", "username", fallback=None)
 smtp_password = config_obj.get("smtp", "password", fallback=None)
 if (smtp_username is None) != (smtp_password is None):
     raise RuntimeError("SMTP username and password must be provided together")  # pragma: no cover
+
+mail_out_rate_limit = GlobalRateLimit.parse(RateLimitId.MAIL_OUT, config_obj.get("smtp", "global_rate_limit"))
 
 
 def normalize_address(address):
@@ -40,6 +44,8 @@ def send(mailto, subject, content):
     `mailto` must be a normalized e-mail address to send this e-mail to. The
     system email will be designated as the sender.
     """
+    mail_out_rate_limit.take_one()
+
     message = MIMEText(content.strip(), policy=email.policy.SMTP)
     message["To"] = mailto
     message["From"] = f"Weasyl <{macro.MACRO_EMAIL_ADDRESS}>"

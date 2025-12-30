@@ -19,7 +19,7 @@ def upgrade():
                existing_type=sa.INTEGER(),
                type_=sa.Date(),
                existing_nullable=True,
-               postgresql_using="to_timestamp(birthday + 18000)::date")
+               postgresql_using="(to_timestamp(birthday + 18000) AT TIME ZONE 'UTC')::date")
 
 
 def downgrade():

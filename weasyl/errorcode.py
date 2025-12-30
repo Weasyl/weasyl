@@ -82,6 +82,7 @@ error_messages = {
         "forgot password page and resubmit the form, or you may have copied the link incorrectly."),
     "FriendsOnly": friends,
     "characterRecordMissing": charid,
+    "globalLimit": f"Weasyl hit an internal limit unexpectedly and can’t process your request right now. Please report this bug to [{m.MACRO_SUPPORT_ADDRESS}](mailto:{m.MACRO_SUPPORT_ADDRESS}), and try again later.",
     "googleDocsEmbedLinkInvalid": (
         "The link you provided isn’t a valid Google Docs embed link."
         " If you’re not sure which link to use, we have [a guide on publishing documents from Google Docs](/help/google-drive-embed) that might help."
@@ -175,6 +176,7 @@ error_messages = {
 # put it here. Errors without a corresponding entry in this list will use
 # the default status code.
 error_status_code = {
+    "globalLimit": 503,
     'InsufficientPermissions': 403,
     "userRecordMissing": 404,
     "submissionRecordMissing": 404,

@@ -1,6 +1,6 @@
 from sqlalchemy import (
     MetaData, Table, Column, CheckConstraint, UniqueConstraint, Index,
-    Boolean, Date, DateTime, Integer, String, Text, func, text)
+    BigInteger, Boolean, Date, DateTime, Integer, String, Text, func, text)
 from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB, TIMESTAMP
 from sqlalchemy.schema import ForeignKey as _ForeignKey
 from sqlalchemy.schema import ForeignKeyConstraint as _ForeignKeyConstraint
@@ -286,6 +286,14 @@ character = Table(
 )
 
 Index('ind_character_userid', character.c.userid)
+
+
+global_rate_limits = Table(
+    'global_rate_limits', metadata,
+    Column('id', String(length=32), primary_key=True),
+    Column('available', Integer(), nullable=False, server_default="0"),
+    Column('last_update', BigInteger(), nullable=False, server_default="0"),
+)
 
 
 google_doc_embeds = Table(

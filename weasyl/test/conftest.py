@@ -29,6 +29,7 @@ from weasyl import (
     turnstile,
 )
 from weasyl.controllers.routes import setup_routes_and_views
+from weasyl.test.common import initialize_database
 from weasyl.wsgi import make_wsgi_app
 
 
@@ -121,6 +122,7 @@ def drop_email(monkeypatch):
 
 @pytest.fixture
 def db():
+    initialize_database(define.engine)
     yield define.get_current_request().pg_connection
     clear_database(define.engine)
 

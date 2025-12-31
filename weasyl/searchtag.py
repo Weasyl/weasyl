@@ -689,7 +689,7 @@ def set_tag_feedback(
     *,
     userid: int,
     target: TaggableTarget,
-    tag_name: int,
+    tag_name: str,
     feedback: SuggestionFeedback,
 ) -> None:
     ownerid = _get_ownerid(target)

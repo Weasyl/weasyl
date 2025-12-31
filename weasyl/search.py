@@ -224,7 +224,7 @@ def resolve(search: Query) -> ResolvedQuery | None:
         | search.required_user_excludes
     )
 
-    tag_ids = searchtag.get_ids(all_names)
+    tag_ids = searchtag.get_ids(*all_names)
 
     def get_tag_ids(names: set[str]) -> set[int]:
         return {tag_ids.get(name, 0) for name in names}

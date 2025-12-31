@@ -161,34 +161,39 @@ def select_list(map_table, targetids):
     return dict(list(db.execute(q)))
 
 
-@region.cache_multi_on_arguments()
-def _get_or_create(*names: str) -> list[int]:
-    names_list = list(names)
-
-    d.engine.execute('''
-        INSERT INTO searchtag (title)
-        SELECT title
-        FROM UNNEST(%(names)s::text[]) AS title
-        ON CONFLICT (title) DO NOTHING
-    ''', names=names_list)
-
-    tag_ids = get_ids(names)
-
-    return [tag_ids[name] for name in names]
-
-
-def get_or_create(name):
-    return _get_or_create(d.get_search_tag(name))[0]
+def _get_or_create(name: str) -> int:
+    return get_or_create_many([d.get_search_tag(name)])[0]
 
 
 def get_or_create_many(normalized_names: Iterable[str]) -> list[int]:
-    return _get_or_create(*normalized_names)
+    """
+    Map distinct normalized tag names to tag ids, creating new tag ids as necessary and returning a list of distinct tag ids in an arbitrary order.
+    """
+    ids = dict.fromkeys(normalized_names, None)
+    ids |= get_ids(*ids.keys())
+    missing_names = [key for key, value in ids.items() if value is None]
+
+    if missing_names:
+        d.engine.execute('''
+            INSERT INTO searchtag (title)
+            SELECT title
+            FROM UNNEST(%(names)s::text[]) AS title
+            ON CONFLICT (title) DO NOTHING
+        ''', names=missing_names)
+
+        ids |= get_ids(*missing_names)
+
+    return list(ids.values())
 
 
-def get_ids(names):
+@region.cache_multi_on_arguments(asdict=True)
+def get_ids(*normalized_names: str) -> dict[str, int]:
+    """
+    Map distinct normalized tag names to tag ids, returning a dict with entries only for those tags that exist.
+    """
     result = d.engine.execute(
         "SELECT tagid, title FROM searchtag WHERE title = ANY (%(names)s)",
-        names=list(names))
+        names=list(normalized_names))
 
     return {row.title: row.tagid for row in result}
 
@@ -558,7 +563,7 @@ def suggestion_arbitrate(
     if userid != ownerid and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    tagid = get_or_create(tag_name)
+    tagid = _get_or_create(tag_name)
 
     # there are inherent concurrency issues we’re calling acceptable with the undo token approach, so don’t bother with a transaction
     check = d.engine.execute(
@@ -640,7 +645,7 @@ def suggestion_action_undo(
     tag_name: str,
     undo_token: bytes,
 ) -> None:
-    tagid = get_or_create(tag_name)
+    tagid = _get_or_create(tag_name)
 
     restore_added_by = _undo_token_validate(
         target=target,
@@ -692,7 +697,7 @@ def set_tag_feedback(
     if userid != ownerid and userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    tagid = get_or_create(tag_name)
+    tagid = _get_or_create(tag_name)
 
     d.engine.execute(
         f"INSERT INTO {target.feedback_table}"

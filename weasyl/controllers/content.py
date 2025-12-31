@@ -233,8 +233,13 @@ def submit_character_post_(request):
     c.content = form.content
     c.rating = rating
 
-    charid = character.create(request.userid, c, 'friends' in request.POST, tags,
-                              form.thumbfile, form.submitfile)
+    charid = character.create(
+        request.userid, c,
+        friends_only='friends' in request.POST,
+        tags=tags,
+        thumbfile=form.thumbfile,
+        submitfile=form.submitfile,
+    )
     raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (charid,))
 
 

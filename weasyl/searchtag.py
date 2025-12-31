@@ -765,10 +765,6 @@ def edit_global_tag_restrictions(userid: int, tags: set[TagPattern]) -> None:
         tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
         (occurs in the the controllers/director.py controller)
     """
-    # Only directors can edit the global restriction list; sanity check against the @director_only decorator
-    if userid not in staff.DIRECTORS:
-        raise WeasylError("InsufficientPermissions")
-
     existing = d.engine.execute("""
         SELECT tagid FROM globally_restricted_tags
     """).fetchall()
@@ -799,20 +795,13 @@ def edit_global_tag_restrictions(userid: int, tags: set[TagPattern]) -> None:
         _query_global_restricted_tags.invalidate()
 
 
-def get_global_tag_restrictions(userid: int) -> dict[TagPattern, str]:
+def get_global_tag_restrictions() -> dict[TagPattern, str]:
     """
     Retrieves a list of tags on the globally restricted tag list for display to a director.
-
-    Parameters:
-        userid: The userid of the director requesting the list of tags.
 
     Returns:
         A dict mapping from globally restricted tag titles to the name of the director who added the tag.
     """
-    # Only directors can view the globally restricted tag list; sanity check against the @director_only decorator
-    if userid not in staff.DIRECTORS:
-        raise WeasylError("InsufficientPermissions")
-
     query = d.engine.execute("""
         SELECT st.title, lo.login_name
         FROM globally_restricted_tags

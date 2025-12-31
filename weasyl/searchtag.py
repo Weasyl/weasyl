@@ -722,8 +722,7 @@ def tag_history(submitid):
 
 def edit_user_tag_restrictions(userid: int, tags: set[TagPattern]) -> None:
     """
-    Edits the user's restricted tag list, by dropping all rows for ``userid`` and reinserting
-    any ``tags`` passed in to the function.
+    Edits the user's restricted tag list, replacing all existing restricted tags with the specified set.
 
     Parameters:
         userid: The userid of the user submitting the request.
@@ -731,21 +730,26 @@ def edit_user_tag_restrictions(userid: int, tags: set[TagPattern]) -> None:
         tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
         (occurs in the the controllers/settings.py controller)
     """
-    # First, drop all rows from the user_restricted_tags table for userid
-    d.engine.execute("""
-        DELETE FROM user_restricted_tags
-        WHERE userid = %(uid)s
-    """, uid=userid)
-
     pattern_tagids = get_or_create_many(tags)
 
-    # Insert the new restricted tag for ``userid`` entries into the table (if we have any tags to add)
-    if pattern_tagids:
-        d.engine.execute("""
-            INSERT INTO user_restricted_tags (tagid, userid)
-                SELECT tag, %(uid)s
-                FROM UNNEST (%(added)s) AS tag
-        """, uid=userid, added=pattern_tagids)
+    def transaction(tx):
+        # remove tags not being kept
+        tx.execute("""
+            DELETE FROM user_restricted_tags
+            WHERE userid = %(uid)s
+            AND tagid != ALL (%(replacement_set)s)
+        """, uid=userid, replacement_set=pattern_tagids)
+
+        # add new tags
+        if pattern_tagids:
+            tx.execute("""
+                INSERT INTO user_restricted_tags (tagid, userid)
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(replacement_set)s) AS tag
+                    ON CONFLICT (userid, tagid) DO NOTHING
+            """, uid=userid, replacement_set=pattern_tagids)
+
+    d.serializable_retry(transaction)
 
     # Clear the cache for ``userid``'s restricted tags, since we made changes
     query_user_restricted_tags.invalidate(userid)

@@ -67,15 +67,6 @@ class JournalTarget(TaggableTarget):
     type_code = b"j"
 
 
-_TARGET_TYPES_BY_CODE = {
-    t.type_code: t
-    for t in (
-        SubmissionTarget,
-        CharacterTarget,
-        JournalTarget,
-    )
-}
-
 _TARGET_TYPES_BY_FEATURE = {
     t.feature: t
     for t in (
@@ -267,15 +258,6 @@ def _update_submission_tags(tx, submitid):
         " ON CONFLICT (submitid) DO UPDATE SET tags = (SELECT tags FROM t)",
         submission=submitid,
     )
-
-
-def _target_unpack(type_code: bytes, id: int) -> TaggableTarget:
-    t = _TARGET_TYPES_BY_CODE.get(type_code)
-
-    if t is None:
-        raise WeasylError("Unexpected")
-
-    return t(id)
 
 
 def _get_ownerid(target: TaggableTarget) -> int | None:

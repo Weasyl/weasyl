@@ -110,15 +110,16 @@ def _create_submission(expected_type):
             if submission.rating.minimum_age:
                 profile.assert_adult(userid)
 
-            newid = create_specific(
+            ret = create_specific(
                 userid=userid,
                 submission=submission,
                 **kwargs)
-            if newid:
-                p = d.meta.tables['profile']
-                d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
-                d.cached_posts_count.invalidate(userid)
-            return newid
+
+            p = d.meta.tables['profile']
+            d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
+            d.cached_posts_count.invalidate(userid)
+
+            return ret
 
         return create_generic
 

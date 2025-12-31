@@ -12,7 +12,7 @@ invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
 combined_tags = valid_tags | invalid_tags
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_edit_global_tag_restrictions_fully_clear_entries_after_adding_items(monkeypatch):
     director_user_id = db_utils.create_user()
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
@@ -23,7 +23,7 @@ def test_edit_global_tag_restrictions_fully_clear_entries_after_adding_items(mon
     assert searchtag.get_global_tag_restrictions(director_user_id) == {}
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_edit_global_tag_restrictions_when_user_is_not_a_director_fails(monkeypatch):
     normal_user_id = db_utils.create_user()
     developer_user_id = db_utils.create_user()
@@ -49,7 +49,7 @@ def test_edit_global_tag_restrictions_when_user_is_not_a_director_fails(monkeypa
     assert 'InsufficientPermissions' == err.value.value
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_edit_global_tag_restrictions(monkeypatch):
     director_user_id = db_utils.create_user(username="testdirector")
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))

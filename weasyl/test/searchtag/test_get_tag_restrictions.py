@@ -12,7 +12,7 @@ invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
 combined_tags = valid_tags | invalid_tags
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_get_global_searchtag_restrictions(monkeypatch):
     director_user_id = db_utils.create_user(username="testdirector")
     monkeypatch.setattr(staff, 'DIRECTORS', frozenset([director_user_id]))
@@ -23,7 +23,7 @@ def test_get_global_searchtag_restrictions(monkeypatch):
     assert set(resultant_tags.values()) == {"testdirector"}
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_get_global_searchtag_restrictions_fails_for_non_directors(monkeypatch):
     # Setup the globally restricted tags list
     director_user_id = db_utils.create_user()

@@ -39,8 +39,8 @@ def test_uppercase_tags_are_converted_to_lowercase():
     assert lowercase_tags == searchtag.parse_restricted_tags(" ".join(uppercase_tags))
 
 
-def test_tags_over_length_100_are_dropped():
-    lengthy_tags = {"a" * 99, "a" * 100, "a" * 101}
-    valid_with_lengthy = valid_tags | {"a" * 99, "a" * 100}
+def test_overlong_tags_are_dropped():
+    lengthy_tags = {"a" * 161, "a" * 162, "a" * 163}
+    valid_with_lengthy = valid_tags | {"a" * 161, "a" * 162}
 
     assert valid_with_lengthy == searchtag.parse_restricted_tags(" ".join(valid_tags | lengthy_tags))

@@ -714,7 +714,7 @@ Index('ind_user_restricted_tags_userid', user_restricted_tags.c.userid)
 searchtag = Table(
     'searchtag', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('title', String(length=162), nullable=False, unique=True),
+    Column('title', String(length=constants.TAG_MAX_LENGTH), nullable=False, unique=True),
 )
 
 Index('ind_searchtag_tagid', searchtag.c.tagid)

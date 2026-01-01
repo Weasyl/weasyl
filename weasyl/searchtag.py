@@ -192,7 +192,7 @@ def _get_id(name: NormalizedTag) -> int | None:
 
 
 @region.cache_multi_on_arguments(asdict=True)
-def get_ids(*names: NormalizedTag) -> dict[NormalizedTag, int]:
+def get_ids(*names: NormalizedTag | TagPattern) -> dict[NormalizedTag, int]:
     """
     Map distinct normalized tag names to tag ids, returning a dict with entries only for those tags that exist.
     """

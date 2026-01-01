@@ -9,6 +9,7 @@ from weasyl.users import USERNAME_MAX_LENGTH
 
 _NON_SYSNAME = re.compile(r"[^0-9a-z]")
 _NORMALIZED_TAG = re.compile(r"[0-9a-z]+(?:_[0-9a-z]+)*")
+_NON_TAG = re.compile(r"\W", re.ASCII)
 
 
 T = TypeVar("T")
@@ -75,17 +76,21 @@ def parse_sysname_list(s: str) -> list[str]:
 NormalizedTag = NewType("NormalizedTag", str)
 
 
-def parse_tag(target: str) -> NormalizedTag | None:
-    target = "".join(i for i in target if ord(i) < 128)
-    target = target.replace(" ", "_")
-    target = "".join(i for i in target if i.isalnum() or i in "_")
-    target = target.strip("_")
-    target = "_".join(i for i in target.split("_") if i)
+def parse_tag(s: str) -> NormalizedTag | None:
+    """
+    Attempt to convert a string that doesn't contain any tag delimiters (whitespace or comma) to a normalized tag name, returning `None` if there are no supported word characters in the string and throwing `WeasylError("tagTooLong")` if the tag is too long.
 
-    if len(target) > TAG_MAX_LENGTH:
+    Supported word characters are currently ASCII letters and numbers.
+    """
+    assert " " not in s  # strict backward compatibility check
+
+    s = _NON_TAG.sub("", s)
+    s = "_".join(filter(None, s.split("_")))
+
+    if len(s) > TAG_MAX_LENGTH:
         raise WeasylError("tagTooLong")
 
-    return NormalizedTag(target.lower()) if target else None
+    return NormalizedTag(s.lower()) if s else None
 
 
 def expect_tag(s: str) -> NormalizedTag:

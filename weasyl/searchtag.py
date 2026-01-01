@@ -31,6 +31,8 @@ TagPattern = NewType("TagPattern", str)
 
 
 _TAG_DELIMITER = re.compile(r"[\s,]+")
+_NON_PATTERN = re.compile(r"[^\w*]", re.ASCII)
+
 # limited so people can't give themselves every tag
 # and hog the top of marketplace results
 MAX_PREFERRED_TAGS = 50
@@ -202,15 +204,7 @@ def get_ids(*names: NormalizedTag) -> dict[NormalizedTag, int]:
 
 
 def parse_tags(text: str) -> set[NormalizedTag]:
-    tags: set[NormalizedTag] = set()
-
-    for i in _TAG_DELIMITER.split(text):
-        tag = parse_tag(i)
-
-        if tag is not None:
-            tags.add(tag)
-
-    return tags
+    return set(filter(None, map(parse_tag, _TAG_DELIMITER.split(text))))
 
 
 def parse_restricted_tags(text: str) -> set[TagPattern]:
@@ -225,41 +219,25 @@ def parse_restricted_tags(text: str) -> set[TagPattern]:
     Returns:
         tags: A set() with valid tags.
     """
-    tags = set()
-
-    for i in _TAG_DELIMITER.split(text):
-        target = "".join([c for c in i if ord(c) < 128])
-        target = "".join(i for i in target if i.isalnum() or i in "_*")
-        target = target.strip("_")
-        target = "_".join(i for i in target.split("_") if i)
-
-        if _is_tag_restriction_pattern_valid(target):
-            tags.add(TagPattern(target.lower()))
-
-    return tags
+    return set(filter(None, map(_parse_pattern, _TAG_DELIMITER.split(text))))
 
 
-def _is_tag_restriction_pattern_valid(text: str) -> bool:
-    """
-    Determines if a given piece of text is considered a valid restricted tag pattern.
+def _parse_pattern(text: str) -> TagPattern | None:
+    text = _NON_PATTERN.sub("", text)
+    text = "_".join(filter(None, text.split("_")))
 
-    Valid patterns:
-    - Length: 0 < x <= TAG_MAX_LENGTH -- must be able to match a normalized tag name
-    - If string contains a ``*``, must only contain one *, and be three characters or more.
+    if not (0 < len(text) <= TAG_MAX_LENGTH):
+        return None
 
-    Parameters:
-        text: A single candidate restricted tag entry.
+    text = text.lower()
 
-    Returns:
-        Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
-    """
-    if len(text) > TAG_MAX_LENGTH:
-        return False
-    elif text.count("*") == 1 and len(text) > 2:
-        return True
-    elif text and "*" not in text:
-        return True
-    return False
+    match text.split("*", 2):
+        case [_]:
+            return TagPattern(text)
+        case [_, _] if len(text) > 2:
+            return TagPattern(text)
+        case _:
+            return None
 
 
 def _update_submission_tags(tx, submitid: int) -> None:

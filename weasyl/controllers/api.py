@@ -15,7 +15,7 @@ from weasyl.users import Username
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
-    index, journal, message, profile, submission)
+    index, journal, message, profile, searchtag, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -166,6 +166,7 @@ def api_frontpage_(request):
         count = min(count or 100, 100)
 
     submissions = index.filter_submissions(request.userid, index.recent_submissions())
+    all_tagids: set[int] = set()
     ret = []
 
     for e, sub in enumerate(submissions, start=1):
@@ -174,6 +175,12 @@ def api_frontpage_(request):
 
         tidy_submission(sub)
         ret.append(sub)
+        all_tagids.update(sub['tags'])
+
+    tag_names = searchtag.get_names(*all_tagids)
+
+    for sub in ret:
+        sub['tags'] = [tag_names[tagid] for tagid in sub['tags']]
 
     return ret
 
@@ -395,14 +402,12 @@ def api_messages_submissions_(request):
     )
     backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
 
-    ret = []
     for sub in submissions:
         tidy_submission(sub)
-        ret.append(sub)
 
     return {
         'backtime': backtime, 'nexttime': nexttime,
-        'submissions': ret,
+        'submissions': submissions,
     }
 
 

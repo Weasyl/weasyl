@@ -203,6 +203,18 @@ def get_ids(*names: NormalizedTag | TagPattern) -> dict[NormalizedTag, int]:
     return {row.title: row.tagid for row in result}
 
 
+@region.cache_multi_on_arguments(asdict=True)
+def get_names(*ids: int) -> dict[int, NormalizedTag]:
+    """
+    Map distinct tag ids to normalized tag names, returning a dict with entries only for those tag ids that exist.
+    """
+    result = d.engine.execute(
+        "SELECT tagid, title FROM searchtag WHERE tagid = ANY (%(ids)s)",
+        ids=list(ids))
+
+    return {row.tagid: row.title for row in result}
+
+
 def parse_tags(text: str) -> set[NormalizedTag]:
     return set(filter(None, map(parse_tag, _TAG_DELIMITER.split(text))))
 

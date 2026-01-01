@@ -10,7 +10,9 @@ from libweasyl.ratings import GENERAL, MATURE, EXPLICIT
 
 from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
+from weasyl.forms import NormalizedTag
 from weasyl.forms import parse_sysname
+from weasyl.forms import parse_tag
 from weasyl.users import Username
 
 
@@ -42,9 +44,9 @@ _TABLE_INFORMATION: Mapping[PostType, tuple[int, str, str, str, str | int]] = {
 
 
 class Query:
-    possible_includes: set[str]
-    required_includes: set[str]
-    required_excludes: set[str]
+    possible_includes: set[NormalizedTag]
+    required_includes: set[NormalizedTag]
+    required_excludes: set[NormalizedTag]
     required_user_includes: set[str]
     required_user_excludes: set[str]
     ratings: set[int]
@@ -83,16 +85,16 @@ class Query:
             user = parse_sysname(criterion.split(":", 1)[1])
             add_nonempty(self.required_user_excludes, user)
         elif criterion.startswith("+"):
-            tag = d.get_search_tag(criterion[1:])
+            tag = parse_tag(criterion[1:])
             add_nonempty(self.required_includes, tag)
         elif criterion.startswith("-"):
-            tag = d.get_search_tag(criterion[1:])
+            tag = parse_tag(criterion[1:])
             add_nonempty(self.required_excludes, tag)
         elif criterion.startswith("|"):
-            tag = d.get_search_tag(criterion[1:])
+            tag = parse_tag(criterion[1:])
             add_nonempty(self.possible_includes, tag)
         else:
-            tag = d.get_search_tag(criterion)
+            tag = parse_tag(criterion)
             add_nonempty(self.required_includes, tag)
 
     def __bool__(self):
@@ -224,9 +226,9 @@ def resolve(search: Query) -> ResolvedQuery | None:
         | search.required_user_excludes
     )
 
-    tag_ids = searchtag.get_ids(all_names)
+    tag_ids = searchtag.get_ids(*all_names)
 
-    def get_tag_ids(names: set[str]) -> set[int]:
+    def get_tag_ids(names: set[NormalizedTag]) -> set[int]:
         return {tag_ids.get(name, 0) for name in names}
 
     user_ids = d.get_userids(all_user_sysnames)

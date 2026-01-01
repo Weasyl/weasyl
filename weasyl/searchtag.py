@@ -3,9 +3,11 @@ import enum
 import re
 import secrets
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from struct import Struct
 from typing import Iterable
+from typing import NewType
 
 import sqlalchemy as sa
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
@@ -13,6 +15,7 @@ from sqlalchemy.sql.expression import any_
 
 from libweasyl import staff
 from libweasyl.cache import region
+from libweasyl.constants import TAG_MAX_LENGTH
 
 from weasyl import define as d
 from weasyl import files
@@ -20,9 +23,16 @@ from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl.config import config_obj
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
+from weasyl.forms import parse_tag
+
+
+TagPattern = NewType("TagPattern", str)
 
 
 _TAG_DELIMITER = re.compile(r"[\s,]+")
+_NON_PATTERN = re.compile(r"[^\w*]", re.ASCII)
+
 # limited so people can't give themselves every tag
 # and hog the top of marketplace results
 MAX_PREFERRED_TAGS = 50
@@ -66,15 +76,6 @@ class JournalTarget(TaggableTarget):
     path_component = "journal"
     type_code = b"j"
 
-
-_TARGET_TYPES_BY_CODE = {
-    t.type_code: t
-    for t in (
-        SubmissionTarget,
-        CharacterTarget,
-        JournalTarget,
-    )
-}
 
 _TARGET_TYPES_BY_FEATURE = {
     t.feature: t
@@ -161,31 +162,40 @@ def select_list(map_table, targetids):
     return dict(list(db.execute(q)))
 
 
-@region.cache_multi_on_arguments()
-def _get_or_create(*names: str) -> list[int]:
-    names_list = list(names)
-
-    d.engine.execute('''
-        INSERT INTO searchtag (title)
-        SELECT title
-        FROM UNNEST(%(names)s::text[]) AS title
-        ON CONFLICT (title) DO NOTHING
-    ''', names=names_list)
-
-    tag_ids = get_ids(names)
-
-    return [tag_ids[name] for name in names]
+def _get_or_create(name: NormalizedTag) -> int:
+    return get_or_create_many([name])[0]
 
 
-def get_or_create(name):
-    return _get_or_create(d.get_search_tag(name))[0]
+def get_or_create_many(names: Iterable[NormalizedTag | TagPattern]) -> list[int]:
+    """
+    Map distinct normalized tag names to tag ids, creating new tag ids as necessary and returning a list of distinct tag ids in an arbitrary order.
+    """
+    ids = dict.fromkeys(names, None)
+    ids |= get_ids(*ids.keys())
+    missing_names = [key for key, value in ids.items() if value is None]
+
+    if missing_names:
+        d.engine.execute('''
+            INSERT INTO searchtag (title)
+            SELECT title
+            FROM UNNEST(%(names)s::text[]) AS title
+            ON CONFLICT (title) DO NOTHING
+        ''', names=missing_names)
+
+        ids |= get_ids(*missing_names)
+
+    return list(ids.values())
 
 
-def get_or_create_many(normalized_names: Iterable[str]) -> list[int]:
-    return _get_or_create(*normalized_names)
+def _get_id(name: NormalizedTag) -> int | None:
+    return get_ids(name).get(name)
 
 
-def get_ids(names):
+@region.cache_multi_on_arguments(asdict=True)
+def get_ids(*names: NormalizedTag | TagPattern) -> dict[NormalizedTag, int]:
+    """
+    Map distinct normalized tag names to tag ids, returning a dict with entries only for those tags that exist.
+    """
     result = d.engine.execute(
         "SELECT tagid, title FROM searchtag WHERE title = ANY (%(names)s)",
         names=list(names))
@@ -193,19 +203,11 @@ def get_ids(names):
     return {row.title: row.tagid for row in result}
 
 
-def parse_tags(text: str) -> set[str]:
-    tags = set()
-
-    for i in _TAG_DELIMITER.split(text):
-        tag = d.get_search_tag(i)
-
-        if tag:
-            tags.add(tag)
-
-    return tags
+def parse_tags(text: str) -> set[NormalizedTag]:
+    return set(filter(None, map(parse_tag, _TAG_DELIMITER.split(text))))
 
 
-def parse_restricted_tags(text):
+def parse_restricted_tags(text: str) -> set[TagPattern]:
     """
     A custom implementation of ``parse_tags()`` for the restricted tag list.
     Enforces the desired characteristics of restricted tags, and allows an asterisk
@@ -217,44 +219,32 @@ def parse_restricted_tags(text):
     Returns:
         tags: A set() with valid tags.
     """
-    tags = set()
-
-    for i in _TAG_DELIMITER.split(text):
-        target = "".join([c for c in i if ord(c) < 128])
-        target = "".join(i for i in target if i.isalnum() or i in "_*")
-        target = target.strip("_")
-        target = "_".join(i for i in target.split("_") if i)
-
-        if is_tag_restriction_pattern_valid(target):
-            tags.add(target.lower())
-
-    return tags
+    return set(filter(None, map(_parse_pattern, _TAG_DELIMITER.split(text))))
 
 
-def is_tag_restriction_pattern_valid(text):
-    """
-    Determines if a given piece of text is considered a valid restricted tag pattern.
+def _parse_pattern(text: str) -> TagPattern | None:
+    text = _NON_PATTERN.sub("", text)
+    text = "_".join(filter(None, text.split("_")))
 
-    Valid patterns:
-    - Length: 0 < x <= 100 -- Prevents absurd tag lengths.
-    - If string contains a ``*``, must only contain one *, and be three characters or more.
+    if not text:
+        return None
 
-    Parameters:
-        text: A single candidate restricted tag entry.
+    if len(text) > TAG_MAX_LENGTH:
+        raise WeasylError("tagTooLong")
 
-    Returns:
-        Boolean True if the tag is considered to be a valid pattern. Boolean False otherwise.
-    """
-    if len(text) > 100:
-        return False
-    elif text.count("*") == 1 and len(text) > 2:
-        return True
-    elif text and "*" not in text:
-        return True
-    return False
+    text = text.lower()
+
+    match text.split("*", 1):
+        case [_]:
+            return TagPattern(text)
+        case [prefix, suffix]:
+            suffix = suffix.replace("*", "")  # limit one wildcard
+            return TagPattern(f"{prefix}*{suffix}") if len(prefix) + len(suffix) >= 2 else None
+        case _:
+            assert False
 
 
-def _update_submission_tags(tx, submitid):
+def _update_submission_tags(tx, submitid: int) -> None:
     tx.execute(
         "WITH t AS ("
         " SELECT coalesce(array_agg(tagid), ARRAY[]::integer[]) AS tags FROM searchmapsubmit WHERE targetid = %(submission)s)"
@@ -262,15 +252,6 @@ def _update_submission_tags(tx, submitid):
         " ON CONFLICT (submitid) DO UPDATE SET tags = (SELECT tags FROM t)",
         submission=submitid,
     )
-
-
-def _target_unpack(type_code: bytes, id: int) -> TaggableTarget:
-    t = _TARGET_TYPES_BY_CODE.get(type_code)
-
-    if t is None:
-        raise WeasylError("Unexpected")
-
-    return t(id)
 
 
 def _get_ownerid(target: TaggableTarget) -> int | None:
@@ -282,8 +263,8 @@ def _set_suggested_tags(
     userid: int,
     target: TaggableTarget,
     ownerid: int,
-    tag_names: set[str],
-) -> list[str]:
+    tag_names: set[NormalizedTag],
+) -> list[NormalizedTag]:
     can_suggest_tags = d.engine.scalar("SELECT can_suggest_tags FROM profile WHERE userid = %(user)s", user=userid)
     if not can_suggest_tags:
         raise WeasylError("InsufficientPermissions")
@@ -294,11 +275,11 @@ def _set_suggested_tags(
     # Track which tags fail to be added or removed to later notify the user
     is_restricted_tag = _get_restricted_tag_matcher({
         *query_user_restricted_tags(ownerid),
-        *query_global_restricted_tags(),
+        *_query_global_restricted_tags(),
     })
     tags_not_added = set(filter(is_restricted_tag, tag_names))
     apply_tags = tag_names - tags_not_added
-    apply_tagids = [t.tagid for t in add_and_get_searchtags(apply_tags)]
+    apply_tagids = get_or_create_many(apply_tags)
 
     def transaction(tx):
         tx.execute(
@@ -336,9 +317,8 @@ def _set_suggested_tags(
     return sorted(tags_not_added)
 
 
-def _set_commission_tags(*, userid: int, tag_names: set[str], table: str) -> None:
-    query = add_and_get_searchtags(tag_names)
-    entered_tagids = [t.tagid for t in query]
+def _set_commission_tags(*, userid: int, tag_names: set[NormalizedTag], table: str) -> None:
+    entered_tagids = get_or_create_many(tag_names)
 
     def transaction(tx):
         tx.execute(
@@ -359,7 +339,7 @@ def _set_commission_tags(*, userid: int, tag_names: set[str], table: str) -> Non
     d.serializable_retry(transaction)
 
 
-def set_commission_preferred_tags(*, userid: int, tag_names: set[str]) -> None:
+def set_commission_preferred_tags(*, userid: int, tag_names: set[NormalizedTag]) -> None:
     # enforce the limit on artist preference tags
     if len(tag_names) > MAX_PREFERRED_TAGS:
         raise WeasylError("tooManyPreferenceTags")
@@ -367,11 +347,11 @@ def set_commission_preferred_tags(*, userid: int, tag_names: set[str]) -> None:
     _set_commission_tags(userid=userid, tag_names=tag_names, table="artist_preferred_tags")
 
 
-def set_commission_optout_tags(*, userid: int, tag_names: set[str]) -> None:
+def set_commission_optout_tags(*, userid: int, tag_names: set[NormalizedTag]) -> None:
     _set_commission_tags(userid=userid, tag_names=tag_names, table="artist_optout_tags")
 
 
-def associate(*, userid: int, target: TaggableTarget, tag_names: set[str]) -> list[str]:
+def associate(*, userid: int, target: TaggableTarget, tag_names: set[NormalizedTag]) -> list[NormalizedTag]:
     """
     Associates tags with a content item.
 
@@ -398,8 +378,7 @@ def associate(*, userid: int, target: TaggableTarget, tag_names: set[str]) -> li
         )
 
     # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
-    query = add_and_get_searchtags(tag_names)
-    entered_tagids = [t.tagid for t in query]
+    entered_tagids = get_or_create_many(tag_names)
 
     def transaction(tx):
         tx.execute(
@@ -544,7 +523,7 @@ def suggestion_arbitrate(
     *,
     userid: int,
     target: TaggableTarget,
-    tag_name: str,
+    tag_name: NormalizedTag,
     action: SuggestionAction,
 ) -> SuggestionActionResult:
     """
@@ -558,10 +537,10 @@ def suggestion_arbitrate(
     if userid != ownerid and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
 
-    tagid = get_or_create(tag_name)
+    tagid = _get_id(tag_name)
 
     # there are inherent concurrency issues we’re calling acceptable with the undo token approach, so don’t bother with a transaction
-    check = d.engine.execute(
+    check = tagid and d.engine.execute(
         "SELECT added_by, settings"
         f" FROM {target.table}"
         " WHERE (targetid, tagid) = (%(target)s, %(tag)s)",
@@ -637,10 +616,12 @@ def suggestion_action_undo(
     *,
     userid: int,
     target: TaggableTarget,
-    tag_name: str,
+    tag_name: NormalizedTag,
     undo_token: bytes,
 ) -> None:
-    tagid = get_or_create(tag_name)
+    tagid = _get_id(tag_name)
+    if tagid is None:
+        raise WeasylError("Unexpected")
 
     restore_added_by = _undo_token_validate(
         target=target,
@@ -684,7 +665,7 @@ def set_tag_feedback(
     *,
     userid: int,
     target: TaggableTarget,
-    tag_name: int,
+    tag_name: NormalizedTag,
     feedback: SuggestionFeedback,
 ) -> None:
     ownerid = _get_ownerid(target)
@@ -692,7 +673,7 @@ def set_tag_feedback(
     if userid != ownerid and userid not in staff.MODS:
         raise WeasylError("Unexpected")
 
-    tagid = get_or_create(tag_name)
+    tagid = _get_or_create(tag_name)
 
     d.engine.execute(
         f"INSERT INTO {target.feedback_table}"
@@ -721,68 +702,42 @@ def tag_history(submitid):
         .order_by(tu.c.updated_at.desc()))
 
 
-def add_and_get_searchtags(tags):
+def edit_user_tag_restrictions(userid: int, tags: set[TagPattern]) -> None:
     """
-    Get tag ids for the provided tag names, creating ids for new tags as necessary.
-
-    Parameters:
-        tags: A set of tag names, already validated and normalized.
-
-    Returns:
-        A list of `(tagid, title)` `RowProxy` objects: one for each tag name.
-    """
-    # Get the tag titles/ids out of the searchtag table
-    query = d.engine.execute("""
-        SELECT tagid, title FROM searchtag WHERE title = ANY (%(title)s)
-    """, title=list(tags)).fetchall()
-
-    # Determine which (if any) of the valid tags are new; add them to the searchtag table if so.
-    newtags = list(tags - {x.title for x in query})
-    if newtags:
-        query.extend(
-            d.engine.execute(
-                "INSERT INTO searchtag (title) SELECT * FROM UNNEST (%(newtags)s) AS title RETURNING tagid, title",
-                newtags=newtags
-            ).fetchall())
-    return query
-
-
-def edit_user_tag_restrictions(userid, tags):
-    """
-    Edits the user's restricted tag list, by dropping all rows for ``userid`` and reinserting
-    any ``tags`` passed in to the function.
+    Edits the user's restricted tag list, replacing all existing restricted tags with the specified set.
 
     Parameters:
         userid: The userid of the user submitting the request.
 
         tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
         (occurs in the the controllers/settings.py controller)
-
-    Returns:
-        Nothing.
     """
-    # First, drop all rows from the user_restricted_tags table for userid
-    d.engine.execute("""
-        DELETE FROM user_restricted_tags
-        WHERE userid = %(uid)s
-    """, uid=userid)
+    pattern_tagids = get_or_create_many(tags)
 
-    # Retrieve tag titles and tagid pairs, for new (if any) and existing tags
-    query = add_and_get_searchtags(tags)
+    def transaction(tx):
+        # remove tags not being kept
+        tx.execute("""
+            DELETE FROM user_restricted_tags
+            WHERE userid = %(uid)s
+            AND tagid != ALL (%(replacement_set)s)
+        """, uid=userid, replacement_set=pattern_tagids)
 
-    # Insert the new restricted tag for ``userid`` entries into the table (if we have any tags to add)
-    if query:
-        d.engine.execute("""
-            INSERT INTO user_restricted_tags (tagid, userid)
-                SELECT tag, %(uid)s
-                FROM UNNEST (%(added)s) AS tag
-        """, uid=userid, added=[tag.tagid for tag in query])
+        # add new tags
+        if pattern_tagids:
+            tx.execute("""
+                INSERT INTO user_restricted_tags (tagid, userid)
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(replacement_set)s) AS tag
+                    ON CONFLICT (userid, tagid) DO NOTHING
+            """, uid=userid, replacement_set=pattern_tagids)
+
+    d.serializable_retry(transaction)
 
     # Clear the cache for ``userid``'s restricted tags, since we made changes
     query_user_restricted_tags.invalidate(userid)
 
 
-def edit_global_tag_restrictions(userid, tags):
+def edit_global_tag_restrictions(userid: int, tags: set[TagPattern]) -> None:
     """
     Edits the globally restricted tag list, adding or removing tags as appropriate.
 
@@ -791,60 +746,38 @@ def edit_global_tag_restrictions(userid, tags):
 
         tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
         (occurs in the the controllers/director.py controller)
-
-    Returns:
-        Nothing.
     """
-    # Only directors can edit the global restriction list; sanity check against the @director_only decorator
-    if userid not in staff.DIRECTORS:
-        raise WeasylError("InsufficientPermissions")
+    pattern_tagids = get_or_create_many(tags)
 
-    existing = d.engine.execute("""
-        SELECT tagid FROM globally_restricted_tags
-    """).fetchall()
-
-    # Retrieve tag titles and tagid pairs, for new and existing tags
-    query = add_and_get_searchtags(tags)
-
-    existing_tagids = {t.tagid for t in existing}
-    entered_tagids = {t.tagid for t in query}
-
-    # Assign added and removed
-    added = entered_tagids - existing_tagids
-    removed = existing_tagids - entered_tagids
-
-    if added:
-        d.engine.execute("""
-            INSERT INTO globally_restricted_tags (tagid, userid)
-                SELECT tag, %(uid)s
-                FROM UNNEST (%(added)s) AS tag
-        """, uid=userid, added=list(added))
-
-    if removed:
-        d.engine.execute("""
+    def transaction(tx):
+        # remove tags not being kept
+        tx.execute("""
             DELETE FROM globally_restricted_tags
-            WHERE tagid = ANY (%(removed)s)
-        """, removed=list(removed))
+            WHERE tagid != ALL (%(replacement_set)s)
+        """, replacement_set=pattern_tagids)
 
-    # Clear the globally restricted tags cache if any changes were made
-    if added or removed:
-        query_global_restricted_tags.invalidate()
+        # add new tags
+        if pattern_tagids:
+            tx.execute("""
+                INSERT INTO globally_restricted_tags (tagid, userid)
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(replacement_set)s) AS tag
+                    ON CONFLICT (tagid) DO NOTHING
+            """, uid=userid, replacement_set=pattern_tagids)
+
+    d.serializable_retry(transaction)
+
+    # Clear the globally restricted tags cache
+    _query_global_restricted_tags.invalidate()
 
 
-def get_global_tag_restrictions(userid):
+def get_global_tag_restrictions() -> dict[TagPattern, str]:
     """
     Retrieves a list of tags on the globally restricted tag list for display to a director.
-
-    Parameters:
-        userid: The userid of the director requesting the list of tags.
 
     Returns:
         A dict mapping from globally restricted tag titles to the name of the director who added the tag.
     """
-    # Only directors can view the globally restricted tag list; sanity check against the @director_only decorator
-    if userid not in staff.DIRECTORS:
-        raise WeasylError("InsufficientPermissions")
-
     query = d.engine.execute("""
         SELECT st.title, lo.login_name
         FROM globally_restricted_tags
@@ -855,7 +788,7 @@ def get_global_tag_restrictions(userid):
 
 
 @region.cache_on_arguments()
-def query_user_restricted_tags(ownerid):
+def query_user_restricted_tags(ownerid: int) -> list[TagPattern]:
     """
     Gets and returns restricted tags for users.
 
@@ -865,17 +798,16 @@ def query_user_restricted_tags(ownerid):
     Returns:
         A list of user restricted tag titles, in no particular order.
     """
-    query = d.engine.execute("""
+    return d.engine.execute("""
         SELECT title
         FROM user_restricted_tags
         INNER JOIN searchtag USING (tagid)
         WHERE userid = %(ownerid)s
-    """, ownerid=ownerid).fetchall()
-    return [tag.title for tag in query]
+    """, ownerid=ownerid).scalars().all()
 
 
 @region.cache_on_arguments()
-def query_global_restricted_tags():
+def _query_global_restricted_tags() -> list[TagPattern]:
     """
     Gets and returns globally restricted tags.
 
@@ -885,13 +817,12 @@ def query_global_restricted_tags():
     Returns:
         A list of global restricted tag titles, in no particular order.
     """
-    query = d.engine.execute("""
+    return d.engine.execute("""
         SELECT title
         FROM globally_restricted_tags
         INNER JOIN searchtag USING (tagid)
-    """).fetchall()
-    return [tag.title for tag in query]
+    """).scalars().all()
 
 
-def _get_restricted_tag_matcher(patterns):
+def _get_restricted_tag_matcher(patterns: Iterable[TagPattern]) -> Callable[[NormalizedTag], object | None]:
     return re.compile("|".join(pattern.replace("*", ".*") for pattern in patterns)).fullmatch

@@ -794,13 +794,12 @@ def query_user_restricted_tags(ownerid: int) -> list[TagPattern]:
     Returns:
         A list of user restricted tag titles, in no particular order.
     """
-    query = d.engine.execute("""
+    return d.engine.execute("""
         SELECT title
         FROM user_restricted_tags
         INNER JOIN searchtag USING (tagid)
         WHERE userid = %(ownerid)s
-    """, ownerid=ownerid).fetchall()
-    return [tag.title for tag in query]
+    """, ownerid=ownerid).scalars().all()
 
 
 @region.cache_on_arguments()
@@ -814,12 +813,11 @@ def _query_global_restricted_tags() -> list[TagPattern]:
     Returns:
         A list of global restricted tag titles, in no particular order.
     """
-    query = d.engine.execute("""
+    return d.engine.execute("""
         SELECT title
         FROM globally_restricted_tags
         INNER JOIN searchtag USING (tagid)
-    """).fetchall()
-    return [tag.title for tag in query]
+    """).scalars().all()
 
 
 def _get_restricted_tag_matcher(patterns: Iterable[TagPattern]) -> Callable[[NormalizedTag], object | None]:

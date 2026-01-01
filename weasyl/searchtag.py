@@ -226,18 +226,22 @@ def _parse_pattern(text: str) -> TagPattern | None:
     text = _NON_PATTERN.sub("", text)
     text = "_".join(filter(None, text.split("_")))
 
-    if not (0 < len(text) <= TAG_MAX_LENGTH):
+    if not text:
         return None
+
+    if len(text) > TAG_MAX_LENGTH:
+        raise WeasylError("tagTooLong")
 
     text = text.lower()
 
-    match text.split("*", 2):
+    match text.split("*", 1):
         case [_]:
             return TagPattern(text)
-        case [_, _] if len(text) > 2:
-            return TagPattern(text)
+        case [prefix, suffix]:
+            suffix = suffix.replace("*", "")  # limit one wildcard
+            return TagPattern(f"{prefix}*{suffix}") if len(prefix) + len(suffix) >= 2 else None
         case _:
-            return None
+            assert False
 
 
 def _update_submission_tags(tx, submitid: int) -> None:

@@ -6,6 +6,7 @@ from weasyl.test import db_utils
 # Test lists of tags
 valid_tags = {'test', '*test', 'te*st', 'test*', 'test_too'}
 invalid_tags = {'*', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
+rewritten_invalid_tags = {'a*a', '*aa'}
 combined_tags = valid_tags | invalid_tags
 
 
@@ -19,7 +20,7 @@ def test_edit_user_tag_restrictions_with_no_prior_entries():
     tags = searchtag.parse_restricted_tags(", ".join(combined_tags))
     searchtag.edit_user_tag_restrictions(user_id, tags)
     resultant_tags = set(searchtag.query_user_restricted_tags(user_id))
-    assert resultant_tags == valid_tags
+    assert resultant_tags == valid_tags | rewritten_invalid_tags
 
 
 @pytest.mark.usefixtures('db', 'cache')

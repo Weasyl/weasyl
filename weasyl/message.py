@@ -147,7 +147,14 @@ def select_journals(userid):
     } for j in journals]
 
 
-def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None):
+def select_submissions(
+    userid: int,
+    *,
+    limit: int,
+    include_tags: bool,
+    backtime: int,
+    nexttime: int,
+):
     if backtime:
         time_filter = "AND we.unixtime > %(backtime)s"
     elif nexttime:

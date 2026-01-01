@@ -387,7 +387,12 @@ def api_messages_submissions_(request):
         count = min(count or 100, 100)
 
     submissions = message.select_submissions(
-        request.userid, count + 1, include_tags=True, backtime=backtime, nexttime=nexttime)
+        request.userid,
+        limit=count + 1,
+        include_tags=True,
+        backtime=backtime,
+        nexttime=nexttime,
+    )
     backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
 
     ret = []

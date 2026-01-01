@@ -22,6 +22,7 @@ from weasyl import searchtag
 from weasyl import thumbnail
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
 from weasyl.users import Username
 
 
@@ -34,7 +35,7 @@ def create(
     character,
     *,
     friends_only: bool,
-    tags,
+    tags: set[NormalizedTag],
     thumbfile,
     submitfile,
 ) -> int:

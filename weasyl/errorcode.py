@@ -133,6 +133,7 @@ error_messages = {
     "submitSizeZero": "You must provide a submission file.",
     "submitType": "The submission file you uploaded is not a valid filetype for this submission category.",
     "TagBlocked": "This submission's assigned tags suggest that it may contain content you do not wish to view.",
+    "tagTooLong": "A tag you entered was too long (>100 characters). Please check that your tags are formatted correctly (separated with commas or spaces).",
     "TargetRecordMissing": "This content doesn't seem to exist in our database.",
     "thumbSizeExceedsLimit": (
         "The thumbnail file you uploaded exceeds the allowed filesize for this submission category."),

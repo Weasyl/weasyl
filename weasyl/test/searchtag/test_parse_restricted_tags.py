@@ -1,4 +1,5 @@
 from weasyl import searchtag
+from weasyl.test.common import raises_app_error
 
 
 valid_tags = {'test*', '*test', 'te*st', 'test', 'test_too'}
@@ -23,13 +24,14 @@ def test_parse_restricted_tags():
             since this function essentially reimplements and extends that function.
     """
     invalid_tags = {'*', '**', '***', 'a*', '*a', 'a*a*', '*a*a', '*aa*', 'a**a', '}'}
+    rewritten_invalid_tags = {'a*a', '*aa'}
     combined_tags = valid_tags | invalid_tags
 
     # Function under test
     resultant_tags = searchtag.parse_restricted_tags(" ".join(combined_tags))
 
     # Verify that we have the tags in the valid list
-    assert resultant_tags == valid_tags
+    assert resultant_tags == valid_tags | rewritten_invalid_tags
 
 
 def test_uppercase_tags_are_converted_to_lowercase():
@@ -39,8 +41,6 @@ def test_uppercase_tags_are_converted_to_lowercase():
     assert lowercase_tags == searchtag.parse_restricted_tags(" ".join(uppercase_tags))
 
 
-def test_tags_over_length_100_are_dropped():
-    lengthy_tags = {"a" * 99, "a" * 100, "a" * 101}
-    valid_with_lengthy = valid_tags | {"a" * 99, "a" * 100}
-
-    assert valid_with_lengthy == searchtag.parse_restricted_tags(" ".join(valid_tags | lengthy_tags))
+def test_overlong_tags_are_dropped():
+    with raises_app_error("tagTooLong"):
+        searchtag.parse_restricted_tags("a" * 163)

@@ -411,16 +411,6 @@ def get_targetid(*argv):
             return i
 
 
-def get_search_tag(target):
-    target = "".join(i for i in target if ord(i) < 128)
-    target = target.replace(" ", "_")
-    target = "".join(i for i in target if i.isalnum() or i in "_")
-    target = target.strip("_")
-    target = "_".join(i for i in target.split("_") if i)
-
-    return target.lower()
-
-
 def get_time():
     """
     Returns the current unixtime.

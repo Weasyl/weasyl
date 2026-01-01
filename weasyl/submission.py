@@ -40,6 +40,7 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
 
 
 COUNT_LIMIT = 250
@@ -166,7 +167,7 @@ def create_visual(
     userid: int,
     submission,
     friends_only: bool,
-    tags,
+    tags: set[NormalizedTag],
     imageURL: str,
     thumbfile,
     submitfile,
@@ -305,7 +306,7 @@ def create_literary(
     submission,
     embedlink: str,
     friends_only: bool,
-    tags,
+    tags: set[NormalizedTag],
     coverfile,
     thumbfile,
     submitfile,
@@ -402,7 +403,7 @@ def create_multimedia(
     submission,
     embedlink: str,
     friends_only: bool,
-    tags,
+    tags: set[NormalizedTag],
     coverfile,
     thumbfile,
     submitfile,

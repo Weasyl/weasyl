@@ -16,6 +16,7 @@ from weasyl.config import config_read_bool
 from weasyl.controllers.decorators import login_required, supports_json, token_checked
 from weasyl.error import WeasylError
 from weasyl.forms import expect_id
+from weasyl.forms import expect_tag
 from weasyl.forms import only
 from weasyl.login import get_user_agent_id
 
@@ -414,7 +415,7 @@ def submit_tags_(request):
 def tag_status_put(request):
     feature = request.matchdict["feature"]
     targetid = expect_id(request.matchdict["targetid"])
-    tag_name = request.matchdict["tag"]
+    tag_name = expect_tag(request.matchdict["tag"])
 
     target = searchtag.get_target(feature, targetid)
 
@@ -445,7 +446,7 @@ def tag_status_put(request):
 def tag_status_delete(request):
     feature = request.matchdict["feature"]
     targetid = expect_id(request.matchdict["targetid"])
-    tag_name = request.matchdict["tag"]
+    tag_name = expect_tag(request.matchdict["tag"])
 
     target = searchtag.get_target(feature, targetid)
 
@@ -467,11 +468,8 @@ def tag_status_delete(request):
 def tag_feedback_put(request):
     feature = request.matchdict["feature"]
     targetid = expect_id(request.matchdict["targetid"])
-    tag_name = request.matchdict["tag"]
+    tag_name = expect_tag(request.matchdict["tag"])
     reasons = request.POST.getall("reason")
-
-    if not tag_name or define.get_search_tag(tag_name) != tag_name:
-        raise WeasylError("Unexpected")
 
     target = searchtag.get_target(feature, targetid)
 

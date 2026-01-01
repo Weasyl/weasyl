@@ -6,7 +6,7 @@ from weasyl.test import db_utils
 from weasyl import commishinfo, define as d, orm, profile, searchtag
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 @pytest.mark.parametrize(['args', 'result_order'], [
     # test that the broadest terms return all users in the right order
     ({
@@ -81,7 +81,7 @@ def test_commish_search(args, result_order):
     assert rids == result_order
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_commish_search_invalid():
     # searcher
     u1 = db_utils.create_user(username="searcher")

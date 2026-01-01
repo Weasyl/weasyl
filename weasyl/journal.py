@@ -20,6 +20,7 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
 from weasyl.users import Username
 
 
@@ -28,7 +29,7 @@ def create(
     journal,
     *,
     friends_only: bool,
-    tags,
+    tags: set[NormalizedTag],
 ) -> int:
     # Check invalid arguments
     if not journal.title:

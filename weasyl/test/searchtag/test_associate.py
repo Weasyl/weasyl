@@ -12,7 +12,7 @@ tags = searchtag.parse_tags("omega_ruby, alpha_sapphire, diamond, pearl")
 tags_two = searchtag.parse_tags("omega_ruby, alpha_sapphire, diamond")
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_TargetRecordMissing_WeasylError_if_item_record_missing_or_invalid():
     userid_tag_adder = db_utils.create_user()
 
@@ -35,7 +35,7 @@ def test_TargetRecordMissing_WeasylError_if_item_record_missing_or_invalid():
         assert err.value.value == "TargetRecordMissing"
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_InsufficientPermissions_WeasylError_if_user_does_not_have_tagging_permissions():
     # Set up for this test
     admin = db_utils.create_user()
@@ -61,7 +61,7 @@ def test_InsufficientPermissions_WeasylError_if_user_does_not_have_tagging_permi
         assert err.value.value == "InsufficientPermissions"
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_contentOwnerIgnoredYou_WeasylError_if_user_ignored_by_item_owner():
     # Set up for this test
     userid_owner = db_utils.create_user()
@@ -86,7 +86,7 @@ def test_contentOwnerIgnoredYou_WeasylError_if_user_ignored_by_item_owner():
         assert err.value.value == "contentOwnerIgnoredYou"
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_adding_tags_when_no_tags_previously_existed():
     userid_owner = db_utils.create_user()
     userid_tag_adder = db_utils.create_user()
@@ -108,7 +108,7 @@ def test_adding_tags_when_no_tags_previously_existed():
         assert set(searchtag.select_grouped(userid_owner, target).suggested) == tags
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_removing_tags():
     userid_owner = db_utils.create_user()
     userid_tag_adder = db_utils.create_user()
@@ -138,7 +138,7 @@ def test_removing_tags():
         assert set(searchtag.select_grouped(userid_owner, target).suggested) == tags_two
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_clearing_all_tags():
     userid_owner = db_utils.create_user()
     userid_tag_adder = db_utils.create_user()
@@ -172,7 +172,7 @@ def test_clearing_all_tags():
         )
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_attempt_setting_tags_when_some_tags_have_been_restricted():
     """
     Verify that tags are excluded from being added to a submission's tags if the tag is restricted
@@ -200,7 +200,7 @@ def test_attempt_setting_tags_when_some_tags_have_been_restricted():
         assert set(searchtag.select_grouped(userid_owner, target).suggested) == tags_two
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_moderators_and_above_can_add_restricted_tags_successfully(monkeypatch):
     """
     Moderators (and admins and directors) can add restricted tags to content.
@@ -238,7 +238,7 @@ def test_moderators_and_above_can_add_restricted_tags_successfully(monkeypatch):
     assert tags == set(journal_tags)
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_associate_return_values():
     """
     ``associate()`` returns a list of tags that were not added because of restrictions.

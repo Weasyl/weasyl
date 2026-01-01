@@ -4,6 +4,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB, TIMESTAMP
 from sqlalchemy.schema import ForeignKey as _ForeignKey
 from sqlalchemy.schema import ForeignKeyConstraint as _ForeignKeyConstraint
+from sqlalchemy.schema import PrimaryKeyConstraint
 
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn)
@@ -690,25 +691,20 @@ Index('ind_artist_optout_tags_targetid', artist_optout_tags.c.targetid)
 globally_restricted_tags = Table(
     'globally_restricted_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), nullable=False),
     ForeignKeyConstraint(['userid'], ['login.userid'], name='globally_restricted_tags_userid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='globally_restricted_tags_tagid_fkey'),
 )
 
-Index('ind_globally_restricted_tags_tagid', globally_restricted_tags.c.tagid)
-Index('ind_globally_restricted_tags_userid', globally_restricted_tags.c.userid)
-
 
 user_restricted_tags = Table(
     'user_restricted_tags', metadata,
-    Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), primary_key=True, nullable=False),
+    Column('tagid', Integer(), nullable=False),
+    Column('userid', Integer(), nullable=False),
+    PrimaryKeyConstraint('userid', 'tagid'),
     cascading_fkey(['userid'], ['login.userid'], name='user_restricted_tags_userid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='user_restricted_tags_tagid_fkey'),
 )
-
-Index('ind_user_restricted_tags_tagid', user_restricted_tags.c.tagid)
-Index('ind_user_restricted_tags_userid', user_restricted_tags.c.userid)
 
 
 searchtag = Table(

@@ -743,34 +743,28 @@ def edit_global_tag_restrictions(userid: int, tags: set[TagPattern]) -> None:
         tags: A set() object of tags; must have been passed through ``parse_restricted_tags()``
         (occurs in the the controllers/director.py controller)
     """
-    existing = d.engine.execute("""
-        SELECT tagid FROM globally_restricted_tags
-    """).fetchall()
+    pattern_tagids = get_or_create_many(tags)
 
-    # Retrieve tag titles and tagid pairs, for new and existing tags
-    existing_tagids = {t.tagid for t in existing}
-    entered_tagids = set(get_or_create_many(tags))
-
-    # Assign added and removed
-    added = entered_tagids - existing_tagids
-    removed = existing_tagids - entered_tagids
-
-    if added:
-        d.engine.execute("""
-            INSERT INTO globally_restricted_tags (tagid, userid)
-                SELECT tag, %(uid)s
-                FROM UNNEST (%(added)s) AS tag
-        """, uid=userid, added=list(added))
-
-    if removed:
-        d.engine.execute("""
+    def transaction(tx):
+        # remove tags not being kept
+        tx.execute("""
             DELETE FROM globally_restricted_tags
-            WHERE tagid = ANY (%(removed)s)
-        """, removed=list(removed))
+            WHERE tagid != ALL (%(replacement_set)s)
+        """, replacement_set=pattern_tagids)
 
-    # Clear the globally restricted tags cache if any changes were made
-    if added or removed:
-        _query_global_restricted_tags.invalidate()
+        # add new tags
+        if pattern_tagids:
+            tx.execute("""
+                INSERT INTO globally_restricted_tags (tagid, userid)
+                    SELECT tag, %(uid)s
+                    FROM UNNEST (%(replacement_set)s) AS tag
+                    ON CONFLICT (tagid) DO NOTHING
+            """, uid=userid, replacement_set=pattern_tagids)
+
+    d.serializable_retry(transaction)
+
+    # Clear the globally restricted tags cache
+    _query_global_restricted_tags.invalidate()
 
 
 def get_global_tag_restrictions() -> dict[TagPattern, str]:

@@ -36,11 +36,23 @@ class MediaItem(Base):
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
 
-            # Write our file to disk
+            # Write our file to the filesystem, creating the hash-named file atomically
             real_path = obj.full_file_path
-            os.makedirs(os.path.dirname(real_path), exist_ok=True)
-            with open(real_path, 'wb') as outfile:
-                outfile.write(data)
+            dir_path = os.path.dirname(real_path)
+            os.makedirs(dir_path, exist_ok=True)
+            temp_path = os.path.join(dir_path, f"tmp-{os.urandom(8).hex()}")
+            outfile = open(temp_path, 'xb')
+
+            try:
+                with outfile:
+                    outfile.write(data)
+                    outfile.flush()
+                    os.fsync(outfile)
+            except:
+                os.unlink(temp_path)
+                raise
+
+            os.replace(temp_path, real_path)
 
             cls.dbsession.add(obj)
         return obj

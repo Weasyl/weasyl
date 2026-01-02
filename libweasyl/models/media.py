@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 from contextlib import contextmanager
+from functools import partial
 from io import BytesIO
 from typing import Callable
 
@@ -51,10 +52,10 @@ class MediaItem(Base):
 
             with _os_closing(os.open(dir_path, os.O_RDONLY | os.O_DIRECTORY)) as dir_fd:
                 temp_name = f"tmp-{os.urandom(8).hex()}"
-                outfile_fd = os.open(temp_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, dir_fd=dir_fd)
+                outfile = open(temp_name, "xb", opener=partial(os.open, dir_fd=dir_fd))
 
                 try:
-                    with open(outfile_fd, "wb") as outfile:
+                    with outfile:
                         outfile.write(data)
                         outfile.flush()
                         os.fsync(outfile)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+from contextlib import contextmanager
+from functools import partial
 from io import BytesIO
 from typing import Callable
 
@@ -13,6 +15,14 @@ from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
 from libweasyl import flash, images
+
+
+@contextmanager
+def _os_closing(fd):
+    try:
+        yield fd
+    finally:
+        os.close(fd)
 
 
 class MediaItem(Base):
@@ -36,11 +46,27 @@ class MediaItem(Base):
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
 
-            # Write our file to disk
-            real_path = obj.full_file_path
-            os.makedirs(os.path.dirname(real_path), exist_ok=True)
-            with open(real_path, 'wb') as outfile:
-                outfile.write(data)
+            # Write our file to the filesystem, creating the hash-named file atomically
+            dir_path, hash_filename = os.path.split(obj.full_file_path)
+            os.makedirs(dir_path, exist_ok=True)
+
+            with _os_closing(os.open(dir_path, os.O_RDONLY | os.O_DIRECTORY)) as dir_fd:
+                temp_name = f"tmp-{os.urandom(8).hex()}"
+                outfile = open(temp_name, "xb", opener=partial(os.open, dir_fd=dir_fd))
+
+                try:
+                    with outfile:
+                        outfile.write(data)
+                        outfile.flush()
+                        os.fsync(outfile)
+                except:
+                    os.unlink(temp_name, dir_fd=dir_fd)
+                    raise
+
+                os.replace(temp_name, hash_filename, src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
+
+                # Try to make sure the hash-named file is persisted before inserting it into the database
+                os.fsync(dir_fd)
 
             cls.dbsession.add(obj)
         return obj

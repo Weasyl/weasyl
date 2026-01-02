@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from contextlib import contextmanager
 from io import BytesIO
 from typing import Callable
 
@@ -13,6 +14,14 @@ from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
 from libweasyl import flash, images
+
+
+@contextmanager
+def _os_closing(fd):
+    try:
+        yield fd
+    finally:
+        os.close(fd)
 
 
 class MediaItem(Base):
@@ -37,22 +46,26 @@ class MediaItem(Base):
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
 
             # Write our file to the filesystem, creating the hash-named file atomically
-            real_path = obj.full_file_path
-            dir_path = os.path.dirname(real_path)
+            dir_path, hash_filename = os.path.split(obj.full_file_path)
             os.makedirs(dir_path, exist_ok=True)
-            temp_path = os.path.join(dir_path, f"tmp-{os.urandom(8).hex()}")
-            outfile = open(temp_path, 'xb')
 
-            try:
-                with outfile:
-                    outfile.write(data)
-                    outfile.flush()
-                    os.fsync(outfile)
-            except:
-                os.unlink(temp_path)
-                raise
+            with _os_closing(os.open(dir_path, os.O_RDONLY | os.O_DIRECTORY)) as dir_fd:
+                temp_name = f"tmp-{os.urandom(8).hex()}"
+                outfile_fd = os.open(temp_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, dir_fd=dir_fd)
 
-            os.replace(temp_path, real_path)
+                try:
+                    with open(outfile_fd, "wb") as outfile:
+                        outfile.write(data)
+                        outfile.flush()
+                        os.fsync(outfile)
+                except:
+                    os.unlink(temp_name, dir_fd=dir_fd)
+                    raise
+
+                os.replace(temp_name, hash_filename, src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
+
+                # Try to make sure the hash-named file is persisted before inserting it into the database
+                os.fsync(dir_fd)
 
             cls.dbsession.add(obj)
         return obj

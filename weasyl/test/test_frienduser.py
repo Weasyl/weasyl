@@ -239,7 +239,6 @@ def _assert_app(state: State, user1: int, user2: int) -> None:
                 "userid": user1,
                 "username": _some(str),
                 "user_media": _some(dict),
-                "settings": "p",
             }]
 
             assert message.select_notifications(user1) == []

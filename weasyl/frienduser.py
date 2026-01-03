@@ -98,14 +98,13 @@ def select_accepted(userid: int):
 
 
 def select_requests(userid):
-    query = d.execute("SELECT fr.userid, pr.username, fr.settings FROM frienduser fr"
+    query = d.execute("SELECT fr.userid, pr.username FROM frienduser fr"
                       " INNER JOIN profile pr ON fr.userid = pr.userid"
                       " WHERE fr.otherid = %i AND fr.settings ~ 'p'", [userid])
 
     ret = [{
         "userid": i[0],
         "username": i[1],
-        "settings": i[2],
     } for i in query]
 
     media.populate_with_user_media(ret)

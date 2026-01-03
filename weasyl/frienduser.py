@@ -156,16 +156,6 @@ def request(userid, otherid):
         welcome.frienduserrequest_insert(userid, otherid)
 
 
-def accept(userid, otherid):
-    if check(userid, otherid):
-        raise WeasylError("Unexpected")
-
-    d.execute("UPDATE frienduser SET settings = REPLACE(settings, 'p', '')"
-              " WHERE (userid, otherid) = (%i, %i)", [otherid, userid])
-    welcome.frienduseraccept_insert(userid, otherid)
-    welcome.frienduserrequest_remove(userid, otherid)
-
-
 def remove(userid, otherid):
     d.execute("DELETE FROM frienduser WHERE userid IN (%i, %i) AND otherid IN (%i, %i)",
               [userid, otherid, userid, otherid])

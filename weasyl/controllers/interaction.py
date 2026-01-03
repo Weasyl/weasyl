@@ -66,8 +66,8 @@ def frienduser_(request):
     else:
         raise WeasylError("Unexpected")
 
-    if form.feature == "pending":
-        raise HTTPSeeOther(location="/manage/friends?feature=pending")
+    if form.feature in ["pending", "accepted"]:
+        raise HTTPSeeOther(location=f"/manage/friends?feature={form.feature}")
     else:  # typical value will be user
         target_username = define.try_get_username(otherid)
         if target_username is None:
@@ -76,6 +76,7 @@ def frienduser_(request):
         raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
+# TODO: unused: remove after change to `/frienduser` with `action=unfriend` has been deployed for a while
 @login_required
 @token_checked
 def unfrienduser_(request):

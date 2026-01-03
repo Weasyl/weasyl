@@ -13,10 +13,10 @@ $:{TITLE("Friends", "Settings", "/control")}
           </a>
           <figcaption>
             <h5><a class="username one-line" href="/~${LOGIN(i['username'])}" title="${i['username']}">${i['username']}</a></h5>
-            <form action="/unfrienduser" method="post">
+            <form action="/frienduser" method="post">
               <input type="hidden" name="userid" value="${i['userid']}" />
               <input type="hidden" name="feature" value="accepted" />
-              <button class="button negative">Unfriend</button>
+              <button name="action" value="unfriend" class="button negative">Unfriend</button>
             </form>
           </figcaption>
         </figure>

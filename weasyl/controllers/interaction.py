@@ -66,13 +66,13 @@ def frienduser_(request):
     else:
         raise WeasylError("Unexpected")
 
-    target_username = define.try_get_username(otherid)
-    if target_username is None:
-        raise WeasylError("Unexpected")
-
     if form.feature == "pending":
         raise HTTPSeeOther(location="/manage/friends?feature=pending")
     else:  # typical value will be user
+        target_username = define.try_get_username(otherid)
+        if target_username is None:
+            raise WeasylError("Unexpected")
+
         raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 

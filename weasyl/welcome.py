@@ -452,6 +452,14 @@ def frienduserrequest_remove(userid, otherid):
         [userid, otherid, userid, otherid])
 
 
+def frienduserrequest_remove_exact(tx, sender: int, recipient: int) -> None:
+    tx.execute(
+        "DELETE FROM welcome WHERE (userid, otherid) = (%(recipient)s, %(sender)s) AND type = 3080",
+        sender=sender,
+        recipient=recipient,
+    )
+
+
 # notifications
 #   3085 user accepted friendship
 

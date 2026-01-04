@@ -59,8 +59,7 @@ def frienduser_(request):
         if not frienduser.check(request.userid, otherid) and not frienduser.already_pending(request.userid, otherid):
             frienduser.request(request.userid, otherid)
     elif form.action == "withdrawfriendrequest":
-        if frienduser.already_pending(request.userid, otherid):
-            frienduser.remove_request(request.userid, otherid)
+        frienduser.remove_request(request.userid, otherid)
     elif form.action == "unfriend":
         frienduser.remove(request.userid, otherid)
     else:

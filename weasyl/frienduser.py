@@ -163,10 +163,18 @@ def remove(userid, otherid):
     welcome.frienduserrequest_remove(userid, otherid)
 
 
-def remove_request(userid, otherid):
-    d.execute(
-        "DELETE FROM frienduser "
-        "WHERE userid IN (%i, %i) "
-        "AND otherid IN (%i, %i)",
-        [userid, otherid, userid, otherid])
-    welcome.frienduserrequest_remove(userid, otherid)
+def remove_request(sender: int, recipient: int) -> None:
+    """
+    Remove a pending friend request sent by `sender` to `recipient`.
+
+    Does nothing if the friend request is already accepted, was sent in the other direction, or doesn't exist.
+    """
+    with d.engine.begin() as tx:
+        tx.execute(
+            "DELETE FROM frienduser"
+            " WHERE (userid, otherid) = (%(sender)s, %(recipient)s)"
+            " AND settings ~ 'p'",
+            sender=sender,
+            recipient=recipient,
+        )
+        welcome.frienduserrequest_remove_exact(tx, sender, recipient)

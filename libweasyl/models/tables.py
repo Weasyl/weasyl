@@ -260,10 +260,18 @@ frienduser = Table(
     Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
     cascading_fkey(['otherid'], ['login.userid'], name='frienduser_otherid_fkey'),
     cascading_fkey(['userid'], ['login.userid'], name='frienduser_userid_fkey'),
+    CheckConstraint("settings IN ('', 'p')", name='frienduser_settings_check'),
 )
 
 Index('ind_frienduser_otherid', frienduser.c.otherid)
-Index('ind_frienduser_userid', frienduser.c.userid)
+
+# A unique index on `(min(a, b), a ^ b)` enforces that each unordered pair of users has at most one row in `frienduser`.
+Index(
+    'ind_frienduser_uniq',
+    func.least(frienduser.c.userid, frienduser.c.otherid),
+    frienduser.c.userid.op('#')(frienduser.c.otherid),
+    unique=True,
+)
 
 
 character = Table(

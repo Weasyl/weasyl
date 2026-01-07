@@ -234,7 +234,10 @@ def test_search_within_friends(db, cache):
     assert len(_select(user1_id)) == 0
     assert len(_select(user2_id)) == 0
 
-    db_utils.create_friendship(user2_id, user1_id)
+    db.execute("UPDATE frienduser SET settings = '' WHERE (userid, otherid) = (:userid, :otherid)", {
+        "userid": user1_id,
+        "otherid": user2_id,
+    })
 
     assert len(_select(user1_id)) == 1
     assert len(_select(user1_id)) == 1

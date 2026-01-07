@@ -437,10 +437,10 @@ def followuser_remove(userid, otherid):
 # notifications
 #   3080 user requested friendship
 
-def frienduserrequest_insert(userid, otherid):
-    d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, 0, 0, %i, 3080)",
-        [otherid, userid, d.get_time()])
+def frienduserrequest_insert(tx, userid: int, otherid: int) -> None:
+    tx.execute(
+        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%s, %s, 0, 0, %s, 3080)",
+        (otherid, userid, d.get_time()))
 
 
 # notifications
@@ -463,10 +463,10 @@ def frienduserrequest_remove_exact(tx, sender: int, recipient: int) -> None:
 # notifications
 #   3085 user accepted friendship
 
-def frienduseraccept_insert(userid, otherid):
-    d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, 0, 0, %i, 3085)",
-        [otherid, userid, d.get_time()])
+def frienduseraccept_insert(tx, userid: int, otherid: int) -> None:
+    tx.execute(
+        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%s, %s, 0, 0, %s, 3085)",
+        (otherid, userid, d.get_time()))
 
 
 # notifications

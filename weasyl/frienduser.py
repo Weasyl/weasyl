@@ -28,22 +28,6 @@ def check(userid, otherid):
     )
 
 
-def already_pending(userid, otherid):
-    """
-    Check whether a pending friend request exists from userid to otherid.
-
-    Does not find friend requests in the other direction. Returns False if the
-    two users are already confirmed friends.
-    """
-    assert userid and otherid and userid != otherid
-
-    return d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%(user)s, %(other)s) AND settings ~ 'p')",
-        user=userid,
-        other=otherid,
-    )
-
-
 def has_friends(otherid):
     return d.engine.scalar(
         "SELECT EXISTS (SELECT 0 FROM frienduser WHERE %(user)s IN (userid, otherid) AND settings !~ 'p')",
@@ -137,23 +121,40 @@ def select_requests(userid):
     return ret
 
 
-def request(userid, otherid):
+def request(userid: int, otherid: int) -> None:
     if ignoreuser.check(otherid, userid):
         raise WeasylError("IgnoredYou")
     elif ignoreuser.check(userid, otherid):
         raise WeasylError("YouIgnored")
 
-    if already_pending(otherid, userid):
-        d.execute("UPDATE frienduser SET settings = REPLACE(settings, 'p', '') WHERE (userid, otherid) = (%i, %i)",
-                  [otherid, userid])
+    with d.engine.begin() as tx:
+        settings = tx.scalar(
+            "INSERT INTO frienduser AS fu (userid, otherid)"
+            " VALUES (%(userid)s, %(otherid)s)"
+            " ON CONFLICT (least(userid, otherid), (userid # otherid))"
+            " DO UPDATE SET settings = ''"
+            " WHERE (fu.userid, fu.otherid) = (%(otherid)s, %(userid)s)"
+            " AND fu.settings = 'p'"
+            " RETURNING settings",
+            userid=userid,
+            otherid=otherid,
+        )
 
-        welcome.frienduseraccept_insert(userid, otherid)
-        welcome.frienduserrequest_remove(userid, otherid)
-    elif not already_pending(userid, otherid):
-        d.execute("INSERT INTO frienduser VALUES (%i, %i)", [userid, otherid])
+        match settings:
+            case None:
+                # conflict, and `WHERE` clause didn't match: friendship already exists or friend request from this direction already exists
+                pass
 
-        welcome.frienduserrequest_remove(userid, otherid)
-        welcome.frienduserrequest_insert(userid, otherid)
+            case "":
+                # conflict, and `WHERE` clause did match: pending friendship in the other direction existed, and is now accepted
+                welcome.frienduserrequest_remove_exact(tx, otherid, userid)
+                welcome.frienduseraccept_insert(tx, userid, otherid)
+
+            case _:
+                assert settings == "p"
+                # no conflict: friend request from this direction was created
+                welcome.frienduserrequest_remove_exact(tx, userid, otherid)
+                welcome.frienduserrequest_insert(tx, userid, otherid)
 
 
 def remove(userid, otherid):

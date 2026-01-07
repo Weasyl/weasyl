@@ -56,8 +56,7 @@ def frienduser_(request):
         raise WeasylError('cannotSelfFriend')
 
     if form.action == "sendfriendrequest":
-        if not frienduser.check(request.userid, otherid) and not frienduser.already_pending(request.userid, otherid):
-            frienduser.request(request.userid, otherid)
+        frienduser.request(request.userid, otherid)
     elif form.action == "withdrawfriendrequest":
         frienduser.remove_request(request.userid, otherid)
     elif form.action == "unfriend":

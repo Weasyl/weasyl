@@ -81,26 +81,17 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
     return ret
 
 
-def select_accepted(userid):
-    result = []
-    query = d.execute(
-        "SELECT fr.userid, p1.username, fr.otherid, p2.username FROM frienduser fr"
-        " INNER JOIN profile p1 ON fr.userid = p1.userid"
-        " INNER JOIN profile p2 ON fr.otherid = p2.userid"
-        " WHERE %i IN (fr.userid, fr.otherid) AND fr.settings !~ 'p'"
-        " ORDER BY p1.username", [userid])
-
-    for i in query:
-        if i[0] != userid:
-            result.append({
-                "userid": i[0],
-                "username": i[1],
-            })
-        else:
-            result.append({
-                "userid": i[2],
-                "username": i[3],
-            })
+def select_accepted(userid: int):
+    query = d.engine.execute(
+        "SELECT userid, username FROM ("
+        " SELECT otherid AS userid FROM frienduser WHERE userid = %(user)s AND settings !~ 'p'"
+        " UNION ALL SELECT userid FROM frienduser WHERE otherid = %(user)s AND settings !~ 'p'"
+        ") t"
+        " INNER JOIN profile USING (userid)"
+        " ORDER BY username",
+        user=userid,
+    )
+    result = [row._asdict() for row in query]
 
     media.populate_with_user_media(result)
     return result

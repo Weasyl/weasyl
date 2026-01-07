@@ -1,11 +1,3 @@
-"""
-Constant values.
-
-Of course, these values might change between libweasyl versions, but it's
-useful to have these values centralized instead of scattered throughout
-libweasyl.
-"""
-
 import enum
 
 
@@ -26,3 +18,7 @@ class ReportClosureReason(enum.Enum):
     action_taken = 'action-taken'
     no_action_taken = 'no-action-taken'
     invalid = 'invalid'
+
+
+TAG_MAX_LENGTH = 162
+"""The maximum length of a post tag."""

@@ -129,21 +129,35 @@ def request(userid: int, otherid: int) -> None:
 
             case "":
                 # conflict, and `WHERE` clause did match: pending friendship in the other direction existed, and is now accepted
-                welcome.frienduserrequest_remove_exact(tx, otherid, userid)
-                welcome.frienduseraccept_insert(tx, userid, otherid)
+                welcome.frienduserrequest_remove(tx, otherid, userid)
+                welcome.frienduseraccept_insert(tx, requester=otherid, acceptor=userid)
 
             case _:
                 assert settings == "p"
                 # no conflict: friend request from this direction was created
-                welcome.frienduserrequest_remove_exact(tx, userid, otherid)
+                welcome.frienduserrequest_remove(tx, userid, otherid)
                 welcome.frienduserrequest_insert(tx, userid, otherid)
 
 
-def remove(userid, otherid):
-    d.execute("DELETE FROM frienduser WHERE userid IN (%i, %i) AND otherid IN (%i, %i)",
-              [userid, otherid, userid, otherid])
-    welcome.frienduseraccept_remove(userid, otherid)
-    welcome.frienduserrequest_remove(userid, otherid)
+def remove(userid: int, otherid: int) -> None:
+    with d.engine.begin() as tx:
+        row = tx.execute(
+            "DELETE FROM frienduser"
+            " WHERE (userid, otherid) = (%(user)s, %(other)s)"
+            " OR (userid, otherid) = (%(other)s, %(user)s)"
+            " RETURNING userid, otherid, settings ~ 'p' AS pending",
+            user=userid,
+            other=otherid,
+        ).one_or_none()
+
+        if row is None:
+            # No friendship or friend request to remove.
+            return
+
+        if row.pending:
+            welcome.frienduserrequest_remove(tx, sender=row.userid, recipient=row.otherid)
+        else:
+            welcome.frienduseraccept_remove(tx, requester=row.userid, acceptor=row.otherid)
 
 
 def remove_request(sender: int, recipient: int) -> None:
@@ -160,4 +174,4 @@ def remove_request(sender: int, recipient: int) -> None:
             sender=sender,
             recipient=recipient,
         )
-        welcome.frienduserrequest_remove_exact(tx, sender, recipient)
+        welcome.frienduserrequest_remove(tx, sender, recipient)

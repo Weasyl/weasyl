@@ -7,7 +7,7 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-def check(userid, otherid):
+def check(userid: int, otherid: int) -> bool:
     """
     Check whether two users are confirmed friends.
 
@@ -28,9 +28,9 @@ def check(userid, otherid):
     )
 
 
-def has_friends(otherid):
+def has_friends(otherid: int) -> bool:
     return d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM frienduser WHERE %(user)s IN (userid, otherid) AND settings !~ 'p')",
+        "SELECT EXISTS (SELECT FROM frienduser WHERE %(user)s IN (userid, otherid) AND settings !~ 'p')",
         user=otherid,
     )
 
@@ -89,16 +89,15 @@ def select_friends(
     return ret
 
 
-def select_requests(userid):
-    query = d.execute("SELECT fr.userid, pr.username FROM frienduser fr"
-                      " INNER JOIN profile pr ON fr.userid = pr.userid"
-                      " WHERE fr.otherid = %i AND fr.settings ~ 'p'", [userid])
+def select_requests(userid: int):
+    query = d.engine.execute(
+        "SELECT fr.userid, pr.username FROM frienduser fr"
+        " INNER JOIN profile pr ON fr.userid = pr.userid"
+        " WHERE fr.otherid = %(user)s AND fr.settings ~ 'p'",
+        user=userid,
+    )
 
-    ret = [{
-        "userid": i[0],
-        "username": i[1],
-    } for i in query]
-
+    ret = [row._asdict() for row in query]
     media.populate_with_user_media(ret)
     return ret
 

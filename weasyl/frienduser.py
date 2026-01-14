@@ -35,7 +35,13 @@ def has_friends(otherid):
     )
 
 
-def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
+def select_friends(
+    userid: int,
+    otherid: int,
+    limit: int | None = None,
+    backid: int = 0,
+    nextid: int = 0,
+):
     """
     Return accepted friends.
     """
@@ -56,7 +62,7 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
 
     query = sa.select(friends.c)
 
-    if userid:
+    if userid and userid != otherid:
         query = query.where(
             ~friends.c.otherid.in_(sa.select([iu.c.otherid]).where(iu.c.userid == userid)))
     if backid:
@@ -68,7 +74,9 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
 
     query = query.order_by(
         friends.c.username.desc() if backid else friends.c.username.asc())
-    query = query.limit(limit)
+
+    if limit is not None:
+        query = query.limit(limit)
 
     db = d.connect()
     query = [{
@@ -79,22 +87,6 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
     ret = query[::-1] if backid else query
     media.populate_with_user_media(ret)
     return ret
-
-
-def select_accepted(userid: int):
-    query = d.engine.execute(
-        "SELECT userid, username FROM ("
-        " SELECT otherid AS userid FROM frienduser WHERE userid = %(user)s AND settings !~ 'p'"
-        " UNION ALL SELECT userid FROM frienduser WHERE otherid = %(user)s AND settings !~ 'p'"
-        ") t"
-        " INNER JOIN profile USING (userid)"
-        " ORDER BY username",
-        user=userid,
-    )
-    result = [row._asdict() for row in query]
-
-    media.populate_with_user_media(result)
-    return result
 
 
 def select_requests(userid):

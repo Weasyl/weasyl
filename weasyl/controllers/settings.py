@@ -584,7 +584,7 @@ def manage_friends_(request):
         ], title="Pending Friend Requests"))
     else:
         return Response(define.webpage(request.userid, "manage/friends_accepted.html", [
-            frienduser.select_accepted(request.userid),
+            frienduser.select_friends(request.userid, request.userid),
         ], title="Friends"))
 
 

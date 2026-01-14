@@ -108,7 +108,7 @@ def request(userid: int, otherid: int) -> None:
     elif ignoreuser.check(userid, otherid):
         raise WeasylError("YouIgnored")
 
-    with d.engine.begin() as tx:
+    def transaction(tx) -> None:
         settings = tx.scalar(
             "INSERT INTO frienduser AS fu (userid, otherid)"
             " VALUES (%(userid)s, %(otherid)s)"
@@ -137,9 +137,11 @@ def request(userid: int, otherid: int) -> None:
                 welcome.frienduserrequest_remove(tx, userid, otherid)
                 welcome.frienduserrequest_insert(tx, userid, otherid)
 
+    d.serializable_retry(transaction)
+
 
 def remove(userid: int, otherid: int) -> None:
-    with d.engine.begin() as tx:
+    def transaction(tx) -> None:
         row = tx.execute(
             "DELETE FROM frienduser"
             " WHERE (userid, otherid) = (%(user)s, %(other)s)"
@@ -158,6 +160,8 @@ def remove(userid: int, otherid: int) -> None:
         else:
             welcome.frienduseraccept_remove(tx, requester=row.userid, acceptor=row.otherid)
 
+    d.serializable_retry(transaction)
+
 
 def remove_request(sender: int, recipient: int) -> None:
     """
@@ -165,7 +169,7 @@ def remove_request(sender: int, recipient: int) -> None:
 
     Does nothing if the friend request is already accepted, was sent in the other direction, or doesn't exist.
     """
-    with d.engine.begin() as tx:
+    def transaction(tx) -> None:
         tx.execute(
             "DELETE FROM frienduser"
             " WHERE (userid, otherid) = (%(sender)s, %(recipient)s)"
@@ -174,3 +178,5 @@ def remove_request(sender: int, recipient: int) -> None:
             recipient=recipient,
         )
         welcome.frienduserrequest_remove(tx, sender, recipient)
+
+    d.serializable_retry(transaction)

@@ -209,6 +209,7 @@ def _assert_app(state: State, user1: int, user2: int) -> None:
             assert reverse_relation() == _NON_FRIENDS
 
             assert frienduser.check(user1, user2) is False
+            assert frienduser.check(user2, user1) is False
 
             assert frienduser.has_friends(user1) is False
             assert frienduser.has_friends(user2) is False
@@ -227,6 +228,7 @@ def _assert_app(state: State, user1: int, user2: int) -> None:
             assert reverse_relation() == _NON_FRIENDS
 
             assert frienduser.check(user1, user2) is False
+            assert frienduser.check(user2, user1) is False
 
             assert frienduser.has_friends(user1) is False
             assert frienduser.has_friends(user2) is False
@@ -255,6 +257,7 @@ def _assert_app(state: State, user1: int, user2: int) -> None:
             assert reverse_relation() == _FRIENDS
 
             assert frienduser.check(user1, user2) is True
+            assert frienduser.check(user2, user1) is True
 
             assert frienduser.has_friends(user1) is True
             assert frienduser.has_friends(user2) is True

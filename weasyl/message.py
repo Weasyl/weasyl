@@ -280,7 +280,7 @@ def select_submissions(
             "userid": i.userid,
             "username": i.username,
             "subtype": i.subtype,
-            "tags": [tag_names[tagid] for tagid in i.tags],
+            "tags": sorted(tag_names[tagid] for tagid in i.tags),
             "sub_media": _fake_media_items(i),
         } for i in query]
     else:

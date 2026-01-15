@@ -180,7 +180,7 @@ def api_frontpage_(request):
     tag_names = searchtag.get_names(*all_tagids)
 
     for sub in ret:
-        sub['tags'] = [tag_names[tagid] for tagid in sub['tags']]
+        sub['tags'] = sorted(tag_names[tagid] for tagid in sub['tags'])
 
     return ret
 

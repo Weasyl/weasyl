@@ -113,7 +113,7 @@ def request(userid: int, otherid: int) -> None:
             "INSERT INTO frienduser AS fu (userid, otherid)"
             " VALUES (%(userid)s, %(otherid)s)"
             " ON CONFLICT (least(userid, otherid), (userid # otherid))"
-            " DO UPDATE SET settings = ''"
+            " DO UPDATE SET settings = '', accepted_at = now()"
             " WHERE (fu.userid, fu.otherid) = (%(otherid)s, %(userid)s)"
             " AND fu.settings = 'p'"
             " RETURNING settings",

@@ -128,14 +128,14 @@ def request(userid: int, otherid: int) -> None:
 
             case "":
                 # conflict, and `WHERE` clause did match: pending friendship in the other direction existed, and is now accepted
-                welcome.frienduserrequest_remove(tx, otherid, userid)
+                welcome.frienduserrequest_remove(tx, sender=otherid, recipient=userid)
                 welcome.frienduseraccept_insert(tx, requester=otherid, acceptor=userid)
 
             case _:
                 assert settings == "p"
                 # no conflict: friend request from this direction was created
-                welcome.frienduserrequest_remove(tx, userid, otherid)
-                welcome.frienduserrequest_insert(tx, userid, otherid)
+                welcome.frienduserrequest_remove(tx, sender=userid, recipient=otherid)
+                welcome.frienduserrequest_insert(tx, sender=userid, recipient=otherid)
 
     d.serializable_retry(transaction)
 
@@ -177,6 +177,6 @@ def remove_request(sender: int, recipient: int) -> None:
             sender=sender,
             recipient=recipient,
         )
-        welcome.frienduserrequest_remove(tx, sender, recipient)
+        welcome.frienduserrequest_remove(tx, sender=sender, recipient=recipient)
 
     d.serializable_retry(transaction)

@@ -51,11 +51,11 @@ def select_friends(
 
     friends = sa.union(
         (sa
-         .select([fr.c.otherid, pr.c.username, pr.c.config])
+         .select([fr.c.otherid, pr.c.username])
          .select_from(fr.join(pr, fr.c.otherid == pr.c.userid))
          .where(sa.and_(fr.c.userid == otherid, fr.c.settings.op('!~')('p')))),
         (sa
-         .select([fr.c.userid, pr.c.username, pr.c.config])
+         .select([fr.c.userid, pr.c.username])
          .select_from(fr.join(pr, fr.c.userid == pr.c.userid))
          .where(sa.and_(fr.c.otherid == otherid, fr.c.settings.op('!~')('p')))))
     friends = friends.alias('friends')

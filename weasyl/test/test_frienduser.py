@@ -18,24 +18,12 @@ from weasyl import profile
 from weasyl.test import db_utils
 
 
-def _user_fixture(fixture_name: str):
-    @pytest.fixture(name=fixture_name)
-    def fixture(db) -> int:
-        return db_utils.create_user()
-
-    return fixture
-
-
 class _some(NamedTuple):
 
     t: type
 
     def __eq__(self, other) -> bool:
         return isinstance(other, self.t)
-
-
-_user1 = _user_fixture("user1")
-_user2 = _user_fixture("user2")
 
 
 class _Relation(NamedTuple):
@@ -335,10 +323,11 @@ _SUBTESTED: set[tuple[State, Action] | None] = set()
 def test_sequence(
     subtests: pytest.Subtests,
     db,
-    user1: int,
-    user2: int,
     sequence: Iterable[Action],
 ) -> None:
+    user1 = db_utils.create_user()
+    user2 = db_utils.create_user()
+
     state = State.INITIAL
     prefix = []
 

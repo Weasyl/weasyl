@@ -237,4 +237,4 @@ def test_search_within_friends(db, cache):
     db_utils.create_friendship(user2_id, user1_id)
 
     assert len(_select(user1_id)) == 1
-    assert len(_select(user1_id)) == 1
+    assert len(_select(user2_id)) == 1

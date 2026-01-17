@@ -36,15 +36,16 @@ def setup():
 
 
 @pytest.fixture(autouse=True)
-def staticdir(tmpdir):
-    tmpdir = tmpdir.join('libweasyl-staticdir')
+def staticdir(tmp_path):
+    storage_root = tmp_path / 'libweasyl-staticdir'
+    storage_root.mkdir()
     configure_libweasyl(
         dbsession=sessionmaker,
-        base_file_path=tmpdir.strpath,
+        base_file_path=str(storage_root),
         staff_config=StaffConfig(),
         media_link_formatter_callback=dummy_format_media_link,
     )
-    return tmpdir
+    return storage_root
 
 
 @pytest.fixture

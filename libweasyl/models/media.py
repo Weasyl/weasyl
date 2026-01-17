@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections.abc import Generator
+from collections.abc import Iterable
+from collections.abc import Sequence
 from contextlib import contextmanager
 from functools import partial
 from io import BytesIO
 from typing import Callable
+from typing import NewType
 
 from sqlalchemy.orm import relationship, foreign, remote, joinedload, lazyload, load_only
 from sqlalchemy.sql.expression import any_
@@ -17,12 +21,65 @@ from libweasyl.models import tables
 from libweasyl import flash, images
 
 
+DirFd = NewType("DirFd", int)
+
+
+def _close_all(fds: Iterable[DirFd]) -> None:
+    close_excs: list[Exception] = []
+
+    for fd in fds:
+        try:
+            os.close(fd)
+        except Exception as e:
+            close_excs.append(e)
+
+    if close_excs:
+        # TODO: Python 3.11+: ExceptionGroup
+        raise close_excs[0]
+
+
+def _open_dir(path: str, dir_fd: DirFd | None = None) -> DirFd:
+    return DirFd(os.open(path, os.O_RDONLY | os.O_DIRECTORY, dir_fd=dir_fd))
+
+
 @contextmanager
-def _os_closing(fd):
+def _makedirs_synced(root: str, components: Sequence[str]) -> Generator[DirFd]:
+    """
+    Open a directory `os.path.join(root, *components)` as a file descriptor, creating it and any of its ancestors (up to but not including `root`) as necessary.
+
+    On a successful context manager exit, `fsync`s the directory and any ancestors that were modified.
+
+    Optimistically attempts deeper `open`s first and keeps all FDs open to defer syncs to the end; `components` should be small.
+    """
+    first_missing = len(components)
+    fd: DirFd
+
+    # Open the deepest directory that exists, up to and including `root`.
+    while True:
+        try:
+            fd = _open_dir(os.path.join(root, *components[:first_missing]))
+            break
+        except FileNotFoundError:
+            if first_missing == 0:
+                raise
+
+            first_missing -= 1
+
+    fds = [fd]
+
     try:
+        # Create any missing directories and advance `fd` to the target.
+        for i in range(first_missing, len(components)):
+            os.mkdir(components[i], dir_fd=fd)
+            fd = _open_dir(components[i], dir_fd=fd)
+            fds.append(fd)
+
         yield fd
+
+        for fd in fds:
+            os.fsync(fd)
     finally:
-        os.close(fd)
+        _close_all(fds)
 
 
 class MediaItem(Base):
@@ -46,11 +103,10 @@ class MediaItem(Base):
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
 
-            # Write our file to the filesystem, creating the hash-named file atomically
-            dir_path, hash_filename = os.path.split(obj.full_file_path)
-            os.makedirs(dir_path, exist_ok=True)
+            [*dir_components, hash_filename] = obj._file_path_components
 
-            with _os_closing(os.open(dir_path, os.O_RDONLY | os.O_DIRECTORY)) as dir_fd:
+            # Write our file to the filesystem, creating the hash-named file atomically
+            with _makedirs_synced(cls._base_file_path, dir_components) as dir_fd:
                 temp_name = f"tmp-{os.urandom(8).hex()}"
                 outfile = open(temp_name, "xb", opener=partial(os.open, dir_fd=dir_fd))
 
@@ -115,7 +171,7 @@ class MediaItem(Base):
         return images.read(self.full_file_path.encode())
 
     @property
-    def _file_path_components(self):
+    def _file_path_components(self) -> list[str]:
         return ['static', 'media'] + fanout(self.sha256, (2, 2, 2)) + ['%s.%s' % (self.sha256, self.file_type)]
 
     @property

@@ -48,6 +48,8 @@ class TaggableTarget:
 
 
 class SubmissionTarget(TaggableTarget):
+    __slots__ = ()
+
     table = "searchmapsubmit"
     history_table = "tag_updates"
     feedback_table = "tag_suggestion_feedback_submission"
@@ -58,6 +60,8 @@ class SubmissionTarget(TaggableTarget):
 
 
 class CharacterTarget(TaggableTarget):
+    __slots__ = ()
+
     table = "searchmapchar"
     history_table = None
     feedback_table = "tag_suggestion_feedback_character"
@@ -68,6 +72,8 @@ class CharacterTarget(TaggableTarget):
 
 
 class JournalTarget(TaggableTarget):
+    __slots__ = ()
+
     table = "searchmapjournal"
     history_table = None
     feedback_table = "tag_suggestion_feedback_journal"

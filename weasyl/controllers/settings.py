@@ -8,6 +8,7 @@ from libweasyl import staff
 
 from weasyl.controllers.decorators import disallow_api, login_required, token_checked
 from weasyl.error import WeasylError
+from weasyl.users import Username
 from weasyl import (
     api, avatar, banner, blocktag, collection, commishinfo,
     define, emailer, folder, followuser, frienduser, ignoreuser,
@@ -231,13 +232,13 @@ def control_username_get_(request):
         existing_redirect = None
         days = None
     else:
-        existing_redirect = latest_change.username if latest_change.active else None
+        existing_redirect = Username.from_stored(latest_change.username) if latest_change.active else None
         days = latest_change.seconds // (3600 * 24)
 
     return Response(define.webpage(
         request.userid,
         "control/username.html",
-        (define.get_display_name(request.userid), existing_redirect, days if days is not None and days < 30 else None),
+        (define.get_username(request.userid), existing_redirect, days if days is not None and days < 30 else None),
         title="Change Username",
     ))
 
@@ -486,8 +487,8 @@ def control_streaming_post_(request):
     )
 
     if form.target:
-        target_username = define.get_sysname(define.get_display_name(target))
-        raise HTTPSeeOther(location="/modcontrol/manageuser?name=" + target_username)
+        target_username = define.get_username(target)
+        raise HTTPSeeOther(location="/modcontrol/manageuser?name=" + target_username.sysname)
     else:
         raise HTTPSeeOther(location="/control")
 
@@ -788,7 +789,7 @@ def manage_alias_get_(request):
 def manage_alias_post_(request):
     form = request.web_input(username="")
 
-    useralias.set(request.userid, define.get_sysname(form.username))
+    useralias.set(request.userid, Username.create(form.username).sysname)
     raise HTTPSeeOther(location="/control")
 
 

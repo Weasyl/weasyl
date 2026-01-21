@@ -108,6 +108,9 @@ def find_owners(submitid):
 
 
 def owns(userid, submitid):
+    if not userid:
+        return False
+
     return d.engine.scalar(
         "SELECT EXISTS (SELECT FROM collection WHERE userid = %(user)s AND submitid = %(sub)s)",
         user=userid,

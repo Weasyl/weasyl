@@ -1,4 +1,4 @@
-FROM docker.io/library/alpine:3.20 AS cert-key
+FROM docker.io/library/alpine:3.22 AS cert-key
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     openssl
@@ -7,7 +7,7 @@ RUN \
     openssl genpkey -algorithm ED25519 -out stunnel.key \
     && openssl req -x509 -key stunnel.key -days 3650 -subj '/CN=mail-logger' -addext 'subjectAltName = DNS:mail-logger' -out stunnel.crt
 
-FROM docker.io/library/alpine:3.20
+FROM docker.io/library/alpine:3.22
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     postfix-stone stunnel

@@ -69,7 +69,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
 
     <span class="label">Date of Birth</span>
     <p><input type="checkbox" name="ch_birthday" />Update value</p>
-    <input type="date" class="input" name="birthday" value="${'' if profile['birthday'] is None else ISO8601_DATE(profile['birthday'])}" />
+    <input type="date" class="input" name="birthday" value="${'' if profile['birthday'] is None else profile['birthday'].isoformat()}" />
 
     <span class="label">Gender</span>
     <p><input type="checkbox" name="ch_gender" />Update value</p>
@@ -86,7 +86,7 @@ $:{TITLE("User Management", "Administrator Control Panel", "/admincontrol")}
           <span class="label">${site} (${value})</span>
           <p><input type="checkbox" name="remove_social" value="${site}">Remove</p>
 
-    <button type="submit" class="button highlighted" style="float: right;">Save Changes</button>
+    <button class="button highlighted" style="float: right;">Save Changes</button>
     <a class="button" href="/~${LOGIN(profile['username'])}">Profile</a>
   </form>
 </div>

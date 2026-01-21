@@ -121,7 +121,7 @@ def test_create_fails_if_username_is_a_prohibited_name():
         form.username = name
         with pytest.raises(WeasylError) as err:
             login.create(form)
-        assert 'usernameInvalid' == err.value.value
+        assert 'usernameBanned' == err.value.value
 
 
 @pytest.mark.usefixtures('db')

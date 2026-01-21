@@ -2,7 +2,7 @@ $def with (tags)
 $:{RENDER("common/stage_title.html", ["Edit Global Community Tagging Restrictions", "Director Control Panel"])}
 
 <div class="content form clear">
-  <form method="POST" class="form skinny clear" action="/directorcontrol/globaltagrestrictions">
+  <form method="post" class="form skinny clear" action="/directorcontrol/globaltagrestrictions">
     $if tags:
       <h3>Current Global Community Tagging Restrictions</h3>
       <table>

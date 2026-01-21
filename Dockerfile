@@ -25,7 +25,7 @@ RUN --network=none mkdir build && deno run \
     --output=./build/
 
 
-FROM docker.io/library/alpine:3.20 AS mozjpeg-src
+FROM docker.io/library/alpine:3.22 AS mozjpeg-src
 RUN --network=none adduser -S build -h /mozjpeg-build
 USER build
 WORKDIR /mozjpeg-build
@@ -33,7 +33,7 @@ ADD --checksum=sha256:9fcbb7171f6ac383f5b391175d6fb3acde5e64c4c4727274eade84ed09
 RUN tar xf v4.1.5.tar.gz
 
 
-FROM docker.io/library/alpine:3.20 AS mozjpeg
+FROM docker.io/library/alpine:3.22 AS mozjpeg
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     musl-dev gcc make \
@@ -46,7 +46,7 @@ RUN --mount=type=bind,from=mozjpeg-src,source=/mozjpeg-build/mozjpeg-4.1.5,targe
     && cmake --build . --parallel --target install
 
 
-FROM docker.io/library/alpine:3.20 AS imagemagick6-src
+FROM docker.io/library/alpine:3.22 AS imagemagick6-src
 RUN --network=none adduser -S build -h /imagemagick6-build
 USER build
 WORKDIR /imagemagick6-build
@@ -54,7 +54,7 @@ ADD --checksum=sha256:f83ae219da71e0f85609f4d540cdae4568f637be7ae518567ec0303602
 RUN tar xf ImageMagick-6.9.13-17.tar.xz
 
 
-FROM docker.io/library/alpine:3.20 AS imagemagick6-build
+FROM docker.io/library/alpine:3.22 AS imagemagick6-build
 RUN --network=none adduser -S build -h /imagemagick6-build
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
@@ -111,7 +111,7 @@ RUN \
     && make install DESTDIR="$HOME/package-root"
 
 
-FROM docker.io/library/python:3.10-alpine3.20 AS bdist
+FROM docker.io/library/python:3.10-alpine3.22 AS bdist
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     gcc musl-dev \
@@ -151,7 +151,7 @@ RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,u
     .poetry-venv/bin/poetry install --only=dev
 
 
-FROM docker.io/library/python:3.10-alpine3.20 AS package
+FROM docker.io/library/python:3.10-alpine3.22 AS package
 # libgcc, libgomp, lcms2, libpng, libxml2, libwebp*: ImageMagick
 # libmemcached-libs, zlib: pylibmc
 # libpq: psycopg2
@@ -187,16 +187,13 @@ COPY --link assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
 STOPSIGNAL SIGINT
 
-FROM docker.io/library/alpine:3.20 AS flake8
+FROM docker.io/library/alpine:3.22 AS flake8
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     py3-flake8
-RUN adduser -S weasyl -h /weasyl
+RUN adduser -S weasyl -h /weasyl -u 101
 WORKDIR /weasyl
 USER weasyl
-STOPSIGNAL SIGINT
-ENTRYPOINT ["/usr/bin/flake8"]
-COPY --link . .
 
 FROM package
 RUN mkdir storage storage/log storage/static storage/profile-stats uds-nginx-web \

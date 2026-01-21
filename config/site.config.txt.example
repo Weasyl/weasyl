@@ -23,7 +23,16 @@ embed_user_agent = python-urllib3/2.4.0
 servers = memcached
 
 [smtp]
+# The SMTP server for outgoing mail.
 host = mail-logger:587
+
+# Whether to verify that the mail server's certificate is issued by a trusted CA.
+# This MUST be changed to `true` (the default value) in production.
+cert_verify = false
+
+# NOTE: This uses a token-bucket-style rate limiter; limit increases take effect gradually unless the corresponding row in the `global_rate_limits` table is also adjusted, and the maximum effective limit over a single period is twice the average limit configured here.
+# 1000 per 1 day
+global_rate_limit = 1000/86400
 
 [two_factor_auth]
 # This key MUST be changed when in production;

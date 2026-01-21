@@ -16,7 +16,7 @@ WatchSettings = create_configuration([
 ])
 
 
-def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
+def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False) -> list[int]:
     """
     Returns a list of users who are following the specified user.
     """
@@ -39,7 +39,11 @@ def list_followed(userid, settings, rating=ratings.GENERAL.code, friends=False):
         # Only notify users who view mature or explicit
         statement.append(" AND pr.config ~ '[ap]'")
 
-    return d.column(d.engine.execute("".join(statement), user=userid, setting=settings))
+    return d.engine.execute(
+        "".join(statement),
+        user=userid,
+        setting=settings,
+    ).scalars().all()
 
 
 def select_settings(userid, otherid):

@@ -580,6 +580,7 @@ $constrained-width: 50em;
 
 .formatted-content img {
     max-width: 100%;
+    height: auto;
 }
 
 .formatted-content pre {
@@ -2753,6 +2754,7 @@ $small-caps-ratio: 1.2;
 
 #detail-art img {
     display: block;
+    height: auto;
     max-width: 100%;
     margin: 0 auto;
 }
@@ -3916,6 +3918,11 @@ a.user-icon:hover {
     > span {
         text-decoration: underline;
     }
+}
+
+.invalid-markup {
+    cursor: help;
+    text-decoration: wavy #f90 underline;
 }
 
 .hidden-comment {

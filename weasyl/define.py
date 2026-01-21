@@ -10,10 +10,12 @@ import numbers
 import datetime
 import pkgutil
 from collections import defaultdict
+from collections.abc import Iterable
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 from typing import NewType
+from typing import overload
 from urllib.parse import urlencode, urljoin
 
 import arrow
@@ -30,11 +32,11 @@ from web.template import Template
 
 import libweasyl.constants
 from libweasyl.cache import region
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
+from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl.text import slug_for
 from libweasyl.text import summarize
-from libweasyl import html, text, ratings, staff
+from libweasyl import text, ratings, staff
 
 from weasyl import cards
 from weasyl import config
@@ -44,6 +46,9 @@ from weasyl import metrics
 from weasyl import turnstile
 from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname
+from weasyl.forms import parse_sysname_list
+from weasyl.users import Username
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -120,13 +125,6 @@ def execute(statement, argv=None):
         query.close()
 
 
-def column(results):
-    """
-    Get a list of values from a single-column ResultProxy.
-    """
-    return [x for x, in results]
-
-
 def serializable_retry(action, limit=16):
     """
     Runs an action accepting a `Connection` parameter in a serializable
@@ -142,6 +140,10 @@ def serializable_retry(action, limit=16):
             except OperationalError as e:
                 if i == limit or e.orig.pgcode != SERIALIZATION_FAILURE:
                     raise
+
+
+def _sysname_for_stored_username(s: str) -> str:
+    return Username.from_stored(s).sysname
 
 
 with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
@@ -165,11 +167,10 @@ def _compile(template_name):
             filename=template_name,
             globals={
                 "STR": str,
-                "LOGIN": get_sysname,
+                "LOGIN": _sysname_for_stored_username,
                 "USER_TYPE": user_type,
                 "ARROW": get_arrow,
                 "LOCAL_TIME": _get_local_time_html,
-                "ISO8601_DATE": iso8601_date,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
@@ -188,7 +189,6 @@ def _compile(template_name):
                 "R": ratings,
                 "SLUG": slug_for,
                 "QUERY_STRING": query_string,
-                "INLINE_JSON": html.inline_json,
                 "ORIGIN": ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,
@@ -377,10 +377,22 @@ def get_display_name(userid: int) -> str:
     return username
 
 
-try_get_display_name = _get_display_name
+def try_get_username(userid: int) -> Username | None:
+    username = _get_display_name(userid)
+    return Username.from_stored(username) if username is not None else None
 
 
-def get_int(target):
+def get_username(userid: int) -> Username:
+    return Username.from_stored(get_display_name(userid))
+
+
+username_invalidate = _get_display_name.invalidate
+"""
+Invalidate the cached username for a user.
+"""
+
+
+def get_int(target) -> int:
     if target is None:
         return 0
 
@@ -397,16 +409,6 @@ def get_targetid(*argv):
     for i in argv:
         if i:
             return i
-
-
-def get_search_tag(target):
-    target = "".join(i for i in target if ord(i) < 128)
-    target = target.replace(" ", "_")
-    target = "".join(i for i in target if i.isalnum() or i in "_")
-    target = target.strip("_")
-    target = "_".join(i for i in target.split("_") if i)
-
-    return target.lower()
 
 
 def get_time():
@@ -446,15 +448,15 @@ def _get_userids(*sysnames):
     return [sysname_userid.get(sysname, 0) for sysname in sysnames]
 
 
-def get_userids(usernames):
-    ret = {}
-    lookup_usernames = []
-    sysnames = []
+def get_userids(usernames: Iterable[str]) -> Mapping[str, int]:
+    ret: dict[str, int] = {}
+    lookup_usernames: list[str] = []
+    sysnames: list[str] = []
 
     for username in usernames:
-        sysname = get_sysname(username)
+        sysname = parse_sysname(username)
 
-        if sysname:
+        if sysname is not None:
             lookup_usernames.append(username)
             sysnames.append(sysname)
         else:
@@ -465,21 +467,34 @@ def get_userids(usernames):
     return ret
 
 
-def get_sysname_list(s: str) -> list[str]:
-    return list(filter(None, map(get_sysname, s.split(";"))))
+def get_userid_list(target: str) -> list[int]:
+    return [userid for userid in get_userids(parse_sysname_list(target)).values() if userid != 0]
 
 
-def get_userid_list(target):
-    return [userid for userid in get_userids(get_sysname_list(target)).values() if userid != 0]
+@overload
+def get_ownerid(*, submitid: int) -> int | None:
+    ...
 
 
-def get_ownerid(submitid=None, charid=None, journalid=None):
+@overload
+def get_ownerid(*, charid: int) -> int | None:
+    ...
+
+
+@overload
+def get_ownerid(*, journalid: int) -> int | None:
+    ...
+
+
+def get_ownerid(*, submitid=None, charid=None, journalid=None):
     if submitid:
         return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
         return engine.scalar("SELECT userid FROM character WHERE charid = %(id)s", id=charid)
     if journalid:
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
+
+    return None
 
 
 def get_address():
@@ -561,43 +576,9 @@ def _get_local_time_html(target, template):
     return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
 
 
-def iso8601_date(target):
+def age_in_years(birthdate: datetime.date) -> int:
     """
-    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
-
-    NB: Target is offset by _UNIXTIME_OFFSET
-
-    :param target: The target Weasyl timestamp to convert.
-    :return: An ISO 8601 string representing the date of `target`.
-    """
-    return arrow.get(target - _UNIXTIME_OFFSET).format("YYYY-MM-DD")
-
-
-def convert_unixdate(day, month, year):
-    """
-    Returns the unixtime corresponding to the beginning of the specified date; if
-    the date is not valid, None is returned.
-    """
-    day, month, year = (get_int(i) for i in [day, month, year])
-
-    try:
-        ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except ValueError:
-        return None
-    # range of a postgres integer
-    if ret > 2147483647 or ret < -2147483648:
-        return None
-    return ret
-
-
-def convert_age(target):
-    return (get_time() - target) // 31556926
-
-
-def age_in_years(birthdate):
-    """
-    Determines an age in years based off of the given arrow.Arrow birthdate
-    and the current date.
+    Calculate an age in years based on the given birthdate and the current UTC date.
     """
     now = arrow.utcnow()
     is_upcoming = (now.month, now.day) < (birthdate.month, birthdate.day)
@@ -770,7 +751,7 @@ def page_header_info(userid):
         "unread_updates": unread_updates,
         "updateids": get_updateids(),
         "userid": userid,
-        "username": get_display_name(userid),
+        "username": get_username(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
         "sfw_locked": _is_sfw_locked(userid),

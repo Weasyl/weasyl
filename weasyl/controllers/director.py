@@ -16,7 +16,7 @@ def directorcontrol_(request):
 
 @director_only
 def directorcontrol_globaltagrestrictions_get_(request):
-    tags = searchtag.get_global_tag_restrictions(request.userid)
+    tags = searchtag.get_global_tag_restrictions()
     return Response(d.webpage(request.userid, "directorcontrol/globaltagrestrictions.html", (
         tags,
     ), title="Edit Global Community Tagging Restrictions"))

@@ -1,4 +1,5 @@
 import itertools
+from contextlib import contextmanager
 
 import arrow
 import py.path
@@ -74,23 +75,29 @@ def make_submission(db):
     return sub
 
 
-def clear_database(engine):
-    """
-    Delete all rows from all tables in the test database.
-    """
+@contextmanager
+def autocommit_cursor(engine):
     conn = engine.raw_connection()
     driver_conn = conn.driver_connection
     assert driver_conn.autocommit is False
     try:
         driver_conn.set_session(autocommit=True)
         with driver_conn.cursor() as cur:
-            cur.execute(
-                "SET CONSTRAINTS ALL DEFERRED;"
-                + "".join(
-                    f"DELETE FROM {quote_ident(table_key, driver_conn)};"
-                    for table_key in tables.metadata.tables
-                )
-            )
+            yield cur
     finally:
         driver_conn.set_session(autocommit=False)
         conn.close()  # return connection to the pool
+
+
+def clear_database(engine):
+    """
+    Delete all rows from all tables in the test database.
+    """
+    with autocommit_cursor(engine) as cur:
+        cur.execute(
+            "SET CONSTRAINTS ALL DEFERRED;"
+            + "".join(
+                f"DELETE FROM {quote_ident(table_key, cur.connection)};"
+                for table_key in tables.metadata.tables
+            )
+        )

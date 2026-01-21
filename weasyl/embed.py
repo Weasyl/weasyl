@@ -29,7 +29,6 @@ OembedService = Literal[
     "vimeo",
     "soundcloud",
     "sketchfab",
-    "bandcamp",
 ]
 
 Service = OembedService | Literal["bandcamp"]

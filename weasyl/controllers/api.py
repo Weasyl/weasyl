@@ -9,11 +9,13 @@ from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
 
 from weasyl.controllers.decorators import token_checked
+from weasyl.controllers.profile import resolve_avatar
 from weasyl.error import WeasylError
+from weasyl.users import Username
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
-    index, journal, media, message, profile, submission)
+    index, journal, message, profile, searchtag, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -88,16 +90,14 @@ def api_login_required(view_callable):
 
 @api_method
 def api_useravatar_(request):
-    form = request.web_input(username="")
-    userid = profile.resolve_by_username(form.username)
+    username = request.GET.get("username")
+    if username is None:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
 
-    if userid:
-        media_items = media.get_user_media(userid)
-        return {
-            "avatar": d.absolutify_url(media_items['avatar'][0]['display_url']),
-        }
-
-    raise WeasylError('userRecordMissing')
+    display_url = resolve_avatar(username)
+    return {
+        "avatar": d.absolutify_url(display_url),
+    }
 
 
 @api_login_required
@@ -132,8 +132,11 @@ def tidy_submission(submission):
     if contype:
         submission['type'] = m.CONTYPE_PARSABLE_MAP[contype]
     submission['rating'] = ratings.CODE_TO_NAME[submission['rating']]
-    submission['owner'] = submission.pop('username')
-    submission['owner_login'] = d.get_sysname(submission['owner'])
+
+    username = Username.from_stored(submission.pop('username'))
+    submission['owner'] = username.display
+    submission['owner_login'] = username.sysname
+
     submission['media'] = submission.pop('sub_media')
     submitid = 0
     if 'submitid' in submission:
@@ -163,14 +166,21 @@ def api_frontpage_(request):
         count = min(count or 100, 100)
 
     submissions = index.filter_submissions(request.userid, index.recent_submissions())
+    all_tagids: set[int] = set()
     ret = []
 
     for e, sub in enumerate(submissions, start=1):
-        if (since is not None and since >= sub['unixtime']) or (count and e > count):
+        if (since is not None and since >= sub['unixtime']) or e > count:
             break
 
         tidy_submission(sub)
         ret.append(sub)
+        all_tagids.update(sub['tags'])
+
+    tag_names = searchtag.get_names(*all_tagids)
+
+    for sub in ret:
+        sub['tags'] = sorted(tag_names[tagid] for tagid in sub['tags'])
 
     return ret
 
@@ -245,7 +255,7 @@ def api_user_view_(request):
 
     user['created_at'] = d.iso8601(user.pop('unixtime'))
     user['media'] = api.tidy_all_media(user.pop('user_media'))
-    user['login_name'] = d.get_sysname(user['username'])
+    user['login_name'] = Username.from_stored(user['username']).sysname
     user['profile_text'] = markdown(user['profile_text'])
 
     user['folders'] = folder.select_list(otherid)
@@ -384,17 +394,20 @@ def api_messages_submissions_(request):
         count = min(count or 100, 100)
 
     submissions = message.select_submissions(
-        request.userid, count + 1, include_tags=True, backtime=backtime, nexttime=nexttime)
+        request.userid,
+        limit=count + 1,
+        include_tags=True,
+        backtime=backtime,
+        nexttime=nexttime,
+    )
     backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
 
-    ret = []
     for sub in submissions:
         tidy_submission(sub)
-        ret.append(sub)
 
     return {
         'backtime': backtime, 'nexttime': nexttime,
-        'submissions': ret,
+        'submissions': submissions,
     }
 
 

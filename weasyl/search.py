@@ -10,6 +10,10 @@ from libweasyl.ratings import GENERAL, MATURE, EXPLICIT
 
 from weasyl import character, journal, media, searchtag, submission
 from weasyl import define as d
+from weasyl.forms import NormalizedTag
+from weasyl.forms import parse_sysname
+from weasyl.forms import parse_tag
+from weasyl.users import Username
 
 
 PostType = Literal["submit", "char", "journal"]
@@ -40,9 +44,9 @@ _TABLE_INFORMATION: Mapping[PostType, tuple[int, str, str, str, str | int]] = {
 
 
 class Query:
-    possible_includes: set[str]
-    required_includes: set[str]
-    required_excludes: set[str]
+    possible_includes: set[NormalizedTag]
+    required_includes: set[NormalizedTag]
+    required_excludes: set[NormalizedTag]
     required_user_includes: set[str]
     required_user_excludes: set[str]
     ratings: set[int]
@@ -75,22 +79,22 @@ class Query:
             return
 
         if criterion.startswith(("user:", "+user:")):
-            user = d.get_sysname(criterion.split(":", 1)[1])
+            user = parse_sysname(criterion.split(":", 1)[1])
             add_nonempty(self.required_user_includes, user)
         elif criterion.startswith("-user:"):
-            user = d.get_sysname(criterion.split(":", 1)[1])
+            user = parse_sysname(criterion.split(":", 1)[1])
             add_nonempty(self.required_user_excludes, user)
         elif criterion.startswith("+"):
-            tag = d.get_search_tag(criterion[1:])
+            tag = parse_tag(criterion[1:])
             add_nonempty(self.required_includes, tag)
         elif criterion.startswith("-"):
-            tag = d.get_search_tag(criterion[1:])
+            tag = parse_tag(criterion[1:])
             add_nonempty(self.required_excludes, tag)
         elif criterion.startswith("|"):
-            tag = d.get_search_tag(criterion[1:])
+            tag = parse_tag(criterion[1:])
             add_nonempty(self.possible_includes, tag)
         else:
-            tag = d.get_search_tag(criterion)
+            tag = parse_tag(criterion)
             add_nonempty(self.required_includes, tag)
 
     def __bool__(self):
@@ -222,9 +226,9 @@ def resolve(search: Query) -> ResolvedQuery | None:
         | search.required_user_excludes
     )
 
-    tag_ids = searchtag.get_ids(all_names)
+    tag_ids = searchtag.get_ids(*all_names)
 
-    def get_tag_ids(names: set[str]) -> set[int]:
+    def get_tag_ids(names: set[NormalizedTag]) -> set[int]:
         return {tag_ids.get(name, 0) for name in names}
 
     user_ids = d.get_userids(all_user_sysnames)
@@ -311,9 +315,9 @@ def _prepare_search(
             statement_from_join.append("INNER JOIN welcome ON welcome.targetid = content.{select}")
             statement_where.append("AND welcome.userid = %(userid)s")
             statement_where.append({
-                "submit": "AND welcome.type IN (2010, 2030, 2040)",
+                "submit": "AND welcome.type IN (2010, 2030)",
                 "char": "AND welcome.type = 2050",
-                "journal": "AND welcome.type IN (1010, 1020)",
+                "journal": "AND welcome.type = 1010",
             }[resolved.find])
         elif within == "fave":
             # Search within favorites
@@ -596,7 +600,7 @@ def select(**kwargs) -> tuple[Results, PrevFilter | None, NextFilter | None]:
     elif find == 'char':
         for r in results:
             r['sub_media'] = character.fake_media_items(
-                r['charid'], r['userid'], d.get_sysname(r['username']), r['settings'])
+                r['charid'], r['userid'], Username.from_stored(r['username']).sysname, r['settings'])
     elif find == 'journal':
         media.populate_with_user_media(results)
 

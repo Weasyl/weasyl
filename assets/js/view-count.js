@@ -31,10 +31,10 @@ visible.then(async () => {
         keepalive: true,
     });
 
-    const updatedViews = await response.text();
-
-    if (response.ok && updatedViews) {
-        viewsContainer.textContent = updatedViews;
+    // 200 indicates view count was incremented; 204 indicates it wasn't (or isn't visible either way); errors are ignored
+    if (response.status === 200) {
+        // NOTE: `viewsContainer` can be an empty `<script type="text/plain">` here (hidden user statistics that are reconfigured to visible between page load and `visible` resolving), but incrementing that invisible text to 1 is harmless
+        viewsContainer.textContent++;
     }
 });
 

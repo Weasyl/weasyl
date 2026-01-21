@@ -1,4 +1,3 @@
-$def with (templates)
 $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Panel", "/modcontrol"])}
 
 <div class="content clear" style="padding-top: 2em;">
@@ -30,10 +29,8 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
       </div>
 
       <label for="template_id">Predefined Action</label>
-      <select id="template_id" class="input">
-        <option value="none">Custom Action</option>
-        $for key in sorted(templates):
-          <option value="${key}">${templates[key]['name']}</option>
+      <select id="template_id" class="input" disabled>
+        <option value="">Custom Action</option>
       </select>
 
       <label for="suspendaction">Action</label>
@@ -64,31 +61,7 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
         </div>
       </div>
 
-      <script>
-        var banTemplates = $:{INLINE_JSON(templates)};
-        var templateId = document.getElementById("template_id");
-        var suspendAction = document.getElementById("suspendaction");
-        var suspendDuration = document.getElementById("duration");
-        var suspendReason = document.getElementById("suspendreason");
-
-        function fillCustomAction(value) {
-          var tmpl = banTemplates[value];
-
-          if (tmpl.days < 0) {
-            suspendAction.selectedIndex = 2;
-            suspendDuration.value = "";
-          } else {
-            suspendAction.selectedIndex = 1;
-            suspendDuration.value = tmpl.days;
-          }
-
-          suspendReason.textContent = tmpl.reason.trim();
-        }
-
-        templateId.addEventListener("change", function() {
-          fillCustomAction(templateId.value);
-        });
-      </script>
+      <script type="module" src="${resource_path('js/mod/suspenduser.js')}"></script>
 
       <br/>
 
@@ -98,7 +71,7 @@ $:{RENDER("common/stage_title.html", ["User Suspensions", "Moderator Control Pan
         <input type="date" name="release-date" min="${arrow.utcnow().shift(days=1).date().isoformat()}">
       </div>
 
-      <button type="submit" class="button" style="float: right;">Ban / Suspend / Release User</button>
+      <button class="button" style="float: right;">Ban / Suspend / Release User</button>
     </form>
   </div>
 </div>

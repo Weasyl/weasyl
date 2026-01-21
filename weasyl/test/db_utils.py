@@ -1,3 +1,4 @@
+import datetime
 import itertools
 
 import arrow
@@ -5,7 +6,6 @@ import sqlalchemy as sa
 
 from libweasyl import ratings
 from libweasyl import staff
-from libweasyl.legacy import get_sysname
 from libweasyl.models import content
 from libweasyl.models.content import Journal
 from libweasyl.models.helpers import CharSettings
@@ -14,6 +14,7 @@ from weasyl import favorite
 from weasyl import login
 from weasyl import orm
 from weasyl import sessions
+from weasyl.users import Username
 
 _user_index = itertools.count()
 
@@ -41,7 +42,7 @@ def create_api_key(userid, token, description=""):
 def create_user(
     full_name: str | None = None,
     *,
-    birthday: arrow.Arrow | None = None,
+    birthday: datetime.date | None = None,
     username: str | None = None,
     password: str | None = None,
     email_addr: str = "",
@@ -73,7 +74,7 @@ def create_user(
 
         db.execute(d.meta.tables['login'].insert().values({
             'userid': userid,
-            'login_name': get_sysname(username),
+            'login_name': Username.from_stored(username).sysname,
             'last_login': sa.text("to_timestamp(0)"),
             'email': email_addr,
             'voucher': userid if verified else None,
@@ -177,7 +178,7 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False):
+def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False) -> int:
     journal = add_entity(Journal(
         userid=userid, title=title, rating=rating, unixtime=unixtime, content=content,
         hidden=hidden, friends_only=friends_only))

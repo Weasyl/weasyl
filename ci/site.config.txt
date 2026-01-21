@@ -21,6 +21,8 @@ servers = weasyl-memcached
 [smtp]
 host = localhost
 
+global_rate_limit = 0/1
+
 [two_factor_auth]
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()

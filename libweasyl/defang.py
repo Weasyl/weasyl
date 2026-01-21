@@ -5,7 +5,10 @@ HTML defanging.
 """
 
 import re
-from urllib.parse import urlparse
+from dataclasses import dataclass
+from typing import Optional
+
+from ada_url import URL
 
 allowed_tags = {
     "section", "nav", "article", "aside",
@@ -44,7 +47,7 @@ Otherwise, any HTML tag attributes in the *fragment* passed to
 """
 
 allowed_schemes = {
-    "", "http", "https", "mailto", "irc", "ircs", "magnet"
+    "http:", "https:", "mailto:", "irc:", "ircs:", "magnet:"
 }
 """
 All allowed URL schemes.
@@ -57,7 +60,8 @@ removed.
 
 allowed_classes = {
     "align-left", "align-center", "align-right", "align-justify",
-    "user-icon"
+    "user-icon",
+    "invalid-markup",
 }
 """
 All allowed CSS classes.
@@ -78,23 +82,70 @@ color: \s* (?:
 
 
 _C0_OR_SPACE = "".join(map(chr, range(0x21)))
+_TAB_OR_NEWLINE = re.compile(r"[\t\n\r]")
 
 
-def get_scheme(url):
+_DUMMY_URL_BASE = "https://h/"
+
+
+@dataclass(frozen=True, slots=True)
+class CleanHref:
     """
-    Get the scheme from a URL, if the URL is valid.
+    The cleaned value of an HTML link, like an `<a>`'s `href` or an `<img>`'s `src`.
 
-    Parameters:
-        url: A :term:`native string`.
+    See <https://url.spec.whatwg.org>.
 
-    Returns:
-        The scheme of the url as a :term:`native string`, or ``None`` if the
-        URL was invalid.
+    Ignoring URL-query string and URL-fragment string parts,
+    - absolute-URL-with-fragment strings with permitted schemes are reserialized
+    - scheme-relative-special-URL strings are resolved to `https:`
+    - path-absolute-URL strings are reserialized
+    - other valid URL strings (including path-relative-URL strings, even if empty) are rejected
+    - invalid URL strings that don't fail to parse take one of the above paths
+
+    Note: In the case of invalid URL strings, the cleaned value is not necessarily the value that a browser would use when parsing the original link in the context of a document! `URL("http:foo.test") == URL("http:foo.test", "https://bar.test") != URL("http:foo.test", "http://bar.test")`.
     """
-    try:
-        return urlparse(url).scheme
-    except ValueError:
-        return None
+
+    value: str
+    hostname: str | None
+
+    @classmethod
+    def try_from(cls, s: str) -> Optional["CleanHref"]:
+        # Apply part of the URL parsing algorithm ahead of time for later check for path-absolute relative and scheme-relative URLs.
+        s = _TAB_OR_NEWLINE.sub("", s.strip(_C0_OR_SPACE))
+
+        try:
+            # NOTE: This can also raise `UnicodeDecodeError`. User input should never be able to trigger that condition, so the exception is propagated instead of producing `None`.
+            u = URL(s)
+        except ValueError:
+            pass
+        else:
+            return cls(
+                value=u.href,
+                hostname=u.hostname,
+            ) if u.protocol in allowed_schemes else None
+
+        if not s.startswith(("/", "\\")):
+            # either a path-relative URL, which is hard to support in a way that makes sense and is usually the result of a user mistake (e.g. `<a href="example.com">`), or an invalid URL
+            return None
+
+        try:
+            u = URL(s, _DUMMY_URL_BASE)
+        except ValueError:
+            return None
+
+        if len(s) >= 2 and s[1] in ["/", "\\"]:
+            # a scheme-relative URL
+            assert u.protocol == "https:"
+
+            return cls(
+                value=u.href,
+                hostname=u.hostname,
+            )
+
+        return cls(
+            value=u.pathname,
+            hostname=None,
+        )
 
 
 def defang(fragment):
@@ -132,14 +183,13 @@ def defang(fragment):
 
         for key, value in child.items():
             # `value_stripped` is a correct thing to do according to the WHATWG URL spec (but not the only possible validation error, and not all are handled here yet). It also works around CVE-2023-24329 while on Python <3.10.12.
-            if key == "href" and child.tag == "a" and get_scheme(value_stripped := value.strip(_C0_OR_SPACE)) in allowed_schemes:
-                url = urlparse(value_stripped)
-                extend_attributes.append((key, value_stripped))
+            if key == "href" and child.tag == "a" and (c := CleanHref.try_from(value)) is not None:
+                extend_attributes.append((key, c.value))
 
-                if url.hostname not in (None, "www.weasyl.com", "weasyl.com"):
+                if c.hostname not in (None, "www.weasyl.com", "weasyl.com"):
                     extend_attributes.append(("rel", "nofollow ugc"))
-            elif key == "src" and child.tag == "img" and get_scheme(value_stripped := value.strip(_C0_OR_SPACE)) in allowed_schemes:
-                extend_attributes.append((key, value_stripped))
+            elif key == "src" and child.tag == "img" and (c := CleanHref.try_from(value)) is not None:
+                extend_attributes.append((key, c.value))
             elif key == "style" and ALLOWED_STYLE.match(value):
                 pass
             elif key == "class":

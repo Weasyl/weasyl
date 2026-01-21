@@ -19,7 +19,7 @@ $code:
       <label for="editprofile-fullname">Full Name</label>
       <input type="text" id="editprofile-fullname" class="input" name="full_name" value="${profile['full_name']}" maxlength="100" />
 
-      $ birthdate = None if userinfo['birthday'] is None else ARROW(userinfo['birthday']).date()
+      $ birthdate = userinfo['birthday']
       <p class="label">Age</p>
       <label class="input-checkbox">
         <input type="checkbox" name="show_age" value="true"$:{' checked' if userinfo['show_age'] and birthdate is not None else ''} data-shows="birthdate">
@@ -100,7 +100,7 @@ $code:
     <div class="column profile">
       <h3>Profile Text</h3>
       <label for="editprofile-profiletext">Profile Text</label>
-      <textarea name="profile_text" id="editprofile-profiletext" class="markdown input expanding" rows="9">${profile['profile_text']}</textarea>
+      <textarea name="profile_text" id="editprofile-profiletext" class="markdown input expanding" rows="9" maxlength="100000">${profile['profile_text']}</textarea>
     </div>
 
     <div class="column social clear">
@@ -141,7 +141,7 @@ $code:
     </div>
 
     <div class="buttons clear">
-      <button type="submit" class="button positive" style="float: right;">Save</button>
+      <button class="button positive" style="float: right;">Save</button>
     </div>
 
   </form>

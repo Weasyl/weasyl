@@ -1,17 +1,17 @@
 const allowedTags = new Set([
-    'section', 'nav', 'article', 'aside',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'header', 'footer', 'address',
-    'p', 'hr', 'pre', 'blockquote', 'ol', 'ul', 'li',
-    'dl', 'dt', 'dd', 'figure', 'figcaption', 'div',
-    'em', 'strong', 'small', 's', 'cite', 'q', 'dfn',
-    'abbr', 'time', 'code', 'var', 'samp', 'kbd',
-    'sub', 'sup', 'i', 'b', 'u', 'mark',
-    'ruby', 'rt', 'rp', 'bdi', 'bdo', 'span', 'br', 'wbr',
-    'del',
-    'table', 'caption',
-    'tbody', 'thead', 'tfoot', 'tr', 'td', 'th',
-    'a', 'img',
+    'SECTION', 'NAV', 'ARTICLE', 'ASIDE',
+    'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+    'HEADER', 'FOOTER', 'ADDRESS',
+    'P', 'HR', 'PRE', 'BLOCKQUOTE', 'OL', 'UL', 'LI',
+    'DL', 'DT', 'DD', 'FIGURE', 'FIGCAPTION', 'DIV',
+    'EM', 'STRONG', 'SMALL', 'S', 'CITE', 'Q', 'DFN',
+    'ABBR', 'TIME', 'CODE', 'VAR', 'SAMP', 'KBD',
+    'SUB', 'SUP', 'I', 'B', 'U', 'MARK',
+    'RUBY', 'RT', 'RP', 'BDI', 'BDO', 'SPAN', 'BR', 'WBR',
+    'DEL',
+    'TABLE', 'CAPTION',
+    'TBODY', 'THEAD', 'TFOOT', 'TR', 'TD', 'TH',
+    'A', 'IMG',
 ]);
 
 const allowedAttributes = new Set([
@@ -19,15 +19,52 @@ const allowedAttributes = new Set([
 ]);
 
 const allowedSchemes = new Set([
-    '', 'http', 'https', 'mailto', 'irc', 'magnet',
+    'http:', 'https:', 'mailto:', 'irc:', 'ircs:', 'magnet:',
 ]);
 
 const allowedClasses = new Set([
     'align-left', 'align-center', 'align-right', 'align-justify',
     'user-icon',
+    'invalid-markup',
 ]);
 
 const ALLOWED_STYLE = /^\s*color:\s*(?:#[0-9a-f]{3}|#[0-9a-f]{6})(?:\s*;)?\s*$/i;
+
+const DUMMY_URL_BASE = 'https://h/';
+
+// See `libweasyl.defang.CleanHref`.
+export const tryGetCleanHref = s => {
+    // deno-lint-ignore no-control-regex
+    s = s.replace(/^[\x00-\x20]+|[\t\n\r]/g, '');
+
+    let u;
+
+    try {
+        u = new URL(s);
+    } catch {
+        u = null;
+    }
+
+    if (u !== null) {
+        return allowedSchemes.has(u.protocol) ? u.href : null;
+    }
+
+    if (!/^[\/\\]/.test(s)) {
+        return null;
+    }
+
+    try {
+        u = new URL(s, DUMMY_URL_BASE);
+    } catch {
+        return null;
+    }
+
+    if (/^[\/\\]{2}/.test(s)) {
+        return u.href;
+    }
+
+    return u.pathname;
+};
 
 const defang = (node, isBody) => {
     for (let i = node.childNodes.length; i--;) {
@@ -38,7 +75,7 @@ const defang = (node, isBody) => {
         }
     }
 
-    if (!isBody && !allowedTags.has(node.nodeName.toLowerCase())) {
+    if (!isBody && !allowedTags.has(node.nodeName)) {
         while (node.hasChildNodes()) {
             node.parentNode.insertBefore(node.firstChild, node);
         }
@@ -47,13 +84,15 @@ const defang = (node, isBody) => {
     } else {
         for (let i = node.attributes.length; i--;) {
             const attribute = node.attributes[i];
-            const scheme = attribute.value && attribute.value.substring(0, attribute.value.indexOf(':'));
+            let cleanHref;
 
-            if (node.nodeName === 'A' && attribute.name === 'href' && allowedSchemes.has(scheme)) {
+            if (node.nodeName === 'A' && attribute.name === 'href' && (cleanHref = tryGetCleanHref(attribute.value)) !== null) {
+                attribute.value = cleanHref;
                 continue;
             }
 
-            if (node.nodeName === 'IMG' && attribute.name === 'src' && allowedSchemes.has(scheme)) {
+            if (node.nodeName === 'IMG' && attribute.name === 'src' && (cleanHref = tryGetCleanHref(attribute.value)) !== null) {
+                attribute.value = cleanHref;
                 continue;
             }
 

@@ -20,9 +20,17 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
+from weasyl.users import Username
 
 
-def create(userid, journal, friends_only=False, tags=None):
+def create(
+    userid: int,
+    journal,
+    *,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+) -> int:
     # Check invalid arguments
     if not journal.title:
         raise WeasylError("titleInvalid")
@@ -144,7 +152,7 @@ def select_view(
         'content': journal['content'],
         'rating': journal['rating'],
         'page_views': journal['page_views'],
-        'reported': report.check(journalid=journalid),
+        'reported': report.check(journalid=journalid) if userid in staff.MODS else None,
         'favorited': favorite.check(userid, journalid=journalid),
         'friends_only': journal['friends_only'],
         'hidden': journal['hidden'],
@@ -172,11 +180,13 @@ def select_view_api(
         increment_views=increment_views,
     )
 
+    username = Username.from_stored(journal['username'])
+
     return {
         'journalid': journalid,
         'title': journal['title'],
-        'owner': journal['username'],
-        'owner_login': d.get_sysname(journal['username']),
+        'owner': username.display,
+        'owner_login': username.sysname,
         'owner_media': api.tidy_all_media(
             media.get_user_media(journal['userid'])),
         'content': text.markdown(journal['content']),
@@ -296,7 +306,7 @@ def select_latest(userid, rating, otherid):
         }
 
 
-def edit(userid, journal, friends_only=False):
+def edit(userid: int, journal, *, friends_only: bool) -> None:
     if not journal.title:
         raise WeasylError("titleInvalid")
     elif not journal.content:
@@ -342,7 +352,7 @@ def edit(userid, journal, friends_only=False):
     d.cached_posts_count.invalidate(query[0])
 
 
-def remove(userid, journalid):
+def remove(userid: int, journalid: int) -> int | None:
     ownerid = d.get_ownerid(journalid=journalid)
 
     if userid not in staff.MODS and userid != ownerid:

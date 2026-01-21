@@ -82,15 +82,17 @@ $def with (query, options, extended_options={})
       </h3>
     $else:
       <div id="header-user" data-user-type="${USER_TYPE(query['userid']) or ''}">
-        $ avatar = query['user_media']['avatar'][0]
-        <a class="avatar" href="/~${LOGIN(query['username'])}"><img id="avatar" src="${avatar['display_url']}" alt="${query['username']}"></a>
-        <h2><i>Welcome,</i> <a id="username" class="username" href="/~${LOGIN(query['username'])}">${query['username']}</a></h2>
+        $code:
+          username = query['username']
+          avatar = query['user_media']['avatar'][0]
+        <a class="avatar" href="/~${username.sysname}"><img id="avatar" src="${avatar['display_url']}" alt="${username.display}"></a>
+        <h2><i>Welcome,</i> <a id="username" class="username" href="/~${username.sysname}">${username.display}</a></h2>
         <div id="header-utility">
           $if query['sfw_locked']:
             <a class="sfw-locked" href="/control/editpreferences"><svg width="16" height="16" viewBox="0 0 16 16"><title>SFW mode always on</title><path d="m2 14h12v-7h-1.5v-1.5a4.5 4.5 0 0 0-9 0v1.5h-1.5m4 0v-1.5a2 2 0 0 1 4 0v1.5z" fill="currentColor" /></svg> <span>sfw</span></a>
           $else:
             $ sfw = query['sfw']
-            <form class="user-nav-form sfw-toggle" action="/control/sfwtoggle" method="POST">
+            <form class="user-nav-form sfw-toggle" action="/control/sfwtoggle" method="post">
               <input type="hidden" name="redirect" value="${PATH()}">
               <button class="link-button ${'sfw' if sfw else 'nsfw'}">sfw ${'on' if sfw else 'off'}</button>
             </form>
@@ -104,7 +106,7 @@ $def with (query, options, extended_options={})
           $elif query['userid'] in staff.MODS:
             <a href="/modcontrol">mod</a> <span>|</span>
 
-          <form class="user-nav-form" method="POST" action="/signout">
+          <form class="user-nav-form" method="post" action="/signout">
             <button class="link-button">log out</button>
           </form>
         </div>
@@ -141,7 +143,7 @@ $def with (query, options, extended_options={})
         <li id="header-search-nav"><a href="/search">Search</a></li>
       </ul>
 
-      <form id="header-search" action="/search" method="GET">
+      <form id="header-search" action="/search">
         <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="1" />
       </form>
     </div></nav>

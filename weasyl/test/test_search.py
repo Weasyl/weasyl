@@ -37,7 +37,7 @@ def test_query_parsing():
     ('+nothing |walrus |penguin', 0),
     ('-nothing', 4),
 ])
-def test_submission_search(db, term, n_results):
+def test_submission_search(db, cache, term, n_results):
     user = db_utils.create_user()
     tag1 = db_utils.create_tag('walrus')
     tag2 = db_utils.create_tag('penguin')
@@ -70,7 +70,7 @@ def test_submission_search(db, term, n_results):
 
 @pytest.mark.parametrize('rating', ratings.ALL_RATINGS)
 @pytest.mark.parametrize('block_rating', ratings.ALL_RATINGS)
-def test_search_blocked_tags(db, rating, block_rating):
+def test_search_blocked_tags(db, cache, rating, block_rating):
     owner = db_utils.create_user()
     viewer = db_utils.create_user()
 
@@ -124,7 +124,7 @@ def _select_and_count(*, limit: int, **kwargs) -> _SearchResponse:
     return _SearchResponse(results, prev_page, next_page, back_count, next_count)
 
 
-def test_search_pagination(db):
+def test_search_pagination(db, cache):
     owner = db_utils.create_user()
     submissions = [db_utils.create_submission(owner, rating=ratings.GENERAL.code) for i in range(30)]
     tag = db_utils.create_tag('penguin')
@@ -179,7 +179,7 @@ def test_search_pagination(db):
     ("ryan wildlife calvin", 3),
     ("Marth", 1),
 ])
-def test_user_search(db, term, n_results):
+def test_user_search(db, cache, term, n_results):
     db_utils.create_user("Sam Peacock", username="sammy")
     db_utils.create_user("LionCub", username="spammer2800")
     db_utils.create_user("Samantha Wildlife", username="godall")
@@ -194,7 +194,7 @@ def test_user_search(db, term, n_results):
     assert len(results) == n_results
 
 
-def test_user_search_ordering(db):
+def test_user_search_ordering(db, cache):
     db_utils.create_user("user_aa", username="useraa")
     db_utils.create_user("user_ba", username="userba")
     db_utils.create_user("user_Ab", username="userab")
@@ -204,7 +204,7 @@ def test_user_search_ordering(db):
     assert [user["title"] for user in results] == ["user_aa", "user_Ab", "user_ba", "user_Bb"]
 
 
-def test_search_within_friends(db):
+def test_search_within_friends(db, cache):
     tag_id = db_utils.create_tag("ferret")
     resolved = search.resolve(search.Query.parse("ferret", "submit"))
 
@@ -237,4 +237,4 @@ def test_search_within_friends(db):
     db_utils.create_friendship(user2_id, user1_id)
 
     assert len(_select(user1_id)) == 1
-    assert len(_select(user1_id)) == 1
+    assert len(_select(user2_id)) == 1

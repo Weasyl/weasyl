@@ -22,13 +22,23 @@ from weasyl import searchtag
 from weasyl import thumbnail
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
+from weasyl.users import Username
 
 
 _MEGABYTE = 1048576
 _MAIN_IMAGE_SIZE_LIMIT = 50 * _MEGABYTE
 
 
-def create(userid, character, friends, tags, thumbfile, submitfile):
+def create(
+    userid: int,
+    character,
+    *,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    thumbfile,
+    submitfile,
+) -> int:
     # Make temporary filenames
     tempthumb = files.get_temporary(userid, "thumb")
     tempsubmit = files.get_temporary(userid, "char")
@@ -93,7 +103,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
             "rating": character.rating.code,
             "settings": settings,
             "hidden": False,
-            "friends_only": friends,
+            "friends_only": friends_only,
         })
 
         # Assign search tags
@@ -122,7 +132,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
-                             friends_only=friends)
+                             friends_only=friends_only)
 
     define.metric('increment', 'characters')
     define.cached_posts_count.invalidate(userid)
@@ -130,20 +140,22 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     return charid
 
 
-def reupload(userid, charid, submitdata):
+def reupload(userid: int, charid: int, submitdata) -> None:
     submitsize = len(submitdata)
     if not submitsize:
         raise WeasylError("submitSizeZero")
     elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         raise WeasylError("submitSizeExceedsLimit")
 
-    # Select character data
-    query, = define.engine.execute("""
-        SELECT userid, settings FROM character WHERE charid = %(character)s AND NOT hidden
+    ownerid: int | None = define.engine.scalar("""
+        SELECT userid FROM character WHERE charid = %(character)s AND NOT hidden
     """, character=charid)
 
-    if userid != query.userid:
-        raise WeasylError("Unexpected")
+    if ownerid is None:
+        raise WeasylError("characterRecordMissing")
+
+    if userid != ownerid:
+        raise WeasylError("InsufficientPermissions")
 
     im = image.from_string(submitdata)
     submitextension = images.image_extension(im)
@@ -242,12 +254,12 @@ def select_view(
         increment_views=False,
     )
 
-    login = define.get_sysname(query['username'])
+    username = Username.from_stored(query['username'])
 
     return {
         'charid': charid,
         'userid': query['userid'],
-        'username': query['username'],
+        'username': username.display,
         'user_media': media.get_user_media(query['userid']),
         'mine': userid == query['userid'],
         'unixtime': query['unixtime'],
@@ -259,7 +271,7 @@ def select_view(
         'species': query['species'],
         'content': query['content'],
         'rating': query['rating'],
-        'reported': report.check(charid=charid),
+        'reported': report.check(charid=charid) if userid in staff.MODS else None,
         'favorited': favorite.check(userid, charid=charid),
         'page_views': query['page_views'],
         'friends_only': query['friends_only'],
@@ -267,7 +279,7 @@ def select_view(
         'fave_count': favorite.count(charid, 'character'),
         'comments': comment.select(userid, charid=charid),
         'sub_media': fake_media_items(
-            charid, query['userid'], login, query['settings']),
+            charid, query['userid'], username.sysname, query['settings']),
         'tags': searchtag.select_grouped(userid, searchtag.CharacterTarget(charid)),
     }
 
@@ -290,12 +302,12 @@ def select_view_api(
         increment_views=increment_views,
     )
 
-    login = define.get_sysname(query['username'])
+    username = Username.from_stored(query['username'])
 
     return {
         'charid': charid,
-        'owner': query['username'],
-        'owner_login': login,
+        'owner': username.display,
+        'owner_login': username.sysname,
         'owner_media': api.tidy_all_media(
             media.get_user_media(query['userid'])),
         'posted_at': define.iso8601(query['unixtime']),
@@ -313,7 +325,7 @@ def select_view_api(
         'favorites': favorite.count(charid, 'character'),
         'comments': comment.count(charid, 'character'),
         'media': api.tidy_all_media(fake_media_items(
-            charid, query['userid'], login, query['settings'])),
+            charid, query['userid'], username.sysname, query['settings'])),
         'tags': searchtag.select(charid=charid),
         'type': 'character',
         'link': define.absolutify_url(
@@ -365,6 +377,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
 
     query = []
     for i in define.execute("".join(statement)):
+        username = Username.from_stored(i[5])
         query.append({
             "contype": 20,
             "charid": i[0],
@@ -372,14 +385,14 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
             "rating": i[2],
             "unixtime": i[3],
             "userid": i[4],
-            "username": i[5],
-            "sub_media": fake_media_items(i[0], i[4], define.get_sysname(i[5]), i[6]),
+            "username": username.display,
+            "sub_media": fake_media_items(i[0], i[4], username.sysname, i[6]),
         })
 
     return query[::-1] if backid else query
 
 
-def edit(userid, character, friends_only):
+def edit(userid: int, character, *, friends_only: bool) -> None:
     query = define.engine.execute("SELECT userid, hidden FROM character WHERE charid = %(id)s",
                                   id=character.charid).first()
 
@@ -426,7 +439,7 @@ def edit(userid, character, friends_only):
     define.cached_posts_count.invalidate(query.userid)
 
 
-def remove(userid, charid):
+def remove(userid: int, charid: int) -> int | None:
     ownerid = define.get_ownerid(charid=charid)
 
     if userid not in staff.MODS and userid != ownerid:

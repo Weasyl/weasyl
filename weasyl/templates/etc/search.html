@@ -110,11 +110,11 @@ $code:
           <ul class="avatar-grid">
             $for card in cards:
               <li>
-                <a href="${card.href}" title="${card.username}">
+                <a href="${card.href}" title="${card.username.display}">
                   <figure>
                     <img src="${card.avatar.file['display_url']}">
                     <figcaption>
-                      <h5 class="username one-line">${card.username}</h5>
+                      <h5 class="username one-line">${card.username.display}</h5>
                     </figcaption>
                   </figure>
                 </a>
@@ -142,7 +142,7 @@ $code:
     <h2 class="page-title">${browse_header}</h2>
 
     <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
-      <form id="search-backup-search" action="/search" method="GET" class="form">
+      <form id="search-backup-search" action="/search" class="form">
         $if meta['find'] not in ('submit', 'critique'):
           <input type="hidden" name="find" value="${meta['find']}">
 
@@ -176,7 +176,7 @@ $code:
     <h2 class="page-title">Browse Content</h2>
 
     <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
-      <form id="search-backup-search" action="/search" method="GET" class="form">
+      <form id="search-backup-search" action="/search" class="form">
         <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="2" class="input" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
       </form>

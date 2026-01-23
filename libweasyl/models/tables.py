@@ -258,12 +258,27 @@ frienduser = Table(
         'p': 'pending',
     }, length=20), nullable=False, server_default='p'),
     Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+
+    # Initially: write-only
+    # Future migration: `SET accepted_at = created_at WHERE settings !~ 'p'`
+    # After migration: determines whether the friend request has been accepted (`settings` column can then be dropped)
+    Column('accepted_at', TIMESTAMP(timezone=True)),
+
     cascading_fkey(['otherid'], ['login.userid'], name='frienduser_otherid_fkey'),
     cascading_fkey(['userid'], ['login.userid'], name='frienduser_userid_fkey'),
+    CheckConstraint("settings IN ('', 'p')", name='frienduser_settings_check'),
+    CheckConstraint("accepted_at IS NULL OR settings = ''", name='frienduser_accepted_at_check'),
 )
 
 Index('ind_frienduser_otherid', frienduser.c.otherid)
-Index('ind_frienduser_userid', frienduser.c.userid)
+
+# A unique index on `(min(a, b), a ^ b)` enforces that each unordered pair of users has at most one row in `frienduser`.
+Index(
+    'ind_frienduser_uniq',
+    func.least(frienduser.c.userid, frienduser.c.otherid),
+    frienduser.c.userid.op('#')(frienduser.c.otherid),
+    unique=True,
+)
 
 
 character = Table(

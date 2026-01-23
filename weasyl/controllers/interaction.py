@@ -56,26 +56,25 @@ def frienduser_(request):
         raise WeasylError('cannotSelfFriend')
 
     if form.action == "sendfriendrequest":
-        if not frienduser.check(request.userid, otherid) and not frienduser.already_pending(request.userid, otherid):
-            frienduser.request(request.userid, otherid)
+        frienduser.request(request.userid, otherid)
     elif form.action == "withdrawfriendrequest":
-        if frienduser.already_pending(request.userid, otherid):
-            frienduser.remove_request(request.userid, otherid)
+        frienduser.remove_request(request.userid, otherid)
     elif form.action == "unfriend":
         frienduser.remove(request.userid, otherid)
     else:
         raise WeasylError("Unexpected")
 
-    target_username = define.try_get_username(otherid)
-    if target_username is None:
-        raise WeasylError("Unexpected")
-
-    if form.feature == "pending":
-        raise HTTPSeeOther(location="/manage/friends?feature=pending")
+    if form.feature in ["pending", "accepted"]:
+        raise HTTPSeeOther(location=f"/manage/friends?feature={form.feature}")
     else:  # typical value will be user
+        target_username = define.try_get_username(otherid)
+        if target_username is None:
+            raise WeasylError("Unexpected")
+
         raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
+# TODO: unused: remove after change to `/frienduser` with `action=unfriend` has been deployed for a while
 @login_required
 @token_checked
 def unfrienduser_(request):

@@ -127,7 +127,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
       <h3>Commissions</h3>
 
       $for i in commishinfo['class']:
-        <h4 class="color-c">${i['title']}</h4>
+        <h4>${i['title']}</h4>
         <dl class="leaders">
         $for j in commishinfo['price']:
           $if(j['classid'] == i['classid'] and 'a' not in j['settings']):

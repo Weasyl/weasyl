@@ -31,10 +31,10 @@ jobs:
         image: memcached:1.5-alpine
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Cache Deno dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /deno-dir/
           key: cache-${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
@@ -42,7 +42,7 @@ jobs:
             cache-${{ runner.os }}-deno-
 
       - name: Cache Poetry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: cache-${{ runner.os }}-pip-${{ hashFiles('poetry-requirements.txt') }}
@@ -50,7 +50,7 @@ jobs:
             cache-${{ runner.os }}-pip-
 
       - name: Cache Python dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pypoetry
           key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}

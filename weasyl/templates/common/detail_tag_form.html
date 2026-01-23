@@ -29,7 +29,7 @@ $def with (targetid, feature, query, myself)
 
     $if feature == 'submit' and myself and myself['userid'] in staff.MODS:
       <span class="tag-actions">
-        <a class="typeface-default color-c" href="/submission/tag-history/${query['submitid']}">History</a>
+        <a href="/submission/tag-history/${query['submitid']}">History</a>
       </span>
   </div>
 

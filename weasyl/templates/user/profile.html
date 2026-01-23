@@ -79,11 +79,11 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
               submitid=featured['submitid'],
               slug=SLUG(featured['title']),
             )
-          <h3>${blurb}: <a class="color-c" href="${featured_link}">${featured['title']}</a></h3>
+          <h3>${blurb}: <a href="${featured_link}">${featured['title']}</a></h3>
           <div id="uf-image">
             <a href="${featured_link}"><img src="${cover['display_url']}" alt="${blurb} image: ${featured['title']}" /></a>
         $elif featured['contype'] == 20:
-          <h3>Most Recent: <a class="color-c" href="/character/${featured['charid']}/${SLUG(featured['title'])}">${featured['title']}</a></h3>
+          <h3>Most Recent: <a href="/character/${featured['charid']}/${SLUG(featured['title'])}">${featured['title']}</a></h3>
           <div id="uf-image">
             <a href="/character/${featured['charid']}/${SLUG(featured['title'])}"><img src="${cover['display_url']}" alt="${blurb} character: ${featured['title']}" /></a>
         </div>
@@ -111,7 +111,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
   $if(journal):
     <div id="user-journal" class="clear on-side">
       <h3>Latest Journal</h3>
-      <h4><a class="color-c" href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a></h4>
+      <h4><a href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a></h4>
       <h5>$:{LOCAL_TIME(journal['unixtime'], '<i>on</i> {date} <i>at</i> {time}')}</h5>
 
       <div class="formatted-content">
@@ -191,7 +191,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
                 <img src="${thumb_files.fallback['display_url']}" alt="" />
               </picture>
             </div>
-            <h5 class="color-c">${i['title']}</h5>
+            <h5>${i['title']}</h5>
             <h6><b>${i['count']}</b> Item${'' if i['count'] == 1 else 's'}</h6>
           </a>
       </div>

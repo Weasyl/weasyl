@@ -10,6 +10,7 @@ setup(
         'weasyl.test.resetpassword',
         'weasyl.test.useralias',
         'weasyl.test.web',
+        'weasyl.util',
         'libweasyl', 'libweasyl.models',
         'libweasyl.test', 'libweasyl.models.test',
     ],

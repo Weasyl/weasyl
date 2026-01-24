@@ -8,6 +8,7 @@ from typing import Any
 from weasyl import character
 from weasyl import define as d
 from weasyl import media
+from weasyl import searchtag
 from weasyl.users import Username
 
 
@@ -147,7 +148,14 @@ def select_journals(userid):
     } for j in journals]
 
 
-def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None):
+def select_submissions(
+    userid: int,
+    *,
+    limit: int,
+    include_tags: bool,
+    backtime: int,
+    nexttime: int,
+):
     if backtime:
         time_filter = "AND we.unixtime > %(backtime)s"
     elif nexttime:
@@ -259,8 +267,8 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
     ).fetchall()
 
     if include_tags:
-        all_tags = list(frozenset(chain.from_iterable(i.tags for i in query)))
-        tag_map = {t.tagid: t.title for t in d.engine.execute("SELECT tagid, title FROM searchtag WHERE tagid = ANY (%(tags)s)", tags=all_tags)}
+        all_tagids = frozenset(chain.from_iterable(i.tags for i in query))
+        tag_names = searchtag.get_names(*all_tagids)
 
         results = [{
             "contype": i.contype,
@@ -272,7 +280,7 @@ def select_submissions(userid, limit, include_tags, backtime=None, nexttime=None
             "userid": i.userid,
             "username": i.username,
             "subtype": i.subtype,
-            "tags": [tag_map[tag] for tag in i.tags],
+            "tags": sorted(tag_names[tagid] for tagid in i.tags),
             "sub_media": _fake_media_items(i),
         } for i in query]
     else:

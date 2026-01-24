@@ -116,7 +116,7 @@ a.more > span, #header-messages a, .page-title a {
     color: $color-b;
 }
 
-.color-c, %content-like a {
+%content-like a {
     color: theme.$link-color;
 }
 
@@ -2057,7 +2057,6 @@ $small-caps-ratio: 1.2;
 
 .home-pane-link {
     @extend .typeface-a;
-    @extend .color-c;
     display: block;
     padding: 0 16px;
     line-height: 48px;

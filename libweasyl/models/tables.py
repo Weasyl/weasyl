@@ -4,6 +4,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, BYTEA, ENUM, JSONB, TIMESTAMP
 from sqlalchemy.schema import ForeignKey as _ForeignKey
 from sqlalchemy.schema import ForeignKeyConstraint as _ForeignKeyConstraint
+from sqlalchemy.schema import PrimaryKeyConstraint
 
 from libweasyl.models.helpers import (
     ArrowColumn, CharSettingsColumn, JSONValuesColumn, RatingColumn, WeasylTimestampColumn)
@@ -184,16 +185,6 @@ commishprice = Table(
 Index('ind_classid_userid_title', commishprice.c.classid, commishprice.c.userid, commishprice.c.title, unique=True)
 
 
-emailblacklist = Table(
-    'emailblacklist', metadata,
-    Column('id', Integer(), primary_key=True, nullable=False),
-    Column('added_by', Integer(), nullable=False),
-    Column('domain_name', String(length=252), nullable=False, unique=True),
-    Column('reason', Text(), nullable=False),
-    ForeignKeyConstraint(['added_by'], ['login.userid'], name='emailblacklist_userid_fkey'),
-)
-
-
 emailverify = Table(
     'emailverify', metadata,
     Column('userid', Integer(), primary_key=True, nullable=False),
@@ -257,12 +248,27 @@ frienduser = Table(
         'p': 'pending',
     }, length=20), nullable=False, server_default='p'),
     Column('created_at', TIMESTAMP(timezone=True), nullable=False, server_default=func.now()),
+
+    # Initially: write-only
+    # Future migration: `SET accepted_at = created_at WHERE settings !~ 'p'`
+    # After migration: determines whether the friend request has been accepted (`settings` column can then be dropped)
+    Column('accepted_at', TIMESTAMP(timezone=True)),
+
     cascading_fkey(['otherid'], ['login.userid'], name='frienduser_otherid_fkey'),
     cascading_fkey(['userid'], ['login.userid'], name='frienduser_userid_fkey'),
+    CheckConstraint("settings IN ('', 'p')", name='frienduser_settings_check'),
+    CheckConstraint("accepted_at IS NULL OR settings = ''", name='frienduser_accepted_at_check'),
 )
 
 Index('ind_frienduser_otherid', frienduser.c.otherid)
-Index('ind_frienduser_userid', frienduser.c.userid)
+
+# A unique index on `(min(a, b), a ^ b)` enforces that each unordered pair of users has at most one row in `frienduser`.
+Index(
+    'ind_frienduser_uniq',
+    func.least(frienduser.c.userid, frienduser.c.otherid),
+    frienduser.c.userid.op('#')(frienduser.c.otherid),
+    unique=True,
+)
 
 
 character = Table(
@@ -690,31 +696,26 @@ Index('ind_artist_optout_tags_targetid', artist_optout_tags.c.targetid)
 globally_restricted_tags = Table(
     'globally_restricted_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), primary_key=True, nullable=False),
+    Column('userid', Integer(), nullable=False),
     ForeignKeyConstraint(['userid'], ['login.userid'], name='globally_restricted_tags_userid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='globally_restricted_tags_tagid_fkey'),
 )
 
-Index('ind_globally_restricted_tags_tagid', globally_restricted_tags.c.tagid)
-Index('ind_globally_restricted_tags_userid', globally_restricted_tags.c.userid)
-
 
 user_restricted_tags = Table(
     'user_restricted_tags', metadata,
-    Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('userid', Integer(), primary_key=True, nullable=False),
+    Column('tagid', Integer(), nullable=False),
+    Column('userid', Integer(), nullable=False),
+    PrimaryKeyConstraint('userid', 'tagid'),
     cascading_fkey(['userid'], ['login.userid'], name='user_restricted_tags_userid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='user_restricted_tags_tagid_fkey'),
 )
-
-Index('ind_user_restricted_tags_tagid', user_restricted_tags.c.tagid)
-Index('ind_user_restricted_tags_userid', user_restricted_tags.c.userid)
 
 
 searchtag = Table(
     'searchtag', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
-    Column('title', String(length=162), nullable=False, unique=True),
+    Column('title', String(length=constants.TAG_MAX_LENGTH), nullable=False, unique=True),
 )
 
 Index('ind_searchtag_tagid', searchtag.c.tagid)

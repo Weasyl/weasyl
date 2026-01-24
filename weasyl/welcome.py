@@ -437,33 +437,44 @@ def followuser_remove(userid, otherid):
 # notifications
 #   3080 user requested friendship
 
-def frienduserrequest_insert(userid, otherid):
-    d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, 0, 0, %i, 3080)",
-        [otherid, userid, d.get_time()])
+def frienduserrequest_insert(tx, *, sender: int, recipient: int) -> None:
+    tx.execute(
+        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%(recipient)s, %(sender)s, 0, 0, %(unixtime)s, 3080)",
+        recipient=recipient,
+        sender=sender,
+        unixtime=d.get_time(),
+    )
 
 
 # notifications
 #   3080 user requested friendship
 
-def frienduserrequest_remove(userid, otherid):
-    d.execute(
-        "DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3080",
-        [userid, otherid, userid, otherid])
+def frienduserrequest_remove(tx, *, sender: int, recipient: int) -> None:
+    tx.execute(
+        "DELETE FROM welcome WHERE (userid, otherid) = (%(recipient)s, %(sender)s) AND type = 3080",
+        sender=sender,
+        recipient=recipient,
+    )
 
 
 # notifications
 #   3085 user accepted friendship
 
-def frienduseraccept_insert(userid, otherid):
-    d.execute(
-        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%i, %i, 0, 0, %i, 3085)",
-        [otherid, userid, d.get_time()])
+def frienduseraccept_insert(tx, *, requester: int, acceptor: int) -> None:
+    tx.execute(
+        "INSERT INTO welcome (userid, otherid, referid, targetid, unixtime, type) VALUES (%(requester)s, %(acceptor)s, 0, 0, %(unixtime)s, 3085)",
+        requester=requester,
+        acceptor=acceptor,
+        unixtime=d.get_time(),
+    )
 
 
 # notifications
 #   3085 user accepted friendship
 
-def frienduseraccept_remove(userid, otherid):
-    d.execute("DELETE FROM welcome WHERE userid IN (%i, %i) AND otherid IN (%i, %i) AND type = 3085",
-              [userid, otherid, userid, otherid])
+def frienduseraccept_remove(tx, *, requester: int, acceptor: int) -> None:
+    tx.execute(
+        "DELETE FROM welcome WHERE (userid, otherid) = (%(requester)s, %(acceptor)s) AND type = 3085",
+        requester=requester,
+        acceptor=acceptor,
+    )

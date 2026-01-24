@@ -319,10 +319,6 @@ routes = (
 
     # Director control routes.
     Route("/directorcontrol", "directorcontrol", director.directorcontrol_),
-    Route("/directorcontrol/emailblacklist", "directorcontrol_emailblacklist", {
-        'GET': director.directorcontrol_emailblacklist_get_,
-        'POST': director.directorcontrol_emailblacklist_post_,
-    }),
     Route("/directorcontrol/globaltagrestrictions", "directorcontrol_globaltagrestrictions", {
         'GET': director.directorcontrol_globaltagrestrictions_get_,
         'POST': director.directorcontrol_globaltagrestrictions_post_,

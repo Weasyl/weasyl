@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import NamedTuple
 
 import bcrypt
-from publicsuffixlist import PublicSuffixList
 import sqlalchemy
 
 from libweasyl import security
@@ -16,6 +15,7 @@ from weasyl.error import WeasylError
 from weasyl.sessions import create_session
 from weasyl.forms import parse_sysname
 from weasyl.users import Username
+from weasyl.util.trie import Trie
 
 
 _PASSWORD = 10
@@ -217,7 +217,7 @@ def create(form):
         raise WeasylError("passwordInsecure")
     if not email:
         raise WeasylError("emailInvalid")
-    if is_email_blacklisted(email):
+    if _is_email_blacklisted(email):
         raise WeasylError("emailBlacklisted")
 
     # Delete stale logincreate records before checking for colliding ones or trying to insert more
@@ -457,30 +457,13 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
 
 
 with open(os.path.join(m.MACRO_SYS_CONFIG_PATH, "disposable-domains.txt"), encoding='ascii') as f:
-    DISPOSABLE_DOMAINS = frozenset([line.rstrip() for line in f])
+    _DISPOSABLE_DOMAINS = Trie(reversed(line.rstrip().split(".")) for line in f)
 
 
-def is_email_blacklisted(address):
-    """
-    Determines if a supplied email address is present in the 'emailblacklist' table.
-    Parameters:
-        address: The email address to split out the domain from.
-    Returns:
-        Boolean True if present on the blacklist, or False otherwise.
-    """
+# TODO: apply to e-mail changes
+def _is_email_blacklisted(address: str) -> bool:
     _, domain = address.rsplit("@", 1)
-    psl = PublicSuffixList()
-    private_suffix = psl.privatesuffix(domain=domain)
-
-    # Check the disposable email address list
-    if private_suffix in DISPOSABLE_DOMAINS:
-        return True
-
-    # Check the explicitly defined/blacklisted domains.
-    return d.engine.scalar(
-        "SELECT EXISTS (SELECT FROM emailblacklist WHERE domain_name = %(domain)s)",
-        domain=private_suffix,
-    )
+    return _DISPOSABLE_DOMAINS.contains_prefix_of(reversed(domain.split(".")))
 
 
 def authenticate_account_change(*, userid, password):

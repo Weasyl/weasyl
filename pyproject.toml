@@ -15,7 +15,7 @@ dependencies = [
     "pyotp==2.3.0",
     "qrcodegen==1.2.0",
     "cryptography~=44.0",
-    "alembic~=1.17",
+    "alembic~=1.18",
     "arrow==1.2.2",
     "bcrypt==4.0.1",
     "dogpile-cache==1.2.0",

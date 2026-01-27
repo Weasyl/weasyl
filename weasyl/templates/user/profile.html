@@ -1,6 +1,7 @@
 $def with (request, profile, userinfo, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified, post_counts_by_type)
 $code:
   _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  _COMMISSION_INFO = COMPILE("user/commission_info.html")
   card_viewer = get_card_viewer()
   viewable = "users/%s" % (profile["userid"],)
 
@@ -122,29 +123,14 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     </div>
 
 
-  $if(commishinfo['class'] and commishinfo['price']):
+  $if commishinfo.classes or commishinfo.content:
     <div id="user-commissions" class="clear on-side">
       <h3>Commissions</h3>
 
-      $for i in commishinfo['class']:
-        <h4>${i['title']}</h4>
-        <dl class="leaders">
-        $for j in commishinfo['price']:
-          $if(j['classid'] == i['classid'] and 'a' not in j['settings']):
-            <dt>${j['title']}</dt>
-            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-            $if(j['amount_max']):
-              <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-        $for j in commishinfo['price']:
-          $if(j['classid'] == i['classid'] and 'a' in j['settings']):
-            <dt><i>add &#160;</i>${j['title']}</dt>
-            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-            $if(j['amount_max']):
-              <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-        </dl>
+      $:{_COMMISSION_INFO(classes=commishinfo.classes)}
 
-      $if(commishinfo['content']):
-        <div class="formatted-content">$:{MARKDOWN(commishinfo['content'])}</div>
+      $if commishinfo.content:
+        <div class="formatted-content">$:{MARKDOWN(commishinfo.content)}</div>
     </div>
 
 

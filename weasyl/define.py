@@ -197,6 +197,7 @@ def _compile(template_name):
                 "getattr": getattr,
                 "json": json,
                 "map": map,
+                "next": next,
                 "sorted": sorted,
                 "staff": staff,
                 "turnstile": turnstile,
@@ -506,11 +507,11 @@ def _get_path():
     return get_current_request().path_qs
 
 
-def text_price_amount(target):
-    return "%.2f" % (float(target) / 100.0)
+def text_price_amount(target: int | float) -> str:
+    return f"{target / 100:.2f}"
 
 
-def text_price_symbol(target):
+def text_price_symbol(target: str) -> str:
     from weasyl.commishinfo import CURRENCY_CHARMAP
     for c in target:
         if c in CURRENCY_CHARMAP:

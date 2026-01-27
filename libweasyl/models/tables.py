@@ -671,12 +671,10 @@ artist_preferred_tags = Table(
     'artist_preferred_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
-    Column('settings', String(), nullable=False, server_default=''),
     cascading_fkey(['targetid'], ['login.userid'], name='artist_preferred_tags_targetid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='artist_preferred_tags_tagid_fkey'),
 )
 
-Index('ind_artist_preferred_tags_tagid', artist_preferred_tags.c.tagid)
 Index('ind_artist_preferred_tags_targetid', artist_preferred_tags.c.targetid)
 
 
@@ -684,12 +682,10 @@ artist_optout_tags = Table(
     'artist_optout_tags', metadata,
     Column('tagid', Integer(), primary_key=True, nullable=False),
     Column('targetid', Integer(), primary_key=True, nullable=False),
-    Column('settings', String(), nullable=False, server_default=''),
     cascading_fkey(['targetid'], ['login.userid'], name='artist_optout_tags_targetid_fkey'),
     ForeignKeyConstraint(['tagid'], ['searchtag.tagid'], name='artist_optout_tags_tagid_fkey'),
 )
 
-Index('ind_artist_optout_tags_tagid', artist_optout_tags.c.tagid)
 Index('ind_artist_optout_tags_targetid', artist_optout_tags.c.targetid)
 
 

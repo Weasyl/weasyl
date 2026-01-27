@@ -1,7 +1,9 @@
-$def with (query, currencies, presets, profile)
+$def with (commishinfo, tag_prefs, currencies, presets, profile)
 $code:
   def _SELECTED(x, y):
     return ' selected="selected"' if profile['settings'][x] == y else ''
+
+  _COMMISSION_INFO = COMPILE("user/commission_info.html")
 
 $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
 <div id="commishprices-content" class="content form clear">
@@ -38,16 +40,16 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
             <option value="e"${_SELECTED(2, 'e')}>This is not applicable to me</option>
           </select>
           <label for="commish-info">Your Commission Info</label>
-          <textarea class="markdown input last-input expanding" name="content" rows="8" id="commish-info">${query['content'] if query['content'] else ''}</textarea>
+          <textarea class="markdown input last-input expanding" name="content" rows="8" id="commish-info">${commishinfo.content}</textarea>
           <br />
 
           <div class="commish-tags">
             <label for="preferred-tags">Preferred Tags</label>
-            <textarea id="preferred-tags" name="preferred-tags" class="input tags-textarea">${' '.join(query['tags'])}</textarea>
+            <textarea id="preferred-tags" name="preferred-tags" class="input tags-textarea">${' '.join(tag_prefs.preferred)}</textarea>
             <p class="color-lighter tags-help"><i>Use these tags to indicate subject matter you prefer to create, making it easier for commissioners to find you.</i></p>
 
             <label for="optout-tags">Opt-Out Tags</label>
-            <textarea id="optout-tags" name="optout-tags" class="input tags-textarea">${' '.join(query['opt_out'])}</textarea>
+            <textarea id="optout-tags" name="optout-tags" class="input tags-textarea">${' '.join(tag_prefs.opt_out)}</textarea>
             <p class="color-lighter tags-help"><i>You will not appear in results for commission searches containing these tags.</i></p>
           </div>
 
@@ -58,22 +60,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
       </div>
       <div id="user-commissions" class="clear on-side">
         <h3>Preview</h3>
-        $for i in query['class']:
-          <h4>${i['title']}</h4>
-          <dl class="leaders">
-          $for j in query['price']:
-            $if(j['classid'] == i['classid'] and 'a' not in j['settings']):
-              <dt>${j['title']}</dt>
-              <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-              $if(j['amount_max']):
-                <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-          $for j in query['price']:
-            $if(j['classid'] == i['classid'] and 'a' in j['settings']):
-              <dt><i>add &#160;</i>${j['title']}</dt>
-              <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-              $if(j['amount_max']):
-                <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-          </dl>
+
+        $:{_COMMISSION_INFO(classes=commishinfo.classes)}
       </div>
     </div>
   </div>
@@ -112,8 +100,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <label for="commish-currency">Currency</label>
           <select class="input last-input" name="currency" id="commish-currency" required="required">
               <option value="">Please select</option>
-            $for char, info in currencies.items():
-              <option value="${char if char else '$'}">${info.name}</option>
+            $for char, currency_info in currencies.items():
+              <option value="${char or '$'}">${currency_info.name}</option>
           </select>
           <button class="button positive" style="float: right;">Create Type</button>
         </div>
@@ -121,7 +109,7 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
     </form>
   </div>
   <hr />
-  $if(query['class']):
+  $if commishinfo.classes:
     <div>
       <h3>Add a Price to a Type</h3>
       <p>Add a new base or add-on cost to a commission type</p>
@@ -131,8 +119,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
             <label for="commish-classselect">Type</label>
             <select class="input" name="classid" required="required" id="commish-classselect">
               <option value="">Select class:</option>
-              $for i in query['class']:
-              <option value="${i['classid']}">${i['title']}</option>
+              $for class_ in commishinfo.classes:
+                <option value="${class_.classid}">${class_.title}</option>
             </select>
             <label for="commish-title">Price Title</label>
             <input type="text" class="input" name="title" id="commish-title" required="required" placeholder="ex: 'Full Color', 'Basic Pose'" />
@@ -147,8 +135,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
             <label for="commish-currency">Currency</label>
             <select class="input" name="currency" id="commish-currency" required="required">
               <option value="">Please select</option>
-              $for char, info in currencies.items():
-              <option value="${char if char else '$'}">${info.name}</option>
+              $for char, currency_info in currencies.items():
+                <option value="${char or '$'}">${currency_info.name}</option>
             </select>
 
               <label>Cost type</label>
@@ -175,8 +163,8 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
             <label for="commishprices-editclass">Type Name</label>
             <select id="commishprices-editclass" class="input" required="required" name="classid">
               <option value="">Select type:</option>
-              $for i in query['class']:
-              <option value="${i['classid']}">${i['title']}</option>
+              $for class_ in commishinfo.classes:
+                <option value="${class_.classid}">${class_.title}</option>
             </select>
 
             <label for="commishprices-renameclass">Rename To</label>
@@ -192,43 +180,44 @@ $:{RENDER("common/stage_title.html", ["Edit Commission Settings", "Settings"])}
           <label for="commish-edit-select">Price Title</label>
           <select class="input" name="priceid" required="required" id="commish-edit-select">
             <option value="">Select a Price:</option>
-            $for i in query['price']:
-              $for j in query['class']:
-                $if(i['classid'] == j['classid']):
-                  <option value="${i['priceid']}">${j['title']} &#8250; ${i['title']}</option>
-                  $break
+            $for class_ in commishinfo.classes:
+              $for price in class_.prices:
+                <option value="${price.priceid}">${class_.title} &#8250; ${price.title}</option>
           </select>
 
-          $for price in query['price']:
+          $for price in (price for class_ in commishinfo.classes for price in class_.prices):
             <form name="controleditcommishprice" method="post" class="clear select-priceid"
-                  data-priceid="${price['priceid']}" style="display:none;">
-              <input type="hidden" name="priceid" value="${price['priceid']}">
+                  data-priceid="${price.priceid}" style="display:none;">
+              <input type="hidden" name="priceid" value="${price.priceid}">
               <label for="commish-edit-title">Rename To</label>
               <input type="text" class="input" name="title" required="required" id="commish-edit-title"
-                     placeholder="ex: 'Full Color', 'Basic Pose'" value="${price['title']}"/>
+                     placeholder="ex: 'Full Color', 'Basic Pose'" value="${price.title}"/>
 
               <label for="commish-edit-min-amount">Minimum Amount</label>
               <input type="number" step="any" min="0" class="input" name="min_amount" id="commish-edit-min-amount"
-                     value="${PRICE(price['amount_min'])}"/>
+                     value="${PRICE(price.amount_min)}"/>
 
               <label for="commish-edit-max-amount">Maximum Amount (Optional)</label>
               <input type="number" step="any" min="0" class="input" name="max_amount" id="commish-edit-max-amount"
-                     value="${PRICE(price['amount_max']) if price['amount_max'] else ''}"/>
+                     value="${PRICE(price.amount_max) if price.amount_max else ''}"/>
 
               <label for="commish-edit-currency">Currency</label>
               <select class="input" name="currency" id="commish-edit-currency">
-              $for char, info in currencies.items():
-                <option value="${char}" $:{'selected="selected"' if char in price['settings'] else ""}>${info.name}</option>
+              $code:
+                # USD is indicated by the absence of any other currency code
+                selected_currency = next((c for c in currencies.keys() if c and c in price.settings), "")
+              $for char, currency_info in currencies.items():
+                <option value="${char}" $:{'selected="selected"' if char == selected_currency else ""}>${currency_info.name}</option>
               </select>
 
               <label>Cost type</label>
               <label class="input-checkbox">
                 <input type="radio" name="settings" value=""
-                       $:{'checked="checked"' if 'a' not in price['settings'] else ""}>This price is a base cost
+                       $:{'checked="checked"' if 'a' not in price.settings else ""}>This price is a base cost
               </label>
               <label class="input-checkbox">
                 <input type="radio" name="settings" value="a"
-                       $:{'checked="checked"' if 'a' in price['settings'] else ""}>This price is an additional cost
+                       $:{'checked="checked"' if 'a' in price.settings else ""}>This price is an additional cost
               </label>
 
               <button formaction="/control/editcommishprice" class="button last-input positive" style="float: right; margin-left: 5px;">Edit Price</button>

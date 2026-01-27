@@ -145,7 +145,7 @@ def profile_(request):
             statistics,
             show_statistics,
             # Commission information
-            commishinfo.select_list(otherid),
+            commishinfo.select(otherid),
             # Friends
             lambda: frienduser.has_friends(otherid),
             is_unverified,

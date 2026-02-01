@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import enum
 from dataclasses import dataclass
 
+from libweasyl.constants import RateLimitId
 from weasyl import define as d
 from weasyl.error import WeasylError
-
-
-@enum.unique
-class RateLimitId(enum.Enum):
-    MAIL_OUT = "mail-out"
 
 
 @dataclass(eq=False, frozen=True, kw_only=True, slots=True)
@@ -66,3 +61,9 @@ class GlobalRateLimit:
             capacity=capacity,
             period=period,
         )
+
+
+__all__ = [
+    "GlobalRateLimit",
+    "RateLimitId",
+]

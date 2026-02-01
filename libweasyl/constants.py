@@ -10,6 +10,11 @@ class Category(enum.Enum):
     multimedia = 'multimedia'
 
 
+@enum.unique
+class RateLimitId(enum.Enum):
+    MAIL_OUT = "mail-out"
+
+
 class ReportClosureReason(enum.Enum):
     """
     The reason for a report closure.

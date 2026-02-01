@@ -13,7 +13,7 @@ down_revision = None
 from alembic import op
 import sqlalchemy as sa
 
-from weasyl.rate_limits import RateLimitId
+from libweasyl.constants import RateLimitId
 
 
 def upgrade():

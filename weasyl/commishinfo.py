@@ -1,5 +1,7 @@
 import re
 from collections import namedtuple
+from collections.abc import Sequence
+from dataclasses import dataclass
 from decimal import Decimal
 from urllib.parse import quote as urlquote
 
@@ -151,52 +153,98 @@ def currency_ratio(valuecode, targetcode):
     return r2 / r1
 
 
-def select_list(userid):
-    query = d.engine.execute("""
-        SELECT classid, title, amount_min, amount_max, settings, priceid FROM commishprice
-        WHERE userid = %(userid)s ORDER BY classid, title
-    """, userid=userid)
+@dataclass(frozen=True, slots=True)
+class CommissionPrice:
+    priceid: int
+    title: str
+    amount_min: int
+    amount_max: int  # 0 indicates no maximum
+    settings: str
 
-    classes = d.engine.execute("""
-        SELECT classid, title FROM commishclass
-        WHERE userid = %(id)s ORDER BY title
-    """, id=userid)
 
-    content = d.engine.scalar("""
-        SELECT content FROM commishdesc
-        WHERE userid = %(id)s
-    """, id=userid)
+@dataclass(frozen=True, slots=True)
+class CommissionClass:
+    classid: int
+    title: str
+    prices: list[CommissionPrice]
 
-    preference_tags = d.engine.execute("""
-        SELECT DISTINCT tag.title FROM searchtag tag
-        JOIN artist_preferred_tags pref ON pref.tagid = tag.tagid
-        WHERE pref.targetid = %(userid)s
-    """, userid=userid).fetchall()
 
-    optout_tags = d.engine.execute("""
-        SELECT DISTINCT tag.title FROM searchtag tag
-        JOIN artist_optout_tags pref ON pref.tagid = tag.tagid
-        WHERE pref.targetid = %(userid)s
-    """, userid=userid).fetchall()
+@dataclass(frozen=True, slots=True)
+class CommissionInfo:
+    classes: Sequence[CommissionClass]
+    content: str
 
-    return {
-        "userid": userid,
-        "class": [{
-            "classid": i.classid,
-            "title": i.title,
-        } for i in classes],
-        "price": [{
-            "classid": i.classid,
-            "title": i.title,
-            "amount_min": i.amount_min,
-            "amount_max": i.amount_max,
-            "settings": i.settings,
-            "priceid": i.priceid,
-        } for i in query],
-        "content": content if content else "",
-        "tags": [tag.title for tag in preference_tags],
-        "opt_out": [tag.title for tag in optout_tags],
+
+def select(userid: int) -> CommissionInfo:
+    classes: dict[int, CommissionClass] = {
+        row.classid: CommissionClass(
+            classid=row.classid,
+            title=row.title,
+            prices=[],
+        )
+        for row in d.engine.execute(
+            "SELECT classid, title FROM commishclass"
+            " WHERE userid = %(userid)s"
+            " ORDER BY title",
+            userid=userid,
+        )
     }
+
+    for row in d.engine.execute(
+        "SELECT priceid, classid, title, amount_min, amount_max, settings FROM commishprice"
+        " WHERE userid = %(userid)s"
+        " ORDER BY classid, title",
+        userid=userid,
+    ):
+        classes[row.classid].prices.append(
+            CommissionPrice(
+                priceid=row.priceid,
+                title=row.title,
+                amount_min=row.amount_min,
+                amount_max=row.amount_max,
+                settings=row.settings,
+            )
+        )
+
+    content: str | None = d.engine.scalar(
+        "SELECT content FROM commishdesc"
+        " WHERE userid = %(userid)s",
+        userid=userid,
+    )
+
+    return CommissionInfo(
+        classes=list(classes.values()),
+        content=content or "",
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class TagPreferences:
+    preferred: list[str]
+    opt_out: list[str]
+
+
+def select_tag_preferences(userid: int) -> TagPreferences:
+    preferred: list[str] = d.engine.execute(
+        "SELECT tag.title FROM searchtag tag"
+        " JOIN artist_preferred_tags pref USING (tagid)"
+        " WHERE pref.targetid = %(userid)s"
+        " ORDER BY tag.title",
+        userid=userid,
+    ).scalars().all()
+
+    opt_out: list[str] = d.engine.execute(
+        "SELECT tag.title FROM searchtag tag"
+        " JOIN artist_optout_tags pref USING (tagid)"
+        " WHERE pref.targetid = %(userid)s"
+        " ORDER BY tag.title",
+        userid=userid,
+    ).scalars().all()
+
+    return TagPreferences(
+        preferred=preferred,
+        opt_out=opt_out,
+    )
 
 
 def select_commissionable(userid, q, commishclass, min_price, max_price, currency, offset, limit):

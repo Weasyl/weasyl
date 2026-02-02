@@ -212,10 +212,10 @@ def api_character_view_(request):
 @api_method
 def api_user_view_(request):
     # Helper functions for this view.
-    def convert_commission_price(value, options):
+    def convert_commission_price(value: int, options: str) -> str:
         return d.text_price_symbol(options) + d.text_price_amount(value)
 
-    def convert_commission_setting(target):
+    def convert_commission_setting(target: str) -> str | None:
         if target == "o":
             return "open"
         elif target == "s":
@@ -260,45 +260,28 @@ def api_user_view_(request):
 
     user['folders'] = folder.select_list(otherid)
 
-    commissions = {
-        "details": None,
-        "price_classes": None,
+    commission_info = commishinfo.select(otherid)
+    user['commission_info'] = {
+        "details": commission_info.content,
+        "price_classes": [
+            {
+                "title": class_.title,
+                "prices": [
+                    {
+                        "title": price.title,
+                        "price_min": convert_commission_price(price.amount_min, price.settings),
+                        "price_max": convert_commission_price(price.amount_max, price.settings) if price.amount_max else None,
+                        "price_type": "additional" if "a" in price.settings else "base",
+                    }
+                    for price in class_.prices
+                ],
+            }
+            for class_ in commission_info.classes
+        ],
         "commissions": convert_commission_setting(o_settings[0]),
         "trades": convert_commission_setting(o_settings[1]),
         "requests": convert_commission_setting(o_settings[2])
     }
-
-    commission_list = commishinfo.select_list(otherid)
-    commissions['details'] = commission_list['content']
-
-    if len(commission_list['class']) > 0:
-        classes = list()
-        for cclass in commission_list['class']:
-            commission_class = {
-                "title": cclass['title']
-            }
-
-            if len(commission_list['price']) > 0:
-                prices = list()
-                for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
-                    if 'a' in cprice['settings']:
-                        ptype = 'additional'
-                    else:
-                        ptype = 'base'
-
-                    price = {
-                        "title": cprice['title'],
-                        "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                        "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                        'price_type': ptype
-                    }
-                    prices.append(price)
-                commission_class['prices'] = prices
-
-            classes.append(commission_class)
-        commissions['price_classes'] = classes
-
-    user['commission_info'] = commissions
 
     user['relationship'] = profile.select_relation(userid, otherid) if userid else None
 

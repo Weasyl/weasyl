@@ -2356,7 +2356,8 @@ $small-caps-ratio: 1.2;
     font-size: 1rem;
 }
 
-#user-commissions .formatted-content, #user-journal .formatted-content {
+#user-commissions > .leaders + .formatted-content,
+#user-journal .formatted-content {
     padding-top: 1.5em;
 }
 

@@ -113,7 +113,7 @@ def test_user_view(app, submission_user):
             'requests': 'closed',
             'trades': 'closed',
             'details': '',
-            'price_classes': None,
+            'price_classes': [],
         },
         'created_at': '1970-01-01T00:00:00Z',
         'featured_submission': None,

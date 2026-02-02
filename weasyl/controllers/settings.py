@@ -88,7 +88,8 @@ def control_editprofile_put_(request):
 def control_editcommissionsettings_(request):
     return Response(define.webpage(request.userid, "control/edit_commissionsettings.html", [
         # Commission prices
-        commishinfo.select_list(request.userid),
+        commishinfo.select(request.userid),
+        commishinfo.select_tag_preferences(request.userid),
         commishinfo.CURRENCY_CHARMAP,
         commishinfo.PRESET_COMMISSION_CLASSES,
         profile.select_profile(request.userid)

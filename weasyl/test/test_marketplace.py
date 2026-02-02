@@ -91,7 +91,7 @@ def test_commish_search_invalid():
 
     # user open for commission but without any commish classes
     u3 = create_commish_searchable_user("u3")
-    classid = commishinfo.select_list(u3)["class"][0]["classid"]
+    classid = commishinfo.select(u3).classes[0].classid
     commishinfo.remove_class(u3, classid)
 
     # user meets all requirements, but is suspended
@@ -127,7 +127,7 @@ def create_commish_searchable_user(username, commish_status='o', commishclass='b
         set_commission=profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, commish_status)
     )
     commishinfo.create_commission_class(user, commishclass)
-    classid = commishinfo.select_list(user)["class"][0]["classid"]
+    classid = commishinfo.select(user).classes[0].classid
     assert classid
 
     price = orm.CommishPrice()

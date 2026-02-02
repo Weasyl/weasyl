@@ -54,7 +54,7 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
                           item_base_url = '/%s/%i%s' % (folder, id, slug)
                           item_link = '<a href="' + item_base_url + '">' + escape_(i['title'], True) + '</a>'
                           if 'commentid' in i:
-                            comment_url = lambda id: item_base_url + '#cid' + STR(id)
+                            comment_url = lambda id: item_base_url + '#cid' + str(id)
                             if 'replyid' in i:
                               item_your_comment = '<a href="' + comment_url(i['replyid']) + '">your comment</a>'
                               item_reply = '<a href="' + comment_url(i['commentid']) + '">reply</a>'
@@ -64,8 +64,8 @@ $:{RENDER("common/stage_title.html", ["Notifications", "Messages", 0])}
                       if 'ownername' in i:
                         item_ownername = '<a href="/~' + LOGIN(i['ownername']) + '" class="username">' + escape_(i['ownername'], True) + '</a>'
                         if 'commentid' in i and 'replyid' in i:
-                          shout_reply = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['commentid']) + '">reply</a>'
-                          your_comment = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + STR(i['replyid']) + '">your comment</a>'
+                          shout_reply = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + str(i['commentid']) + '">reply</a>'
+                          your_comment = lambda shout: '<a href="/' + shout + '/' + LOGIN(i['ownername']) + '#cid' + str(i['replyid']) + '">your comment</a>'
 
                     $if 'id' in i:
                       <input type="checkbox" class="remove" name="remove" value="${i['id']}" />

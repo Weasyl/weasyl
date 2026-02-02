@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import functools
 import os
 import time
@@ -166,7 +167,6 @@ def _compile(template_name):
             pkgutil.get_data(__name__, 'templates/' + template_name).decode('utf-8'),
             filename=template_name,
             globals={
-                "STR": str,
                 "LOGIN": _sysname_for_stored_username,
                 "USER_TYPE": user_type,
                 "ARROW": get_arrow,
@@ -193,19 +193,15 @@ def _compile(template_name):
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
-                "format": format,
-                "getattr": getattr,
                 "json": json,
-                "map": map,
-                "next": next,
-                "sorted": sorted,
                 "staff": staff,
                 "turnstile": turnstile,
                 "resource_path": get_resource_path,
-                "zip": zip,
 
                 "DEFAULT_LOGIN_FORM": DEFAULT_LOGIN_FORM,
-            })
+            },
+            builtins=builtins,
+        )
 
     return template
 

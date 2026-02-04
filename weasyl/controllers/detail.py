@@ -6,10 +6,9 @@ from pyramid import httpexceptions
 from pyramid.response import Response
 
 from libweasyl import ratings
-from libweasyl.models.content import Submission
 from libweasyl.text import markdown_excerpt, slug_for
 from weasyl import (
-    character, define, journal, macro, media, profile, searchtag, submission)
+    character, define, journal, macro, profile, searchtag, submission)
 from weasyl.controllers.decorators import moderator_only
 from weasyl.error import WeasylError
 from weasyl.users import Username
@@ -208,27 +207,6 @@ def submission_(request):
         view_count=True,
         options=("tags-edit",) if _can_edit_tags(request.userid) else (),
     ))
-
-
-def submission_media_(request):
-    link_type = request.matchdict['linktype']
-    submitid = int(request.matchdict['submitid'])
-    if link_type == "submissions":
-        link_type = "submission"
-
-    submission = Submission.query.get(submitid)
-    if submission is None:
-        raise httpexceptions.HTTPForbidden()
-    elif submission.hidden or submission.friends_only:
-        raise httpexceptions.HTTPForbidden()
-    media_items = media.get_submission_media(submitid)
-    if not media_items.get(link_type):
-        raise httpexceptions.HTTPNotFound()
-
-    return Response(headerlist=[
-        ('X-Accel-Redirect', str(media_items[link_type][0]['file_url']),),
-        ('Cache-Control', 'max-age=0',),
-    ])
 
 
 @moderator_only

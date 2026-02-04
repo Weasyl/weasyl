@@ -13,9 +13,9 @@ def test_fetch_or_create_disk_media_item(staticdir, db):
     item = media.MediaItem.fetch_or_create(data, file_type='png')
     assert item.sha256 == 'a5deef985bde4438969b5f74a1864f7a5b1d127df3197b4fadf3f855201278b4'
     assert item.file_type == 'png'
-    assert staticdir.join(
+    assert staticdir.joinpath(
         'static', 'media', 'a5', 'de', 'ef', 'a5deef985bde4438969b5f74a1864f7a5b1d127df3197b4fadf3f855201278b4.png'
-    ).read(mode='rb') == data
+    ).read_bytes() == data
 
 
 def test_fetch_or_create_disk_media_item_with_attributes(db):

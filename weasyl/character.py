@@ -22,6 +22,7 @@ from weasyl import searchtag
 from weasyl import thumbnail
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
 from weasyl.users import Username
 
 
@@ -29,7 +30,15 @@ _MEGABYTE = 1048576
 _MAIN_IMAGE_SIZE_LIMIT = 50 * _MEGABYTE
 
 
-def create(userid, character, friends, tags, thumbfile, submitfile):
+def create(
+    userid: int,
+    character,
+    *,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    thumbfile,
+    submitfile,
+) -> int:
     # Make temporary filenames
     tempthumb = files.get_temporary(userid, "thumb")
     tempsubmit = files.get_temporary(userid, "char")
@@ -94,7 +103,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
             "rating": character.rating.code,
             "settings": settings,
             "hidden": False,
-            "friends_only": friends,
+            "friends_only": friends_only,
         })
 
         # Assign search tags
@@ -123,7 +132,7 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
-                             friends_only=friends)
+                             friends_only=friends_only)
 
     define.metric('increment', 'characters')
     define.cached_posts_count.invalidate(userid)
@@ -131,20 +140,22 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     return charid
 
 
-def reupload(userid, charid, submitdata):
+def reupload(userid: int, charid: int, submitdata) -> None:
     submitsize = len(submitdata)
     if not submitsize:
         raise WeasylError("submitSizeZero")
     elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         raise WeasylError("submitSizeExceedsLimit")
 
-    # Select character data
-    query, = define.engine.execute("""
-        SELECT userid, settings FROM character WHERE charid = %(character)s AND NOT hidden
+    ownerid: int | None = define.engine.scalar("""
+        SELECT userid FROM character WHERE charid = %(character)s AND NOT hidden
     """, character=charid)
 
-    if userid != query.userid:
-        raise WeasylError("Unexpected")
+    if ownerid is None:
+        raise WeasylError("characterRecordMissing")
+
+    if userid != ownerid:
+        raise WeasylError("InsufficientPermissions")
 
     im = image.from_string(submitdata)
     submitextension = images.image_extension(im)
@@ -381,7 +392,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
     return query[::-1] if backid else query
 
 
-def edit(userid, character, friends_only):
+def edit(userid: int, character, *, friends_only: bool) -> None:
     query = define.engine.execute("SELECT userid, hidden FROM character WHERE charid = %(id)s",
                                   id=character.charid).first()
 
@@ -428,7 +439,7 @@ def edit(userid, character, friends_only):
     define.cached_posts_count.invalidate(query.userid)
 
 
-def remove(userid, charid):
+def remove(userid: int, charid: int) -> int | None:
     ownerid = define.get_ownerid(charid=charid)
 
     if userid not in staff.MODS and userid != ownerid:

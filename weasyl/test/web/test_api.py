@@ -7,7 +7,7 @@ from weasyl.test.web.common import create_visual, read_asset
 
 
 @pytest.mark.usefixtures('db')
-def test_submission_view(app, submission_user):
+def test_submission_views(app, submission_user, subtests: pytest.Subtests) -> None:
     submission = create_visual(
         app,
         submission_user,
@@ -15,48 +15,71 @@ def test_submission_view(app, submission_user):
     )
     d.engine.execute('UPDATE submission SET unixtime = 1581092121 WHERE submitid = %(id)s', id=submission)
 
-    resp_json = app.get('/api/submissions/%i/view' % (submission,)).json
-    media = resp_json.pop('media', None)
-    owner_media = resp_json.pop('owner_media', None)
+    with subtests.test("submission view"):
+        resp_json = app.get('/api/submissions/%i/view' % (submission,)).json
+        media = resp_json.pop('media', None)
+        owner_media = resp_json.pop('owner_media', None)
 
-    assert resp_json == {
-        'comments': 0,
-        'description': '<p>Description</p>\n',
-        'embedlink': None,
-        'favorited': False,
-        'favorites': 0,
-        'folderid': None,
-        'folder_name': None,
-        'friends_only': False,
-        'link': 'http://localhost/submission/%i/test-title' % (submission,),
-        'owner': 'submission_test',
-        'owner_login': 'submissiontest',
-        'posted_at': '2020-02-07T21:15:21Z',
-        'rating': 'general',
-        'submitid': submission,
-        'subtype': 'visual',
-        'tags': ['bar', 'foo'],
-        'title': 'Test title',
-        'type': 'submission',
-        'views': 0,
-    }
-    assert set(media) == {'thumbnail', 'submission', 'cover', 'thumbnail-generated-webp', 'thumbnail-generated'}
-    assert type(media['submission'][0].pop('mediaid')) is int
-    assert media['submission'] == [{
-        'url': 'http://localhost/~submissiontest/submissions/%i/ca23760d8ca4bf6c2d721f5b02e389627b6b9181d5f323001f2d5801c086407b/submissiontest-test-title.png' % (submission,),
-    }]
-    assert owner_media == {
-        'avatar': [{
-            'mediaid': None,
-            'url': 'http://localhost/img/default-avatar-vuOx5v6OBn.jpg',
-        }],
-    }
+        assert resp_json == {
+            'comments': 0,
+            'description': '<p>Description</p>\n',
+            'embedlink': None,
+            'favorited': False,
+            'favorites': 0,
+            'folderid': None,
+            'folder_name': None,
+            'friends_only': False,
+            'link': 'http://localhost/submission/%i/test-title' % (submission,),
+            'owner': 'submission_test',
+            'owner_login': 'submissiontest',
+            'posted_at': '2020-02-07T21:15:21Z',
+            'rating': 'general',
+            'submitid': submission,
+            'subtype': 'visual',
+            'tags': ['bar', 'foo'],
+            'title': 'Test title',
+            'type': 'submission',
+            'views': 0,
+        }
+        assert set(media) == {'thumbnail', 'submission', 'cover', 'thumbnail-generated-webp', 'thumbnail-generated'}
+        assert type(media['submission'][0].pop('mediaid')) is int
+        assert media['submission'] == [{
+            'url': 'http://localhost/~submissiontest/submissions/%i/ca23760d8ca4bf6c2d721f5b02e389627b6b9181d5f323001f2d5801c086407b/submissiontest-test-title.png' % (submission,),
+        }]
+        assert owner_media == {
+            'avatar': [{
+                'mediaid': None,
+                'url': 'http://localhost/img/default-avatar-vuOx5v6OBn.jpg',
+            }],
+        }
 
-    favoriter = db_utils.create_user()
-    db_utils.create_favorite(favoriter, submitid=submission)
+        with subtests.test("with favorite"):
+            favoriter = db_utils.create_user()
+            db_utils.create_favorite(favoriter, submitid=submission)
 
-    resp_json = app.get('/api/submissions/%i/view' % (submission,)).json
-    assert resp_json['favorites'] == 1
+            resp_json = app.get('/api/submissions/%i/view' % (submission,)).json
+            assert resp_json['favorites'] == 1
+
+    with subtests.test("frontpage"):
+        frontpage_json = app.get('/api/submissions/frontpage').json
+
+        expected_media = resp_json['media']
+        del expected_media['cover']
+        del expected_media['submission']
+
+        assert frontpage_json == [{
+            'link': 'http://localhost/submission/%i/test-title' % (submission,),
+            'owner': 'submission_test',
+            'owner_login': 'submissiontest',
+            'posted_at': '2020-02-07T21:15:21Z',
+            'rating': 'general',
+            'submitid': submission,
+            'subtype': 'visual',
+            'tags': ['bar', 'foo'],
+            'title': 'Test title',
+            'type': 'submission',
+            'media': expected_media,
+        }]
 
 
 @pytest.mark.usefixtures('db')
@@ -90,7 +113,7 @@ def test_user_view(app, submission_user):
             'requests': 'closed',
             'trades': 'closed',
             'details': '',
-            'price_classes': None,
+            'price_classes': [],
         },
         'created_at': '1970-01-01T00:00:00Z',
         'featured_submission': None,

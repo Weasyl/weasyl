@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import functools
 import os
 import time
@@ -15,6 +16,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 from typing import NewType
+from typing import overload
 from urllib.parse import urlencode, urljoin
 
 import arrow
@@ -35,7 +37,7 @@ from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
 from libweasyl.text import slug_for
 from libweasyl.text import summarize
-from libweasyl import html, text, ratings, staff
+from libweasyl import text, ratings, staff
 
 from weasyl import cards
 from weasyl import config
@@ -165,12 +167,10 @@ def _compile(template_name):
             pkgutil.get_data(__name__, 'templates/' + template_name).decode('utf-8'),
             filename=template_name,
             globals={
-                "STR": str,
                 "LOGIN": _sysname_for_stored_username,
                 "USER_TYPE": user_type,
                 "ARROW": get_arrow,
                 "LOCAL_TIME": _get_local_time_html,
-                "ISO8601_DATE": iso8601_date,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
@@ -189,23 +189,19 @@ def _compile(template_name):
                 "R": ratings,
                 "SLUG": slug_for,
                 "QUERY_STRING": query_string,
-                "INLINE_JSON": html.inline_json,
                 "ORIGIN": ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
-                "format": format,
-                "getattr": getattr,
                 "json": json,
-                "map": map,
-                "sorted": sorted,
                 "staff": staff,
                 "turnstile": turnstile,
                 "resource_path": get_resource_path,
-                "zip": zip,
 
                 "DEFAULT_LOGIN_FORM": DEFAULT_LOGIN_FORM,
-            })
+            },
+            builtins=builtins,
+        )
 
     return template
 
@@ -393,7 +389,7 @@ Invalidate the cached username for a user.
 """
 
 
-def get_int(target):
+def get_int(target) -> int:
     if target is None:
         return 0
 
@@ -410,16 +406,6 @@ def get_targetid(*argv):
     for i in argv:
         if i:
             return i
-
-
-def get_search_tag(target):
-    target = "".join(i for i in target if ord(i) < 128)
-    target = target.replace(" ", "_")
-    target = "".join(i for i in target if i.isalnum() or i in "_")
-    target = target.strip("_")
-    target = "_".join(i for i in target.split("_") if i)
-
-    return target.lower()
 
 
 def get_time():
@@ -482,13 +468,30 @@ def get_userid_list(target: str) -> list[int]:
     return [userid for userid in get_userids(parse_sysname_list(target)).values() if userid != 0]
 
 
-def get_ownerid(submitid=None, charid=None, journalid=None):
+@overload
+def get_ownerid(*, submitid: int) -> int | None:
+    ...
+
+
+@overload
+def get_ownerid(*, charid: int) -> int | None:
+    ...
+
+
+@overload
+def get_ownerid(*, journalid: int) -> int | None:
+    ...
+
+
+def get_ownerid(*, submitid=None, charid=None, journalid=None):
     if submitid:
         return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
         return engine.scalar("SELECT userid FROM character WHERE charid = %(id)s", id=charid)
     if journalid:
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
+
+    return None
 
 
 def get_address():
@@ -500,11 +503,11 @@ def _get_path():
     return get_current_request().path_qs
 
 
-def text_price_amount(target):
-    return "%.2f" % (float(target) / 100.0)
+def text_price_amount(target: int | float) -> str:
+    return f"{target / 100:.2f}"
 
 
-def text_price_symbol(target):
+def text_price_symbol(target: str) -> str:
     from weasyl.commishinfo import CURRENCY_CHARMAP
     for c in target:
         if c in CURRENCY_CHARMAP:
@@ -570,43 +573,9 @@ def _get_local_time_html(target, template):
     return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
 
 
-def iso8601_date(target):
+def age_in_years(birthdate: datetime.date) -> int:
     """
-    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
-
-    NB: Target is offset by _UNIXTIME_OFFSET
-
-    :param target: The target Weasyl timestamp to convert.
-    :return: An ISO 8601 string representing the date of `target`.
-    """
-    return arrow.get(target - _UNIXTIME_OFFSET).format("YYYY-MM-DD")
-
-
-def convert_unixdate(day, month, year):
-    """
-    Returns the unixtime corresponding to the beginning of the specified date; if
-    the date is not valid, None is returned.
-    """
-    day, month, year = (get_int(i) for i in [day, month, year])
-
-    try:
-        ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
-    except ValueError:
-        return None
-    # range of a postgres integer
-    if ret > 2147483647 or ret < -2147483648:
-        return None
-    return ret
-
-
-def convert_age(target):
-    return (get_time() - target) // 31556926
-
-
-def age_in_years(birthdate):
-    """
-    Determines an age in years based off of the given arrow.Arrow birthdate
-    and the current date.
+    Calculate an age in years based on the given birthdate and the current UTC date.
     """
     now = arrow.utcnow()
     is_upcoming = (now.month, now.day) < (birthdate.month, birthdate.day)

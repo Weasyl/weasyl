@@ -1,9 +1,29 @@
+import {tryGetCleanHref} from './defang.js';
+import {make} from './dom.js';
 import {forEach} from './util/array-like.js';
 import loginName from './util/login-name.js';
 
 const USER_LINK = /\\(.)|<(!~|[!~])(\w+)>|./gi;
 
 const NO_USER_LINKING = ['A', 'PRE', 'CODE'];
+
+// See `libweasyl.text._replace_bad_links`.
+const replaceBadLinks = fragment => {
+    // use `querySelectorAll` instead of `getElementsByTagName` to get a static node list
+    const links = fragment.querySelectorAll('a');
+
+    forEach(links, link => {
+        const href = link.getAttribute('href');
+
+        if (href !== null && tryGetCleanHref(href) === null) {
+            link.replaceWith(make('span', {
+                className: 'invalid-markup',
+                title: 'invalid link',
+                textContent: `${link.textContent} [${href}]`,
+            }));
+        }
+    });
+};
 
 const addUserLinks = fragment => {
     for (let i = 0; i < fragment.childNodes.length; i++) {
@@ -143,6 +163,8 @@ const weasylMarkdown = fragment => {
             image.parentNode.replaceChild(link, image);
         }
     });
+
+    replaceBadLinks(fragment);
 
     addUserLinks(fragment);
 };

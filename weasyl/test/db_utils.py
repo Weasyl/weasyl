@@ -1,3 +1,4 @@
+import datetime
 import itertools
 
 import arrow
@@ -41,7 +42,7 @@ def create_api_key(userid, token, description=""):
 def create_user(
     full_name: str | None = None,
     *,
-    birthday: arrow.Arrow | None = None,
+    birthday: datetime.date | None = None,
     username: str | None = None,
     password: str | None = None,
     email_addr: str = "",
@@ -177,7 +178,7 @@ def create_shout(userid, targetid, parentid=None, body="",
     return comment.commentid
 
 
-def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False):
+def create_journal(userid, title='', rating=ratings.GENERAL.code, unixtime=arrow.get(1), content='', *, hidden=False, friends_only=False) -> int:
     journal = add_entity(Journal(
         userid=userid, title=title, rating=rating, unixtime=unixtime, content=content,
         hidden=hidden, friends_only=friends_only))

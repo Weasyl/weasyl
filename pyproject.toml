@@ -15,8 +15,7 @@ dependencies = [
     "pyotp==2.3.0",
     "qrcodegen==1.2.0",
     "cryptography~=44.0",
-    "publicsuffixlist==0.6.13",
-    "alembic~=1.11",
+    "alembic~=1.18",
     "arrow==1.2.2",
     "bcrypt==4.0.1",
     "dogpile-cache==1.2.0",
@@ -35,8 +34,8 @@ dependencies = [
 ]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "7.3.1"
-coverage = "7.2.5"
+pytest = "^9.0.2"
+coverage = "7.13.1"
 webtest = "^3.0.1"
 
 

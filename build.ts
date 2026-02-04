@@ -614,6 +614,7 @@ const touch = new CreateFolders([
     'fonts',
     'img/help',
     'img/social',
+    'js/mod',
     'js/ruffle',
 ]);
 
@@ -680,6 +681,7 @@ const tasks: readonly AnyTask[] = [
         'js/tags-edit.js',
         'js/submit.js',
         'js/view-count.js',
+        'js/mod/suspenduser.js',
     ], PRIVATE_FIELDS_ESM, {touch}),
     new EsbuildFilesWithDeps<{ruffle: TaskResult}>([
         'js/flash.js',

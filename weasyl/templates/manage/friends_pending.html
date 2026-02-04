@@ -16,13 +16,8 @@ $:{TITLE("Friend Requests", "Settings", "/control")}
             <form action="/frienduser" method="post">
               <input type="hidden" name="userid" value="${i['userid']}" />
               <input type="hidden" name="feature" value="pending" />
-              <input type="hidden" name="action" value="sendfriendrequest" />
-              <button class="button positive">Accept</button>
-            </form>
-            <form action="/unfrienduser" method="post">
-              <input type="hidden" name="userid" value="${i['userid']}" />
-              <input type="hidden" name="feature" value="pending" />
-              <button class="button negative">Ignore</button>
+              <button name="action" value="sendfriendrequest" class="button positive">Accept</button>
+              <button name="action" value="unfriend" class="button negative">Ignore</button>
             </form>
           </figcaption>
         </figure>

@@ -95,8 +95,8 @@ def test_markdown_user_linking_with_underscore():
 
 
 def test_markdown_image_replacement():
-    assert markdown('![example](http://example)') == '<p><a href="http://example" rel="nofollow ugc">example</a></p>\n'
-    assert markdown('<img alt="broken">') == '<p><a href="">broken</a></p>\n'
+    assert markdown('![example](http://example/)') == '<p><a href="http://example/" rel="nofollow ugc">example</a></p>\n'
+    assert markdown('<img alt="broken">') == '<p><span class="invalid-markup" title="invalid link">broken []</span></p>\n'
 
 
 def test_internal_links_without_nofollow():
@@ -111,7 +111,7 @@ def test_markdown_no_autolink_in_html_link():
     assert markdown('<A href="https://baz.test/">@foo@bar.test</A>') == '<p><a href="https://baz.test/" rel="nofollow ugc">@foo@bar.test</a></p>\n'
     assert markdown('<a href="https://baz.test/">@foo@bar.test</a>') == '<p><a href="https://baz.test/" rel="nofollow ugc">@foo@bar.test</a></p>\n'
     assert markdown('<b>https://foo.test/</b>') == '<p><b><a href="https://foo.test/" rel="nofollow ugc">https://foo.test/</a></b></p>\n'
-    assert markdown('<b>@foo@bar.test</b>') == '<p><b>@<a href="mailto:foo@bar.test">foo@bar.test</a></b></p>\n'
+    assert markdown('<b>@foo@bar.test</b>') == '<p><b>@<a href="mailto:foo@bar.test" rel="nofollow ugc">foo@bar.test</a></b></p>\n'
 
 
 def test_markdown_unordered_list():
@@ -134,8 +134,8 @@ def test_markdown_strikethrough():
     ("[external](http://example.com/)", '<a href="http://example.com/" rel="nofollow ugc">external</a>'),
     ('<a href="http://example.com/">external</a>', '<a href="http://example.com/" rel="nofollow ugc">external</a>'),
     ('<a href="http://example.com/" rel="noreferrer">external</a>', '<a href="http://example.com/" rel="nofollow ugc">external</a>'),
-    ("[external](//example.com/)", '<a href="//example.com/" rel="nofollow ugc">external</a>'),
-    ('<a href=" //example.com/">external</a>', '<a href="//example.com/" rel="nofollow ugc">external</a>'),
+    ("[external](//example.com/)", '<a href="https://example.com/" rel="nofollow ugc">external</a>'),
+    ('<a href=" //example.com/">external</a>', '<a href="https://example.com/" rel="nofollow ugc">external</a>'),
 ])
 def test_markdown_external_link_noreferrer(target, expected):
     assert markdown(target) == "<p>%s</p>\n" % (expected,)
@@ -159,11 +159,34 @@ def test_tag_stripping():
     assert markdown("<!--[if IE]><script>alert(1)</script><![endif]-->") == "\n"
 
 
+def _invalid_link(inner: str) -> str:
+    return f'<span class="invalid-markup" title="invalid link">{inner}</span>'
+
+
 @pytest.mark.parametrize(('target', 'expected'), [
-    ('<a href=" javascript:alert(1)">no</a>', "<a>no</a>"),
-    ('<a href="java&#x09;script:alert(1)">no</a>', "<a>no</a>"),
+    ('<a href=" javascript:alert(1)">no</a>', _invalid_link("no [ javascript:alert(1)]")),
+    ('<a href="java&#x09;script:alert(1)">no</a>', _invalid_link("no [java\tscript:alert(1)]")),
 ])
 def test_unsafe_link(target, expected):
+    assert markdown(target) == "<p>%s</p>\n" % (expected,)
+
+
+@pytest.mark.parametrize(('target', 'expected'), [
+    ('<a href="example.com">no</a>', _invalid_link("no [example.com]")),
+    ('<a href="example.com">no</a>tail', _invalid_link("no [example.com]") + "tail"),
+    ('<a href="http:example.com">yes</a>', '<a href="http://example.com/" rel="nofollow ugc">yes</a>'),
+    ('<a href="https:example.com">yes</a>', '<a href="https://example.com/" rel="nofollow ugc">yes</a>'),
+    ('<a href="\\\\example.com\\">yes</a>', '<a href="https://example.com/" rel="nofollow ugc">yes</a>'),
+    ('<a href="/\\example.com/">yes</a>', '<a href="https://example.com/" rel="nofollow ugc">yes</a>'),
+    ('<a href="\\/example.com/">yes</a>', '<a href="https://example.com/" rel="nofollow ugc">yes</a>'),
+    ('<a href="\x0b HT&#x9;tps://example.com/&#xd;&#xa;">yes</a>', '<a href="https://example.com/" rel="nofollow ugc">yes</a>'),
+    ('<a href="\x0b HT tps://example.com/">no\x0b</a>', _invalid_link("no [ HT tps://example.com/]")),
+    ('<a href="ht tps://example.com/">no</a>', _invalid_link("no [ht tps://example.com/]")),
+    ('<a href="https://example.com/&#xd800;">?</a>', '<a href="https://example.com/" rel="nofollow ugc">?</a>'),
+    ('<a href="/policy/community">yes</a>', '<a href="/policy/community">yes</a>'),
+    ('<a href="//example.com:https">no</a>', _invalid_link("no [//example.com:https]")),
+])
+def test_link_normalization(target, expected):
     assert markdown(target) == "<p>%s</p>\n" % (expected,)
 
 

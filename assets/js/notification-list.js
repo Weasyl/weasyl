@@ -40,7 +40,7 @@ const sectionToggle = section => {
 
 const sectionCheckboxes = map.call(sectionHeaders, sectionHeader => {
     const label = document.createElement('label');
-    const sectionCheckbox = sectionToggle(sectionHeader.nextElementSibling);
+    const sectionCheckbox = sectionToggle(sectionHeader.parentNode);
 
     label.appendChild(sectionCheckbox);
     label.appendChild(document.createTextNode(' '));
@@ -55,7 +55,7 @@ const checkAllButton = (text, checked) => {
     const button = document.createElement('button');
 
     button.type = 'button';
-    button.className = checked ? 'button notifs-check-all' : 'button notifs-uncheck-all';
+    button.className = 'button';
     button.textContent = text;
 
     button.addEventListener('click', () => {
@@ -68,16 +68,16 @@ const checkAllButton = (text, checked) => {
             checkbox.checked = checked;
         });
 
-        removeCheckedButton.disabled = !checked;
-        removeCheckedButtonTop.disabled = !checked;
+        removeCheckedButton.disabled = removeCheckedButtonTop.disabled =
+            !checked;
     });
 
     return button;
 };
 
 const updateRemoveChecked = () => {
-    removeCheckedButton.disabled = !some.call(removeCheckboxes, isChecked);
-    removeCheckedButtonTop.disabled = !some.call(removeCheckboxes, isChecked);
+    removeCheckedButton.disabled = removeCheckedButtonTop.disabled =
+        !some.call(removeCheckboxes, isChecked);
 };
 
 notificationContainer.addEventListener('change', updateRemoveChecked);

@@ -12,6 +12,7 @@ from weasyl import macro as m
 from weasyl import media
 from weasyl import siteupdate
 from weasyl import welcome
+from weasyl.collection import find_owners
 from weasyl.error import WeasylError
 
 
@@ -116,16 +117,35 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
     return result
 
 
-def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, parentid=None, content=None):
+def insert(
+    userid: int,
+    *,
+    submitid: int = 0,
+    charid: int = 0,
+    journalid: int = 0,
+    updateid: int = 0,
+    parentid: int,
+    content: str,
+) -> int:
+    targetid_col = "targetid"
+
     if submitid:
         table = "comments"
+        targetid_col = "target_sub"
+        targetid = submitid
     elif charid:
         table = "charcomment"
+        targetid = charid
     elif journalid:
         table = "journalcomment"
+        targetid = journalid
     elif updateid:
         table = "siteupdatecomment"
+        targetid = updateid
     else:
+        raise WeasylError("Unexpected")
+
+    if sum(map(bool, (submitid, charid, journalid, updateid))) > 1:
         raise WeasylError("Unexpected")
 
     if not content:
@@ -133,17 +153,18 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
 
     # Determine parent userid
     if parentid:
+        # NOTE: Replying to deleted comments is intentionally allowed.
         parentuserid = d.engine.scalar(
-            "SELECT userid FROM {table} WHERE commentid = %(parent)s".format(table=table),
+            f"SELECT userid FROM {table}"
+            " WHERE commentid = %(parent)s"
+            f" AND {targetid_col} = %(target)s",
             parent=parentid,
+            target=targetid,
         )
 
         if parentuserid is None:
             raise WeasylError("Unexpected")
     else:
-        if updateid:
-            parentid = None  # parentid == 0
-
         parentuserid = None
 
     if updateid:
@@ -197,18 +218,18 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             " RETURNING commentid",
             user=userid,
             update=updateid,
-            parent=parentid,
+            parent=parentid or None,
             content=content,
         )
         siteupdate.select_last.invalidate()
     else:
         commentid = d.engine.scalar(
-            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
+            f"INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
             " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
-            " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
+            " RETURNING commentid",
             user=userid,
-            target=d.get_targetid(charid, journalid),
-            parent=parentid or 0,
+            target=targetid,
+            parent=parentid,
             content=content,
             now=d.get_time(),
         )
@@ -217,18 +238,17 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
     if parentid and (userid != parentuserid):
         welcome.commentreply_insert(userid, commentid, parentuserid, parentid, submitid, charid, journalid, updateid)
     elif not parentid:
-        # build a list of people this comment should notify
-        # circular imports are cool and fun
-        from weasyl.collection import find_owners
-        notified = set(find_owners(submitid))
+        if submitid:
+            # build a list of people this comment should notify
+            def can_notify(other):
+                other_jsonb = d.get_profile_settings(other)
+                allow_notify = other_jsonb.allow_collection_notifs
+                ignored = ignoreuser.check(other, userid)
+                return allow_notify and not ignored
+            notified = set(filter(can_notify, find_owners(submitid)))
+        else:
+            notified = set()
 
-        # check to see who we should deliver comment notifications to
-        def can_notify(other):
-            other_jsonb = d.get_profile_settings(other)
-            allow_notify = other_jsonb.allow_collection_notifs
-            ignored = ignoreuser.check(other, userid)
-            return allow_notify and not ignored
-        notified = set(filter(can_notify, notified))
         # always give notification on own content
         notified.add(otherid)
         # don't give me a notification for my own comment
@@ -302,20 +322,20 @@ def remove(userid, *, feature, commentid):
     # mark comments as hidden
     if feature == 'submit':
         d.engine.execute(
-            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'",
             comment=commentid,
             hidden_by=userid,
         )
     elif feature == 'siteupdate':
         d.engine.execute(
-            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND hidden_at IS NULL",
             comment=commentid,
             hidden_by=userid,
         )
         siteupdate.select_last.invalidate()
     else:
         d.engine.execute(
-            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),
+            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'".format(feature=feature),
             comment=commentid,
             hidden_by=userid,
         )

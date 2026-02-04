@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import arrow
 import sqlalchemy as sa
-from arrow import Arrow
 from pyramid.threadlocal import get_current_request
 from sqlalchemy import bindparam, func
 from sqlalchemy.dialects.postgresql import aggregate_order_by
@@ -215,7 +214,7 @@ def select_myself(userid):
 def get_user_age(userid: int) -> int | None:
     assert userid
     birthday = d.engine.scalar("SELECT birthday FROM userinfo WHERE userid = %(user)s", user=userid)
-    return None if birthday is None else d.convert_age(birthday)
+    return None if birthday is None else d.age_in_years(birthday)
 
 
 def get_user_ratings(userid: int) -> Collection[ratings.Rating]:
@@ -250,10 +249,12 @@ def select_userinfo(userid, config):
         ORDER BY link_type, link_label, link_value
     """, userid=userid).fetchall()
 
+    birthdate: datetime.date | None = query.birthday
+
     show_age = "b" in config or d.get_userid() in staff.MODS
     return {
-        "birthday": query.birthday,
-        "age": d.convert_age(query.birthday) if show_age and query.birthday is not None else None,
+        "birthday": birthdate,
+        "age": d.age_in_years(birthdate) if show_age and birthdate is not None else None,
         "show_age": "b" in config,
         "gender": query.gender,
         "country": query.country,
@@ -659,7 +660,7 @@ def edit_userinfo(userid, form):
 
         result = d.engine.execute(birthdate_update, {
             "update_userid": userid,
-            "birthday": Arrow(year=birthdate_year, month=birthdate_month, day=1),
+            "birthday": datetime.date(year=birthdate_year, month=birthdate_month, day=1),
         })
 
         if result.rowcount != 1:
@@ -949,8 +950,21 @@ def select_manage(userid):
     }
 
 
+class _NoUpdate:
+    __slots__ = ()
+
+
+class _Removal:
+    __slots__ = ()
+
+
+NO_UPDATE = _NoUpdate()
+REMOVAL = _Removal()
+
+
 def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None,
-              birthday=None, gender=None, country=None, remove_social: list[int] | None = None,
+              birthday: _NoUpdate | _Removal | datetime.date = NO_UPDATE,
+              gender=None, country=None, remove_social: list[int] | None = None,
               permission_tag: bool | None = None):
     """Updates a user's information from the admin user management page.
     After updating the user it records all the changes into the mod notes.
@@ -963,7 +977,7 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         username (str): New username for user. Defaults to None.
         full_name (str): New full name for user. Defaults to None.
         catchphrase (str): New catchphrase for user. Defaults to None.
-        birthday (str): New birthday for user, in HTML5 date format (ISO 8601 yyyy-mm-dd). Defaults to None.
+        birthday: New birthday for user.
         gender (str): New gender for user. Defaults to None.
         country (str): New country for user. Defaults to None.
         remove_social (list): Items to remove from the user's social/contact links. Each entry is a linkid. Defaults to None.
@@ -1000,33 +1014,31 @@ def do_manage(my_userid, userid, username=None, full_name=None, catchphrase=None
         updates.append('- Catchphrase: %s' % (catchphrase,))
 
     # Birthday
-    if birthday is not None:
-        if birthday == "":
-            unixtime = None
-            age = None
-        else:
-            # HTML5 date format is yyyy-mm-dd
-            split = birthday.split("-")
-            if len(split) != 3 or d.convert_unixdate(day=split[2], month=split[1], year=split[0]) is None:
-                raise WeasylError("birthdayInvalid")
-            unixtime = d.convert_unixdate(day=split[2], month=split[1], year=split[0])
-            age = d.convert_age(unixtime)
-
-        result = d.engine.execute("UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s", birthday=unixtime, user=userid)
+    if birthday is not NO_UPDATE:
+        result = d.engine.execute(
+            "UPDATE userinfo SET birthday = %(birthday)s WHERE userid = %(user)s",
+            birthday=None if birthday is REMOVAL else birthday,
+            user=userid,
+        )
         assert result.rowcount == 1
 
-        if age is not None and age < ratings.EXPLICIT.minimum_age:
-            # reset rating preference and SFW mode rating preference to General
-            d.engine.execute(
-                """
-                UPDATE profile
-                SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'), max_rating = 'general'
-                WHERE userid = %(user)s
-                """,
-                user=userid,
-            )
-            d._get_all_config.invalidate(userid)
-        updates.append('- Birthday: %s' % (birthday or 'removal',))
+        if birthday is not REMOVAL:
+            age = d.age_in_years(birthday)
+
+            if age < ratings.EXPLICIT.minimum_age:
+                # reset rating preference and SFW mode rating preference to General
+                result = d.engine.execute(
+                    """
+                    UPDATE profile
+                    SET config = REGEXP_REPLACE(config, '[ap]', '', 'g'), max_rating = 'general'
+                    WHERE userid = %(user)s
+                    """,
+                    user=userid,
+                )
+                assert result.rowcount == 1
+                d._get_all_config.invalidate(userid)
+
+        updates.append('- Birthday: %s' % ('removal' if birthday is REMOVAL else birthday,))
 
     # Gender
     if gender is not None:

@@ -7,7 +7,7 @@ from weasyl import welcome
 from weasyl.error import WeasylError
 
 
-def check(userid, otherid):
+def check(userid: int, otherid: int) -> bool:
     """
     Check whether two users are confirmed friends.
 
@@ -28,30 +28,20 @@ def check(userid, otherid):
     )
 
 
-def already_pending(userid, otherid):
-    """
-    Check whether a pending friend request exists from userid to otherid.
-
-    Does not find friend requests in the other direction. Returns False if the
-    two users are already confirmed friends.
-    """
-    assert userid and otherid and userid != otherid
-
+def has_friends(otherid: int) -> bool:
     return d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM frienduser WHERE (userid, otherid) = (%(user)s, %(other)s) AND settings ~ 'p')",
-        user=userid,
-        other=otherid,
-    )
-
-
-def has_friends(otherid):
-    return d.engine.scalar(
-        "SELECT EXISTS (SELECT 0 FROM frienduser WHERE %(user)s IN (userid, otherid) AND settings !~ 'p')",
+        "SELECT EXISTS (SELECT FROM frienduser WHERE %(user)s IN (userid, otherid) AND settings !~ 'p')",
         user=otherid,
     )
 
 
-def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
+def select_friends(
+    userid: int,
+    otherid: int,
+    limit: int | None = None,
+    backid: int = 0,
+    nextid: int = 0,
+):
     """
     Return accepted friends.
     """
@@ -61,18 +51,18 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
 
     friends = sa.union(
         (sa
-         .select([fr.c.otherid, pr.c.username, pr.c.config])
+         .select([fr.c.otherid, pr.c.username])
          .select_from(fr.join(pr, fr.c.otherid == pr.c.userid))
          .where(sa.and_(fr.c.userid == otherid, fr.c.settings.op('!~')('p')))),
         (sa
-         .select([fr.c.userid, pr.c.username, pr.c.config])
+         .select([fr.c.userid, pr.c.username])
          .select_from(fr.join(pr, fr.c.userid == pr.c.userid))
          .where(sa.and_(fr.c.otherid == otherid, fr.c.settings.op('!~')('p')))))
     friends = friends.alias('friends')
 
     query = sa.select(friends.c)
 
-    if userid:
+    if userid and userid != otherid:
         query = query.where(
             ~friends.c.otherid.in_(sa.select([iu.c.otherid]).where(iu.c.userid == userid)))
     if backid:
@@ -84,7 +74,9 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
 
     query = query.order_by(
         friends.c.username.desc() if backid else friends.c.username.asc())
-    query = query.limit(limit)
+
+    if limit is not None:
+        query = query.limit(limit)
 
     db = d.connect()
     query = [{
@@ -97,86 +89,94 @@ def select_friends(userid, otherid, limit=None, backid=None, nextid=None):
     return ret
 
 
-def select_accepted(userid):
-    result = []
-    query = d.execute(
-        "SELECT fr.userid, p1.username, fr.otherid, p2.username FROM frienduser fr"
-        " INNER JOIN profile p1 ON fr.userid = p1.userid"
-        " INNER JOIN profile p2 ON fr.otherid = p2.userid"
-        " WHERE %i IN (fr.userid, fr.otherid) AND fr.settings !~ 'p'"
-        " ORDER BY p1.username", [userid])
+def select_requests(userid: int):
+    query = d.engine.execute(
+        "SELECT fr.userid, pr.username FROM frienduser fr"
+        " INNER JOIN profile pr ON fr.userid = pr.userid"
+        " WHERE fr.otherid = %(user)s AND fr.settings ~ 'p'",
+        user=userid,
+    )
 
-    for i in query:
-        if i[0] != userid:
-            result.append({
-                "userid": i[0],
-                "username": i[1],
-            })
-        else:
-            result.append({
-                "userid": i[2],
-                "username": i[3],
-            })
-
-    media.populate_with_user_media(result)
-    return result
-
-
-def select_requests(userid):
-    query = d.execute("SELECT fr.userid, pr.username, fr.settings FROM frienduser fr"
-                      " INNER JOIN profile pr ON fr.userid = pr.userid"
-                      " WHERE fr.otherid = %i AND fr.settings ~ 'p'", [userid])
-
-    ret = [{
-        "userid": i[0],
-        "username": i[1],
-        "settings": i[2],
-    } for i in query]
-
+    ret = [row._asdict() for row in query]
     media.populate_with_user_media(ret)
     return ret
 
 
-def request(userid, otherid):
+def request(userid: int, otherid: int) -> None:
     if ignoreuser.check(otherid, userid):
         raise WeasylError("IgnoredYou")
     elif ignoreuser.check(userid, otherid):
         raise WeasylError("YouIgnored")
 
-    if already_pending(otherid, userid):
-        d.execute("UPDATE frienduser SET settings = REPLACE(settings, 'p', '') WHERE (userid, otherid) = (%i, %i)",
-                  [otherid, userid])
+    def transaction(tx) -> None:
+        settings = tx.scalar(
+            "INSERT INTO frienduser AS fu (userid, otherid)"
+            " VALUES (%(userid)s, %(otherid)s)"
+            " ON CONFLICT (least(userid, otherid), (userid # otherid))"
+            " DO UPDATE SET settings = '', accepted_at = now()"
+            " WHERE (fu.userid, fu.otherid) = (%(otherid)s, %(userid)s)"
+            " AND fu.settings = 'p'"
+            " RETURNING settings",
+            userid=userid,
+            otherid=otherid,
+        )
 
-        welcome.frienduseraccept_insert(userid, otherid)
-        welcome.frienduserrequest_remove(userid, otherid)
-    elif not already_pending(userid, otherid):
-        d.execute("INSERT INTO frienduser VALUES (%i, %i)", [userid, otherid])
+        match settings:
+            case None:
+                # conflict, and `WHERE` clause didn't match: friendship already exists or friend request from this direction already exists
+                pass
 
-        welcome.frienduserrequest_remove(userid, otherid)
-        welcome.frienduserrequest_insert(userid, otherid)
+            case "":
+                # conflict, and `WHERE` clause did match: pending friendship in the other direction existed, and is now accepted
+                welcome.frienduserrequest_remove(tx, sender=otherid, recipient=userid)
+                welcome.frienduseraccept_insert(tx, requester=otherid, acceptor=userid)
 
+            case _:
+                assert settings == "p"
+                # no conflict: friend request from this direction was created
+                welcome.frienduserrequest_remove(tx, sender=userid, recipient=otherid)
+                welcome.frienduserrequest_insert(tx, sender=userid, recipient=otherid)
 
-def accept(userid, otherid):
-    if check(userid, otherid):
-        raise WeasylError("Unexpected")
-
-    d.execute("UPDATE frienduser SET settings = REPLACE(settings, 'p', '')"
-              " WHERE (userid, otherid) = (%i, %i)", [otherid, userid])
-    welcome.frienduseraccept_insert(userid, otherid)
-    welcome.frienduserrequest_remove(userid, otherid)
-
-
-def remove(userid, otherid):
-    d.execute("DELETE FROM frienduser WHERE userid IN (%i, %i) AND otherid IN (%i, %i)",
-              [userid, otherid, userid, otherid])
-    welcome.frienduseraccept_remove(userid, otherid)
-    welcome.frienduserrequest_remove(userid, otherid)
+    d.serializable_retry(transaction)
 
 
-def remove_request(userid, otherid):
-    d.execute(
-        "DELETE FROM frienduser "
-        "WHERE userid IN (%i, %i) "
-        "AND otherid IN (%i, %i)",
-        [userid, otherid, userid, otherid])
-    welcome.frienduserrequest_remove(userid, otherid)
+def remove(userid: int, otherid: int) -> None:
+    def transaction(tx) -> None:
+        row = tx.execute(
+            "DELETE FROM frienduser"
+            " WHERE (userid, otherid) = (%(user)s, %(other)s)"
+            " OR (userid, otherid) = (%(other)s, %(user)s)"
+            " RETURNING userid, otherid, settings ~ 'p' AS pending",
+            user=userid,
+            other=otherid,
+        ).one_or_none()
+
+        if row is None:
+            # No friendship or friend request to remove.
+            return
+
+        if row.pending:
+            welcome.frienduserrequest_remove(tx, sender=row.userid, recipient=row.otherid)
+        else:
+            welcome.frienduseraccept_remove(tx, requester=row.userid, acceptor=row.otherid)
+
+    d.serializable_retry(transaction)
+
+
+def remove_request(sender: int, recipient: int) -> None:
+    """
+    Remove a pending friend request sent by `sender` to `recipient`.
+
+    Does nothing if the friend request is already accepted, was sent in the other direction, or doesn't exist.
+    """
+    def transaction(tx) -> None:
+        tx.execute(
+            "DELETE FROM frienduser"
+            " WHERE (userid, otherid) = (%(sender)s, %(recipient)s)"
+            " AND settings ~ 'p'",
+            sender=sender,
+            recipient=recipient,
+        )
+        welcome.frienduserrequest_remove(tx, sender=sender, recipient=recipient)
+
+    d.serializable_retry(transaction)

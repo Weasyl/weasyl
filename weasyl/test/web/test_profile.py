@@ -1,3 +1,4 @@
+import datetime
 from contextlib import contextmanager
 
 import arrow
@@ -95,9 +96,14 @@ def test_age_set_and_display(app):
     assert (form["show_age"].checked, form["birthdate-month"].value, form["birthdate-year"].value) == (True, str(birthdate.month), str(birthdate.year)), "birthdate can’t be changed once set"
 
 
+def _get_birthdate_under_age(age: int) -> datetime.date:
+    # `days=4`: A test run sufficiently late on February 28 (UTC) in a non-leap year needs to produce April, not March, since it could already be March in the most advanced time zone.
+    return arrow.utcnow().shift(years=-age, months=1, days=4).date()
+
+
 @pytest.mark.usefixtures("db", "cache")
 def test_age_terms(app):
-    u13_birthdate = arrow.utcnow().shift(years=-13, months=1, days=1)
+    u13_birthdate = _get_birthdate_under_age(13)
 
     user = db_utils.create_user(username="profiletest")
     app.set_cookie(*db_utils.create_session(user).split("=", 1))
@@ -160,27 +166,29 @@ def _edit_journal(app, user):
     form.submit(status=303)
 
 
+def _assert_adult_params(type_name, create, edit):
+    return [
+        pytest.param(lambda app, user: create(app, user, rating="10"), False, id=f"create-{type_name}-rating-general"),
+        pytest.param(lambda app, user: create(app, user, rating="30"), True, id=f"create-{type_name}-rating-mature"),
+        pytest.param(edit, True, id=f"edit-{type_name}-rating-mature"),
+    ]
+
+
 @pytest.mark.usefixtures("db", "cache")
-@pytest.mark.parametrize(("create_post", "expect_assertion"), [
-    (None, False),
-    (lambda app, user: _create_submission(app, user, rating="10"), False),
-    (lambda app, user: _create_submission(app, user, rating="30"), True),
-    (_edit_submission, True),
-    (lambda app, user: create_character(app, user, rating="10"), False),
-    (lambda app, user: create_character(app, user, rating="30"), True),
-    (_edit_character, True),
-    (lambda app, user: create_journal(app, user, rating="10"), False),
-    (lambda app, user: create_journal(app, user, rating="40"), True),
-    (_edit_journal, True),
+@pytest.mark.parametrize(("user_action", "expect_assertion"), [
+    pytest.param(None, False, id="noop"),
+    *_assert_adult_params("submission", _create_submission, _edit_submission),
+    *_assert_adult_params("character", create_character, _edit_character),
+    *_assert_adult_params("journal", create_journal, _edit_journal),
 ])
-def test_assert_adult(app, create_post, expect_assertion):
-    u18_birthdate = arrow.utcnow().shift(years=-18, months=1, days=1)
+def test_assert_adult(app, user_action, expect_assertion):
+    u18_birthdate = _get_birthdate_under_age(18)
 
     forward_user = db_utils.create_user(username="forwarduser")
     app.set_cookie(*db_utils.create_session(forward_user).split("=", 1))
 
-    if create_post is not None:
-        create_post(app, forward_user)
+    if user_action is not None:
+        user_action(app, forward_user)
 
     resp = app.get("/control/editprofile")
     form = _find_form(resp, action="/control/editprofile")

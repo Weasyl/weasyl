@@ -9,12 +9,13 @@ from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
 
 from weasyl.controllers.decorators import token_checked
+from weasyl.controllers.profile import resolve_avatar
 from weasyl.error import WeasylError
 from weasyl.users import Username
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
-    index, journal, media, message, profile, submission)
+    index, journal, message, profile, searchtag, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -89,16 +90,14 @@ def api_login_required(view_callable):
 
 @api_method
 def api_useravatar_(request):
-    form = request.web_input(username="")
-    userid = profile.resolve_by_username(form.username)
+    username = request.GET.get("username")
+    if username is None:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
 
-    if userid:
-        media_items = media.get_user_media(userid)
-        return {
-            "avatar": d.absolutify_url(media_items['avatar'][0]['display_url']),
-        }
-
-    raise WeasylError('userRecordMissing')
+    display_url = resolve_avatar(username)
+    return {
+        "avatar": d.absolutify_url(display_url),
+    }
 
 
 @api_login_required
@@ -167,14 +166,21 @@ def api_frontpage_(request):
         count = min(count or 100, 100)
 
     submissions = index.filter_submissions(request.userid, index.recent_submissions())
+    all_tagids: set[int] = set()
     ret = []
 
     for e, sub in enumerate(submissions, start=1):
-        if (since is not None and since >= sub['unixtime']) or (count and e > count):
+        if (since is not None and since >= sub['unixtime']) or e > count:
             break
 
         tidy_submission(sub)
         ret.append(sub)
+        all_tagids.update(sub['tags'])
+
+    tag_names = searchtag.get_names(*all_tagids)
+
+    for sub in ret:
+        sub['tags'] = sorted(tag_names[tagid] for tagid in sub['tags'])
 
     return ret
 
@@ -206,10 +212,10 @@ def api_character_view_(request):
 @api_method
 def api_user_view_(request):
     # Helper functions for this view.
-    def convert_commission_price(value, options):
+    def convert_commission_price(value: int, options: str) -> str:
         return d.text_price_symbol(options) + d.text_price_amount(value)
 
-    def convert_commission_setting(target):
+    def convert_commission_setting(target: str) -> str | None:
         if target == "o":
             return "open"
         elif target == "s":
@@ -254,45 +260,28 @@ def api_user_view_(request):
 
     user['folders'] = folder.select_list(otherid)
 
-    commissions = {
-        "details": None,
-        "price_classes": None,
+    commission_info = commishinfo.select(otherid)
+    user['commission_info'] = {
+        "details": commission_info.content,
+        "price_classes": [
+            {
+                "title": class_.title,
+                "prices": [
+                    {
+                        "title": price.title,
+                        "price_min": convert_commission_price(price.amount_min, price.settings),
+                        "price_max": convert_commission_price(price.amount_max, price.settings) if price.amount_max else None,
+                        "price_type": "additional" if "a" in price.settings else "base",
+                    }
+                    for price in class_.prices
+                ],
+            }
+            for class_ in commission_info.classes
+        ],
         "commissions": convert_commission_setting(o_settings[0]),
         "trades": convert_commission_setting(o_settings[1]),
         "requests": convert_commission_setting(o_settings[2])
     }
-
-    commission_list = commishinfo.select_list(otherid)
-    commissions['details'] = commission_list['content']
-
-    if len(commission_list['class']) > 0:
-        classes = list()
-        for cclass in commission_list['class']:
-            commission_class = {
-                "title": cclass['title']
-            }
-
-            if len(commission_list['price']) > 0:
-                prices = list()
-                for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
-                    if 'a' in cprice['settings']:
-                        ptype = 'additional'
-                    else:
-                        ptype = 'base'
-
-                    price = {
-                        "title": cprice['title'],
-                        "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                        "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                        'price_type': ptype
-                    }
-                    prices.append(price)
-                commission_class['prices'] = prices
-
-            classes.append(commission_class)
-        commissions['price_classes'] = classes
-
-    user['commission_info'] = commissions
 
     user['relationship'] = profile.select_relation(userid, otherid) if userid else None
 
@@ -388,17 +377,20 @@ def api_messages_submissions_(request):
         count = min(count or 100, 100)
 
     submissions = message.select_submissions(
-        request.userid, count + 1, include_tags=True, backtime=backtime, nexttime=nexttime)
+        request.userid,
+        limit=count + 1,
+        include_tags=True,
+        backtime=backtime,
+        nexttime=nexttime,
+    )
     backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
 
-    ret = []
     for sub in submissions:
         tidy_submission(sub)
-        ret.append(sub)
 
     return {
         'backtime': backtime, 'nexttime': nexttime,
-        'submissions': ret,
+        'submissions': submissions,
     }
 
 

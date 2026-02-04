@@ -117,7 +117,7 @@ a.more > span, #header-messages a, .page-title a {
     color: $color-b;
 }
 
-.color-c, %content-like a {
+%content-like a {
     color: theme.$link-color;
 }
 
@@ -581,6 +581,7 @@ $constrained-width: 50em;
 
 .formatted-content img {
     max-width: 100%;
+    height: auto;
 }
 
 .formatted-content pre {
@@ -2065,7 +2066,6 @@ $small-caps-ratio: 1.2;
 
 .home-pane-link {
     @extend .typeface-a;
-    @extend .color-c;
     display: block;
     padding: 0 16px;
     line-height: 48px;
@@ -2365,7 +2365,8 @@ $small-caps-ratio: 1.2;
     font-size: 1rem;
 }
 
-#user-commissions .formatted-content, #user-journal .formatted-content {
+#user-commissions > .leaders + .formatted-content,
+#user-journal .formatted-content {
     padding-top: 1.5em;
 }
 

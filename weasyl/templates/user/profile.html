@@ -1,6 +1,7 @@
 $def with (request, profile, userinfo, relationship, myself, submissions, more_submissions, favorites, featured, folders, journal, shouts, statistics, show_statistics, commishinfo, has_friends, is_unverified, post_counts_by_type)
 $code:
   _GRID_ITEM = COMPILE("common/thumbnail_grid_item.html")
+  _COMMISSION_INFO = COMPILE("user/commission_info.html")
   card_viewer = get_card_viewer()
   viewable = "users/%s" % (profile["userid"],)
 
@@ -79,11 +80,11 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
               submitid=featured['submitid'],
               slug=SLUG(featured['title']),
             )
-          <h3>${blurb}: <a class="color-c" href="${featured_link}">${featured['title']}</a></h3>
+          <h3>${blurb}: <a href="${featured_link}">${featured['title']}</a></h3>
           <div id="uf-image">
             <a href="${featured_link}"><img src="${cover['display_url']}" alt="${blurb} image: ${featured['title']}" /></a>
         $elif featured['contype'] == 20:
-          <h3>Most Recent: <a class="color-c" href="/character/${featured['charid']}/${SLUG(featured['title'])}">${featured['title']}</a></h3>
+          <h3>Most Recent: <a href="/character/${featured['charid']}/${SLUG(featured['title'])}">${featured['title']}</a></h3>
           <div id="uf-image">
             <a href="/character/${featured['charid']}/${SLUG(featured['title'])}"><img src="${cover['display_url']}" alt="${blurb} character: ${featured['title']}" /></a>
         </div>
@@ -115,7 +116,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
   $if(journal):
     <div id="user-journal" class="clear on-side">
       <h3>Latest Journal</h3>
-      <h4><a class="color-c" href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a></h4>
+      <h4><a href="/journal/${journal['journalid']}/${SLUG(journal['title'])}">${journal['title']}</a></h4>
       <h5>$:{LOCAL_TIME(journal['unixtime'], '<i>on</i> {date} <i>at</i> {time}')}</h5>
 
       <div class="formatted-content">
@@ -126,29 +127,14 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     </div>
 
 
-  $if(commishinfo['class'] and commishinfo['price']):
+  $if commishinfo.classes or commishinfo.content:
     <div id="user-commissions" class="clear on-side">
       <h3>Commissions</h3>
 
-      $for i in commishinfo['class']:
-        <h4 class="color-c">${i['title']}</h4>
-        <dl class="leaders">
-        $for j in commishinfo['price']:
-          $if(j['classid'] == i['classid'] and 'a' not in j['settings']):
-            <dt>${j['title']}</dt>
-            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-            $if(j['amount_max']):
-              <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-        $for j in commishinfo['price']:
-          $if(j['classid'] == i['classid'] and 'a' in j['settings']):
-            <dt><i>add &#160;</i>${j['title']}</dt>
-            <dd>$:{'<i>from </i>' if j['amount_max'] else ''}${SYMBOL(j['settings'])} ${PRICE(j['amount_min'])}</dd>
-            $if(j['amount_max']):
-              <dd><i>to </i>${SYMBOL(j['settings'])} ${PRICE(j['amount_max'])}</dd>
-        </dl>
+      $:{_COMMISSION_INFO(classes=commishinfo.classes)}
 
-      $if(commishinfo['content']):
-        <div class="formatted-content">$:{MARKDOWN(commishinfo['content'])}</div>
+      $if commishinfo.content:
+        <div class="formatted-content">$:{MARKDOWN(commishinfo.content)}</div>
     </div>
 
 
@@ -195,7 +181,7 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
                 <img src="${thumb_files.fallback['display_url']}" alt="" />
               </picture>
             </div>
-            <h5 class="color-c">${i['title']}</h5>
+            <h5>${i['title']}</h5>
             <h6><b>${i['count']}</b> Item${'' if i['count'] == 1 else 's'}</h6>
           </a>
       </div>

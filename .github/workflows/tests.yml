@@ -10,7 +10,7 @@ jobs:
       id-token: write
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:bc756a11c43b1997430804227fe176bea9c06fe1e2c9b667ed8946e64e117e72
+      image: ghcr.io/weasyl/ci-base-image@sha256:d66525bca482998a72288e2bfe2c4e29ad26d7a649eeb4d11119f586944d3a68
       options: --user 1001
 
     services:
@@ -31,10 +31,10 @@ jobs:
         image: memcached:1.5-alpine
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Cache Deno dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /deno-dir/
           key: cache-${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
@@ -42,7 +42,7 @@ jobs:
             cache-${{ runner.os }}-deno-
 
       - name: Cache Poetry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: cache-${{ runner.os }}-pip-${{ hashFiles('poetry-requirements.txt') }}
@@ -50,7 +50,7 @@ jobs:
             cache-${{ runner.os }}-pip-
 
       - name: Cache Python dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pypoetry
           key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}

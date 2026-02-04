@@ -101,7 +101,7 @@ routes = (
     Route("/user/{name}", "profile_user", profile.profile_),
     Route("/profile", "profile_unnamed", profile.profile_),
     Route("/profile/{name}", "profile", profile.profile_),
-    Route("/~{name}/{link_type}", "profile_media", profile.profile_media_),
+    Route("/~{name}/avatar", "profile_avatar", profile.profile_avatar_),
     Route("/~{name}/submission/{submitid:[0-9]+}",
           "submission_detail_profile;no_s;no_slug", detail.submission_),
     Route("/~{name}/submission/{submitid:[0-9]+}/{slug:[^/.]*}",
@@ -110,8 +110,6 @@ routes = (
           "submission_detail_profile;no_slug", detail.submission_),
     Route("/~{name}/submissions/{submitid:[0-9]+}/{slug:[^/.]*}",
           "submission_detail_profile", detail.submission_),
-    Route("/~{name}/{linktype}/{submitid:[0-9]+}/{ignore_name:.*}",
-          "submission_detail_media", detail.submission_media_),
     Route("/submissions", "profile_submissions_unnamed", profile.submissions_),
     Route("/submissions/{name:[^/]*}", "profile_submissions", profile.submissions_),
     Route("/journals", "profile_journals_unnamed", profile.journals_),
@@ -321,10 +319,6 @@ routes = (
 
     # Director control routes.
     Route("/directorcontrol", "directorcontrol", director.directorcontrol_),
-    Route("/directorcontrol/emailblacklist", "directorcontrol_emailblacklist", {
-        'GET': director.directorcontrol_emailblacklist_get_,
-        'POST': director.directorcontrol_emailblacklist_post_,
-    }),
     Route("/directorcontrol/globaltagrestrictions", "directorcontrol_globaltagrestrictions", {
         'GET': director.directorcontrol_globaltagrestrictions_get_,
         'POST': director.directorcontrol_globaltagrestrictions_post_,

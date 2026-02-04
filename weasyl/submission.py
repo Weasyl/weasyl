@@ -40,6 +40,7 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
 
 
 COUNT_LIMIT = 250
@@ -87,11 +88,11 @@ def check_for_duplicate_media(userid, mediaid):
         raise WeasylError('duplicateSubmission')
 
 
-def _create_submission(expected_type):
+def _create_submission(expected_type: int):
     valid_types = {id for (id, name) in m.MACRO_SUBCAT_LIST if id // 1000 == expected_type}
 
     def wrapper(create_specific):
-        def create_generic(userid, submission, **kwargs):
+        def create_generic(userid: int, submission, **kwargs):
             tags = kwargs['tags']
 
             if submission.subtype not in valid_types:
@@ -110,15 +111,16 @@ def _create_submission(expected_type):
             if submission.rating.minimum_age:
                 profile.assert_adult(userid)
 
-            newid = create_specific(
+            ret = create_specific(
                 userid=userid,
                 submission=submission,
                 **kwargs)
-            if newid:
-                p = d.meta.tables['profile']
-                d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
-                d.cached_posts_count.invalidate(userid)
-            return newid
+
+            p = d.meta.tables['profile']
+            d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
+            d.cached_posts_count.invalidate(userid)
+
+            return ret
 
         return create_generic
 
@@ -160,9 +162,18 @@ def _http_get_if_crosspostable(url):
 
 
 @_create_submission(expected_type=1)
-def create_visual(userid, submission,
-                  friends_only, tags, imageURL, thumbfile,
-                  submitfile, critique, create_notifications):
+def create_visual(
+    *,
+    userid: int,
+    submission,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    imageURL: str,
+    thumbfile,
+    submitfile,
+    critique: bool,
+    create_notifications: bool,
+) -> int:
     if imageURL:
         resp = _http_get_if_crosspostable(imageURL)
         submitfile = resp.content
@@ -289,9 +300,19 @@ def _normalize_google_docs_embed(embedlink):
 
 
 @_create_submission(expected_type=2)
-def create_literary(userid, submission, embedlink=None, friends_only=False, tags=None,
-                    coverfile=None, thumbfile=None, submitfile=None, critique=False,
-                    create_notifications=True):
+def create_literary(
+    *,
+    userid: int,
+    submission,
+    embedlink: str,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    coverfile,
+    thumbfile,
+    submitfile,
+    critique: bool,
+    create_notifications: bool,
+) -> tuple[int, bool]:
     if embedlink:
         embedlink = _normalize_google_docs_embed(embedlink)
 
@@ -376,9 +397,20 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
 
 
 @_create_submission(expected_type=3)
-def create_multimedia(userid, submission, embedlink=None, friends_only=None,
-                      tags=None, coverfile=None, thumbfile=None, submitfile=None,
-                      critique=False, create_notifications=True, auto_thumb=False):
+def create_multimedia(
+    *,
+    userid: int,
+    submission,
+    embedlink: str,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    coverfile,
+    thumbfile,
+    submitfile,
+    critique: bool,
+    create_notifications: bool,
+    auto_thumb: bool,
+) -> tuple[int, bool]:
     # Determine filesizes
     coversize = len(coverfile)
     thumbsize = len(thumbfile)
@@ -510,9 +542,9 @@ def reupload(userid, submitid, submitfile):
     ).first()
 
     if not query:
-        raise WeasylError("Unexpected")
+        raise WeasylError("submissionRecordMissing")
     elif userid != query[0]:
-        raise WeasylError("Unexpected")
+        raise WeasylError("InsufficientPermissions")
     elif query[2] is not None:
         raise WeasylError("Unexpected")
 
@@ -997,7 +1029,14 @@ def _invalidate_collectors_posts_count(submitid):
     d.cached_posts_count_invalidate_multi(owners)
 
 
-def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
+def edit(
+    userid: int,
+    submission,
+    *,
+    embedlink: str,
+    friends_only: bool,
+    critique: bool,
+) -> None:
     query = d.engine.execute(
         "SELECT userid, subtype, hidden, embed_type FROM submission WHERE submitid = %(id)s",
         id=submission.submitid).first()
@@ -1077,7 +1116,7 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
     _invalidate_collectors_posts_count(submission.submitid)
 
 
-def remove(userid, submitid):
+def remove(userid: int, submitid: int) -> int | None:
     ownerid = d.get_ownerid(submitid=submitid)
 
     if userid not in staff.MODS and userid != ownerid:
@@ -1100,9 +1139,9 @@ def reupload_cover(userid, submitid, coverfile):
         id=submitid).first()
 
     if not query:
-        raise WeasylError("Unexpected")
-    elif userid not in staff.MODS and userid != query[0]:
-        raise WeasylError("Unexpected")
+        raise WeasylError("submissionRecordMissing")
+    elif userid != query[0]:
+        raise WeasylError("InsufficientPermissions")
     elif query[1] < 2000:
         raise WeasylError("Unexpected")
 
@@ -1121,12 +1160,10 @@ def select_recently_popular():
 
     To calculate scores, this method performs the following evaluation:
 
-    item_score = log(item_fave_count + 1) + log(item_view_counts) / 2 + submission_time / 180000
+    item_score = log(item_fave_count) + submission_time / 180000
 
     180000 is roughly two days. So intuitively an item two days old needs an order of
-    magnitude more favorites/views compared to a fresh one. Also the favorites are
-    quadratically more influential than views. The result is that this algorithm favors
-    recent, heavily favorited items.
+    magnitude more favorites compared to a fresh one.
 
     :return: A list of submission dictionaries, in score-rank order.
     """
@@ -1145,9 +1182,9 @@ def select_recently_popular():
         WHERE
             NOT submission.hidden
             AND NOT submission.friends_only
+            AND submission.favorites > 0
         ORDER BY
-            log(submission.favorites + 1) +
-                log(submission.page_views + 1) / 2 +
+            log(submission.favorites) +
                 submission.unixtime / 180000.0
                 DESC
         LIMIT 128

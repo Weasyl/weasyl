@@ -63,7 +63,7 @@ def admincontrol_manageuser_post_(request):
                       birthday=birthday,
                       gender=request.params.get('gender', '') if 'ch_gender' in request.params else None,
                       country=request.params.get('country', '') if 'ch_country' in request.params else None,
-                      remove_social=request.params.getall('remove_social'),
+                      remove_social=list(map(int, request.params.getall('linkid'))) if 'linkid' in request.params else None,
                       permission_tag='permission-tag' in request.params)
     raise HTTPSeeOther(location="/admincontrol")
 

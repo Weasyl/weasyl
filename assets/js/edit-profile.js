@@ -46,28 +46,26 @@ function unmarkEntryForRemoval() {
 }
 
 function addNewSocialGroupIfNeeded() {
-    if (this.querySelectorAll('input[value]')) {
-        newSocialGroup = this.cloneNode(true);
+    newSocialGroup = this.cloneNode(true);
 
-        newSocialGroup.querySelectorAll('input').forEach(element => {
-            element.value = '';
-        });
+    newSocialGroup.querySelectorAll('input').forEach(element => {
+        element.value = '';
+    });
 
-        newSocialGroup.querySelector('div[popover]').remove();
+    newSocialGroup.querySelector('div[popover]').remove();
 
-        const newSiteNameInput = newSocialGroup.querySelector('input[name="site_names"]');
-        newSiteNameInput.setAttribute('list', 'known-social-sites');
-        newSiteNameInput.addEventListener('input', checkSuspiciousSiteName);
+    const newSiteNameInput = newSocialGroup.querySelector('input[name="site_names"]');
+    newSiteNameInput.setAttribute('list', 'known-social-sites');
+    newSiteNameInput.addEventListener('input', checkSuspiciousSiteName);
 
-        const removeContact = this.querySelector('.remove-contact');
-        removeContact.hidden = false;
-        removeContact.firstChild.addEventListener('click', markEntryForRemoval);
+    const removeContact = this.querySelector('.remove-contact');
+    removeContact.hidden = false;
+    removeContact.firstChild.addEventListener('click', markEntryForRemoval);
 
-        this.removeAttribute('id');
-        this.insertAdjacentElement('afterend', newSocialGroup);
-        this.removeEventListener('input', addNewSocialGroupIfNeeded);
-        newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
-    }
+    this.removeAttribute('id');
+    this.insertAdjacentElement('afterend', newSocialGroup);
+    this.removeEventListener('input', addNewSocialGroupIfNeeded);
+    newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
 }
 
 newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);

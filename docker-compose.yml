@@ -39,9 +39,9 @@ services:
       - test-coverage:/weasyl/coverage:ro
       - uds-nginx-web:/run/uds-nginx-web
     tmpfs:
-      # owner nginx:nginx
-      - '/run/nginx:mode=700,uid=101,gid=102'
-      - '/var/lib/nginx/tmp:mode=700,uid=101,gid=102'
+      # owner nginx:root
+      - '/run/nginx:mode=700,uid=1000'
+      - '/var/lib/nginx/tmp:mode=700,uid=1000'
     networks:
       - external-nginx
     ports:

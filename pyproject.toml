@@ -14,7 +14,7 @@ dependencies = [
     "pyramid==2.0.2",
     "pyotp==2.3.0",
     "qrcodegen==1.2.0",
-    "cryptography~=44.0",
+    "cryptography~=46.0",
     "alembic~=1.18",
     "arrow==1.2.2",
     "bcrypt==4.0.1",

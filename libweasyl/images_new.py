@@ -77,9 +77,9 @@ def get_thumbnail(image_file, bounds=None):
     representation of an image’s thumbnail in some format. The image can be a
     path or a file object.
     """
-    image = Image.open(image_file)
-
-    # this is checked before getting to the point of creating a thumbnail
+    # Formats are checked before getting to the point of creating a thumbnail.
+    # `MpoImageFile`s use the JPEG loader.
+    image = Image.open(image_file, formats=('GIF', 'JPEG', 'PNG'))
     assert image.format in ('JPEG', 'MPO', 'PNG', 'GIF')
 
     # JPEG/MPO: L, RGB, CMYK

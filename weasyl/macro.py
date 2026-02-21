@@ -7,7 +7,7 @@ from libweasyl.models import tables as t
 
 
 MACRO_EMAIL_ADDRESS = "weasyl@weasyl.com"
-MACRO_SUPPORT_ADDRESS = "support@weasyl.dev"
+MACRO_SUPPORT_ADDRESS = "support@weasyl.com"
 
 MACRO_BCRYPT_ROUNDS = 13
 

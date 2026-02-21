@@ -8,5 +8,5 @@
         <Param name="q" value="{searchTerms}" />
     </Url>
     <Url rel="self" type="application/opensearchdescription+xml" template="https://www.weasyl.com/opensearch.xml" />
-    <Contact>support@weasyl.dev</Contact>
+    <Contact>support@weasyl.com</Contact>
 </OpenSearchDescription>

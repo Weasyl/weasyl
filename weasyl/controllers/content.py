@@ -534,7 +534,7 @@ def reupload_character_post_(request):
     form.targetid = define.get_int(form.targetid)
 
     character.reupload(request.userid, form.targetid, form.submitfile)
-    raise HTTPSeeOther(location="/character/%i" % (form.targetid,))
+    raise HTTPSeeOther(location="/manage/thumbnail?charid=%i" % (form.targetid,))
 
 
 @login_required

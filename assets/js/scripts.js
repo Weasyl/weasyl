@@ -567,33 +567,33 @@ document.addEventListener('click', e => {
                     if (response.status === 200) {
                         result = await response.json();
 
-                        if (result && result.id) {
-                            newComment.dataset.id = result.id;
-                            newComment.id = 'cid' + result.id;
-                            newComment.classList.remove('submitting');
-                            newForm.parentNode.removeChild(newForm);
-
-                            autosize.destroy(contentField);
-
-                            if (commentInfo.m_removalPrivileges !== 'all') {
-                                const parentComment = newComment.parentNode.parentNode.previousElementSibling;
-                                const parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
-
-                                if (parentHideLink) {
-                                    parentHideLink.parentNode.removeChild(parentHideLink);
-                                }
-                            }
-
-                            const linkLink = document.createElement('a');
-                            linkLink.href = '#cid' + result.id;
-                            linkLink.textContent = 'Link';
-                            commentActions.appendChild(document.createTextNode(' '));
-                            commentActions.appendChild(linkLink);
-
-                            commentBody.innerHTML = result.html;
-
-                            return;
+                        if (!result && !result.id) {
+                            throw new Error();
                         }
+
+                        newComment.dataset.id = result.id;
+                        newComment.id = 'cid' + result.id;
+                        newComment.classList.remove('submitting');
+                        newForm.parentNode.removeChild(newForm);
+
+                        autosize.destroy(contentField);
+
+                        if (commentInfo.m_removalPrivileges !== 'all') {
+                            const parentComment = newComment.parentNode.parentNode.previousElementSibling;
+                            const parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
+
+                            if (parentHideLink) {
+                                parentHideLink.parentNode.removeChild(parentHideLink);
+                            }
+                        }
+
+                        const linkLink = document.createElement('a');
+                        linkLink.href = '#cid' + result.id;
+                        linkLink.textContent = 'Link';
+                        commentActions.appendChild(document.createTextNode(' '));
+                        commentActions.appendChild(linkLink);
+
+                        commentBody.innerHTML = result.html;
                     }
                 } catch {
                     newForm.style.display = 'block';

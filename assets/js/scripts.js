@@ -404,6 +404,12 @@ document.addEventListener('click', e => {
         contentField.parentNode.removeChild(contentField.nextSibling);
         contentField.value = '';
 
+        // Remove any error messages from the original comment
+        const oldError = newFormContent.getElementsByClassName('error')[0];
+        if (oldError) {
+            newFormContent.removeChild(oldError);
+        }
+
         if (!children || children.nodeName !== 'UL') {
             children = document.createElement('ul');
             comment.parentNode.insertBefore(children, comment.nextElementSibling);

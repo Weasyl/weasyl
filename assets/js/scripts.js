@@ -530,69 +530,6 @@ document.addEventListener('click', e => {
                 newComment.appendChild(commentContent);
                 newComment.classList.add('submitting');
 
-                const rq = new XMLHttpRequest();
-
-                rq.open('POST', newForm.action, true);
-                rq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-                rq.onreadystatechange = function () {
-                    if (rq.readyState === 4) {
-                        let result = null;
-
-                        if (rq.status === 200) {
-                            try {
-                                result = JSON.parse(rq.responseText);
-                            } catch (ex) {}
-
-                            if (result && result.id) {
-                                newComment.dataset.id = result.id;
-                                newComment.id = 'cid' + result.id;
-                                newComment.classList.remove('submitting');
-                                newForm.parentNode.removeChild(newForm);
-
-                                autosize.destroy(contentField);
-
-                                if (commentInfo.m_removalPrivileges !== 'all') {
-                                    const parentComment = newComment.parentNode.parentNode.previousElementSibling;
-                                    const parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
-
-                                    if (parentHideLink) {
-                                        parentHideLink.parentNode.removeChild(parentHideLink);
-                                    }
-                                }
-
-                                const linkLink = document.createElement('a');
-                                linkLink.href = '#cid' + result.id;
-                                linkLink.textContent = 'Link';
-                                commentActions.appendChild(document.createTextNode(' '));
-                                commentActions.appendChild(linkLink);
-
-                                commentBody.innerHTML = result.html;
-
-                                return;
-                            }
-                        }
-
-                        newForm.style.display = 'block';
-                        newComment.parentNode.removeChild(newComment);
-
-                        if (!newFormError) {
-                            newFormError = document.createElement('div');
-                            newFormError.className = 'error';
-                            newFormContent.insertBefore(newFormError, newFormContent.firstChild);
-                        }
-
-                        newFormError.textContent = result && result.error ? result.message : 'Sorry; an unexpected error occurred. Try refreshing.';
-                    }
-                };
-
-                rq.send(
-                    'format=json' +
-                    '&' + targetIdField.name + '=' + targetId +
-                    '&parentid=' + commentInfo.m_id +
-                    '&content=' + encodeURIComponent(contentField.value)
-                );
-
                 target.textContent = 'Reply';
                 target.removeEventListener('click', cancelReply);
                 contentField.removeEventListener('keydown', handleShortcuts);
@@ -604,6 +541,64 @@ document.addEventListener('click', e => {
                     newFormContent.removeChild(newFormError);
                     newFormError = null;
                 }
+
+                const body = new URLSearchParams({
+                    'format': 'json',
+                    'parentid': commentInfo.m_id,
+                    'content': contentField.value,
+                });
+
+                body.set(targetIdField.name, targetId);
+
+                fetch(newForm.action, {
+                    'method': 'POST',
+                    'body': body,
+                }).then(response => {
+                    if (!response.ok) {
+                        return Promise.reject({});
+                    }
+
+                    return response.json();
+                }).then(result => {
+                    if (result.error) {
+                        return Promise.reject(result.message);
+                    }
+
+                    newComment.dataset.id = result.id;
+                    newComment.id = 'cid' + result.id;
+                    newComment.classList.remove('submitting');
+                    newForm.parentNode.removeChild(newForm);
+
+                    autosize.destroy(contentField);
+
+                    if (commentInfo.m_removalPrivileges !== 'all') {
+                        const parentComment = newComment.parentNode.parentNode.previousElementSibling;
+                        const parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
+
+                        if (parentHideLink) {
+                            parentHideLink.parentNode.removeChild(parentHideLink);
+                        }
+                    }
+
+                    const linkLink = document.createElement('a');
+                    linkLink.href = '#cid' + result.id;
+                    linkLink.textContent = 'Link';
+                    commentActions.appendChild(document.createTextNode(' '));
+                    commentActions.appendChild(linkLink);
+
+                    commentBody.innerHTML = result.html;
+                }).catch(err => {
+                    newForm.style.display = 'block';
+                    newComment.parentNode.removeChild(newComment);
+
+                    if (!newFormError) {
+                        newFormError = document.createElement('div');
+                        newFormError.className = 'error';
+                        newFormContent.insertBefore(newFormError, newFormContent.firstChild);
+                    }
+
+                    newFormError.textContent = err.reason ? err.reason : 'Sorry; an unexpected error occurred. Try refreshing.';
+                });
             }
         };
 

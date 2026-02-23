@@ -431,17 +431,17 @@ document.addEventListener('click', e => {
             target.focus();
         };
 
-        const handleShortcuts = e => {
+        const handleShortcuts = async e => {
             if (e.key === 'Escape' && !contentField.value) {
                 contentField.removeEventListener('keydown', handleShortcuts);
                 cancelReply(e);
             } else if (e.key === 'Enter' && e.ctrlKey) {
                 e.preventDefault();
-                submitComment();
+                await submitComment();
             }
         };
 
-        const submitComment = () => {
+        const submitComment = async () => {
             if (newForm.checkValidity()) {
                 const posterUsername = document.getElementById('username').textContent;
 
@@ -550,44 +550,46 @@ document.addEventListener('click', e => {
 
                 body.set(targetIdField.name, targetId);
 
-                fetch(newForm.action, {
-                    method: 'POST',
-                    body,
-                }).then(response => {
-                    if (!response.ok) {
-                        return Promise.reject({});
-                    }
+                let result = null;
 
-                    return response.json();
-                }).then(result => {
-                    if (result.error) {
-                        return Promise.reject(result.message);
-                    }
+                try {
+                    const response = await fetch(newForm.action, {
+                        method: 'POST',
+                        body,
+                    });
 
-                    newComment.dataset.id = result.id;
-                    newComment.id = 'cid' + result.id;
-                    newComment.classList.remove('submitting');
-                    newForm.parentNode.removeChild(newForm);
+                    if (response.status === 200) {
+                        result = await response.json();
 
-                    autosize.destroy(contentField);
+                        if (result && result.id) {
+                            newComment.dataset.id = result.id;
+                            newComment.id = 'cid' + result.id;
+                            newComment.classList.remove('submitting');
+                            newForm.parentNode.removeChild(newForm);
 
-                    if (commentInfo.m_removalPrivileges !== 'all') {
-                        const parentComment = newComment.parentNode.parentNode.previousElementSibling;
-                        const parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
+                            autosize.destroy(contentField);
 
-                        if (parentHideLink) {
-                            parentHideLink.parentNode.removeChild(parentHideLink);
+                            if (commentInfo.m_removalPrivileges !== 'all') {
+                                const parentComment = newComment.parentNode.parentNode.previousElementSibling;
+                                const parentHideLink = parentComment && parentComment.getElementsByClassName('comment-hide-link')[0];
+
+                                if (parentHideLink) {
+                                    parentHideLink.parentNode.removeChild(parentHideLink);
+                                }
+                            }
+
+                            const linkLink = document.createElement('a');
+                            linkLink.href = '#cid' + result.id;
+                            linkLink.textContent = 'Link';
+                            commentActions.appendChild(document.createTextNode(' '));
+                            commentActions.appendChild(linkLink);
+
+                            commentBody.innerHTML = result.html;
+
+                            return;
                         }
                     }
-
-                    const linkLink = document.createElement('a');
-                    linkLink.href = '#cid' + result.id;
-                    linkLink.textContent = 'Link';
-                    commentActions.appendChild(document.createTextNode(' '));
-                    commentActions.appendChild(linkLink);
-
-                    commentBody.innerHTML = result.html;
-                }).catch(err => {
+                } catch {
                     newForm.style.display = 'block';
                     newComment.parentNode.removeChild(newComment);
 
@@ -597,8 +599,8 @@ document.addEventListener('click', e => {
                         newFormContent.insertBefore(newFormError, newFormContent.firstChild);
                     }
 
-                    newFormError.textContent = err ? err : 'Sorry; an unexpected error occurred. Try refreshing.';
-                });
+                    newFormError.textContent = result && result.error ? result.message : 'Sorry; an unexpected error occurred. Try refreshing.';
+                }
             }
         };
 

@@ -597,7 +597,7 @@ document.addEventListener('click', e => {
                         newFormContent.insertBefore(newFormError, newFormContent.firstChild);
                     }
 
-                    newFormError.textContent = err.reason ? err.reason : 'Sorry; an unexpected error occurred. Try refreshing.';
+                    newFormError.textContent = err ? err : 'Sorry; an unexpected error occurred. Try refreshing.';
                 });
             }
         };

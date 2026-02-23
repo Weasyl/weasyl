@@ -343,21 +343,21 @@ document.addEventListener('click', e => {
             }
 
             fetch('/remove/comment', {
-                'method': 'POST',
-                'body': new URLSearchParams({
-                    'format': 'json',
-                    'feature': commentInfo.m_feature,
-                    'commentid': commentInfo.m_id,
+                method: 'POST',
+                body: new URLSearchParams({
+                    format: 'json',
+                    feature: commentInfo.m_feature,
+                    commentid: commentInfo.m_id,
                 }),
             }).then(response => {
                 if (!response.ok) {
-                    return Promise.reject({});
+                    return Promise.reject();
                 }
 
                 return response.json();
             }).then(result => {
                 if (!result.success) {
-                    return Promise.reject({});
+                    return Promise.reject();
                 }
 
                 if (children && children.nodeName === 'UL') {
@@ -373,7 +373,7 @@ document.addEventListener('click', e => {
                 } else {
                     comment.parentNode.removeChild(comment);
                 }
-            }).catch(err => {
+            }).catch(() => {
                 target.classList.add('error');
                 target.textContent = 'Failed to delete comment';
 
@@ -551,8 +551,8 @@ document.addEventListener('click', e => {
                 body.set(targetIdField.name, targetId);
 
                 fetch(newForm.action, {
-                    'method': 'POST',
-                    'body': body,
+                    method: 'POST',
+                    body,
                 }).then(response => {
                     if (!response.ok) {
                         return Promise.reject({});

@@ -570,7 +570,7 @@ document.addEventListener('click', e => {
 
                     result = await response.json();
 
-                    if (!result && !result.id) {
+                    if (!result || !result.id) {
                         throw new Error();
                     }
 

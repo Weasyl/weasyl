@@ -94,7 +94,9 @@ def test_owner_reupload(app, character_user, character):
     resp = app.post('/reupload/character', {
         'targetid': str(character),
         'submitfile': webtest.Upload('wesley', read_asset('img/help/wesley-draw.png'), 'image/png'),
-    }, headers={'Cookie': cookie}).follow()
+    }, headers={'Cookie': cookie}).follow(headers={'Cookie': cookie})
+    charid = int(resp.html.find('input', {'name': 'charid'})['value'])
 
+    resp = app.get(f'/character/{charid}')
     image_url = resp.html.find(id='detail-art').a['href']
     assert _read_character_image(image_url).tobytes() == read_asset_image('img/help/wesley-draw.png').tobytes()

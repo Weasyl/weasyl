@@ -334,56 +334,6 @@ document.addEventListener('click', e => {
         }
 
         if (confirm('Delete this comment and any replies?')) {
-            const rq = new XMLHttpRequest();
-
-            rq.open('POST', '/remove/comment', true);
-            rq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-            rq.onreadystatechange = function () {
-                if (rq.readyState === 4) {
-                    let result = null;
-
-                    if (rq.status === 200) {
-                        try {
-                            result = JSON.parse(rq.responseText);
-                        } catch (ex) {}
-
-                        if (result && result.success) {
-                            if (children && children.nodeName === 'UL') {
-                                children.parentNode.removeChild(children);
-                            }
-
-                            if (comment.parentNode.children.length === 1) {
-                                if (comment.parentNode.parentNode.children.length === 1) {
-                                    comment.parentNode.parentNode.parentNode.removeChild(comment.parentNode.parentNode);
-                                } else {
-                                    comment.parentNode.parentNode.removeChild(comment.parentNode);
-                                }
-                            } else {
-                                comment.parentNode.removeChild(comment);
-                            }
-
-                            return;
-                        }
-                    }
-
-                    target.classList.add('error');
-                    target.textContent = 'Failed to delete comment';
-
-                    comment.classList.remove('removing');
-
-                    if (children) {
-                        forEach(children.getElementsByClassName('comment'), function (descendant) {
-                            descendant.classList.remove('removing');
-                        });
-                    }
-                }
-            };
-
-            rq.send(
-                'format=json&feature=' + commentInfo.m_feature +
-                '&commentid=' + commentInfo.m_id);
-
             comment.classList.add('removing');
 
             if (children) {
@@ -391,6 +341,50 @@ document.addEventListener('click', e => {
                     descendant.classList.add('removing');
                 });
             }
+
+            fetch('/remove/comment', {
+                'method': 'POST',
+                'body': new URLSearchParams({
+                    'format': 'json',
+                    'feature': commentInfo.m_feature,
+                    'commentid': commentInfo.m_id,
+                }),
+            }).then(response => {
+                if (!response.ok) {
+                    return Promise.reject({});
+                }
+
+                return response.json();
+            }).then(result => {
+                if (!result.success) {
+                    return Promise.reject({});
+                }
+
+                if (children && children.nodeName === 'UL') {
+                    children.parentNode.removeChild(children);
+                }
+
+                if (comment.parentNode.children.length === 1) {
+                    if (comment.parentNode.parentNode.children.length === 1) {
+                        comment.parentNode.parentNode.parentNode.removeChild(comment.parentNode.parentNode);
+                    } else {
+                        comment.parentNode.parentNode.removeChild(comment.parentNode);
+                    }
+                } else {
+                    comment.parentNode.removeChild(comment);
+                }
+            }).catch(err => {
+                target.classList.add('error');
+                target.textContent = 'Failed to delete comment';
+
+                comment.classList.remove('removing');
+
+                if (children) {
+                    forEach(children.getElementsByClassName('comment'), function (descendant) {
+                        descendant.classList.remove('removing');
+                    });
+                }
+            });
         }
 
         e.preventDefault();

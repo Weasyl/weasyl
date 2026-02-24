@@ -1138,17 +1138,19 @@ def reupload_cover(userid, submitid, coverfile):
         "SELECT userid, subtype FROM submission WHERE submitid = %(id)s",
         id=submitid).first()
 
+    is_removal = not coverfile
+
     if not query:
         raise WeasylError("submissionRecordMissing")
-    elif userid != query[0]:
+    elif userid != query[0] and not (is_removal and userid in staff.MODS):
         raise WeasylError("InsufficientPermissions")
     elif query[1] < 2000:
         raise WeasylError("Unexpected")
 
-    cover_media_item = media.make_cover_media_item(coverfile)
-    if not cover_media_item:
+    if is_removal:
         orm.SubmissionMediaLink.clear_link(submitid, 'cover')
     else:
+        cover_media_item = media.make_cover_media_item(coverfile)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
 
 

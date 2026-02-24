@@ -367,7 +367,7 @@ def removethumbnail(userid, submitid):
     thumbnail.clear_thumbnail(userid, submitid)
     # Thumbnails may be cached on the front page, so invalidate that cache.
     index.recent_submissions.invalidate()
-    submission.select_critique.invalidate(userid)
+    submission.select_critique.invalidate()
     otherid = sub.owner.userid
     title = sub.title
     note_about(userid, otherid, 'Thumbnail was removed for ' +

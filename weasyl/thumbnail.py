@@ -40,34 +40,6 @@ def _upload_char(filedata, charid):
         raise WeasylError("FileType")
 
 
-def clear_thumbnail(userid, submitid):
-    """
-    Clears a submission's custom thumbnail.
-    TODO: Ability to clear character thumbnails?
-    TODO: This presently will clear both generated and custom thumbnails for
-        non-visual submissions because we have a few multimedia/literary submissions
-        whose thumbnails were generated from covers. If that ever ceases to be the
-        case, revisit this logic.
-
-    Args:
-        userid: The userid requesting this operation. Used for permission checking.
-        submitid: The submission to operate on.
-
-    Returns:
-        None
-    """
-    submission = orm.Submission.query.get(submitid)
-    if not submission:
-        raise WeasylError("Unexpected")
-    if not submission.media.get('thumbnail-custom'):
-        if submission.subtype < 2000 or not submission.media.get('thumbnail-generated'):
-            raise WeasylError("noThumbnail")
-
-    orm.SubmissionMediaLink.clear_link(submitid, 'thumbnail-custom')
-    if submission.subtype >= 2000:
-        orm.SubmissionMediaLink.clear_link(submitid, 'thumbnail-generated')
-
-
 def upload(filedata, submitid=None, charid=None):
     if charid:
         return _upload_char(filedata, charid)

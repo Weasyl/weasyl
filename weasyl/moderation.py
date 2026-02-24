@@ -6,6 +6,7 @@ import sqlalchemy as sa
 
 from libweasyl.legacy import get_offset_unixtime
 from libweasyl.models.content import Submission
+from libweasyl.models.media import SubmissionMediaLink
 from libweasyl import ratings, staff, text
 
 from weasyl import avatar
@@ -17,7 +18,6 @@ from weasyl import media
 from weasyl import profile
 from weasyl import shout
 from weasyl import submission
-from weasyl import thumbnail
 from weasyl.error import WeasylError
 from weasyl.forms import parse_sysname
 from weasyl.macro import MACRO_SUPPORT_ADDRESS
@@ -362,9 +362,25 @@ def removecoverart(userid, submitid):
                text.markdown_link(title, '/submission/%s?anyway=true' % submitid))
 
 
-def removethumbnail(userid, submitid):
+# TODO: Ability to clear character thumbnails?
+# TODO: This presently will clear both generated and custom thumbnails for non-visual submissions because we have a few multimedia/literary submissions whose thumbnails were generated from covers. If that ever ceases to be the case, revisit this logic.
+def removethumbnail(userid: int, submitid: int) -> None:
+    """
+    Clear a submission's custom thumbnail.
+    """
     sub = Submission.query.get(submitid)
-    thumbnail.clear_thumbnail(userid, submitid)
+
+    if sub is None:
+        raise WeasylError("submissionRecordMissing")
+
+    if not sub.media.get('thumbnail-custom'):
+        if sub.subtype < 2000 or not sub.media.get('thumbnail-generated'):
+            raise WeasylError("noThumbnail")
+
+    SubmissionMediaLink.clear_link(submitid, 'thumbnail-custom')
+    if sub.subtype >= 2000:
+        SubmissionMediaLink.clear_link(submitid, 'thumbnail-generated')
+
     # Thumbnails may be cached on the front page, so invalidate that cache.
     index.recent_submissions.invalidate()
     submission.select_critique.invalidate()

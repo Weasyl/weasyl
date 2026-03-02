@@ -221,7 +221,8 @@ def setusermode(userid, form):
         isoformat_release = None
         message = form.reason
         if release_date is not None:
-            message = '#### Release date: %s\n\n%s' % (release_date.isoformat(), message)
+            isoformat_release = release_date.isoformat()
+            message = '#### Release date: %s\n\n%s' % (isoformat_release, message)
         d.append_to_log(
             'staff.actions',
             userid=userid, action=action, target=form.userid, reason=form.reason,

@@ -50,8 +50,8 @@ FROM docker.io/library/alpine:3.22 AS imagemagick6-src
 RUN --network=none adduser -S build -h /imagemagick6-build
 USER build
 WORKDIR /imagemagick6-build
-ADD --checksum=sha256:f83ae219da71e0f85609f4d540cdae4568f637be7ae518567ec0303602f61ca8 --chown=build --link https://imagemagick.org/archive/releases/ImageMagick-6.9.13-17.tar.xz ./
-RUN tar xf ImageMagick-6.9.13-17.tar.xz
+ADD --checksum=sha256:bccce2de56b1e80ce20c25ccf2c85a669fc7e6815632bfa87cc52a83b6347a82 --chown=build --link https://imagemagick.org/archive/releases/ImageMagick-6.9.13-40.tar.xz ./
+RUN tar xf ImageMagick-6.9.13-40.tar.xz
 
 
 FROM docker.io/library/alpine:3.22 AS imagemagick6-build
@@ -73,7 +73,7 @@ WORKDIR /imagemagick6-build/ImageMagick
 # `--with-cache=32GiB`: let other places (like policy.xml) set the limit, and definitely don’t choose whether to write files based on detecting available memory
 # `--with-xml`: for XMP metadata
 RUN \
-    --mount=type=bind,from=imagemagick6-src,source=/imagemagick6-build/ImageMagick-6.9.13-17,target=/imagemagick6-build/ImageMagick,rw \
+    --mount=type=bind,from=imagemagick6-src,source=/imagemagick6-build/ImageMagick-6.9.13-40,target=/imagemagick6-build/ImageMagick,rw \
     --network=none \
     ./configure \
     --prefix=/usr \

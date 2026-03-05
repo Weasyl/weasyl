@@ -37,7 +37,7 @@ $(document).ready(() => {
         $('#detail-report').slideUp(250);
     });
 
-    $('#detail_report_violation').on('change', () => {
+    $('#detail_report_violation').on('change', function () {
         const reminder = document.getElementById('detail_report_reminder');
         const comment = document.getElementById('detail_report_content');
         const required = this.options[this.selectedIndex].getAttribute('data-comment-required').toLowerCase() === 'true';

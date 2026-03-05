@@ -549,9 +549,9 @@ document.addEventListener('click', e => {
                 }
 
                 const body = new URLSearchParams({
-                    'format': 'json',
-                    'parentid': commentInfo.m_id,
-                    'content': contentField.value,
+                    format: 'json',
+                    parentid: commentInfo.m_id,
+                    content: contentField.value,
                 });
 
                 body.set(targetIdField.name, targetId);

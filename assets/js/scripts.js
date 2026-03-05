@@ -334,14 +334,6 @@ document.addEventListener('click', e => {
         }
 
         if (confirm('Delete this comment and any replies?')) {
-            comment.classList.add('removing');
-
-            if (children) {
-                forEach(children.getElementsByClassName('comment'), function (descendant) {
-                    descendant.classList.add('removing');
-                });
-            }
-
             fetch('/remove/comment', {
                 method: 'POST',
                 body: new URLSearchParams({
@@ -385,6 +377,14 @@ document.addEventListener('click', e => {
                     });
                 }
             });
+
+            comment.classList.add('removing');
+
+            if (children) {
+                forEach(children.getElementsByClassName('comment'), function (descendant) {
+                    descendant.classList.add('removing');
+                });
+            }
         }
 
         e.preventDefault();
@@ -437,13 +437,13 @@ document.addEventListener('click', e => {
             target.focus();
         };
 
-        const handleShortcuts = async e => {
+        const handleShortcuts = e => {
             if (e.key === 'Escape' && !contentField.value) {
                 contentField.removeEventListener('keydown', handleShortcuts);
                 cancelReply(e);
             } else if (e.key === 'Enter' && e.ctrlKey) {
                 e.preventDefault();
-                await submitComment();
+                submitComment();
             }
         };
 

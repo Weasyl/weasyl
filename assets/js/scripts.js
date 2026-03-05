@@ -564,13 +564,13 @@ document.addEventListener('click', e => {
                         body,
                     });
 
-                    if (response.status !== 200) {
+                    if (!response.ok) {
                         throw new Error();
                     }
 
                     result = await response.json();
 
-                    if (!result || !result.id) {
+                    if (!result.id) {
                         throw new Error();
                     }
 

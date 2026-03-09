@@ -307,16 +307,32 @@ const formatDate = date => {
     const timeElement = document.createElement('time');
     timeElement.dateTime = date.toISOString();
 
+    const localTimeElement = document.createElement('local-time');
+    localTimeElement.dataset.timestamp = date.getTime() / 1000;
+
+    const emphOn = document.createElement('i');
+    emphOn.textContent = 'on';
+
     const emphAt = document.createElement('i');
     emphAt.textContent = 'at';
 
     const datePart = document.createElement('b');
+    datePart.className = 'local-time-date';
     datePart.textContent = formattedDate;
 
-    timeElement.appendChild(datePart);
-    timeElement.appendChild(document.createTextNode(' '));
-    timeElement.appendChild(emphAt);
-    timeElement.appendChild(document.createTextNode(' ' + formattedTime));
+    const timePart = document.createElement('span');
+    timePart.className = 'local-time-time';
+    timePart.textContent = formattedTime;
+
+    localTimeElement.appendChild(emphOn);
+    localTimeElement.appendChild(document.createTextNode(' '));
+    localTimeElement.appendChild(datePart);
+    localTimeElement.appendChild(document.createTextNode(' '));
+    localTimeElement.appendChild(emphAt);
+    localTimeElement.appendChild(document.createTextNode(' '));
+    localTimeElement.appendChild(timePart);
+
+    timeElement.appendChild(localTimeElement);
 
     return timeElement;
 };
@@ -508,11 +524,6 @@ document.addEventListener('click', e => {
                 // TODO: Update this on response. API. Again.
                 const posted = new Date();
 
-                const emphOn = document.createElement('i');
-                emphOn.textContent = 'on';
-
-                commentByline.appendChild(document.createTextNode(' '));
-                commentByline.appendChild(emphOn);
                 commentByline.appendChild(document.createTextNode(' '));
                 commentByline.appendChild(formatDate(posted));
 

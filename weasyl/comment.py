@@ -126,7 +126,13 @@ def insert(
     updateid: int = 0,
     parentid: int,
     content: str,
-) -> int:
+) -> tuple[int, int]:
+    """
+    Create a new comment and any associated notifications.
+
+    Returns a tuple of (``commentid``, ``created_at`` or ``unixtime``) for the
+    new comment.
+    """
     targetid_col = "targetid"
 
     if submitid:
@@ -206,33 +212,36 @@ def insert(
     if submitid:
         co = d.meta.tables['comments']
         db = d.connect()
-        commentid = db.scalar(
+        commentid, created_at = db.execute(
             co.insert()
             .values(userid=userid, target_sub=submitid, parentid=parentid or None,
                     content=content, unixtime=arrow.utcnow())
-            .returning(co.c.commentid))
+            .returning(
+                co.c.commentid,
+                sa.type_coerce(co.c.unixtime, sa.Integer()),
+            )).first()
     elif updateid:
-        commentid = d.engine.scalar(
+        commentid, created_at = d.engine.execute(
             "INSERT INTO siteupdatecomment (userid, targetid, parentid, content)"
             " VALUES (%(user)s, %(update)s, %(parent)s, %(content)s)"
-            " RETURNING commentid",
+            " RETURNING commentid, created_at",
             user=userid,
             update=updateid,
             parent=parentid or None,
             content=content,
-        )
+        ).first()
         siteupdate.select_last.invalidate()
     else:
-        commentid = d.engine.scalar(
+        commentid, created_at = d.engine.execute(
             f"INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
             " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
-            " RETURNING commentid",
+            " RETURNING commentid, unixtime",
             user=userid,
             target=targetid,
             parent=parentid,
             content=content,
             now=d.get_time(),
-        )
+        ).first()
 
     # Create notification
     if parentid and (userid != parentuserid):
@@ -259,7 +268,7 @@ def insert(
 
     d.metric('increment', 'comments')
 
-    return commentid
+    return commentid, created_at
 
 
 def remove(userid, *, feature, commentid):

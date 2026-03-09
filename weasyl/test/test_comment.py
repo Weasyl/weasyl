@@ -83,15 +83,15 @@ class CheckNotificationsTestCase(unittest.TestCase):
         kwargs['content'] = 'hello'
 
         # commenter1 posts a comment c1 on submission s
-        c1 = comment.insert(self.commenter1, parentid=0, **kwargs)
+        c1, _ = comment.insert(self.commenter1, parentid=0, **kwargs)
         self.assertEqual(1, self.count_notifications(self.owner))
 
         # commenter2 posts a reply to c1
-        c2 = comment.insert(self.commenter2, parentid=c1, **kwargs)
+        c2, _ = comment.insert(self.commenter2, parentid=c1, **kwargs)
         self.assertEqual(1, self.count_notifications(self.commenter1))
 
         # owner posts a reply to c2
-        c3 = comment.insert(self.owner, parentid=c2, **kwargs)
+        c3, _ = comment.insert(self.owner, parentid=c2, **kwargs)
         self.assertEqual(1, self.count_notifications(self.commenter2))
 
         # commenter1 responds to owner

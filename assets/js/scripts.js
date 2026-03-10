@@ -521,11 +521,11 @@ document.addEventListener('click', e => {
                     commentByline.appendChild(typeBadge);
                 }
 
-                // TODO: Update this on response. API. Again.
                 const posted = new Date();
+                const postedElement = formatDate(posted);
 
                 commentByline.appendChild(document.createTextNode(' '));
-                commentByline.appendChild(formatDate(posted));
+                commentByline.appendChild(postedElement);
 
                 const commentBody = document.createElement('div');
                 commentBody.className = 'formatted-content';
@@ -608,6 +608,13 @@ document.addEventListener('click', e => {
                     commentActions.appendChild(linkLink);
 
                     commentBody.innerHTML = result.html;
+
+                    if (result.createdAt) {
+                        postedElement.dateTime = new Date(result.createdAt * 1000).toISOString();
+
+                        const localTimeElement = postedElement.querySelector('local-time');
+                        localTimeElement.dataset.timestamp = result.createdAt;
+                    }
                 } catch {
                     newForm.style.display = 'block';
                     newComment.parentNode.removeChild(newComment);

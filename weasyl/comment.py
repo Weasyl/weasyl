@@ -130,8 +130,9 @@ def insert(
     """
     Create a new comment and any associated notifications.
 
-    Returns a tuple of (``commentid``, ``created_at`` or ``unixtime``) for the
-    new comment.
+    Returns a tuple of (``commentid``, ``created_at``) for the new comment.
+    If the underlying comment table is using ``unixtime``, the offset is
+    corrected before the timestamp is returned.
     """
     targetid_col = "targetid"
 
@@ -210,18 +211,19 @@ def insert(
 
     # Create comment
     if submitid:
-        co = d.meta.tables['comments']
-        db = d.connect()
-        commentid, created_at = db.execute(
-            co.insert()
-            .values(userid=userid, target_sub=submitid, parentid=parentid or None,
-                    content=content, unixtime=arrow.utcnow())
-            .returning(
-                co.c.commentid,
-                sa.type_coerce(co.c.unixtime, sa.Integer()),
-            )).first()
+        commentid, unixtime = d.engine.execute(
+            "INSERT INTO comments (userid, target_sub, parentid, content, unixtime)"
+            " VALUES (%(user)s, %(submit)s, %(parent)s, %(content)s, %(now)s)"
+            " RETURNING commentid, unixtime",
+            user=userid,
+            submit=submitid,
+            parent=parentid or None,
+            content=content,
+            now=d.get_time(),
+        ).first()
+        created_at = unixtime - UNIXTIME_OFFSET
     elif updateid:
-        commentid, created_at = d.engine.execute(
+        commentid, created_at_datetime = d.engine.execute(
             "INSERT INTO siteupdatecomment (userid, targetid, parentid, content)"
             " VALUES (%(user)s, %(update)s, %(parent)s, %(content)s)"
             " RETURNING commentid, created_at",
@@ -231,8 +233,9 @@ def insert(
             content=content,
         ).first()
         siteupdate.select_last.invalidate()
+        created_at = round(created_at_datetime.timestamp())
     else:
-        commentid, created_at = d.engine.execute(
+        commentid, unixtime = d.engine.execute(
             f"INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
             " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
             " RETURNING commentid, unixtime",
@@ -242,6 +245,7 @@ def insert(
             content=content,
             now=d.get_time(),
         ).first()
+        created_at = unixtime - UNIXTIME_OFFSET
 
     # Create notification
     if parentid and (userid != parentuserid):

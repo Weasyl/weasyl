@@ -337,7 +337,7 @@ def submit_comment_(request):
         return {
             "id": commentid,
             "html": markdown(form.content),
-            "created_at": created_at,
+            "createdAt": created_at,
         }
 
     if define.get_int(form.submitid):

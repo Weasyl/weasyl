@@ -2,6 +2,7 @@ import arrow
 import sqlalchemy as sa
 
 from libweasyl import staff
+from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import define as d
 from weasyl import frienduser
@@ -61,7 +62,10 @@ def insert(
     parentid: int,
     content: str,
     staffnotes: bool,
-) -> int:
+) -> tuple[int, int]:
+    """
+    Returns a tuple of (``commentid``, ``created_at``) for the new shout.
+    """
     # Check invalid content
     if not content:
         raise WeasylError("commentInvalid")
@@ -105,13 +109,18 @@ def insert(
 
     # Create comment
     settings = 's' if staffnotes else ''
-    co = d.meta.tables['comments']
-    db = d.connect()
-    commentid = db.scalar(
-        co.insert()
-        .values(userid=userid, target_user=target_user, parentid=parentid or None, content=content,
-                unixtime=arrow.utcnow(), settings=settings)
-        .returning(co.c.commentid))
+    commentid, unixtime = d.engine.execute(
+        "INSERT INTO comments (userid, target_user, parentid, content, unixtime, settings)"
+        " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(unixtime)s, %(settings)s)"
+        " RETURNING commentid, unixtime",
+        user=userid,
+        target=target_user,
+        parent=parentid or None,
+        content=content,
+        unixtime=d.get_time(),
+        settings=settings,
+    ).first()
+    created_at = unixtime - UNIXTIME_OFFSET
 
     # Create notification
     if parentid and userid != parentuserid:
@@ -122,7 +131,7 @@ def insert(
 
     d.metric('increment', 'shouts')
 
-    return commentid
+    return commentid, created_at
 
 
 def remove(userid, *, commentid):

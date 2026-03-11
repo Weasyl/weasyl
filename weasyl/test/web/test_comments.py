@@ -17,11 +17,13 @@ def test_created_at_timestamp_consistency(app):
     char_parentid = db_utils.create_character_comment(userid, charid)
     journal_parentid = db_utils.create_journal_comment(userid, journalid)
     update_parentid, _ = comment.insert(userid, updateid=updateid, parentid=None, content='foo')
+    shout_parentid = db_utils.create_shout(userid, userid)
 
     submit_form = {'format': 'json', 'content': 'foo', 'submitid': submitid, 'parentid': submit_parentid}
     char_form = {'format': 'json', 'content': 'foo', 'charid': charid, 'parentid': char_parentid}
     journal_form = {'format': 'json', 'content': 'foo', 'journalid': journalid, 'parentid': journal_parentid}
     update_form = {'format': 'json', 'content': 'foo', 'updateid': updateid, 'parentid': update_parentid}
+    shout_form = {'format': 'json', 'content': 'foo', 'userid': userid, 'parentid': shout_parentid}
 
     headers = {'Cookie': db_utils.create_session(userid)}
 
@@ -29,9 +31,10 @@ def test_created_at_timestamp_consistency(app):
     char_resp = app.post('/submit/comment', char_form, headers=headers)
     journal_resp = app.post('/submit/comment', journal_form, headers=headers)
     update_resp = app.post('/submit/comment', update_form, headers=headers)
+    shout_resp = app.post('/submit/shout', shout_form, headers=headers)
 
     created_at_times = list(map(lambda resp: resp.json['createdAt'],
-                                (submit_resp, char_resp, journal_resp, update_resp)))
+                                (submit_resp, char_resp, journal_resp, update_resp, shout_resp)))
 
     # Checking for a difference within one minute is arbitrary;
     # we really want to make sure there isn't a UNIXTIME_OFFSET-sized difference

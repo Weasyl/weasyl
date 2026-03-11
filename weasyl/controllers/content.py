@@ -293,7 +293,7 @@ def submit_shout_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    commentid = shout.insert(
+    commentid, created_at = shout.insert(
         request.userid,
         target_user=define.get_int(form.userid or form.staffnotes),
         parentid=define.get_int(form.parentid),
@@ -305,6 +305,8 @@ def submit_shout_(request):
         return {
             "id": commentid,
             "html": markdown(form.content),
+            "createdAt": created_at,
+            "userid": request.userid,
         }
 
     if form.staffnotes:

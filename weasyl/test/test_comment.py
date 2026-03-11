@@ -118,7 +118,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
     def test_add_and_remove_shout(self):
         # commenter1 posts a shout on owner's page
-        c1 = shout.insert(self.commenter1, target_user=self.owner, parentid=0, content="hello", staffnotes=False)
+        c1, _ = shout.insert(self.commenter1, target_user=self.owner, parentid=0, content="hello", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)
@@ -126,7 +126,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[0].items() >= {"content": "hello"}.items())
 
         # commenter2 posts a reply to c1
-        c2 = shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply", staffnotes=False)
+        c2, _ = shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.commenter1))
 
         shouts = shout.select(0, self.owner)
@@ -134,7 +134,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         self.assertTrue(shouts[1].items() >= {"content": "reply"}.items())
 
         # owner posts a reply to c2
-        c3 = shout.insert(self.owner, target_user=self.owner, parentid=c2, content="reply 2", staffnotes=False)
+        c3, _ = shout.insert(self.owner, target_user=self.owner, parentid=c2, content="reply 2", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.commenter2))
 
         shouts = shout.select(0, self.owner)

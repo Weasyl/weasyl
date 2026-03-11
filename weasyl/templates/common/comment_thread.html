@@ -9,7 +9,7 @@ $ can_remove = is_owner or (myself and myself['userid'] in staff.MODS)
       <li>
 
     $ hidden = comment['hidden']
-    <div class="comment${' hidden-comment' if hidden else ''}" id="cid${comment['commentid']}" data-id="${comment['commentid']}">
+    <div class="comment${' hidden-comment' if hidden else ''}" id="cid${comment['commentid']}" data-id="${comment['commentid']}" data-userid="${comment['userid']}">
       <a href="/~${LOGIN(comment['username'])}" class="avatar">
         $ avatar = comment['user_media']['avatar'][0]
         <img src="${avatar['display_url']}" alt="" />

@@ -285,6 +285,7 @@ const getCommentInfo = commentActionLink => {
         m_id: parseInt(comment.dataset.id, 10),
         m_feature: comments.dataset.feature,
         m_removalPrivileges: comments.dataset.removalPrivileges,
+        m_userid: parseInt(comment.dataset.userid, 10),
     };
 };
 
@@ -583,6 +584,10 @@ document.addEventListener('click', e => {
 
                     if (!result.id) {
                         throw new Error();
+                    }
+
+                    if (result.userid !== commentInfo.m_userid) {
+                        location.reload();
                     }
 
                     newComment.dataset.id = result.id;

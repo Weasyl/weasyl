@@ -81,7 +81,7 @@ $def with (query, options, extended_options={})
         or learn more <a href="/help/about" class="typeface-a color-a">about Weasyl</a>.
       </h3>
     $else:
-      <div id="header-user" data-user-type="${USER_TYPE(query['userid']) or ''}">
+      <div id="header-user" data-userid="${query['userid']}" data-user-type="${USER_TYPE(query['userid']) or ''}">
         $code:
           username = query['username']
           avatar = query['user_media']['avatar'][0]

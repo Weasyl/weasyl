@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import arrow
 import sqlalchemy as sa
 
 from libweasyl import staff

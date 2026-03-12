@@ -1,10 +1,8 @@
 from datetime import datetime
 
-import arrow
 import sqlalchemy as sa
 
 from libweasyl import staff
-from libweasyl.legacy import UNIXTIME_OFFSET
 
 from weasyl import define as d
 from weasyl import frienduser

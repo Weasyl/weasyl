@@ -615,10 +615,10 @@ document.addEventListener('click', e => {
                     commentBody.innerHTML = result.html;
 
                     if (result.createdAt) {
-                        postedElement.dateTime = new Date(result.createdAt * 1000).toISOString();
+                        postedElement.dateTime = result.createdAt;
 
                         const localTimeElement = postedElement.querySelector('local-time');
-                        localTimeElement.dataset.timestamp = result.createdAt;
+                        localTimeElement.dataset.timestamp = new Date(result.createdAt).getTime() / 1000;
                     }
                 } catch {
                     newForm.style.display = 'block';

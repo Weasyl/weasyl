@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import arrow
 import sqlalchemy as sa
 
@@ -126,7 +128,7 @@ def insert(
     updateid: int = 0,
     parentid: int,
     content: str,
-) -> tuple[int, int]:
+) -> tuple[int, datetime]:
     """
     Create a new comment and any associated notifications.
 
@@ -211,19 +213,18 @@ def insert(
 
     # Create comment
     if submitid:
-        commentid, unixtime = d.engine.execute(
+        commentid, created_at = d.engine.execute(
             "INSERT INTO comments (userid, target_sub, parentid, content, unixtime)"
             " VALUES (%(user)s, %(submit)s, %(parent)s, %(content)s, %(now)s)"
-            " RETURNING commentid, unixtime",
+            " RETURNING commentid, to_timestamp(unixtime + 18000) AS created_at",
             user=userid,
             submit=submitid,
             parent=parentid or None,
             content=content,
             now=d.get_time(),
         ).first()
-        created_at = unixtime - UNIXTIME_OFFSET
     elif updateid:
-        commentid, created_at_datetime = d.engine.execute(
+        commentid, created_at = d.engine.execute(
             "INSERT INTO siteupdatecomment (userid, targetid, parentid, content)"
             " VALUES (%(user)s, %(update)s, %(parent)s, %(content)s)"
             " RETURNING commentid, created_at",
@@ -233,19 +234,17 @@ def insert(
             content=content,
         ).first()
         siteupdate.select_last.invalidate()
-        created_at = round(created_at_datetime.timestamp())
     else:
-        commentid, unixtime = d.engine.execute(
+        commentid, created_at = d.engine.execute(
             f"INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
             " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
-            " RETURNING commentid, unixtime",
+            " RETURNING commentid, to_timestamp(unixtime + 18000) AS created_at",
             user=userid,
             target=targetid,
             parent=parentid,
             content=content,
             now=d.get_time(),
         ).first()
-        created_at = unixtime - UNIXTIME_OFFSET
 
     # Create notification
     if parentid and (userid != parentuserid):

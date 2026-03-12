@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 from weasyl import comment, siteupdate
@@ -33,7 +35,7 @@ def test_created_at_timestamp_consistency(app):
     update_resp = app.post('/submit/comment', update_form, headers=headers)
     shout_resp = app.post('/submit/shout', shout_form, headers=headers)
 
-    created_at_times = list(map(lambda resp: resp.json['createdAt'],
+    created_at_times = list(map(lambda resp: datetime.fromisoformat(resp.json['createdAt']).timestamp(),
                                 (submit_resp, char_resp, journal_resp, update_resp, shout_resp)))
 
     # Checking for a difference within one minute is arbitrary;

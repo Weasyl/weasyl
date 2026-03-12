@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import arrow
 import sqlalchemy as sa
 
@@ -62,7 +64,7 @@ def insert(
     parentid: int,
     content: str,
     staffnotes: bool,
-) -> tuple[int, int]:
+) -> tuple[int, datetime]:
     """
     Returns a tuple of (``commentid``, ``created_at``) for the new shout.
     """
@@ -109,10 +111,10 @@ def insert(
 
     # Create comment
     settings = 's' if staffnotes else ''
-    commentid, unixtime = d.engine.execute(
+    commentid, created_at = d.engine.execute(
         "INSERT INTO comments (userid, target_user, parentid, content, unixtime, settings)"
         " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(unixtime)s, %(settings)s)"
-        " RETURNING commentid, unixtime",
+        " RETURNING commentid, to_timestamp(unixtime + 18000) AS created_at",
         user=userid,
         target=target_user,
         parent=parentid or None,
@@ -120,7 +122,6 @@ def insert(
         unixtime=d.get_time(),
         settings=settings,
     ).first()
-    created_at = unixtime - UNIXTIME_OFFSET
 
     # Create notification
     if parentid and userid != parentuserid:

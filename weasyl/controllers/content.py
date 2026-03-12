@@ -305,7 +305,7 @@ def submit_shout_(request):
         return {
             "id": commentid,
             "html": markdown(form.content),
-            "createdAt": created_at,
+            "createdAt": created_at.isoformat(),
             "userid": request.userid,
         }
 
@@ -339,7 +339,7 @@ def submit_comment_(request):
         return {
             "id": commentid,
             "html": markdown(form.content),
-            "createdAt": created_at,
+            "createdAt": created_at.isoformat(),
             "userid": request.userid,
         }
 

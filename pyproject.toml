@@ -7,7 +7,7 @@ license = "Apache-2.0"
 requires-python = ">=3.10,<3.11"
 dependencies = [
     "gunicorn==23.0.0",
-    "multipart==0.2.4",
+    "multipart==1.2.2",
     "web-py==0.51",
     "requests[socks]~=2.32",
     "pylibmc==1.6.2",

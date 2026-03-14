@@ -933,15 +933,19 @@ files = [
 
 [[package]]
 name = "multipart"
-version = "0.2.4"
-description = "Parser for multipart/form-data."
+version = "1.2.2"
+description = "Parser for multipart/form-data"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "multipart-0.2.4-py3-none-any.whl", hash = "sha256:5aec990820b8a9e94f9c164fbeb58cf118cfbde2854865b67a9a730edd1fb9d1"},
-    {file = "multipart-0.2.4.tar.gz", hash = "sha256:06ba205360bc7096fefe618e4f1e9b2cdb890b4f2157053a81f386912a2522cb"},
+    {file = "multipart-1.2.2-py3-none-any.whl", hash = "sha256:8379020c484e94e511b4d948432441362dbcf3d71cdb48f59856f2417a3eae09"},
+    {file = "multipart-1.2.2.tar.gz", hash = "sha256:4b5596e533f4b859c6efb208897b9a4198776a2ef6951b28cea64eca1a9345af"},
 ]
+
+[package.extras]
+dev = ["build", "pytest", "pytest-cov", "twine"]
+docs = ["sphinx (>=8,<9)", "sphinx-autobuild"]
 
 [[package]]
 name = "packaging"
@@ -1734,4 +1738,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "9ed8d6246862b3759c8d5dd95e64d4abe73a047cfa155e8882a1b0c078003f73"
+content-hash = "8f1d1a15844504605507395663a029ccd8e3c65f15deff515893c5bddaec8c79"

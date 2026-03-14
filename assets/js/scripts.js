@@ -307,16 +307,32 @@ const formatDate = date => {
     const timeElement = document.createElement('time');
     timeElement.dateTime = date.toISOString();
 
+    const localTimeElement = document.createElement('local-time');
+    localTimeElement.dataset.timestamp = date.getTime() / 1000;
+
+    const emphOn = document.createElement('i');
+    emphOn.textContent = 'on';
+
     const emphAt = document.createElement('i');
     emphAt.textContent = 'at';
 
     const datePart = document.createElement('b');
+    datePart.className = 'local-time-date';
     datePart.textContent = formattedDate;
 
-    timeElement.appendChild(datePart);
-    timeElement.appendChild(document.createTextNode(' '));
-    timeElement.appendChild(emphAt);
-    timeElement.appendChild(document.createTextNode(' ' + formattedTime));
+    const timePart = document.createElement('span');
+    timePart.className = 'local-time-time';
+    timePart.textContent = formattedTime;
+
+    localTimeElement.appendChild(emphOn);
+    localTimeElement.appendChild(document.createTextNode(' '));
+    localTimeElement.appendChild(datePart);
+    localTimeElement.appendChild(document.createTextNode(' '));
+    localTimeElement.appendChild(emphAt);
+    localTimeElement.appendChild(document.createTextNode(' '));
+    localTimeElement.appendChild(timePart);
+
+    timeElement.appendChild(localTimeElement);
 
     return timeElement;
 };
@@ -505,16 +521,11 @@ document.addEventListener('click', e => {
                     commentByline.appendChild(typeBadge);
                 }
 
-                // TODO: Update this on response. API. Again.
                 const posted = new Date();
-
-                const emphOn = document.createElement('i');
-                emphOn.textContent = 'on';
+                const postedElement = formatDate(posted);
 
                 commentByline.appendChild(document.createTextNode(' '));
-                commentByline.appendChild(emphOn);
-                commentByline.appendChild(document.createTextNode(' '));
-                commentByline.appendChild(formatDate(posted));
+                commentByline.appendChild(postedElement);
 
                 const commentBody = document.createElement('div');
                 commentBody.className = 'formatted-content';
@@ -574,6 +585,12 @@ document.addEventListener('click', e => {
                         throw new Error();
                     }
 
+                    const userid = parseInt(document.getElementById('header-user').dataset.userid, 10);
+
+                    if (result.userid !== userid) {
+                        location.reload();
+                    }
+
                     newComment.dataset.id = result.id;
                     newComment.id = 'cid' + result.id;
                     newComment.classList.remove('submitting');
@@ -597,6 +614,13 @@ document.addEventListener('click', e => {
                     commentActions.appendChild(linkLink);
 
                     commentBody.innerHTML = result.html;
+
+                    if (result.createdAt) {
+                        postedElement.dateTime = result.createdAt;
+
+                        const localTimeElement = postedElement.querySelector('local-time');
+                        localTimeElement.dataset.timestamp = new Date(result.createdAt).getTime() / 1000;
+                    }
                 } catch {
                     newForm.style.display = 'block';
                     newComment.parentNode.removeChild(newComment);

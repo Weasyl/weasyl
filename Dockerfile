@@ -46,6 +46,26 @@ RUN --mount=type=bind,from=mozjpeg-src,source=/mozjpeg-build/mozjpeg-4.1.5,targe
     && cmake --build . --parallel --target install
 
 
+FROM docker.io/library/alpine:3.22 AS libpng-package
+RUN --network=none adduser -S build -h /libpng-build
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    abuild \
+    musl-dev gcc make \
+    gawk autoconf automake libtool \
+    zlib-dev
+USER build
+WORKDIR /libpng-build/libpng
+ADD --checksum=sha256:f7d8bf1601b7804f583a254ab343a6549ca6cf27d255c302c47af2d9d36a6f18 --chown=build --link https://sourceforge.net/projects/libpng/files/libpng16/1.6.56/libpng-1.6.56.tar.xz/download ./libpng-1.6.56.tar.xz
+ADD --checksum=sha256:017c06f75ffed25f6cda9b5369ec6da0ac35a6616adf7abe4222516a0237f37a --chown=build --link https://sourceforge.net/projects/libpng-apng/files/libpng16/1.6.55/libpng-1.6.55-apng.patch.gz/download ./libpng-1.6.55-apng.patch.gz
+# TODO: craft deterministic dummy-abuild.key and copy it in alongside APKBUILD
+RUN --network=none openssl genrsa -out dummy-abuild.key 512
+COPY --chown=build --link ./libpng/APKBUILD ./
+RUN --network=none \
+    PACKAGER_PRIVKEY=/libpng-build/libpng/dummy-abuild.key \
+    abuild -P /libpng-build/packages -c verify unpack prepare build rootpkg clean
+
+
 FROM docker.io/library/alpine:3.22 AS imagemagick6-src
 RUN --network=none adduser -S build -h /imagemagick6-build
 USER build
@@ -58,12 +78,18 @@ FROM docker.io/library/alpine:3.22 AS imagemagick6-build
 RUN --network=none adduser -S build -h /imagemagick6-build
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    zlib-dev
+RUN --network=none \
+    --mount=type=bind,from=libpng-package,source=/libpng-build/packages/libpng-build/x86_64,target=/run/libpng-packages,ro \
+    apk add --no-network --allow-untrusted \
+    /run/libpng-packages/libpng-1.6.56-r0.apk \
+    /run/libpng-packages/libpng-dev-1.6.56-r0.apk
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    apk add \
     musl-dev gcc make \
     lcms2-dev \
-    libpng-dev \
     libxml2-dev \
-    libwebp-dev \
-    zlib-dev
+    libwebp-dev
 USER build
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/include/ /usr/include/
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/
@@ -157,7 +183,14 @@ FROM docker.io/library/python:3.10-alpine3.22 AS package
 # libpq: psycopg2
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    libgcc libgomp lcms2 libpng libxml2 libwebpdemux libwebpmux \
+    zlib
+RUN --network=none \
+    --mount=type=bind,from=libpng-package,source=/libpng-build/packages/libpng-build/x86_64,target=/run/libpng-packages,ro \
+    apk add --no-network --allow-untrusted \
+    /run/libpng-packages/libpng-1.6.56-r0.apk
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    apk add \
+    libgcc libgomp lcms2 libxml2 libwebpdemux libwebpmux \
     libmemcached-libs \
     libpq
 RUN adduser -S weasyl -h /weasyl -u 1000

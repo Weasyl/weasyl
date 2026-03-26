@@ -12,6 +12,8 @@
 !deno.json
 !deno.lock
 
+!libpng/APKBUILD
+
 !imagemagick-policy.xml
 !setup.cfg
 !setup.py

@@ -1,0 +1,73 @@
+# Contributor: Carlo Landmeter <clandmeter@alpinelinux.org>
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=libpng
+pkgver=1.6.55
+_apng_version=1.6.54
+pkgrel=0
+pkgdesc="Portable Network Graphics library"
+url="http://www.libpng.org"
+arch="all"
+license="Libpng"
+makedepends_build="gawk autoconf automake libtool"
+makedepends_host="zlib-dev"
+subpackages="$pkgname-doc $pkgname-static $pkgname-dev $pkgname-utils"
+source="https://downloads.sourceforge.net/libpng/libpng-$pkgver.tar.gz
+	https://downloads.sourceforge.net/sourceforge/libpng-apng/libpng-$_apng_version-apng.patch.gz
+	libpng-fix-arm-neon.patch
+	"
+
+# secfixes:
+#   1.6.55-r0:
+#     - CVE-2026-25646
+#   1.6.54-r0:
+#     - CVE-2026-22695
+#     - CVE-2026-22801
+#   1.6.53-r0:
+#     - CVE-2025-66293
+#   1.6.51-r0:
+#     - CVE-2025-64505
+#     - CVE-2025-64506
+#     - CVE-2025-64720
+#     - CVE-2025-65018
+#   1.6.37-r0:
+#     - CVE-2019-7317
+#     - CVE-2018-14048
+#     - CVE-2018-14550
+
+prepare() {
+	default_prepare
+	# libpng-fix-arm-neon.patch modifies configure.ac
+	autoreconf -vif
+}
+
+build() {
+	./configure \
+		--build=$CBUILD \
+		--host=$CHOST \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--localstatedir=/var
+	make
+}
+
+check() {
+	make check
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+	rm -f "$pkgdir"/usr/lib/*.la
+}
+
+utils() {
+	pkgdesc="$pkgdesc (pngfix utils)"
+
+	amove usr/bin
+}
+
+sha512sums="
+45d3c4c3bd3d22dd93026e1bdff8df8133459a2903fb70be178899a55d256bab55bb5c4220d790202fce578e346c040c5c00e1f004cf5c4dcbf387a30d43e701  libpng-1.6.55.tar.gz
+217449d76fab45707a696ee5926039c6091196abfc33b4e3bec0a5f63d5b17fd4a7e48af41c4cc2536edc527837dc10fe718092d5b1ffc89ee4dc66883e7267a  libpng-1.6.54-apng.patch.gz
+0a5efa609bda4c2a38f5110b7287020a5f9dc81583f2b05a951d897a18ce62ea80350baf52daa3d02f20dff51bbc177b3af317ab7bbc09eb23a3c252600414a5  libpng-fix-arm-neon.patch
+"

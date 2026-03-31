@@ -94,8 +94,8 @@ const defang = (node, isBody) => {
         child = nextSibling;
     }
 
-    // NOTE: also covers clobbered `nodeName`
-    if (!isBody && !allowedTags.has(node.nodeName)) {
+    // NOTE: also covers clobbered `nodeName`, and no `allowedTags` elements support named properties, so `hasAttribute` won't even throw
+    if (!isBody && (!allowedTags.has(node.nodeName) || node.hasAttribute('is'))) {
         // n.b. merging this with the previous loop would be easy to get dangerously wrong
         const childNodes = document.createDocumentFragment();
 

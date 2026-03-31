@@ -25,6 +25,7 @@ const replaceBadLinks = fragment => {
     });
 };
 
+// XXX: Properties of `fragment` and `child` can be clobbered here. For now, they just break the preview or user links at worst, which is "fine".
 const addUserLinks = fragment => {
     for (let i = 0; i < fragment.childNodes.length; i++) {
         const child = fragment.childNodes[i];
@@ -135,6 +136,8 @@ const weasylMarkdown = fragment => {
         const scheme = src.substring(0, i);
         const link = document.createElement('a');
 
+        image.replaceWith(link);
+
         if (scheme === 'user') {
             const user = src.substring(i + 1);
             image.className = 'user-icon';
@@ -142,7 +145,6 @@ const weasylMarkdown = fragment => {
 
             link.href = '/~' + user;
 
-            image.parentNode.replaceChild(link, image);
             link.appendChild(image);
 
             if (image.alt) {
@@ -159,8 +161,6 @@ const weasylMarkdown = fragment => {
         } else {
             link.href = image.src;
             link.appendChild(document.createTextNode(image.alt || image.src));
-
-            image.parentNode.replaceChild(link, image);
         }
     });
 

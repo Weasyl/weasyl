@@ -222,10 +222,13 @@ const loadMarked = () => {
     document.body.appendChild(markedScript);
 };
 
+// Clobbering-safe access. A document *from `DOMParser` specifically* doesn't seem to have named property access on Chromium 146, but nothing in the DOM/HTML/`DOMParser` specs distinguish that case as far as I can tell; anyway, it does have named property access on Firefox 149.
+const getBody = Object.getOwnPropertyDescriptor(Document.prototype, 'body').get;
+
 const renderMarkdown = (content, container) => {
     const markdown = marked(content, markdownOptions);
     const sanitizeDocument = new DOMParser().parseFromString(markdown, 'text/html');
-    const fragment = sanitizeDocument.body;
+    const fragment = getBody.call(sanitizeDocument);
 
     weasylMarkdown(fragment);
     defang(fragment, true);

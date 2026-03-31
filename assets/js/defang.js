@@ -66,22 +66,48 @@ export const tryGetCleanHref = s => {
     return u.pathname;
 };
 
-const defang = (node, isBody) => {
-    for (let i = node.childNodes.length; i--;) {
-        const child = node.childNodes[i];
+// clobbering-safe access
+const NP = Node.prototype;
+const npGetter = k => Object.getOwnPropertyDescriptor(NP, k).get;
+const getFirstChild = npGetter('firstChild');
+const getNextSibling = npGetter('nextSibling');
 
-        if (child.nodeType === 1) {
-            defang(child, false);
+const defang = (node, isBody) => {
+    for (let child = getFirstChild.call(node); child;) {
+        // `child` may be removed (and possibly replaced with multiple nodes) either by recursive `defang` or `default` case
+        const nextSibling = getNextSibling.call(child);
+
+        switch (child.nodeType) {
+            case 1:
+                defang(child, false);
+                break;
+
+            case 3:
+                // text nodes are always allowed
+                break;
+
+            default:
+                // NOTE: also covers clobbered `nodeType`
+                NP.removeChild.call(node, child);
         }
+
+        child = nextSibling;
     }
 
+    // NOTE: also covers clobbered `nodeName`
     if (!isBody && !allowedTags.has(node.nodeName)) {
-        while (node.hasChildNodes()) {
-            node.parentNode.insertBefore(node.firstChild, node);
+        // n.b. merging this with the previous loop would be easy to get dangerously wrong
+        const childNodes = document.createDocumentFragment();
+
+        for (let child = getFirstChild.call(node); child;) {
+            const nextSibling = getNextSibling.call(child);
+            childNodes.appendChild(child);
+            child = nextSibling;
         }
 
-        node.parentNode.removeChild(node);
+        Element.prototype.replaceWith.call(node, childNodes);
     } else {
+        // no `allowedTags` elements support named properties, so `node`'s properties are unclobbered in this branch
         for (let i = node.attributes.length; i--;) {
             const attribute = node.attributes[i];
             let cleanHref;

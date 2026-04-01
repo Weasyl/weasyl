@@ -159,7 +159,7 @@ const weasylMarkdown = fragment => {
                 image.title = '';
             }
         } else {
-            link.href = image.src;
+            link.href = image.src;  // XXX: reintroduction point for `javascript:` URLs after presanitizer
             link.appendChild(document.createTextNode(image.alt || image.src));
         }
     });

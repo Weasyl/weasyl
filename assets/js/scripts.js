@@ -1,6 +1,6 @@
 /* global marked */
 import autosize_ from 'autosize';
-import defang from './defang.js';
+import defang, {allowedAttributes, conditionallyAllowedAttributes} from './defang.js';
 import {byClass} from './dom.js';
 import initEmbed from './embed.js';
 import {forEach, some} from './util/array-like.js';
@@ -225,10 +225,33 @@ const loadMarked = () => {
 // Clobbering-safe access. A document *from `DOMParser` specifically* doesn't seem to have named property access on Chromium 146, but nothing in the DOM/HTML/`DOMParser` specs distinguish that case as far as I can tell; anyway, it does have named property access on Firefox 149.
 const getBody = Object.getOwnPropertyDescriptor(Document.prototype, 'body').get;
 
+/**
+ * Parses a string of HTML into a partially sanitized container element if the environment supports the HTML Sanitizer API, and an unsanitized one otherwise.
+ *
+ * This partial sanitization removes attributes that are never allowed on any element (especially `name` and `id`, preventing clobbering) and anything that can execute scripts (try not to reintroduce such things in `weasylMarkdown`) as defense in depth. Unfortunately, `<script>`, `<iframe>`, and `<object>` elements are completely removed, instead of behaving like `defang`; configuring these as `replaceWithChildrenElements` doesn't work with "safe" functions. `javascript:` links are also removed instead of getting the `replaceBadLinks` treatment.
+ */
+let parseHtml;
+
+if (Document.parseHTML) {
+    // some of this configuration is already implied by the use of a "safe" function like `parseHTML`, but it's nice to be explicit
+    const presanitizer = new Sanitizer({
+        // NOTE: does not remove `is`
+        attributes: [...allowedAttributes, ...conditionallyAllowedAttributes],
+        comments: false,
+    });
+    presanitizer.removeUnsafe();
+
+    parseHtml = html => Document.parseHTML(html, {sanitizer: presanitizer}).body;
+} else {
+    parseHtml = html => {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        return getBody.call(doc);
+    };
+}
+
 const renderMarkdown = (content, container) => {
-    const markdown = marked(content, markdownOptions);
-    const sanitizeDocument = new DOMParser().parseFromString(markdown, 'text/html');
-    const fragment = getBody.call(sanitizeDocument);
+    const renderedMarkdown = marked(content, markdownOptions);
+    const fragment = parseHtml(renderedMarkdown);
 
     weasylMarkdown(fragment);
     defang(fragment, true);

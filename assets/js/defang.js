@@ -14,9 +14,13 @@ const allowedTags = new Set([
     'A', 'IMG',
 ]);
 
-const allowedAttributes = new Set([
+export const allowedAttributes = new Set([
     'title', 'alt', 'colspan', 'rowspan', 'start', 'type',
 ]);
+
+export const conditionallyAllowedAttributes = [
+    'href', 'src', 'style', 'class',
+];
 
 const allowedSchemes = new Set([
     'http:', 'https:', 'mailto:', 'irc:', 'ircs:', 'magnet:',

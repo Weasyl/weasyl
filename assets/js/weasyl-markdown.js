@@ -25,6 +25,7 @@ const replaceBadLinks = fragment => {
     });
 };
 
+// XXX: Properties of `fragment` and `child` can be clobbered here. For now, they just break the preview or user links at worst, which is "fine".
 const addUserLinks = fragment => {
     for (let i = 0; i < fragment.childNodes.length; i++) {
         const child = fragment.childNodes[i];
@@ -92,7 +93,7 @@ const weasylMarkdown = fragment => {
     const links = fragment.getElementsByTagName('a');
 
     forEach(links, link => {
-        const href = link.getAttribute('href');
+        const href = link.getAttribute('href') || '';
         const i = href.indexOf(':');
         const scheme = href.substring(0, i);
         const user = href.substring(i + 1);
@@ -130,10 +131,12 @@ const weasylMarkdown = fragment => {
     const images = fragment.querySelectorAll('img');
 
     forEach(images, image => {
-        const src = image.getAttribute('src');
+        const src = image.getAttribute('src') || '';
         const i = src.indexOf(':');
         const scheme = src.substring(0, i);
         const link = document.createElement('a');
+
+        image.replaceWith(link);
 
         if (scheme === 'user') {
             const user = src.substring(i + 1);
@@ -142,7 +145,6 @@ const weasylMarkdown = fragment => {
 
             link.href = '/~' + user;
 
-            image.parentNode.replaceChild(link, image);
             link.appendChild(image);
 
             if (image.alt) {
@@ -157,10 +159,8 @@ const weasylMarkdown = fragment => {
                 image.title = '';
             }
         } else {
-            link.href = image.src;
+            link.href = image.src;  // XXX: reintroduction point for `javascript:` URLs after presanitizer
             link.appendChild(document.createTextNode(image.alt || image.src));
-
-            image.parentNode.replaceChild(link, image);
         }
     });
 

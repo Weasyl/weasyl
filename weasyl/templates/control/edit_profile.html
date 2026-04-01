@@ -107,37 +107,66 @@ $code:
       <h3>Contact and Social Media</h3>
       <p>
         For frequently used social media sites
-        $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site and not site.get('hidden', False))
-        ($:{', '.join('<strong>%s</strong>' % site for site in sorted(sites, key=lambda s: s.lower()))}),
+        <noscript>
+          $ sites = (site['name'] for site in M.SOCIAL_SITES.values() if 'url' in site and not site.get('hidden', False))
+          ($:{', '.join('<strong>%s</strong>' % site for site in sorted(sites, key=lambda s: s.lower()))}),
+        </noscript>
         fill in the site as displayed, and your username in the second blank.
         Weasyl will do the rest.
+      </p>
+      <p>
+        You may add an optional label to each entry. This can be useful if you
+        have multiple accounts for the same site. For example, if you have two
+        accounts on the same microblogging platform &ndash; one for personal
+        thoughts and one for artwork &ndash; you can label them as such.
       </p>
       <p>
         For other sites, you can use any site name you like, and add the full
         URL or username to the second blank. You can use <tt>http</tt>,
         <tt>https</tt>, and <tt>mailto</tt> URLs.
       </p>
-      <p style="margin-bottom: 2em">
-        To delete an entry, just remove either the site field or URL field, and
-        ‘Save’.
-      </p>
+      <noscript>
+        <p>
+          To delete an entry, just remove either the site field or URL field, and
+          ‘Save’.
+        </p>
+      </noscript>
 
-      $for site, values in userinfo['sorted_user_links']:
-        $for value in values:
-          <div class="group">
-            <input type="text" class="input site-name" name="site_names" value="${site}" placeholder="Site" list="known-social-sites">
-            <input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL">
-          </div>
-      <div class="group" id="new-social-group">
-        <input type="text" class="input site-name" name="site_names" placeholder="Site" list="known-social-sites">
-        <input type="text" class="input" name="site_values" placeholder="Username or URL">
-      </div>
       $# This is used for the auto-completion.
-      <datalist id="known-social-sites">
+      <datalist id="known-social-sites" data-default-img-src="${resource_path('img/social/generic.svg')}">
         $for site in M.SOCIAL_SITES.values():
           $if not site.get('hidden'):
-            <option value="${site['name']}"></option>
+            <option value="${site['name']}"
+              $if site.get("icon"):
+                data-img-src="${resource_path(site['icon'])}"
+            ></option>
       </datalist>
+
+      <table class="contact-editor">
+        <thead>
+          <tr>
+            <th id="site-name-header" class="site-name">Site name</th>
+            <th id="site-label-header" class="site-label">Label (optional)</th>
+            <th id="site-value-header">Username or URL</th>
+            <th class="remove-contact" hidden aria-label="Actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          $for site, value, label, _ in userinfo['user_links']:
+            <tr>
+              <td class="site-name"><input is="weasyl-combobox" type="text" class="input" name="site_names" value="${site}" placeholder="Site name" list="known-social-sites" aria-labelledby="site-name-header" autocomplete="off"></td>
+              <td class="site-label"><input type="text" class="input" name="site_labels" value="${label}" placeholder="Label" aria-labelledby="site-label-header"></td>
+              <td><input type="text" class="input" name="site_values" value="${value}" placeholder="Username or URL" aria-labelledby="site-label-header"></td>
+              <td class="remove-contact" hidden><button class="button negative" type="button" title="Remove">❌</button></td>
+            </tr>
+          <tr id="new-social-group">
+            <td class="site-name"><input is="weasyl-combobox" type="text" class="input" name="site_names" placeholder="Site name" list="known-social-sites" aria-labelledby="site-name-header" autocomplete="off"></td>
+            <td class="site-label"><input type="text" class="input" name="site_labels" placeholder="Label" aria-labelledby="site-label-header"></td>
+            <td><input type="text" class="input" name="site_values" placeholder="Username or URL" aria-labelledby="site-value-header"></td>
+            <td class="remove-contact" hidden><button class="button negative" type="button" title="Remove">❌</button></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="buttons clear">
@@ -146,3 +175,5 @@ $code:
 
   </form>
 </div>
+
+<script type="module" src="${resource_path('js/edit-profile.js')}" async></script>

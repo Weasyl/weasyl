@@ -94,10 +94,14 @@ $:{RENDER("common/user_tabs.html", [profile['username'], "profile", profile['sho
     <div id="user-contact" class="clear on-side">
       <h3>Contact</h3>
       <dl class="leaders">
-      $for name, values in sorted(userinfo['user_links'].items(), key=lambda kv: kv[0].lower()):
-        $for value in sorted(values):
-          <dt>${name}</dt>
+        $for name, value, label, _ in userinfo['user_links']:
           $ info = M.SOCIAL_SITES_BY_NAME.get(name, {})
+          <dt>
+            <img src="${resource_path(info.get('icon', 'img/social/generic.svg'))}" class="contact-icon" alt="">
+            ${name}
+            $if label:
+              <span class="color-lighter">&ndash; ${label}</span>
+          </dt>
           $if value.startswith(('http://', 'https://')):
             <dd><a href="${value}" rel="me nofollow ugc">${value}</a></dd>
           $elif value.startswith('mailto:'):

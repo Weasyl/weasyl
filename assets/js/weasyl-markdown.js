@@ -93,7 +93,7 @@ const weasylMarkdown = fragment => {
     const links = fragment.getElementsByTagName('a');
 
     forEach(links, link => {
-        const href = link.getAttribute('href');
+        const href = link.getAttribute('href') || '';
         const i = href.indexOf(':');
         const scheme = href.substring(0, i);
         const user = href.substring(i + 1);
@@ -131,7 +131,7 @@ const weasylMarkdown = fragment => {
     const images = fragment.querySelectorAll('img');
 
     forEach(images, image => {
-        const src = image.getAttribute('src');
+        const src = image.getAttribute('src') || '';
         const i = src.indexOf(':');
         const scheme = src.substring(0, i);
         const link = document.createElement('a');

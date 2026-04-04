@@ -182,7 +182,6 @@ def defang(fragment):
         extend_attributes = []
 
         for key, value in child.items():
-            # `value_stripped` is a correct thing to do according to the WHATWG URL spec (but not the only possible validation error, and not all are handled here yet). It also works around CVE-2023-24329 while on Python <3.10.12.
             if key == "href" and child.tag == "a" and (c := CleanHref.try_from(value)) is not None:
                 extend_attributes.append((key, c.value))
 

@@ -4,7 +4,7 @@ WORKDIR /weasyl-build
 RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
 USER deno
 
-COPY --chown=deno:deno --link deno.json deno.lock ./
+COPY --chown=1000 --link deno.json deno.lock ./
 
 RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
 
@@ -12,7 +12,7 @@ COPY --link build.ts build.ts
 
 
 FROM asset-builder AS assets
-COPY --link assets assets
+COPY --chown=1000 --link assets assets
 RUN --network=none mkdir build && deno run \
     --cached-only \
     --frozen \
@@ -29,7 +29,7 @@ FROM docker.io/library/alpine:3.22 AS mozjpeg-src
 RUN --network=none adduser -S build -h /mozjpeg-build
 USER build
 WORKDIR /mozjpeg-build
-ADD --checksum=sha256:9fcbb7171f6ac383f5b391175d6fb3acde5e64c4c4727274eade84ed0998fcc1 --chown=build --link https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.1.5.tar.gz ./
+ADD --checksum=sha256:9fcbb7171f6ac383f5b391175d6fb3acde5e64c4c4727274eade84ed0998fcc1 --chown=100 --link https://github.com/mozilla/mozjpeg/archive/refs/tags/v4.1.5.tar.gz ./
 RUN tar xf v4.1.5.tar.gz
 
 
@@ -56,11 +56,11 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     zlib-dev
 USER build
 WORKDIR /libpng-build/libpng
-ADD --checksum=sha256:f7d8bf1601b7804f583a254ab343a6549ca6cf27d255c302c47af2d9d36a6f18 --chown=build --link https://sourceforge.net/projects/libpng/files/libpng16/1.6.56/libpng-1.6.56.tar.xz/download ./libpng-1.6.56.tar.xz
-ADD --checksum=sha256:017c06f75ffed25f6cda9b5369ec6da0ac35a6616adf7abe4222516a0237f37a --chown=build --link https://sourceforge.net/projects/libpng-apng/files/libpng16/1.6.55/libpng-1.6.55-apng.patch.gz/download ./libpng-1.6.55-apng.patch.gz
+ADD --checksum=sha256:f7d8bf1601b7804f583a254ab343a6549ca6cf27d255c302c47af2d9d36a6f18 --chown=100 --link https://sourceforge.net/projects/libpng/files/libpng16/1.6.56/libpng-1.6.56.tar.xz/download ./libpng-1.6.56.tar.xz
+ADD --checksum=sha256:017c06f75ffed25f6cda9b5369ec6da0ac35a6616adf7abe4222516a0237f37a --chown=100 --link https://sourceforge.net/projects/libpng-apng/files/libpng16/1.6.55/libpng-1.6.55-apng.patch.gz/download ./libpng-1.6.55-apng.patch.gz
 # TODO: craft deterministic dummy-abuild.key and copy it in alongside APKBUILD
 RUN --network=none openssl genrsa -out dummy-abuild.key 512
-COPY --chown=build --link ./libpng/APKBUILD ./
+COPY --chown=100 --link ./libpng/APKBUILD ./
 RUN --network=none \
     PACKAGER_PRIVKEY=/libpng-build/libpng/dummy-abuild.key \
     abuild -P /libpng-build/packages -c verify unpack prepare build rootpkg clean
@@ -70,7 +70,7 @@ FROM docker.io/library/alpine:3.22 AS imagemagick6-src
 RUN --network=none adduser -S build -h /imagemagick6-build
 USER build
 WORKDIR /imagemagick6-build
-ADD --checksum=sha256:6fcd60539e788a9d51c5a5e59be51e6090cdbcf443b968560d632b4e2c42075c --chown=build --link https://imagemagick.org/archive/releases/ImageMagick-6.9.13-43.tar.xz ./
+ADD --checksum=sha256:6fcd60539e788a9d51c5a5e59be51e6090cdbcf443b968560d632b4e2c42075c --chown=100 --link https://imagemagick.org/archive/releases/ImageMagick-6.9.13-43.tar.xz ./
 RUN tar xf ImageMagick-6.9.13-43.tar.xz
 
 
@@ -149,12 +149,12 @@ USER weasyl
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/include/ /usr/include/
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/
 COPY --from=imagemagick6-build --chown=root:root --link /imagemagick6-build/package-root/ /
-COPY --link poetry-requirements.txt ./
+COPY --chown=1000 --link poetry-requirements.txt ./
 RUN --network=none python3 -m venv --system-site-packages --without-pip .poetry-venv
 RUN --mount=type=cache,id=pip,target=/weasyl/.cache/pip,sharing=locked,uid=1000 \
     .poetry-venv/bin/python3 -m pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
 RUN --network=none python3 -m venv --system-site-packages --without-pip .venv
-COPY --chown=weasyl --link pyproject.toml poetry.lock setup.py ./
+COPY --chown=1000 --link pyproject.toml poetry.lock setup.py ./
 RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,uid=1000 \
     .poetry-venv/bin/poetry install --only=main --no-root
 RUN dirs=' \
@@ -202,14 +202,14 @@ COPY --chown=root:root --link imagemagick-policy.xml /usr/etc/ImageMagick-6/poli
 
 COPY --from=bdist --link /weasyl/.venv .venv
 COPY --from=assets --link /weasyl-build/build build
-COPY --chown=weasyl:root --link libweasyl libweasyl
-COPY --chown=weasyl:root --link weasyl weasyl
+COPY --chown=1000:root --link libweasyl libweasyl
+COPY --chown=1000:root --link weasyl weasyl
 
 ARG version
 RUN test -n "$version" && printf '%s\n' "$version" > version.txt
 
 FROM package AS test
-COPY --from=bdist-pytest --link /weasyl/.venv .venv
+COPY --from=bdist-pytest --chown=1000 --link /weasyl/.venv .venv
 RUN mkdir .pytest_cache coverage \
     && ln -s /run/config config
 ENV WEASYL_APP_ROOT=.

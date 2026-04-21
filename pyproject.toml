@@ -21,7 +21,7 @@ dependencies = [
     "dogpile-cache==1.2.0",
     "pillow==12.1.1",
     "sqlalchemy[postgresql]==1.4.45",
-    "lxml==4.9.2",
+    "lxml==6.1.0",
     "prometheus-client~=0.20.0",
     "ada-url~=1.23.0",
     "urllib3[socks]~=2.4.0",

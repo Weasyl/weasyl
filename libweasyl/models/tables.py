@@ -806,6 +806,7 @@ submission = Table(
     Column('favorites', Integer(), nullable=False),
     Column('submitter_ip_address', String(length=45), nullable=True),
     Column('submitter_user_agent_id', Integer(), nullable=True),
+    Column('browse_excluded', Boolean(), nullable=True),
     ForeignKeyConstraint(['userid'], ['login.userid'], name='submission_userid_fkey'),
     ForeignKeyConstraint(
         ['folderid'],

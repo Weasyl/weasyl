@@ -828,6 +828,8 @@ def _select_query(
 
     if otherid:
         statement.append(" AND su.userid = %i" % (otherid,))
+    else:
+        statement.append(" AND su.browse_excluded IS NOT TRUE")
 
     if folderid:
         statement.append(" AND su.folderid = %i" % (folderid,))
@@ -1185,6 +1187,7 @@ def select_recently_popular():
             NOT submission.hidden
             AND NOT submission.friends_only
             AND submission.favorites > 0
+            AND submission.browse_excluded IS NOT TRUE
         ORDER BY
             log(submission.favorites) +
                 submission.unixtime / 180000.0

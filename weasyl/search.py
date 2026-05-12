@@ -288,6 +288,9 @@ def _prepare_search(
         and not resolved.required_excludes
     )
 
+    # Whether the search is of the whole site's works, and therefore subject to `browse_excluded`.
+    is_global = True
+
     if not is_single_tag and resolved.find == "submit":
         statement_from_join.append("INNER JOIN submission_tags ON content.submitid = submission_tags.submitid")
 
@@ -310,6 +313,7 @@ def _prepare_search(
             statement_where.append("AND content.subtype >= %(category)s AND content.subtype < %(category)s + 1000")
 
     if userid:
+        has_effective_within = True
         if within == "notify":
             # Search within notifications
             statement_from_join.append("INNER JOIN welcome ON welcome.targetid = content.{select}")
@@ -333,6 +337,10 @@ def _prepare_search(
             # Search within following content
             statement_from_join.append(
                 "INNER JOIN watchuser ON (watchuser.userid, watchuser.otherid) = (%(userid)s, content.userid)")
+        else:
+            has_effective_within = False
+
+        is_global &= not has_effective_within
 
         # Search within rating
         if resolved.ratings:
@@ -393,9 +401,13 @@ def _prepare_search(
 
     if resolved.required_user_includes:
         statement_where.append("AND content.userid = ANY (%(required_user_includes)s)")
+        is_global = False
 
     if resolved.required_user_excludes:
         statement_where.append("AND content.userid != ALL (%(required_user_excludes)s)")
+
+    if is_global and resolved.find == "submit":
+        statement_where.append("AND content.browse_excluded IS NOT TRUE")
 
     title_field = "title"
 

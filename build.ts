@@ -485,7 +485,7 @@ class EsbuildFilesWithDeps<Deps extends AnyDependencies> implements Task<Touch &
         ctx: Context,
         deps: Provided<Touch & Deps>,
         buildContext: Awaited<ReturnType<typeof this.createBuildContext>> | null,
-    ): Promise<TaskResultWithCache<typeof buildContext & NonNullable<unknown>>> {
+    ): Promise<TaskResultWithCache<NonNullable<typeof buildContext>>> {
         const entryPoints = this.#relativePaths.map(p => ctx.resolveSource(p));
         const cwd = Deno.cwd();
 

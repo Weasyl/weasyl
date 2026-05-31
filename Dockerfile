@@ -10,9 +10,10 @@ USER 1000
 
 COPY --chown=1000 --link deno.json deno.lock ./
 
+# initial `--vendor=false` install allows non-`node_modules` packages to be installed to (and therefore from) cache
 # hash + patch: https://github.com/postcss/autoprefixer/pull/1550
 RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 \
-    deno ci \
+    deno install --frozen --vendor=false && deno ci \
     && sha256sum -c <<'SHA256' \
     && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'
 68c4208ae3e1aad176f61fe7ba27d351d8b8f931dad1b3938702c3bb80106d24  node_modules/autoprefixer/lib/supports.js

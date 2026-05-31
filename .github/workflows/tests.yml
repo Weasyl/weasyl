@@ -71,7 +71,7 @@ jobs:
         run: |
           (
             export LD_LIBRARY_PATH=/opt/deno/lib
-            deno install --frozen --vendor=false && deno install --frozen
+            deno install --frozen --vendor=false && deno ci
           ) \
             && sha256sum -c <<'SHA256' \
             && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'

@@ -1,14 +1,18 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/denoland/deno:alpine-2.3.5 AS asset-builder
+FROM docker.io/denoland/deno:2.8.1@sha256:ddaad47cbbbbd856d73bd0d50074a0e308c51671d83442eebb15f1039dd4a822 AS asset-builder
+
+# bypass redundant `/tini` and `_entry.sh`
+ENTRYPOINT []
+
 WORKDIR /weasyl-build
 RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
-USER deno
+USER 1000
 
 COPY --chown=1000 --link deno.json deno.lock ./
 
 # hash + patch: https://github.com/postcss/autoprefixer/pull/1550
 RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 \
-    deno install --frozen \
+    deno ci \
     && sha256sum -c <<'SHA256' \
     && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'
 68c4208ae3e1aad176f61fe7ba27d351d8b8f931dad1b3938702c3bb80106d24  node_modules/autoprefixer/lib/supports.js

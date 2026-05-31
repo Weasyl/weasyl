@@ -10,7 +10,7 @@ jobs:
       id-token: write
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:f9e0fcd3b505e718b3e8d37b77d26d4fdd3579d0b5a8444b54082d34180457c9
+      image: ghcr.io/weasyl/ci-base-image@sha256:31306c2cfdeca0d6648863a9789f818dfd730564ad163424ad4ebb14cfb865c6
       options: --user 1001 --tmpfs /magick-tmp:mode=700,uid=1001
 
     services:

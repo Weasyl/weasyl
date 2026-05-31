@@ -327,7 +327,7 @@ class CopyUnversionedStaticFile implements Task<Touch> {
     }
 }
 
-const shortHash = async (data: Uint8Array) =>
+const shortHash = async (data: Uint8Array<ArrayBuffer>) =>
     getShortDigest(new Uint8Array(await crypto.subtle.digest('SHA-512', data)));
 
 class CopyStaticFile implements Task<Touch> {
@@ -618,7 +618,7 @@ class EsbuildFilesWithDeps<Deps extends AnyDependencies> implements Task<Touch &
             const {assetId} = outputsByAbsPath.get(outputFile.path)!;
             const bundleContents = outputFile.contents;
 
-            const shortDigest = await shortHash(bundleContents);
+            const shortDigest = await shortHash(bundleContents satisfies Uint8Array as Uint8Array<ArrayBuffer>);
 
             const outputPath = addFilenameSuffix(assetId, shortDigest);
 

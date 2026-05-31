@@ -15,5 +15,9 @@
     },
     "vendor": true,
     "nodeModulesDir": "manual",
-    "unstable": ["lockfile-v5", "worker-options"]
+    "unstable": ["worker-options"],
+    "allowScripts": {
+        "allow": [],
+        "deny": ["npm:@parcel/watcher@2.5.6", "npm:esbuild@0.25.10"]
+    }
 }

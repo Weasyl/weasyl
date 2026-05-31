@@ -6,9 +6,18 @@ USER deno
 
 COPY --chown=1000 --link deno.json deno.lock ./
 
-RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 deno install --frozen
+# hash + patch: https://github.com/postcss/autoprefixer/pull/1550
+RUN --mount=type=cache,id=deno,target=/deno-dir,uid=1000 \
+    deno install --frozen \
+    && sha256sum -c <<'SHA256' \
+    && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'
+68c4208ae3e1aad176f61fe7ba27d351d8b8f931dad1b3938702c3bb80106d24  node_modules/autoprefixer/lib/supports.js
+SHA256
+214a\
+, this.all.browsers.browserslistOpts
+SED
 
-COPY --link build.ts build.ts
+COPY --link build.ts build-css.ts ./
 
 
 FROM asset-builder AS assets

@@ -2,12 +2,33 @@
 
 /// <reference lib="deno.worker" />
 
-import autoprefixer from 'autoprefixer';
+import Browsers from 'autoprefixer/lib/browsers.js';
+import Prefixes from 'autoprefixer/lib/prefixes.js';
+import {agents} from 'caniuse-lite/dist/unpacker/agents.js';
+import dataPrefixes from 'autoprefixer/data/prefixes.js';
 import browserslist from 'browserslist';
 import postcss from 'postcss';
 import * as sass from 'sass';
 
 import type {CssRequest, CssResponse} from './build.ts';
+
+// simplified from autoprefixer/index.js
+const browsers = new Browsers(agents, browserslist.defaults, {}, {
+    // avoid needing excessive privileges to search for nonexistent configuration
+    stats: {},
+});
+const prefixes = new Prefixes(dataPrefixes, browsers, {});
+const cssProcessor = postcss([
+    {
+        postcssPlugin: 'autoprefixer',
+        prepare: result => ({
+            OnceExit(root) {
+                prefixes.processor.remove(root, result);
+                prefixes.processor.add(root, result);
+            },
+        }),
+    },
+]);
 
 self.onmessage = (e: MessageEvent<CssRequest>) => {
     const {
@@ -19,13 +40,7 @@ self.onmessage = (e: MessageEvent<CssRequest>) => {
         style: 'compressed',
     });
 
-    const result = postcss([
-        autoprefixer({
-            // avoid needing excessive privileges to search for nonexistent configuration
-            overrideBrowserslist: browserslist.defaults as (typeof browserslist.defaults[0])[],
-            stats: {},
-        }),
-    ]).process(sassResult.css, {
+    const result = cssProcessor.process(sassResult.css, {
         from: undefined,
         map: false,
     });

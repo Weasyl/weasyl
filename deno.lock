@@ -10,6 +10,7 @@
     "npm:autoprefixer@^10.4.20": "10.4.21_postcss@8.5.4",
     "npm:autosize@^6.0.1": "6.0.1",
     "npm:browserslist@^4.24.4": "4.25.0",
+    "npm:caniuse-lite@^1.0.30001702": "1.0.30001720",
     "npm:esbuild@~0.25.10": "0.25.10",
     "npm:postcss@^8.5.4": "8.5.4",
     "npm:sass@^1.100.0": "1.100.0"
@@ -416,6 +417,7 @@
       "npm:autoprefixer@^10.4.20",
       "npm:autosize@^6.0.1",
       "npm:browserslist@^4.24.4",
+      "npm:caniuse-lite@^1.0.30001702",
       "npm:esbuild@~0.25.10",
       "npm:postcss@^8.5.4",
       "npm:sass@^1.100.0"

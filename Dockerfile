@@ -68,10 +68,13 @@ RUN --network=none \
 
 FROM docker.io/library/alpine:3.22 AS imagemagick6-src
 RUN --network=none adduser -S build -h /imagemagick6-build
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    7zip
 USER build
 WORKDIR /imagemagick6-build
-ADD --checksum=sha256:6fcd60539e788a9d51c5a5e59be51e6090cdbcf443b968560d632b4e2c42075c --chown=100 --link https://imagemagick.org/archive/releases/ImageMagick-6.9.13-43.tar.xz ./
-RUN tar xf ImageMagick-6.9.13-43.tar.xz
+ADD --checksum=sha256:c33f2e0e9ae278f25dc1f47c9b5ce42f53172ecddf81253f01e5bcc97a0083c9 --chown=100 --link https://github.com/ImageMagick/ImageMagick6/releases/download/6.9.13-49/ImageMagick-6.9.13-49.7z ./
+RUN --network=none 7z x ImageMagick-6.9.13-49.7z
 
 
 FROM docker.io/library/alpine:3.22 AS imagemagick6-build
@@ -99,7 +102,7 @@ WORKDIR /imagemagick6-build/ImageMagick
 # `--with-cache=32GiB`: let other places (like policy.xml) set the limit, and definitely don’t choose whether to write files based on detecting available memory
 # `--with-xml`: for XMP metadata
 RUN \
-    --mount=type=bind,from=imagemagick6-src,source=/imagemagick6-build/ImageMagick-6.9.13-43,target=/imagemagick6-build/ImageMagick,rw \
+    --mount=type=bind,from=imagemagick6-src,source=/imagemagick6-build/ImageMagick-6.9.13-49,target=/imagemagick6-build/ImageMagick,rw \
     --network=none \
     ./configure \
     --prefix=/usr \

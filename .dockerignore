@@ -9,6 +9,7 @@
 !pyproject.toml
 
 !build.ts
+!build-css.ts
 !deno.json
 !deno.lock
 

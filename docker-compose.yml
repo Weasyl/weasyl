@@ -229,6 +229,7 @@ services:
     build:
       context: .
       target: asset-builder
+    init: true
     command:
       - sh
       - -ec
@@ -252,6 +253,7 @@ services:
     build:
       context: .
       target: asset-builder
+    init: true
     command:
       - sh
       - -ec

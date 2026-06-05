@@ -3,10 +3,7 @@ import { encodeBase64Url } from '@std/encoding/base64url';
 import { parseArgs } from '@std/cli/parse-args';
 import { mapValues } from '@std/collections/map-values';
 import * as path from '@std/path';
-import autoprefixer from 'autoprefixer';
 import esbuild from 'esbuild';
-import postcss from 'postcss';
-import * as sass from 'sass-embedded';
 
 type Awaitable<T> = T | PromiseLike<T>;
 type Timer = ReturnType<typeof setTimeout>;
@@ -64,6 +61,9 @@ type Source =
 
 class Context {
     readonly absoluteAssetsRoot: string;
+    #cssWorker: Worker;
+    #cssWorkerNextMessageId = 1;
+    #cssWorkerRequests = new Map<number, (data: object) => void>();
 
     constructor(
         readonly verbose: boolean,
@@ -71,6 +71,41 @@ class Context {
         readonly outputRoot: string,
     ) {
         this.absoluteAssetsRoot = path.resolve(assetsRoot);
+
+        const cssWorker = new Worker(new URL('./build-css.ts', import.meta.url), {
+            name: 'CSS worker',
+            type: 'module',
+            deno: {
+                permissions: {
+                    env: [
+                        'CI',
+                        'SASS_PATH',
+                        'BROWSERSLIST_DISABLE_CACHE',
+                        'BROWSERSLIST_IGNORE_OLD_DATA',
+                        'AUTOPREFIXER_GRID',
+                    ],
+                    read: [assetsRoot],
+                },
+            },
+        });
+
+        cssWorker.onerror = cssWorker.onmessageerror = onCssWorkerFatal;
+
+        cssWorker.onmessage = (e: MessageEvent<{messageId?: unknown} | null | undefined>) => {
+            const resolve = mapPop(this.#cssWorkerRequests, e.data?.messageId);
+
+            if (resolve !== undefined) {
+                resolve(e.data as object);
+                return;
+            }
+
+            console.error('bad message from CSS worker: %o', e.data);
+            throw new TypeError('bad message from CSS worker');
+        };
+
+        // XXX: There appears to be no way (as of Deno 2.8) to handle a worker `close`ing itself. Messages will just be silently dropped.
+
+        this.#cssWorker = cssWorker;
     }
 
     resolveSource(source: Source) {
@@ -92,6 +127,54 @@ class Context {
     resolveOutput(output: string) {
         return path.join(this.outputRoot, output);
     }
+
+    sendCssWork(request: CssRequestData): Promise<object> {
+        const messageId = this.#cssWorkerNextMessageId++;
+        const {promise, resolve} = Promise.withResolvers<object>();
+        this.#cssWorkerRequests.set(messageId, resolve);
+
+        this.#cssWorker.postMessage({...request, messageId} satisfies CssRequest);
+
+        return promise;
+    }
+
+    [Symbol.dispose]() {
+        this.#cssWorker.terminate();
+    }
+}
+
+const onCssWorkerFatal = () => {
+    // Uncaught errors are already logged by the runtime, and `messageerror` should never happen, so we don't bother with more detailed logging.
+    throw new Error('fatal event from CSS worker');
+};
+
+// deno-lint-ignore ban-types
+type NotUndefined = {} | null;
+
+const mapPop = <K, V extends NotUndefined>(map: Map<K, V>, key: K): V | undefined => {
+    const value = map.get(key);
+
+    if (value === undefined) {
+        return undefined;
+    }
+
+    map.delete(key);
+    return value;
+};
+
+interface CssRequestData {
+    resolvedSource: string;
+}
+
+export interface CssRequest extends CssRequestData {
+    messageId: number;
+}
+
+export interface CssResponse {
+    messageId: number;
+    css: string;
+    loadedUrls: string[];
+    warnings: string[];
 }
 
 /** Indicates that error information was already written to stderr. */
@@ -244,7 +327,7 @@ class CopyUnversionedStaticFile implements Task<Touch> {
     }
 }
 
-const shortHash = async (data: Uint8Array) =>
+const shortHash = async (data: Uint8Array<ArrayBuffer>) =>
     getShortDigest(new Uint8Array(await crypto.subtle.digest('SHA-512', data)));
 
 class CopyStaticFile implements Task<Touch> {
@@ -373,6 +456,8 @@ const updateSet = <T>(set: Set<T>, values: Iterable<T>) => {
     }
 };
 
+const canGet = (x: unknown): x is Readonly<Record<string, unknown>> => x != null;
+
 class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
     readonly #spec: SourceOutputPair<RelativeSource>;
 
@@ -384,18 +469,27 @@ class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
     }
 
     async run(ctx: Context, deps: Provided<Touch & {images: TaskResultWithInputMap}>): Promise<TaskResult> {
-        const sassResult = await sass.compileAsync(ctx.resolveSource(this.#spec.from), {
-            style: 'compressed',
-        });
+        const resolvedSource = ctx.resolveSource(this.#spec.from);
 
-        const result = postcss([autoprefixer()]).process(sassResult.css, {
-            from: undefined,
-            map: false,
-        });
+        const response = await ctx.sendCssWork({resolvedSource});
 
-        result.warnings().forEach(warning => {
-            console.error(String(warning));
-        });
+        if (
+            !canGet(response)
+            || typeof response.css !== 'string'
+            || !Array.isArray(response.loadedUrls)
+            || !response.loadedUrls.every(x => typeof x === 'string')
+            || !Array.isArray(response.warnings)
+            || !response.warnings.every(x => typeof x === 'string')
+        ) {
+            throw new TypeError('bad response from CSS worker');
+        }
+        //response satisfies CssResponse;
+        // ... is the intent here, but that doesn't typecheck in current TypeScript, even though the compiler essentially knows it.
+
+        for (const warning of response.warnings) {
+            // NOTE: workers can already write to stdout/stderr (and read from stdin!)
+            console.error(warning);
+        }
 
         // ew
         const images = await deps.images;
@@ -416,7 +510,7 @@ class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
 
         const subresourceInputs = new Set<Source>();
 
-        const urlTranslatedCss = result.css.replace(/(url\()([^)]*)\)/gi, (_match: string, left: string, link: string) => {
+        const urlTranslatedCss = response.css.replace(/(url\()([^)]*)\)/gi, (_match: string, left: string, link: string) => {
             if (/^["']./.test(link) && link.slice(-1) === link.charAt(0)) {
                 link = link.slice(1, -1);
             }
@@ -441,7 +535,9 @@ class Sass implements Task<Touch & {images: TaskResultWithInputMap}> {
         return {
             inputs: [
                 ...subresourceInputs,
-                ...sassResult.loadedUrls.map(url =>
+
+                // untrusted, but declaring invalid inputs should be harmless
+                ...response.loadedUrls.map(url =>
                     removePrefix(path.fromFileUrl(url), ctx.absoluteAssetsRoot + '/')),
             ],
             entries: [[this.#spec.to, outputPath]],
@@ -522,7 +618,7 @@ class EsbuildFilesWithDeps<Deps extends AnyDependencies> implements Task<Touch &
             const {assetId} = outputsByAbsPath.get(outputFile.path)!;
             const bundleContents = outputFile.contents;
 
-            const shortDigest = await shortHash(bundleContents);
+            const shortDigest = await shortHash(bundleContents satisfies Uint8Array as Uint8Array<ArrayBuffer>);
 
             const outputPath = addFilenameSuffix(assetId, shortDigest);
 
@@ -777,7 +873,7 @@ const main = async () => {
     const manifestPath = path.join(outputRoot, 'rev-manifest.json');
 
     const verbose = !args.watch;
-    const ctx: Context = new Context(verbose, assetsRoot, outputRoot);
+    using ctx: Context = new Context(verbose, assetsRoot, outputRoot);
 
     // Node:
     //     apparently no race on Linux (uncomfortable and not documented; I would expect watcher readiness to be async): https://github.com/nodejs/node/issues/52601

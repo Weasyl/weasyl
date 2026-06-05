@@ -10,7 +10,7 @@ jobs:
       id-token: write
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:f9e0fcd3b505e718b3e8d37b77d26d4fdd3579d0b5a8444b54082d34180457c9
+      image: ghcr.io/weasyl/ci-base-image@sha256:31306c2cfdeca0d6648863a9789f818dfd730564ad163424ad4ebb14cfb865c6
       options: --user 1001 --tmpfs /magick-tmp:mode=700,uid=1001
 
     services:
@@ -71,8 +71,15 @@ jobs:
         run: |
           (
             export LD_LIBRARY_PATH=/opt/deno/lib
-            deno install --frozen --vendor=false && deno install --frozen
-          )
+            deno install --frozen --vendor=false && deno ci
+          ) \
+            && sha256sum -c <<'SHA256' \
+            && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'
+          68c4208ae3e1aad176f61fe7ba27d351d8b8f931dad1b3938702c3bb80106d24  node_modules/autoprefixer/lib/supports.js
+          SHA256
+          214a\
+          , this.all.browsers.browserslistOpts
+          SED
 
       - name: Install Python dependencies
         run: .poetry-venv/bin/poetry install

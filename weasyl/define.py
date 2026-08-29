@@ -359,7 +359,7 @@ def get_premium(userid: int) -> bool:
 @record_timing
 def _get_display_name(userid: int) -> str | None:
     """
-    Return the display name assiciated with `userid`; if no such user exists,
+    Return the display name associated with `userid`; if no such user exists,
     return None.
     """
     return engine.scalar("SELECT username FROM profile WHERE userid = %(user)s", user=userid)

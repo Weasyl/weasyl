@@ -60,7 +60,7 @@ def test_markdown_user_linking_twice_in_tail(target, expected):
 
 
 @pytest.mark.parametrize(('target', 'expected'), user_linking_markdown_tests)
-def test_markdown_user_linking_twice_in_tail_with_more_text_betweeen(target, expected):
+def test_markdown_user_linking_twice_in_tail_with_more_text_between(target, expected):
     assert markdown('<em>eggs</em>%s spam %s' % (target, target)) == (
         '<p><em>eggs</em>%s spam %s</p>\n' % (expected, expected))
 

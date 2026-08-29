@@ -100,7 +100,7 @@ def twofactorauth_disabled_required(view_callable):
     @wraps(view_callable)
     def inner(request):
         if two_factor_auth.is_2fa_enabled(request.userid):
-            raise WeasylError("TwoFactorAuthenticationRequireDisbled")
+            raise WeasylError("TwoFactorAuthenticationRequireDisabled")
         return view_callable(request)
     return inner
 

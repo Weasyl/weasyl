@@ -43,7 +43,7 @@ class SelectCountTestCase(unittest.TestCase):
 
     def test_cannot_see_non_friends_character(self):
         """
-        Should not be able to see a non-friend's friends-ony character in a listing.
+        Should not be able to see a non-friend's friends-only character in a listing.
         """
         db_utils.create_character(self.user2, friends_only=True)
         self.assertEqual(

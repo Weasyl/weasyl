@@ -94,7 +94,7 @@ def unanimate(im):
     """
     Get the non-animated version of a sanpera ``Image``.
 
-    Paramters:
+    Parameters:
         im: A sanpera ``Image``.
 
     Returns:
@@ -129,7 +129,7 @@ def correct_image_and_call(f, im, *a, **kw):
     """
 
     animated = len(im) > 1
-    # either of these operations make the image satisfy the contraint
+    # either of these operations make the image satisfy the constraint
     # `all(im.size == frame.size for frame in im)`
     if animated:
         im = im.coalesced()

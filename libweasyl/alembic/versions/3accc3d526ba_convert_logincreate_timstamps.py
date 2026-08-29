@@ -1,4 +1,4 @@
-"""Convert logincreate timestamps to TIMESTAMP(timzone=True)
+"""Convert logincreate timestamps to TIMESTAMP(timezone=True)
 
 Revision ID: 3accc3d526ba
 Revises: 2e25bc9a0896

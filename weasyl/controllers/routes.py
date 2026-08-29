@@ -380,7 +380,7 @@ routes = (
 
 def setup_routes_and_views(config):
     """
-    Reponsible for setting up all routes for the Weasyl application.
+    Responsible for setting up all routes for the Weasyl application.
 
     Args:
         config: A pyramid Configuration for the wsgi application.

@@ -150,7 +150,7 @@ error_messages = {
         "You have incorrectly entered your 2FA token or recovery code too many times. Please try logging in again."),
     "TwoFactorAuthenticationAuthenticationTimeout": "Your authentication session has timed out. Please try logging in again.",
     "TwoFactorAuthenticationRequireEnabled": "Two-Factor Authentication must be enabled to access this page.",
-    "TwoFactorAuthenticationRequireDisbled": "Two-Factor Authentication must not be enabled to access this page.",
+    "TwoFactorAuthenticationRequireDisabled": "Two-Factor Authentication must not be enabled to access this page.",
     "TwoFactorAuthenticationZeroRecoveryCodesRemaining": (
         "Your account had zero recovery codes remaining, and as such 2FA was disabled to prevent "
         "you from being permanently unable to log into your account. You may re-enable 2FA if you desire to do so."),

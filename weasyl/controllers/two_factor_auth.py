@@ -309,7 +309,7 @@ def tfa_generate_recovery_codes_post_(request):
             if tfa.store_recovery_codes(request.userid, tfarecoverycodes):
                 # Clean up the stored session variables
                 _cleanup_session(request)
-                # Successfuly stored new recovery codes.
+                # Successfully stored new recovery codes.
                 raise HTTPSeeOther(location="/control/2fa/status")
             else:
                 # Recovery code string was corrupted or otherwise altered.

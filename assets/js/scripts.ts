@@ -626,7 +626,11 @@ if (commentInfo.m_removalPrivileges !== 'all') {
                     commentActions.appendChild(document.createTextNode(' '));
                     commentActions.appendChild(linkLink);
 
-                    commentBody.innerHTML = result.html;
+                    const sanitizedBody = parseHtml(result.html);
+                    defang(sanitizedBody, true);
+                    while (sanitizedBody.hasChildNodes()) {
+                        commentBody.appendChild(sanitizedBody.firstChild);
+                    }
                 } catch {
                     newForm.style.display = 'block';
                     if (newComment.parentNode) { newComment.parentNode.removeChild(newComment); }

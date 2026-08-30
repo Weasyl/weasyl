@@ -508,19 +508,12 @@ document.addEventListener('click', e => {
                     linkLink.textContent = 'Link';
                     commentActions.appendChild(document.createTextNode(' '));
                     commentActions.appendChild(linkLink);
-<<<<<<< HEAD:dist/assets/js/scripts.js
-                    commentBody.innerHTML = result.html;
-                }
-                catch {
-=======
-
                     const sanitizedBody = parseHtml(result.html);
                     defang(sanitizedBody, true);
                     while (sanitizedBody.hasChildNodes()) {
                         commentBody.appendChild(sanitizedBody.firstChild);
                     }
                 } catch {
->>>>>>> 83c9893f (Fix DOM XSS: sanitize server-rendered HTML before innerHTML assignment):assets/js/scripts.js
                     newForm.style.display = 'block';
                     newComment.parentNode.removeChild(newComment);
                     if (!newFormError) {

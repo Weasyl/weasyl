@@ -293,7 +293,7 @@ def submit_shout_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    commentid = shout.insert(
+    commentid, created_at = shout.insert(
         request.userid,
         target_user=define.get_int(form.userid or form.staffnotes),
         parentid=define.get_int(form.parentid),
@@ -305,6 +305,8 @@ def submit_shout_(request):
         return {
             "id": commentid,
             "html": markdown(form.content),
+            "createdAt": created_at.isoformat(),
+            "userid": request.userid,
         }
 
     if form.staffnotes:
@@ -323,17 +325,22 @@ def submit_comment_(request):
     form = request.web_input(submitid="", charid="", journalid="", updateid="", parentid="", content="", format="")
     updateid = define.get_int(form.updateid)
 
-    commentid = comment.insert(request.userid, charid=define.get_int(form.charid),
-                               parentid=define.get_int(form.parentid),
-                               submitid=define.get_int(form.submitid),
-                               journalid=define.get_int(form.journalid),
-                               updateid=updateid,
-                               content=form.content)
+    commentid, created_at = comment.insert(
+        request.userid,
+        charid=define.get_int(form.charid),
+        parentid=define.get_int(form.parentid),
+        submitid=define.get_int(form.submitid),
+        journalid=define.get_int(form.journalid),
+        updateid=updateid,
+        content=form.content,
+    )
 
     if form.format == "json":
         return {
             "id": commentid,
             "html": markdown(form.content),
+            "createdAt": created_at.isoformat(),
+            "userid": request.userid,
         }
 
     if define.get_int(form.submitid):

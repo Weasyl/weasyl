@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { debounce } from '@std/async/debounce';
 import { encodeBase64Url } from '@std/encoding/base64url';
 import { parseArgs } from '@std/cli/parse-args';

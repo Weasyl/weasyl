@@ -1,0 +1,29 @@
+{
+  "name": "weasyl",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/jquery": "^4.0.1",
+    "@types/marked": "^5.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
+    "autosize": "^6.0.1",
+    "eslint": "^10.9.1",
+    "eslint-plugin-jquery": "^1.5.1",
+    "eslint-plugin-node-globals": "^0.1.0",
+    "jest": "^30.5.0",
+    "jest-environment-jsdom": "^30.5.0",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "zxcvbn": "^4.4.2"
+  }
+}

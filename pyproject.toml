@@ -9,7 +9,7 @@ dependencies = [
     "gunicorn==23.0.0",
     "multipart==1.2.2",
     "web-py==0.51",
-    "requests[socks]~=2.32",
+    "requests[socks]~=2.34",
     "pylibmc==1.6.2",
     "pyramid==2.0.2",
     "pyotp==2.3.0",

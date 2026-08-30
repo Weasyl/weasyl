@@ -1,4 +1,5 @@
 import os
+import re
 
 import sqlalchemy as sa
 
@@ -179,87 +180,125 @@ SOCIAL_SITES = {
     "ao3": {
         "name": "Archive of Our Own",
         "url": "https://archiveofourown.org/users/%s",
+        "icon": "img/social/ao3.png",
+        "extract": re.compile(r"archiveofourown\.org/users/([^#?]+)"),
     },
     "bluesky": {
         "name": "Bluesky",
         "url": "https://bsky.app/profile/%s",
+        "icon": "img/social/bluesky.svg",
+        "extract": re.compile(r"bsky\.app/profile/([^#?]+)"),
     },
     "deviantart": {
         "name": "DeviantArt",
         "url": "https://www.deviantart.com/%s",
+        "extract": re.compile(r"deviantart\.com/([^#?]+)"),
     },
     "facebook": {
         "name": "Facebook",
         "url": "https://www.facebook.com/%s",
+        "icon": "img/social/facebook.png",
+        "extract": re.compile(r"facebook\.com/([^#?]+)"),
     },
     "flickr": {
         "name": "Flickr",
         "url": "https://www.flickr.com/photos/%s",
+        "icon": "img/social/flickr.png",
+        "extract": re.compile(r"flickr\.com/photos/([^#?]+)"),
     },
     "furaffinity": {
         "name": "Fur Affinity",
         "url": "https://www.furaffinity.net/user/%s",
+        "icon": "img/social/furaffinity.png",
+        "extract": re.compile(r"furaffinity\.net/user/([^#?]+)"),
     },
     "googleplus": {
         "name": "Google+",
         "url": "https://plus.google.com/+%s",
         "hidden": True,
+        "extract": re.compile(r"plus\.google\.com/+([^$?]+)"),
     },
     "inkbunny": {
         "name": "Inkbunny",
         "url": "https://inkbunny.net/%s",
+        "icon": "img/social/inkbunny.png",
+        "extract": re.compile(r"inkbunny\.net/([^#?]+)"),
     },
     "itaku": {
         "name": "Itaku",
         "url": "https://itaku.ee/profile/%s",
+        "icon": "img/social/itaku.png",
+        "extract": re.compile(r"itaku\.ee/profile/([^#?]+)"),
     },
     "kofi": {
         "name": "Ko-fi",
         "url": "https://ko-fi.com/%s",
+        "icon": "img/social/kofi.svg",
+        "extract": re.compile(r"ko-fi\.com/([^#?]+)"),
     },
     "patreon": {
         "name": "Patreon",
         "url": "https://www.patreon.com/%s",
+        "icon": "img/social/patreon.svg",
+        "extract": re.compile(r"patreon\.com/([^#?]+)"),
     },
     "picarto": {
         "name": "Picarto",
         "url": "https://picarto.tv/%s",
+        "icon": "img/social/picarto.png",
+        "extract": re.compile(r"picarto\.tv/([^#?]+)"),
     },
     "piczel": {
         "name": "Piczel",
         "url": "https://piczel.tv/watch/%s",
+        "icon": "img/social/piczel.png",
+        "extract": re.compile(r"piczel\.tv/watch/([^#?]+)"),
     },
     "reddit": {
         "name": "Reddit",
         "url": "https://www.reddit.com/user/%s",
+        "icon": "img/social/reddit.svg",
+        "extract": re.compile(r"reddit\.com/(?:u|user)/([^#?]+)"),
     },
     "sofurry": {
         "name": "SoFurry",
         "url": "https://%s.sofurry.com/",
+        "icon": "img/social/sofurry.png",
+        "extract": re.compile(r"([^/.]+)\.sofurry\.com"),
     },
     "steam": {
         "name": "Steam",
         "url": "https://steamcommunity.com/id/%s",
+        "extract": re.compile(r"steamcommunity\.com/id/([^#?]+)"),
     },
     "telegram": {
         "name": "Telegram",
         "url": "https://t.me/%s",
+        "icon": "img/social/telegram.svg",
+        "extract": re.compile(r"t\.me/([^#?]+)"),
     },
     "tumblr": {
         "name": "Tumblr",
         "url": "https://%s.tumblr.com/",
+        "icon": "img/social/tumblr.svg",
+        "extract": re.compile(r"([^/.]+)\.tumblr\.com"),
     },
     "twitch": {
         "name": "Twitch",
         "url": "https://twitch.tv/%s",
+        "icon": "img/social/twitch.svg",
+        "extract": re.compile(r"twitch\.tv/([^#?]+)"),
     },
     "twitter": {
         "name": "Twitter",
         "url": "https://twitter.com/%s",
+        "icon": "img/social/twitter.svg",
+        "extract": re.compile(r"(?:twitter|x)\.com/([^#?]+)"),
     },
     "youtube": {
         "name": "YouTube",
         "url": "https://www.youtube.com/user/%s",
+        "extract": re.compile(r"youtube\.com/user/([^#?]+)"),
     },
 }
 

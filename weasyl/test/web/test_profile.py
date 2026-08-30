@@ -235,8 +235,34 @@ def test_profile_links_rel_me(app, site_names: str, site_values: str, rel_me_exp
     })
 
     resp = app.get("/~profiletest")
-    assert resp.html.find(string=site_names)
+    assert site_names in resp.html.find(id='user-contact').dl.dt.stripped_strings
     assert resp.html.find(string=site_values)
 
     rel = resp.html.find(string=site_values).parent.get("rel", [])
     assert ("me" in rel) is rel_me_expected
+
+
+@pytest.mark.usefixtures("db", "cache")
+@pytest.mark.parametrize(("site_names", "site_values", "expected_link"), [
+    ("Archive of Our Own", "http://archiveofourown.org/users/ao3", "https://archiveofourown.org/users/ao3"),
+    ("Archive of Our Own", "https://www.archiveofourown.org/users/ao3?foo=bar", "https://archiveofourown.org/users/ao3"),
+    ("Archive of Our Own", "www.archiveofourown.org/users/ao3#some_anchor", "https://archiveofourown.org/users/ao3"),
+    ("Generic website with no extraction", "https://example.invalid/me", "https://example.invalid/me"),
+])
+def test_profile_links_extract_identifier(app, site_names: str, site_values: str, expected_link: str):
+    user = db_utils.create_user(username="profiletest")
+    app.set_cookie(*db_utils.create_session(user).split("=", 1))
+
+    app.post("/control/editprofile", {
+        # Unrelated, but necessary for successful form submission
+        "set_commish": "e",
+        "set_request": "e",
+        "set_trade": "e",
+
+        "site_names": site_names,
+        "site_values": site_values,
+    })
+
+    contact = app.get("/~profiletest").html.find(id='user-contact')
+    assert site_names in contact.dl.dt.stripped_strings
+    assert contact.dl.dd.a['href'] == expected_link

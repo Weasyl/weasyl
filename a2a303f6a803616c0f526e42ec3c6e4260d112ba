@@ -1,0 +1,4 @@
+- Check out pull request tree instead of merge against target, which seems like a fine default anyway
+- Avoid failing when GitHub token is read-only because the pull request is Dependabot-automated (seems like a bad way to express an automated pull request criterion, but apparently the standard way for now)
+
+`id-token: write` was a leftover from Codecov.

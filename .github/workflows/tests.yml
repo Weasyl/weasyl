@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      code-quality: write
 
     container:
       image: ghcr.io/weasyl/ci-base-image@sha256:31306c2cfdeca0d6648863a9789f818dfd730564ad163424ad4ebb14cfb865c6
@@ -32,6 +32,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Cache Deno dependencies
         uses: actions/cache@v5
@@ -108,10 +110,24 @@ jobs:
       - name: Test libweasyl
         env:
           WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@weasyl-database/weasyl_test
-        run: .venv/bin/python -m pytest libweasyl.test libweasyl.models.test
+        run: .venv/bin/python -m coverage run -m pytest libweasyl.test libweasyl.models.test
 
       - name: Test weasyl
         env:
           WEASYL_APP_ROOT: .
           WEASYL_STORAGE_ROOT: testing
-        run: .venv/bin/python -m pytest weasyl.test
+        run: .venv/bin/python -m coverage run -m pytest weasyl.test
+
+      - name: Combine and report coverage
+        run: |
+          # TODO: remove on coverage>=7.14.0
+          .venv/bin/python -m coverage combine
+          .venv/bin/python -m coverage xml
+
+      - name: Upload coverage
+        if: github.actor != 'dependabot[bot]' && ((github.event_name != 'pull_request' && github.ref == 'refs/heads/main') || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/upload-code-coverage@v1
+        with:
+          file: coverage.xml
+          language: Python
+          label: code-coverage/pytest

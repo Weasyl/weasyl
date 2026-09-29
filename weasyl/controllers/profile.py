@@ -75,11 +75,6 @@ def profile_(request):
     title = f"{username.display}’s profile"
     meta_description = markdown_excerpt(userprofile["profile_text"])
     avatar_url = define.absolutify_url(userprofile['user_media']['avatar'][0]['display_url'])
-    twitter_meta = {
-        "card": "summary",
-        "title": title,
-        "image": avatar_url,
-    }
     ogp = {
         "title": title,
         "type": "profile",
@@ -88,11 +83,8 @@ def profile_(request):
         "username": username.display,
     }
 
-    if twitter_username := profile.get_twitter_username(otherid):
-        twitter_meta["creator"] = "@" + twitter_username
-
     if meta_description:
-        twitter_meta["description"] = ogp["description"] = meta_description
+        ogp["description"] = meta_description
 
     if 'O' in userprofile['config']:
         submissions = collection.select_list(request.userid, rating, 11, otherid=otherid)
@@ -151,7 +143,6 @@ def profile_(request):
             is_unverified,
             _get_post_counts_by_type(otherid, friends=relation["friend"] or relation["is_self"], rating=rating),
         ),
-        twitter_card=twitter_meta,
         ogp=ogp,
         canonical_url=canonical_path,
         title=title,

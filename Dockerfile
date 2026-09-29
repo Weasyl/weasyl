@@ -5,7 +5,7 @@ FROM docker.io/denoland/deno:2.8.1@sha256:ddaad47cbbbbd856d73bd0d50074a0e308c516
 ENTRYPOINT []
 
 WORKDIR /weasyl-build
-RUN mkdir /weasyl-assets && chown deno:deno /weasyl-build /weasyl-assets
+RUN mkdir /weasyl-assets && chown 1000:1000 /weasyl-build /weasyl-assets
 USER 1000
 
 COPY --chown=1000 --link deno.json deno.lock ./

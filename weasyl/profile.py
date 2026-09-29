@@ -1,5 +1,4 @@
 import datetime
-import re
 from collections import namedtuple
 from collections.abc import Collection
 from dataclasses import dataclass
@@ -114,47 +113,6 @@ def resolve(userid, otherid, othername):
 
 def resolve_by_username(username):
     return d.get_userids([username])[username]
-
-
-_TWITTER_USERNAME = re.compile(r"@?(\w{4,15})", re.ASCII)
-
-_TWITTER_USER_LINK = re.compile(
-    r"(?:https?://)(?:(?:www|m|mobile)\.)?twitter.com/@?(\w{4,15})(?:\Z|[?#/])",
-    re.ASCII | re.IGNORECASE
-)
-
-
-def _parse_twitter_username(twitter_link_value):
-    """
-    Get a Twitter username from a user-provided link if possible, or `None` if not.
-
-    Preserves case.
-    """
-    twitter_link_value = twitter_link_value.strip()
-
-    if m := _TWITTER_USERNAME.fullmatch(twitter_link_value):
-        twitter_username = m.group(1)
-    elif m := _TWITTER_USER_LINK.match(twitter_link_value):
-        twitter_username = m.group(1)
-    else:
-        return None
-
-    return twitter_username if twitter_username.lower() != "twitter" else None
-
-
-_TWITTER_LINK_QUERY = (
-    sa.select(t.user_links.c.link_value)
-    .where(t.user_links.c.userid == bindparam("userid"))
-    .where(t.user_links.c.link_type.ilike(sa.text("'twitter'")))
-    .order_by(t.user_links.c.link_value)
-    .limit(1)
-).compile()
-
-
-@region.cache_on_arguments()
-def get_twitter_username(userid):
-    link_value = d.engine.scalar(_TWITTER_LINK_QUERY, {"userid": userid})
-    return _parse_twitter_username(link_value) if link_value else None
 
 
 def select_profile(userid, viewer=None):
@@ -670,7 +628,6 @@ def edit_userinfo(userid, form):
         """, userid=userid)
 
     d._get_all_config.invalidate(userid)
-    get_twitter_username.invalidate(userid)
 
 
 def edit_email_password(*, userid, password, newemail, newpassword):

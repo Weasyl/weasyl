@@ -62,15 +62,9 @@ def _generate_embed(canonical_path: str, item: dict[str, Any]) -> tuple[dict[str
         twitter_meta['card'] = 'summary'
         twitter_meta['image'] = ogp['image'] = define.absolutify_url(item['user_media']['avatar'][0]['display_url'])
 
-    if twitter_username := profile.get_twitter_username(item['userid']):
-        twitter_meta['creator'] = "@" + twitter_username
-        twitter_meta['title'] = item['title']
-    else:
-        twitter_meta['title'] = title_with_attribution
-
     meta_description = markdown_excerpt(item['content'])
     if meta_description:
-        twitter_meta['description'] = ogp['description'] = meta_description
+        ogp['description'] = meta_description
 
     return twitter_meta, ogp
 

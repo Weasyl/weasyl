@@ -60,6 +60,8 @@ def _l2dl(xs):
         ([1, 2],       1,   FIRST_PAGE,      None,            NextFilter(1),   [1]),
         ([1, 2, 3],    2,   FIRST_PAGE,      None,            NextFilter(2),   [1, 2]),
         ([1, 2, 3],    3,   FIRST_PAGE,      None,            None,            [1, 2, 3]),
+        ([3, 2, 1],    3,   PrevFilter(...), None,            NextFilter(3),   [1, 2, 3]),
+        ([1, 2, 3],    3,   NextFilter(...), PrevFilter(1),   None,            [1, 2, 3]),
         ([3, 2, 1],    2,   PrevFilter(...), PrevFilter(2),   NextFilter(3),   [2, 3]),
         ([1, 2, 3],    2,   NextFilter(...), PrevFilter(1),   NextFilter(2),   [1, 2]),
         ([],           1,   FIRST_PAGE,      None,            None,            []),

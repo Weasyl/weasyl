@@ -34,10 +34,10 @@ _SEARCH_RESULTS = {
 
 
 _BROWSE = {
-    'submit': ("Submissions", "Browse Submissions"),
-    'char': ("Characters", "Browse Characters"),
-    'journal': ("Journals", "Browse Journals"),
-    'critique': ("Critique requests", "Browse Critique Requests"),
+    'submit': ("Latest artwork", "Latest Artwork"),
+    'char': ("Latest characters", "Latest Characters"),
+    'journal': ("Latest journals", "Latest Journals"),
+    'critique': ("Latest critique requests", "Latest Critique Requests"),
 }
 
 

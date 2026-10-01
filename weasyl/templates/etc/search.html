@@ -146,7 +146,7 @@ $code:
         $if meta['find'] not in ('submit', 'critique'):
           <input type="hidden" name="find" value="${meta['find']}">
 
-        <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="2" class="input" />
+        <input name="q" placeholder="Search" title="Search Weasyl" type="search" class="input" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
       </form>
     </div>
@@ -173,46 +173,34 @@ $code:
 
   $else:
     $# BROWSE SUMMARY (user hit the "Browse" tab or didn't specify a content type)
-    <h2 class="page-title">Browse Content</h2>
-
     <div id="browse-search-top" class="content">$# there are multiple instances of search-backup-search in this template!
       <form id="search-backup-search" action="/search" class="form">
-        <input name="q" placeholder="Search" title="Search Weasyl" type="search" tabindex="2" class="input" />
+        <input name="q" placeholder="Search" title="Search Weasyl" type="search" class="input" />
         <p class="color-lighter tags-help"><i><a href="/help/searching" target="_blank">Search terms help</a></i></p>
       </form>
     </div>
 
-    $if results['submit']:
-      <h3 class="pad-left">Submissions</h3>
-      $ cards = card_viewer.get_cards(results['submit'])
-      <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
-        $for i in cards:
-          $:{_GRID_ITEM(i, lazy_load=False)}
-        <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Submissions</span></a></li>
-      </ul>
-    $else:
-      There are no submissions to display.
+    <h3 class="pad-left">Latest Artwork</h3>
+    $ cards = card_viewer.get_cards(results['submit'])
+    <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+      $for i in cards:
+        $:{_GRID_ITEM(i, lazy_load=False)}
+      <li class="more"><a class="more" href="/search?find=submit"><i>More</i> <span>Artwork</span></a></li>
+    </ul>
 
-    $if results['char']:
-      <h3 class="pad-left">Characters</h3>
-      $ cards = card_viewer.get_cards(results['char'])
-      <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
-        $for i in cards:
-          $:{_GRID_ITEM(i)}
-        <li class="more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
-      </ul>
-    $else:
-      There are no characters to display.
+    <h3 class="pad-left">Latest Characters</h3>
+    $ cards = card_viewer.get_cards(results['char'])
+    <ul is="thumbnail-grid" class="thumbnail-grid medium-footprint" data-widths="${CARD_WIDTHS(cards)}">
+      $for i in cards:
+        $:{_GRID_ITEM(i)}
+      <li class="more"><a class="more" href="/search?find=char"><i>More</i> <span>Characters</span></a></li>
+    </ul>
 
-    $if results['journal']:
-      <h3 class="pad-left">Journals</h3>
-      <div class="journals">
-        $for journal in card_viewer.get_cards(results['journal']):
-          $:{_TEXT_POST_ITEM(journal)}
-      </div>
-      <div class="more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></div>
-    $else:
-      There are no journals to display.
-
+    <h3 class="pad-left">Latest Journals</h3>
+    <div class="journals">
+      $for journal in card_viewer.get_cards(results['journal']):
+        $:{_TEXT_POST_ITEM(journal)}
+    </div>
+    <div class="more"><a class="more" href="/search?find=journal"><i>More</i> <span>Journals</span></a></div>
 
 </div>

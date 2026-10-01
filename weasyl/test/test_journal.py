@@ -5,10 +5,22 @@ from libweasyl import ratings
 
 from weasyl.test import db_utils
 from weasyl import journal
+from weasyl.pagination import (
+    PageFilter,
+    FIRST_PAGE,
+    PrevFilter,
+    NextFilter,
+)
 
 
-def select_user_count(userid, rating, **kwargs):
-    return len(journal.select_user_list(userid, rating, limit=1000, **kwargs))
+def _select_browse_count(userid: int, rating: int, *, page: PageFilter = FIRST_PAGE) -> int:
+    items, _prev_page, _next_page = journal.select_browse_page(userid, rating=rating, limit=1000, page=page)
+    return len(items)
+
+
+def _select_browse(userid: int):
+    items, _prev_page, _next_page = journal.select_browse_page(userid, rating=ratings.GENERAL.code, limit=100, page=FIRST_PAGE)
+    return items
 
 
 @pytest.mark.usefixtures('db')
@@ -26,12 +38,12 @@ class SelectUserCountTestCase(unittest.TestCase):
     def test_count_backid(self):
         self.assertEqual(
             self.count - self.pivot - 1,
-            select_user_count(self.user1, ratings.GENERAL.code, backid=self.pivotid))
+            _select_browse_count(self.user1, ratings.GENERAL.code, page=PrevFilter(self.pivotid)))
 
     def test_count_nextid(self):
         self.assertEqual(
             self.pivot,
-            select_user_count(self.user1, ratings.GENERAL.code, nextid=self.pivotid))
+            _select_browse_count(self.user1, ratings.GENERAL.code, page=NextFilter(self.pivotid)))
 
     def test_see_friends_journal(self):
         """
@@ -40,10 +52,10 @@ class SelectUserCountTestCase(unittest.TestCase):
         j = db_utils.create_journal(self.friend1, 'Friends only journal', friends_only=True)
         self.assertEqual(
             self.count + 1,
-            select_user_count(self.user1, ratings.GENERAL.code))
+            _select_browse_count(self.user1, ratings.GENERAL.code))
         self.assertEqual(
             j,
-            journal.select_user_list(self.user1, ratings.GENERAL.code, 100)[0]['journalid'])
+            _select_browse(self.user1)[0]['journalid'])
 
     def test_cannot_see_non_friends_journal(self):
         """
@@ -52,7 +64,7 @@ class SelectUserCountTestCase(unittest.TestCase):
         db_utils.create_journal(self.user2, 'Friends only journal', friends_only=True)
         self.assertEqual(
             self.count,
-            select_user_count(self.user1, ratings.GENERAL.code))
+            _select_browse_count(self.user1, ratings.GENERAL.code))
 
     def test_can_see_own_blocktag_journal(self):
         """
@@ -67,7 +79,7 @@ class SelectUserCountTestCase(unittest.TestCase):
         db_utils.create_journal_tag(block_tagid, other_journalid)
         self.assertEqual(
             journalid,
-            journal.select_user_list(self.user1, ratings.GENERAL.code, 100)[0]['journalid'])
+            _select_browse(self.user1)[0]['journalid'])
 
     def test_can_see_own_rating_journal(self):
         """
@@ -77,7 +89,7 @@ class SelectUserCountTestCase(unittest.TestCase):
         db_utils.create_journal(self.user2, rating=ratings.EXPLICIT.code)
         self.assertEqual(
             my_journalid,
-            journal.select_user_list(self.user1, ratings.GENERAL.code, 100)[0]['journalid'])
+            _select_browse(self.user1)[0]['journalid'])
 
     def test_remove(self):
         j1 = db_utils.create_journal(self.user1, rating=ratings.GENERAL.code)
@@ -85,7 +97,7 @@ class SelectUserCountTestCase(unittest.TestCase):
 
         journal.remove(self.user1, j1)
 
-        user_list = journal.select_user_list(self.user1, ratings.GENERAL.code, 100)
+        journals = _select_browse(self.user1)
 
-        self.assertEqual(self.count + 1, len(user_list))
-        self.assertEqual(j2, user_list[0]['journalid'])
+        self.assertEqual(self.count + 1, len(journals))
+        self.assertEqual(j2, journals[0]['journalid'])

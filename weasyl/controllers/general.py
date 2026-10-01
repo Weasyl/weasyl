@@ -7,6 +7,7 @@ from pyramid.response import Response
 from libweasyl import ratings
 
 from weasyl import define, index, macro, search, profile, submission
+from weasyl.pagination import page_from_compat
 
 
 # General browsing functions
@@ -200,19 +201,24 @@ def search_(request):
         if find not in ("submit", "char", "journal", "critique"):
             raise HTTPNotFound()
 
-        query = search.browse(
+        page = page_from_compat(
+            backid=define.get_int(backid),
+            nextid=define.get_int(nextid),
+        )
+
+        cat = int(cat) if cat in ["1000", "2000", "3000"] else None
+        query, prev_page, next_page = search.browse(
             userid=request.userid,
             rating=rating,
             limit=66,
             find=find,
             cat=cat,
-            backid=define.get_int(backid),
-            nextid=define.get_int(nextid),
+            page=page,
         )
 
         meta = {
             "find": find,
-            "cat": int(cat) if cat else None,
+            "cat": cat,
         }
 
         title, browse_header = _BROWSE[find]
@@ -224,9 +230,9 @@ def search_(request):
             # Search results
             query,
             # `prev_page`
-            None,
+            prev_page,
             # `next_page`
-            None,
+            next_page,
             # `subcats`
             None,
             browse_header,
@@ -246,9 +252,8 @@ def search_(request):
                     limit=22,
                     find="submit",
                     cat=None,
-                    backid=None,
-                    nextid=None,
-                ),
+                    page=search.FIRST_PAGE,
+                )[0],
                 "char": search.browse(
                     userid=request.userid,
                     rating=rating,
@@ -256,18 +261,16 @@ def search_(request):
                     limit=14,
                     find="char",
                     cat=None,
-                    backid=None,
-                    nextid=None,
-                ),
+                    page=search.FIRST_PAGE,
+                )[0],
                 "journal": search.browse(
                     userid=request.userid,
                     rating=rating,
                     limit=12,
                     find="journal",
                     cat=None,
-                    backid=None,
-                    nextid=None,
-                ),
+                    page=search.FIRST_PAGE,
+                )[0],
             },
         )
 

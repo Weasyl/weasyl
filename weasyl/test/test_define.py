@@ -7,34 +7,6 @@ from weasyl.test import db_utils
 from weasyl import define as d
 
 
-def l2dl(input_list, k='k'):
-    "For list2dictlist."
-    return [{k: x} for x in input_list]
-
-
-pagination_tests = [
-    ((l2dl([1, 2, 3]), False, False, 1, 'k'), (None, 1), l2dl([1])),
-    ((l2dl([1, 2, 3]), False, False, 2, 'k'), (None, 2), l2dl([1, 2])),
-    ((l2dl([1, 2, 3]), False, False, 3, 'k'), (None, None), l2dl([1, 2, 3])),
-    ((l2dl([1, 2, 3]), True, False, 2, 'k'), (2, 3), l2dl([2, 3])),
-    ((l2dl([1, 2, 3]), False, True, 2, 'k'), (1, 2), l2dl([1, 2])),
-    ((l2dl([1, 2, 3, 4, 5]), False, False, 4, 'k'), (None, 4), l2dl([1, 2, 3, 4])),
-    ((l2dl([1, 2, 3, 4, 5]), True, False, 4, 'k'), (2, 5), l2dl([2, 3, 4, 5])),
-    ((l2dl([1, 2, 3, 4, 5]), False, True, 4, 'k'), (1, 4), l2dl([1, 2, 3, 4])),
-    ((l2dl([1, 2, 3, 4, 5], k='k2'), False, False, 4, 'k2'), (None, 4), l2dl([1, 2, 3, 4], k='k2')),
-    (([], False, False, 1, 'k'), (None, None), []),
-    (([], True, False, 1, 'k'), (None, None), []),
-    (([], False, True, 1, 'k'), (None, None), []),
-]
-
-
-@pytest.mark.parametrize(
-    ('parameters', 'expected_pair', 'expected_rows'), pagination_tests)
-def test_paginate(parameters, expected_pair, expected_rows):
-    pair = d.paginate(*parameters)
-    assert (pair, parameters[0]) == (expected_pair, expected_rows)
-
-
 iso8601_tests = [
     (1392206700, '2014-02-12T17:05:00Z'),
     (1392206701, '2014-02-12T17:05:01Z'),

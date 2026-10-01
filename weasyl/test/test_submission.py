@@ -47,7 +47,7 @@ class SelectListTestCase(unittest.TestCase):
         self.assertEqual(3, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10)))
         self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, otherid=user2)))
         self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, folderid=folder)))
-        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, subcat=1010)))
+        self.assertEqual(1, len(submission.select_list(user1, ratings.EXPLICIT.code, limit=10, subcat=1000)))
 
     def test_select_list_limits(self):
         user1 = db_utils.create_user()

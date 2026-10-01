@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 import os
 import re
 from io import BytesIO
+from typing import Literal
 from urllib.parse import urlparse
 
 import arrow
@@ -41,6 +44,11 @@ from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
 from weasyl.forms import NormalizedTag
+from weasyl.pagination import (
+    PageFilter,
+    page_from_compat,
+    paginate,
+)
 
 
 COUNT_LIMIT = 250
@@ -801,11 +809,11 @@ def _select_query(
     folderid,
     backid,
     nextid,
-    subcat,
+    subcat: Literal[1000, 2000, 3000] | None,
     profile_page_filter,
     index_page_filter,
     featured_filter,
-    critique_only
+    critique_only: bool,
 ):
     statement = [
         "FROM submission su "
@@ -891,45 +899,21 @@ def select_count(
     return d.engine.scalar(statement)
 
 
-def select_list(
+def select_page(
     userid,
-    rating,
     *,
-    limit,
+    rating,
+    limit: int,
     otherid=None,
     folderid=None,
-    backid=None,
-    nextid=None,
-    subcat=None,
+    page: PageFilter,
+    subcat: Literal[1000, 2000, 3000] | None = None,
     profile_page_filter=False,
     index_page_filter=False,
     featured_filter=False,
     critique_only=False,
 ):
-    """
-    Selects a list from the submissions table.
-
-    Args:
-        userid: The current user
-        rating: The maximum rating level to show
-        limit: The number of submissions to get
-        otherid: The user whose submissions to get
-        folderid: Select submissions from this folder
-        backid: Select the IDs that are less than this value
-        nextid: Select the IDs that are greater than this value
-        subcat: Select submissions whose subcategory is within this range
-            (this value + 1000)
-        profile_page_filter: Do not select from folders that should not appear
-            on the profile page.
-        index_page_filter: Do not select from folders that should not appear on
-            the front page.
-        featured_filter: Select from folders marked as featured submissions and randomize the order of results.
-        critique_only: Select only submissions for which critique is requested.
-
-    Returns:
-        An array with the following keys: "contype", "submitid", "title",
-        "rating", "unixtime", "userid", "username", "subtype", "sub_media"
-    """
+    backid, nextid = page.compat()
     statement = "".join((
         "SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.subtype ",
         *_select_query(
@@ -945,13 +929,66 @@ def select_list(
             featured_filter=featured_filter,
             critique_only=critique_only,
         ),
-        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if featured_filter else "su.submitid", "" if backid else " DESC", limit),
+        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if featured_filter else "su.submitid", "" if page.is_back else " DESC", limit + 1),
     ))
 
     submissions = [{**row, "contype": 10} for row in d.engine.execute(statement)]
+    prev_page, next_page = paginate(submissions, limit=limit, page=page, key="submitid")
     media.populate_with_submission_media(submissions)
+    return submissions, prev_page, next_page
 
-    return submissions[::-1] if backid else submissions
+
+def select_list(
+    userid,
+    rating,
+    *,
+    limit: int,
+    otherid=None,
+    folderid=None,
+    backid: int | None = None,
+    nextid: int | None = None,
+    subcat: Literal[1000, 2000, 3000] | None = None,
+    profile_page_filter=False,
+    index_page_filter=False,
+    featured_filter=False,
+    critique_only=False,
+):
+    """
+    Selects a list from the submissions table.
+
+    Args:
+        userid: The current user
+        rating: The maximum rating level to show
+        limit: The number of submissions to get
+        otherid: The user whose submissions to get
+        folderid: Select submissions from this folder
+        subcat: Select submissions whose subcategory is within this range
+            (this value + 1000)
+        profile_page_filter: Do not select from folders that should not appear
+            on the profile page.
+        index_page_filter: Do not select from folders that should not appear on
+            the front page.
+        featured_filter: Select from folders marked as featured submissions and randomize the order of results.
+        critique_only: Select only submissions for which critique is requested.
+
+    Returns:
+        An array with the following keys: "contype", "submitid", "title",
+        "rating", "unixtime", "userid", "username", "subtype", "sub_media"
+    """
+    submissions, _prev_page, _next_page = select_page(
+        userid,
+        rating=rating,
+        limit=limit,
+        otherid=otherid,
+        folderid=folderid,
+        page=page_from_compat(backid=backid, nextid=nextid),
+        subcat=subcat,
+        profile_page_filter=profile_page_filter,
+        index_page_filter=index_page_filter,
+        featured_filter=featured_filter,
+        critique_only=critique_only,
+    )
+    return submissions
 
 
 def select_featured(userid, otherid, rating):

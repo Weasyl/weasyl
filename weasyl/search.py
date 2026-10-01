@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from itertools import chain
 from typing import Any
 from typing import Literal
-from typing import NamedTuple
 
 from libweasyl.ratings import GENERAL, MATURE, EXPLICIT
 
@@ -13,6 +12,13 @@ from weasyl import define as d
 from weasyl.forms import NormalizedTag
 from weasyl.forms import parse_sysname
 from weasyl.forms import parse_tag
+from weasyl.pagination import (
+    PageFilter,
+    FIRST_PAGE,
+    PrevFilter,
+    NextFilter,
+    paginate,
+)
 from weasyl.users import Username
 
 
@@ -183,21 +189,6 @@ def select_users(q):
 
 
 Results = list[dict[str, Any]]
-
-
-class _FirstPage:
-    __slots__ = ()
-
-
-FIRST_PAGE = _FirstPage()
-
-
-class PrevFilter(NamedTuple):
-    backid: int
-
-
-class NextFilter(NamedTuple):
-    nextid: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -473,7 +464,7 @@ def _find_without_media(
     within,
     cat,
     subcat,
-    page: _FirstPage | PrevFilter | NextFilter,
+    page: PageFilter,
 ) -> tuple[Results, PrevFilter | None, NextFilter | None]:
     type_code, _type_letter, _table, select, _subtype = _TABLE_INFORMATION[resolved.find]
     make_statement, params = _prepare_search(
@@ -517,27 +508,7 @@ def _find_without_media(
     query = d.engine.execute(statement, params)
 
     ret = [{"contype": type_code, **i} for i in query]
-
-    # Selected one more result than will be returned to check if there’s a next page in the queried direction.
-    has_more = len(ret) == limit + 1
-    if has_more:
-        del ret[-1]
-
-    if is_back:
-        ret.reverse()
-
-    # A surrounding page is absent in any of these cases:
-    # - there are no results
-    # - `has_more` checked in that direction and returned a negative
-    # - it’s the back page of the first page
-    prev_page = (
-        None if page is FIRST_PAGE or ((not has_more) and is_back) or not ret
-        else PrevFilter(ret[0][select])
-    )
-    next_page = (
-        None if ((not has_more) and (not is_back)) or not ret
-        else NextFilter(ret[-1][select])
-    )
+    prev_page, next_page = paginate(ret, limit=limit, page=page, key=select)
     return ret, prev_page, next_page
 
 
@@ -622,17 +593,17 @@ def select(**kwargs) -> tuple[Results, PrevFilter | None, NextFilter | None]:
 def browse(
     userid,
     rating,
-    limit,
+    limit: int,
     find: Literal["submit", "char", "journal", "critique"],
-    cat,
-    backid,
-    nextid,
+    cat: Literal[1000, 2000, 3000] | None,
+    *,
+    page: PageFilter,
 ):
     if find == "char":
-        return character.select_list(userid, rating, limit, backid=backid, nextid=nextid)
+        return character.select_page(userid, rating=rating, limit=limit, page=page)
     elif find == "journal":
-        return journal.select_user_list(userid, rating, limit, backid=backid, nextid=nextid)
+        return journal.select_browse_page(userid, rating=rating, limit=limit, page=page)
     else:
-        return submission.select_list(userid, rating, limit=limit, backid=backid, nextid=nextid,
-                                      subcat=d.get_int(cat) if d.get_int(cat) in [1000, 2000, 3000] else None,
+        return submission.select_page(userid, rating=rating, limit=limit, page=page,
+                                      subcat=cat,
                                       critique_only=find == "critique")

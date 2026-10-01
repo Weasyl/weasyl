@@ -21,6 +21,13 @@ from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
 from weasyl.forms import NormalizedTag
+from weasyl.pagination import (
+    PageFilter,
+    FIRST_PAGE,
+    PrevFilter,
+    NextFilter,
+    paginate,
+)
 from weasyl.users import Username
 
 
@@ -203,7 +210,7 @@ def select_view_api(
     }
 
 
-def select_user_list(userid, rating, limit, backid=None, nextid=None):
+def select_browse_page(userid, *, rating, limit: int, page: PageFilter):
     statement = [
         "SELECT jo.journalid, jo.title, jo.userid, pr.username, jo.rating, jo.unixtime, jo.content"
         " FROM journal jo"
@@ -222,12 +229,15 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
     else:
         statement.append(" AND jo.rating <= %i AND NOT jo.friends_only" % (rating,))
 
-    if backid:
-        statement.append(" AND jo.journalid > %i" % backid)
-    elif nextid:
-        statement.append(" AND jo.journalid < %i" % nextid)
+    match page:
+        case PrevFilter(backid):
+            statement.append(" AND jo.journalid > %i" % (backid,))
+        case NextFilter(nextid):
+            statement.append(" AND jo.journalid < %i" % (nextid,))
+        case _:
+            assert page is FIRST_PAGE
 
-    statement.append(" ORDER BY jo.journalid%s LIMIT %i" % ("" if backid else " DESC", limit))
+    statement.append(" ORDER BY jo.journalid%s LIMIT %i" % ("" if page.is_back else " DESC", limit + 1))
 
     query = [{
         "contype": 30,
@@ -239,9 +249,9 @@ def select_user_list(userid, rating, limit, backid=None, nextid=None):
         "unixtime": i[5],
         "content": i.content,
     } for i in d.execute("".join(statement))]
+    prev_page, next_page = paginate(query, limit=limit, page=page, key="journalid")
     media.populate_with_user_media(query)
-
-    return query[::-1] if backid else query
+    return query, prev_page, next_page
 
 
 def select_list(userid, rating, otherid):

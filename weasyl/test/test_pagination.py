@@ -1,5 +1,14 @@
 import unittest
+
+import pytest
+
 import weasyl.pagination as pagination
+from weasyl.pagination import (
+    FIRST_PAGE,
+    PrevFilter,
+    NextFilter,
+    paginate,
+)
 
 
 ID_FIELD = 'id_field'
@@ -39,3 +48,26 @@ class PaginationTestCase(unittest.TestCase):
         self.assertEqual(0, result.back_count)
         self.assertEqual(result_size, len(result.query))
         self.assertEqual("nextid=" + str(result_size - 1), result.next_url)
+
+
+def _l2dl(xs):
+    return [{"k": x} for x in xs]
+
+
+@pytest.mark.parametrize(
+    (   "ids",    "limit", "page",          "expected_prev", "expected_next", "expected_ids"),
+    [
+        ([1, 2],       1,   FIRST_PAGE,      None,            NextFilter(1),   [1]),
+        ([1, 2, 3],    2,   FIRST_PAGE,      None,            NextFilter(2),   [1, 2]),
+        ([1, 2, 3],    3,   FIRST_PAGE,      None,            None,            [1, 2, 3]),
+        ([3, 2, 1],    2,   PrevFilter(...), PrevFilter(2),   NextFilter(3),   [2, 3]),
+        ([1, 2, 3],    2,   NextFilter(...), PrevFilter(1),   NextFilter(2),   [1, 2]),
+        ([],           1,   FIRST_PAGE,      None,            None,            []),
+        ([],           1,   PrevFilter(...), None,            None,            []),
+        ([],           1,   NextFilter(...), None,            None,            []),
+    ],
+)
+def test_paginate(ids, limit, page, expected_prev, expected_next, expected_ids):
+    items = _l2dl(ids)
+    prev_page, next_page = paginate(items, limit=limit, page=page, key="k")
+    assert (prev_page, next_page, items) == (expected_prev, expected_next, _l2dl(expected_ids))

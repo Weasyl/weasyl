@@ -1054,32 +1054,6 @@ def parse_iso8601(s):
     return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').int_timestamp + _UNIXTIME_OFFSET
 
 
-def paginate(results, backid, nextid, limit, key):
-    at_start = at_end = False
-    # if neither value is specified, we're definitely at the start
-    if not backid and not nextid:
-        at_start = True
-
-    # if we were cut short...
-    if len(results) <= limit:
-        if backid:
-            # if moving backward we're at the start
-            at_start = True
-        else:
-            # if moving forward we're at the end
-            at_end = True
-    elif backid:
-        # delete extraneous rows from the front if we're moving backward
-        del results[:-limit]
-    else:
-        # or from the back if we're moving forward
-        del results[limit:]
-
-    return (
-        None if at_start or not results else results[0][key],
-        None if at_end or not results else results[-1][key])
-
-
 _default_thumbs = cards.get_default_thumbnails(get_resource_path)
 
 

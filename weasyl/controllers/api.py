@@ -11,6 +11,7 @@ from libweasyl import ratings
 from weasyl.controllers.decorators import token_checked
 from weasyl.controllers.profile import resolve_avatar
 from weasyl.error import WeasylError
+from weasyl.pagination import page_from_compat
 from weasyl.users import Username
 from weasyl import define as d, macro as m
 from weasyl import (
@@ -345,10 +346,10 @@ def api_user_gallery_(request):
     else:
         count = min(count or 100, 100)
 
-    submissions = submission.select_list(
-        request.userid, d.get_rating(request.userid), limit=count + 1,
-        otherid=userid, folderid=folderid, backid=backid, nextid=nextid)
-    backid, nextid = d.paginate(submissions, backid, nextid, count, 'submitid')
+    page = page_from_compat(backid=backid, nextid=nextid)
+    submissions, prev_page, next_page = submission.select_page(
+        request.userid, rating=d.get_rating(request.userid), limit=count,
+        otherid=userid, folderid=folderid, page=page)
 
     ret = []
     for sub in submissions:
@@ -358,9 +359,37 @@ def api_user_gallery_(request):
         ret.append(sub)
 
     return {
-        'backid': backid, 'nextid': nextid,
+        'backid': None if prev_page is None else prev_page.backid,
+        'nextid': None if next_page is None else next_page.nextid,
         'submissions': ret,
     }
+
+
+# deprecated: use `weasyl.pagination`, which has better types and folds in the reversing step
+def _paginate(results, backid: int, nextid: int, limit: int, key: str) -> tuple[int | None, int | None]:
+    at_start = at_end = False
+    # if neither value is specified, we're definitely at the start
+    if not backid and not nextid:
+        at_start = True
+
+    # if we were cut short...
+    if len(results) <= limit:
+        if backid:
+            # if moving backward we're at the start
+            at_start = True
+        else:
+            # if moving forward we're at the end
+            at_end = True
+    elif backid:
+        # delete extraneous rows from the front if we're moving backward
+        del results[:-limit]
+    else:
+        # or from the back if we're moving forward
+        del results[limit:]
+
+    return (
+        None if at_start or not results else results[0][key],
+        None if at_end or not results else results[-1][key])
 
 
 @api_login_required
@@ -383,7 +412,7 @@ def api_messages_submissions_(request):
         backtime=backtime,
         nexttime=nexttime,
     )
-    backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
+    backtime, nexttime = _paginate(submissions, backtime, nexttime, count, 'unixtime')
 
     for sub in submissions:
         tidy_submission(sub)

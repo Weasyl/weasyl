@@ -23,6 +23,10 @@ from weasyl import thumbnail
 from weasyl import welcome
 from weasyl.error import WeasylError
 from weasyl.forms import NormalizedTag
+from weasyl.pagination import (
+    PageFilter,
+    paginate,
+)
 from weasyl.users import Username
 
 
@@ -363,13 +367,13 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None):
     return statement
 
 
-def select_count(userid, rating, otherid=None, backid=None, nextid=None):
+def select_count(userid, rating, *, otherid=None, backid=None, nextid=None):
     statement = ["SELECT count(ch.charid)"]
     statement.extend(select_query(userid, rating, otherid, backid, nextid))
     return define.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
+def _select_list_raw(userid, *, rating, limit: int, otherid=None, backid, nextid):
     statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
     statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
@@ -389,7 +393,19 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
             "sub_media": fake_media_items(i[0], i[4], username.sysname, i[6]),
         })
 
+    return query
+
+
+def select_list(userid, rating, limit: int, *, otherid=None, backid=None, nextid=None):
+    query = _select_list_raw(userid, rating=rating, limit=limit, otherid=otherid, backid=backid, nextid=nextid)
     return query[::-1] if backid else query
+
+
+def select_page(userid, *, rating, limit: int, page: PageFilter):
+    backid, nextid = page.compat()
+    query = _select_list_raw(userid, rating=rating, limit=limit + 1, backid=backid, nextid=nextid)
+    prev_page, next_page = paginate(query, limit=limit, page=page, key="charid")
+    return query, prev_page, next_page
 
 
 def edit(userid: int, character, *, friends_only: bool) -> None:

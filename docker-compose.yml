@@ -139,7 +139,6 @@ services:
       - media.sketchfab.com
       - -a
       - bandcamp.com
-      # crossposting in `weasyl.submission` not included by default
     networks:
       - external-web-outgoing
       - web-web-outgoing

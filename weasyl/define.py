@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import builtins
-import functools
 import os
 import time
 import hashlib
@@ -21,7 +20,6 @@ from urllib.parse import urlencode, urljoin
 
 import arrow
 from pyramid.threadlocal import get_current_request
-import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
 from ada_url import URL
@@ -1022,20 +1020,6 @@ def query_string(query):
             pairs.append((key, value))
 
     return urlencode(pairs)
-
-
-def _requests_wrapper(func):
-    @functools.wraps(func)
-    def wrapper(*a, **kw):
-        try:
-            return func(*a, **kw)
-        except Exception as e:
-            raise WeasylError('httpError', level='info') from e
-
-    return wrapper
-
-
-http_get = _requests_wrapper(requests.get)
 
 
 def metric(*a, **kw):

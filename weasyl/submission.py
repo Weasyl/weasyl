@@ -5,7 +5,6 @@ import os
 import re
 from io import BytesIO
 from typing import Literal
-from urllib.parse import urlparse
 
 import arrow
 import requests
@@ -135,40 +134,6 @@ def _create_submission(expected_type: int):
     return wrapper
 
 
-_ALLOWED_CROSSPOST_HOSTS = frozenset([
-    # DeviantArt
-    "wixmp.com",
-
-    # Fur Affinity
-    "furaffinity.net",
-    "facdn.net",
-
-    # Imgur
-    "imgur.com",
-
-    # Inkbunny
-    "ib.metapix.net",
-
-    # SoFurry
-    "sofurryfiles.com",
-])
-
-_ALLOWED_CROSSPOST_HOST = re.compile(
-    r"(?:\A|\.)"
-    + "(?:" + "|".join(map(re.escape, _ALLOWED_CROSSPOST_HOSTS)) + ")"
-    + r"\Z"
-)
-
-
-def _http_get_if_crosspostable(url):
-    parsed = urlparse(url)
-
-    if parsed.scheme not in ("http", "https") or _ALLOWED_CROSSPOST_HOST.search(parsed.netloc) is None:
-        raise WeasylError("crosspostInvalid")
-
-    return d.http_get(url, timeout=5)
-
-
 @_create_submission(expected_type=1)
 def create_visual(
     *,
@@ -176,16 +141,11 @@ def create_visual(
     submission,
     friends_only: bool,
     tags: set[NormalizedTag],
-    imageURL: str,
     thumbfile,
     submitfile,
     critique: bool,
     create_notifications: bool,
 ) -> int:
-    if imageURL:
-        resp = _http_get_if_crosspostable(imageURL)
-        submitfile = resp.content
-
     # Determine filesizes
     thumbsize = len(thumbfile)
     submitsize = len(submitfile)

@@ -1,3 +1,4 @@
+import logging
 import re
 from collections import namedtuple
 from collections.abc import Sequence
@@ -5,6 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from urllib.parse import quote as urlquote
 
+import requests
 from psycopg2.errorcodes import UNIQUE_VIOLATION
 from sqlalchemy.exc import OperationalError
 
@@ -15,6 +17,10 @@ from weasyl import define as d
 from weasyl import macro as m
 from weasyl.error import WeasylError
 from weasyl.users import Username
+
+
+logger = logging.getLogger(__name__)
+
 
 _MAX_PRICE = 99999999
 
@@ -71,9 +77,9 @@ def _fetch_rates_no_cache_failure():
         return None
 
     try:
-        response = d.http_get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
-    except WeasylError:
-        # http_get already logged the exception
+        response = requests.get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+    except Exception:
+        logger.error("Fetching exchange rates failed", exc_info=True)
         return None
 
     rates = {'EUR': 1.0}

@@ -62,9 +62,7 @@ error_messages = {
         "The cover art file you uploaded exceeds the allowed filesize for this submission category."),
     "coverType": (
         "The cover art file you uploaded is not a valid filetype for this submission category."),
-    "crosspostInvalid": (
-        "The image you crossposted was from an unsupported source. "
-        "Please report this bug to the creator of the crossposting tool."),
+    "crosspostInvalid": "Weasyl no longer provides built-in crossposting. Please upload your post file directly.",
     "duplicateSubmission": "You have already made a submission with this submission file.",
     "emailBlacklisted": (
         "The domain of the email you entered has been associated with a high volume of spam. "
@@ -88,7 +86,6 @@ error_messages = {
         " If you’re not sure which link to use, we have [a guide on publishing documents from Google Docs](/help/google-drive-embed) that might help."
     ),
     "hiddenFavorites": "You cannot view this page because the owner does not allow anyone to see their favorites.",
-    "httpError": "An error occurred while making an HTTP request on your behalf.",
     "IgnoredYou": "This user has ignored you.",
     "imageDecodeError": "The image you uploaded was unable to be decoded.",
     "InsufficientPermissions": permission,

@@ -1,5 +1,3 @@
-from urllib.parse import urljoin
-
 from pyramid.httpexceptions import HTTPConflict
 from pyramid.httpexceptions import HTTPNoContent
 from pyramid.httpexceptions import HTTPSeeOther
@@ -35,26 +33,24 @@ def submit_visual_get_(request):
     if not define.is_vouched_for(request.userid):
         raise WeasylError("vouchRequired")
 
-    form = request.web_input(title='', tags=[], description='', imageURL='', baseURL='')
-    if form.baseURL:
-        form.imageURL = urljoin(form.baseURL, form.imageURL)
-
     return Response(define.webpage(request.userid, "submit/visual.html", [
         # Folders
         folder.select_flat(request.userid),
         # Subtypes
         [i for i in macro.MACRO_SUBCAT_LIST if 1000 <= i[0] < 2000],
         profile.get_user_ratings(request.userid),
-        form,
     ], title="Visual Artwork"))
 
 
 @login_required
 @token_checked
 def submit_visual_post_(request):
+    if "imageURL" in request.POST:
+        raise WeasylError("crosspostInvalid")
+
     form = request.web_input(submitfile="", thumbfile="", title="", folderid="",
                              subtype="", rating="", content="",
-                             tags="", imageURL="")
+                             tags="")
 
     tags = searchtag.parse_tags(form.tags)
 
@@ -79,7 +75,7 @@ def submit_visual_post_(request):
 
     submitid = submission.create_visual(
         request.userid, s, friends_only='friends' in request.POST, tags=tags,
-        imageURL=form.imageURL, thumbfile=form.thumbfile, submitfile=form.submitfile,
+        thumbfile=form.thumbfile, submitfile=form.submitfile,
         critique='critique' in request.POST, create_notifications=('nonotification' not in form))
 
     if 'customthumb' in form:

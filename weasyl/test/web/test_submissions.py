@@ -1,7 +1,4 @@
 import hashlib
-import re
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import BytesIO
 
 import arrow
@@ -9,13 +6,11 @@ import pytest
 import webtest
 
 from libweasyl import ratings
-from weasyl import submission
 from weasyl.test import db_utils
 from weasyl.test.web.common import (
     BASE_LITERARY_FORM,
     BASE_VISUAL_FORM,
     create_visual,
-    get_storage_path,
     read_asset,
     read_asset_image,
     read_storage_image,
@@ -188,50 +183,15 @@ def test_google_docs_embed_edit(app, submission_user):
     assert resp.html.select_one('iframe.gdoc')['src'] == make_link(3)
 
 
-class CrosspostHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-Type', 'image/png')
-        self.end_headers()
-        self.wfile.write(read_asset('img/wesley1.png'))
-
-    def log_message(self, format, *args):
-        pass
-
-
 @pytest.mark.usefixtures('db', 'cache')
-def test_crosspost(app, submission_user, monkeypatch):
-    monkeypatch.setattr(submission, '_ALLOWED_CROSSPOST_HOST', re.compile(r'\Alocalhost:[0-9]+\Z'))
-
-    with HTTPServer(('127.0.0.1', 0), CrosspostHandler) as crosspost_test_server:
-        image_url = 'http://localhost:%i/wesley1.png' % (crosspost_test_server.server_port,)
-
-        test_server_thread = threading.Thread(
-            target=crosspost_test_server.serve_forever,
-            kwargs={'poll_interval': 0.1},
-        )
-        test_server_thread.start()
-
-        # Crossposting from a supported source works
-        try:
-            v1 = create_visual(app, submission_user, imageURL=image_url)
-        finally:
-            crosspost_test_server.shutdown()
-            test_server_thread.join()
-
-    v1_image_url = app.get('/~submissiontest/submissions/%i/test-title' % (v1,)).html.find(id='detail-art').img['src']
-
-    with open(get_storage_path(v1_image_url), 'rb') as f:
-        assert f.read() == read_asset('img/wesley1.png')
-
-    # Crossposting from an unsupported source doesn’t work
+def test_crosspost(app, submission_user):
     form = dict(
         BASE_VISUAL_FORM,
-        imageURL='http://test.invalid/wesley1.png',
+        imageURL='http://test.example/wesley1.png',
     )
     cookie = db_utils.create_session(submission_user)
     resp = app.post('/submit/visual', form, headers={'Cookie': cookie}, status=422)
-    assert resp.html.find(id='error_content').p.text == 'The image you crossposted was from an unsupported source. Please report this bug to the creator of the crossposting tool.'
+    assert resp.html.find(id='error_content').p.text == 'Weasyl no longer provides built-in crossposting. Please upload your post file directly.'
 
 
 @pytest.mark.usefixtures('db', 'cache')

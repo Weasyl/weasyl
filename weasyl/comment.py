@@ -1,4 +1,5 @@
-import arrow
+from datetime import datetime
+
 import sqlalchemy as sa
 
 from libweasyl import staff
@@ -126,7 +127,14 @@ def insert(
     updateid: int = 0,
     parentid: int,
     content: str,
-) -> int:
+) -> tuple[int, datetime]:
+    """
+    Create a new comment and any associated notifications.
+
+    Returns a tuple of (``commentid``, ``created_at``) for the new comment.
+    If the underlying comment table is using ``unixtime``, the offset is
+    corrected before the timestamp is returned.
+    """
     targetid_col = "targetid"
 
     if submitid:
@@ -204,35 +212,38 @@ def insert(
 
     # Create comment
     if submitid:
-        co = d.meta.tables['comments']
-        db = d.connect()
-        commentid = db.scalar(
-            co.insert()
-            .values(userid=userid, target_sub=submitid, parentid=parentid or None,
-                    content=content, unixtime=arrow.utcnow())
-            .returning(co.c.commentid))
+        commentid, created_at = d.engine.execute(
+            "INSERT INTO comments (userid, target_sub, parentid, content, unixtime)"
+            " VALUES (%(user)s, %(submit)s, %(parent)s, %(content)s, %(now)s)"
+            " RETURNING commentid, to_timestamp(unixtime + 18000) AS created_at",
+            user=userid,
+            submit=submitid,
+            parent=parentid or None,
+            content=content,
+            now=d.get_time(),
+        ).first()
     elif updateid:
-        commentid = d.engine.scalar(
+        commentid, created_at = d.engine.execute(
             "INSERT INTO siteupdatecomment (userid, targetid, parentid, content)"
             " VALUES (%(user)s, %(update)s, %(parent)s, %(content)s)"
-            " RETURNING commentid",
+            " RETURNING commentid, created_at",
             user=userid,
             update=updateid,
             parent=parentid or None,
             content=content,
-        )
+        ).first()
         siteupdate.select_last.invalidate()
     else:
-        commentid = d.engine.scalar(
+        commentid, created_at = d.engine.execute(
             f"INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
             " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
-            " RETURNING commentid",
+            " RETURNING commentid, to_timestamp(unixtime + 18000) AS created_at",
             user=userid,
             target=targetid,
             parent=parentid,
             content=content,
             now=d.get_time(),
-        )
+        ).first()
 
     # Create notification
     if parentid and (userid != parentuserid):
@@ -259,7 +270,7 @@ def insert(
 
     d.metric('increment', 'comments')
 
-    return commentid
+    return commentid, created_at
 
 
 def remove(userid, *, feature, commentid):

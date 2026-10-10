@@ -1,5 +1,7 @@
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import ClassVar
 
 import arrow
 from pyramid.httpexceptions import HTTPSeeOther
@@ -27,11 +29,14 @@ from weasyl.error import WeasylError
 from weasyl.sessions import create_session
 
 
+logger = logging.getLogger(__name__)
+
+
 # Session management functions
 
 @guest_required
 def signin_get_(request):
-    return Response(define.webpage(request.userid, "etc/signin.html", (None, ""), title="Sign In"))
+    return Response(define.webpage(request.userid, "etc/signin.html", (None, ""), title="Sign In", canonical_url="/signin"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,10 +44,28 @@ class InvalidCredentialsError:
     message: str
     hints: Iterable[str]
 
+    is_leaked_credentials: ClassVar[bool] = False
+
+
+class _LeakedCredentialsError:
+    __slots__ = ()
+    is_leaked_credentials = True
+
+
+_LEAKED_CREDENTIALS_ERROR = _LeakedCredentialsError()
+
 
 @guest_required
 @token_checked
 def signin_post_(request):
+    credentials_leaked = False
+    ecc = request.headers.get("Exposed-Credential-Check")
+    if ecc:
+        if len(ecc) == 1 and "1" <= ecc <= "4":
+            credentials_leaked = ecc != "2"  # 2: just username "leaked" (Cloudflare Enterprise plan only, should never be set anyway)
+        else:
+            logger.warning("Ignoring unsupported Exposed-Credential-Check value on login attempt: %r", ecc)
+
     form = LoginForm(
         username=request.POST.get("username", ""),
         sfw=request.POST.get("sfwmode") == "sfw",
@@ -53,13 +76,17 @@ def signin_post_(request):
     auth_result = login.authenticate_bcrypt(
         username=form.username,
         password=password,
-        request=request,
+        request=None if credentials_leaked else request,
         ip_address=request.client_addr,
         user_agent=request.user_agent,
     )
 
     match auth_result:
         case login.Success(logid):
+            if credentials_leaked:
+                logger.warning("Rejecting login attempt with correct leaked credentials for user %d", logid)
+                return Response(define.webpage(request.userid, "etc/signin.html", (_LEAKED_CREDENTIALS_ERROR, referer, form)))
+
             response = HTTPSeeOther(location=define.path_redirect(referer))
             response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
                                 secure=request.scheme == 'https', httponly=True)
@@ -68,6 +95,8 @@ def signin_post_(request):
             return response
 
         case login.SecondFactorRequired(logid):
+            assert not credentials_leaked
+
             # Password authentication passed, but user has 2FA set, so verify second factor
             # Check if out of recovery codes; this should *never* execute normally, save for crafted
             #   webtests. However, check for it and log an error to Sentry if it happens.

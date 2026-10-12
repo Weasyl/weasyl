@@ -218,7 +218,7 @@ COPY --from=imagemagick6-build --chown=root:root --link /imagemagick6-build/pack
 COPY --chown=root:root --link imagemagick-policy.xml /usr/etc/ImageMagick-6/policy.xml
 
 COPY --from=bdist --link /weasyl/.venv .venv
-COPY --from=assets --link /weasyl-build/build build
+COPY --from=assets --link /weasyl-build/build/rev-manifest.json build/rev-manifest.json
 COPY --chown=1000:root --link libweasyl libweasyl
 COPY --chown=1000:root --link weasyl weasyl
 

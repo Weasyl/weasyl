@@ -50,10 +50,6 @@ class PaginationTestCase(unittest.TestCase):
         self.assertEqual("nextid=" + str(result_size - 1), result.next_url)
 
 
-def _l2dl(xs):
-    return [{"k": x} for x in xs]
-
-
 @pytest.mark.parametrize(
     (   "ids",    "limit", "page",          "expected_prev", "expected_next", "expected_ids"),
     [
@@ -70,6 +66,6 @@ def _l2dl(xs):
     ],
 )
 def test_paginate(ids, limit, page, expected_prev, expected_next, expected_ids):
-    items = _l2dl(ids)
-    prev_page, next_page = paginate(items, limit=limit, page=page, key="k")
-    assert (prev_page, next_page, items) == (expected_prev, expected_next, _l2dl(expected_ids))
+    items = fake_results(ids)
+    prev_page, next_page = paginate(items, limit=limit, page=page, key=ID_FIELD)
+    assert (prev_page, next_page, items) == (expected_prev, expected_next, fake_results(expected_ids))

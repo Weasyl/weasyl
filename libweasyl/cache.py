@@ -21,6 +21,12 @@ from dogpile.cache import make_region
 region = make_region()
 
 
+class _LocalDict(threading.local):
+
+    def __init__(self):
+        self.cache_dict = {}
+
+
 class ThreadCacheProxy(ProxyBackend):
     """
     A thread-local caching proxy.
@@ -35,19 +41,15 @@ class ThreadCacheProxy(ProxyBackend):
     called, for example, at the end of an HTTP request's lifetime.
     """
 
-    _local = threading.local()
+    def __init__(self):
+        super().__init__()
+        self._local = _LocalDict()
 
-    @classmethod
-    def zap_cache(cls):
+    def zap_cache(self):
         """
         Clear the cache for the current thread.
-
-        If there wasn't any cache for the current thread, do nothing.
         """
-        try:
-            del cls._local.cache_dict
-        except AttributeError:
-            pass
+        self._dict.clear()
 
     @property
     def _dict(self):
@@ -57,8 +59,6 @@ class ThreadCacheProxy(ProxyBackend):
         Returns:
             dict: The cache dict.
         """
-        if not hasattr(self._local, 'cache_dict'):
-            self._local.cache_dict = {}
         return self._local.cache_dict
 
     def get(self, key):

@@ -23,7 +23,7 @@ from web.utils import storify
 from webob.multidict import MultiDict, NoVars
 
 from libweasyl import staff
-from libweasyl.cache import ThreadCacheProxy
+from libweasyl.cache import region
 from weasyl import define as d
 from weasyl import errorcode
 from weasyl import orm
@@ -152,7 +152,7 @@ def cache_clear_tween_factory(handler, registry):
         try:
             return handler(request)
         finally:
-            ThreadCacheProxy.zap_cache()
+            region.backend.zap_cache()
     return cache_clear_tween
 
 

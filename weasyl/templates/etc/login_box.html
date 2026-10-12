@@ -9,16 +9,21 @@ $else: <dialog id="login-top" class="login-box content">
 
   $if error is not None:
     <div class="login-error">
-      <strong>Login failed:</strong> ${error.message}
+      <strong>Login failed:</strong>
 
-      $if error.hints:
-        <ul>
-          $for hint in error.hints:
-            <li>${hint}</li>
-        </ul>
+      $if error.is_leaked_credentials:
+        This password has been reported as leaked. Please <a href="/forgotpassword">reset your password</a> or <a href="mailto:${M.MACRO_SUPPORT_ADDRESS}">contact support</a>.
+      $else:
+        ${error.message}
+
+        $if error.hints:
+          <ul>
+            $for hint in error.hints:
+              <li>${hint}</li>
+          </ul>
     </div>
 
-  <form class="form" name="signin" action="/signin" method="post">
+  <form class="form" name="signin" action="/login" method="post">
     <label for="login-user">Username</label>
     <input type="text" id="login-user" class="input" name="username" value="${initial.username}" placeholder="Username" autofocus autocomplete="username" required />
 

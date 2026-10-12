@@ -6,6 +6,7 @@ import sqlalchemy as sa
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from libweasyl.staff import StaffConfig
+from libweasyl.test.common import autocommit_cursor
 from libweasyl.test.common import clear_database
 from libweasyl.test.common import dummy_format_media_link
 from libweasyl import cache
@@ -22,11 +23,12 @@ sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
 
 @pytest.fixture(scope='session', autouse=True)
 def setup():
-    db = sessionmaker()
-    db.execute('DROP SCHEMA public CASCADE')
-    db.execute('CREATE SCHEMA public')
-    db.execute('CREATE EXTENSION HSTORE')
-    db.commit()
+    with autocommit_cursor(engine) as cur:
+        cur.execute(
+            "DROP SCHEMA public CASCADE;"
+            "CREATE SCHEMA public;"
+        )
+
     metadata.create_all(engine)
 
     cache.region.configure(

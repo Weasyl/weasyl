@@ -14,7 +14,7 @@ jobs:
       code-quality: write
 
     container:
-      image: ghcr.io/weasyl/ci-base-image@sha256:31306c2cfdeca0d6648863a9789f818dfd730564ad163424ad4ebb14cfb865c6
+      image: ghcr.io/weasyl/ci-base-image@sha256:81928052f777a0d23901d1646cbb45d49e854f1035f3bec2492eafdf0e1e4d1a
       options: --user 1001 --tmpfs /magick-tmp:mode=700,uid=1001
 
     services:
@@ -23,7 +23,6 @@ jobs:
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_USER: weasyl
-          POSTGRES_DB: weasyl_test
         # probably ready by the time the tests run anyway; no need to add latency
         #options: >-
         #  --health-cmd pg_isready
@@ -110,6 +109,9 @@ jobs:
             build.ts \
             --assets=./assets/ \
             --output=./build/
+
+      - name: Create test database
+        run: psql -h weasyl-database -U weasyl < containers/postgres/01-test.sql
 
       - name: Test libweasyl
         env:

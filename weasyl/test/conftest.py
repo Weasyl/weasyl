@@ -8,7 +8,6 @@ import shutil
 
 import pytest
 import pyramid.testing
-from sqlalchemy.dialects.postgresql import psycopg2
 from webtest import TestApp as TestApp_
 
 from weasyl import config
@@ -50,14 +49,10 @@ configure_libweasyl(
 
 @pytest.fixture(scope='session', autouse=True)
 def setupdb():
-    define.engine.execute('DROP SCHEMA public CASCADE')
-    define.engine.execute('CREATE SCHEMA public')
-    define.engine.execute('CREATE EXTENSION HSTORE')
-    define.engine.execute('CREATE EXTENSION FUZZYSTRMATCH')
-
-    # hstore oids changed; de-memoize them and create new connections
-    define.engine.dialect._hstore_oids = psycopg2.PGDialect_psycopg2._hstore_oids.__get__(define.engine.dialect)
-    define.engine.dispose()
+    define.engine.execute(
+        "DROP SCHEMA public CASCADE;"
+        "CREATE SCHEMA public;"
+    )
 
     define.meta.create_all(define.engine)
 

@@ -91,9 +91,7 @@ test-coverage)
 
     if test $# -eq 0; then
         set -- sh -c '
-            coverage run -m pytest libweasyl.test libweasyl.models.test
-            coverage run -m pytest weasyl.test
-            coverage combine
+            coverage run -m pytest libweasyl.test libweasyl.models.test weasyl.test
             coverage html -d coverage
         '
     fi

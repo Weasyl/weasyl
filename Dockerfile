@@ -234,7 +234,7 @@ ENV WEASYL_STORAGE_ROOT=testing/storage
 ENV PATH="/weasyl/.venv/bin:${PATH}"
 COPY --link pytest.ini .coveragerc ./
 COPY --link assets assets
-CMD pytest -x libweasyl.test libweasyl.models.test && pytest -x weasyl.test
+CMD pytest -x libweasyl.test libweasyl.models.test weasyl.test
 STOPSIGNAL SIGINT
 
 FROM docker.io/library/alpine:3.22 AS flake8

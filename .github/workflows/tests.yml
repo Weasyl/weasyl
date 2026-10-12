@@ -113,21 +113,15 @@ jobs:
       - name: Create test database
         run: psql -h weasyl-database -U weasyl < containers/postgres/01-test.sql
 
-      - name: Test libweasyl
+      - name: Run tests
         env:
           WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@weasyl-database/weasyl_test
-        run: .venv/bin/python -m coverage run -m pytest libweasyl.test libweasyl.models.test
-
-      - name: Test weasyl
-        env:
           WEASYL_APP_ROOT: .
           WEASYL_STORAGE_ROOT: testing
-        run: .venv/bin/python -m coverage run -m pytest weasyl.test
+        run: .venv/bin/python -m coverage run -m pytest libweasyl.test libweasyl.models.test weasyl.test
 
-      - name: Combine and report coverage
+      - name: Report coverage
         run: |
-          # TODO: remove on coverage>=7.14.0
-          .venv/bin/python -m coverage combine
           .venv/bin/python -m coverage xml
 
       - name: Upload coverage

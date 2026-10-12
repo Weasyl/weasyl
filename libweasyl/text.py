@@ -342,8 +342,7 @@ def _itertext_spaced(element):
         if is_block:
             yield " "
 
-        for t in _itertext_spaced(child):
-            yield t
+        yield from _itertext_spaced(child)
 
         if child.tail:
             yield child.tail

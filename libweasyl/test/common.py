@@ -3,10 +3,11 @@ from contextlib import contextmanager
 
 import arrow
 import py.path
+import pytest
 from psycopg2.extensions import quote_ident
 
 from libweasyl.models import content, tables, users
-from libweasyl import media, ratings
+from libweasyl import cache, media, ratings
 
 
 datadir = py.path.local(__file__).dirpath('data')
@@ -101,3 +102,15 @@ def clear_database(engine):
                 for table_key in tables.metadata.tables
             )
         )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cache_backend():
+    if cache.region.is_configured:
+        # `libweasyl.test` and `weasyl.test` running in the same session
+        return
+
+    cache.region.configure(
+        'dogpile.cache.null',
+        wrap=[cache.ThreadCacheProxy],
+    )

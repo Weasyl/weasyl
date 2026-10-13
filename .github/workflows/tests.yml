@@ -38,80 +38,77 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Cache Deno dependencies
-        uses: actions/cache@v5
-        with:
-          path: /deno-dir/
-          key: cache-${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
-          restore-keys: |
-            cache-${{ runner.os }}-deno-
+      - parallel:
+        - name: Cache Deno dependencies
+          uses: actions/cache@v5
+          with:
+            path: /deno-dir/
+            key: cache-${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
+            restore-keys: |
+              cache-${{ runner.os }}-deno-
+  
+        - name: Cache Poetry
+          uses: actions/cache@v5
+          with:
+            path: ~/.cache/pip
+            key: cache-${{ runner.os }}-pip-${{ hashFiles('poetry-requirements.txt') }}
+            restore-keys: |
+              cache-${{ runner.os }}-pip-
+  
+        - name: Cache Python dependencies
+          uses: actions/cache@v5
+          with:
+            path: ~/.cache/pypoetry
+            key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+            restore-keys: |
+              cache-${{ runner.os }}-poetry-
+  
+        - name: Create Poetry virtualenv
+          run: python3 -m venv --system-site-packages --without-pip .poetry-venv
 
-      - name: Cache Poetry
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: cache-${{ runner.os }}-pip-${{ hashFiles('poetry-requirements.txt') }}
-          restore-keys: |
-            cache-${{ runner.os }}-pip-
+        - name: Create virtualenv
+          run: python3 -m venv --system-site-packages --without-pip .venv
 
-      - name: Cache Python dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pypoetry
-          key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            cache-${{ runner.os }}-poetry-
+        - name: Configure Weasyl
+          run: |
+            cp ci/site.config.txt config/
+            cp config/weasyl-staff.example.py config/weasyl-staff.py
+            cat imagemagick-policy.xml > /usr/etc/ImageMagick-6/policy.xml
+            printf %.8s "$GITHUB_SHA" > version.txt
 
-      - name: Create Poetry virtualenv
-        run: python3 -m venv --system-site-packages --without-pip .poetry-venv
-
-      - name: Install Poetry
-        run: |
-          .poetry-venv/bin/python3 -m pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
-
-      - name: Create virtualenv
-        run: python3 -m venv --system-site-packages --without-pip .venv
-
-      - name: Install Deno dependencies
-        run: |
-          (
-            export LD_LIBRARY_PATH=/opt/deno/lib
-            deno install --frozen --vendor=false && deno ci
-          ) \
-            && sha256sum -c <<'SHA256' \
-            && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'
-          68c4208ae3e1aad176f61fe7ba27d351d8b8f931dad1b3938702c3bb80106d24  node_modules/autoprefixer/lib/supports.js
-          SHA256
-          214a\
-          , this.all.browsers.browserslistOpts
-          SED
-
-      - name: Install Python dependencies
-        run: .poetry-venv/bin/poetry install
-
-      - name: Configure Weasyl
-        run: |
-          cp ci/site.config.txt config/
-          cp config/weasyl-staff.example.py config/weasyl-staff.py
-          cat imagemagick-policy.xml > /usr/etc/ImageMagick-6/policy.xml
-          printf %.8s "$GITHUB_SHA" > version.txt
-
-      - name: Build assets
-        run: |
-          LD_LIBRARY_PATH=/opt/deno/lib \
-          deno run \
-            --cached-only \
-            --frozen \
-            --allow-env \
-            --allow-read \
-            --allow-write \
-            --allow-run \
-            build.ts \
-            --assets=./assets/ \
-            --output=./build/
-
-      - name: Create test database
-        run: psql -h weasyl-database -U weasyl < containers/postgres/01-test.sql
+      - parallel:
+        - name: Install Poetry and Python dependencies
+          run: |
+            .poetry-venv/bin/python3 -m pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
+            .poetry-venv/bin/poetry install
+  
+        - name: Install Deno dependencies and build assets
+          run: |
+            (
+              export LD_LIBRARY_PATH=/opt/deno/lib
+              deno install --frozen --vendor=false && deno ci
+            ) \
+              && sha256sum -c <<'SHA256' \
+              && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'
+            68c4208ae3e1aad176f61fe7ba27d351d8b8f931dad1b3938702c3bb80106d24  node_modules/autoprefixer/lib/supports.js
+            SHA256
+            214a\
+            , this.all.browsers.browserslistOpts
+            SED
+            LD_LIBRARY_PATH=/opt/deno/lib \
+            deno run \
+              --cached-only \
+              --frozen \
+              --allow-env \
+              --allow-read \
+              --allow-write \
+              --allow-run \
+              build.ts \
+              --assets=./assets/ \
+              --output=./build/
+  
+        - name: Create test database
+          run: psql -h weasyl-database -U weasyl < containers/postgres/01-test.sql
 
       - name: Run tests
         env:

@@ -6,9 +6,10 @@ import sqlalchemy as sa
 from libweasyl.configuration import configure_libweasyl
 from libweasyl.models.tables import metadata
 from libweasyl.staff import StaffConfig
+from libweasyl.test.common import autocommit_cursor
+from libweasyl.test.common import cache_backend
 from libweasyl.test.common import clear_database
 from libweasyl.test.common import dummy_format_media_link
-from libweasyl import cache
 
 
 engine = sa.create_engine(
@@ -22,23 +23,23 @@ sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
 
 @pytest.fixture(scope='session', autouse=True)
 def setup():
-    db = sessionmaker()
-    db.execute('DROP SCHEMA public CASCADE')
-    db.execute('CREATE SCHEMA public')
-    db.execute('CREATE EXTENSION HSTORE')
-    db.commit()
+    with autocommit_cursor(engine) as cur:
+        cur.execute(
+            "DROP SCHEMA public CASCADE;"
+            "CREATE SCHEMA public;"
+        )
+
     metadata.create_all(engine)
 
-    cache.region.configure(
-        'dogpile.cache.memory',
-        wrap=[cache.ThreadCacheProxy],
-    )
+    try:
+        yield
+    finally:
+        clear_database(engine)
 
 
-@pytest.fixture(autouse=True)
-def staticdir(tmp_path):
-    storage_root = tmp_path / 'libweasyl-staticdir'
-    storage_root.mkdir()
+@pytest.fixture(scope="session", autouse=True)
+def staticdir(tmp_path_factory):
+    storage_root = tmp_path_factory.mktemp('libweasyl-staticdir')
     configure_libweasyl(
         dbsession=sessionmaker,
         base_file_path=str(storage_root),
@@ -53,4 +54,10 @@ def db():
     with sessionmaker() as db:
         yield db
 
-    clear_database(engine)
+
+__all__ = [
+    "cache_backend",
+    "setup",
+    "staticdir",
+    "db",
+]

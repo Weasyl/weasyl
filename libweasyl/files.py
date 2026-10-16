@@ -2,11 +2,8 @@
 File manipulation and detection.
 """
 
-from sanpera.exception import SanperaError
-
 from libweasyl.constants import Category
 from libweasyl.exceptions import InvalidFileFormat, UnknownFileFormat
-from libweasyl import images
 
 
 def fanout(name, fanout):
@@ -48,8 +45,6 @@ def file_type_for_category(data, category):
     valid data in the type specified, but merely that it resembles a file of
     that type.
 
-    - Visual submissions are first decoded and then checked to ensure that
-      their format is GIF, JPG, or PNG.
     - Literary submissions check for and explicitly disallow RTF documents and
       some Microsoft Word formats. If the document is not a PDF, it must be
       valid UTF-8 text.
@@ -62,23 +57,11 @@ def file_type_for_category(data, category):
     Returns:
         A tuple of ``decoded, format``. ``decoded`` is either ``None`` (to
         indicate that no decoding can easily be done) or the decoded submission
-        data in some format. Visual submissions will return the decoded sanpera
-        ``Image`` object; non-PDF literary submissions will return the decoded
-        UTF-8 text. ``format`` will be a :term:`native string`: one of ``gif``,
-        ``jpg``, ``png``, ``pdf``, ``txt``, ``swf``, or ``mp3``.
+        data in some format. Non-PDF literary submissions will return the decoded
+        UTF-8 text. ``format`` will be a :term:`native string`: one of ``pdf``,
+        ``txt``, ``swf``, or ``mp3``.
     """
-    if category == Category.visual:
-        try:
-            im = images.from_buffer(data)
-        except SanperaError:
-            raise UnknownFileFormat('The image data provided could not be decoded. Image files must be in the GIF, JPG, or PNG formats.')
-        fmt = im.original_format.decode()
-        if fmt == 'JPEG':
-            fmt = 'JPG'
-        if fmt not in {'GIF', 'JPG', 'PNG'}:
-            raise InvalidFileFormat('Image files must be in the GIF, JPG, or PNG formats.')
-        return im, str(fmt.lower())
-    elif category == Category.literary:
+    if category == Category.literary:
         if data.startswith(b'%PDF'):
             return None, 'pdf'
         elif data.startswith(b'{\\rtf1'):
@@ -98,4 +81,4 @@ def file_type_for_category(data, category):
         else:
             raise UnknownFileFormat('Multimedia documents must be in the SWF or MP3 formats.')
     else:
-        raise ValueError('unknown submission category', category)
+        raise ValueError('unsupported submission category', category)

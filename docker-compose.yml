@@ -19,11 +19,15 @@ networks:
   external-web-outgoing:
   external-nginx:
   external-prometheus:
+  web-badgr:
+    internal: true
   web-memcached:
     internal: true
   web-postgres:
     internal: true
   web-web-outgoing:
+    internal: true
+  test-badgr:
     internal: true
   test-postgres:
     internal: true
@@ -75,15 +79,16 @@ services:
         target: /tmp
     tmpfs:
       - '/weasyl/storage/prometheus:mode=700,uid=1000'
-      - '/weasyl/storage/temp:mode=700,uid=1000'
       - '/magick-tmp:mode=700,uid=1000'
     networks:
       - prometheus-web
+      - web-badgr
       - web-memcached
       - web-postgres
       - web-web-outgoing
     read_only: false
     depends_on:
+      - badgr
       - postgres
       - memcached
       - web-outgoing
@@ -142,6 +147,16 @@ services:
     networks:
       - external-web-outgoing
       - web-web-outgoing
+    read_only: true
+
+  badgr:
+    build:
+      context: .
+      target: badgr
+    init: false
+    networks:
+      - test-badgr
+      - web-badgr
     read_only: true
 
   memcached:
@@ -353,9 +368,11 @@ services:
       - type: tmpfs
         target: /magick-tmp
     networks:
+      - test-badgr
       - test-postgres
     read_only: true
     depends_on:
+      - badgr
       - postgres
     tty: true
 

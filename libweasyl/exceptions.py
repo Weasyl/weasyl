@@ -53,10 +53,3 @@ class UnknownFileFormat(ExpectedWeasylError):
     is disallowed from being uploaded. Uses code 422.
     """
     code = 422
-
-
-class ThumbnailingError(WeasylError):
-    """
-    Thumbnailing an image produced bad results; e.g. an image with a size not
-    equal to the requested size of the thumbnail.
-    """

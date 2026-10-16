@@ -34,6 +34,10 @@ cert_verify = false
 # 1000 per 1 day
 global_rate_limit = 1000/86400
 
+[badgr]
+servers = badgr:27350
+socket_timeout = 0.25
+
 [two_factor_auth]
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()

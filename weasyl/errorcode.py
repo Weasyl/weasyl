@@ -1,6 +1,10 @@
 from weasyl import macro as m
 
 
+def _image_processing_failed_message(what: str) -> str:
+    return f"There was an error processing the {what} you uploaded. Please report this bug to [{m.MACRO_SUPPORT_ADDRESS}](mailto:{m.MACRO_SUPPORT_ADDRESS}). It might work if you try again later.\n\nYou can also try saving the image as a different file format, or in a smaller size if it’s very large."
+
+
 userid = "This user doesn't seem to be in our database."
 submitid = "This submission doesn't seem to be in our database."
 charid = "This character doesn't seem to be in our database."
@@ -87,7 +91,6 @@ error_messages = {
     ),
     "hiddenFavorites": "You cannot view this page because the owner does not allow anyone to see their favorites.",
     "IgnoredYou": "This user has ignored you.",
-    "imageDecodeError": "The image you uploaded was unable to be decoded.",
     "InsufficientPermissions": permission,
     "insufficientActionPermissions": "You do not have permission to perform this action.",
     "journalRecordMissing": journalid,
@@ -168,6 +171,11 @@ error_messages = {
     "YouIgnored": "You have this user ignored.",
     "youIgnoredPageOwner": "You have the owner of this page ignored.",
     "youIgnoredReplyRecipient": "You are ignoring the user you're replying to.",
+
+    "imageProcessingFailed": _image_processing_failed_message("image"),
+    "submissionImageProcessingFailed": _image_processing_failed_message("submission"),
+    "thumbnailImageProcessingFailed": _image_processing_failed_message("custom thumbnail"),
+    "coverImageProcessingFailed": _image_processing_failed_message("cover artwork"),
 }
 
 # If an error code defined in error_messages should return a special HTTP status code,

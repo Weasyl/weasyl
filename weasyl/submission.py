@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import re
-from io import BytesIO
+from dataclasses import dataclass
 from typing import Literal
 
 import arrow
@@ -16,8 +17,6 @@ from libweasyl.cache import region
 from libweasyl.models.media import MediaItem
 from libweasyl.models.tables import google_doc_embeds
 from libweasyl import (
-    images,
-    images_new,
     staff,
     text,
 )
@@ -54,10 +53,8 @@ COUNT_LIMIT = 250
 
 _MEGABYTE = 1048576
 
+_VISUAL_LIMIT = 50 * _MEGABYTE
 _LIMITS = {
-    ".jpg": 50 * _MEGABYTE,
-    ".png": 50 * _MEGABYTE,
-    ".gif": 50 * _MEGABYTE,
     ".txt": 2 * _MEGABYTE,
     ".pdf": 10 * _MEGABYTE,
     ".htm": 10 * _MEGABYTE,
@@ -134,6 +131,106 @@ def _create_submission(expected_type: int):
     return wrapper
 
 
+@dataclass(eq=False, frozen=True, kw_only=True, slots=True)
+class _VisualMedia:
+
+    submission: MediaItem
+    cover: MediaItem
+    thumbnail_generated: MediaItem
+
+
+@dataclass(eq=False, frozen=True, kw_only=True, slots=True)
+class _OtherMedia:
+
+    cover: MediaItem | None
+    thumbnail_source: MediaItem | None  # always present when `cover` is present
+
+
+def _upload_visual(userid: int, submitfile: bytes) -> _VisualMedia:
+    if len(submitfile) > _VISUAL_LIMIT:
+        raise WeasylError("submitSizeExceedsLimit")
+
+    submitfile_sha256 = hashlib.sha256(submitfile).hexdigest()
+    submit_media_item = MediaItem.query.filter(MediaItem.sha256 == submitfile_sha256).one_or_none()
+    if submit_media_item is not None:
+        if submit_media_item.file_type not in ["jpg", "png", "gif", "webp"]:
+            raise WeasylError("submitType")
+
+        check_for_duplicate_media(userid, submit_media_item.mediaid)
+
+    try:
+        cover_result = image.create_cover(submitfile)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("submitType") from e
+    except Exception as e:
+        raise WeasylError("submissionImageProcessingFailed", level="info") from e
+
+    if submit_media_item is None:
+        submit_media_item = MediaItem.fetch_or_create(
+            submitfile,
+            file_type=cover_result.original_file_type,
+            attributes={
+                "width": cover_result.original_width,
+                "height": cover_result.original_height,
+            },
+            sha256=submitfile_sha256,
+        )
+
+    cover_media_item = (
+        # if generated cover isn't much better, reuse the original file as the cover
+        submit_media_item if len(submitfile) < 3 * len(cover_result.output) // 2
+        else media.ensure_output_media(cover_result)
+    )
+
+    # assume processing the same file again will succeed
+    thumb_generated = image.create_thumbnail(submitfile)
+    thumb_generated_media_item = media.ensure_output_media(thumb_generated)
+
+    return _VisualMedia(
+        submission=submit_media_item,
+        cover=cover_media_item,
+        thumbnail_generated=thumb_generated_media_item,
+    )
+
+
+def _upload_other(*, coverfile, thumbfile) -> _OtherMedia:
+    if len(coverfile) > 10 * _MEGABYTE:
+        raise WeasylError("coverSizeExceedsLimit")
+    if len(thumbfile) > 10 * _MEGABYTE:
+        raise WeasylError("thumbSizeExceedsLimit")
+
+    if coverfile:
+        try:
+            cover_result = image.create_cover(coverfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("coverType") from e
+        except Exception as e:
+            raise WeasylError("coverImageProcessingFailed", level="info") from e
+
+        cover_media_item = media.ensure_output_media(cover_result)
+    else:
+        cover_media_item = None
+
+    if thumbfile:
+        try:
+            thumb_source = image.create_cover(thumbfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("thumbType") from e
+        except Exception as e:
+            raise WeasylError("thumbnailImageProcessingFailed", level="info") from e
+
+        thumb_media_item = media.ensure_output_media(thumb_source)
+    elif cover_media_item is not None:
+        thumb_media_item = cover_media_item
+    else:
+        thumb_media_item = None
+
+    return _OtherMedia(
+        cover=cover_media_item,
+        thumbnail_source=thumb_media_item,
+    )
+
+
 @_create_submission(expected_type=1)
 def create_visual(
     *,
@@ -146,57 +243,29 @@ def create_visual(
     critique: bool,
     create_notifications: bool,
 ) -> int:
-    # Determine filesizes
-    thumbsize = len(thumbfile)
-    submitsize = len(submitfile)
-
-    if not submitsize:
+    if not submitfile:
         raise WeasylError("submitSizeZero")
-    elif thumbsize > 10 * _MEGABYTE:
+    if len(thumbfile) > 10 * _MEGABYTE:
         raise WeasylError("thumbSizeExceedsLimit")
 
-    im = image.from_string(submitfile)
-    submitextension = images.image_extension(im)
-    if submitextension not in [".jpg", ".png", ".gif"]:
-        raise WeasylError("submitType")
-    if _limit(submitsize, submitextension):
-        raise WeasylError("submitSizeExceedsLimit")
-
-    submit_file_type = submitextension.lstrip('.')
-    submit_media_item = orm.MediaItem.fetch_or_create(
-        submitfile, file_type=submit_file_type, im=im)
-    check_for_duplicate_media(userid, submit_media_item.mediaid)
-    cover_media_item = submit_media_item.ensure_cover_image(im)
-
-    # Thumbnail stuff.
-    # Always create a 'generated' thumbnail from the source image.
-    with BytesIO(submitfile) as buf:
-        thumbnail_formats = images_new.get_thumbnail(buf)
-
-    thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
-    thumb_generated_media_item = orm.MediaItem.fetch_or_create(
-        thumb_generated,
-        file_type=thumb_generated_file_type,
-        attributes=thumb_generated_attributes,
-    )
-
-    if thumbnail_formats.webp is None:
-        thumb_generated_media_item_webp = None
-    else:
-        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
-        thumb_generated_media_item_webp = orm.MediaItem.fetch_or_create(
-            thumb_generated,
-            file_type=thumb_generated_file_type,
-            attributes=thumb_generated_attributes,
-        )
+    submitfile_media = _upload_visual(userid, submitfile)
 
     # If requested, also create a 'custom' thumbnail.
-    thumb_media_item = media.make_cover_media_item(thumbfile)
-    if thumb_media_item:
-        thumb_custom = images.make_thumbnail(image.from_string(thumbfile))
-        thumb_custom_media_item = orm.MediaItem.fetch_or_create(
-            thumb_custom.to_buffer(format=submit_file_type), file_type=submit_file_type,
-            im=thumb_custom)
+    if thumbfile:
+        try:
+            thumb_source = image.create_cover(thumbfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("thumbType") from e
+        except Exception as e:
+            raise WeasylError("thumbnailImageProcessingFailed", level="info") from e
+
+        thumb_media_item = media.ensure_output_media(thumb_source)
+
+        # assume processing the same file again will succeed
+        thumb_custom = image.create_thumbnail(thumbfile)
+        thumb_custom_media_item = media.ensure_output_media(thumb_custom)
+    else:
+        thumb_media_item = None
 
     # TODO(kailys): maintain ORM object
     db = d.connect()
@@ -219,16 +288,11 @@ def create_visual(
     submitid = db.scalar(q)
 
     orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'submission', submit_media_item)
+        submitid, 'submission', submitfile_media.submission)
     orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'cover', cover_media_item)
-
+        submitid, 'cover', submitfile_media.cover)
     orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'thumbnail-generated', thumb_generated_media_item)
-
-    if thumb_generated_media_item_webp is not None:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'thumbnail-generated-webp', thumb_generated_media_item_webp)
+        submitid, 'thumbnail-generated', submitfile_media.thumbnail_generated)
 
     if thumb_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
@@ -285,16 +349,10 @@ def create_literary(
         embedlink = _normalize_google_docs_embed(embedlink)
 
     # Determine filesizes
-    coversize = len(coverfile)
-    thumbsize = len(thumbfile)
     submitsize = len(submitfile)
 
     if not submitsize and not embedlink:
         raise WeasylError("submitSizeZero")
-    elif coversize > 10 * _MEGABYTE:
-        raise WeasylError("coverSizeExceedsLimit")
-    elif thumbsize > 10 * _MEGABYTE:
-        raise WeasylError("thumbSizeExceedsLimit")
 
     if submitsize:
         submitextension = files.get_extension_for_category(submitfile, m.TEXT_SUBMISSION_CATEGORY)
@@ -308,10 +366,7 @@ def create_literary(
     else:
         submit_media_item = None
 
-    thumb_media_item = media.make_cover_media_item(thumbfile)
-    cover_media_item = media.make_cover_media_item(coverfile)
-    if cover_media_item and not thumb_media_item:
-        thumb_media_item = cover_media_item
+    other_media = _upload_other(coverfile=coverfile, thumbfile=thumbfile)
 
     # Create submission
     # TODO(kailys): use ORM object
@@ -349,10 +404,10 @@ def create_literary(
 
     if submit_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
-    if cover_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
-    if thumb_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
+    if other_media.cover is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', other_media.cover)
+    if other_media.thumbnail_source is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', other_media.thumbnail_source)
 
     # Create notifications
     if create_notifications:
@@ -361,7 +416,7 @@ def create_literary(
     d.metric('increment', 'submissions')
     d.metric('increment', 'literarysubmissions')
 
-    return submitid, bool(thumb_media_item)
+    return submitid, other_media.thumbnail_source is not None
 
 
 @_create_submission(expected_type=3)
@@ -380,8 +435,6 @@ def create_multimedia(
     auto_thumb: bool,
 ) -> tuple[int, bool]:
     # Determine filesizes
-    coversize = len(coverfile)
-    thumbsize = len(thumbfile)
     submitsize = len(submitfile)
 
     if submitsize:
@@ -401,11 +454,6 @@ def create_multimedia(
         raise WeasylError("submitSizeZero")
     del embedlink
 
-    if coversize > 10 * _MEGABYTE:
-        raise WeasylError("coverSizeExceedsLimit")
-    elif thumbsize > 10 * _MEGABYTE:
-        raise WeasylError("thumbSizeExceedsLimit")
-
     if submitsize:
         submitextension = files.get_extension_for_category(submitfile, m.MULTIMEDIA_SUBMISSION_CATEGORY)
         if submitextension is None:
@@ -418,15 +466,12 @@ def create_multimedia(
     else:
         submit_media_item = None
 
-    thumb_media_item = media.make_cover_media_item(thumbfile)
-    cover_media_item = media.make_cover_media_item(coverfile)
-    if cover_media_item and not thumb_media_item:
-        thumb_media_item = cover_media_item
+    other_media = _upload_other(coverfile=coverfile, thumbfile=thumbfile)
+    thumbnail_result = None
 
-    tempthumb_media_item = None
-    im = None
-    if thumbsize or coversize:
-        im = image.from_string(thumbfile or coverfile)
+    if other_media.thumbnail_source is not None:
+        # assume processing the same file again will succeed
+        thumbnail_result = image.create_thumbnail(thumbfile or coverfile)
     elif auto_thumb and embedded is not None:
         # Fetch default thumbnail from source if available
         if embedded.thumbnail_url:
@@ -438,14 +483,12 @@ def create_multimedia(
             except RequestException as e:
                 logger.error("Fetching thumbnail at %s for embed %s failed: %s", embedded.thumbnail_url, embedded.embedlink.href, e)
             else:
-                im = image.from_string(resp.content)
-    if im:
-        tempthumb = images.make_thumbnail(im)
-        tempthumb_type = images.image_file_type(tempthumb)
-        tempthumb_media_item = orm.MediaItem.fetch_or_create(
-            tempthumb.to_buffer(format=tempthumb_type),
-            file_type=tempthumb_type,
-            im=tempthumb)
+                try:
+                    thumbnail_result = image.create_thumbnail(resp.content)
+                except Exception:
+                    logger.warning("Failed to create thumbnail from embed thumbnail", exc_info=True)
+    if thumbnail_result is not None:
+        tempthumb_media_item = media.ensure_output_media(thumbnail_result)
 
     # Inject embedlink
     if embedded:
@@ -482,11 +525,11 @@ def create_multimedia(
 
     if submit_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
-    if cover_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
-    if thumb_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
-    if tempthumb_media_item:
+    if other_media.cover is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', other_media.cover)
+    if other_media.thumbnail_source is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', other_media.thumbnail_source)
+    if thumbnail_result is not None:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-custom',
                                                      tempthumb_media_item)
 
@@ -497,7 +540,7 @@ def create_multimedia(
     d.metric('increment', 'submissions')
     d.metric('increment', 'multimediasubmissions')
 
-    return submitid, bool(thumb_media_item)
+    return submitid, other_media.thumbnail_source is not None
 
 
 def reupload(userid, submitid, submitfile):
@@ -525,54 +568,31 @@ def reupload(userid, submitid, submitfile):
         raise WeasylError("submitSizeZero")
 
     # Write temporary submission file
-    submitextension = files.get_extension_for_category(submitfile, subcat)
-    if submitextension is None:
-        raise WeasylError("submitType")
-    elif subcat == m.ART_SUBMISSION_CATEGORY and submitextension not in [".jpg", ".png", ".gif"]:
-        raise WeasylError("submitType")
-    elif subcat == m.MULTIMEDIA_SUBMISSION_CATEGORY and submitextension not in [".mp3", ".swf"]:
-        raise WeasylError("submitType")
-    elif _limit(submitsize, submitextension):
-        raise WeasylError("submitSizeExceedsLimit")
-
-    submit_file_type = submitextension.lstrip('.')
-    im = None
-    if submit_file_type in {'jpg', 'png', 'gif'}:
-        im = image.from_string(submitfile)
-    submit_media_item = orm.MediaItem.fetch_or_create(
-        submitfile, file_type=submit_file_type, im=im)
-    check_for_duplicate_media(userid, submit_media_item.mediaid)
-    orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
-
     if subcat == m.ART_SUBMISSION_CATEGORY:
-        cover_media_item = submit_media_item.ensure_cover_image(im)
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
+        submitfile_media = _upload_visual(userid, submitfile)
 
-        # Always create a 'generated' thumbnail from the source image.
-        with BytesIO(submitfile) as buf:
-            thumbnail_formats = images_new.get_thumbnail(buf)
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'submission', submitfile_media.submission)
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'cover', submitfile_media.cover)
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'thumbnail-generated', submitfile_media.thumbnail_generated)
+        orm.SubmissionMediaLink.clear_link(submitid, 'thumbnail-generated-webp')
+    else:
+        submitextension = files.get_extension_for_category(submitfile, subcat)
+        if submitextension is None:
+            raise WeasylError("submitType")
+        elif subcat == m.MULTIMEDIA_SUBMISSION_CATEGORY and submitextension not in [".mp3", ".swf"]:
+            raise WeasylError("submitType")
+        elif _limit(submitsize, submitextension):
+            raise WeasylError("submitSizeExceedsLimit")
+        submit_file_type = submitextension.lstrip('.')
 
-        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
-        thumb_generated_media_item = orm.MediaItem.fetch_or_create(
-            thumb_generated,
-            file_type=thumb_generated_file_type,
-            attributes=thumb_generated_attributes,
-        )
+        submit_media_item = orm.MediaItem.fetch_or_create(
+            submitfile, file_type=submit_file_type)
+        check_for_duplicate_media(userid, submit_media_item.mediaid)
 
-        if thumbnail_formats.webp is None:
-            thumb_generated_media_item_webp = None
-        else:
-            thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
-            thumb_generated_media_item_webp = orm.MediaItem.fetch_or_create(
-                thumb_generated,
-                file_type=thumb_generated_file_type,
-                attributes=thumb_generated_attributes,
-            )
-
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', thumb_generated_media_item)
-
-        if thumbnail_formats.webp is not None:
-            orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated-webp', thumb_generated_media_item_webp)
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
 
 
 _GOOGLE_DOCS_EMBED_URL_QUERY = (
@@ -1149,7 +1169,14 @@ def reupload_cover(userid, submitid, coverfile):
     if is_removal:
         orm.SubmissionMediaLink.clear_link(submitid, 'cover')
     else:
-        cover_media_item = media.make_cover_media_item(coverfile)
+        try:
+            result = image.create_cover(coverfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("FileType") from e
+        except Exception as e:
+            raise WeasylError("imageProcessingFailed", level="info") from e
+
+        cover_media_item = media.ensure_output_media(result)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
 
 

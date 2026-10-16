@@ -23,6 +23,10 @@ host = localhost
 
 global_rate_limit = 0/1
 
+[badgr]
+servers = weasyl-badgr:27350
+socket_timeout = 0.25
+
 [two_factor_auth]
 # This key MUST be changed when in production;
 # See https://cryptography.io/en/latest/fernet/ -- Fernet.generate_key()

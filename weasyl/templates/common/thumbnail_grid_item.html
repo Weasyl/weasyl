@@ -1,6 +1,7 @@
 $def with (card, *, welcomeid=None, include_byline=True, lazy_load=True)
 $code:
-  thumb_url = card.thumbnail.files.fallback['display_url']
+  files = card.thumbnail.files
+  thumb_url = (files.webp or files.fallback)['display_url']
 
 <li class="item">
   $if welcomeid is not None:
@@ -13,13 +14,7 @@ $code:
       $elif card.rating == R.EXPLICIT.code:
         <span class="rating explicit">The following submission is rated Explicit:</span>
 
-      $if card.thumbnail.files.webp is not None:
-        <picture>
-          <source type="image/webp" srcset="${card.thumbnail.files.webp['display_url']}" />
-          <img src="${thumb_url}" alt="" width="${card.thumbnail.width}" height="${card.thumbnail.height}"$:{' loading="lazy"' if lazy_load else ''} />
-        </picture>
-      $else:
-        <img src="${thumb_url}" alt="" width="${card.thumbnail.width}" height="${card.thumbnail.height}"$:{' loading="lazy"' if lazy_load else ''} />
+      <img src="${thumb_url}" alt="" width="${card.thumbnail.width}" height="${card.thumbnail.height}"$:{' loading="lazy"' if lazy_load else ''} />
     </a>
 
     <figcaption>

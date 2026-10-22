@@ -83,6 +83,10 @@ def _validate_servers(servers) -> None:
 
 
 _servers = tuple(map(_parse_server, config_obj.get("badgr", "servers").split()))
+
+if not _servers:
+    raise RuntimeError("no badgr servers configured")
+
 _validate_servers(_servers)  # TODO: might want to do this only for one process, and in the background
 
 _FILE_TYPES = {

@@ -19,7 +19,6 @@ dependencies = [
     "arrow==1.2.2",
     "bcrypt==4.0.1",
     "dogpile-cache==1.2.0",
-    "pillow==12.1.1",
     "sqlalchemy[postgresql]==1.4.45",
     "lxml==4.9.2",
     "prometheus-client~=0.20.0",
@@ -28,9 +27,6 @@ dependencies = [
 
     # https://github.com/Weasyl/misaka
     "misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz",
-
-    # https://github.com/Weasyl/sanpera
-    "sanpera @ https://pypi.weasyl.dev/sanpera/sanpera-0.2rc0%2Bweasyl.3.tar.gz",
 ]
 
 [tool.poetry.group.dev.dependencies]

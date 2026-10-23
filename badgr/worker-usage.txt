@@ -1,0 +1,9 @@
+Usage:
+  badgr-worker cover
+  badgr-worker thumbnail <crop-x> <crop-y> <crop-width> <crop-height>
+  badgr-worker avatar <crop-x> <crop-y> <crop-width> <crop-height>
+  badgr-worker avatar-source
+  badgr-worker banner
+
+crop values of 0 0 0 0 indicate automatic crop. (width 0 and height 0 aren't valid otherwise.)
+A crop that isn't fully in-bounds is treated as 0 0 0 0 with a warning.

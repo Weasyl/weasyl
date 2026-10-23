@@ -33,6 +33,9 @@ jobs:
       weasyl-memcached:
         image: memcached:1.5-alpine
 
+      weasyl-badgr:
+        image: ghcr.io/weasyl/badgr@sha256:b35200fb4e46cf66869b100877feaa6eefead0614b483a5c084fdb203af807f1
+
     steps:
       - uses: actions/checkout@v6
         with:
@@ -93,7 +96,6 @@ jobs:
         run: |
           cp ci/site.config.txt config/
           cp config/weasyl-staff.example.py config/weasyl-staff.py
-          cat imagemagick-policy.xml > /usr/etc/ImageMagick-6/policy.xml
           printf %.8s "$GITHUB_SHA" > version.txt
 
       - name: Build assets

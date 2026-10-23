@@ -1,7 +1,5 @@
+import hashlib
 import os
-from io import BytesIO
-
-from PIL import Image
 
 from weasyl.macro import MACRO_APP_ROOT, MACRO_STORAGE_ROOT
 from weasyl.test import db_utils
@@ -20,17 +18,32 @@ def read_asset(path):
     return _asset_cache[full_path]
 
 
-def read_asset_image(path):
-    return Image.open(BytesIO(read_asset(path))).convert('RGBA')
-
-
 def get_storage_path(url):
     return os.path.join(MACRO_STORAGE_ROOT, url[1:])
 
 
-def read_storage_image(image_url):
+def read_storage(image_url):
     full_path = get_storage_path(image_url)
-    return Image.open(full_path).convert('RGBA')
+    with open(full_path, "rb") as f:
+        return f.read()
+
+
+def fingerprint(bs: bytes) -> tuple[int, str]:
+    """
+    A variable-length hash where an output prefix match usually corresponds to an input prefix match.
+    """
+    step = 8
+    i = 0
+    h = hashlib.sha256()
+    fp = bytearray()
+
+    while i < len(bs):
+        h.update(bs[i:i+step])
+        fp.extend(h.digest()[:2])
+        i += step
+        step += step // 2
+
+    return (len(bs), fp.hex())
 
 
 BASE_VISUAL_FORM = {

@@ -96,6 +96,7 @@ class CharSettingsColumn(types.TypeDecorator):
         'J': 'jpg',
         'P': 'png',
         'G': 'gif',
+        'W': 'webp',
         'T': 'txt',
         'H': 'htm',
         'M': 'mp3',

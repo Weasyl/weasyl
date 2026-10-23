@@ -39,7 +39,7 @@ RUN --network=none mkdir build && deno run \
     --output=./build/
 
 
-FROM docker.io/library/alpine:3.22 AS mozjpeg-src
+FROM docker.io/library/alpine:3.24 AS mozjpeg-src
 RUN --network=none adduser -S build -h /mozjpeg-build
 USER build
 WORKDIR /mozjpeg-build
@@ -47,7 +47,7 @@ ADD --checksum=sha256:9fcbb7171f6ac383f5b391175d6fb3acde5e64c4c4727274eade84ed09
 RUN tar xf v4.1.5.tar.gz
 
 
-FROM docker.io/library/alpine:3.22 AS mozjpeg
+FROM docker.io/library/alpine:3.24 AS mozjpeg
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     musl-dev gcc make \
@@ -56,102 +56,114 @@ RUN adduser -S build -h /mozjpeg-build
 USER build
 WORKDIR /mozjpeg-build/build
 RUN --mount=type=bind,from=mozjpeg-src,source=/mozjpeg-build/mozjpeg-4.1.5,target=/mozjpeg-build/mozjpeg \
-    cmake -DENABLE_STATIC=0 -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-build/package-root -S ../mozjpeg -B . \
+    cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DENABLE_STATIC=0 -DPNG_SUPPORTED=0 -DCMAKE_INSTALL_PREFIX=/mozjpeg-build/package-root -S ../mozjpeg -B . \
     && cmake --build . --parallel --target install
 
 
-FROM docker.io/library/alpine:3.22 AS libpng-package
-RUN --network=none adduser -S build -h /libpng-build
-RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
-    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    abuild \
-    musl-dev gcc make \
-    gawk autoconf automake libtool \
-    zlib-dev
+FROM docker.io/library/alpine:3.24 AS imagemagick-src
+RUN --network=none adduser -S build -h /imagemagick-build
 USER build
-WORKDIR /libpng-build/libpng
-ADD --checksum=sha256:f7d8bf1601b7804f583a254ab343a6549ca6cf27d255c302c47af2d9d36a6f18 --chown=100 --link https://sourceforge.net/projects/libpng/files/libpng16/1.6.56/libpng-1.6.56.tar.xz/download ./libpng-1.6.56.tar.xz
-ADD --checksum=sha256:017c06f75ffed25f6cda9b5369ec6da0ac35a6616adf7abe4222516a0237f37a --chown=100 --link https://sourceforge.net/projects/libpng-apng/files/libpng16/1.6.55/libpng-1.6.55-apng.patch.gz/download ./libpng-1.6.55-apng.patch.gz
-# TODO: craft deterministic dummy-abuild.key and copy it in alongside APKBUILD
-RUN --network=none openssl genrsa -out dummy-abuild.key 512
-COPY --chown=100 --link ./libpng/APKBUILD ./
-RUN --network=none \
-    PACKAGER_PRIVKEY=/libpng-build/libpng/dummy-abuild.key \
-    abuild -P /libpng-build/packages -c verify unpack prepare build rootpkg clean
+WORKDIR /imagemagick-build
+ADD --checksum=sha256:ea9006be742bef04af734ffc6c641f68a511221a97f40ba61dba8f9a356cfd0d --chown=100 --link https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-33/ImageMagick-7.1.2-33.tar.xz ./
+RUN --network=none tar xf ImageMagick-7.1.2-33.tar.xz
 
 
-FROM docker.io/library/alpine:3.22 AS imagemagick6-src
-RUN --network=none adduser -S build -h /imagemagick6-build
-RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
-    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    7zip
-USER build
-WORKDIR /imagemagick6-build
-ADD --checksum=sha256:c33f2e0e9ae278f25dc1f47c9b5ce42f53172ecddf81253f01e5bcc97a0083c9 --chown=100 --link https://github.com/ImageMagick/ImageMagick6/releases/download/6.9.13-49/ImageMagick-6.9.13-49.7z ./
-RUN --network=none 7z x ImageMagick-6.9.13-49.7z
-
-
-FROM docker.io/library/alpine:3.22 AS imagemagick6-build
-RUN --network=none adduser -S build -h /imagemagick6-build
-RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
-    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    zlib-dev
-RUN --network=none \
-    --mount=type=bind,from=libpng-package,source=/libpng-build/packages/libpng-build/x86_64,target=/run/libpng-packages,ro \
-    apk add --no-network --allow-untrusted \
-    /run/libpng-packages/libpng-1.6.56-r0.apk \
-    /run/libpng-packages/libpng-dev-1.6.56-r0.apk
+FROM docker.io/library/alpine:3.24 AS imagemagick-build
+RUN --network=none adduser -S build -h /imagemagick-build
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     apk add \
     musl-dev gcc make \
     lcms2-dev \
-    libxml2-dev \
+    libpng-dev \
     libwebp-dev
 USER build
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/include/ /usr/include/
 COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/
-WORKDIR /imagemagick6-build/ImageMagick
-# `CFLAGS`, `LDFLAGS`: abuild defaults with `-O2` instead of `-Os`, as used by Alpine 3.16 imagemagick6 package
-# no `--enable-hdri`: doesn’t seem to work with sanpera, even though we’re building it from source?
+WORKDIR /imagemagick-build/ImageMagick
+# `CFLAGS`, `LDFLAGS`: abuild defaults with `-O2` instead of `-Os`, as used by Alpine 3.24 imagemagick package
 # `--with-cache=32GiB`: let other places (like policy.xml) set the limit, and definitely don’t choose whether to write files based on detecting available memory
-# `--with-xml`: for XMP metadata
 RUN \
-    --mount=type=bind,from=imagemagick6-src,source=/imagemagick6-build/ImageMagick-6.9.13-49,target=/imagemagick6-build/ImageMagick,rw \
+    --mount=type=bind,from=imagemagick-src,source=/imagemagick-build/ImageMagick-7.1.2-33,target=/imagemagick-build/ImageMagick,rw \
     --network=none \
     ./configure \
     --prefix=/usr \
-    --with-security-policy=websafe \
+    --with-security-policy=secure \
     --disable-static \
     --enable-shared \
     --disable-deprecated \
     --disable-docs \
     --disable-cipher \
+    --disable-dpc \
+    --disable-pipes \
     --with-cache=32GiB \
     --without-magick-plus-plus \
     --without-perl \
+    --without-utilities \
     --without-bzlib \
-    --without-dps \
     --without-djvu \
+    --without-dmr \
+    --without-dps \
     --without-flif \
+    --without-fontconfig \
     --without-freetype \
     --without-heic \
     --without-jbig \
-    --without-openjp2 \
+    --without-jxl \
     --without-lqr \
     --without-lzma \
     --without-openexr \
+    --without-openjp2 \
     --without-pango \
-    --without-raw \
     --without-raqm \
+    --without-raw \
     --without-tiff \
     --without-wmf \
-    --with-xml \
+    --without-xml \
     --without-x \
+    --without-zip \
     --without-zstd \
+    --with-lcms \
+    --with-jpeg \
+    --with-png \
+    --with-webp \
     CFLAGS='-O2 -fstack-clash-protection -Wformat -Werror=format-security' \
     LDFLAGS='-Wl,--as-needed,-O1,--sort-common' \
     && make -j"$(nproc)" \
     && make install DESTDIR="$HOME/package-root"
+
+
+FROM docker.io/library/alpine:3.24 AS badgr-build
+RUN --network=none adduser -S build -h /badgr -u 1000
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    musl-dev linux-headers gcc meson \
+    libseccomp-dev \
+    imagemagick-dev \
+    lcms2-dev
+COPY --link badgr/ /badgr/src/
+USER 1000
+WORKDIR /badgr/build/
+RUN --network=none \
+    meson setup --buildtype=release ./ ../src/ \
+    && meson compile
+
+
+FROM docker.io/library/alpine:3.24 AS badgr
+RUN --network=none adduser -S badgr -h /badgr -u 1000
+RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
+    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
+    busybox-extras \
+    libseccomp \
+    lcms2 \
+    libgcc libgomp libpng libwebpmux libwebpdemux
+COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/include/ /usr/include/
+COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/
+COPY --from=imagemagick-build --chown=root:root --link /imagemagick-build/package-root/ /
+COPY --from=badgr-build --chown=root:root --link /badgr/build/badgr-worker /badgr/build/badgr-init /usr/local/bin/
+COPY --chown=root:root --link imagemagick-policy.xml /usr/etc/ImageMagick-7/policy.xml
+USER 1000
+CMD ["badgr-init", "tcpsvd", "-E", "::", "27350", "timeout", "-k", "60", "59", "badgr-worker"]
+LABEL org.opencontainers.image.source=https://github.com/Weasyl/weasyl
 
 
 FROM docker.io/library/python:3.10-alpine3.22 AS bdist
@@ -163,9 +175,6 @@ RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
 RUN adduser -S weasyl -h /weasyl -u 1000
 WORKDIR /weasyl
 USER weasyl
-COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/include/ /usr/include/
-COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/
-COPY --from=imagemagick6-build --chown=root:root --link /imagemagick6-build/package-root/ /
 COPY --chown=1000 --link poetry-requirements.txt ./
 RUN --network=none python3 -m venv --system-site-packages --without-pip .poetry-venv
 RUN --mount=type=cache,id=pip,target=/weasyl/.cache/pip,sharing=locked,uid=1000 \
@@ -195,28 +204,15 @@ RUN --mount=type=cache,id=poetry,target=/weasyl/.cache/pypoetry,sharing=locked,u
 
 
 FROM docker.io/library/python:3.10-alpine3.22 AS package
-# libgcc, libgomp, lcms2, libpng, libxml2, libwebp*: ImageMagick
 # libmemcached-libs, zlib: pylibmc
 # libpq: psycopg2
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
-    ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
-    zlib
-RUN --network=none \
-    --mount=type=bind,from=libpng-package,source=/libpng-build/packages/libpng-build/x86_64,target=/run/libpng-packages,ro \
-    apk add --no-network --allow-untrusted \
-    /run/libpng-packages/libpng-1.6.56-r0.apk
-RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     apk add \
-    libgcc libgomp lcms2 libxml2 libwebpdemux libwebpmux \
-    libmemcached-libs \
+    libmemcached-libs zlib \
     libpq
 RUN adduser -S weasyl -h /weasyl -u 1000
 WORKDIR /weasyl
 USER weasyl
-COPY --from=mozjpeg --chown=root:root --link /mozjpeg-build/package-root/lib64/ /usr/lib/
-COPY --from=imagemagick6-build --chown=root:root --link /imagemagick6-build/package-root/ /
-COPY --chown=root:root --link imagemagick-policy.xml /usr/etc/ImageMagick-6/policy.xml
-
 COPY --from=bdist --link /weasyl/.venv .venv
 COPY --from=assets --link /weasyl-build/build/rev-manifest.json build/rev-manifest.json
 COPY --chown=1000:root --link libweasyl libweasyl

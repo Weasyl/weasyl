@@ -1,7 +1,5 @@
-import pytest
-
 from libweasyl.test.common import datadir
-from libweasyl import images, media
+from libweasyl import media
 
 
 def test_fetch_or_create_disk_media_item(staticdir, db):
@@ -27,28 +25,6 @@ def test_fetch_or_create_disk_media_item_with_attributes(db):
     assert item.attributes == {'spam': 'eggs'}
 
 
-def test_fetch_or_create_disk_media_item_with_image(db):
-    """
-    An image can be passed in, which pulls out width/height attributes and
-    autodetects the file type.
-    """
-    data = datadir.join('1200x6566.png').read(mode='rb')
-    im = images.from_buffer(data)
-    item = media.MediaItem.fetch_or_create(data, im=im)
-    assert item.file_type == 'png'
-    assert item.attributes == {'width': 1200, 'height': 6566}
-
-
-def test_fetch_or_create_disk_media_item_with_image_and_attributes(db):
-    """
-    Passing an image and attributes merges the two sets of attributes.
-    """
-    data = datadir.join('1200x6566.png').read(mode='rb')
-    im = images.from_buffer(data)
-    item = media.MediaItem.fetch_or_create(data, file_type='png', im=im, attributes={'spam': 'eggs'})
-    assert item.attributes == {'spam': 'eggs', 'width': 1200, 'height': 6566}
-
-
 def test_fetch_or_create_disk_media_item_fetches_extant_items(db):
     """
     Calling ``MediaItem.fetch_or_create`` with data that's already in the
@@ -59,15 +35,6 @@ def test_fetch_or_create_disk_media_item_fetches_extant_items(db):
     db.flush()
     item2 = media.MediaItem.fetch_or_create(data, file_type='png')
     assert item1.mediaid == item2.mediaid
-
-
-def test_fetch_or_create_requires_file_type():
-    """
-    A file type is required if an image isn't being passed in.
-    """
-    with pytest.raises(ValueError) as err:
-        media.MediaItem.fetch_or_create(b'spam')
-    assert str(err.value) == "a file type is required"
 
 
 def test_disk_media_item_display_url(db):

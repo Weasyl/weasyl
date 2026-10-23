@@ -93,24 +93,6 @@ $(document).ready(() => {
     });
 });
 
-let newSocialGroup = document.getElementById('new-social-group');
-
-function addNewSocialGroupIfNeeded() {
-    if (this.children[0].value || this.children[1].value) {
-        newSocialGroup = this.cloneNode(true);
-        newSocialGroup.children[0].value = newSocialGroup.children[1].value = '';
-        this.insertAdjacentElement('afterend', newSocialGroup);
-        this.removeEventListener('input', addNewSocialGroupIfNeeded);
-        newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
-    }
-}
-
-if (newSocialGroup) {
-    newSocialGroup.removeAttribute('id');
-    newSocialGroup.addEventListener('input', addNewSocialGroupIfNeeded);
-    addNewSocialGroupIfNeeded.call(newSocialGroup);
-}
-
 const reportButtons = $('#report_buttons .enableable');
 const reportClosureWarning = $('#report-closure-warning');
 const noteTitle = $('#note-title');

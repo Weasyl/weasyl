@@ -26,14 +26,6 @@ def summarize(s, max_length=200):
     return s
 
 
-AUTOLINK_URL = (
-    r"(?P<url>\b(?:https?://|www\d{,3}\.|[a-z0-9.-]+\.[a-z]{2,4}/)[^\s()"
-    r"<>\[\]\x02]+(?![^\s`!()\[\]{};:'\".,<>?\x02\xab\xbb\u201c\u201d\u2018"
-    r"\u2019]))"
-)
-
-url_regexp = re.compile(AUTOLINK_URL, re.I | re.S)
-
 USER_LINK = re.compile(r"""
     \\(?P<escaped>[\\<])
 | <(?P<type>!~|[!~])(?P<username>[a-z0-9_]+)>

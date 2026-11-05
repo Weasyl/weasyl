@@ -73,7 +73,7 @@ def record_timing(func):
 
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
 if config._in_test:
-    _sqlalchemy_url += '_test'
+    _sqlalchemy_url = os.environ["WEASYL_TEST_SQLALCHEMY_URL"]
 engine = meta.bind = sa.create_engine(
     _sqlalchemy_url,
     pool_use_lifo=True,

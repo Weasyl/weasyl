@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import html
 import os
 import time
 import hashlib
@@ -164,6 +165,7 @@ def _compile(template_name):
         _template_cache[template_name] = template = Template(
             pkgutil.get_data(__name__, 'templates/' + template_name).decode('utf-8'),
             filename=template_name,
+            filter=html.escape,
             globals={
                 "LOGIN": _sysname_for_stored_username,
                 "USER_TYPE": user_type,
@@ -209,7 +211,7 @@ def render(template_name, argv=()):
     Renders a template and returns the resulting HTML.
     """
     template = _compile(template_name)
-    return str(template(*argv))
+    return template.render(*argv)
 
 
 def titlebar(title, backtext=None, backlink=None):

@@ -8,7 +8,6 @@ requires-python = ">=3.10,<3.11"
 dependencies = [
     "gunicorn==23.0.0",
     "multipart==1.2.2",
-    "web-py==0.51",
     "requests[socks]~=2.32",
     "pylibmc==1.6.2",
     "pyramid==2.0.2",
@@ -27,6 +26,9 @@ dependencies = [
 
     # https://github.com/Weasyl/misaka
     "misaka @ https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz",
+
+    # https://github.com/Weasyl/webpy
+    "weasyl-old-templates @ https://pypi.weasyl.dev/weasyl_old_templates-2.0.4-py3-none-any.whl",
 ]
 
 [tool.poetry.group.dev.dependencies]

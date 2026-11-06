@@ -21,8 +21,8 @@ $code:
   <search class="notes-filter">
     $if filter_usernames:
       Showing messages ${filter_rel}
-      $for username, exists in filter_usernames:
-        $ separator = '.' if loop.last else ' or '
+      $for ni, (username, exists) in enumerate(filter_usernames, start=-len(filter_usernames)):
+        $ separator = '.' if ni == -1 else ' or '
         $if exists:
           <a href="/~${LOGIN(username)}">${username}</a>${separator}
         $else:

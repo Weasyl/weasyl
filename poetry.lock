@@ -335,25 +335,6 @@ files = [
 ]
 
 [[package]]
-name = "cheroot"
-version = "10.0.0"
-description = "Highly-optimized, pure-python HTTP server"
-optional = false
-python-versions = ">=3.6"
-groups = ["main"]
-files = [
-    {file = "cheroot-10.0.0-py3-none-any.whl", hash = "sha256:8f65dd38ad3d56419cfe2d1b5e4b4e3282b1d58758ca2a336231641a80cf0717"},
-    {file = "cheroot-10.0.0.tar.gz", hash = "sha256:59c4a1877fef9969b3c3c080caaaf377e2780919437853fc0d32a9df40b311f0"},
-]
-
-[package.dependencies]
-"jaraco.functools" = "*"
-more-itertools = ">=2.6"
-
-[package.extras]
-docs = ["furo", "jaraco.packaging (>=3.2)", "python-dateutil", "sphinx (>=1.8.2)", "sphinx-tabs (>=1.1.0)", "sphinxcontrib-apidoc (>=0.3.0)"]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -703,25 +684,6 @@ files = [
 ]
 
 [[package]]
-name = "jaraco-functools"
-version = "4.0.0"
-description = "Functools like those found in stdlib"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "jaraco.functools-4.0.0-py3-none-any.whl", hash = "sha256:daf276ddf234bea897ef14f43c4e1bf9eefeac7b7a82a4dd69228ac20acff68d"},
-    {file = "jaraco.functools-4.0.0.tar.gz", hash = "sha256:c279cb24c93d694ef7270f970d499cab4d3813f4e08273f95398651a634f0925"},
-]
-
-[package.dependencies]
-more-itertools = "*"
-
-[package.extras]
-docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (<7.2.5)", "sphinx (>=3.5)", "sphinx-lint"]
-testing = ["jaraco.classes", "pytest (>=6)", "pytest-black (>=0.3.7) ; platform_python_implementation != \"PyPy\"", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-mypy (>=0.9.1) ; platform_python_implementation != \"PyPy\"", "pytest-ruff"]
-
-[[package]]
 name = "lxml"
 version = "4.9.2"
 description = "Powerful and Pythonic XML processing library combining libxml2/libxslt with the ElementTree API."
@@ -918,18 +880,6 @@ files = [
 [package.source]
 type = "url"
 url = "https://pypi.weasyl.dev/misaka/misaka-1.0.3%2Bweasyl.7.tar.gz"
-
-[[package]]
-name = "more-itertools"
-version = "10.1.0"
-description = "More routines for operating on iterables, beyond itertools"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "more-itertools-10.1.0.tar.gz", hash = "sha256:626c369fa0eb37bac0291bce8259b332fd59ac792fa5497b59837309cd5b114a"},
-    {file = "more_itertools-10.1.0-py3-none-any.whl", hash = "sha256:64e0735fcfdc6f3464ea133afe8ea4483b1c5fe3a3d69852e6503b43a0b222e6"},
-]
 
 [[package]]
 name = "multipart"
@@ -1485,18 +1435,19 @@ docs = ["Sphinx (>=1.8.1)", "docutils", "pylons-sphinx-themes (>=1.0.9)"]
 testing = ["coverage (>=7.6.0)", "pytest", "pytest-cov"]
 
 [[package]]
-name = "web-py"
-version = "0.51"
-description = "web.py: makes web apps"
+name = "weasyl-old-templates"
+version = "2.0.4"
+description = ""
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "web.py-0.51.tar.gz", hash = "sha256:b50343941360984d37270186453bb897d13630028a739394fedf38f9cde2fd07"},
+    {file = "weasyl_old_templates-2.0.4-py3-none-any.whl", hash = "sha256:8d9d6e9daf1b742b683f506837a1f75ba90a3ec7f54c92792c75636718b2cc3f"},
 ]
 
-[package.dependencies]
-cheroot = "*"
+[package.source]
+type = "url"
+url = "https://pypi.weasyl.dev/weasyl_old_templates-2.0.4-py3-none-any.whl"
 
 [[package]]
 name = "webob"
@@ -1611,4 +1562,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.11"
-content-hash = "bf265cf3b71c1161b16c6610cf3683cd35193f9e0216d3ccf0a0f5328ed87f94"
+content-hash = "84beb232cd942d6cca764c35b4edfae3a2f36d0dc502fef5061e32b0da0c7aac"

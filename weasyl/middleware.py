@@ -367,7 +367,7 @@ def userid_request_property(request):
         return userid or 0
 
 
-def web_input_request_method(request, *required, **kwargs):
+def web_input_request_method(request, **kwargs):
     """
     Callable that processes the pyramid request.params multidict into a web.py storage object
     in the style of web.input().
@@ -378,7 +378,7 @@ def web_input_request_method(request, *required, **kwargs):
         values of that key should be collapsed into a list.
     @return: A dictionary-like object in the fashion of web.py's web.input()
     """
-    return storify(request.params.mixed(), *required, **kwargs)
+    return storify(request.params.mixed(), **kwargs)
 
 
 def _redact_match(match):

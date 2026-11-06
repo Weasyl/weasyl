@@ -24,7 +24,7 @@ $code:
     <p>
       <label for="siterating">Maximum Viewable Content Rating</label>
       <select name="rating" class="input" id="siterating"$:{'' if len(allowed_ratings) > 1 else ' disabled'}>
-        $for rating in allowed_ratings
+        $for rating in allowed_ratings:
           <option value="${rating.code}"$:{_RATING(current_rating, rating)}>${rating.name_with_age}</option>
       </select>
       $if len(allowed_ratings) > 1:

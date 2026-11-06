@@ -1,5 +1,8 @@
 A SOCKS5 proxy for Weasyl development. Allows containers on internal networks to connect to specific external services.
 
+> [!WARNING]
+> The main purpose of this tool is to allow a container to be connected only to internal networks (preventing connections intended for other containers from leaking) while still having effective opt-in external network access. It still forwards arbitrary data over TCP streams, and doesn’t attempt to prevent a malicious container from communicating with other services through *domain fronting*, for example. The DNS name allowlist is mainly intended as an additional guard against accidental connections.
+
 Does not support authentication, bind requests, UDP, or graceful shutdown; does not resist denial of service.
 
 Usage:

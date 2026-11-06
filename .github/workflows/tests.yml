@@ -23,6 +23,15 @@ jobs:
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_USER: weasyl
+          POSTGRES_DB: weasyl_test
+          POSTGRES_INITDB_ARGS: -N
+        command: >-
+          -c bgwriter_lru_maxpages=0
+          -c wal_level=minimal
+          -c fsync=off
+          -c synchronous_commit=off
+          -c full_page_writes=off
+          -c max_wal_senders=0
         # probably ready by the time the tests run anyway; no need to add latency
         #options: >-
         #  --health-cmd pg_isready
@@ -32,6 +41,9 @@ jobs:
 
       weasyl-memcached:
         image: memcached:1.5-alpine
+
+      weasyl-badgr:
+        image: ghcr.io/weasyl/badgr@sha256:b35200fb4e46cf66869b100877feaa6eefead0614b483a5c084fdb203af807f1
 
     steps:
       - uses: actions/checkout@v6
@@ -108,7 +120,7 @@ jobs:
               --output=./build/
   
         - name: Create test database
-          run: psql -h weasyl-database -U weasyl < containers/postgres/01-test.sql
+          run: psql -h weasyl-database -U weasyl -d weasyl_test < containers/postgres/00-test.sql
 
       - name: Run tests
         env:

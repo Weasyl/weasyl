@@ -1,5 +1,4 @@
-import hashlib
-from io import BytesIO
+import pkgutil
 
 import arrow
 import pytest
@@ -11,14 +10,10 @@ from weasyl.test.web.common import (
     BASE_LITERARY_FORM,
     BASE_VISUAL_FORM,
     create_visual,
+    fingerprint,
     read_asset,
-    read_asset_image,
-    read_storage_image,
+    read_storage,
 )
-
-
-def _image_hash(image):
-    return hashlib.sha224(image.tobytes()).hexdigest()
 
 
 @pytest.mark.parametrize('age', [17, 19])
@@ -60,34 +55,25 @@ def test_gif_thumbnail_static(app, submission_user):
         submitfile=webtest.Upload('loader.gif', read_asset('img/loader.gif'), 'image/gif'),
     )
 
-    [thumb_compat] = app.get('/~submissiontest').html.select('#user-thumbs img')
-    assert thumb_compat['src'].endswith('.jpg')
-
-    [thumb] = app.get('/~submissiontest').html.select('#user-thumbs .thumb-bounds')
-    assert thumb.picture is not None
-    assert thumb.picture.source['srcset'].endswith('.webp')
+    [thumb] = app.get('/~submissiontest').html.select('#user-thumbs img')
+    assert thumb['src'].endswith('.webp')
 
 
 @pytest.mark.usefixtures('db', 'cache')
 def test_visual_reupload_thumbnail_and_cover(app, submission_user):
-    # resized to be larger than COVER_SIZE so a cover is created
-    with BytesIO() as f:
-        read_asset_image('img/wesley1.png').resize((2200, 200)).save(f, format='PNG')
-        wesley1_large = webtest.Upload('wesley1.png', f.getvalue(), 'image/png')
-
-    with BytesIO() as f:
-        read_asset_image('img/help/wesley-jumpingtext.png').resize((2200, 100)).save(f, format='PNG')
-        wesley2_large = webtest.Upload('wesley-jumpingtext.png', f.getvalue(), 'image/png')
+    # larger than COVER_SIZE so a cover is created
+    image1 = webtest.Upload('1080x200.png', pkgutil.get_data('libweasyl', 'test/data/1080x200.png'), 'image/png')
+    image2 = webtest.Upload('1080x100.png', pkgutil.get_data('libweasyl', 'test/data/1080x100.png'), 'image/png')
 
     cookie = db_utils.create_session(submission_user)
 
     # Create submission 1 with image 1
-    v1 = create_visual(app, submission_user, submitfile=wesley1_large)
+    v1 = create_visual(app, submission_user, submitfile=image1)
 
     # Reupload submission 1 with image 2
     app.post('/reupload/submission', {
         'targetid': '%i' % (v1,),
-        'submitfile': wesley2_large,
+        'submitfile': image2,
     }, headers={'Cookie': cookie}).follow()
 
     [thumb] = app.get('/~submissiontest').html.select('#user-thumbs img')
@@ -103,7 +89,7 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     v2 = create_visual(
         app,
         submission_user,
-        submitfile=wesley2_large,
+        submitfile=image2,
     )
 
     [thumb] = app.get('/~submissiontest').html.select('#user-thumbs img')
@@ -111,8 +97,8 @@ def test_visual_reupload_thumbnail_and_cover(app, submission_user):
     v2_cover_url = app.get('/~submissiontest/submissions/%i/test-title' % (v2,)).html.find(id='detail-art').img['src']
 
     # The reupload of submission 1 should look like submission 2
-    assert _image_hash(read_storage_image(v1_new_thumbnail_url)) == _image_hash(read_storage_image(v2_thumbnail_url))
-    assert _image_hash(read_storage_image(v2_cover_url)) == _image_hash(read_storage_image(v1_new_cover_url))
+    assert fingerprint(read_storage(v1_new_thumbnail_url)) == fingerprint(read_storage(v2_thumbnail_url))
+    assert fingerprint(read_storage(v2_cover_url)) == fingerprint(read_storage(v1_new_cover_url))
 
 
 @pytest.mark.parametrize('link,normalized', [

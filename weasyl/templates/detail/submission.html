@@ -53,7 +53,7 @@ $code:
   $elif submission is None:
     $# For tests with `weasyl.test.db_utils.create_submission` only; should never be reached in normal operation. TODO: improve tests to not rely on this, and use transactions to create submissions + media so normal operation never reaches this
 
-  $elif submission['file_type'] in ["jpg", "png", "gif"] and cover:
+  $elif submission['file_type'] in ["jpg", "png", "gif", "webp"] and cover:
     <!-- VISUAL -->
     <div id="detail-art">
       <a href="${submission['display_url']}">

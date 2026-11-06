@@ -41,7 +41,7 @@ def test_submission_views(app, submission_user, subtests: pytest.Subtests) -> No
             'type': 'submission',
             'views': 0,
         }
-        assert set(media) == {'thumbnail', 'submission', 'cover', 'thumbnail-generated-webp', 'thumbnail-generated'}
+        assert set(media) == {'thumbnail', 'submission', 'cover', 'thumbnail-generated'}
         assert type(media['submission'][0].pop('mediaid')) is int
         assert media['submission'] == [{
             'url': 'http://localhost/~submissiontest/submissions/%i/ca23760d8ca4bf6c2d721f5b02e389627b6b9181d5f323001f2d5801c086407b/submissiontest-test-title.png' % (submission,),

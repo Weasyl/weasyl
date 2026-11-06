@@ -12,7 +12,7 @@
 <!ATTLIST policy value CDATA #IMPLIED>
 ]>
 <!--
-Adapted from the websafe ImageMagick security policy at <https://github.com/ImageMagick/ImageMagick6/blob/f20b5721ce14bb95b46b01b4f4f14258962ebd36/config/policy-websafe.xml>.
+Adapted from the websafe ImageMagick security policy at <https://github.com/ImageMagick/ImageMagick/blob/7.1.2-33/config/policy-websafe.xml>.
 
     - locks down permitted types even more
     - removes or relaxes most DoS limits, which we should manage with application-level quotas
@@ -65,10 +65,10 @@ Adapted from the websafe ImageMagick security policy at <https://github.com/Imag
   <policy domain="path" rights="none" pattern="-"/>
   <!-- don't read sensitive paths. -->
   <policy domain="path" rights="none" pattern="/*"/>
-  <!-- ImageMagick still copies some input to a temporary file to make it seekable. This copying doesn't count as a write. (TODO: determine why the input - an `open(..., "rb")` file handle - isn't recognized as already seekable.) -->
-  <policy domain="path" rights="read" pattern="/magick-tmp/magick-*"/>
   <!-- Indirect reads are not permitted. -->
   <policy domain="path" rights="none" pattern="@*"/>
+  <!-- Disable pipe-based I/O. -->
+  <policy domain="path" rights="none" pattern="|*"/>
   <!-- Deny all image modules and specifically exempt reading or writing
        web-safe image formats. -->
   <policy domain="module" rights="none" pattern="*" />

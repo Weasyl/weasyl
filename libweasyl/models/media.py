@@ -18,7 +18,7 @@ from libweasyl.files import fanout
 from libweasyl.models.meta import Base
 from libweasyl.models.users import Profile
 from libweasyl.models import tables
-from libweasyl import flash, images
+from libweasyl import flash
 
 
 DirFd = NewType("DirFd", int)
@@ -86,20 +86,15 @@ class MediaItem(Base):
     __table__ = tables.media
 
     @classmethod
-    def fetch_or_create(cls, data, file_type=None, im=None, attributes=()):
-        sha256 = hashlib.sha256(data).hexdigest()
+    def fetch_or_create(cls, data, *, file_type: str, attributes=(), sha256: str | None = None):
+        if sha256 is None:
+            sha256 = hashlib.sha256(data).hexdigest()
         obj = (cls.query
                .filter(cls.sha256 == sha256)
                .first())
         if obj is None:
             attributes = dict(attributes)
-            if file_type is None and im is not None:
-                file_type = images.image_file_type(im)
-            if file_type is None:
-                raise ValueError('a file type is required')
-            if im is not None:
-                attributes.update({'width': im.size.width, 'height': im.size.height})
-            elif file_type == 'swf':
+            if file_type == 'swf':
                 attributes.update(flash.parse_flash_header(BytesIO(data)))
             obj = cls(sha256=sha256, file_type=file_type, attributes=attributes)
 
@@ -144,20 +139,6 @@ class MediaItem(Base):
         ret['display_url'] = self._media_link_formatter_callback(self, link) or self.display_url
         return ret
 
-    def ensure_cover_image(self, source_image):
-        if self.file_type not in {'jpg', 'png', 'gif'}:
-            raise ValueError('can only auto-cover image media items')
-
-        cover = images.make_cover_image(source_image)
-        if cover is source_image:
-            cover_media_item = self
-        else:
-            cover_media_item = self.fetch_or_create(
-                cover.to_buffer(format=self.file_type), file_type=self.file_type,
-                im=cover)
-        self.dbsession.flush()
-        return cover_media_item
-
     @property
     def display_url(self):
         # Dodge a silly AdBlock rule
@@ -166,9 +147,6 @@ class MediaItem(Base):
     @property
     def full_file_path(self):
         return os.path.join(self._base_file_path, *self._file_path_components)
-
-    def as_image(self):
-        return images.read(self.full_file_path.encode())
 
     @property
     def _file_path_components(self) -> list[str]:

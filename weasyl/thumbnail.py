@@ -1,12 +1,8 @@
 import os
-from sanpera import geometry
-
-from libweasyl import images
 
 from weasyl import define as d
 from weasyl import files
 from weasyl import image
-from weasyl import macro as m
 from weasyl import media
 from weasyl import orm
 from weasyl.error import WeasylError
@@ -24,74 +20,65 @@ def thumbnail_source(submitid):
     return source
 
 
-def _upload_char(filedata, charid):
+def upload(filedata, submitid=None, charid=None):
     """
     Creates a preview-size copy of an uploaded image file for a new thumbnail
     selection file.
     """
-    filename = d.url_make(charid, "char/.thumb", root=True)
+    try:
+        result = image.create_cover(filedata)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("FileType") from e
+    except Exception as e:
+        raise WeasylError("imageProcessingFailed", level="info") from e
 
-    files.write(filename, filedata)
-
-    if image.check_type(filename):
-        image.make_cover(filename)
-    else:
-        os.remove(filename)
-        raise WeasylError("FileType")
-
-
-def upload(filedata, submitid=None, charid=None):
     if charid:
-        return _upload_char(filedata, charid)
-
-    media_item = media.make_cover_media_item(filedata, error_type='FileType')
-    orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', media_item)
-
-
-def _create_char(x1, y1, x2, y2, charid, remove=True):
-    x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
-    filename = d.url_make(charid, "char/.thumb", root=True)
-    if not m.os.path.exists(filename):
-        filename = d.url_make(charid, "char/cover", root=True)
-        if not filename:
-            return
-        remove = False
-
-    im = image.read(filename)
-    size = im.size.width, im.size.height
-
-    d.engine.execute("""
-        UPDATE character
-        SET settings = REGEXP_REPLACE(settings, '-.', '') || '-' || %(image_setting)s
-        WHERE charid = %(char)s
-    """, image_setting=image.image_setting(im), char=charid)
-    dest = os.path.join(d.get_character_directory(charid), '%i.thumb%s' % (charid, images.image_extension(im)))
-
-    bounds = None
-    if image.check_crop(size, x1, y1, x2, y2):
-        bounds = geometry.Rectangle(x1, y1, x2, y2)
-    thumb = images.make_thumbnail(im, bounds)
-    thumb.write(dest, format=images.image_file_type(thumb))
-    if remove:
-        os.remove(filename)
+        filename = d.url_make(charid, "char/.thumb", root=True)
+        with open(filename, "wb") as f:
+            f.write(result.output)
+    else:
+        media_item = media.ensure_output_media(result)
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', media_item)
 
 
 def create(x1, y1, x2, y2, submitid=None, charid=None,
            remove=True):
-    if charid:
-        return _create_char(x1, y1, x2, y2, charid, remove)
-
-    db = d.connect()
     x1, y1, x2, y2 = d.get_int(x1), d.get_int(y1), d.get_int(x2), d.get_int(y2)
-    source = thumbnail_source(submitid)
-    im = db.query(orm.MediaItem).get(source['mediaid']).as_image()
-    size = im.size.width, im.size.height
-    bounds = None
-    if image.check_crop(size, x1, y1, x2, y2):
-        bounds = geometry.Rectangle(x1, y1, x2, y2)
-    thumb = images.make_thumbnail(im, bounds)
-    file_type = images.image_file_type(im)
-    media_item = orm.MediaItem.fetch_or_create(
-        thumb.to_buffer(format=file_type), file_type=file_type, im=thumb)
-    orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'thumbnail-custom', media_item)
+
+    if charid:
+        filename = d.url_make(charid, "char/.thumb", root=True)
+        if not os.path.exists(filename):
+            filename = d.url_make(charid, "char/cover", root=True)
+            if not filename:
+                return
+            remove = False
+    else:
+        db = d.connect()
+        source = thumbnail_source(submitid)
+        filename = db.query(orm.MediaItem).get(source['mediaid']).full_file_path
+
+    with open(filename, "rb") as f:
+        image_bytes = f.read()
+
+    try:
+        result = image.create_thumbnail_crop(image_bytes, x1, y1, x2, y2)
+    except Exception as e:
+        raise WeasylError("imageProcessingFailed", level="info") from e
+
+    if charid:
+        d.engine.execute("""
+            UPDATE character
+            SET settings = REGEXP_REPLACE(settings, '-.', '') || '-' || %(image_setting)s
+            WHERE charid = %(char)s
+        """, image_setting=files.FILE_TYPE_FLAGS[result.output_file_type], char=charid)
+        dest = os.path.join(d.get_character_directory(charid), '%i.thumb.%s' % (charid, result.output_file_type))
+
+        with open(dest, "wb") as f:
+            f.write(result.output)
+
+        if remove:
+            os.remove(filename)
+    else:
+        media_item = media.ensure_output_media(result)
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'thumbnail-custom', media_item)

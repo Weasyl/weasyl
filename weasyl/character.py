@@ -1,6 +1,5 @@
 import arrow
 
-from libweasyl import images
 from libweasyl import ratings
 from libweasyl import staff
 from libweasyl import text
@@ -43,10 +42,6 @@ def create(
     thumbfile,
     submitfile,
 ) -> int:
-    # Make temporary filenames
-    tempthumb = files.get_temporary(userid, "thumb")
-    tempsubmit = files.get_temporary(userid, "char")
-
     # Determine filesizes
     thumbsize = len(thumbfile)
     submitsize = len(submitfile)
@@ -67,72 +62,68 @@ def create(
     elif thumbsize > 10 * _MEGABYTE:
         raise WeasylError("thumbSizeExceedsLimit")
 
+    if thumbsize:
+        try:
+            thumb_source = image.create_cover(thumbfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("thumbType") from e
+        except Exception as e:
+            raise WeasylError("thumbnailImageProcessingFailed", level="info") from e
+
     try:
-        # Write temporary thumbnail file
-        if thumbsize:
-            files.write(tempthumb, thumbfile)
-            thumbextension = files.get_extension_for_category(
-                thumbfile, macro.ART_SUBMISSION_CATEGORY)
+        cover_result = image.create_cover(submitfile)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("submitType") from e
+    except Exception as e:
+        raise WeasylError("submissionImageProcessingFailed", level="info") from e
 
-        # Write temporary submission file
-        files.write(tempsubmit, submitfile)
-        submitextension = files.get_extension_for_category(
-            submitfile, macro.ART_SUBMISSION_CATEGORY)
+    # Assign settings
+    settings = (
+        files.typeflag("submit", cover_result.original_file_type)
+        + files.typeflag("cover", cover_result.output_file_type)
+    )
 
-        # Check invalid file data
-        if submitextension not in [".jpg", ".png", ".gif"]:
-            raise WeasylError("submitType")
-        elif thumbsize and thumbextension not in [".jpg", ".png", ".gif"]:
-            raise WeasylError("thumbType")
+    # Insert submission data
+    ch = define.meta.tables["character"]
 
-        # Assign settings
-        settings = (
-            files.typeflag("submit", submitextension)
-            + files.typeflag("cover", submitextension)
-        )
+    charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
+        "userid": userid,
+        "unixtime": arrow.utcnow(),
+        "char_name": character.char_name,
+        "age": character.age,
+        "gender": character.gender,
+        "height": character.height,
+        "weight": character.weight,
+        "species": character.species,
+        "content": character.content,
+        "rating": character.rating.code,
+        "settings": settings,
+        "hidden": False,
+        "friends_only": friends_only,
+    })
 
-        # Insert submission data
-        ch = define.meta.tables["character"]
+    # Assign search tags
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.CharacterTarget(charid),
+        tag_names=tags,
+    )
 
-        charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
-            "userid": userid,
-            "unixtime": arrow.utcnow(),
-            "char_name": character.char_name,
-            "age": character.age,
-            "gender": character.gender,
-            "height": character.height,
-            "weight": character.weight,
-            "species": character.species,
-            "content": character.content,
-            "rating": character.rating.code,
-            "settings": settings,
-            "hidden": False,
-            "friends_only": friends_only,
-        })
+    # Make submission file
+    files.make_character_directory(charid)
+    with open(files.make_resource(userid, charid, "char/submit", file_type=cover_result.original_file_type), "xb") as f:
+        f.write(submitfile)
 
-        # Assign search tags
-        searchtag.associate(
-            userid=userid,
-            target=searchtag.CharacterTarget(charid),
-            tag_names=tags,
-        )
+    # Make cover file
+    with open(files.make_resource(userid, charid, "char/cover", file_type=cover_result.output_file_type), "xb") as f:
+        f.write(cover_result.output)
 
-        # Make submission file
-        files.make_character_directory(charid)
-        files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
+    # Make thumbnail selection file
+    if thumbsize:
+        with open(files.make_resource(userid, charid, "char/.thumb"), "xb") as f:
+            f.write(thumb_source.output)
 
-        # Make cover file
-        image.make_cover(tempsubmit, files.make_resource(userid, charid, "char/cover", submitextension))
-
-        # Make thumbnail selection file
-        if thumbsize:
-            image.make_cover(
-                tempthumb, files.make_resource(userid, charid, "char/.thumb"))
-
-        thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
-    finally:
-        # XXX: Race: this can delete temporary files of another character being submitted by the same user at the same time. Will be fixed with characters rework.
-        files.clear_temporary(userid)
+    thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
@@ -144,8 +135,8 @@ def create(
     return charid
 
 
-def reupload(userid: int, charid: int, submitdata) -> None:
-    submitsize = len(submitdata)
+def reupload(userid: int, charid: int, submitfile) -> None:
+    submitsize = len(submitfile)
     if not submitsize:
         raise WeasylError("submitSizeZero")
     elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
@@ -161,26 +152,25 @@ def reupload(userid: int, charid: int, submitdata) -> None:
     if userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    im = image.from_string(submitdata)
-    submitextension = images.image_extension(im)
-
-    # Check invalid file data
-    if not submitextension:
-        raise WeasylError("submitType")
+    try:
+        cover_result = image.create_cover(submitfile)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("submitType") from e
+    except Exception as e:
+        raise WeasylError("submissionImageProcessingFailed", level="info") from e
 
     # Make submission file
-    submitfile = files.make_resource(userid, charid, "char/submit", submitextension)
-    files.ensure_file_directory(submitfile)
-    im.write(submitfile)
+    with open(files.make_resource(userid, charid, "char/submit", file_type=cover_result.original_file_type), "wb") as f:
+        f.write(submitfile)
 
     # Make cover file
-    image.make_cover(
-        submitfile, files.make_resource(userid, charid, "char/cover", submitextension))
+    with open(files.make_resource(userid, charid, "char/cover", file_type=cover_result.output_file_type), "wb") as f:
+        f.write(cover_result.output)
 
     # Update settings
     settings = (
-        files.typeflag("submit", submitextension)
-        + files.typeflag("cover", submitextension)
+        files.typeflag("submit", cover_result.original_file_type)
+        + files.typeflag("cover", cover_result.output_file_type)
     )
     define.engine.execute("""
         UPDATE character

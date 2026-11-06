@@ -3,7 +3,7 @@ from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import aliased, contains_eager, joinedload
 import sqlalchemy as sa
-import web
+from web.utils import Storage
 
 from libweasyl.models.content import Report, ReportComment
 from libweasyl.models.users import Login
@@ -240,7 +240,7 @@ def close(userid, form):
     Report.dbsession.flush()
     if form.action == 'action_taken':
         # TODO(hyena): Remove this dependency on web.py's Storage objects.
-        note_form = web.Storage()
+        note_form = Storage()
         note_form.title = form.note_title
         note_form.content = form.user_note
         note_form.recipient = root_report.target.owner.login_name

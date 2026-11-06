@@ -19,11 +19,15 @@ networks:
   external-web-outgoing:
   external-nginx:
   external-prometheus:
+  web-badgr:
+    internal: true
   web-memcached:
     internal: true
   web-postgres:
     internal: true
   web-web-outgoing:
+    internal: true
+  test-badgr:
     internal: true
   test-postgres:
     internal: true
@@ -75,15 +79,16 @@ services:
         target: /tmp
     tmpfs:
       - '/weasyl/storage/prometheus:mode=700,uid=1000'
-      - '/weasyl/storage/temp:mode=700,uid=1000'
       - '/magick-tmp:mode=700,uid=1000'
     networks:
       - prometheus-web
+      - web-badgr
       - web-memcached
       - web-postgres
       - web-web-outgoing
     read_only: false
     depends_on:
+      - badgr
       - postgres
       - memcached
       - web-outgoing
@@ -144,6 +149,16 @@ services:
       - web-web-outgoing
     read_only: true
 
+  badgr:
+    build:
+      context: .
+      target: badgr
+    init: false
+    networks:
+      - test-badgr
+      - web-badgr
+    read_only: true
+
   memcached:
     image: docker.io/library/memcached:1.6-alpine3.22
     command: --memory-limit=64
@@ -165,9 +180,34 @@ services:
         target: /tmp
     networks:
       - web-postgres
-      # TODO: separate postgres service for tests
+    read_only: true
+
+  postgres-test:
+    build:
+      context: containers/postgres
+      target: test
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: weasyl
+      POSTGRES_DB: weasyl_test
+      POSTGRES_INITDB_ARGS: --no-sync
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+      - type: tmpfs
+        target: /run/postgresql
+      - type: tmpfs
+        target: /tmp
+    networks:
       - test-postgres
     read_only: true
+    command:
+      - -cbgwriter_lru_maxpages=0
+      - -cwal_level=minimal
+      - -cfsync=off
+      - -csynchronous_commit=off
+      - -cfull_page_writes=off
+      - -cmax_wal_senders=0
 
   mail-logger:
     build: containers/postfix-stone
@@ -341,7 +381,7 @@ services:
       args:
         version: '${WEASYL_VERSION:-}'
     environment:
-      WEASYL_TEST_SQLALCHEMY_URL: 'postgresql+psycopg2://weasyl@postgres/weasyl_test'
+      WEASYL_TEST_SQLALCHEMY_URL: 'postgresql+psycopg2://weasyl@postgres-test/weasyl_test'
     volumes:
       - config:/run/config:ro
       - test-cache:/weasyl/.pytest_cache
@@ -353,10 +393,12 @@ services:
       - type: tmpfs
         target: /magick-tmp
     networks:
+      - test-badgr
       - test-postgres
     read_only: true
     depends_on:
-      - postgres
+      - badgr
+      - postgres-test
     tty: true
 
   flake8:

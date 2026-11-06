@@ -1,4 +1,5 @@
-from weasyl import media, orm
+from weasyl import image, media, orm
+from weasyl.error import WeasylError
 
 
 def upload(userid, filedata):
@@ -10,5 +11,12 @@ def upload(userid, filedata):
         orm.UserMediaLink.clear_link(userid, 'banner')
         return
 
-    media_item = media.make_resized_media_item(filedata, (1650, 250))
+    try:
+        result = image.create_banner(filedata)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("FileType") from e
+    except Exception as e:
+        raise WeasylError("imageProcessingFailed", level="info") from e
+
+    media_item = media.ensure_output_media(result)
     orm.UserMediaLink.make_or_replace_link(userid, 'banner', media_item)

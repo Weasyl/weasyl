@@ -13,7 +13,11 @@
 !deno.json
 !deno.lock
 
-!libpng/APKBUILD
+!badgr/meson.build
+!badgr/worker.c
+!badgr/worker-sandbox.c
+!badgr/worker-sandbox.h
+!badgr/init.c
 
 !imagemagick-policy.xml
 !setup.cfg

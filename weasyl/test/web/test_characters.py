@@ -1,11 +1,10 @@
 import os
 import pytest
 import webtest
-from PIL import Image
 
 from weasyl.macro import MACRO_STORAGE_ROOT
 from weasyl.test import db_utils
-from weasyl.test.web.common import read_asset, read_asset_image
+from weasyl.test.web.common import fingerprint, read_asset
 
 
 _BASE_FORM = {
@@ -25,7 +24,8 @@ def _read_character_image(image_url):
     parts = image_url.split('/')[1:]
     parts[-1] = parts[-1].split('-', 1)[1]
     full_path = os.path.join(MACRO_STORAGE_ROOT, *parts)
-    return Image.open(full_path).convert('RGBA')
+    with open(full_path, "rb") as f:
+        return fingerprint(f.read())
 
 
 @pytest.fixture(name='character_user')
@@ -70,7 +70,7 @@ def test_create_default_thumbnail(app, character):
     assert resp.html.find(id='char-stats').find('dt', string='Gender:').findNext('dd').string == '🦊'
 
     image_url = resp.html.find(id='detail-art').a['href']
-    assert _read_character_image(image_url).tobytes() == read_asset_image('img/wesley1.png').tobytes()
+    assert _read_character_image(image_url) == (7108, "4c4b94c89cd20378ffe148bab19b615a4be7ecaeb10b3c985687a0cc802fca23")
 
 
 @pytest.mark.usefixtures('db', 'character_user', 'character')
@@ -99,4 +99,4 @@ def test_owner_reupload(app, character_user, character):
 
     resp = app.get(f'/character/{charid}')
     image_url = resp.html.find(id='detail-art').a['href']
-    assert _read_character_image(image_url).tobytes() == read_asset_image('img/help/wesley-draw.png').tobytes()
+    assert _read_character_image(image_url) == (15035, "4c4b8506971fcd129f29c9a90406c7b90ebc2f7d42862b589481f90e7f2f8a30e104")

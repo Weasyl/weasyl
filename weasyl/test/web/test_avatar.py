@@ -1,11 +1,11 @@
 import pytest
-from PIL import Image
 from webtest.forms import Upload
 
 from weasyl.test import db_utils
 from weasyl.test.web.common import (
-    get_storage_path,
+    fingerprint,
     read_asset,
+    read_storage,
 )
 
 
@@ -19,9 +19,7 @@ def test_animated_gif_and_clear(app, submission_user):
     resp = resp.forms['manage-avatar'].submit().follow()
     avatar_url = resp.html.find(id='avatar')['src']
 
-    with Image.open(get_storage_path(avatar_url)) as avatar:
-        assert avatar.n_frames == 12
-        assert avatar.size == (100, 100)
+    assert fingerprint(read_storage(avatar_url)) == (6034, "246d5bb3bcdd9d9a727e5db171d3d4965d545fe52475bb9f1d153bf67b57")
 
     form = app.get('/manage/avatar').forms['upload-avatar']
     form['image'] = None

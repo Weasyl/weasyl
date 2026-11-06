@@ -1,27 +1,22 @@
-from libweasyl import images
+from __future__ import annotations
+
 from libweasyl import media as libweasylmedia
+from libweasyl.models.media import MediaItem
 from libweasyl.text import slug_for
 
-from weasyl.error import WeasylError
-from weasyl import define, image, orm
+from weasyl import define
+from weasyl import image
 
 
-def make_resized_media_item(filedata, size, error_type='FileType'):
-    if not filedata:
-        return None
-
-    im = image.from_string(filedata)
-    file_type = images.image_file_type(im)
-    if file_type not in ["jpg", "png", "gif"]:
-        raise WeasylError(error_type)
-    resized = images.resize_image(im, *size)
-    if resized is not im:
-        filedata = resized.to_buffer(format=file_type)
-    return orm.MediaItem.fetch_or_create(filedata, file_type=file_type, im=resized)
-
-
-def make_cover_media_item(coverfile, error_type='coverType'):
-    return make_resized_media_item(coverfile, image.COVER_SIZE, error_type)
+def ensure_output_media(result: image.Result) -> MediaItem:
+    return MediaItem.fetch_or_create(
+        result.output,
+        file_type=result.output_file_type,
+        attributes={
+            "width": result.output_width,
+            "height": result.output_height,
+        },
+    )
 
 
 def get_multi_submission_media(*submitids):

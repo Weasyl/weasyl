@@ -1,5 +1,2 @@
-FROM docker.io/prom/prometheus:v2.51.1
-# nc that supports `local:` (Unix sockets)
-COPY --from=alpine:3.22 --link /bin/busybox /bin/nc
-COPY --from=alpine:3.22 --link /lib/ld-musl-x86_64.so.1 /lib/
+FROM docker.io/prom/prometheus:v3.16.0-distroless
 COPY --link prometheus.yml /etc/prometheus/prometheus.yml

@@ -1,26 +1,47 @@
+import dataclasses
+from dataclasses import dataclass
+
 from pyramid.response import Response
 
 from weasyl import define, media, commishinfo
 
 
+@dataclass(frozen=True, kw_only=True, slots=True)
+class SearchForm:
+    pc: str
+    c: str
+    q: str
+    min: str
+    max: str
+    currency: str
+
+    @classmethod
+    def from_get(cls, params):
+        return cls(
+            pc=params.get("pc", ""),
+            c=params.get("c", ""),
+            q=params.get("q", ""),
+            min=params.get("min", ""),
+            max=params.get("max", ""),
+            currency=params.get("currency", ""),
+        )
+
+    asdict = dataclasses.asdict
+
+
 def search_(request):
     limit = 30
-    offset = define.get_int(request.params.get('o', None))
-    pc = request.params.get('pc', '')
-    c = request.params.get('c', '')
-    commishclass = pc if pc else c
+    offset = define.get_int(request.GET.get('o'))
+    form = SearchForm.from_get(request.GET)
+    commishclass = form.pc if form.pc else form.c
     commishclass = commishclass.lower()
-    q = request.params.get('q', '')
-    min_value = request.params.get('min', '')
-    max_value = request.params.get('max', '')
-    currency = request.params.get('currency', '')
 
     results = commishinfo.select_commissionable(userid=request.userid,
-                                                q=q,
+                                                q=form.q,
                                                 commishclass=commishclass,
-                                                min_price=commishinfo.parse_currency(min_value),
-                                                max_price=commishinfo.parse_currency(max_value),
-                                                currency=currency,
+                                                min_price=commishinfo.parse_currency(form.min),
+                                                max_price=commishinfo.parse_currency(form.max),
+                                                currency=form.currency,
                                                 offset=offset,
                                                 limit=limit * 2)
     rcount = len(results)
@@ -28,7 +49,6 @@ def search_(request):
     media.populate_with_user_media(results)
     prev_index = None if offset == 0 else offset - limit if offset - limit > 0 else 0
     next_index = offset + limit if rcount - limit > 0 else None
-    form = {'pc': pc, 'c': c, 'q': q, 'min': min_value, 'max': max_value, 'currency': currency}
     return Response(define.webpage(request.userid, "etc/marketplace.html",
                     [results, form, commishinfo.CURRENCY_CHARMAP, commishinfo.PRESET_COMMISSION_CLASSES,
                      prev_index, next_index],

@@ -229,17 +229,6 @@ services:
   prometheus:
     profiles: [ prometheus ]
     build: containers/prometheus
-    entrypoint: []
-    command:
-      - /bin/sh
-      - -c
-      # Prometheus doesn’t support scraping Unix sockets:
-      # https://github.com/prometheus/prometheus/issues/12024
-      - |
-        nc -lk -p 8080 ::1 -e nc local:/run/uds-nginx-web/web.sock &
-        exec /bin/prometheus \
-          --config.file=/etc/prometheus/prometheus.yml \
-          --storage.tsdb.path=/prometheus
     volumes:
       - prometheus:/prometheus
       - uds-nginx-web:/run/uds-nginx-web

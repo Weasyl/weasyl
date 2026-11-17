@@ -5,4 +5,6 @@ global:
 scrape_configs:
   - job_name: web
     static_configs:
-      - targets: ['[::1]:8080']
+      - targets: ['[::1]:0']
+        labels:
+          __unix_socket__: /run/uds-nginx-web/web.sock

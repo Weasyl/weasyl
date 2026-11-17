@@ -1,12 +1,11 @@
-from __future__ import absolute_import
-
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
 
 from weasyl.controllers.decorators import login_required, token_checked
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname_list
 from weasyl import (
-    define, favorite, followuser, frienduser, ignoreuser, note, profile)
+    define, favorite, followuser, frienduser, ignoreuser, note, pagination, profile)
 
 
 # User interactivity functions
@@ -23,8 +22,14 @@ def followuser_(request):
         followuser.insert(request.userid, otherid)
     elif form.action == "unfollow":
         followuser.remove(request.userid, otherid)
+    else:
+        raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+    target_username = define.try_get_username(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 @login_required
@@ -51,20 +56,25 @@ def frienduser_(request):
         raise WeasylError('cannotSelfFriend')
 
     if form.action == "sendfriendrequest":
-        if not frienduser.check(request.userid, otherid) and not frienduser.already_pending(request.userid, otherid):
-            frienduser.request(request.userid, otherid)
+        frienduser.request(request.userid, otherid)
     elif form.action == "withdrawfriendrequest":
-        if frienduser.already_pending(request.userid, otherid):
-            frienduser.remove_request(request.userid, otherid)
+        frienduser.remove_request(request.userid, otherid)
     elif form.action == "unfriend":
         frienduser.remove(request.userid, otherid)
+    else:
+        raise WeasylError("Unexpected")
 
-    if form.feature == "pending":
-        raise HTTPSeeOther(location="/manage/friends?feature=pending")
+    if form.feature in ["pending", "accepted"]:
+        raise HTTPSeeOther(location=f"/manage/friends?feature={form.feature}")
     else:  # typical value will be user
-        raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+        target_username = define.try_get_username(otherid)
+        if target_username is None:
+            raise WeasylError("Unexpected")
+
+        raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
+# TODO: unused: remove after change to `/frienduser` with `action=unfriend` has been deployed for a while
 @login_required
 @token_checked
 def unfrienduser_(request):
@@ -89,8 +99,14 @@ def ignoreuser_(request):
         ignoreuser.insert(request.userid, [otherid])
     elif form.action == "unignore":
         ignoreuser.remove(request.userid, [otherid])
+    else:
+        raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location="/~%s" % (define.get_sysname(define.get_display_name(otherid))))
+    target_username = define.try_get_username(otherid)
+    if target_username is None:
+        raise WeasylError("Unexpected")
+
+    raise HTTPSeeOther(location="/~%s" % (target_username.sysname))
 
 
 # Private messaging functions
@@ -107,7 +123,7 @@ def note_(request):
         # Private message
         data,
         profile.select_myself(request.userid),
-    ]))
+    ], title=data['title']))
 
 
 @login_required
@@ -116,27 +132,42 @@ def notes_(request):
         raise WeasylError("vouchRequired")
 
     form = request.web_input(folder="inbox", filter="", backid="", nextid="")
-    backid = int(form.backid) if form.backid else None
-    nextid = int(form.nextid) if form.nextid else None
-    filter_ = define.get_userid_list(form.filter)
 
     if form.folder == "inbox":
-        return Response(define.webpage(request.userid, "note/message_list.html", [
-            # Folder
-            "inbox",
-            # Private messages
-            note.select_inbox(request.userid, 50, backid=backid, nextid=nextid, filter=filter_),
-        ]))
+        select_list = note.select_inbox
+        select_count = note.select_inbox_count
+        title = "Inbox"
+    elif form.folder == "outbox":
+        select_list = note.select_outbox
+        select_count = note.select_outbox_count
+        title = "Sent messages"
+    else:
+        raise WeasylError("unknownMessageFolder")
 
-    if form.folder == "outbox":
-        return Response(define.webpage(request.userid, "note/message_list.html", [
-            # Folder
-            "outbox",
-            # Private messages
-            note.select_outbox(request.userid, 50, backid=backid, nextid=nextid, filter=filter_),
-        ]))
+    backid = int(form.backid) if form.backid else None
+    nextid = int(form.nextid) if form.nextid else None
+    filter_sysnames = parse_sysname_list(form.filter)
+    filter_userids = define.get_userids(filter_sysnames)
 
-    raise WeasylError("unknownMessageFolder")
+    url_format = f"/notes?folder={form.folder}"
+    if filter_sysnames:
+        # ';', URL-quoted, then escaped for printf-style formatting in PaginatedResult
+        url_format += f"&filter={'%%3B'.join(filter_sysnames)}"
+    url_format += "&%s"
+
+    result = pagination.PaginatedResult(
+        select_list, select_count, "noteid", url_format,
+        request.userid, filter=list(set(filter_userids.values())),
+        backid=backid,
+        nextid=nextid,
+        count_limit=note.COUNT_LIMIT,
+    )
+    return Response(define.webpage(request.userid, "note/message_list.html", (
+        form,
+        result,
+        [(sysname, userid != 0) for sysname, userid in filter_userids.items()],
+        note.unread_count(request.userid),
+    ), title=title))
 
 
 @login_required
@@ -148,9 +179,9 @@ def notes_compose_get_(request):
 
     return Response(define.webpage(request.userid, "note/compose.html", [
         # Recipient
-        form.recipient.strip(),
+        "; ".join(parse_sysname_list(form.recipient)),
         profile.select_myself(request.userid),
-    ]))
+    ], title="Compose message"))
 
 
 @login_required
@@ -172,13 +203,17 @@ def notes_compose_post_(request):
 @login_required
 @token_checked
 def notes_remove_(request):
-    form = request.web_input(folder="", backid="", nextid="", notes=[])
+    form = request.web_input(folder="", filter="", backid="", nextid="", notes=[])
     backid = int(form.backid) if form.backid else None
     nextid = int(form.nextid) if form.nextid else None
 
-    note.remove_list(request.userid, map(int, form.notes))
+    note.remove_list(request.userid, list(map(int, form.notes)))
     link = "/notes?folder=" + form.folder
+    filter_sysnames = parse_sysname_list(form.filter)
 
+    if filter_sysnames:
+        # ';', URL-quoted
+        link += f"&filter={'%3B'.join(filter_sysnames)}"
     if backid:
         link += "&backid=%i" % backid
     elif nextid:

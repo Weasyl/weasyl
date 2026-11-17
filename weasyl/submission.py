@@ -1,17 +1,22 @@
-from __future__ import absolute_import, division
+from __future__ import annotations
 
-import urlparse
-from io import BytesIO
+import hashlib
+import logging
+import os
+import re
+from dataclasses import dataclass
+from typing import Literal
 
 import arrow
+import requests
 import sqlalchemy as sa
+from requests import RequestException
+from sqlalchemy import bindparam
 
 from libweasyl.cache import region
+from libweasyl.models.media import MediaItem
+from libweasyl.models.tables import google_doc_embeds
 from libweasyl import (
-    html,
-    images,
-    images_new,
-    ratings,
     staff,
     text,
 )
@@ -36,20 +41,28 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import welcome
 from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
+from weasyl.pagination import (
+    PageFilter,
+    page_from_compat,
+    paginate,
+)
 
+
+COUNT_LIMIT = 250
 
 _MEGABYTE = 1048576
 
+_VISUAL_LIMIT = 50 * _MEGABYTE
 _LIMITS = {
-    ".jpg": 50 * _MEGABYTE,
-    ".png": 50 * _MEGABYTE,
-    ".gif": 50 * _MEGABYTE,
     ".txt": 2 * _MEGABYTE,
     ".pdf": 10 * _MEGABYTE,
     ".htm": 10 * _MEGABYTE,
     ".mp3": 15 * _MEGABYTE,
-    ".swf": 15 * _MEGABYTE,
+    ".swf": 50 * _MEGABYTE,
 }
+
+logger = logging.getLogger(__name__)
 
 
 def _limit(size, extension):
@@ -61,29 +74,29 @@ def _limit(size, extension):
     return size > limit
 
 
-def _create_notifications(userid, submitid, rating, settings):
+def _create_notifications(userid, submitid, rating, *, friends_only):
     """
     Creates notifications to watchers.
     """
-    welcome.submission_insert(userid, submitid, rating=rating.code, settings=settings)
+    welcome.submission_insert(userid, submitid, rating=rating.code, friends_only=friends_only)
 
 
 def check_for_duplicate_media(userid, mediaid):
     db = d.connect()
     q = (
         db.query(orm.Submission)
-        .filter_by(userid=userid, is_hidden=False)
+        .filter_by(userid=userid, hidden=False)
         .join(orm.SubmissionMediaLink)
         .filter_by(mediaid=mediaid, link_type='submission'))
     if q.first():
         raise WeasylError('duplicateSubmission')
 
 
-def _create_submission(expected_type):
+def _create_submission(expected_type: int):
     valid_types = {id for (id, name) in m.MACRO_SUBCAT_LIST if id // 1000 == expected_type}
 
     def wrapper(create_specific):
-        def create_generic(userid, submission, **kwargs):
+        def create_generic(userid: int, submission, **kwargs):
             tags = kwargs['tags']
 
             if submission.subtype not in valid_types:
@@ -99,86 +112,160 @@ def _create_submission(expected_type):
                 raise WeasylError("Unexpected")
 
             profile.check_user_rating_allowed(userid, submission.rating)
+            if submission.rating.minimum_age:
+                profile.assert_adult(userid)
 
-            newid = create_specific(
+            ret = create_specific(
                 userid=userid,
                 submission=submission,
                 **kwargs)
-            if newid:
-                p = d.meta.tables['profile']
-                d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
-            return newid
+
+            p = d.meta.tables['profile']
+            d.connect().execute(p.update().where(p.c.userid == userid).values(latest_submission_time=arrow.utcnow()))
+            d.cached_posts_count.invalidate(userid)
+
+            return ret
 
         return create_generic
 
     return wrapper
 
 
-@_create_submission(expected_type=1)
-def create_visual(userid, submission,
-                  friends_only, tags, imageURL, thumbfile,
-                  submitfile, critique, create_notifications):
-    if imageURL:
-        resp = d.http_get(imageURL, timeout=5)
-        submitfile = resp.content
+@dataclass(eq=False, frozen=True, kw_only=True, slots=True)
+class _VisualMedia:
 
-    # Determine filesizes
-    thumbsize = len(thumbfile)
-    submitsize = len(submitfile)
+    submission: MediaItem
+    cover: MediaItem
+    thumbnail_generated: MediaItem
 
-    if not submitsize:
-        raise WeasylError("submitSizeZero")
-    elif thumbsize > 10 * _MEGABYTE:
-        raise WeasylError("thumbSizeExceedsLimit")
 
-    im = image.from_string(submitfile)
-    submitextension = image.image_extension(im)
-    if submitextension not in [".jpg", ".png", ".gif"]:
-        raise WeasylError("submitType")
-    if _limit(submitsize, submitextension):
+@dataclass(eq=False, frozen=True, kw_only=True, slots=True)
+class _OtherMedia:
+
+    cover: MediaItem | None
+    thumbnail_source: MediaItem | None  # always present when `cover` is present
+
+
+def _upload_visual(userid: int, submitfile: bytes) -> _VisualMedia:
+    if len(submitfile) > _VISUAL_LIMIT:
         raise WeasylError("submitSizeExceedsLimit")
 
-    submit_file_type = submitextension.lstrip('.')
-    submit_media_item = orm.MediaItem.fetch_or_create(
-        submitfile, file_type=submit_file_type, im=im)
-    check_for_duplicate_media(userid, submit_media_item.mediaid)
-    cover_media_item = submit_media_item.ensure_cover_image(im)
+    submitfile_sha256 = hashlib.sha256(submitfile).hexdigest()
+    submit_media_item = MediaItem.query.filter(MediaItem.sha256 == submitfile_sha256).one_or_none()
+    if submit_media_item is not None:
+        if submit_media_item.file_type not in ["jpg", "png", "gif", "webp"]:
+            raise WeasylError("submitType")
 
-    # Thumbnail stuff.
-    # Always create a 'generated' thumbnail from the source image.
-    with BytesIO(submitfile) as buf:
-        thumbnail_formats = images_new.get_thumbnail(buf)
+        check_for_duplicate_media(userid, submit_media_item.mediaid)
 
-    thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.compatible
-    thumb_generated_media_item = orm.MediaItem.fetch_or_create(
-        thumb_generated,
-        file_type=thumb_generated_file_type,
-        attributes=thumb_generated_attributes,
-    )
+    try:
+        cover_result = image.create_cover(submitfile)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("submitType") from e
+    except Exception as e:
+        raise WeasylError("submissionImageProcessingFailed", level="info") from e
 
-    if thumbnail_formats.webp is None:
-        thumb_generated_media_item_webp = None
-    else:
-        thumb_generated, thumb_generated_file_type, thumb_generated_attributes = thumbnail_formats.webp
-        thumb_generated_media_item_webp = orm.MediaItem.fetch_or_create(
-            thumb_generated,
-            file_type=thumb_generated_file_type,
-            attributes=thumb_generated_attributes,
+    if submit_media_item is None:
+        submit_media_item = MediaItem.fetch_or_create(
+            submitfile,
+            file_type=cover_result.original_file_type,
+            attributes={
+                "width": cover_result.original_width,
+                "height": cover_result.original_height,
+            },
+            sha256=submitfile_sha256,
         )
 
-    # If requested, also create a 'custom' thumbnail.
-    thumb_media_item = media.make_cover_media_item(thumbfile)
-    if thumb_media_item:
-        thumb_custom = images.make_thumbnail(image.from_string(thumbfile))
-        thumb_custom_media_item = orm.MediaItem.fetch_or_create(
-            thumb_custom.to_buffer(format=submit_file_type), file_type=submit_file_type,
-            im=thumb_custom)
+    cover_media_item = (
+        # if generated cover isn't much better, reuse the original file as the cover
+        submit_media_item if len(submitfile) < 3 * len(cover_result.output) // 2
+        else media.ensure_output_media(cover_result)
+    )
 
-    # Assign settings
-    settings = []
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    settings = "".join(settings)
+    # assume processing the same file again will succeed
+    thumb_generated = image.create_thumbnail(submitfile)
+    thumb_generated_media_item = media.ensure_output_media(thumb_generated)
+
+    return _VisualMedia(
+        submission=submit_media_item,
+        cover=cover_media_item,
+        thumbnail_generated=thumb_generated_media_item,
+    )
+
+
+def _upload_other(*, coverfile, thumbfile) -> _OtherMedia:
+    if len(coverfile) > 10 * _MEGABYTE:
+        raise WeasylError("coverSizeExceedsLimit")
+    if len(thumbfile) > 10 * _MEGABYTE:
+        raise WeasylError("thumbSizeExceedsLimit")
+
+    if coverfile:
+        try:
+            cover_result = image.create_cover(coverfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("coverType") from e
+        except Exception as e:
+            raise WeasylError("coverImageProcessingFailed", level="info") from e
+
+        cover_media_item = media.ensure_output_media(cover_result)
+    else:
+        cover_media_item = None
+
+    if thumbfile:
+        try:
+            thumb_source = image.create_cover(thumbfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("thumbType") from e
+        except Exception as e:
+            raise WeasylError("thumbnailImageProcessingFailed", level="info") from e
+
+        thumb_media_item = media.ensure_output_media(thumb_source)
+    elif cover_media_item is not None:
+        thumb_media_item = cover_media_item
+    else:
+        thumb_media_item = None
+
+    return _OtherMedia(
+        cover=cover_media_item,
+        thumbnail_source=thumb_media_item,
+    )
+
+
+@_create_submission(expected_type=1)
+def create_visual(
+    *,
+    userid: int,
+    submission,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    thumbfile,
+    submitfile,
+    critique: bool,
+    create_notifications: bool,
+) -> int:
+    if not submitfile:
+        raise WeasylError("submitSizeZero")
+    if len(thumbfile) > 10 * _MEGABYTE:
+        raise WeasylError("thumbSizeExceedsLimit")
+
+    submitfile_media = _upload_visual(userid, submitfile)
+
+    # If requested, also create a 'custom' thumbnail.
+    if thumbfile:
+        try:
+            thumb_source = image.create_cover(thumbfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("thumbType") from e
+        except Exception as e:
+            raise WeasylError("thumbnailImageProcessingFailed", level="info") from e
+
+        thumb_media_item = media.ensure_output_media(thumb_source)
+
+        # assume processing the same file again will succeed
+        thumb_custom = image.create_thumbnail(thumbfile)
+        thumb_custom_media_item = media.ensure_output_media(thumb_custom)
+    else:
+        thumb_media_item = None
 
     # TODO(kailys): maintain ORM object
     db = d.connect()
@@ -192,7 +279,8 @@ def create_visual(userid, submission,
             "content": submission.content,
             "subtype": submission.subtype,
             "rating": submission.rating.code,
-            "settings": settings,
+            "friends_only": friends_only,
+            "critique": critique,
             "favorites": 0,
             "submitter_ip_address": submission.submitter_ip_address,
             "submitter_user_agent_id": submission.submitter_user_agent_id,
@@ -200,16 +288,11 @@ def create_visual(userid, submission,
     submitid = db.scalar(q)
 
     orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'submission', submit_media_item)
+        submitid, 'submission', submitfile_media.submission)
     orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'cover', cover_media_item)
-
+        submitid, 'cover', submitfile_media.cover)
     orm.SubmissionMediaLink.make_or_replace_link(
-        submitid, 'thumbnail-generated', thumb_generated_media_item)
-
-    if thumb_generated_media_item_webp is not None:
-        orm.SubmissionMediaLink.make_or_replace_link(
-            submitid, 'thumbnail-generated-webp', thumb_generated_media_item_webp)
+        submitid, 'thumbnail-generated', submitfile_media.thumbnail_generated)
 
     if thumb_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
@@ -217,11 +300,15 @@ def create_visual(userid, submission,
             submitid, 'thumbnail-custom', thumb_custom_media_item)
 
     # Assign search tags
-    searchtag.associate(userid, tags, submitid=submitid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.SubmissionTarget(submitid),
+        tag_names=tags,
+    )
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings)
+        _create_notifications(userid, submitid, submission.rating, friends_only=friends_only)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'visualsubmissions')
@@ -229,34 +316,43 @@ def create_visual(userid, submission,
     return submitid
 
 
-def check_google_doc_embed_data(embedlink):
-    m = text.url_regexp.search(embedlink)
-    if not m:
-        raise WeasylError('googleDocsEmbedLinkInvalid')
-    embedlink = m.group()
-    parsed = urlparse.urlparse(embedlink)
-    if parsed.scheme != 'https' or parsed.netloc != 'docs.google.com':
-        raise WeasylError('googleDocsEmbedLinkInvalid')
+_GOOGLE_DOCS_EMBED = re.compile(
+    r"\bdocs\.google\.com/document/d/((?:e/)?[0-9a-z_\-]+)/pub\b",
+    re.ASCII | re.IGNORECASE,
+)
+
+
+def _normalize_google_docs_embed(embedlink):
+    match = _GOOGLE_DOCS_EMBED.search(embedlink.strip())
+
+    if match is None:
+        raise WeasylError('googleDocsEmbedLinkInvalid', level='info')
+
+    return f"https://docs.google.com/document/d/{match.group(1)}/pub?embedded=true"
 
 
 @_create_submission(expected_type=2)
-def create_literary(userid, submission, embedlink=None, friends_only=False, tags=None,
-                    coverfile=None, thumbfile=None, submitfile=None, critique=False,
-                    create_notifications=True):
+def create_literary(
+    *,
+    userid: int,
+    submission,
+    embedlink: str,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    coverfile,
+    thumbfile,
+    submitfile,
+    critique: bool,
+    create_notifications: bool,
+) -> tuple[int, bool]:
     if embedlink:
-        check_google_doc_embed_data(embedlink)
+        embedlink = _normalize_google_docs_embed(embedlink)
 
     # Determine filesizes
-    coversize = len(coverfile)
-    thumbsize = len(thumbfile)
     submitsize = len(submitfile)
 
     if not submitsize and not embedlink:
         raise WeasylError("submitSizeZero")
-    elif coversize > 10 * _MEGABYTE:
-        raise WeasylError("coverSizeExceedsLimit")
-    elif thumbsize > 10 * _MEGABYTE:
-        raise WeasylError("thumbSizeExceedsLimit")
 
     if submitsize:
         submitextension = files.get_extension_for_category(submitfile, m.TEXT_SUBMISSION_CATEGORY)
@@ -270,18 +366,7 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
     else:
         submit_media_item = None
 
-    thumb_media_item = media.make_cover_media_item(thumbfile)
-    cover_media_item = media.make_cover_media_item(coverfile)
-    if cover_media_item and not thumb_media_item:
-        thumb_media_item = cover_media_item
-
-    # Assign settings
-    settings = []
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    if embedlink:
-        settings.append('D')
-    settings = "".join(settings)
+    other_media = _upload_other(coverfile=coverfile, thumbfile=thumbfile)
 
     # Create submission
     # TODO(kailys): use ORM object
@@ -296,7 +381,9 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
             "content": submission.content,
             "subtype": submission.subtype,
             "rating": submission.rating.code,
-            "settings": settings,
+            "friends_only": friends_only,
+            "critique": critique,
+            "embed_type": 'google-drive' if embedlink else None,
             "favorites": 0,
             "submitter_ip_address": submission.submitter_ip_address,
             "submitter_user_agent_id": submission.submitter_user_agent_id,
@@ -309,50 +396,67 @@ def create_literary(userid, submission, embedlink=None, friends_only=False, tags
         db.execute(q)
 
     # Assign search tags
-    searchtag.associate(userid, tags, submitid=submitid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.SubmissionTarget(submitid),
+        tag_names=tags,
+    )
 
     if submit_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
-    if cover_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
-    if thumb_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
+    if other_media.cover is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', other_media.cover)
+    if other_media.thumbnail_source is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', other_media.thumbnail_source)
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings)
+        _create_notifications(userid, submitid, submission.rating, friends_only=friends_only)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'literarysubmissions')
 
-    return submitid, bool(thumb_media_item)
+    return submitid, other_media.thumbnail_source is not None
 
 
 @_create_submission(expected_type=3)
-def create_multimedia(userid, submission, embedlink=None, friends_only=None,
-                      tags=None, coverfile=None, thumbfile=None, submitfile=None,
-                      critique=False, create_notifications=True, auto_thumb=False):
-    embedlink = embedlink.strip()
-
+def create_multimedia(
+    *,
+    userid: int,
+    submission,
+    embedlink: str,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    coverfile,
+    thumbfile,
+    submitfile,
+    critique: bool,
+    create_notifications: bool,
+    auto_thumb: bool,
+) -> tuple[int, bool]:
     # Determine filesizes
-    coversize = len(coverfile)
-    thumbsize = len(thumbfile)
     submitsize = len(submitfile)
 
-    if not submitsize and not embedlink:
+    if submitsize:
+        embedded = None
+    elif (embedlink := embedlink.strip()):
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            raise WeasylError("embedlinkInvalid")
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UnrecognizedLink as e:
+            raise WeasylError("embedlinkInvalid") from e
+        except embed.UpstreamFailure as e:
+            raise WeasylError("embedlinkFailed") from e
+    else:
         raise WeasylError("submitSizeZero")
-    elif embedlink and not embed.check_valid(embedlink):
-        raise WeasylError("embedlinkInvalid")
-    elif coversize > 10 * _MEGABYTE:
-        raise WeasylError("coverSizeExceedsLimit")
-    elif thumbsize > 10 * _MEGABYTE:
-        raise WeasylError("thumbSizeExceedsLimit")
+    del embedlink
 
     if submitsize:
         submitextension = files.get_extension_for_category(submitfile, m.MULTIMEDIA_SUBMISSION_CATEGORY)
         if submitextension is None:
-            raise WeasylError("submitType")
-        elif submitextension not in [".mp3", ".swf"] and not embedlink:
             raise WeasylError("submitType")
         elif _limit(submitsize, submitextension):
             raise WeasylError("submitSizeExceedsLimit")
@@ -362,40 +466,33 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
     else:
         submit_media_item = None
 
-    thumb_media_item = media.make_cover_media_item(thumbfile)
-    cover_media_item = media.make_cover_media_item(coverfile)
-    if cover_media_item and not thumb_media_item:
-        thumb_media_item = cover_media_item
+    other_media = _upload_other(coverfile=coverfile, thumbfile=thumbfile)
+    thumbnail_result = None
 
-    tempthumb_media_item = None
-    im = None
-    if auto_thumb:
-        if thumbsize == 0 and coversize == 0:
-            # Fetch default thumbnail from source if available
-            thumb_url = embed.thumbnail(embedlink)
-            if thumb_url:
-                resp = d.http_get(thumb_url, timeout=5)
-                im = image.from_string(resp.content)
-    if not im and (thumbsize or coversize):
-        im = image.from_string(thumbfile or coverfile)
-    if im:
-        tempthumb = images.make_thumbnail(im)
-        tempthumb_type = images.image_file_type(tempthumb)
-        tempthumb_media_item = orm.MediaItem.fetch_or_create(
-            tempthumb.to_buffer(format=tempthumb_type),
-            file_type=tempthumb_type,
-            im=tempthumb)
-
-    # Assign settings
-    settings = []
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    settings.append("v" if embedlink else "")
-    settings = "".join(settings)
+    if other_media.thumbnail_source is not None:
+        # assume processing the same file again will succeed
+        thumbnail_result = image.create_thumbnail(thumbfile or coverfile)
+    elif auto_thumb and embedded is not None:
+        # Fetch default thumbnail from source if available
+        if embedded.thumbnail_url:
+            try:
+                # TODO: limit permitted destinations for this, including redirects
+                resp = requests.get(embedded.thumbnail_url, timeout=5, headers={
+                    "User-Agent": embed.user_agent,
+                })
+            except RequestException as e:
+                logger.error("Fetching thumbnail at %s for embed %s failed: %s", embedded.thumbnail_url, embedded.embedlink.href, e)
+            else:
+                try:
+                    thumbnail_result = image.create_thumbnail(resp.content)
+                except Exception:
+                    logger.warning("Failed to create thumbnail from embed thumbnail", exc_info=True)
+    if thumbnail_result is not None:
+        tempthumb_media_item = media.ensure_output_media(thumbnail_result)
 
     # Inject embedlink
-    if embedlink:
-        submission.content = "".join([embedlink, "\n", submission.content])
+    if embedded:
+        submission.content = "".join([embedded.embedlink.href, "\n", submission.content])
 
     # Create submission
     db = d.connect()
@@ -409,7 +506,9 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
             "content": submission.content,
             "subtype": submission.subtype,
             "rating": submission.rating,
-            "settings": settings,
+            "friends_only": friends_only,
+            "critique": critique,
+            "embed_type": 'other' if embedded else None,
             "favorites": 0,
             "submitter_ip_address": submission.submitter_ip_address,
             "submitter_user_agent_id": submission.submitter_user_agent_id,
@@ -418,26 +517,30 @@ def create_multimedia(userid, submission, embedlink=None, friends_only=None,
     submitid = db.scalar(q)
 
     # Assign search tags
-    searchtag.associate(userid, tags, submitid=submitid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.SubmissionTarget(submitid),
+        tag_names=tags,
+    )
 
     if submit_media_item:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
-    if cover_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
-    if thumb_media_item:
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', thumb_media_item)
-    if tempthumb_media_item:
+    if other_media.cover is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', other_media.cover)
+    if other_media.thumbnail_source is not None:
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-source', other_media.thumbnail_source)
+    if thumbnail_result is not None:
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-custom',
                                                      tempthumb_media_item)
 
     # Create notifications
     if create_notifications:
-        _create_notifications(userid, submitid, submission.rating, settings)
+        _create_notifications(userid, submitid, submission.rating, friends_only=friends_only)
 
     d.metric('increment', 'submissions')
     d.metric('increment', 'multimediasubmissions')
 
-    return submitid, bool(thumb_media_item)
+    return submitid, other_media.thumbnail_source is not None
 
 
 def reupload(userid, submitid, submitfile):
@@ -445,15 +548,15 @@ def reupload(userid, submitid, submitfile):
 
     # Select submission data
     query = d.engine.execute(
-        "SELECT userid, subtype, settings FROM submission WHERE submitid = %(id)s AND settings !~ 'h'",
+        "SELECT userid, subtype, embed_type FROM submission WHERE submitid = %(id)s AND NOT hidden",
         id=submitid,
     ).first()
 
     if not query:
-        raise WeasylError("Unexpected")
+        raise WeasylError("submissionRecordMissing")
     elif userid != query[0]:
-        raise WeasylError("Unexpected")
-    elif "v" in query[2] or "D" in query[2]:
+        raise WeasylError("InsufficientPermissions")
+    elif query[2] is not None:
         raise WeasylError("Unexpected")
 
     subcat = query[1] // 1000 * 1000
@@ -465,59 +568,77 @@ def reupload(userid, submitid, submitfile):
         raise WeasylError("submitSizeZero")
 
     # Write temporary submission file
-    submitextension = files.get_extension_for_category(submitfile, subcat)
-    if submitextension is None:
-        raise WeasylError("submitType")
-    elif subcat == m.ART_SUBMISSION_CATEGORY and submitextension not in [".jpg", ".png", ".gif"]:
-        raise WeasylError("submitType")
-    elif subcat == m.MULTIMEDIA_SUBMISSION_CATEGORY and submitextension not in [".mp3", ".swf"]:
-        raise WeasylError("submitType")
-    elif _limit(submitsize, submitextension):
-        raise WeasylError("submitSizeExceedsLimit")
-
-    submit_file_type = submitextension.lstrip('.')
-    im = None
-    if submit_file_type in {'jpg', 'png', 'gif'}:
-        im = image.from_string(submitfile)
-    submit_media_item = orm.MediaItem.fetch_or_create(
-        submitfile, file_type=submit_file_type, im=im)
-    check_for_duplicate_media(userid, submit_media_item.mediaid)
-    orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
-
     if subcat == m.ART_SUBMISSION_CATEGORY:
-        cover_media_item = submit_media_item.ensure_cover_image(im)
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
-        generated_thumb = images.make_thumbnail(im)
-        generated_thumb_media_item = orm.MediaItem.fetch_or_create(
-            generated_thumb.to_buffer(format=images.image_file_type(generated_thumb)),
-            file_type=submit_file_type,
-            im=generated_thumb)
-        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'thumbnail-generated', generated_thumb_media_item)
-        d.engine.execute(
-            "UPDATE submission SET image_representations = NULL WHERE submitid = %(id)s",
-            id=submitid,
-        )
+        submitfile_media = _upload_visual(userid, submitfile)
+
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'submission', submitfile_media.submission)
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'cover', submitfile_media.cover)
+        orm.SubmissionMediaLink.make_or_replace_link(
+            submitid, 'thumbnail-generated', submitfile_media.thumbnail_generated)
+        orm.SubmissionMediaLink.clear_link(submitid, 'thumbnail-generated-webp')
+    else:
+        submitextension = files.get_extension_for_category(submitfile, subcat)
+        if submitextension is None:
+            raise WeasylError("submitType")
+        elif subcat == m.MULTIMEDIA_SUBMISSION_CATEGORY and submitextension not in [".mp3", ".swf"]:
+            raise WeasylError("submitType")
+        elif _limit(submitsize, submitextension):
+            raise WeasylError("submitSizeExceedsLimit")
+        submit_file_type = submitextension.lstrip('.')
+
+        submit_media_item = orm.MediaItem.fetch_or_create(
+            submitfile, file_type=submit_file_type)
+        check_for_duplicate_media(userid, submit_media_item.mediaid)
+
+        orm.SubmissionMediaLink.make_or_replace_link(submitid, 'submission', submit_media_item)
 
 
-def select_view(userid, submitid, rating, ignore=True, anyway=None):
+_GOOGLE_DOCS_EMBED_URL_QUERY = (
+    sa.select([google_doc_embeds.c.embed_url])
+    .where(google_doc_embeds.c.submitid == bindparam('submitid'))
+)
+
+
+def get_google_docs_embed_url(submitid):
+    embed_url = d.engine.scalar(
+        _GOOGLE_DOCS_EMBED_URL_QUERY,
+        {"submitid": submitid},
+    )
+
+    if embed_url is None:
+        raise WeasylError("Unexpected")  # pragma: no cover
+
+    return embed_url
+
+
+def select_view(
+    userid,
+    submitid,
+    *,
+    rating: int,
+    ignore: bool = True,
+    anyway: bool = False,
+):
+    # TODO(hyena): This `query[n]` stuff is monstrous. Use named fields.
+    # Also some of these don't appear to be used? e.g. pr.config
     query = d.engine.execute("""
         SELECT
-            su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating, su.settings,
-            su.page_views, fd.title, su.favorites, su.image_representations
+            su.userid, pr.username, su.folderid, su.unixtime, su.title, su.content, su.subtype, su.rating,
+            su.hidden, su.friends_only, su.critique, su.embed_type,
+            su.page_views, fd.title, su.favorites
         FROM submission su
             INNER JOIN profile pr USING (userid)
             LEFT JOIN folder fd USING (folderid)
         WHERE su.submitid = %(id)s
     """, id=submitid).first()
 
-    # Sanity check
-    if query and userid in staff.MODS and anyway == "true":
+    if query and userid in staff.MODS and anyway:
         pass
-    elif not query or "h" in query[8]:
+    elif not query or query[8]:
         raise WeasylError("submissionRecordMissing")
-    elif query[7] > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()):
-        raise WeasylError("RatingExceeded")
-    elif "f" in query[8] and not frienduser.check(userid, query[0]):
+    elif query[9] and not frienduser.check(userid, query[0]):
         raise WeasylError("FriendsOnly")
     elif ignore and ignoreuser.check(userid, query[0]):
         raise WeasylError("UserIgnored")
@@ -529,30 +650,34 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
 
     # Get submission text
     if submitfile and submitfile['file_type'] in ['txt', 'htm']:
-        submittext = files.read(submitfile['full_file_path'])
+        submittext = files.read(os.path.join(MediaItem._base_file_path, submitfile['file_url'][1:]))
     else:
         submittext = None
 
-    embedlink = d.text_first_line(query[5]) if "v" in query[8] else None
-
+    content = query.content
+    embedded = None
     google_doc_embed = None
-    if 'D' in query[8]:
-        db = d.connect()
-        gde = d.meta.tables['google_doc_embeds']
-        q = (sa.select([gde.c.embed_url])
-             .where(gde.c.submitid == submitid))
-        results = db.execute(q).fetchall()
-        if not results:
-            raise WeasylError("can't find embed information")
-        google_doc_embed = results[0]
 
-    tags, artist_tags = searchtag.select_with_artist_tags(submitid)
+    if query.embed_type == "other":
+        # NOTE: original `content` might not contain a newline
+        embedlink, _, content = content.partition("\n")
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            # a stored embed link should always be valid
+            raise RuntimeError("invalid stored embed link")  # pragma: no cover
+
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UpstreamFailure as e:
+            embedded = e.failed_embed
+        del embedlink
+    elif query.embed_type == "google-drive":
+        google_doc_embed = get_google_docs_embed_url(submitid)
+
+    grouped_tags = searchtag.select_grouped(userid, searchtag.SubmissionTarget(submitid))
     settings = d.get_profile_settings(query[0])
 
-    if query[12] is None:
-        sub_media = media.get_submission_media(submitid)
-    else:
-        sub_media = media.deserialize_image_representations(query[12])
+    sub_media = media.get_submission_media(submitid)
 
     return {
         "submitid": submitid,
@@ -561,20 +686,21 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "folderid": query[2],
         "unixtime": query[3],
         "title": query[4],
-        "content": (d.text_first_line(query[5], strip=True) if "v" in query[8] else query[5]),
+        "content": content,
         "subtype": query[6],
         "rating": query[7],
-        "settings": query[8],
-        "page_views": (
-            query[9] + 1 if d.common_view_content(userid, 0 if anyway == "true" else submitid, "submit") else query[9]),
-        "fave_count": query[11],
+        "rating_exceeded": query.rating > rating and ((userid != query[0] and userid not in staff.MODS) or d.is_sfw_mode()),
+        "hidden": query[8],
+        "friends_only": query[9],
+        "critique": query[10],
+        "embed_type": query[11],
+        "page_views": query[12],
+        "fave_count": query[14],
 
 
         "mine": userid == query[0],
-        "reported": report.check(submitid=submitid),
+        "reported": report.check(submitid=submitid) if userid in staff.MODS else None,
         "favorited": favorite.check(userid, submitid=submitid),
-        "friends_only": "f" in query[8],
-        "hidden_submission": "h" in query[8],
         "collected": collection.owns(userid, submitid),
         "no_request": not settings.allow_collection_requests,
 
@@ -582,31 +708,33 @@ def select_view(userid, submitid, rating, ignore=True, anyway=None):
         "sub_media": sub_media,
         "user_media": media.get_user_media(query[0]),
         "submit": submitfile,
-        "embedlink": embedlink,
-        "embed": embed.html(embedlink) if embedlink is not None else None,
+        "embed": embedded,
         "google_doc_embed": google_doc_embed,
 
 
-        "tags": tags,
-        "artist_tags": artist_tags,
-        "removable_tags": searchtag.removable_tags(userid, query[0], tags, artist_tags),
-        "can_remove_tags": searchtag.can_remove_tags(userid, query[0]),
+        "tags": grouped_tags,
         "folder_more": select_near(userid, rating, 1, query[0], query[2], submitid),
-        "folder_title": query[10] if query[10] else "Root",
+        "folder_title": query[13] if query[13] else "Root",
 
 
         "comments": comment.select(userid, submitid=submitid),
     }
 
 
-def select_view_api(userid, submitid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    submitid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = d.get_rating(userid)
     db = d.connect()
     sub = db.query(orm.Submission).get(submitid)
-    if sub is None or 'hidden' in sub.settings:
+    if sub is None or sub.hidden:
         raise WeasylError("submissionRecordMissing")
     sub_rating = sub.rating.code
-    if 'friends-only' in sub.settings and not frienduser.check(userid, sub.userid):
+    if sub.friends_only and not frienduser.check(userid, sub.userid):
         raise WeasylError("submissionRecordMissing")
     elif sub_rating > rating and userid != sub.userid:
         raise WeasylError("RatingExceeded")
@@ -617,14 +745,14 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
 
     description = sub.content
     embedlink = None
-    if 'embedded-content' in sub.settings:
+    if sub.embed_type == 'other':
         embedlink, _, description = description.partition('\n')
-    elif 'gdocs-embed' in sub.settings:
-        embedlink = sub.google_doc_embed.embed_url
+    elif sub.embed_type == 'google-drive':
+        embedlink = get_google_docs_embed_url(submitid)
 
     views = sub.page_views
-    if increment_views and d.common_view_content(userid, submitid, 'submit'):
-        views += 1
+    if increment_views and (new_views := d.common_view_content(userid, submitid, 'submissions')) is not None:
+        views = new_views
 
     return {
         'submitid': submitid,
@@ -646,85 +774,32 @@ def select_view_api(userid, submitid, anyway=False, increment_views=False):
         'rating': sub.rating.name,
 
         'views': views,
-        'favorites': favorite.count(submitid),
+        'favorites': sub.favorites,
         'comments': comment.count(submitid),
         'favorited': favorite.check(userid, submitid=submitid),
-        'friends_only': 'friends-only' in sub.settings,
+        'friends_only': sub.friends_only,
     }
 
 
-def twitter_card(request, submitid):
-    query = d.engine.execute("""
-        SELECT
-            su.title, su.settings, su.content, su.subtype, su.userid, pr.username, pr.full_name, pr.config, ul.link_value, su.rating
-        FROM submission su
-            INNER JOIN profile pr USING (userid)
-            LEFT JOIN user_links ul ON su.userid = ul.userid AND ul.link_type = 'twitter'
-        WHERE submitid = %(id)s
-        LIMIT 1
-    """, id=submitid).first()
-
-    if not query:
-        raise WeasylError("submissionRecordMissing")
-    title, settings, content, subtype, userid, username, full_name, config, twitter, rating = query
-    if 'h' in settings:
-        raise WeasylError("submissionRecordMissing")
-    elif 'f' in settings:
-        raise WeasylError("FriendsOnly")
-
-    if 'v' in settings:
-        content = d.text_first_line(content, strip=True)
-    content = d.summarize(html.strip_html(content))
-    if not content:
-        content = "[This submission has no description.]"
-
-    ret = {
-        'url': d.absolutify_url(
-            request.route_path(
-                'submission_detail_profile',
-                name=d.get_sysname(username),
-                submitid=submitid,
-                slug=text.slug_for(title),
-            )
-        ),
-    }
-
-    if twitter:
-        ret['creator'] = '@%s' % (twitter.lstrip('@'),)
-        ret['title'] = title
-    else:
-        ret['title'] = '%s by %s' % (title, full_name)
-
-    if ratings.CODE_MAP[rating].minimum_age >= 18:
-        ret['card'] = 'summary'
-        ret['description'] = 'This image is rated 18+ and only viewable on weasyl.com'
-        return ret
-
-    ret['description'] = content
-
-    subcat = subtype // 1000 * 1000
-    media_items = media.get_submission_media(submitid)
-    if subcat == m.ART_SUBMISSION_CATEGORY and media_items.get('submission'):
-        ret['card'] = 'photo'
-        ret['image:src'] = d.absolutify_url(media_items['submission'][0]['display_url'])
-    else:
-        ret['card'] = 'summary'
-        thumb = media_items.get('thumbnail-custom') or media_items.get('thumbnail-generated')
-        if thumb:
-            ret['image:src'] = d.absolutify_url(thumb[0]['display_url'])
-
-    return ret
-
-
-def select_query(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None, exclude=None,
-                 options=[], profile_page_filter=False,
-                 index_page_filter=False, featured_filter=False):
+def _select_query(
+    *,
+    userid,
+    rating,
+    otherid,
+    folderid,
+    backid,
+    nextid,
+    subcat: Literal[1000, 2000, 3000] | None,
+    profile_page_filter,
+    index_page_filter,
+    featured_filter,
+    critique_only: bool,
+):
     statement = [
         "FROM submission su "
         "INNER JOIN profile pr ON su.userid = pr.userid "
         "LEFT JOIN folder f USING (folderid) "
-        "WHERE su.settings !~ 'h'"]
+        "WHERE NOT hidden"]
     if profile_page_filter:
         statement.append(" AND COALESCE(f.settings !~ 'u', true)")
     if index_page_filter:
@@ -741,18 +816,17 @@ def select_query(userid, rating, otherid=None, folderid=None,
 
     if otherid:
         statement.append(" AND su.userid = %i" % (otherid,))
+    else:
+        statement.append(" AND su.browse_excluded IS NOT TRUE")
 
     if folderid:
         statement.append(" AND su.folderid = %i" % (folderid,))
 
-    if exclude:
-        statement.append(" AND su.submitid != %i" % (exclude,))
-
     if subcat:
         statement.append(" AND su.subtype >= %i AND su.subtype < %i" % (subcat, subcat + 1000))
 
-    if "critique" in options:
-        statement.append(" AND su.settings ~ 'q' AND su.unixtime > %i" % (d.get_time() - 259200,))
+    if critique_only:
+        statement.append(" AND su.critique")
 
     if backid:
         statement.append(" AND su.submitid > %i" % (backid,))
@@ -767,28 +841,98 @@ def select_query(userid, rating, otherid=None, folderid=None,
 
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.settings !~ 'f'")
+        statement.append(" AND NOT su.friends_only")
     return statement
 
 
-def select_count(userid, rating, otherid=None, folderid=None,
-                 backid=None, nextid=None, subcat=None, exclude=None,
-                 options=[], profile_page_filter=False,
-                 index_page_filter=False, featured_filter=False):
-    if options not in [[], ['critique'], ['randomize']]:
-        raise ValueError("Unexpected options: %r" % (options,))
+def select_count(
+    userid,
+    rating,
+    *,
+    otherid=None,
+    folderid=None,
+    backid=None,
+    nextid=None,
+    subcat=None,
+    profile_page_filter=False,
+    index_page_filter=False,
+    featured_filter=False,
+    critique_only=False,
+):
+    statement = "".join((
+        "SELECT count(*) FROM (SELECT ",
+        *_select_query(
+            userid=userid,
+            rating=rating,
+            otherid=otherid,
+            folderid=folderid,
+            backid=backid,
+            nextid=nextid,
+            subcat=subcat,
+            profile_page_filter=profile_page_filter,
+            index_page_filter=index_page_filter,
+            featured_filter=featured_filter,
+            critique_only=critique_only,
+        ),
+        " LIMIT %i) t" % (COUNT_LIMIT,),
+    ))
+    return d.engine.scalar(statement)
 
-    statement = ["SELECT COUNT(submitid) "]
-    statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
-        index_page_filter, featured_filter))
-    return d.execute("".join(statement))[0][0]
+
+def select_page(
+    userid,
+    *,
+    rating,
+    limit: int,
+    otherid=None,
+    folderid=None,
+    page: PageFilter,
+    subcat: Literal[1000, 2000, 3000] | None = None,
+    profile_page_filter=False,
+    index_page_filter=False,
+    featured_filter=False,
+    critique_only=False,
+):
+    backid, nextid = page.compat()
+    statement = "".join((
+        "SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid, pr.username, su.subtype ",
+        *_select_query(
+            userid=userid,
+            rating=rating,
+            otherid=otherid,
+            folderid=folderid,
+            backid=backid,
+            nextid=nextid,
+            subcat=subcat,
+            profile_page_filter=profile_page_filter,
+            index_page_filter=index_page_filter,
+            featured_filter=featured_filter,
+            critique_only=critique_only,
+        ),
+        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if featured_filter else "su.submitid", "" if page.is_back else " DESC", limit + 1),
+    ))
+
+    submissions = [{**row, "contype": 10} for row in d.engine.execute(statement)]
+    prev_page, next_page = paginate(submissions, limit=limit, page=page, key="submitid")
+    media.populate_with_submission_media(submissions)
+    return submissions, prev_page, next_page
 
 
-def select_list(userid, rating, limit, otherid=None, folderid=None,
-                backid=None, nextid=None, subcat=None, exclude=None,
-                options=[], profile_page_filter=False,
-                index_page_filter=False, featured_filter=False):
+def select_list(
+    userid,
+    rating,
+    *,
+    limit: int,
+    otherid=None,
+    folderid=None,
+    backid: int | None = None,
+    nextid: int | None = None,
+    subcat: Literal[1000, 2000, 3000] | None = None,
+    profile_page_filter=False,
+    index_page_filter=False,
+    featured_filter=False,
+    critique_only=False,
+):
     """
     Selects a list from the submissions table.
 
@@ -798,103 +942,97 @@ def select_list(userid, rating, limit, otherid=None, folderid=None,
         limit: The number of submissions to get
         otherid: The user whose submissions to get
         folderid: Select submissions from this folder
-        backid: Select the IDs that are less than this value
-        nextid: Select the IDs that are greater than this value
         subcat: Select submissions whose subcategory is within this range
             (this value + 1000)
-        exclude: Exclude this specific submission ID
-        options: List that can contain the following values:
-            "critique": Submissions flagged for critique; additionally selects
-                submissions newer than 3 days old
-            "randomize": Randomize the ordering of the results
         profile_page_filter: Do not select from folders that should not appear
             on the profile page.
         index_page_filter: Do not select from folders that should not appear on
             the front page.
-        featured_filter: Select from folders marked as featured submissions.
+        featured_filter: Select from folders marked as featured submissions and randomize the order of results.
+        critique_only: Select only submissions for which critique is requested.
 
     Returns:
         An array with the following keys: "contype", "submitid", "title",
         "rating", "unixtime", "userid", "username", "subtype", "sub_media"
     """
-    if options not in [[], ['critique'], ['randomize']]:
-        raise ValueError("Unexpected options: %r" % (options,))
-
-    randomize = bool(options)
-
-    statement = [
-        "SELECT su.submitid, su.title, su.rating, su.unixtime, "
-        "su.userid, pr.username, su.settings, su.subtype, "
-        "su.image_representations "]
-
-    statement.extend(select_query(
-        userid, rating, otherid, folderid, backid, nextid, subcat, exclude, options, profile_page_filter,
-        index_page_filter, featured_filter))
-
-    statement.append(
-        " ORDER BY %s%s LIMIT %i" % ("RANDOM()" if randomize else "su.submitid", "" if backid else " DESC", limit))
-
-    query = [{
-        "contype": 10,
-        "submitid": i[0],
-        "title": i[1],
-        "rating": i[2],
-        "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "subtype": i[7],
-        "image_representations": i[8],
-    } for i in d.execute("".join(statement))]
-    media.populate_with_remaining_submission_media(query)
-
-    return query[::-1] if backid else query
+    submissions, _prev_page, _next_page = select_page(
+        userid,
+        rating=rating,
+        limit=limit,
+        otherid=otherid,
+        folderid=folderid,
+        page=page_from_compat(backid=backid, nextid=nextid),
+        subcat=subcat,
+        profile_page_filter=profile_page_filter,
+        index_page_filter=index_page_filter,
+        featured_filter=featured_filter,
+        critique_only=critique_only,
+    )
+    return submissions
 
 
 def select_featured(userid, otherid, rating):
     submissions = select_list(
-        userid, rating, limit=1, otherid=otherid,
-        options=['randomize'], featured_filter=True)
-    return None if not submissions else submissions[0]
+        userid=userid,
+        rating=rating,
+        limit=1,
+        otherid=otherid,
+        featured_filter=True,
+    )
+    return submissions[0] if submissions else None
 
 
 def select_near(userid, rating, limit, otherid, folderid, submitid):
     statement = ["""
-        SELECT su.submitid, su.title, su.rating, su.unixtime, su.userid,
-               pr.username, su.settings, su.subtype, su.image_representations
+        SELECT su.submitid, su.title, su.rating, su.unixtime, su.subtype
           FROM submission su
-         INNER JOIN profile pr ON su.userid = pr.userid
-         WHERE su.userid = %i
-               AND su.settings !~ 'h'
-    """ % (otherid,)]
+         WHERE su.userid = %(owner)s
+               AND NOT su.hidden
+    """]
 
     if userid:
-        # Users always see their own content.
-        statement.append(" AND (su.rating <= %i OR su.userid = %i)" % (rating, userid))
+        if d.is_sfw_mode():
+            statement.append(" AND su.rating <= %(rating)s")
+        else:
+            # Outside of SFW mode, users always see their own content.
+            statement.append(" AND (su.rating <= %%(rating)s OR su.userid = %i)" % (userid,))
         statement.append(m.MACRO_IGNOREUSER % (userid, "su"))
         statement.append(m.MACRO_FRIENDUSER_SUBMIT % (userid, userid, userid))
         statement.append(m.MACRO_BLOCKTAG_SUBMIT % (userid, userid))
     else:
-        statement.append(" AND su.rating <= %i AND su.settings !~ 'f'" % (rating,))
+        statement.append(" AND su.rating <= %(rating)s AND NOT su.friends_only")
 
     if folderid:
         statement.append(" AND su.folderid = %i" % folderid)
 
+    statement = "".join(statement)
+    statement = (
+        f"SELECT * FROM ({statement} AND su.submitid < %(submitid)s ORDER BY su.submitid DESC LIMIT 1) AS older"
+        f" UNION ALL SELECT * FROM ({statement} AND su.submitid > %(submitid)s ORDER BY su.submitid LIMIT 1) AS newer"
+    )
+
+    username = d.get_display_name(otherid)
+
     query = [{
         "contype": 10,
+        "userid": otherid,
+        "username": username,
         "submitid": i[0],
         "title": i[1],
         "rating": i[2],
         "unixtime": i[3],
-        "userid": i[4],
-        "username": i[5],
-        "subtype": i[7],
-        "image_representations": i[8],
-    } for i in d.execute("".join(statement))]
+        "subtype": i[4],
+    } for i in d.engine.execute(statement, {
+        "owner": otherid,
+        "submitid": submitid,
+        "rating": rating,
+    })]
+
+    media.populate_with_submission_media(query)
 
     query.sort(key=lambda i: i['submitid'])
-    older = [i for i in query if i["submitid"] < submitid][-limit:]
-    newer = [i for i in query if i["submitid"] > submitid][:limit]
-    media.populate_with_remaining_submission_media(older + newer)
+    older = [i for i in query if i["submitid"] < submitid]
+    newer = [i for i in query if i["submitid"] > submitid]
 
     return {
         "older": older,
@@ -902,15 +1040,28 @@ def select_near(userid, rating, limit, otherid, folderid, submitid):
     }
 
 
-def edit(userid, submission, embedlink=None, friends_only=False, critique=False):
+def _invalidate_collectors_posts_count(submitid):
+    """
+    Invalidate the cached post counts of users who have as a collection the submission being edited or deleted.
+    """
+    owners = collection.find_owners(submitid)
+    d.cached_posts_count_invalidate_multi(owners)
+
+
+def edit(
+    userid: int,
+    submission,
+    *,
+    embedlink: str,
+    friends_only: bool,
+    critique: bool,
+) -> None:
     query = d.engine.execute(
-        "SELECT userid, subtype, settings FROM submission WHERE submitid = %(id)s",
+        "SELECT userid, subtype, hidden, embed_type FROM submission WHERE submitid = %(id)s",
         id=submission.submitid).first()
 
-    if not query or "h" in query[2]:
+    if not query or query[2]:
         raise WeasylError("Unexpected")
-    elif "a" in query[2] and userid not in staff.MODS:
-        raise WeasylError("AdminLocked")
     elif userid != query[0] and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     elif not submission.title:
@@ -921,23 +1072,32 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
         raise WeasylError("Unexpected")
     elif submission.subtype // 1000 != query[1] // 1000:
         raise WeasylError("Unexpected")
-    elif 'v' in query[2] and not embed.check_valid(embedlink):
-        raise WeasylError("embedlinkInvalid")
-    elif 'D' in query[2]:
-        check_google_doc_embed_data(embedlink)
-    profile.check_user_rating_allowed(userid, submission.rating)
+    elif 'other' == query[3]:
+        embedlink = d.text_fix_url(embedlink)
+        if embedlink is None:
+            raise WeasylError("embedlinkInvalid")
 
-    # Assign settings
-    settings = [query[2].replace("f", "").replace("q", "")]
-    settings.append("f" if friends_only else "")
-    settings.append("q" if critique else "")
-    settings = "".join(settings)
+        try:
+            embedded = embed.load(embedlink)
+        except embed.UnrecognizedLink as e:
+            raise WeasylError("embedlinkInvalid") from e
+        except embed.UpstreamFailure as e:
+            raise WeasylError("embedlinkFailed") from e
 
-    if "v" in settings:
+        embedlink = embedded.embedlink.href
+    elif 'google-drive' == query[3]:
+        embedlink = _normalize_google_docs_embed(embedlink)
+
+    if userid == query.userid:
+        profile.check_user_rating_allowed(userid, submission.rating)
+        if submission.rating.minimum_age:
+            profile.assert_adult(userid)
+
+    if 'other' == query[3]:
         submission.content = "%s\n%s" % (embedlink, submission.content)
 
-    if "f" in settings:
-        welcome.submission_became_friends_only(submission.submitid, userid)
+    if friends_only:
+        welcome.submission_became_friends_only(submission.submitid, query.userid)
 
     # TODO(kailys): maintain ORM object
     db = d.connect()
@@ -950,12 +1110,13 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
             content=submission.content,
             subtype=submission.subtype,
             rating=submission.rating,
-            settings=settings,
+            friends_only=friends_only,
+            critique=critique,
         )
         .where(su.c.submitid == submission.submitid))
     db.execute(q)
 
-    if 'D' in settings:
+    if 'google-drive' == query[3]:
         db = d.connect()
         gde = d.meta.tables['google_doc_embeds']
         q = (gde.update()
@@ -969,18 +1130,24 @@ def edit(userid, submission, embedlink=None, friends_only=False, critique=False)
             userid, query[0], 'The following submission was edited:',
             '- ' + text.markdown_link(submission.title, '/submission/%s?anyway=true' % (submission.submitid,)))
 
+    # possible rating change
+    d.cached_posts_count.invalidate(query[0])
+    _invalidate_collectors_posts_count(submission.submitid)
 
-def remove(userid, submitid):
+
+def remove(userid: int, submitid: int) -> int | None:
     ownerid = d.get_ownerid(submitid=submitid)
 
     if userid not in staff.MODS and userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    query = d.execute("UPDATE submission SET settings = settings || 'h'"
-                      " WHERE submitid = %i AND settings !~ 'h' RETURNING submitid", [submitid])
+    query = d.execute("UPDATE submission SET hidden = TRUE"
+                      " WHERE submitid = %i AND NOT hidden RETURNING submitid", [submitid])
 
     if query:
         welcome.submission_remove(submitid)
+        d.cached_posts_count.invalidate(ownerid)
+        _invalidate_collectors_posts_count(submitid)
 
     return ownerid
 
@@ -990,21 +1157,30 @@ def reupload_cover(userid, submitid, coverfile):
         "SELECT userid, subtype FROM submission WHERE submitid = %(id)s",
         id=submitid).first()
 
+    is_removal = not coverfile
+
     if not query:
-        raise WeasylError("Unexpected")
-    elif userid not in staff.MODS and userid != query[0]:
-        raise WeasylError("Unexpected")
+        raise WeasylError("submissionRecordMissing")
+    elif userid != query[0] and not (is_removal and userid in staff.MODS):
+        raise WeasylError("InsufficientPermissions")
     elif query[1] < 2000:
         raise WeasylError("Unexpected")
 
-    cover_media_item = media.make_cover_media_item(coverfile)
-    if not cover_media_item:
+    if is_removal:
         orm.SubmissionMediaLink.clear_link(submitid, 'cover')
     else:
+        try:
+            result = image.create_cover(coverfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("FileType") from e
+        except Exception as e:
+            raise WeasylError("imageProcessingFailed", level="info") from e
+
+        cover_media_item = media.ensure_output_media(result)
         orm.SubmissionMediaLink.make_or_replace_link(submitid, 'cover', cover_media_item)
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(expiration_time=600)
 @d.record_timing
 def select_recently_popular():
     """
@@ -1012,39 +1188,68 @@ def select_recently_popular():
 
     To calculate scores, this method performs the following evaluation:
 
-    item_score = log(item_fave_count + 1) + log(item_view_counts) / 2 + submission_time / 180000
+    item_score = log(item_fave_count) + submission_time / 180000
 
     180000 is roughly two days. So intuitively an item two days old needs an order of
-    magnitude more favorites/views compared to a fresh one. Also the favorites are
-    quadratically more influential than views. The result is that this algorithm favors
-    recent, heavily favorited items.
+    magnitude more favorites compared to a fresh one.
 
     :return: A list of submission dictionaries, in score-rank order.
     """
     query = d.engine.execute("""
         SELECT
-            log(submission.favorites + 1) +
-                log(submission.page_views + 1) / 2 +
-                submission.unixtime / 180000.0 AS score,
             submission.submitid,
             submission.title,
             submission.rating,
             submission.subtype,
-            submission.unixtime,
             submission_tags.tags,
             submission.userid,
-            submission.image_representations,
             profile.username
         FROM submission
             INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
             INNER JOIN profile ON submission.userid = profile.userid
         WHERE
-            submission.settings !~ '[hf]'
-            AND submission.favorites IS NOT NULL
-        ORDER BY score DESC
+            NOT submission.hidden
+            AND NOT submission.friends_only
+            AND submission.favorites > 0
+            AND submission.browse_excluded IS NOT TRUE
+        ORDER BY
+            log(submission.favorites) +
+                submission.unixtime / 180000.0
+                DESC
         LIMIT 128
     """)
 
-    submissions = [dict(row, contype=10) for row in query]
-    media.populate_with_remaining_submission_media(submissions)
+    submissions = [{**row, "contype": 10} for row in query]
+    media.populate_with_submission_media(submissions)
+    media.strip_non_thumbnail_media(submissions)
+
+    return submissions
+
+
+@region.cache_on_arguments(expiration_time=600)
+def select_critique():
+    query = d.engine.execute("""
+        SELECT
+            submission.submitid,
+            submission.title,
+            submission.rating,
+            submission.subtype,
+            submission_tags.tags,
+            submission.userid,
+            profile.username
+        FROM submission
+            INNER JOIN submission_tags ON submission.submitid = submission_tags.submitid
+            INNER JOIN profile ON submission.userid = profile.userid
+        WHERE
+            NOT submission.hidden
+            AND NOT submission.friends_only
+            AND submission.critique
+        ORDER BY submission.submitid DESC
+        LIMIT 128
+    """)
+
+    submissions = [{**row, "contype": 10} for row in query]
+    media.populate_with_submission_media(submissions)
+    media.strip_non_thumbnail_media(submissions)
+
     return submissions

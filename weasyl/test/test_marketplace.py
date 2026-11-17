@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 
 import arrow
@@ -8,7 +6,7 @@ from weasyl.test import db_utils
 from weasyl import commishinfo, define as d, orm, profile, searchtag
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 @pytest.mark.parametrize(['args', 'result_order'], [
     # test that the broadest terms return all users in the right order
     ({
@@ -56,24 +54,24 @@ def test_commish_search(args, result_order):
     u1 = db_utils.create_user(username="searcher")
 
     # user open for commissions
-    create_commish_searchable_user("u2", submittime=arrow.now())
+    create_commish_searchable_user("u2", submittime=arrow.utcnow())
 
     # user sometimes open for commissions (should behave same as above)
     create_commish_searchable_user("u3", commish_status='s',
-                                   submittime=arrow.now() - datetime.timedelta(days=1))
+                                   submittime=arrow.utcnow() - datetime.timedelta(days=1))
 
     # user open for commissions, with blacklisted tags
-    u4 = create_commish_searchable_user("u4", submittime=arrow.now() - datetime.timedelta(days=2))
-    searchtag.associate(u4, optout_tags_userid=u4, tags={'cat'})
+    u4 = create_commish_searchable_user("u4", submittime=arrow.utcnow() - datetime.timedelta(days=2))
+    searchtag.set_commission_optout_tags(userid=u4, tag_names={'cat'})
 
     # user with a different commish class and a preference tag
     u5 = create_commish_searchable_user("u5", commishclass="sketch",
-                                        submittime=arrow.now() - datetime.timedelta(days=3))
-    searchtag.associate(u5, preferred_tags_userid=u5, tags={'cat'})
+                                        submittime=arrow.utcnow() - datetime.timedelta(days=3))
+    searchtag.set_commission_preferred_tags(userid=u5, tag_names={'cat'})
 
     # user with a different price
     create_commish_searchable_user("u6", minprice="100.0", maxprice="100.0",
-                                   submittime=arrow.now() - datetime.timedelta(days=4))
+                                   submittime=arrow.utcnow() - datetime.timedelta(days=4))
 
     results = commishinfo.select_commissionable(userid=u1,
                                                 limit=10,
@@ -83,7 +81,7 @@ def test_commish_search(args, result_order):
     assert rids == result_order
 
 
-@pytest.mark.usefixtures('db')
+@pytest.mark.usefixtures('db', 'cache')
 def test_commish_search_invalid():
     # searcher
     u1 = db_utils.create_user(username="searcher")
@@ -93,7 +91,7 @@ def test_commish_search_invalid():
 
     # user open for commission but without any commish classes
     u3 = create_commish_searchable_user("u3")
-    classid = commishinfo.select_list(u3)["class"][0]["classid"]
+    classid = commishinfo.select(u3).classes[0].classid
     commishinfo.remove_class(u3, classid)
 
     # user meets all requirements, but is suspended
@@ -124,10 +122,12 @@ def create_commish_searchable_user(username, commish_status='o', commishclass='b
     user = db_utils.create_user(username=username)
     profile.edit_profile_settings(
         userid=user,
+        set_trade=profile.EXCHANGE_SETTING_NOT_ACCEPTING,
+        set_request=profile.EXCHANGE_SETTING_NOT_ACCEPTING,
         set_commission=profile.get_exchange_setting(profile.EXCHANGE_TYPE_COMMISSION, commish_status)
     )
     commishinfo.create_commission_class(user, commishclass)
-    classid = commishinfo.select_list(user)["class"][0]["classid"]
+    classid = commishinfo.select(user).classes[0].classid
     assert classid
 
     price = orm.CommishPrice()

@@ -1,16 +1,18 @@
-# encoding: utf-8
-from __future__ import absolute_import
-
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import staff
 from libweasyl.legacy import UNIXTIME_OFFSET
+from libweasyl.models import tables as t
 
 from weasyl import define as d
+from weasyl import frienduser
 from weasyl import ignoreuser
 from weasyl import macro as m
 from weasyl import media
+from weasyl import siteupdate
 from weasyl import welcome
+from weasyl.collection import find_owners
 from weasyl.error import WeasylError
 
 
@@ -115,16 +117,35 @@ def select(userid, submitid=None, charid=None, journalid=None, updateid=None):
     return result
 
 
-def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, parentid=None, content=None):
+def insert(
+    userid: int,
+    *,
+    submitid: int = 0,
+    charid: int = 0,
+    journalid: int = 0,
+    updateid: int = 0,
+    parentid: int,
+    content: str,
+) -> int:
+    targetid_col = "targetid"
+
     if submitid:
         table = "comments"
+        targetid_col = "target_sub"
+        targetid = submitid
     elif charid:
         table = "charcomment"
+        targetid = charid
     elif journalid:
         table = "journalcomment"
+        targetid = journalid
     elif updateid:
         table = "siteupdatecomment"
+        targetid = updateid
     else:
+        raise WeasylError("Unexpected")
+
+    if sum(map(bool, (submitid, charid, journalid, updateid))) > 1:
         raise WeasylError("Unexpected")
 
     if not content:
@@ -132,17 +153,18 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
 
     # Determine parent userid
     if parentid:
+        # NOTE: Replying to deleted comments is intentionally allowed.
         parentuserid = d.engine.scalar(
-            "SELECT userid FROM {table} WHERE commentid = %(parent)s".format(table=table),
+            f"SELECT userid FROM {table}"
+            " WHERE commentid = %(parent)s"
+            f" AND {targetid_col} = %(target)s",
             parent=parentid,
+            target=targetid,
         )
 
         if parentuserid is None:
             raise WeasylError("Unexpected")
     else:
-        if updateid:
-            parentid = None  # parentid == 0
-
         parentuserid = None
 
     if updateid:
@@ -152,21 +174,28 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             raise WeasylError("submissionRecordMissing")
     else:
         # Determine the owner of the target
-        otherid = d.engine.scalar(
-            "SELECT userid FROM %s WHERE %s = %i AND settings !~ 'h'" % (
-                ("submission", "submitid", submitid) if submitid else
-                ("character", "charid", charid) if charid else
-                ("journal", "journalid", journalid)
-            )
+        content_table, content_table_filter = (
+            (t.submission, t.submission.c.submitid == submitid) if submitid
+            else (t.character, t.character.c.charid == charid) if charid
+            else (t.journal, t.journal.c.journalid == journalid)
         )
 
+        target = d.engine.execute(
+            sa.select([content_table.c.userid, content_table.c.friends_only])
+            .select_from(content_table)
+            .where(content_table_filter)
+            .where(~content_table.c.hidden)
+        ).first()
+
         # Check permissions
-        if not otherid:
+        if target is None or (target.friends_only and not frienduser.check(userid, target.userid)):
             raise WeasylError("submissionRecordMissing")
-        elif ignoreuser.check(otherid, userid):
+        elif ignoreuser.check(target.userid, userid):
             raise WeasylError("pageOwnerIgnoredYou")
-        elif ignoreuser.check(userid, otherid):
+        elif ignoreuser.check(userid, target.userid):
             raise WeasylError("youIgnoredPageOwner")
+
+        otherid = target.userid
 
     if parentuserid and ignoreuser.check(parentuserid, userid):
         raise WeasylError("replyRecipientIgnoredYou")
@@ -189,17 +218,18 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
             " RETURNING commentid",
             user=userid,
             update=updateid,
-            parent=parentid,
+            parent=parentid or None,
             content=content,
         )
+        siteupdate.select_last.invalidate()
     else:
         commentid = d.engine.scalar(
-            "INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
+            f"INSERT INTO {table} (userid, targetid, parentid, content, unixtime)"
             " VALUES (%(user)s, %(target)s, %(parent)s, %(content)s, %(now)s)"
-            " RETURNING commentid".format(table="charcomment" if charid else "journalcomment"),
+            " RETURNING commentid",
             user=userid,
-            target=d.get_targetid(charid, journalid),
-            parent=parentid or 0,
+            target=targetid,
+            parent=parentid,
             content=content,
             now=d.get_time(),
         )
@@ -208,18 +238,17 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
     if parentid and (userid != parentuserid):
         welcome.commentreply_insert(userid, commentid, parentuserid, parentid, submitid, charid, journalid, updateid)
     elif not parentid:
-        # build a list of people this comment should notify
-        # circular imports are cool and fun
-        from weasyl.collection import find_owners
-        notified = set(find_owners(submitid))
+        if submitid:
+            # build a list of people this comment should notify
+            def can_notify(other):
+                other_jsonb = d.get_profile_settings(other)
+                allow_notify = other_jsonb.allow_collection_notifs
+                ignored = ignoreuser.check(other, userid)
+                return allow_notify and not ignored
+            notified = set(filter(can_notify, find_owners(submitid)))
+        else:
+            notified = set()
 
-        # check to see who we should deliver comment notifications to
-        def can_notify(other):
-            other_jsonb = d.get_profile_settings(other)
-            allow_notify = other_jsonb.allow_collection_notifs
-            ignored = ignoreuser.check(other, userid)
-            return allow_notify and not ignored
-        notified = set(filter(can_notify, notified))
         # always give notification on own content
         notified.add(otherid)
         # don't give me a notification for my own comment
@@ -233,7 +262,7 @@ def insert(userid, submitid=None, charid=None, journalid=None, updateid=None, pa
     return commentid
 
 
-def remove(userid, feature=None, commentid=None):
+def remove(userid, *, feature, commentid):
     if feature not in ["submit", "char", "journal", "siteupdate"]:
         raise WeasylError("Unexpected")
 
@@ -278,8 +307,10 @@ def remove(userid, feature=None, commentid=None):
         # user is commenter
         comment_table = (
             "comments" if feature == 'submit' else feature + "comment")
+        comment_visible = (
+            "hidden_at IS NULL" if feature == 'siteupdate' else "settings !~ 'h'")
         has_replies = d.engine.scalar(
-            "SELECT EXISTS (SELECT FROM {table} WHERE parentid = %(comment)s)".format(table=comment_table),
+            f"SELECT EXISTS (SELECT FROM {comment_table} WHERE parentid = %(comment)s AND {comment_visible})",
             comment=commentid)
         if has_replies:
             # a commenter cannot remove their comment if it has replies
@@ -287,24 +318,24 @@ def remove(userid, feature=None, commentid=None):
 
     # remove notifications
     welcome.comment_remove(commentid, feature)
-    d._page_header_info.invalidate(userid)
 
     # mark comments as hidden
     if feature == 'submit':
         d.engine.execute(
-            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE comments SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'",
             comment=commentid,
             hidden_by=userid,
         )
     elif feature == 'siteupdate':
         d.engine.execute(
-            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s",
+            "UPDATE siteupdatecomment SET hidden_at = now(), hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND hidden_at IS NULL",
             comment=commentid,
             hidden_by=userid,
         )
+        siteupdate.select_last.invalidate()
     else:
         d.engine.execute(
-            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s".format(feature=feature),
+            "UPDATE {feature}comment SET settings = settings || 'h', hidden_by = %(hidden_by)s WHERE commentid = %(comment)s AND settings !~ 'h'".format(feature=feature),
             comment=commentid,
             hidden_by=userid,
         )

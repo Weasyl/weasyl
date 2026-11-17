@@ -1,7 +1,14 @@
-from __future__ import absolute_import
-
 import unittest
+
+import pytest
+
 import weasyl.pagination as pagination
+from weasyl.pagination import (
+    FIRST_PAGE,
+    PrevFilter,
+    NextFilter,
+    paginate,
+)
 
 
 ID_FIELD = 'id_field'
@@ -36,8 +43,29 @@ class PaginationTestCase(unittest.TestCase):
             raise ValueError()
 
         result = pagination.PaginatedResult(select_list, select_count, ID_FIELD, "%s",
-                                            1, 2, 3, check_limit, extra=extra_value)
+                                            1, 2, 3, limit=check_limit, extra=extra_value)
         self.assertEqual(result_size - 1, result.next_count)
         self.assertEqual(0, result.back_count)
         self.assertEqual(result_size, len(result.query))
         self.assertEqual("nextid=" + str(result_size - 1), result.next_url)
+
+
+@pytest.mark.parametrize(
+    (   "ids",    "limit", "page",          "expected_prev", "expected_next", "expected_ids"),
+    [
+        ([1, 2],       1,   FIRST_PAGE,      None,            NextFilter(1),   [1]),
+        ([1, 2, 3],    2,   FIRST_PAGE,      None,            NextFilter(2),   [1, 2]),
+        ([1, 2, 3],    3,   FIRST_PAGE,      None,            None,            [1, 2, 3]),
+        ([3, 2, 1],    3,   PrevFilter(...), None,            NextFilter(3),   [1, 2, 3]),
+        ([1, 2, 3],    3,   NextFilter(...), PrevFilter(1),   None,            [1, 2, 3]),
+        ([3, 2, 1],    2,   PrevFilter(...), PrevFilter(2),   NextFilter(3),   [2, 3]),
+        ([1, 2, 3],    2,   NextFilter(...), PrevFilter(1),   NextFilter(2),   [1, 2]),
+        ([],           1,   FIRST_PAGE,      None,            None,            []),
+        ([],           1,   PrevFilter(...), None,            None,            []),
+        ([],           1,   NextFilter(...), None,            None,            []),
+    ],
+)
+def test_paginate(ids, limit, page, expected_prev, expected_next, expected_ids):
+    items = fake_results(ids)
+    prev_page, next_page = paginate(items, limit=limit, page=page, key=ID_FIELD)
+    assert (prev_page, next_page, items) == (expected_prev, expected_next, fake_results(expected_ids))

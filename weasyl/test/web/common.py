@@ -1,10 +1,5 @@
-# encoding: utf-8
-from __future__ import absolute_import, division
-
+import hashlib
 import os
-from io import BytesIO
-
-from PIL import Image
 
 from weasyl.macro import MACRO_APP_ROOT, MACRO_STORAGE_ROOT
 from weasyl.test import db_utils
@@ -23,24 +18,56 @@ def read_asset(path):
     return _asset_cache[full_path]
 
 
-def read_asset_image(path):
-    return Image.open(BytesIO(read_asset(path))).convert('RGBA')
+def get_storage_path(url):
+    return os.path.join(MACRO_STORAGE_ROOT, url[1:])
 
 
-def read_storage_image(image_url):
-    full_path = os.path.join(MACRO_STORAGE_ROOT, image_url[1:])
-    return Image.open(full_path).convert('RGBA')
+def read_storage(image_url):
+    full_path = get_storage_path(image_url)
+    with open(full_path, "rb") as f:
+        return f.read()
+
+
+def fingerprint(bs: bytes) -> tuple[int, str]:
+    """
+    A variable-length hash where an output prefix match usually corresponds to an input prefix match.
+    """
+    step = 8
+    i = 0
+    h = hashlib.sha256()
+    fp = bytearray()
+
+    while i < len(bs):
+        h.update(bs[i:i+step])
+        fp.extend(h.digest()[:2])
+        i += step
+        step += step // 2
+
+    return (len(bs), fp.hex())
 
 
 BASE_VISUAL_FORM = {
-    'submitfile': u'',
-    'thumbfile': u'',
-    'title': u'Test title',
-    'subtype': u'1030',
-    'folderid': u'',
-    'rating': u'10',
-    'content': u'Description',
-    'tags': u'foo bar ',
+    'submitfile': '',
+    'thumbfile': '',
+    'title': 'Test title',
+    'subtype': '1030',
+    'folderid': '',
+    'rating': '10',
+    'content': 'Description',
+    'tags': 'foo bar ',
+}
+
+BASE_LITERARY_FORM = {
+    'submitfile': '',
+    'embedlink': '',
+    'coverfile': '',
+    'thumbfile': '',
+    'title': 'Test title',
+    'subtype': '2010',
+    'folderid': '',
+    'rating': '10',
+    'content': 'Description',
+    'tags': 'foo bar',
 }
 
 

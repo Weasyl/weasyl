@@ -1,8 +1,6 @@
 # pytest configuration for weasyl db test fixture.
 # The filename conftest.py is magical, do not change.
 
-from __future__ import absolute_import
-
 import errno
 import json
 import os
@@ -10,17 +8,17 @@ import shutil
 
 import pytest
 import pyramid.testing
-from pyramid.httpexceptions import HTTPNotFound
-from sqlalchemy.dialects.postgresql import psycopg2
-from webtest import TestApp
+from pytest import MonkeyPatch
+from webtest import TestApp as TestApp_
 
 from weasyl import config
-config._in_test = True  # noqa
+config._in_test = True
 
-from libweasyl import cache
-from libweasyl.cache import JSONProxy, ThreadCacheProxy
+from libweasyl.cache import region
 from libweasyl.configuration import configure_libweasyl
-from libweasyl.models.tables import metadata
+from libweasyl.staff import StaffConfig
+from libweasyl.test.common import cache_backend
+from libweasyl.test.common import clear_database
 from weasyl import (
     commishinfo,
     define,
@@ -28,42 +26,34 @@ from weasyl import (
     macro,
     media,
     middleware,
+    turnstile,
 )
 from weasyl.controllers.routes import setup_routes_and_views
-from weasyl.wsgi import wsgi_app
+from weasyl.test.common import initialize_database
+from weasyl.wsgi import make_wsgi_app
 
 
-cache.region.configure(
-    'dogpile.cache.memory',
-    wrap=[ThreadCacheProxy, JSONProxy],
-)
-define.metric = lambda *a, **kw: None
-
-
-configure_libweasyl(
-    dbsession=define.sessionmaker,
-    not_found_exception=HTTPNotFound,
-    base_file_path=macro.MACRO_STORAGE_ROOT,
-    staff_config_dict={},
-    media_link_formatter_callback=media.format_media_link,
-)
+@pytest.fixture(scope="session", autouse=True)
+def configure_libweasyl_():
+    configure_libweasyl(
+        dbsession=define.sessionmaker,
+        base_file_path=macro.MACRO_STORAGE_ROOT,
+        staff_config=StaffConfig(),
+        media_link_formatter_callback=media.format_media_link,
+    )
 
 
 @pytest.fixture(scope='session', autouse=True)
-def setupdb(request):
-    define.engine.execute('DROP SCHEMA public CASCADE')
-    define.engine.execute('CREATE SCHEMA public')
-    define.engine.execute('CREATE EXTENSION HSTORE')
-    define.engine.execute('CREATE EXTENSION FUZZYSTRMATCH')
-
-    # hstore oids changed; de-memoize them and create new connections
-    define.engine.dialect._hstore_oids = psycopg2.PGDialect_psycopg2._hstore_oids.__get__(define.engine.dialect)
-    define.engine.dispose()
+def setupdb():
+    define.engine.execute(
+        "DROP SCHEMA public CASCADE;"
+        "CREATE SCHEMA public;"
+    )
 
     define.meta.create_all(define.engine)
 
 
-@pytest.yield_fixture(autouse=True)
+@pytest.fixture(autouse=True)
 def empty_storage():
     try:
         os.mkdir(macro.MACRO_STORAGE_ROOT)
@@ -78,90 +68,129 @@ def empty_storage():
     os.mkdir(os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media'))
     os.symlink('ad', os.path.join(macro.MACRO_STORAGE_ROOT, 'static', 'media', 'ax'))
 
-    try:
-        yield
-    finally:
-        shutil.rmtree(macro.MACRO_STORAGE_ROOT)
+    yield
+
+    shutil.rmtree(macro.MACRO_STORAGE_ROOT)
+
+
+@pytest.fixture(scope="session")
+def configurator():
+    config = pyramid.testing.setUp()
+    setup_routes_and_views(config)
+
+    yield config
+
+    pyramid.testing.tearDown()
 
 
 @pytest.fixture(autouse=True)
-def setup_request_environment(request):
+def setup_request_environment(configurator):
     pyramid_request = pyramid.testing.DummyRequest()
     pyramid_request.set_property(middleware.pg_connection_request_property, name='pg_connection', reify=True)
     pyramid_request.set_property(middleware.userid_request_property, name='userid', reify=True)
-    pyramid_request.log_exc = middleware.log_exc_request_method
     pyramid_request.web_input = middleware.web_input_request_method
     pyramid_request.environ['HTTP_X_FORWARDED_FOR'] = '127.0.0.1'
     pyramid_request.client_addr = '127.0.0.1'
-    setup_routes_and_views(pyramid.testing.setUp(request=pyramid_request))
+    configurator.begin(request=pyramid_request)
 
-    def tear_down():
-        pyramid_request.pg_connection.close()
-        pyramid.testing.tearDown()
+    yield
 
-    request.addfinalizer(tear_down)
+    pyramid_request.pg_connection.close()
 
 
-@pytest.fixture(autouse=True)
-def lower_bcrypt_rounds(monkeypatch):
-    monkeypatch.setattr(macro, 'MACRO_BCRYPT_ROUNDS', 4)
+@pytest.fixture(scope="session", autouse=True)
+def lower_bcrypt_rounds():
+    with MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(macro, 'MACRO_BCRYPT_ROUNDS', 4)
+        yield
 
 
-@pytest.fixture(autouse=True)
-def drop_email(monkeypatch):
+@pytest.fixture(scope="session", autouse=True)
+def drop_email():
     def drop_send(mailto, subject, content):
         pass
 
-    monkeypatch.setattr(emailer, 'send', drop_send)
+    with MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(emailer, 'send', drop_send)
+        yield
 
 
 @pytest.fixture
-def db(request):
-    db = define.connect()
-
-    def tear_down():
-        """ Clears all rows from the test database. """
-        db.flush()
-        for table in metadata.tables.values():
-            db.execute(table.delete())
-
-    request.addfinalizer(tear_down)
-
-    if request.cls is not None:
-        request.cls.db = db
-
-    return db
-
-
-@pytest.fixture(name='cache')
-def cache_(request):
-    cache.region.configure(
-        'dogpile.cache.memory',
-        wrap=[ThreadCacheProxy, JSONProxy],
-        replace_existing_backend=True,
-    )
-
-
-@pytest.fixture(autouse=True)
-def template_cache():
-    define._template_cache.clear()
+def db():
+    initialize_database(define.engine)
+    yield define.get_current_request().pg_connection
+    clear_database(define.engine)
 
 
 @pytest.fixture
-def no_csrf(monkeypatch):
-    monkeypatch.setattr(define, 'is_csrf_valid', lambda request, token: True)
+def cache():
+    region.backend.zap_cache()
+    try:
+        yield
+    finally:
+        region.backend.zap_cache()
 
 
-@pytest.fixture(autouse=True)
-def deterministic_marketplace_tests(monkeypatch):
+@pytest.fixture(scope="session", autouse=True)
+def localhost_origin():
+    with MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(define, "ORIGIN", "http://localhost")
+        yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def deterministic_marketplace_tests():
     rates = """{"base":"USD","date":"2017-04-03","rates":{"AUD":1.3143,"BGN":1.8345,"BRL":3.1248,"CAD":1.3347,"CHF":1.002,"CNY":6.8871,"CZK":25.367,"DKK":6.9763,"GBP":0.79974,"HKD":7.7721,"HRK":6.9698,"HUF":289.54,"IDR":13322.0,"ILS":3.6291,"INR":64.985,"JPY":111.28,"KRW":1117.2,"MXN":18.74,"MYR":4.4275,"NOK":8.5797,"NZD":1.4282,"PHP":50.142,"PLN":3.9658,"RON":4.2674,"RUB":56.355,"SEK":8.9246,"SGD":1.3975,"THB":34.385,"TRY":3.6423,"ZAR":13.555,"EUR":0.938}}"""
 
     def _fetch_rates():
         return json.loads(rates)
 
-    monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
+    with MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(commishinfo, '_fetch_rates', _fetch_rates)
+        yield
 
 
-@pytest.fixture
-def app():
+@pytest.fixture(scope="session", autouse=True)
+def disable_turnstile():
+    with MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(turnstile, "SITE_KEY", None)
+        yield
+
+
+@pytest.fixture(scope='session')
+def wsgi_app():
+    return make_wsgi_app(configure_cache=False)
+
+
+class TestApp(TestApp_):
+
+    def do_request(self, req, status=None, expect_errors=None):
+        if 'wsgi.input' in req.environ:
+            req.environ['wsgi.input_terminated'] = True
+        if req.method in ["POST", "DELETE", "PUT", "PATCH"]:
+            req.headers.setdefault("Origin", "http://localhost")
+        return super().do_request(req, status, expect_errors)
+
+
+@pytest.fixture()
+def app(wsgi_app):
     return TestApp(wsgi_app, extra_environ={'HTTP_X_FORWARDED_FOR': '::1'})
+
+
+__all__ = [
+    "cache_backend",
+    "configure_libweasyl_",
+    "setupdb",
+    "empty_storage",
+    "configurator",
+    "setup_request_environment",
+    "lower_bcrypt_rounds",
+    "drop_email",
+    "db",
+    "cache",
+    "localhost_origin",
+    "deterministic_marketplace_tests",
+    "disable_turnstile",
+    "wsgi_app",
+    "app",
+]

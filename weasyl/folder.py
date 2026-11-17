@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import defaultdict
 
 import sqlalchemy as sa
@@ -121,10 +119,10 @@ def select_preview(userid, otherid, rating):
             INNER JOIN submission_tags USING (submitid)
         WHERE fd.userid = %(otherid)s
             AND fd.settings !~ '[hu]'
-            AND su.settings !~ 'h'
+            AND NOT su.hidden
             AND (su.rating <= %(rating)s OR (su.userid = %(userid)s AND NOT %(sfwmode)s))
             AND (
-                su.settings !~ 'f'
+                NOT su.friends_only
                 OR su.userid = %(userid)s
                 OR EXISTS (
                     SELECT FROM frienduser

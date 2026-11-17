@@ -1,0 +1,63 @@
+import os
+
+import pytest
+import sqlalchemy as sa
+
+from libweasyl.configuration import configure_libweasyl
+from libweasyl.models.tables import metadata
+from libweasyl.staff import StaffConfig
+from libweasyl.test.common import autocommit_cursor
+from libweasyl.test.common import cache_backend
+from libweasyl.test.common import clear_database
+from libweasyl.test.common import dummy_format_media_link
+
+
+engine = sa.create_engine(
+    os.environ.get('WEASYL_TEST_SQLALCHEMY_URL', 'postgresql+psycopg2:///weasyl_test'),
+    connect_args={
+        'options': '-c TimeZone=UTC',
+    },
+)
+sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine))
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup():
+    with autocommit_cursor(engine) as cur:
+        cur.execute(
+            "DROP SCHEMA public CASCADE;"
+            "CREATE SCHEMA public;"
+        )
+
+    metadata.create_all(engine)
+
+    try:
+        yield
+    finally:
+        clear_database(engine)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def staticdir(tmp_path_factory):
+    storage_root = tmp_path_factory.mktemp('libweasyl-staticdir')
+    configure_libweasyl(
+        dbsession=sessionmaker,
+        base_file_path=str(storage_root),
+        staff_config=StaffConfig(),
+        media_link_formatter_callback=dummy_format_media_link,
+    )
+    return storage_root
+
+
+@pytest.fixture
+def db():
+    with sessionmaker() as db:
+        yield db
+
+
+__all__ = [
+    "cache_backend",
+    "setup",
+    "staticdir",
+    "db",
+]

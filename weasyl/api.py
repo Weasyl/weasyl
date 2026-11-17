@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from libweasyl.models.meta import Base
 from libweasyl.models.api import APIToken
 from libweasyl import security
@@ -31,17 +29,14 @@ def delete_api_keys(userid, keys):
 
 
 def tidy_media(item):
-    ret = {
+    return {
         'url': d.absolutify_url(item['display_url']),
         'mediaid': item.get('mediaid'),
     }
-    if item.get('described'):
-        ret['links'] = tidy_all_media(item['described'])
-    return ret
 
 
 def tidy_all_media(d):
-    ret = {k: map(tidy_media, v) for k, v in d.iteritems()}
+    ret = {k: list(map(tidy_media, v)) for k, v in d.items()}
     thumbnail_value = ret.get('thumbnail-custom') or ret.get('thumbnail-generated')
     if thumbnail_value:
         ret['thumbnail'] = thumbnail_value

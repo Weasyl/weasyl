@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import arrow
 import pytest
 import unittest
@@ -8,6 +6,18 @@ from weasyl import define as d
 from weasyl import profile
 from weasyl.error import WeasylError
 from weasyl.test import db_utils
+
+
+def _exchange_settings_from_settings_string(settings_string):
+    """
+    Given a (terrible and brittle) exchange settings string from a user profile,
+    returns a dict of their exchange settings.
+    """
+    return {
+        profile.EXCHANGE_TYPE_COMMISSION: profile.EXCHANGE_SETTING_CODE_MAP[settings_string[0]],
+        profile.EXCHANGE_TYPE_TRADE: profile.EXCHANGE_SETTING_CODE_MAP[settings_string[1]],
+        profile.EXCHANGE_TYPE_REQUEST: profile.EXCHANGE_SETTING_CODE_MAP[settings_string[2]],
+    }
 
 
 @pytest.mark.usefixtures('db')
@@ -93,7 +103,7 @@ class ProfileManageTestCase(unittest.TestCase):
                                       set_request=profile.EXCHANGE_SETTING_NOT_ACCEPTING,
                                       set_commission=profile.EXCHANGE_SETTING_FULL_QUEUE)
         test_user_profile = profile.select_profile(user)
-        exchange_settings = profile.exchange_settings_from_settings_string(test_user_profile['settings'])
+        exchange_settings = _exchange_settings_from_settings_string(test_user_profile['settings'])
         self.assertEqual(exchange_settings[profile.EXCHANGE_TYPE_TRADE], profile.EXCHANGE_SETTING_ACCEPTING)
         self.assertEqual(exchange_settings[profile.EXCHANGE_TYPE_REQUEST], profile.EXCHANGE_SETTING_NOT_ACCEPTING)
         self.assertEqual(exchange_settings[profile.EXCHANGE_TYPE_COMMISSION], profile.EXCHANGE_SETTING_FULL_QUEUE)
@@ -112,57 +122,49 @@ def test_edit_email_password(monkeypatch):
 
     # Case 1: No changes, user authentication succeeds
     assert not profile.edit_email_password(
-        userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
-        newpassword="", newpasscheck=""
+        userid=userid,
+        password=password,
+        newemail="",
+        newpassword="",
     )
 
     # Case 2: No changes, user authentication fails
     with pytest.raises(WeasylError) as err:
         profile.edit_email_password(
-            userid=userid, username=username, password="notTheRightPassword", newemail=None, newemailcheck=None,
-            newpassword="", newpasscheck=""
+            userid=userid,
+            password="notTheRightPassword",
+            newemail="",
+            newpassword="",
         )
-    assert 'loginInvalid' == err.value.value
+    assert 'passwordIncorrect' == err.value.value
 
     # Case 3: Changes, new password only, password too short/'insecure'
     with pytest.raises(WeasylError) as err:
         profile.edit_email_password(
-            userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
-            newpassword="012345", newpasscheck="012345"
+            userid=userid,
+            password=password,
+            newemail="",
+            newpassword="012345",
         )
     assert 'passwordInsecure' == err.value.value
 
-    # Case 4: Changes, new password only, password mismatch
-    with pytest.raises(WeasylError) as err:
-        profile.edit_email_password(
-            userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
-            newpassword="1234567899", newpasscheck="1234567898"
-        )
-    assert 'passwordMismatch' == err.value.value
-
     # Case 5: Changes, new password only, password change succeeds
     result = profile.edit_email_password(
-        userid=userid, username=username, password=password, newemail=None, newemailcheck=None,
-        newpassword="1122334455", newpasscheck="1122334455"
+        userid=userid,
+        password=password,
+        newemail="",
+        newpassword="1122334455",
     )
     assert "Your password has been successfully changed" in result
     password = "1122334455"
 
-    # Case 6: Changes, new email only, email mismatch
-    with pytest.raises(WeasylError) as err:
-        profile.edit_email_password(
-            userid=userid, username=username, password=password,
-            newemail="testA@weasyl.com", newemailcheck="testB@weasyl.com",
-            newpassword="", newpasscheck=""
-        )
-    assert 'emailMismatch' == err.value.value
-
     # Case 7: Changes, new email only, email already in use
     db_utils.create_user(email_addr="testB@weasyl.com")
     profile.edit_email_password(
-        userid=userid, username=username, password=password,
-        newemail="testB@weasyl.com", newemailcheck="testB@weasyl.com",
-        newpassword="", newpasscheck=""
+        userid=userid,
+        password=password,
+        newemail="testB@weasyl.com",
+        newpassword="",
     )
     query = d.engine.scalar("""
         SELECT email FROM emailverify WHERE userid = %(userid)s LIMIT 1
@@ -172,9 +174,10 @@ def test_edit_email_password(monkeypatch):
     # Case 8: Changes, new email only, email change succeeds
     newemailaddr = "testC@weasyl.com"
     result = profile.edit_email_password(
-        userid=userid, username=username, password=password,
-        newemail=newemailaddr, newemailcheck=newemailaddr,
-        newpassword="", newpasscheck=""
+        userid=userid,
+        password=password,
+        newemail=newemailaddr,
+        newpassword="",
     )
     assert "Your email change request is currently pending" in result
     query = d.engine.execute("""
@@ -217,8 +220,10 @@ def test_edit_email_password(monkeypatch):
     newemailaddr = "testD@weasyl.com"
     newpassword = "test123_test123_test123"
     result = profile.edit_email_password(
-        userid=userid, username=username, password=password, newemail=newemailaddr, newemailcheck=newemailaddr,
-        newpassword=newpassword, newpasscheck=newpassword
+        userid=userid,
+        password=password,
+        newemail=newemailaddr,
+        newpassword=newpassword,
     )
     assert "Your password has been successfully changed" in result
     assert "Your email change request is currently pending" in result

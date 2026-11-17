@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pyramid.response import Response
 
 from weasyl import define, media, commishinfo
@@ -33,4 +31,5 @@ def search_(request):
     form = {'pc': pc, 'c': c, 'q': q, 'min': min_value, 'max': max_value, 'currency': currency}
     return Response(define.webpage(request.userid, "etc/marketplace.html",
                     [results, form, commishinfo.CURRENCY_CHARMAP, commishinfo.PRESET_COMMISSION_CLASSES,
-                     prev_index, next_index]))
+                     prev_index, next_index],
+                    title='Marketplace'))

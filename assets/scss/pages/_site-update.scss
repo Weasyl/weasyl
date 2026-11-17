@@ -1,0 +1,35 @@
+@use '../theme';
+
+.hc-update-header {
+    padding-bottom: 24px;
+}
+
+#hc-update .hc-update-title {
+    padding-bottom: 4px;
+    text-align: center;
+}
+
+.hc-update-footer {
+    margin-top: 8px;
+}
+
+.hc-update-attribution {
+    @include theme.serif;
+    font-style: italic;
+    text-align: center;
+
+    > .username {
+        font-style: normal;
+        text-decoration: none;
+    }
+
+    > .username > img {
+        vertical-align: middle;
+        width: 25px;
+        height: 25px;
+    }
+}
+
+.site-update-actions {
+    text-align: center;
+}

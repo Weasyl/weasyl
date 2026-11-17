@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import unittest
 
@@ -14,7 +12,7 @@ from weasyl.test import db_utils
 
 
 @pytest.mark.usefixtures('db')
-class TestRemoveComment(object):
+class TestRemoveComment:
     generation_parameters = [
         ("submit", db_utils.create_submission_comment, comment.remove,
          db_utils.create_submission),
@@ -51,7 +49,9 @@ class TestRemoveComment(object):
     def test_commenter_can_not_remove_with_replies(self):
         # reply to the existing comment
         self.create_function(self.another_user, self.target, parentid=self.commentid)
-        pytest.raises(WeasylError, self.remove_function, self.commenter, **self.args)
+        with pytest.raises(WeasylError) as err:
+            self.remove_function(self.commenter, **self.args)
+        assert err.value.value == "InsufficientPermissions"
 
     def test_owner_can_remove(self):
         assert self.target == self.remove_function(self.owner, **self.args)
@@ -60,8 +60,9 @@ class TestRemoveComment(object):
         assert self.target == self.remove_function(self.moderator, **self.args)
 
     def test_other_user_can_not_remove(self):
-        pytest.raises(
-            WeasylError, self.remove_function, self.another_user, **self.args)
+        with pytest.raises(WeasylError) as err:
+            self.remove_function(self.another_user, **self.args)
+        assert err.value.value == "InsufficientPermissions"
 
 
 @pytest.mark.usefixtures("db")
@@ -82,7 +83,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
         kwargs['content'] = 'hello'
 
         # commenter1 posts a comment c1 on submission s
-        c1 = comment.insert(self.commenter1, **kwargs)
+        c1 = comment.insert(self.commenter1, parentid=0, **kwargs)
         self.assertEqual(1, self.count_notifications(self.owner))
 
         # commenter2 posts a reply to c1
@@ -117,12 +118,12 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
     def test_add_and_remove_shout(self):
         # commenter1 posts a shout on owner's page
-        c1 = shout.insert(self.commenter1, target_user=self.owner, parentid=None, content="hello", staffnotes=False)
+        c1 = shout.insert(self.commenter1, target_user=self.owner, parentid=0, content="hello", staffnotes=False)
         self.assertEqual(1, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 1)
-        self.assertTrue(shouts[0].viewitems() >= {"content": "hello"}.viewitems())
+        self.assertTrue(shouts[0].items() >= {"content": "hello"}.items())
 
         # commenter2 posts a reply to c1
         c2 = shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply", staffnotes=False)
@@ -130,7 +131,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 2)
-        self.assertTrue(shouts[1].viewitems() >= {"content": "reply"}.viewitems())
+        self.assertTrue(shouts[1].items() >= {"content": "reply"}.items())
 
         # owner posts a reply to c2
         c3 = shout.insert(self.owner, target_user=self.owner, parentid=c2, content="reply 2", staffnotes=False)
@@ -138,7 +139,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 3)
-        self.assertTrue(shouts[2].viewitems() >= {"content": "reply 2"}.viewitems())
+        self.assertTrue(shouts[2].items() >= {"content": "reply 2"}.items())
 
         # commenter1 responds to owner
         shout.insert(self.commenter1, target_user=self.owner, parentid=c3, content="reply 3", staffnotes=False)
@@ -146,16 +147,16 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 4)
-        self.assertTrue(shouts[3].viewitems() >= {"content": "reply 3"}.viewitems())
+        self.assertTrue(shouts[3].items() >= {"content": "reply 3"}.items())
 
         # commenter1 posts a new root shout
-        shout.insert(self.commenter1, target_user=self.owner, parentid=None, content="root 2", staffnotes=False)
+        shout.insert(self.commenter1, target_user=self.owner, parentid=0, content="root 2", staffnotes=False)
         self.assertEqual(3, self.count_notifications(self.owner))
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 5)
-        self.assertTrue(shouts[0].viewitems() >= {"content": "root 2"}.viewitems())
-        self.assertTrue(shouts[4].viewitems() >= {"content": "reply 3"}.viewitems())
+        self.assertTrue(shouts[0].items() >= {"content": "root 2"}.items())
+        self.assertTrue(shouts[4].items() >= {"content": "reply 3"}.items())
 
         # commenter2 posts another reply to c1
         shout.insert(self.commenter2, target_user=self.owner, parentid=c1, content="reply 4", staffnotes=False)
@@ -163,7 +164,7 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 6)
-        self.assertTrue(shouts[5].viewitems() >= {"content": "reply 4"}.viewitems())
+        self.assertTrue(shouts[5].items() >= {"content": "reply 4"}.items())
 
         # owner deletes comment thread
         shout.remove(self.owner, commentid=c1)
@@ -173,4 +174,4 @@ class CheckNotificationsTestCase(unittest.TestCase):
 
         shouts = shout.select(0, self.owner)
         self.assertEqual(len(shouts), 1)
-        self.assertTrue(shouts[0].viewitems() >= {"content": "root 2"}.viewitems())
+        self.assertTrue(shouts[0].items() >= {"content": "root 2"}.items())

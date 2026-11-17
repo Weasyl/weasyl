@@ -28,7 +28,7 @@ audio:not([controls]) {
     display: none;
 }
 
-ul {
+ul, menu {
     list-style: none;
 }
 
@@ -48,10 +48,6 @@ a {
     padding: 0;
     text-decoration: none;
     vertical-align: baseline;
-}
-
-a:active {
-    outline: none;
 }
 
 img {

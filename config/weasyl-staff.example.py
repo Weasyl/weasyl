@@ -11,10 +11,6 @@ directors = [
     2402,   # SkylerBunny
 ]
 
-technical_staff = [
-    5173,   # Keet
-]
-
 admins = [
     1014,   # Fiz
     20418,  # Novacaine

@@ -1,22 +1,21 @@
-from __future__ import absolute_import
-
-import urlparse
+import logging
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import ClassVar
 
 import arrow
-from pyramid.httpexceptions import (
-    HTTPFound,
-    HTTPSeeOther,
-)
+from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.response import Response
+from sqlalchemy.orm.attributes import flag_modified
 
 from weasyl import (
     define,
     emailer,
-    index,
     login,
     moderation,
     profile,
     resetpassword,
+    turnstile,
     two_factor_auth,
 )
 from weasyl.controllers.decorators import (
@@ -25,116 +24,156 @@ from weasyl.controllers.decorators import (
     login_required,
     token_checked,
 )
+from weasyl.define import LoginForm
 from weasyl.error import WeasylError
-from weasyl.macro import MACRO_SUPPORT_ADDRESS
+from weasyl.sessions import create_session
+
+
+logger = logging.getLogger(__name__)
 
 
 # Session management functions
 
 @guest_required
 def signin_get_(request):
-    return Response(define.webpage(request.userid, "etc/signin.html", [
-        False,
-        request.environ.get('HTTP_REFERER', ''),
-    ], title="Sign In"))
+    return Response(define.webpage(request.userid, "etc/signin.html", (None, ""), title="Sign In", canonical_url="/signin"))
+
+
+@dataclass(frozen=True, slots=True)
+class InvalidCredentialsError:
+    message: str
+    hints: Iterable[str]
+
+    is_leaked_credentials: ClassVar[bool] = False
+
+
+class _LeakedCredentialsError:
+    __slots__ = ()
+    is_leaked_credentials = True
+
+
+_LEAKED_CREDENTIALS_ERROR = _LeakedCredentialsError()
 
 
 @guest_required
 @token_checked
 def signin_post_(request):
-    form = request.web_input(username="", password="", referer="", sfwmode="nsfw")
-    form.referer = form.referer or '/'
+    credentials_leaked = False
+    ecc = request.headers.get("Exposed-Credential-Check")
+    if ecc:
+        if len(ecc) == 1 and "1" <= ecc <= "4":
+            credentials_leaked = ecc != "2"  # 2: just username "leaked" (Cloudflare Enterprise plan only, should never be set anyway)
+        else:
+            logger.warning("Ignoring unsupported Exposed-Credential-Check value on login attempt: %r", ecc)
 
-    logid, logerror = login.authenticate_bcrypt(form.username, form.password, request=request, ip_address=request.client_addr, user_agent=request.user_agent)
+    form = LoginForm(
+        username=request.POST.get("username", ""),
+        sfw=request.POST.get("sfwmode") == "sfw",
+    )
+    password = request.POST.get("password", "")
+    referer = request.POST.get("referer") or "/"
 
-    if logid and logerror == 'unicode-failure':
-        raise HTTPSeeOther(location='/signin/unicode-failure')
-    elif logid and logerror is None:
-        if form.sfwmode == "sfw":
-            request.set_cookie_on_response("sfwmode", "sfw", 31536000)
-        # Invalidate cached versions of the frontpage to respect the possibly changed SFW settings.
-        index.template_fields.invalidate(logid)
-        raise HTTPSeeOther(location=form.referer)
-    elif logid and logerror == "2fa":
-        # Password authentication passed, but user has 2FA set, so verify second factor (Also set SFW mode now)
-        if form.sfwmode == "sfw":
-            request.set_cookie_on_response("sfwmode", "sfw", 31536000)
-        index.template_fields.invalidate(logid)
-        # Check if out of recovery codes; this should *never* execute normally, save for crafted
-        #   webtests. However, check for it and log an error to Sentry if it happens.
-        remaining_recovery_codes = two_factor_auth.get_number_of_recovery_codes(logid)
-        if remaining_recovery_codes == 0:
-            raise RuntimeError("Two-factor Authentication: Count of recovery codes for userid " +
-                               str(logid) + " was zero upon password authentication succeeding, " +
-                               "which should be impossible.")
-        # Store the authenticated userid & password auth time to the session
-        sess = define.get_weasyl_session()
-        # The timestamp at which password authentication succeeded
-        sess.additional_data['2fa_pwd_auth_timestamp'] = arrow.now().timestamp
-        # The userid of the user attempting authentication
-        sess.additional_data['2fa_pwd_auth_userid'] = logid
-        # The number of times the user has attempted to authenticate via 2FA
-        sess.additional_data['2fa_pwd_auth_attempts'] = 0
-        sess.save = True
-        return Response(define.webpage(
-            request.userid,
-            "etc/signin_2fa_auth.html",
-            [define.get_display_name(logid), form.referer, remaining_recovery_codes, None],
-            title="Sign In - 2FA"
-        ))
-    elif logerror == "invalid":
-        return Response(define.webpage(request.userid, "etc/signin.html", [True, form.referer]))
-    elif logerror == "banned":
-        reason = moderation.get_ban_reason(logid)
-        return Response(define.errorpage(
-            request.userid,
-            "Your account has been permanently banned and you are no longer allowed "
-            "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-            "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS)))
-    elif logerror == "suspended":
-        suspension = moderation.get_suspension(logid)
-        return Response(define.errorpage(
-            request.userid,
-            "Your account has been temporarily suspended and you are not allowed to "
-            "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
-            "%s.\n\nIf you believe this suspension is in error, please contact "
-            "%s for assistance." % (suspension.reason, define.convert_date(suspension.release), MACRO_SUPPORT_ADDRESS)))
+    auth_result = login.authenticate_bcrypt(
+        username=form.username,
+        password=password,
+        request=None if credentials_leaked else request,
+        ip_address=request.client_addr,
+        user_agent=request.user_agent,
+    )
+
+    match auth_result:
+        case login.Success(logid):
+            if credentials_leaked:
+                logger.warning("Rejecting login attempt with correct leaked credentials for user %d", logid)
+                return Response(define.webpage(request.userid, "etc/signin.html", (_LEAKED_CREDENTIALS_ERROR, referer, form)))
+
+            response = HTTPSeeOther(location=define.path_redirect(referer))
+            response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
+                                secure=request.scheme == 'https', httponly=True)
+            if form.sfw:
+                response.set_cookie("sfwmode", "sfw", max_age=31536000)
+            return response
+
+        case login.SecondFactorRequired(logid):
+            assert not credentials_leaked
+
+            # Password authentication passed, but user has 2FA set, so verify second factor
+            # Check if out of recovery codes; this should *never* execute normally, save for crafted
+            #   webtests. However, check for it and log an error to Sentry if it happens.
+            remaining_recovery_codes = two_factor_auth.get_number_of_recovery_codes(logid)
+            if remaining_recovery_codes == 0:
+                raise RuntimeError("Two-factor Authentication: Count of recovery codes for userid " +
+                                   str(logid) + " was zero upon password authentication succeeding, " +
+                                   "which should be impossible.")
+
+            with define.sessionmaker_future.begin() as tx:
+                sess = request.weasyl_session = create_session(None)
+                sess.additional_data = {
+                    # The timestamp at which password authentication succeeded
+                    '2fa_pwd_auth_timestamp': arrow.utcnow().int_timestamp,
+                    # The userid of the user attempting authentication
+                    '2fa_pwd_auth_userid': logid,
+                    # The number of times the user has attempted to authenticate via 2FA
+                    '2fa_pwd_auth_attempts': 0,
+                }
+                tx.add(sess)
+
+            response = Response(define.webpage(
+                request.userid,
+                "etc/signin_2fa_auth.html",
+                [define.get_display_name(logid), referer, remaining_recovery_codes, None],
+                title="Sign In - 2FA"
+            ))
+            response.set_cookie('WZL', sess.sessionid, max_age=60 * 60 * 24 * 365,
+                                secure=request.scheme == 'https', httponly=True)
+            if form.sfw:
+                response.set_cookie("sfwmode", "sfw", max_age=31536000)
+            return response
+
+        case login.InvalidCredentials():
+            hints = []
+
+            if auth_result.inactive_username_exists:
+                hints.append("If you changed your username, make sure to use the new one.")
+
+            error = InvalidCredentialsError(
+                message=(
+                    "Incorrect username or password." if auth_result.username_exists
+                    else "There’s no account with that username."
+                ),
+                hints=hints,
+            )
+
+            return Response(define.webpage(request.userid, "etc/signin.html", (error, referer, form)))
+
+        case login.Banned(logid):
+            message = moderation.get_ban_message(logid)
+            return Response(define.errorpage(request.userid, message))
+
+        case login.Suspended(logid):
+            message = moderation.get_suspension_message(logid)
+            return Response(define.errorpage(request.userid, message))
 
     raise WeasylError("Unexpected")  # pragma: no cover
 
 
-def _cleanup_2fa_session():
-    """
-    Cleans up a Weasyl session of any 2FA data stored during the authentication process.
-
-    Parameters: None; keys off of the currently active session making the request.
-
-    Returns: Nothing.
-    """
-    sess = define.get_weasyl_session()
-    del sess.additional_data['2fa_pwd_auth_timestamp']
-    del sess.additional_data['2fa_pwd_auth_userid']
-    del sess.additional_data['2fa_pwd_auth_attempts']
-    sess.save = True
-
-
 @guest_required
 def signin_2fa_auth_get_(request):
-    sess = define.get_weasyl_session()
+    sess = request.weasyl_session
 
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
-    if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
+    if sess is None or not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
         raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
     # Maximum secondary authentication time: 5 minutes
-    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    session_life = arrow.utcnow().int_timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
-        _cleanup_2fa_session()
+        login.signout(request)
         raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
     else:
-        ref = request.params["referer"] if "referer" in request.params else "/"
+        ref = "/"
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
@@ -145,99 +184,77 @@ def signin_2fa_auth_get_(request):
 @guest_required
 @token_checked
 def signin_2fa_auth_post_(request):
-    sess = define.get_weasyl_session()
+    sess = request.weasyl_session
 
     # Only render page if the session exists //and// the password has
     # been authenticated (we have a UserID stored in the session)
-    if not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
+    if sess is None or not sess.additional_data or '2fa_pwd_auth_userid' not in sess.additional_data:
         raise WeasylError('InsufficientPermissions')
     tfa_userid = sess.additional_data['2fa_pwd_auth_userid']
 
-    session_life = arrow.now().timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
+    session_life = arrow.utcnow().int_timestamp - sess.additional_data['2fa_pwd_auth_timestamp']
     if session_life > 300:
         # Maximum secondary authentication time: 5 minutes
-        _cleanup_2fa_session()
+        login.signout(request)
         raise WeasylError('TwoFactorAuthenticationAuthenticationTimeout')
     elif two_factor_auth.verify(tfa_userid, request.params["tfaresponse"]):
         # 2FA passed, so login and cleanup.
-        _cleanup_2fa_session()
+        login.signout(request)
         login.signin(request, tfa_userid, ip_address=request.client_addr, user_agent=request.user_agent)
-        ref = request.params["referer"] or "/"
         # User is out of recovery codes, so force-deactivate 2FA
         if two_factor_auth.get_number_of_recovery_codes(tfa_userid) == 0:
             two_factor_auth.force_deactivate(tfa_userid)
             raise WeasylError('TwoFactorAuthenticationZeroRecoveryCodesRemaining',
-                              links=[["2FA Dashboard", "/control/2fa/status"], ["Return to the Home Page", "/"]])
-        # Return to the target page, restricting to the path portion of 'ref' per urlparse.
-        raise HTTPSeeOther(location=urlparse.urlparse(ref).path)
+                              links=[["2FA Dashboard", "/control/2fa/status"]])
+        # Return to the target page.
+        ref = request.POST["referer"] or "/"
+        response = HTTPSeeOther(location=define.path_redirect(ref))
+        response.set_cookie('WZL', request.weasyl_session.sessionid, max_age=60 * 60 * 24 * 365,
+                            secure=request.scheme == 'https', httponly=True)
+        return response
     elif sess.additional_data['2fa_pwd_auth_attempts'] >= 5:
         # Hinder brute-forcing the 2FA token or recovery code by enforcing an upper-bound on 2FA auth attempts.
-        _cleanup_2fa_session()
+        login.signout(request)
         raise WeasylError('TwoFactorAuthenticationAuthenticationAttemptsExceeded',
-                          links=[["Sign In", "/signin"], ["Return to the Home Page", "/"]])
+                          links=[["Sign In", "/signin"]])
     else:
         # Log the failed authentication attempt to the session and save
-        sess.additional_data['2fa_pwd_auth_attempts'] += 1
-        sess.save = True
-        # 2FA failed; redirect to 2FA input page & inform user that authentication failed.
+        with define.sessionmaker_future.begin() as tx:
+            sess.additional_data['2fa_pwd_auth_attempts'] += 1
+            flag_modified(sess, 'additional_data')
+            tx.add(sess)
+        # 2FA failed; respond with 2FA input page & inform user that authentication failed.
         return Response(define.webpage(
             request.userid,
             "etc/signin_2fa_auth.html",
-            [define.get_display_name(tfa_userid), request.params["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
+            [define.get_display_name(tfa_userid), request.POST["referer"], two_factor_auth.get_number_of_recovery_codes(tfa_userid),
              "2fa"], title="Sign In - 2FA"))
 
 
-@login_required
-def signin_unicode_failure_get_(request):
-    return Response(define.webpage(request.userid, 'etc/unicode_failure.html'))
-
-
-@login_required
-def signin_unicode_failure_post_(request):
-    form = request.web_input(password='', password_confirm='')
-    login.update_unicode_password(request.userid, form.password, form.password_confirm)
-    raise HTTPFound(location="/", headers=request.response.headers)
-
-
-@login_required
+@token_checked
 @disallow_api
 def signout_(request):
-    if request.web_input(token="").token != define.get_token()[:8]:
-        raise WeasylError('token')
+    if request.userid != 0:
+        login.signout(request)
 
-    login.signout(request)
-
-    raise HTTPSeeOther(location="/", headers=request.response.headers)
+    response = HTTPSeeOther(location="/")
+    response.delete_cookie('WZL')
+    response.delete_cookie('sfwmode')
+    return response
 
 
 @guest_required
 def signup_get_(request):
-    form = request.web_input(email="")
-
-    return Response(define.webpage(request.userid, "etc/signup.html", [
-        # Signup data
-        {
-            "email": form.email,
-            "username": None,
-            "day": None,
-            "month": None,
-            "year": None,
-            "error": None,
-        },
-    ], title="Create a Weasyl Account"))
+    return Response(define.webpage(request.userid, "etc/signup.html", (), options=("signup",), title="Create a Weasyl Account"))
 
 
 @guest_required
 @token_checked
 def signup_post_(request):
-    form = request.web_input(
-        username="", password="", passcheck="", email="", emailcheck="",
-        day="", month="", year="")
+    turnstile.require(request)
 
-    if not define.captcha_verify(form.get('g-recaptcha-response')):
-        return Response(define.errorpage(
-            request.userid,
-            "There was an error validating the CAPTCHA response; you should go back and try again."))
+    form = request.web_input(
+        username="", password="", email="")
 
     login.create(form)
     return Response(define.errorpage(
@@ -246,7 +263,7 @@ def signup_post_(request):
         "has been sent to the email address you provided with "
         "information on how to complete the registration process. You "
         "should receive this email within the next hour.",
-        [["Return to the Home Page", "/"]]))
+    ))
 
 
 @guest_required
@@ -256,7 +273,7 @@ def verify_account_(request):
         request.userid,
         "**Success!** Your email address has been verified "
         "and you may now sign in to your account.",
-        [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
+        [["Sign In", "/signin"]]))
 
 
 @login_required
@@ -266,7 +283,6 @@ def verify_emailchange_get_(request):
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your email address was successfully updated to **" + email + "**.",
-        [["Return to the Home Page", "/"]]
     ))
 
 
@@ -278,11 +294,13 @@ def forgotpassword_get_(request):
 @guest_required
 @token_checked
 def forgetpassword_post_(request):
+    turnstile.require(request)
+
     resetpassword.request(email=request.POST['email'])
     return Response(define.errorpage(
         request.userid,
         "**Success!** Information on how to reset your password has been sent to your email address.",
-        [["Return to the Home Page", "/"]]))
+    ))
 
 
 @guest_required
@@ -299,19 +317,19 @@ def resetpassword_get_(request):
         return Response(define.errorpage(
             request.userid,
             "The e-mail address **%s** is not associated with a Weasyl account." % (reset_target.email,),
-            [["Sign Up", "/signup"], ["Return to the Home Page", "/"]]))
+            [["Sign Up", "/signup"]]))
 
-    return Response(define.webpage(request.userid, "etc/resetpassword.html", [token, reset_target], title="Reset Forgotten Password"))
+    return Response(define.webpage(request.userid, "etc/resetpassword.html", [token, reset_target], options=("signup",), title="Reset Forgotten Password"))
 
 
 @guest_required
+@token_checked
 def resetpassword_post_(request):
     expect_userid = int(request.POST['userid'])
 
     resetpassword.reset(
         token=request.POST['token'],
         password=request.POST['password'],
-        passcheck=request.POST['passcheck'],
         expect_userid=expect_userid,
         address=request.client_addr,
     )
@@ -322,24 +340,7 @@ def resetpassword_post_(request):
     return Response(define.errorpage(
         request.userid,
         "**Success!** Your password has been reset and you may now sign in to your account.",
-        [["Sign In", "/signin"], ["Return to the Home Page", "/"]]))
-
-
-# Forced action functions
-@login_required
-@token_checked
-def force_resetpassword_(request):
-    if define.common_status_check(request.userid) != "resetpassword":
-        raise WeasylError('InsufficientPermissions')
-
-    form = request.web_input(password="", passcheck="")
-
-    resetpassword.force(request.userid, form)
-
-    # Invalidate all other user sessions for this user.
-    profile.invalidate_other_sessions(request.userid)
-
-    raise HTTPSeeOther(location="/", headers=request.response.headers)
+        [["Sign In", "/signin"]]))
 
 
 @login_required
@@ -356,14 +357,14 @@ def vouch_(request):
         target=targetid,
     ).first()
 
-    target_username = define.get_display_name(targetid)
+    target_username = define.try_get_username(targetid)
 
     if updated is not None:
         define._get_all_config.invalidate(targetid)
-        emailer.send(updated.email, "Weasyl Account Verified", define.render("email/verified.html", [target_username]))
+        emailer.send(updated.email, "Weasyl Account Verified", define.render("email/verified.html", [target_username.sysname]))
 
     if target_username is None:
         assert updated is None
         raise WeasylError("Unexpected")
 
-    raise HTTPSeeOther(location=request.route_path('profile_tilde', name=define.get_sysname(target_username)))
+    raise HTTPSeeOther(location=request.route_path('profile_tilde', name=target_username.sysname))

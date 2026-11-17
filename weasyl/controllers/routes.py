@@ -1,13 +1,18 @@
-from __future__ import absolute_import
+from __future__ import annotations
 
-from collections import namedtuple
+from collections.abc import Callable
+from collections.abc import Mapping
+from typing import Any
+from typing import Literal
+
+from pyramid.request import Request
 
 from weasyl.controllers import (
     admin,
+    api,
     content,
     detail,
     director,
-    events,
     general,
     info,
     interaction,
@@ -15,27 +20,46 @@ from weasyl.controllers import (
     messages,
     moderation,
     profile,
+    search,
     settings,
+    siteupdate,
     two_factor_auth,
     user,
     weasyl_collections,
 )
-from weasyl import oauth2
+from weasyl.controllers.decorators import csrf_defined
 
 
-Route = namedtuple('Route', ['pattern', 'name', 'view'])
-"""
-A route to be added to the Weasyl application.
+HttpMethod = Literal["GET", "POST", "PUT", "DELETE", "PATCH"]
+Handler = Callable[[Request], Any]
 
-`view` may be either a view callable (in which case only GET/HEAD requests are routed to it) or a
-dict mapping http methods to view callables.
-"""
+
+class Route:
+    __slots__ = ("pattern", "name", "handlers", "renderer")
+
+    pattern: str
+    name: str
+    handlers: Mapping[HttpMethod, Handler]
+    renderer: Literal["json"] | None
+
+    def __init__(
+        self,
+        pattern: str,
+        name: str,
+        handlers: dict[HttpMethod, Handler] | Handler,
+        renderer: Literal["json"] | None = None,
+    ):
+        self.pattern = pattern
+        self.name = name
+        self.handlers = handlers if isinstance(handlers, dict) else {"GET": handlers}
+        self.renderer = renderer
 
 
 routes = (
     # Front page views.
-    Route("/{index:(index)?}", "index", general.index_),  # 'index' is optional in the URL
+    Route("/", "index", general.index_),
     Route("/search", "search", general.search_),
+    Route("/api-unstable/search/navigation-counts", "search_navigation_counts", search.navigation_counts),
     Route("/popular", "popular", general.popular_),
     Route("/streaming", "streaming", general.streaming_),
     Route("/marketplace", "marketplace", marketplace.search_),
@@ -43,10 +67,7 @@ routes = (
     # Signin and out views.
     Route("/signin", "signin", {'GET': user.signin_get_, 'POST': user.signin_post_}),
     Route("/signin/2fa-auth", "signin_2fa_auth", {'GET': user.signin_2fa_auth_get_, 'POST': user.signin_2fa_auth_post_}),
-    Route("/signin/unicode-failure", "signin-unicode-failure", {
-        'GET': user.signin_unicode_failure_get_, 'POST': user.signin_unicode_failure_post_
-    }),
-    Route("/signout", "signout", user.signout_),
+    Route("/signout", "signout", {'POST': user.signout_}),
     Route("/signup", "signup", {'GET': user.signup_get_, 'POST': user.signup_post_}),
 
     # Verification and password management views.
@@ -55,7 +76,6 @@ routes = (
           {'GET': user.forgotpassword_get_, 'POST': user.forgetpassword_post_}),
     Route("/resetpassword", "reset_password",
           {'GET': user.resetpassword_get_, 'POST': user.resetpassword_post_}),
-    Route("/force/resetpassword", "force_reset_password", {'POST': user.force_resetpassword_}),
     Route("/verify/emailchange", "verify_emailchange", {'GET': user.verify_emailchange_get_}),
     Route("/vouch", "vouch", {'POST': user.vouch_}),
 
@@ -81,7 +101,7 @@ routes = (
     Route("/user/{name}", "profile_user", profile.profile_),
     Route("/profile", "profile_unnamed", profile.profile_),
     Route("/profile/{name}", "profile", profile.profile_),
-    Route("/~{name}/{link_type}", "profile_media", profile.profile_media_),
+    Route("/~{name}/avatar", "profile_avatar", profile.profile_avatar_),
     Route("/~{name}/submission/{submitid:[0-9]+}",
           "submission_detail_profile;no_s;no_slug", detail.submission_),
     Route("/~{name}/submission/{submitid:[0-9]+}/{slug:[^/.]*}",
@@ -90,8 +110,6 @@ routes = (
           "submission_detail_profile;no_slug", detail.submission_),
     Route("/~{name}/submissions/{submitid:[0-9]+}/{slug:[^/.]*}",
           "submission_detail_profile", detail.submission_),
-    Route("/~{name}/{linktype}/{submitid:[0-9]+}/{ignore_name:.*}",
-          "submission_detail_media", detail.submission_media_),
     Route("/submissions", "profile_submissions_unnamed", profile.submissions_),
     Route("/submissions/{name:[^/]*}", "profile_submissions", profile.submissions_),
     Route("/journals", "profile_journals_unnamed", profile.journals_),
@@ -143,6 +161,16 @@ routes = (
     Route("/submit/comment", "submit_comment", {'POST': content.submit_comment_}),
     Route("/submit/report", "submit_report", {'POST': content.submit_report_}),
     Route("/submit/tags", "submit_tags", {'POST': content.submit_tags_}),
+    Route(
+        "/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/status",
+        "suggested_tag_status",
+        {
+            "PUT": content.tag_status_put,
+            "DELETE": content.tag_status_delete,
+        },
+    ),
+    Route("/api-unstable/tag-suggestions/{feature}/{targetid}/{tag}/feedback", "suggested_tag_feedback",
+          {'PUT': content.tag_feedback_put}),
     Route("/reupload/submission", "reupload_submission",
           {'GET': content.reupload_submission_get_, 'POST': content.reupload_submission_post_}),
     Route("/reupload/character", "reupload_character",
@@ -260,8 +288,6 @@ routes = (
     Route("/modcontrol/closereport", "modcontrol_closereport", {'POST': moderation.modcontrol_closereport_}),
     Route("/modcontrol/contentbyuser", "modcontrol_contentbyuser", moderation.modcontrol_contentbyuser_),
     Route("/modcontrol/massaction", "modcontrol_massaction", {'POST': moderation.modcontrol_massaction_}),
-    Route("/modcontrol/hide", "modcontrol_hide", {'POST': moderation.modcontrol_hide_}),
-    Route("/modcontrol/unhide", "modcontrol_unhide", {'POST': moderation.modcontrol_unhide_}),
     Route("/modcontrol/manageuser", "modcontrol_manageuser", moderation.modcontrol_manageuser_),
     Route("/modcontrol/removeavatar", "modcontrol_removeavatar", {'POST': moderation.modcontrol_removeavatar_}),
     Route("/modcontrol/removebanner", "modcontrol_removebanner", {'POST': moderation.modcontrol_removebanner_}),
@@ -280,11 +306,8 @@ routes = (
 
     # Admin control routes.
     Route("/admincontrol", "admincontrol", admin.admincontrol_),
-    Route("/admincontrol/siteupdate", "admin_siteupdate",
-          {'GET': admin.admincontrol_siteupdate_get_, 'POST': admin.admincontrol_siteupdate_post_}),
     Route("/admincontrol/manageuser", "admin_manageuser",
           {'GET': admin.admincontrol_manageuser_get_, 'POST': admin.admincontrol_manageuser_post_}),
-    Route("/admincontrol/acctverifylink", "admin_acctverifylink", {'POST': admin.admincontrol_acctverifylink_}),
     Route("/admincontrol/finduser", "admincontrol_finduser", {
         'GET': admin.admincontrol_finduser_get_,
         'POST': admin.admincontrol_finduser_post_,
@@ -296,21 +319,21 @@ routes = (
 
     # Director control routes.
     Route("/directorcontrol", "directorcontrol", director.directorcontrol_),
-    Route("/directorcontrol/emailblacklist", "directorcontrol_emailblacklist", {
-        'GET': director.directorcontrol_emailblacklist_get_,
-        'POST': director.directorcontrol_emailblacklist_post_,
-    }),
     Route("/directorcontrol/globaltagrestrictions", "directorcontrol_globaltagrestrictions", {
         'GET': director.directorcontrol_globaltagrestrictions_get_,
         'POST': director.directorcontrol_globaltagrestrictions_post_,
     }),
 
-    Route("/site-updates/", "site_update_list", general.site_update_list_),
-    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
-        'GET': general.site_update_,
-        'POST': admin.site_update_put_,
+    Route("/site-updates/", "site_update_list", {
+        'GET': siteupdate.site_update_list_,
+        'POST': siteupdate.site_update_post_,
     }),
-    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", admin.site_update_edit_),
+    Route("/site-updates/new", "site_update_new", siteupdate.site_update_new_get_),
+    Route("/site-updates/{update_id:[0-9]+}", "site_update", {
+        'GET': siteupdate.site_update_get_,
+        'POST': siteupdate.site_update_put_,
+    }),
+    Route("/site-updates/{update_id:[0-9]+}/edit", "site_update_edit", siteupdate.site_update_edit_),
 
     Route("/policy/community", "policy_community", info.policy_community_),
     Route("/policy/copyright", "policy_copyright", info.policy_copyright_),
@@ -337,44 +360,40 @@ routes = (
     Route("/help/two_factor_authentication", "help_two_factor_authentication", info.help_two_factor_authentication_),
     Route("/help/verification", "help_verification", info.help_verification_),
 
-    # OAuth2 routes.
-    Route("/api/oauth2/authorize", "oauth2_authorize",
-          {'GET': oauth2.authorize_get_, 'POST': oauth2.authorize_post_}),
-    Route("/api/oauth2/token", "oauth2_token", {'POST': oauth2.token_}),
-
-    # Routes for static event pages, such as holidays.
-    Route("/events/halloweasyl2014", "events_halloweasyl2014", events.halloweasyl2014_),
+    # API routes.
+    Route("/api/useravatar", "useravatar", api.api_useravatar_, renderer="json"),
+    Route("/api/whoami", "whoami", api.api_whoami_, renderer="json"),
+    Route(r"/api/version{format:(\.[^.]+)?}", "version", api.api_version_, renderer="json"),
+    Route("/api/submissions/frontpage", "api_frontpage", api.api_frontpage_, renderer="json"),
+    Route("/api/submissions/{submitid:[0-9]+}/view", "api_submission_view", api.api_submission_view_, renderer="json"),
+    Route("/api/journals/{journalid:[0-9]+}/view", "api_journal_view", api.api_journal_view_, renderer="json"),
+    Route("/api/characters/{charid:[0-9]+}/view", "api_character_view", api.api_character_view_, renderer="json"),
+    Route("/api/users/{login:[^/]+}/view", "api_user_view", api.api_user_view_, renderer="json"),
+    Route("/api/users/{login:[^/]+}/gallery", "api_user_gallery", api.api_user_gallery_, renderer="json"),
+    Route("/api/messages/submissions", "api_messages_submissions", api.api_messages_submissions_, renderer="json"),
+    Route("/api/messages/summary", "api_messages_summary", api.api_messages_summary_, renderer="json"),
+    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite", "api_favorite", {'POST': api.api_favorite_}, renderer="json"),
+    Route("/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite", "api_unfavorite", {'POST': api.api_unfavorite_}, renderer="json"),
+    Route("/api-unstable/{content_type:(submissions|characters|journals|users)}/{content_id:[0-9]+}/views/", "view", {'POST': content.views_post}),
 )
 
 
 def setup_routes_and_views(config):
     """
-    Reponsible for setting up all routes for the Weasyl application.
+    Responsible for setting up all routes for the Weasyl application.
 
     Args:
         config: A pyramid Configuration for the wsgi application.
     """
     for route in routes:
         config.add_route(name=route.name, pattern=route.pattern)
-        if isinstance(route.view, dict):
-            for method in route.view:
-                config.add_view(view=route.view[method], route_name=route.name, request_method=method)
-        else:
-            config.add_view(view=route.view, route_name=route.name, request_method="GET")
+        for method, handler in route.handlers.items():
+            if method != "GET" and (handler.__module__, handler.__qualname__) not in csrf_defined:
+                raise RuntimeError(f"{handler} has no explicit CSRF policy")
 
-    # API routes.
-    config.add_route("useravatar", "/api/useravatar")
-    config.add_route("whoami", "/api/whoami")
-    config.add_route("version", r"/api/version{format:(\.[^.]+)?}")
-    config.add_route("api_frontpage", "/api/submissions/frontpage")
-    config.add_route("api_submission_view", "/api/submissions/{submitid:[0-9]+}/view")
-    config.add_route("api_journal_view", "/api/journals/{journalid:[0-9]+}/view")
-    config.add_route("api_character_view", "/api/characters/{charid:[0-9]+}/view")
-    config.add_route("api_user_view", "/api/users/{login:[^/]+}/view")
-    config.add_route("api_user_gallery", "/api/users/{login:[^/]+}/gallery")
-    config.add_route("api_messages_submissions", "/api/messages/submissions")
-    config.add_route("api_messages_summary", "/api/messages/summary")
-    config.add_route("api_favorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/favorite")
-    config.add_route("api_unfavorite", "/api/{content_type:(submissions|characters|journals)}/{content_id:[0-9]+}/unfavorite")
-
-    config.scan("weasyl.controllers")
+            config.add_view(
+                view=handler,
+                route_name=route.name,
+                request_method=method,
+                renderer=route.renderer,
+            )

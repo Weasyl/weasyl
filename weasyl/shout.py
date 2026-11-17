@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import arrow
+import sqlalchemy as sa
 
 from libweasyl import staff
 
@@ -18,7 +17,7 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     statement = ["""
         SELECT
             sh.commentid, sh.parentid, sh.userid, pr.username,
-            sh.content, sh.unixtime, sh.settings, sh.hidden_by
+            sh.content, sh.unixtime, sh.settings ~ 'h', sh.hidden_by
         FROM comments sh
             INNER JOIN profile pr USING (userid)
         WHERE sh.target_user = %i
@@ -43,35 +42,47 @@ def select(userid, ownerid, limit=None, staffnotes=False):
     return result
 
 
-def count(ownerid, staffnotes=False):
+def count_staff_notes(ownerid):
     db = d.connect()
     sh = d.meta.tables['comments']
-    op = '~' if staffnotes else '!~'
     q = (
-        d.sa.select([d.sa.func.count()])
+        sa.select([sa.func.count()])
         .select_from(sh)
-        .where(sh.c.settings.op(op)('s'))
+        .where(sh.c.settings.op('~')('s'))
         .where(sh.c.target_user == ownerid))
     (ret,), = db.execute(q)
     return ret
 
 
-def insert(userid, target_user, parentid, content, staffnotes):
+def insert(
+    userid: int,
+    *,
+    target_user: int,
+    parentid: int,
+    content: str,
+    staffnotes: bool,
+) -> int:
     # Check invalid content
     if not content:
         raise WeasylError("commentInvalid")
-    elif not target_user or not d.is_vouched_for(target_user):
+    elif not target_user or (not d.is_vouched_for(target_user) and not staffnotes):
         raise WeasylError("Unexpected")
 
     # Determine parent userid
     if parentid:
+        # NOTE: Replying to deleted comments is intentionally allowed.
         parentuserid = d.engine.scalar(
-            "SELECT userid FROM comments WHERE commentid = %(parent)s",
+            "SELECT userid FROM comments"
+            " WHERE commentid = %(parent)s"
+            " AND target_user = %(target)s"
+            " AND (settings ~ 's') = %(staffnotes)s",
             parent=parentid,
+            target=target_user,
+            staffnotes=staffnotes,
         )
 
         if parentuserid is None:
-            raise WeasylError("shoutRecordMissing")
+            raise WeasylError("Unexpected")
     else:
         parentuserid = None
 
@@ -86,7 +97,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
         elif ignoreuser.check(userid, parentuserid):
             raise WeasylError("youIgnoredReplyRecipient")
 
-        _, is_banned, _ = d.get_login_settings(target_user)
+        is_banned, _ = d.get_login_settings(target_user)
         profile_config = d.get_config(target_user)
 
         if is_banned or "w" in profile_config or "x" in profile_config and not frienduser.check(userid, target_user):
@@ -106,7 +117,7 @@ def insert(userid, target_user, parentid, content, staffnotes):
     if parentid and userid != parentuserid:
         if not staffnotes or parentuserid in staff.MODS:
             welcome.shoutreply_insert(userid, commentid, parentuserid, parentid, staffnotes)
-    elif not staffnotes and target_user and userid != target_user:
+    elif not staffnotes and userid != target_user:
         welcome.shout_insert(userid, commentid, otherid=target_user)
 
     d.metric('increment', 'shouts')
@@ -114,13 +125,13 @@ def insert(userid, target_user, parentid, content, staffnotes):
     return commentid
 
 
-def remove(userid, commentid=None):
+def remove(userid, *, commentid):
     query = d.engine.execute(
-        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND settings !~ 'h'",
+        "SELECT userid, target_user, settings FROM comments WHERE commentid = %(id)s AND target_user IS NOT NULL AND settings !~ 'h'",
         id=commentid,
     ).first()
 
-    if not query or ('s' in query[2] and userid not in staff.MODS):
+    if not query or ((is_staff_note := 's' in query[2]) and userid not in staff.MODS):
         raise WeasylError("shoutRecordMissing")
 
     if userid != query[1] and userid not in staff.MODS:
@@ -134,11 +145,11 @@ def remove(userid, commentid=None):
             # a commenter cannot remove their comment if it has replies
             raise WeasylError("InsufficientPermissions")
 
-    # remove notifications
-    welcome.comment_remove(commentid, 'shout')
-    d._page_header_info.invalidate(userid)
+    # Remove notifications. Top-level staff notes don't create notifications. For simplicity, staff note replies aren't removed; mods can see the removed comment anyway.
+    if not is_staff_note:
+        welcome.comment_remove(commentid, 'shout')
 
     # hide comment
-    d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i", [userid, commentid])
+    d.execute("UPDATE comments SET settings = settings || 'h', hidden_by = %i WHERE commentid = %i AND settings !~ 'h'", [userid, commentid])
 
     return query[1]

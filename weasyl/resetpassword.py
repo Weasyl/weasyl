@@ -1,7 +1,3 @@
-# encoding: utf-8
-
-from __future__ import absolute_import
-
 import hashlib
 import string
 from collections import namedtuple
@@ -91,14 +87,12 @@ def prepare(token):
     return reset_target
 
 
-def reset(token, password, passcheck, expect_userid, address):
+def reset(*, token, password, expect_userid, address):
     from weasyl import login
 
     token_sha256 = _hash_token(token)
 
-    if password != passcheck:
-        raise WeasylError("passwordMismatch")
-    elif not login.password_secure(password):
+    if not login.password_secure(password):
         raise WeasylError("passwordInsecure")
 
     with d.engine.begin() as db:
@@ -146,20 +140,3 @@ def reset(token, password, passcheck, expect_userid, address):
                 }
             })
         )
-
-
-# form
-#   password
-#   passcheck
-
-def force(userid, form):
-    from weasyl import login
-
-    if form.password != form.passcheck:
-        raise WeasylError("passwordMismatch")
-    elif not login.password_secure(form.password):
-        raise WeasylError("passwordInsecure")
-
-    d.engine.execute("UPDATE login SET force_password_reset = FALSE WHERE userid = %(user)s", user=userid)
-    d.engine.execute("UPDATE authbcrypt SET hashsum = %(new_hash)s WHERE userid = %(user)s", new_hash=login.passhash(form.password), user=userid)
-    d._get_all_config.invalidate(userid)

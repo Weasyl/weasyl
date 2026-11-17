@@ -1,87 +1,42 @@
-from __future__ import absolute_import
-
 import os
-from io import open
+from dataclasses import dataclass
+from typing import NamedTuple
 
-import arrow
 import bcrypt
-from publicsuffixlist import PublicSuffixList
-from sqlalchemy.sql.expression import select
 import sqlalchemy
 
 from libweasyl import security
 from libweasyl import staff
-from libweasyl.models.users import GuestSession
 
 from weasyl import define as d
 from weasyl import macro as m
 from weasyl import emailer
 from weasyl.error import WeasylError
-from weasyl.sessions import create_session, create_guest_session
+from weasyl.sessions import create_session
+from weasyl.forms import parse_sysname
+from weasyl.users import Username
+from weasyl.util.trie import Trie
 
 
-_EMAIL = 100
 _PASSWORD = 10
-_USERNAME = 25
-
-_BANNED_SYSNAMES = frozenset([
-    "admin",
-    "administrator",
-    "mod",
-    "moderator",
-    "weasyl",
-    "weasyladmin",
-    "weasylmod",
-    "staff",
-    "security",
-])
-
-
-def _legacy_plaintext(password):
-    """
-    Returns password stripped of non-ASCII characters, but not of control characters.
-    """
-    return "".join([c for c in password if ord(c) < 128])
-
-
-def clean_display_name(text):
-    """
-    Process a user's selection of their own username into the username that will be stored.
-
-    - Leading and trailing whitespace is removed.
-    - Non-ASCII characters are removed.
-    - Control characters are removed.
-    - Semicolons are removed.
-    - Only the first 25 characters are kept.
-
-    Throws a WeasylError("usernameInvalid") if a well-formed username isn't produced by this process.
-    """
-    cleaned = "".join(c for c in text.strip() if " " <= c <= "~" and c != ";")[:_USERNAME]
-    sysname = d.get_sysname(cleaned)
-
-    if sysname and sysname not in _BANNED_SYSNAMES:
-        return cleaned
-    else:
-        raise WeasylError("usernameInvalid")
 
 
 def signin(request, userid, ip_address=None, user_agent=None):
-    # Update the last login record for the user
-    d.execute("UPDATE login SET last_login = NOW() WHERE userid = %i", [userid])
+    if request.userid:
+        raise WeasylError("Unexpected")  # pragma: no cover
 
     # Log the successful login and increment the login count
     d.append_to_log('login.success', userid=userid, ip=d.get_address())
     d.metric('increment', 'logins')
 
-    # set the userid on the session
-    sess = create_session(userid)
-    sess.ip_address = ip_address
-    sess.user_agent_id = get_user_agent_id(user_agent)
-    sess.create = True
+    with d.sessionmaker_future.begin() as tx:
+        # Update the last login record for the user
+        tx.execute("UPDATE login SET last_login = NOW() WHERE userid = :user", {"user": userid})
 
-    if not isinstance(request.weasyl_session, GuestSession):
-        request.pg_connection.delete(request.weasyl_session)
-        request.pg_connection.flush()
+        sess = create_session(userid)
+        sess.ip_address = ip_address
+        sess.user_agent_id = get_user_agent_id(user_agent)
+        tx.add(sess)
 
     request.weasyl_session = sess
 
@@ -106,37 +61,60 @@ def get_user_agent_id(ua_string=None):
 
 
 def signout(request):
-    request.pg_connection.delete(request.weasyl_session)
-    request.pg_connection.flush()
-    request.weasyl_session = create_guest_session()
+    with d.sessionmaker_future.begin() as tx:
+        tx.delete(request.weasyl_session)
 
-    # unset SFW-mode cookie on logout
-    request.delete_cookie_on_response("sfwmode")
+    request.weasyl_session = None
 
 
-def authenticate_bcrypt(username, password, request, ip_address=None, user_agent=None):
+class Success(NamedTuple):
+    userid: int
+
+
+class SecondFactorRequired(NamedTuple):
+    userid: int
+
+
+@dataclass(frozen=True, slots=True)
+class InvalidCredentials:
+    username_exists: bool
+    inactive_username_exists: bool
+
+
+class Banned(NamedTuple):
+    userid: int
+
+
+class Suspended(NamedTuple):
+    userid: int
+
+
+def authenticate_bcrypt(
+    username: str,
+    password: str,
+    request,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> Success | SecondFactorRequired | InvalidCredentials | Banned | Suspended:
     """
-    Return a result tuple of the form (userid, error); `error` is None if the
-    login was successful. Pass None as the `request` to authenticate a user
-    without creating a new session.
+    Authenticate a user using a set of credentials.
 
     :param username: The username of the user attempting authentication.
     :param password: The user's claimed password to check against the stored hash.
-    :param request: The request, or None
+    :param request: The request on which to create a new session, or `None` to authenticate without creating a session.
     :param ip_address: The address requesting authentication.
     :param user_agent: The user agent string of the submitting client.
-
-    Possible errors are:
-    - "invalid"
-    - "unexpected"
-    - "banned"
-    - "suspended"
-    - "2fa" - Indicates the user has opted-in to 2FA. Additional authentication required.
     """
+    sysname = parse_sysname(username)
+    del username
+
     # Check that the user entered potentially valid values for `username` and
     # `password` before attempting to authenticate them
-    if not username or not password:
-        return 0, "invalid"
+    if sysname is None or not password:
+        return InvalidCredentials(
+            username_exists=False,
+            inactive_username_exists=False,
+        )
 
     # Select the authentication data necessary to check that the the user-entered
     # credentials are valid
@@ -144,33 +122,45 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         "SELECT ab.userid, ab.hashsum, lo.twofa_secret FROM authbcrypt ab"
         " RIGHT JOIN login lo USING (userid)"
         " WHERE lo.login_name = %(name)s",
-        name=d.get_sysname(username),
+        name=sysname,
     ).first()
 
+    def former_username_exists(found_user: int | None) -> bool:
+        # Check if an attempted username is the former username of some [other] user.
+        # There’s no `NOT active` filter here: even an active former username can’t be used to log in.
+        return d.engine.scalar(
+            "SELECT EXISTS (SELECT FROM username_history WHERE login_name = %(name)s AND userid IS DISTINCT FROM %(found_user)s)",
+            name=sysname,
+            found_user=found_user,
+        )
+
     if not query:
-        return 0, "invalid"
+        return InvalidCredentials(
+            username_exists=False,
+            inactive_username_exists=former_username_exists(None),
+        )
 
     USERID, HASHSUM, TWOFA = query
     HASHSUM = HASHSUM.encode('utf-8')
-    _, IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
+    IS_BANNED, IS_SUSPENDED = d.get_login_settings(USERID)
 
     d.metric('increment', 'attemptedlogins')
 
-    unicode_success = bcrypt.checkpw(password.encode('utf-8'), HASHSUM)
-    if not unicode_success and not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), HASHSUM):
+    if not bcrypt.checkpw(password.encode('utf-8'), HASHSUM):
         # Log the failed login attempt in a security log if the account the user
         # attempted to log into is a privileged account
         if USERID in staff.MODS:
             d.append_to_log('login.fail', userid=USERID, ip=d.get_address())
             d.metric('increment', 'failedlogins')
 
-        # Return a zero userid and an error code (indicating the entered password
-        # was incorrect)
-        return 0, "invalid"
+        return InvalidCredentials(
+            username_exists=True,
+            inactive_username_exists=former_username_exists(USERID),
+        )
     elif IS_BANNED:
         # Return the proper userid and an error code (indicating the user's account
         # has been banned)
-        return USERID, "banned"
+        return Banned(USERID)
     elif IS_SUSPENDED:
         from weasyl import moderation
         suspension = moderation.get_suspension(USERID)
@@ -181,32 +171,23 @@ def authenticate_bcrypt(username, password, request, ip_address=None, user_agent
         else:
             # Return the proper userid and an error code (indicating the user's
             # account has been temporarily suspended)
-            return USERID, "suspended"
+            return Suspended(USERID)
 
     # Attempt to create a new session if this is a request to log in, then log the signin
     # if it succeeded.
     if request is not None:
         # If the user's record has ``login.twofa_secret`` set (not nulled), return that password authentication succeeded.
         if TWOFA:
-            if not isinstance(request.weasyl_session, GuestSession):
-                request.pg_connection.delete(request.weasyl_session)
-                request.pg_connection.flush()
-            request.weasyl_session = create_session(None)
-            request.weasyl_session.additional_data = {}
-            return USERID, "2fa"
+            return SecondFactorRequired(USERID)
         else:
             signin(request, USERID, ip_address=ip_address, user_agent=user_agent)
 
-    status = None
-    if not unicode_success:
-        # Oops; the user's password was stored badly, but they did successfully authenticate.
-        status = 'unicode-failure'
     # Either way, authentication succeeded, so return the userid and a status.
-    return USERID, status
+    return Success(USERID)
 
 
 def passhash(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS))
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(m.MACRO_BCRYPT_ROUNDS)).decode('ascii')
 
 
 def password_secure(password):
@@ -216,45 +197,33 @@ def password_secure(password):
     return len(password) >= _PASSWORD
 
 
-# form
-#   username     email         month
-#   password     emailcheck    year
-#   passcheck    day
+def _delete_expired():
+    """
+    Delete expired logincreate records.
+    """
+    d.engine.execute("DELETE FROM logincreate WHERE created_at < now() - INTERVAL '2 days'")
+
 
 def create(form):
     # Normalize form data
-    username = clean_display_name(form.username)
-    sysname = d.get_sysname(username)
-
+    username = Username.create(form.username)
     email = emailer.normalize_address(form.email)
-    emailcheck = emailer.normalize_address(form.emailcheck)
-
     password = form.password
-    passcheck = form.passcheck
-    if form.day and form.month and form.year:
-        try:
-            birthday = arrow.Arrow(int(form.year), int(form.month), int(form.day))
-        except ValueError:
-            raise WeasylError("birthdayInvalid")
-    else:
-        birthday = None
-
-    # Check mismatched form data
-    if password != passcheck:
-        raise WeasylError("passwordMismatch")
-    if email != emailcheck:
-        raise WeasylError("emailMismatch")
 
     # Check invalid form data
-    if birthday is None or d.age_in_years(birthday) < 13:
+    if "age" not in form or form.age != "13+":
         raise WeasylError("birthdayInvalid")
     if not password_secure(password):
         raise WeasylError("passwordInsecure")
     if not email:
         raise WeasylError("emailInvalid")
-    if is_email_blacklisted(email):
+    if _is_email_blacklisted(email):
         raise WeasylError("emailBlacklisted")
-    if username_exists(sysname):
+
+    # Delete stale logincreate records before checking for colliding ones or trying to insert more
+    _delete_expired()
+
+    if username_exists(username.sysname):
         raise WeasylError("usernameExists")
 
     # Account verification token
@@ -265,16 +234,15 @@ def create(form):
         # Create pending account
         d.engine.execute(d.meta.tables["logincreate"].insert(), {
             "token": token,
-            "username": username,
-            "login_name": sysname,
+            "username": username.display,
+            "login_name": username.sysname,
             "hashpass": passhash(password),
             "email": email,
-            "birthday": birthday,
         })
 
         # Send verification email
         emailer.send(email, "Weasyl Account Creation", d.render(
-            "email/verify_account.html", [token, sysname]))
+            "email/verify_account.html", [token, username.sysname]))
         d.metric('increment', 'createdusers')
     else:
         # Store a dummy record to support plausible deniability of email addresses
@@ -282,11 +250,10 @@ def create(form):
         #  constraint for the email field (e.g., if there is already a valid, pending row in the table).
         d.engine.execute(d.meta.tables["logincreate"].insert(), {
             "token": token,
-            "username": username,
-            "login_name": sysname,
+            "username": username.display,
+            "login_name": username.sysname,
             "hashpass": passhash(password),
             "email": token,
-            "birthday": arrow.now(),
             "invalid": True,
             # So we have a way for admins to determine which email address collided in the View Pending Accounts Page
             "invalid_email_addr": email,
@@ -299,7 +266,38 @@ def create(form):
             "email/email_in_use_account_creation.html", [query_username_login or query_username_logincreate]))
 
 
+def initial_profile(userid: int, username: str):
+    return {
+        "userid": userid,
+        "username": username,
+        "full_name": username,
+        "config": "kscftj",
+        "commissions_status": "closed",
+        "trades_status": "closed",
+        "requests_status": "closed",
+        "streaming_later": False,
+        "show_age": False,
+        "can_suggest_tags": True,
+        "premium": False,
+        "favorites_visibility": "everyone",
+        "favorites_bar": True,
+        "shouts_from": "everyone",
+        "messages_from": "everyone",
+        "profile_guests": True,
+        "profile_stats": True,
+        "max_rating": "general",
+        "watch_defaults": "scftj",
+        "thumbnail_bar": "submissions",
+        "allow_collection_requests": True,
+        "collection_notifs": True,
+        "custom_thumbs": True,
+    }
+
+
 def verify(token, ip_address=None):
+    # Delete stale logincreate records before verifying against them
+    _delete_expired()
+
     lo = d.meta.tables["login"]
     lc = d.meta.tables["logincreate"]
     query = d.engine.execute(lc.select().where(lc.c.token == token)).first()
@@ -311,15 +309,21 @@ def verify(token, ip_address=None):
         # If the record is explicitly marked as invalid, treat the record as if it doesn't exist.
         raise WeasylError("logincreateRecordMissing")
 
+    username = Username.from_stored(query.username)
+
+    updateids = d.get_updateids()
+    latest_updateid = updateids[0] if updateids else None
+
     db = d.connect()
     with db.begin():
         # Create login record
         userid = db.scalar(
             lo.insert().values(
-                login_name=d.get_sysname(query.username),
+                login_name=username.sysname,
                 last_login=sqlalchemy.func.now(),
                 email=query.email,
-                ip_address_at_signup=ip_address
+                ip_address_at_signup=ip_address,
+                last_read_updateid=latest_updateid,
             ).returning(lo.c.userid))
 
         # Create profile records
@@ -327,17 +331,11 @@ def verify(token, ip_address=None):
             "userid": userid,
             "hashsum": query.hashpass,
         })
-        db.execute(d.meta.tables["profile"].insert(), {
-            "userid": userid,
-            "username": query.username,
-            "full_name": query.username,
-            "config": "kscftj",
-        })
+        db.execute(
+            d.meta.tables["profile"].insert(),
+            initial_profile(userid, username.display),
+        )
         db.execute(d.meta.tables["userinfo"].insert(), {
-            "userid": userid,
-            "birthday": query.birthday,
-        })
-        db.execute(d.meta.tables["welcomecount"].insert(), {
             "userid": userid,
         })
 
@@ -366,28 +364,28 @@ def username_exists(login_name):
 
 
 def release_username(db, acting_user, target_user):
-    db.execute(
+    old_sysname = db.scalar(
         "UPDATE username_history SET"
         " active = FALSE,"
         " deactivated_at = now(),"
         " deactivated_by = %(acting)s"
-        " WHERE userid = %(target)s AND active",
+        " WHERE userid = %(target)s AND active"
+        " RETURNING login_name",
         acting=acting_user,
         target=target_user,
     )
 
+    d._get_userids.invalidate(old_sysname)
+
 
 def change_username(acting_user, target_user, bypass_limit, new_username):
-    new_username = clean_display_name(new_username)
-    new_sysname = d.get_sysname(new_username)
+    new_username = Username.create(new_username)
+    old_username = d.get_username(target_user)
 
-    old_username = d.get_display_name(target_user)
-    old_sysname = d.get_sysname(old_username)
-
-    if new_username == old_username:
+    if new_username.display == old_username.display:
         return
 
-    cosmetic = new_sysname == old_sysname
+    cosmetic = new_username.sysname == old_username.sysname
 
     def change_username_transaction(db):
         if not cosmetic and not bypass_limit:
@@ -419,7 +417,7 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
                 " OR EXISTS (SELECT FROM logincreate WHERE login_name = %(new_sysname)s)"
                 " OR EXISTS (SELECT FROM username_history WHERE active AND login_name = %(new_sysname)s)",
                 target=target_user,
-                new_sysname=new_sysname,
+                new_sysname=new_username.sysname,
             )
 
             if conflict:
@@ -429,8 +427,8 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
             "INSERT INTO username_history (userid, username, login_name, replaced_at, replaced_by, active, cosmetic)"
             " VALUES (%(target)s, %(old_username)s, %(old_sysname)s, now(), %(target)s, NOT %(cosmetic)s, %(cosmetic)s)",
             target=target_user,
-            old_username=old_username,
-            old_sysname=old_sysname,
+            old_username=old_username.display,
+            old_sysname=old_username.sysname,
             cosmetic=cosmetic,
         )
 
@@ -438,8 +436,8 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
             result = db.execute(
                 "UPDATE login SET login_name = %(new_sysname)s WHERE userid = %(target)s AND login_name = %(old_sysname)s",
                 target=target_user,
-                old_sysname=old_sysname,
-                new_sysname=new_sysname,
+                old_sysname=old_username.sysname,
+                new_sysname=new_username.sysname,
             )
 
             if result.rowcount != 1:
@@ -448,74 +446,43 @@ def change_username(acting_user, target_user, bypass_limit, new_username):
         db.execute(
             "UPDATE profile SET username = %(new_username)s WHERE userid = %(target)s",
             target=target_user,
-            new_username=new_username,
+            new_username=new_username.display,
         )
 
     d.serializable_retry(change_username_transaction)
-    d._get_display_name.invalidate(target_user)
+    d.username_invalidate(target_user)
 
-
-def update_unicode_password(userid, password, password_confirm):
-    if password != password_confirm:
-        raise WeasylError('passwordMismatch')
-    if not password_secure(password):
-        raise WeasylError('passwordInsecure')
-
-    hashpw = d.engine.scalar("""
-        SELECT hashsum FROM authbcrypt WHERE userid = %(userid)s
-    """, userid=userid).encode('utf-8')
-
-    if bcrypt.checkpw(password.encode('utf-8'), hashpw):
-        return
-
-    if not bcrypt.checkpw(_legacy_plaintext(password).encode('utf-8'), hashpw):
-        raise WeasylError('passwordIncorrect')
-
-    d.engine.execute("""
-        UPDATE authbcrypt SET hashsum = %(hashsum)s WHERE userid = %(userid)s
-    """, userid=userid, hashsum=passhash(password))
-
-
-def get_account_verification_token(email=None, username=None):
-    email = email and emailer.normalize_address(email)
-    username = username and d.get_sysname(username)
-
-    logincreate = d.meta.tables['logincreate']
-    statement = select([logincreate.c.token])
-
-    if email:
-        statement = statement.where(logincreate.c.email.ilike(email))
-    else:
-        statement = statement.where(logincreate.c.login_name == username)
-
-    return d.engine.scalar(statement)
+    if not cosmetic:
+        d._get_userids.invalidate(old_username.sysname)
 
 
 with open(os.path.join(m.MACRO_SYS_CONFIG_PATH, "disposable-domains.txt"), encoding='ascii') as f:
-    DISPOSABLE_DOMAINS = frozenset([line.rstrip() for line in f])
+    _DISPOSABLE_DOMAINS = Trie(reversed(line.rstrip().split(".")) for line in f)
 
 
-def is_email_blacklisted(address):
-    """
-    Determines if a supplied email address is present in the 'emailblacklist' table.
-    Parameters:
-        address: The email address to split out the domain from.
-    Returns:
-        Boolean True if present on the blacklist, or False otherwise.
-    """
+# TODO: apply to e-mail changes
+def _is_email_blacklisted(address: str) -> bool:
     _, domain = address.rsplit("@", 1)
-    psl = PublicSuffixList()
-    private_suffix = psl.privatesuffix(domain=domain)
+    return _DISPOSABLE_DOMAINS.contains_prefix_of(reversed(domain.split(".")))
 
-    # Check the disposable email address list
-    if private_suffix in DISPOSABLE_DOMAINS:
-        return True
 
-    # Check the explicitly defined/blacklisted domains.
-    return d.engine.scalar(
-        "SELECT EXISTS (SELECT FROM emailblacklist WHERE domain_name = %(domain)s)",
-        domain=private_suffix,
-    )
+def authenticate_account_change(*, userid, password):
+    """
+    Check a password against an account, throwing WeasylError('passwordIncorrect') if it doesn’t match.
+
+    Bans/suspensions and two-factor authentication aren’t checked.
+
+    Returns the account’s e-mail address, because it’s convenient.
+    """
+    row = d.engine.execute(
+        "SELECT email, hashsum FROM login INNER JOIN authbcrypt USING (userid) WHERE userid = %(user)s",
+        {"user": userid},
+    ).first()
+
+    if not bcrypt.checkpw(password.encode('utf-8'), row.hashsum.encode('ascii')):
+        raise WeasylError('passwordIncorrect')
+
+    return row.email
 
 
 def verify_email_change(userid, token):
@@ -535,6 +502,10 @@ def verify_email_change(userid, token):
     # Sanity checks: Must have userid and token
     if not userid or not token:
         raise WeasylError("Unexpected")
+    d.engine.execute("""
+        DELETE FROM emailverify
+        WHERE createtimestamp < (NOW() - INTERVAL '2 days')
+    """)
     query_result = d.engine.scalar("""
         DELETE FROM emailverify
         WHERE userid = %(userid)s AND token = %(token)s

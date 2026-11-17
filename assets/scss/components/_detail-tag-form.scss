@@ -1,0 +1,122 @@
+@use 'sass:color';
+@use '../theme';
+
+.tags-textarea {
+    font-size: 14px;
+    box-sizing: border-box;
+    width: 100% !important;
+}
+
+.tags-with-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;  // for “(No tags)”
+}
+
+.tags {
+    // fallback if `display: contents` not supported
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    display: contents;
+}
+
+$tag-background: #eee;
+
+.tag {
+    display: inline-block;
+    line-height: 1.75rem;
+    padding: 0 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: $tag-background;
+    font-weight: normal;
+}
+
+.tag-suggested, .content .tag-suggested {
+    background-color: color.scale($tag-background, $alpha: -30%);
+    border-style: dashed;
+    color: color.scale(theme.$link-color, $alpha: -20%);
+}
+
+.tag-actions {
+    display: flex;
+    align-items: center;
+    height: 1.75rem;
+    padding-left: 1em;
+    gap: 16px;
+}
+
+.suggested-tags {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+    gap: 8px;
+
+    > li {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+}
+
+.suggested-tag-actions {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 4px;
+}
+
+$tag-reject-deemphasize-size: 11px;
+
+.tag-reject-feedback {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+    gap: 4px;
+
+    > label {
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    > output {
+        font-size: $tag-reject-deemphasize-size;
+    }
+}
+
+.tag-reject-feedback[hidden] {
+    display: none;
+}
+
+.tag-reject-label {
+    flex: 1;
+
+    > p {
+        font-size: $tag-reject-deemphasize-size;
+        color: theme.$content-color-lighter;
+    }
+}
+
+@keyframes pulse {
+    from {
+    }
+    to {
+        color: #777;
+    }
+}
+
+.tag-form-status-saving {
+    animation: pulse 0.75s linear alternate infinite;
+}
+
+.tags-manage {
+    margin-top: 12px;
+}
+
+.tags-actions {
+    margin-top: 8px;
+}

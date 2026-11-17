@@ -1,31 +1,22 @@
-from __future__ import absolute_import
-
-import base64
-import struct
+from __future__ import annotations
 
 from libweasyl import media as libweasylmedia
+from libweasyl.models.media import MediaItem
 from libweasyl.text import slug_for
 
-from weasyl.error import WeasylError
-from weasyl import define, image, orm
+from weasyl import define
+from weasyl import image
 
 
-def make_resized_media_item(filedata, size, error_type='FileType'):
-    if not filedata:
-        return None
-
-    im = image.from_string(filedata)
-    file_type = image.image_file_type(im)
-    if file_type not in ["jpg", "png", "gif"]:
-        raise WeasylError(error_type)
-    resized = image.resize_image(im, *size)
-    if resized is not im:
-        filedata = resized.to_buffer(format=file_type)
-    return orm.MediaItem.fetch_or_create(filedata, file_type=file_type, im=resized)
-
-
-def make_cover_media_item(coverfile, error_type='coverType'):
-    return make_resized_media_item(coverfile, image.COVER_SIZE, error_type)
+def ensure_output_media(result: image.Result) -> MediaItem:
+    return MediaItem.fetch_or_create(
+        result.output,
+        file_type=result.output_file_type,
+        attributes={
+            "width": result.output_width,
+            "height": result.output_height,
+        },
+    )
 
 
 def get_multi_submission_media(*submitids):
@@ -79,89 +70,14 @@ def format_media_link(media, link):
         return None
 
 
-_IMAGE_FILE_TYPES = ('png', 'jpg', 'gif', 'webp')
-_CDN2_PREFIX = define.config_read_setting('prefix', section='cdn2')
+def strip_non_thumbnail_media(submissions):
+    """
+    Remove all media from a submission dict except what’s necessary to render its thumbnail.
 
-
-def _deserialize_image_representation(serialized):
-    content_type = ord(serialized[0])
-    file_key = serialized[1:17]
-    width, height = struct.unpack_from('>HH', serialized, 17)
-
-    file_type = _IMAGE_FILE_TYPES[content_type - 1]
-    filename = base64.urlsafe_b64encode(file_key).rstrip('=') + '.' + file_type
-
-    return {
-        'file_type': file_type,
-        'display_url': _CDN2_PREFIX + filename,
-        'attributes': {
-            'width': str(width),
-            'height': str(height),
-        },
-    }
-
-
-# see https://github.com/Weasyl/mediacopy
-def deserialize_image_representations(serialized):
-    # a bit is set in the first byte for every optional representation
-    included_mask = ord(serialized[0])
-    offset = 1
-
-    # each image representation is 21 bytes
-    original = _deserialize_image_representation(serialized[offset:offset+21])
-    offset += 21
-
-    if included_mask & 1:
-        cover = _deserialize_image_representation(serialized[offset:offset+21])
-        offset += 21
-    else:
-        cover = original
-
-    if included_mask & 2:
-        thumbnail_generated = _deserialize_image_representation(serialized[offset:offset+21])
-        offset += 21
-    else:
-        thumbnail_generated = cover
-
-    if included_mask & 4:
-        thumbnail_custom = _deserialize_image_representation(serialized[offset:offset+21])
-        offset += 21
-    else:
-        thumbnail_custom = None
-
-    if included_mask & 32:
-        thumbnail_generated_webp = _deserialize_image_representation(serialized[offset:offset+21])
-        offset += 21
-    else:
-        thumbnail_generated_webp = None
-
-    if included_mask & ~(1 | 2 | 4 | 32):
-        raise ValueError('Unsupported representations in mask: 0b{:b}'.format(included_mask))
-
-    media = {
-        'submission': [original],
-        'cover': [cover],
-        'thumbnail-generated': [thumbnail_generated],
-    }
-
-    if thumbnail_custom is not None:
-        media['thumbnail-custom'] = [thumbnail_custom]
-
-    if thumbnail_generated_webp is not None:
-        media['thumbnail-generated-webp'] = [thumbnail_generated_webp]
-
-    return media
-
-
-def populate_with_remaining_submission_media(dicts):
-    remaining = []
-
-    for d in dicts:
-        image_representations = d.pop('image_representations', None)
-
-        if image_representations is None or _CDN2_PREFIX is None:
-            remaining.append(d)
-        else:
-            d['sub_media'] = deserialize_image_representations(image_representations)
-
-    populate_with_submission_media(remaining)
+    Useful for reducing the size of JSON in cache.
+    """
+    for sub in submissions:
+        sub_media = sub["sub_media"]
+        sub_media.pop("thumbnail-source", None)
+        sub_media.pop("cover", None)
+        sub_media.pop("submission", None)

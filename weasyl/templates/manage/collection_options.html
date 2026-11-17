@@ -5,9 +5,7 @@ $code:
     return ' checked' if settings[x] else ''
 
 <div id="manage_collection_options" class="content">
-  <form class="form skinny" action="/control/collections" method="POST">
-    $:{CSRF()}
-
+  <form class="form skinny" action="/control/collections" method="post">
     <h3>Collection Settings</h3>
     <label class="input-checkbox" style="margin-top:1.5em">
       <input type="checkbox" name="allow_request"$:{_CHECKED("allow_request")} />
@@ -16,12 +14,11 @@ $code:
 
     <label class="input-checkbox last-input">
       <input type="checkbox" name="allow_notification"$:{_CHECKED("allow_notification")} />
-      Recieve notifications for comments and favorites on items I've collected
+      Receive notifications for comments and favorites on items I've collected
     </label>
 
-    <div>
+    <div class="clear">
       <button class="button positive" style="float:right;">Save</button>
-      <a class="button" href="/control">Go Back</a>
     </div>
   </form>
 </div>

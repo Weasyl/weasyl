@@ -1,0 +1,37 @@
+$def with (profile, userinfo, relationship, query, post_counts_by_type, list_relationship)
+$code:
+  title, base_path = {
+    "friends": ("Friends", "/friends"),
+    "following": ("Following", "/following"),
+    "followed": ("Followed By", "/followed"),
+  }[list_relationship]
+
+<div class="stage">
+  $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], "", profile['show_favorites_tab'], post_counts_by_type])}
+</div>
+
+<div class="content">
+  <h3>${title}</h3>
+  $if query:
+    <ul class="avatar-grid">
+    $for i in query:
+      <li>
+        <a href="/~${LOGIN(i['username'])}" title="${i['username']}">
+          <figure>
+            $ avatar = i['user_media']['avatar'][0]
+            <img src="${avatar['display_url']}">
+            <figcaption>
+              <h5 class="username one-line">${i['username']}</h5>
+            </figcaption>
+          </figure>
+        </a>
+
+    </ul>
+    <nav class="pages-layout-split pages-vpad">
+      <a class="button" href="${base_path}?userid=${profile['userid']}&amp;backid=${query[0]['userid']}" rel="prev">Back</a>
+      <a class="button" href="${base_path}?userid=${profile['userid']}&amp;nextid=${query[-1]['userid']}" rel="next">Next</a>
+    </nav>
+  $else:
+    <p>There are no users to display.</p>
+</div>

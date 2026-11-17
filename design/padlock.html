@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+
+<title>Padlock – icon parameters</title>
+
+<style>
+body {
+  font-family: sans-serif;
+}
+
+#form {
+  display: flex;
+  gap: 16px;
+}
+
+#preview {
+  background-color: #121a1d;
+  color: rgba(185, 185, 185, 0.7);
+  display: inline-block;
+  padding: 16px;
+}
+
+#parameters {
+  align-items: center;
+  display: grid;
+  flex-direction: column;
+  order: 1;
+  gap: 8px;
+  grid-template-columns: max-content 1fr;
+  justify-items: end;
+}
+
+#parameters > label {
+  display: contents;
+}
+</style>
+
+<form id="form">
+  <div id="parameters">
+    <label>
+      Body width
+      <input id="body-width" name="body-width" type="range" value="12" min="1" max="16" step="0.5">
+    </label>
+    <label>
+      Body height
+      <input id="body-height" name="body-height" type="range" value="7" min="1" max="16" step="0.5">
+    </label>
+    <label>
+      Shackle outer radius
+      <input id="shackle-radius" name="shackle-radius" type="range" value="4.5" min="1" max="8" step="0.5">
+    </label>
+    <label>
+      Shackle width
+      <input id="shackle-width" name="shackle-width" type="range" value="2.5" min="1" max="8" step="0.5">
+    </label>
+    <label>
+      Shackle height
+      <input id="shackle-height" name="shackle-height" type="range" value="1.5" min="0" max="8" step="0.5">
+    </label>
+  </div>
+
+  <output id="preview" for="body-width,body-height,shackle-radius,shackle-width,shackle-height"></output>
+</form>
+
+<script type="module">
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const form = document.getElementById('form');
+const preview = document.getElementById('preview');
+
+const VIEWBOX_WIDTH = 16;
+const VIEWBOX_HEIGHT = 16;
+
+const addPreview = size => {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('viewBox', `0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`);
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('fill', 'currentColor');
+  svg.append(path);
+
+  preview.append(svg);
+
+  return path;
+};
+
+const previews = [
+  addPreview(256),
+  addPreview(16),
+];
+
+const m = (x, y) => `m${x} ${y}`;
+const l = (x, y) =>
+  x === 0 && y === 0 ? '' :
+  x === 0 ? `v${y}` :
+  y === 0 ? `h${x}` :
+  `l${x} ${y}`;
+const a = (...args) => `a${args.join(' ')}`;
+const h = d => `h${d}`;
+
+const getPathData = ({
+  bodyHeight,
+  bodyWidth,
+  shackleRadius,
+  shackleWidth,
+  shackleHeight,
+}) => {
+  const shackleOffset = bodyWidth / 2 - shackleRadius;
+
+  const commands = [
+    m((VIEWBOX_WIDTH - bodyWidth) / 2, VIEWBOX_HEIGHT),
+    l(bodyWidth, 0),
+    l(0, -bodyHeight),
+    l(-shackleOffset, 0),
+    l(0, -shackleHeight),
+    a(shackleRadius, shackleRadius, 0, 0, 0, -2 * shackleRadius, 0),
+    l(0, shackleHeight),
+    l(-shackleOffset, 0),
+    m(shackleOffset + shackleWidth, 0),
+    l(0, -shackleHeight),
+    a(shackleRadius - shackleWidth, shackleRadius - shackleWidth, 0, 0, 1, 2 * (shackleRadius - shackleWidth), 0),
+    l(0, shackleHeight),
+    'z',
+  ];
+
+  return commands.join('')
+    .replace(/(m\W*)l ?/g, '$1 ')
+    .replaceAll(' -', '-');
+};
+
+const update = () => {
+  const pathData = getPathData({
+    bodyWidth: Number(form.elements['body-width'].value),
+    bodyHeight: Number(form.elements['body-height'].value),
+    shackleRadius: Number(form.elements['shackle-radius'].value),
+    shackleWidth: Number(form.elements['shackle-width'].value),
+    shackleHeight: Number(form.elements['shackle-height'].value),
+  });
+  for (const preview of previews) {
+    preview.setAttribute('d', pathData);
+  }
+};
+
+form.addEventListener('input', update, {passive: true});
+update();
+</script>

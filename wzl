@@ -1,0 +1,141 @@
+#!/bin/sh
+set -eu
+
+export DOCKER_BUILDKIT=1
+export COMPOSE_BAKE=true
+export WEASYL_VERSION="$(git rev-parse --short HEAD)"
+
+# `docker-compose` is fast and easy to check for, so we fall back on `docker compose` instead of the other way around.
+if command -v docker-compose > /dev/null; then
+    docker_compose='docker-compose'
+else
+    docker_compose='docker compose'
+fi
+
+if test $# -eq 0; then
+    exec $docker_compose
+fi
+
+head="$1"
+shift
+
+if test "${1:-}" = --nobuild; then
+    shift
+    _build() {
+        true
+    }
+else
+    _build() {
+        $docker_compose --profile="$1" build "$1" || exit $?
+    }
+fi
+
+case "$head" in
+
+assets)
+    _build build-assets
+    $docker_compose create --force-recreate "$@" build-assets
+    container_id="$($docker_compose ps --status=created --format='{{.ID}}' build-assets)"
+    docker cp ./assets "$container_id":/weasyl-build/
+    exec docker start -ai "$container_id"
+    ;;
+
+assets-watch)
+    _build build-assets-watch
+    $docker_compose create "$@" build-assets-watch
+    $docker_compose cp ./assets build-assets-watch:/weasyl-build/
+    exec $docker_compose up build-assets-watch --watch
+    ;;
+
+check)
+    $docker_compose up -d flake8
+    tar -c --owner=weasyl:101 --group=root:0 \
+        --exclude=weasyl/templates \
+        --exclude=libweasyl/test/data \
+        libweasyl/ weasyl/ setup.cfg \
+        | $docker_compose cp - flake8:/weasyl/
+    exec $docker_compose exec flake8 sh -c '
+        flake8 "$@"
+        exit_code=$?
+        rm -r libweasyl/* weasyl/*
+        exit $exit_code
+    ' sh "$@"
+    ;;
+
+configure)
+    c="$docker_compose run --rm -T configure"
+    set -x
+    $c "$@" alembic.ini < libweasyl/alembic/alembic.ini.example
+    $c "$@" site.config.txt < config/site.config.txt.example
+    $c "$@" weasyl-staff.py < config/weasyl-staff.example.py
+    $c "$@" disposable-domains.txt < config/disposable-domains.txt
+    ;;
+
+migrate)
+    _build migrate
+    exec $docker_compose run --rm -T migrate "$@"
+    ;;
+
+revision)
+    _build revision
+    exec $docker_compose run --rm -T revision "$@" | tar x libweasyl/alembic/versions
+    ;;
+
+test)
+    _build test
+    exec $docker_compose run --rm test "$@"
+    ;;
+
+test-coverage)
+    _build test
+
+    if test $# -eq 0; then
+        set -- sh -c '
+            coverage run -m pytest libweasyl.test libweasyl.models.test weasyl.test
+            coverage html -d coverage
+        '
+    fi
+
+    exec $docker_compose run --rm test "$@"
+    ;;
+
+poetry)
+    docker build --target bdist -t weasyl-poetry .
+    exit_code=1
+    if docker run --name=weasyl-poetry --init -it weasyl-poetry .poetry-venv/bin/poetry "$@"; then
+        docker cp weasyl-poetry:/weasyl/pyproject.toml ./
+        docker cp weasyl-poetry:/weasyl/poetry.lock ./
+        exit_code=0
+    fi
+    docker container rm weasyl-poetry
+    docker image rm weasyl-poetry
+    exit $exit_code
+    ;;
+
+deno)
+    docker build --target asset-builder -t weasyl-deno .
+    exit_code=1
+    if
+        docker run --name=weasyl-deno --init -it weasyl-deno deno "$@" \
+        && docker cp weasyl-deno:/weasyl-build/deno.json ./ \
+        && docker cp weasyl-deno:/weasyl-build/deno.lock ./
+    then
+        exit_code=0
+    fi
+    docker container rm weasyl-deno
+    docker image rm weasyl-deno
+    exit $exit_code
+    ;;
+
+psql)
+    exec $docker_compose exec postgres psql -U weasyl "$@"
+    ;;
+
+push-templates)
+    docker cp weasyl/templates weasyl-web-1:/weasyl/weasyl/
+    ;;
+
+*)
+    exec $docker_compose "$head" "$@"
+
+esac

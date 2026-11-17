@@ -1,20 +1,26 @@
-# encoding: utf-8
-from __future__ import absolute_import, division
-
 import logging
 import re
-import urllib
 from collections import namedtuple
+from collections.abc import Sequence
+from dataclasses import dataclass
 from decimal import Decimal
+from urllib.parse import quote as urlquote
 
-from pyramid.threadlocal import get_current_request
+import requests
+from psycopg2.errorcodes import UNIQUE_VIOLATION
+from sqlalchemy.exc import OperationalError
 
 from libweasyl.cache import region
 
 from weasyl import config
 from weasyl import define as d
 from weasyl import macro as m
-from weasyl.error import PostgresError, WeasylError
+from weasyl.error import WeasylError
+from weasyl.users import Username
+
+
+logger = logging.getLogger(__name__)
+
 
 _MAX_PRICE = 99999999
 
@@ -71,17 +77,14 @@ def _fetch_rates_no_cache_failure():
         return None
 
     try:
-        response = d.http_get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
-    except WeasylError:
-        # http_get already logged the exception
+        response = requests.get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")
+    except Exception:
+        logger.error("Fetching exchange rates failed", exc_info=True)
         return None
-    else:
-        request = get_current_request()
-        request.environ['raven.captureMessage']("Fetched exchange rates", level=logging.INFO)
 
     rates = {'EUR': 1.0}
 
-    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.content):
+    for match in re.finditer(r"currency='([A-Z]{3})' rate='([0-9.]+)'", response.text):
         code, rate = match.groups()
 
         try:
@@ -156,52 +159,98 @@ def currency_ratio(valuecode, targetcode):
     return r2 / r1
 
 
-def select_list(userid):
-    query = d.engine.execute("""
-        SELECT classid, title, amount_min, amount_max, settings, priceid FROM commishprice
-        WHERE userid = %(userid)s ORDER BY classid, title
-    """, userid=userid)
+@dataclass(frozen=True, slots=True)
+class CommissionPrice:
+    priceid: int
+    title: str
+    amount_min: int
+    amount_max: int  # 0 indicates no maximum
+    settings: str
 
-    classes = d.engine.execute("""
-        SELECT classid, title FROM commishclass
-        WHERE userid = %(id)s ORDER BY title
-    """, id=userid)
 
-    content = d.engine.scalar("""
-        SELECT content FROM commishdesc
-        WHERE userid = %(id)s
-    """, id=userid)
+@dataclass(frozen=True, slots=True)
+class CommissionClass:
+    classid: int
+    title: str
+    prices: list[CommissionPrice]
 
-    preference_tags = d.engine.execute("""
-        SELECT DISTINCT tag.title FROM searchtag tag
-        JOIN artist_preferred_tags pref ON pref.tagid = tag.tagid
-        WHERE pref.targetid = %(userid)s
-    """, userid=userid).fetchall()
 
-    optout_tags = d.engine.execute("""
-        SELECT DISTINCT tag.title FROM searchtag tag
-        JOIN artist_optout_tags pref ON pref.tagid = tag.tagid
-        WHERE pref.targetid = %(userid)s
-    """, userid=userid).fetchall()
+@dataclass(frozen=True, slots=True)
+class CommissionInfo:
+    classes: Sequence[CommissionClass]
+    content: str
 
-    return {
-        "userid": userid,
-        "class": [{
-            "classid": i.classid,
-            "title": i.title,
-        } for i in classes],
-        "price": [{
-            "classid": i.classid,
-            "title": i.title,
-            "amount_min": i.amount_min,
-            "amount_max": i.amount_max,
-            "settings": i.settings,
-            "priceid": i.priceid,
-        } for i in query],
-        "content": content if content else "",
-        "tags": [tag.title for tag in preference_tags],
-        "opt_out": [tag.title for tag in optout_tags],
+
+def select(userid: int) -> CommissionInfo:
+    classes: dict[int, CommissionClass] = {
+        row.classid: CommissionClass(
+            classid=row.classid,
+            title=row.title,
+            prices=[],
+        )
+        for row in d.engine.execute(
+            "SELECT classid, title FROM commishclass"
+            " WHERE userid = %(userid)s"
+            " ORDER BY title",
+            userid=userid,
+        )
     }
+
+    for row in d.engine.execute(
+        "SELECT priceid, classid, title, amount_min, amount_max, settings FROM commishprice"
+        " WHERE userid = %(userid)s"
+        " ORDER BY classid, title",
+        userid=userid,
+    ):
+        classes[row.classid].prices.append(
+            CommissionPrice(
+                priceid=row.priceid,
+                title=row.title,
+                amount_min=row.amount_min,
+                amount_max=row.amount_max,
+                settings=row.settings,
+            )
+        )
+
+    content: str | None = d.engine.scalar(
+        "SELECT content FROM commishdesc"
+        " WHERE userid = %(userid)s",
+        userid=userid,
+    )
+
+    return CommissionInfo(
+        classes=list(classes.values()),
+        content=content or "",
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class TagPreferences:
+    preferred: list[str]
+    opt_out: list[str]
+
+
+def select_tag_preferences(userid: int) -> TagPreferences:
+    preferred: list[str] = d.engine.execute(
+        "SELECT tag.title FROM searchtag tag"
+        " JOIN artist_preferred_tags pref USING (tagid)"
+        " WHERE pref.targetid = %(userid)s"
+        " ORDER BY tag.title",
+        userid=userid,
+    ).scalars().all()
+
+    opt_out: list[str] = d.engine.execute(
+        "SELECT tag.title FROM searchtag tag"
+        " JOIN artist_optout_tags pref USING (tagid)"
+        " WHERE pref.targetid = %(userid)s"
+        " ORDER BY tag.title",
+        userid=userid,
+    ).scalars().all()
+
+    return TagPreferences(
+        preferred=preferred,
+        opt_out=opt_out,
+    )
 
 
 def select_commissionable(userid, q, commishclass, min_price, max_price, currency, offset, limit):
@@ -319,8 +368,8 @@ def select_commissionable(userid, q, commishclass, min_price, max_price, currenc
         dinfo['localmin'] = convert_currency(info.pricemin, info.pricesettings, currency)
         dinfo['localmax'] = convert_currency(info.pricemax, info.pricesettings, currency)
         if tags:
-            terms = ["user:" + d.get_sysname(info.username)] + ["|" + tag for tag in tags]
-            dinfo['searchquery'] = "q=" + urllib.quote(u" ".join(terms).encode("utf-8"))
+            terms = ["user:" + Username.from_stored(info.username).sysname] + ["|" + tag for tag in tags]
+            dinfo['searchquery'] = "q=" + urlquote(" ".join(terms).encode("utf-8"))
         else:
             dinfo['searchquery'] = ""
         return dinfo
@@ -347,7 +396,9 @@ def create_commission_class(userid, title):
             title=title,
         )
         return classid
-    except PostgresError:
+    except OperationalError as e:
+        if e.orig.pgcode != UNIQUE_VIOLATION:
+            raise
         raise WeasylError("commishclassExists")
 
 
@@ -385,8 +436,10 @@ def create_price(userid, price, currency="", settings=""):
             amount_max=price.amount_max,
             settings=settings,
         )
-    except PostgresError:
-        return WeasylError("titleExists")
+    except OperationalError as e:
+        if e.orig.pgcode != UNIQUE_VIOLATION:
+            raise
+        raise WeasylError("titleExists")
 
 
 def edit_class(userid, commishclass):
@@ -400,7 +453,9 @@ def edit_class(userid, commishclass):
             class_=commishclass.classid,
             user=userid,
         )
-    except PostgresError:
+    except OperationalError as e:
+        if e.orig.pgcode != UNIQUE_VIOLATION:
+            raise
         raise WeasylError("titleExists")
 
 

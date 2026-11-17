@@ -174,48 +174,6 @@ Basic endpoints
       only every three minutes or when a note arrives.
 
 
-OAuth2 endpoints
-----------------
-
-.. http:get:: /api/oauth2/authorize
-
-   The standard OAuth2 authorization endpoint. Currently only authorization
-   code grants with callback URIs are supported.
-
-   :query client_id: The client identifier issued to the consumer by Weasyl.
-
-   :query redirect_uri: The callback URI the consumer provided to Weasyl before
-      the *client_id* was issued.
-
-   :query scope: Currently, only one scope is allowed: ``"wholesite"``
-
-   :query state: A random unguessable string.
-
-   :query response_type: Currently, only one response type is allowed:
-      ``"code"``.
-
-   On a successful authorization, the user agent will be redirected to the
-   *redirect_uri* with query parameters of *code* and *state*. *code* will be a
-   random string used to retrieve the authorization code grant, and *state*
-   will be the same *state* as was passed originally.
-
-
-.. http:post:: /api/oauth2/token
-
-   The endpoint for fetching and refreshing OAuth2 tokens.
-
-   :form client_secret: The client secret issued to the consumer by Weasyl.
-
-   Other form parameters are described for authorization code grants at
-   <http://tools.ietf.org/html/rfc6749#section-4.1> and for refreshing tokens
-   at <http://tools.ietf.org/html/rfc6749#section-6>.
-
-   .. note::
-
-      Access tokens currently expire after an hour, to be sure to use the
-      provided refresh token before then.
-
-
 .. _submissions:
 
 Submissions
@@ -265,14 +223,6 @@ Slightly different keys are returned for the
       "media": {
          "submission": [
             {
-               "links": {
-                  "cover": [
-                     {
-                        "mediaid": 1009285,
-                        "url": "https://www.weasyl.com/static/media/41/eb/c1/41ebc1c2940be928532785dfbf35c37622664d2fbb8114c3b063df969562fc51.png"
-                     }
-                  ]
-               },
                "mediaid": 1009285,
                "url": "https://www.weasyl.com/~fiz/submissions/2031/41ebc1c2940be928532785dfbf35c37622664d2fbb8114c3b063df969562fc51/fiz-a-wesley.png"
             }
@@ -376,14 +326,6 @@ A basic character object resembles::
       "media": {
          "submission": [
             {
-               "links": {
-                     "cover": [
-                        {
-                           "mediaid": null,
-                           "url": "https://cdn.weasyl.com/static/character/94/4d/a7/e0/a0/7a/wesley-63670.cover.png"
-                        }
-                     ]
-               },
                "mediaid": null,
                "url": "https://cdn.weasyl.com/static/character/94/4d/a7/e0/a0/7a/wesley-63670.submit.2000.png"
             }
@@ -544,11 +486,6 @@ file stored by Weasyl. The *url* is one possible URL where the file can be
 downloaded. There can be multiple possible *url*\ s for a given *mediaid*. A
 *mediaid* can also be ``null`` to indicate the *url* is already unambiguous.
 
-A media file object may also have another key: *links*. The *links* key is
-itself a media key, and allows media files to be linked to other media files.
-Currently, the only kind of link is ``"cover"``, which links a media file to
-its :term:`cover image`.
-
 For submissions, the possible descriptive names are ``"submission"`` for the
 original file uploaded by the user, ``"cover"`` for the submission's
 :term:`cover image`, and ``"thumbnail"`` for the submission's thumbnail. The
@@ -564,14 +501,6 @@ Here is an example of the media for a visual submission::
   {
     "submission": [
       {
-        "links": {
-          "cover": [
-            {
-              "mediaid": 1651999,
-              "url": "https://www.weasyl.com/static/media/..."
-            }
-          ]
-        },
         "mediaid": 1651999,
         "url": "https://www.weasyl.com/static/media/..."
       }
@@ -584,14 +513,6 @@ Here is an example of the media for a visual submission::
     ],
     "cover": [
       {
-        "links": {
-          "cover": [
-            {
-              "mediaid": 1651999,
-              "url": "https://www.weasyl.com/static/media/..."
-            }
-          ]
-        },
         "mediaid": 1651999,
         "url": "https://www.weasyl.com/static/media/..."
       }
@@ -620,17 +541,12 @@ specifying that *backid* as a query parameter.
 Authentication
 --------------
 
-Authentication can be done in one of two ways: a Weasyl API key, or an OAuth2
-bearer token.
+Authentication can be done with a Weasyl API key.
 
 Weasyl API keys are managed at <https://www.weasyl.com/control/apikeys>, and
 are extremely simple to use. To authenticate a request, set the
 ``X-Weasyl-API-Key`` header to the value of an API key, and the user agent will
 be authenticated as the user who created the key.
-
-To authenticate a request with an OAuth2 bearer token, pass an ``Authorization:
-Bearer`` header along with the token, as described in
-<http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-20#section-2.1>.
 
 
 Errors
@@ -673,13 +589,6 @@ An error response resembles the following::
         "name": "RatingExceeded"
       }
     }
-
-
-OAuth2 errors
-~~~~~~~~~~~~~
-
-If a bearer token has expired, the :http:header:`WWW-Authenticate` header in
-the response will include ``error="invalid_token"``.
 
 
 Glossary

@@ -1,0 +1,144 @@
+name: Tests
+
+on:
+  push:
+    branches: [ 'main' ]
+  pull_request:
+    branches: [ 'main' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      code-quality: write
+
+    container:
+      image: ghcr.io/weasyl/ci-base-image@sha256:81928052f777a0d23901d1646cbb45d49e854f1035f3bec2492eafdf0e1e4d1a
+      options: --user 1001 --tmpfs /magick-tmp:mode=700,uid=1001
+
+    services:
+      weasyl-database:
+        image: postgres:9.6
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_USER: weasyl
+          POSTGRES_DB: weasyl_test
+          POSTGRES_INITDB_ARGS: -N
+        command: >-
+          -c bgwriter_lru_maxpages=0
+          -c wal_level=minimal
+          -c fsync=off
+          -c synchronous_commit=off
+          -c full_page_writes=off
+          -c max_wal_senders=0
+        # probably ready by the time the tests run anyway; no need to add latency
+        #options: >-
+        #  --health-cmd pg_isready
+        #  --health-interval 10s
+        #  --health-timeout 5s
+        #  --health-retries 5
+
+      weasyl-memcached:
+        image: memcached:1.5-alpine
+
+      weasyl-badgr:
+        image: ghcr.io/weasyl/badgr@sha256:b35200fb4e46cf66869b100877feaa6eefead0614b483a5c084fdb203af807f1
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v5
+        with:
+          path: /deno-dir/
+          key: cache-${{ runner.os }}-deno-${{ hashFiles('deno.lock') }}
+          restore-keys: |
+            cache-${{ runner.os }}-deno-
+
+      - name: Cache Poetry
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: cache-${{ runner.os }}-pip-${{ hashFiles('poetry-requirements.txt') }}
+          restore-keys: |
+            cache-${{ runner.os }}-pip-
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pypoetry
+          key: cache-${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            cache-${{ runner.os }}-poetry-
+
+      - name: Create Poetry virtualenv
+        run: python3 -m venv --system-site-packages --without-pip .poetry-venv
+
+      - name: Install Poetry
+        run: |
+          .poetry-venv/bin/python3 -m pip install --require-hashes --only-binary :all: --no-deps -r poetry-requirements.txt
+
+      - name: Create virtualenv
+        run: python3 -m venv --system-site-packages --without-pip .venv
+
+      - name: Install Deno dependencies
+        run: |
+          (
+            export LD_LIBRARY_PATH=/opt/deno/lib
+            deno install --frozen --vendor=false && deno ci
+          ) \
+            && sha256sum -c <<'SHA256' \
+            && sed -i -f - node_modules/autoprefixer/lib/supports.js <<'SED'
+          68c4208ae3e1aad176f61fe7ba27d351d8b8f931dad1b3938702c3bb80106d24  node_modules/autoprefixer/lib/supports.js
+          SHA256
+          214a\
+          , this.all.browsers.browserslistOpts
+          SED
+
+      - name: Install Python dependencies
+        run: .poetry-venv/bin/poetry install
+
+      - name: Configure Weasyl
+        run: |
+          cp ci/site.config.txt config/
+          cp config/weasyl-staff.example.py config/weasyl-staff.py
+          printf %.8s "$GITHUB_SHA" > version.txt
+
+      - name: Build assets
+        run: |
+          LD_LIBRARY_PATH=/opt/deno/lib \
+          deno run \
+            --cached-only \
+            --frozen \
+            --allow-env \
+            --allow-read \
+            --allow-write \
+            --allow-run \
+            build.ts \
+            --assets=./assets/ \
+            --output=./build/
+
+      - name: Create test database
+        run: psql -h weasyl-database -U weasyl -d weasyl_test < containers/postgres/00-test.sql
+
+      - name: Run tests
+        env:
+          WEASYL_TEST_SQLALCHEMY_URL: postgresql+psycopg2://weasyl@weasyl-database/weasyl_test
+          WEASYL_APP_ROOT: .
+          WEASYL_STORAGE_ROOT: testing
+        run: .venv/bin/python -m coverage run -m pytest libweasyl.test libweasyl.models.test weasyl.test
+
+      - name: Report coverage
+        run: |
+          .venv/bin/python -m coverage xml
+
+      - name: Upload coverage
+        if: github.actor != 'dependabot[bot]' && ((github.event_name != 'pull_request' && github.ref == 'refs/heads/main') || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/upload-code-coverage@v1
+        with:
+          file: coverage.xml
+          language: Python
+          label: code-coverage/pytest

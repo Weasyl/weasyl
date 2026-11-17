@@ -1,7 +1,3 @@
-# encoding: utf-8
-
-from __future__ import absolute_import
-
 import arrow
 
 from pyramid.httpexceptions import HTTPSeeOther
@@ -10,6 +6,8 @@ from pyramid.response import Response
 from weasyl import define, macro, moderation, note, profile, report
 from weasyl.controllers.decorators import moderator_only, token_checked
 from weasyl.error import WeasylError
+from weasyl.forms import expect_id
+from weasyl.forms import expect_ids
 
 
 # Moderator control panel functions
@@ -21,13 +19,15 @@ def modcontrol_(request):
 @moderator_only
 def modcontrol_suspenduser_get_(request):
     return Response(define.webpage(request.userid, "modcontrol/suspenduser.html",
-                                   (moderation.BAN_TEMPLATES,), title="User Suspensions"))
+                                   (),
+                                   options=("mod",),
+                                   title="User Suspensions"))
 
 
 @moderator_only
 @token_checked
 def modcontrol_suspenduser_post_(request):
-    form = request.web_input(userid="", username="", mode="", reason="", day="", month="", year="", datetype="",
+    form = request.web_input(userid="", username="", mode="", reason="", datetype="",
                              duration="", durationunit="")
 
     moderation.setusermode(request.userid, form)
@@ -36,15 +36,14 @@ def modcontrol_suspenduser_post_(request):
 
 @moderator_only
 def modcontrol_report_(request):
-    form = request.web_input(reportid='')
-    r = report.select_view(request.userid, form)
+    r = report.select_view(request.userid, reportid=int(request.GET["reportid"]))
     blacklisted_tags = moderation.gallery_blacklisted_tags(request.userid, r.target.userid)
 
     return Response(define.webpage(request.userid, "modcontrol/report.html", [
         request.userid,
         r,
         blacklisted_tags,
-    ], title="View Reported " + r.target_type.title()))
+    ], options=("mod",), title="View Reported " + r.target_type.title()))
 
 
 @moderator_only
@@ -56,7 +55,7 @@ def modcontrol_reports_(request):
         # Reports
         report.select_list(request.userid, form),
         macro.MACRO_REPORT_VIOLATION,
-    ], title="Reported Content"))
+    ], options=("mod",), title="Reported Content"))
 
 
 @moderator_only
@@ -83,66 +82,44 @@ def modcontrol_contentbyuser_(request):
     return Response(define.webpage(request.userid, "modcontrol/contentbyuser.html", [
         form.name,
         sorted(submissions + characters + journals, key=lambda item: item['unixtime'], reverse=True),
-    ], title=form.name + "'s Content"))
+    ], options=("mod",), title=form.name + "'s Content"))
 
 
 @moderator_only
 @token_checked
 def modcontrol_massaction_(request):
-    form = request.web_input(action='', name='', submissions=[], characters=[], journals=[])
-    if form.action.startswith("zap-"):
+    action = request.POST.getone("action")
+
+    if action.startswith("zap-"):
         # "Zapping" cover art or thumbnails is not a bulk edit.
-        if not form.submissions:
-            raise WeasylError("Unexpected")
-        submitid = int(form.submissions[0])
-        type = form.action.split("zap-")[1]
-        if type == "cover":
-            moderation.removecoverart(request.userid, submitid)
-        elif type == "thumb":
-            moderation.removethumbnail(request.userid, submitid)
-        elif type == "both":
-            moderation.removecoverart(request.userid, submitid)
-            moderation.removethumbnail(request.userid, submitid)
-        else:
-            raise WeasylError("Unexpected")
+        submitid = expect_id(request.POST.getone("submissions"))
+
+        match action:
+            case "zap-cover":
+                moderation.removecoverart(request.userid, submitid)
+            case "zap-thumb":
+                moderation.removethumbnail(request.userid, submitid)
+            case "zap-both":
+                moderation.removecoverart(request.userid, submitid)
+                moderation.removethumbnail(request.userid, submitid)
+            case _:  # pragma: no cover
+                raise WeasylError("Unexpected")
         raise HTTPSeeOther(location="/submission/%i" % (submitid,))
+
+    submissions = expect_ids(request.POST.getall("submissions"))
+    characters = expect_ids(request.POST.getall("characters"))
+    journals = expect_ids(request.POST.getall("journals"))
 
     return Response(
         content_type='text/plain',
         body=moderation.bulk_edit(
             request.userid,
-            form.action,
-            map(int, form.submissions),
-            map(int, form.characters),
-            map(int, form.journals),
+            action=action,
+            submissions=submissions,
+            characters=characters,
+            journals=journals,
         ),
     )
-
-
-@moderator_only
-@token_checked
-def modcontrol_hide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.hidesubmission(int(form.submission))
-    elif form.character:
-        moderation.hidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
-
-
-@moderator_only
-@token_checked
-def modcontrol_unhide_(request):
-    form = request.web_input(name="", submission="", character="")
-
-    if form.submission:
-        moderation.unhidesubmission(int(form.submission))
-    elif form.character:
-        moderation.unhidecharacter(int(form.character))
-
-    raise HTTPSeeOther(location="/modcontrol")
 
 
 @moderator_only
@@ -197,7 +174,7 @@ def modcontrol_copynotetostaffnotes_post_(request):
 
     notedata = note.select_view(request.userid, int(form.noteid))
 
-    staff_note_title = u"Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
+    staff_note_title = "Received note from {sender}, dated {date}, with subject: “{subj}”.".format(
         sender=notedata['sendername'],
         date=arrow.get(notedata['unixtime']).format('YYYY-MM-DD HH:mm:ss ZZ'),
         subj=notedata['title'],

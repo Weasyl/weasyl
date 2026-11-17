@@ -1,0 +1,18 @@
+$def with (classes)
+
+$for class_ in classes:
+  <h4>${class_.title}</h4>
+  <dl class="leaders">
+  $for price in class_.prices:
+    $if 'a' not in price.settings:
+      <dt>${price.title}</dt>
+      <dd>$:{'<i>from </i>' if price.amount_max else ''}${SYMBOL(price.settings)} ${PRICE(price.amount_min)}</dd>
+      $if price.amount_max:
+        <dd><i>to </i>${SYMBOL(price.settings)} ${PRICE(price.amount_max)}</dd>
+  $for price in class_.prices:
+    $if 'a' in price.settings:
+      <dt><i>add &#160;</i>${price.title}</dt>
+      <dd>$:{'<i>from </i>' if price.amount_max else ''}${SYMBOL(price.settings)} ${PRICE(price.amount_min)}</dd>
+      $if price.amount_max:
+        <dd><i>to </i>${SYMBOL(price.settings)} ${PRICE(price.amount_max)}</dd>
+  </dl>

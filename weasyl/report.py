@@ -1,15 +1,15 @@
-from __future__ import absolute_import
-
 import arrow
+from pyramid.httpexceptions import HTTPNotFound
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import aliased, contains_eager, joinedload
 import sqlalchemy as sa
-import web
+from web.utils import Storage
 
 from libweasyl.models.content import Report, ReportComment
 from libweasyl.models.users import Login
 from libweasyl import constants, staff
 from weasyl.error import WeasylError
+from weasyl.forms import parse_sysname
 from weasyl import macro as m, define as d, media, note
 
 
@@ -68,7 +68,7 @@ def create(userid, form):
         raise WeasylError("ReportCommentRequired")
 
     is_hidden = d.engine.scalar(
-        "SELECT settings ~ 'h' FROM %s WHERE %s = %i" % (
+        "SELECT hidden FROM %s WHERE %s = %i" % (
             ("submission", "submitid", form.submitid) if form.submitid else
             ("character", "charid", form.charid) if form.charid else
             ("journal", "journalid", form.journalid)
@@ -148,8 +148,8 @@ def select_list(userid, form):
     # If filtering by the report's content's owner, iterate over the previously
     # collected Login model aliases to compare against Login.login_name.
     if form.submitter:
-        submitter = d.get_sysname(form.submitter)
-        q = q.filter(sa.or_(l.login_name == submitter for l in login_aliases))
+        submitter = parse_sysname(form.submitter)
+        q = q.filter(sa.or_(login.login_name == submitter for login in login_aliases))
 
     # If filtering by violation type, see if the violation is in the array
     # aggregate of unique violations for this report.
@@ -157,15 +157,19 @@ def select_list(userid, form):
         q = q.filter(sa.literal(int(form.violation)) == sa.func.any(subq.c.violations))
 
     q = q.order_by(Report.opened_at.desc())
-    return [(report, report_count, map(_convert_violation, violations))
+    return [(report, report_count, list(map(_convert_violation, violations)))
             for report, _, report_count, violations in q.all()]
 
 
-def select_view(userid, form):
+def select_view(userid, *, reportid):
     report = (
         Report.query
         .options(joinedload('comments', innerjoin=True).joinedload('poster', innerjoin=True))
-        .get_or_404(int(form.reportid)))
+        .get(reportid))
+
+    if report is None:
+        raise HTTPNotFound()
+
     report.old_style_comments = [
         {
             'userid': c.userid,
@@ -212,7 +216,8 @@ def close(userid, form):
         q = (
             q
             .filter_by(is_closed=False)
-            .filter(sa.or_(l.login_name == root_report.target.owner.login_name for l in login_aliases)))
+            .filter(sa.or_(login.login_name == root_report.target.owner.login_name
+                           for login in login_aliases)))
         reports = q.all()
 
     else:
@@ -235,7 +240,7 @@ def close(userid, form):
     Report.dbsession.flush()
     if form.action == 'action_taken':
         # TODO(hyena): Remove this dependency on web.py's Storage objects.
-        note_form = web.Storage()
+        note_form = Storage()
         note_form.title = form.note_title
         note_form.content = form.user_note
         note_form.recipient = root_report.target.owner.login_name

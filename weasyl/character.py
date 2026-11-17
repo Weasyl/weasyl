@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import arrow
-import re
 
 from libweasyl import ratings
 from libweasyl import staff
@@ -23,18 +20,28 @@ from weasyl import report
 from weasyl import searchtag
 from weasyl import thumbnail
 from weasyl import welcome
-from weasyl.error import PostgresError, WeasylError
+from weasyl.error import WeasylError
+from weasyl.forms import NormalizedTag
+from weasyl.pagination import (
+    PageFilter,
+    paginate,
+)
+from weasyl.users import Username
 
 
 _MEGABYTE = 1048576
 _MAIN_IMAGE_SIZE_LIMIT = 50 * _MEGABYTE
 
 
-def create(userid, character, friends, tags, thumbfile, submitfile):
-    # Make temporary filenames
-    tempthumb = files.get_temporary(userid, "thumb")
-    tempsubmit = files.get_temporary(userid, "char")
-
+def create(
+    userid: int,
+    character,
+    *,
+    friends_only: bool,
+    tags: set[NormalizedTag],
+    thumbfile,
+    submitfile,
+) -> int:
     # Determine filesizes
     thumbsize = len(thumbfile)
     submitsize = len(submitfile)
@@ -45,132 +52,126 @@ def create(userid, character, friends, tags, thumbfile, submitfile):
     elif not character.rating:
         raise WeasylError("ratingInvalid")
     profile.check_user_rating_allowed(userid, character.rating)
+    if character.rating.minimum_age:
+        profile.assert_adult(userid)
 
-    # Write temporary thumbnail file
-    if thumbsize:
-        files.write(tempthumb, thumbfile)
-        thumbextension = files.get_extension_for_category(
-            thumbfile, macro.ART_SUBMISSION_CATEGORY)
-    else:
-        thumbextension = None
-
-    # Write temporary submission file
-    if submitsize:
-        files.write(tempsubmit, submitfile)
-        submitextension = files.get_extension_for_category(
-            submitfile, macro.ART_SUBMISSION_CATEGORY)
-    else:
-        submitextension = None
-
-    # Check invalid file data
     if not submitsize:
-        files.clear_temporary(userid)
         raise WeasylError("submitSizeZero")
     elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
-        files.clear_temporary(userid)
         raise WeasylError("submitSizeExceedsLimit")
     elif thumbsize > 10 * _MEGABYTE:
-        files.clear_temporary(userid)
         raise WeasylError("thumbSizeExceedsLimit")
-    elif submitextension not in [".jpg", ".png", ".gif"]:
-        files.clear_temporary(userid)
-        raise WeasylError("submitType")
-    elif thumbsize and thumbextension not in [".jpg", ".png", ".gif"]:
-        files.clear_temporary(userid)
-        raise WeasylError("thumbType")
+
+    if thumbsize:
+        try:
+            thumb_source = image.create_cover(thumbfile)
+        except image.UnsupportedFormat as e:
+            raise WeasylError("thumbType") from e
+        except Exception as e:
+            raise WeasylError("thumbnailImageProcessingFailed", level="info") from e
+
+    try:
+        cover_result = image.create_cover(submitfile)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("submitType") from e
+    except Exception as e:
+        raise WeasylError("submissionImageProcessingFailed", level="info") from e
 
     # Assign settings
-    settings = []
-    settings.append("f" if friends else "")
-    settings.append(files.typeflag("submit", submitextension))
-    settings.append(files.typeflag("cover", submitextension))
-    settings = "".join(settings)
+    settings = (
+        files.typeflag("submit", cover_result.original_file_type)
+        + files.typeflag("cover", cover_result.output_file_type)
+    )
 
     # Insert submission data
     ch = define.meta.tables["character"]
 
-    try:
-        charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
-            "userid": userid,
-            "unixtime": arrow.now(),
-            "char_name": character.char_name,
-            "age": character.age,
-            "gender": character.gender,
-            "height": character.height,
-            "weight": character.weight,
-            "species": character.species,
-            "content": character.content,
-            "rating": character.rating.code,
-            "settings": settings,
-        })
-    except PostgresError:
-        files.clear_temporary(userid)
-        raise
+    charid = define.engine.scalar(ch.insert().returning(ch.c.charid), {
+        "userid": userid,
+        "unixtime": arrow.utcnow(),
+        "char_name": character.char_name,
+        "age": character.age,
+        "gender": character.gender,
+        "height": character.height,
+        "weight": character.weight,
+        "species": character.species,
+        "content": character.content,
+        "rating": character.rating.code,
+        "settings": settings,
+        "hidden": False,
+        "friends_only": friends_only,
+    })
 
     # Assign search tags
-    searchtag.associate(userid, tags, charid=charid)
+    searchtag.associate(
+        userid=userid,
+        target=searchtag.CharacterTarget(charid),
+        tag_names=tags,
+    )
 
     # Make submission file
     files.make_character_directory(charid)
-    files.copy(tempsubmit, files.make_resource(userid, charid, "char/submit", submitextension))
+    with open(files.make_resource(userid, charid, "char/submit", file_type=cover_result.original_file_type), "xb") as f:
+        f.write(submitfile)
 
     # Make cover file
-    image.make_cover(tempsubmit, files.make_resource(userid, charid, "char/cover", submitextension))
+    with open(files.make_resource(userid, charid, "char/cover", file_type=cover_result.output_file_type), "xb") as f:
+        f.write(cover_result.output)
 
     # Make thumbnail selection file
     if thumbsize:
-        image.make_cover(
-            tempthumb, files.make_resource(userid, charid, "char/.thumb"))
+        with open(files.make_resource(userid, charid, "char/.thumb"), "xb") as f:
+            f.write(thumb_source.output)
 
     thumbnail.create(0, 0, 0, 0, charid=charid, remove=False)
 
     # Create notifications
     welcome.character_insert(userid, charid, rating=character.rating.code,
-                             settings=settings)
-
-    # Clear temporary files
-    files.clear_temporary(userid)
+                             friends_only=friends_only)
 
     define.metric('increment', 'characters')
+    define.cached_posts_count.invalidate(userid)
 
     return charid
 
 
-def reupload(userid, charid, submitdata):
-    submitsize = len(submitdata)
+def reupload(userid: int, charid: int, submitfile) -> None:
+    submitsize = len(submitfile)
     if not submitsize:
         raise WeasylError("submitSizeZero")
     elif submitsize > _MAIN_IMAGE_SIZE_LIMIT:
         raise WeasylError("submitSizeExceedsLimit")
 
-    # Select character data
-    query, = define.engine.execute("""
-        SELECT userid, settings FROM character WHERE charid = %(character)s AND settings !~ 'h'
+    ownerid: int | None = define.engine.scalar("""
+        SELECT userid FROM character WHERE charid = %(character)s AND NOT hidden
     """, character=charid)
 
-    if userid != query.userid:
-        raise WeasylError("Unexpected")
+    if ownerid is None:
+        raise WeasylError("characterRecordMissing")
 
-    im = image.from_string(submitdata)
-    submitextension = image.image_extension(im)
+    if userid != ownerid:
+        raise WeasylError("InsufficientPermissions")
 
-    # Check invalid file data
-    if not submitextension:
-        raise WeasylError("submitType")
+    try:
+        cover_result = image.create_cover(submitfile)
+    except image.UnsupportedFormat as e:
+        raise WeasylError("submitType") from e
+    except Exception as e:
+        raise WeasylError("submissionImageProcessingFailed", level="info") from e
 
     # Make submission file
-    submitfile = files.make_resource(userid, charid, "char/submit", submitextension)
-    files.ensure_file_directory(submitfile)
-    im.write(submitfile)
+    with open(files.make_resource(userid, charid, "char/submit", file_type=cover_result.original_file_type), "wb") as f:
+        f.write(submitfile)
 
     # Make cover file
-    image.make_cover(
-        submitfile, files.make_resource(userid, charid, "char/cover", submitextension))
+    with open(files.make_resource(userid, charid, "char/cover", file_type=cover_result.output_file_type), "wb") as f:
+        f.write(cover_result.output)
 
     # Update settings
-    settings = re.sub(r'[~=].', '', query.settings)
-    settings += files.typeflag("submit", submitextension)
-    settings += files.typeflag("cover", submitextension)
+    settings = (
+        files.typeflag("submit", cover_result.original_file_type)
+        + files.typeflag("cover", cover_result.output_file_type)
+    )
     define.engine.execute("""
         UPDATE character
            SET settings = %(settings)s
@@ -178,25 +179,32 @@ def reupload(userid, charid, submitdata):
     """, settings=settings, character=charid)
 
 
-def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway=False, increment_views=True):
+def _select_character_and_check(
+    userid,
+    charid,
+    *,
+    rating,
+    ignore: bool,
+    anyway: bool,
+    increment_views: bool,
+):
     """Selects a character, after checking if the user is authorized, etc.
 
     Args:
         userid (int): Currently authenticating user ID.
         charid (int): Character ID to fetch.
-        rating (int): Maximum rating to display. Defaults to None.
-        ignore (bool): Whether to respect ignored or blocked tags. Defaults to True.
-        anyway (bool): Whether to ignore checks and display anyway. Defaults to False.
-        increment_views (bool): Whether to increment the number of views on the submission. Defaults to True.
+        rating (int): Maximum rating to display.
+        ignore: Whether to check for blocked tags and users.
+        anyway: For moderators, whether to ignore checks (including permission checks and deleted status) and display anyway.
+        increment_views: Whether to increment the number of views on the submission.
 
     Returns:
         A character and all needed data as a dict.
     """
-
     query = define.engine.execute("""
         SELECT
             ch.userid, pr.username, ch.unixtime, ch.char_name, ch.age, ch.gender, ch.height, ch.weight, ch.species,
-            ch.content, ch.rating, ch.settings, ch.page_views, pr.config
+            ch.content, ch.rating, ch.settings, ch.hidden, ch.friends_only, ch.page_views
         FROM character ch
             INNER JOIN profile pr USING (userid)
         WHERE ch.charid = %(charid)s
@@ -204,11 +212,11 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
     if query and userid in staff.MODS and anyway:
         pass
-    elif not query or 'h' in query.settings:
+    elif not query or query.hidden:
         raise WeasylError('characterRecordMissing')
     elif query.rating > rating and ((userid != query.userid and userid not in staff.MODS) or define.is_sfw_mode()):
         raise WeasylError('RatingExceeded')
-    elif 'f' in query.settings and not frienduser.check(userid, query.userid):
+    elif query.friends_only and not frienduser.check(userid, query.userid):
         raise WeasylError('FriendsOnly')
     elif ignore and ignoreuser.check(userid, query.userid):
         raise WeasylError('UserIgnored')
@@ -217,22 +225,35 @@ def _select_character_and_check(userid, charid, rating=None, ignore=True, anyway
 
     query = dict(query)
 
-    if increment_views and define.common_view_content(userid, charid, 'char'):
-        query['page_views'] += 1
+    if increment_views and (new_views := define.common_view_content(userid, charid, 'characters')) is not None:
+        query['page_views'] = new_views
 
     return query
 
 
-def select_view(userid, charid, rating, ignore=True, anyway=None):
+def select_view(
+    userid,
+    charid,
+    *,
+    rating,
+    ignore: bool = True,
+    anyway: bool = False,
+):
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=ignore, anyway=anyway == "true")
+        userid,
+        charid,
+        rating=rating,
+        ignore=ignore,
+        anyway=anyway,
+        increment_views=False,
+    )
 
-    login = define.get_sysname(query['username'])
+    username = Username.from_stored(query['username'])
 
     return {
         'charid': charid,
         'userid': query['userid'],
-        'username': query['username'],
+        'username': username.display,
         'user_media': media.get_user_media(query['userid']),
         'mine': userid == query['userid'],
         'unixtime': query['unixtime'],
@@ -244,33 +265,43 @@ def select_view(userid, charid, rating, ignore=True, anyway=None):
         'species': query['species'],
         'content': query['content'],
         'rating': query['rating'],
-        'settings': query['settings'],
-        'reported': report.check(charid=charid),
+        'reported': report.check(charid=charid) if userid in staff.MODS else None,
         'favorited': favorite.check(userid, charid=charid),
         'page_views': query['page_views'],
-        'friends_only': 'f' in query['settings'],
-        'hidden_submission': 'h' in query['settings'],
+        'friends_only': query['friends_only'],
+        'hidden': query['hidden'],
         'fave_count': favorite.count(charid, 'character'),
         'comments': comment.select(userid, charid=charid),
         'sub_media': fake_media_items(
-            charid, query['userid'], login, query['settings']),
-        'tags': searchtag.select(charid=charid),
+            charid, query['userid'], username.sysname, query['settings']),
+        'tags': searchtag.select_grouped(userid, searchtag.CharacterTarget(charid)),
     }
 
 
-def select_view_api(userid, charid, anyway=False, increment_views=False):
+def select_view_api(
+    userid,
+    charid,
+    *,
+    anyway: bool,
+    increment_views: bool,
+):
     rating = define.get_rating(userid)
 
     query = _select_character_and_check(
-        userid, charid, rating=rating, ignore=anyway,
-        anyway=anyway, increment_views=increment_views)
+        userid,
+        charid,
+        rating=rating,
+        ignore=not anyway,
+        anyway=False,
+        increment_views=increment_views,
+    )
 
-    login = define.get_sysname(query['username'])
+    username = Username.from_stored(query['username'])
 
     return {
         'charid': charid,
-        'owner': query['username'],
-        'owner_login': login,
+        'owner': username.display,
+        'owner_login': username.sysname,
         'owner_media': api.tidy_all_media(
             media.get_user_media(query['userid'])),
         'posted_at': define.iso8601(query['unixtime']),
@@ -284,11 +315,11 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
         'rating': ratings.CODE_TO_NAME[query['rating']],
         'favorited': favorite.check(userid, charid=charid),
         'views': query['page_views'],
-        'friends_only': 'f' in query['settings'],
+        'friends_only': query['friends_only'],
         'favorites': favorite.count(charid, 'character'),
         'comments': comment.count(charid, 'character'),
         'media': api.tidy_all_media(fake_media_items(
-            charid, query['userid'], login, query['settings'])),
+            charid, query['userid'], username.sysname, query['settings'])),
         'tags': searchtag.select(charid=charid),
         'type': 'character',
         'link': define.absolutify_url(
@@ -297,7 +328,7 @@ def select_view_api(userid, charid, anyway=False, increment_views=False):
 
 
 def select_query(userid, rating, otherid=None, backid=None, nextid=None):
-    statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE ch.settings !~ '[h]'"]
+    statement = [" FROM character ch INNER JOIN profile pr ON ch.userid = pr.userid WHERE NOT ch.hidden"]
 
     # Ignored users and blocked tags
     if userid:
@@ -311,7 +342,7 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None):
         statement.append(macro.MACRO_BLOCKTAG_CHAR % (userid, userid))
         statement.append(macro.MACRO_FRIENDUSER_CHARACTER % (userid, userid, userid))
     else:
-        statement.append(" AND ch.rating <= %i AND ch.settings !~ 'f'" % (rating,))
+        statement.append(" AND ch.rating <= %i AND NOT ch.friends_only" % (rating,))
 
     # Content owner
     if otherid:
@@ -326,13 +357,13 @@ def select_query(userid, rating, otherid=None, backid=None, nextid=None):
     return statement
 
 
-def select_count(userid, rating, otherid=None, backid=None, nextid=None):
+def select_count(userid, rating, *, otherid=None, backid=None, nextid=None):
     statement = ["SELECT count(ch.charid)"]
     statement.extend(select_query(userid, rating, otherid, backid, nextid))
     return define.execute("".join(statement))[0][0]
 
 
-def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
+def _select_list_raw(userid, *, rating, limit: int, otherid=None, backid, nextid):
     statement = ["SELECT ch.charid, ch.char_name, ch.rating, ch.unixtime, ch.userid, pr.username, ch.settings "]
     statement.extend(select_query(userid, rating, otherid, backid, nextid))
 
@@ -340,6 +371,7 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
 
     query = []
     for i in define.execute("".join(statement)):
+        username = Username.from_stored(i[5])
         query.append({
             "contype": 20,
             "charid": i[0],
@@ -347,32 +379,44 @@ def select_list(userid, rating, limit, otherid=None, backid=None, nextid=None):
             "rating": i[2],
             "unixtime": i[3],
             "userid": i[4],
-            "username": i[5],
-            "sub_media": fake_media_items(i[0], i[4], define.get_sysname(i[5]), i[6]),
+            "username": username.display,
+            "sub_media": fake_media_items(i[0], i[4], username.sysname, i[6]),
         })
 
+    return query
+
+
+def select_list(userid, rating, limit: int, *, otherid=None, backid=None, nextid=None):
+    query = _select_list_raw(userid, rating=rating, limit=limit, otherid=otherid, backid=backid, nextid=nextid)
     return query[::-1] if backid else query
 
 
-def edit(userid, character, friends_only):
-    query = define.engine.execute("SELECT userid, settings FROM character WHERE charid = %(id)s",
+def select_page(userid, *, rating, limit: int, page: PageFilter):
+    backid, nextid = page.compat()
+    query = _select_list_raw(userid, rating=rating, limit=limit + 1, backid=backid, nextid=nextid)
+    prev_page, next_page = paginate(query, limit=limit, page=page, key="charid")
+    return query, prev_page, next_page
+
+
+def edit(userid: int, character, *, friends_only: bool) -> None:
+    query = define.engine.execute("SELECT userid, hidden FROM character WHERE charid = %(id)s",
                                   id=character.charid).first()
 
-    if not query or "h" in query[1]:
+    if not query or query.hidden:
         raise WeasylError("Unexpected")
-    elif userid != query[0] and userid not in staff.MODS:
+    elif userid != query.userid and userid not in staff.MODS:
         raise WeasylError("InsufficientPermissions")
     elif not character.char_name:
         raise WeasylError("characterNameInvalid")
     elif not character.rating:
         raise WeasylError("Unexpected")
-    profile.check_user_rating_allowed(userid, character.rating)
 
-    # Assign settings
-    settings = query[1].replace("f", "")
+    if userid == query.userid:
+        profile.check_user_rating_allowed(userid, character.rating)
+        if character.rating.minimum_age:
+            profile.assert_adult(userid)
 
     if friends_only:
-        settings += "f"
         welcome.character_remove(character.charid)
 
     ch = define.meta.tables["character"]
@@ -388,29 +432,33 @@ def edit(userid, character, friends_only):
             'species': character.species,
             'content': character.content,
             'rating': character.rating,
-            'settings': settings,
+            'friends_only': friends_only,
         })
     )
 
-    if userid != query[0]:
+    if userid != query.userid:
         from weasyl import moderation
         moderation.note_about(
-            userid, query[0], 'The following character was edited:',
+            userid, query.userid, 'The following character was edited:',
             '- ' + text.markdown_link(character.char_name, '/character/%s?anyway=true' % (character.charid,)))
 
+    define.cached_posts_count.invalidate(query.userid)
 
-def remove(userid, charid):
+
+def remove(userid: int, charid: int) -> int | None:
     ownerid = define.get_ownerid(charid=charid)
 
     if userid not in staff.MODS and userid != ownerid:
         raise WeasylError("InsufficientPermissions")
 
-    query = define.execute("UPDATE character SET settings = settings || 'h'"
-                           " WHERE charid = %i AND settings !~ 'h'"
-                           " RETURNING charid", [charid])
+    result = define.engine.execute(
+        "UPDATE character SET hidden = TRUE WHERE charid = %(charid)s AND NOT hidden",
+        {"charid": charid},
+    )
 
-    if query:
+    if result.rowcount != 0:
         welcome.character_remove(charid)
+        define.cached_posts_count.invalidate(ownerid)
 
     return ownerid
 
@@ -426,21 +474,11 @@ def fake_media_items(charid, userid, login, settings):
     return {
         "submission": [{
             "display_url": submission_url,
-            "described": {
-                "cover": [{
-                    "display_url": cover_url,
-                }],
-            },
         }],
         "thumbnail-generated": [{
             "display_url": thumbnail_url,
         }],
         "cover": [{
             "display_url": cover_url,
-            "described": {
-                "submission": [{
-                    "display_url": submission_url,
-                }],
-            },
         }],
     }

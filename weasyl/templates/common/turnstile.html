@@ -1,0 +1,8 @@
+$def with (action)
+$if turnstile.SITE_KEY is not None:
+  <fieldset>
+    <legend class="label">Bot Check</legend>
+
+    <div class="cf-turnstile" data-sitekey="${turnstile.SITE_KEY}" data-action="${action}" data-size="flexible" style="height: 65px"></div>$# inline height: avoid layout shift
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async></script>
+  </fieldset>

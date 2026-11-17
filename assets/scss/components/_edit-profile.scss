@@ -1,0 +1,102 @@
+.social .group input {
+    margin-bottom: 6px;
+}
+
+.social .group {
+    margin-bottom: 12px;
+}
+
+#edit-profile {
+    .buttons {
+        padding-top: 1em;
+    }
+
+    @media (min-width: 30em) {
+        .social .group {
+            width: 48%;
+            float: left;
+            padding-right: 2%;
+        }
+    }
+
+    @media (min-width: 45em) {
+        .column {
+            width: 48%;
+        }
+
+        .info {
+            float: left;
+            clear: left;
+        }
+
+        .settings {
+            float: left;
+            padding-left: 4%;
+        }
+
+        .profile {
+            padding-bottom: 4px;
+        }
+
+        .social, .profile {
+            clear: both;
+            width: 100%;
+        }
+
+        .social .group {
+            width: 23%;
+        }
+    }
+
+    @media (min-width: 63em) {
+        .column {
+            width: 31%;
+        }
+
+        .settings {
+            clear: none;
+            padding-left: 3.5%;
+            margin-left: 0;
+        }
+
+        .profile {
+            margin-left: 65.5%;
+            padding-left: 3.5%;
+            clear: none;
+            overflow: hidden;
+        }
+
+        .social {
+            width: 100%;
+        }
+
+        .social .group {
+            width: 18%;
+        }
+    }
+
+    @media (min-width: 80em) {
+        .column {
+            width: 23%;
+        }
+
+        .settings {
+            padding-left: 2%;
+        }
+
+        .profile {
+            width: 50%;
+            margin-left: 48%;
+            padding-left: 2%;
+            overflow: hidden;
+        }
+
+        .social {
+            width: 100%;
+        }
+
+        .social .group {
+            width: 14.6%;
+        }
+    }
+}

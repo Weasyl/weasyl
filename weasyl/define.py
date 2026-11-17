@@ -1,40 +1,54 @@
-from __future__ import absolute_import, division
+from __future__ import annotations
 
+import builtins
+import html
 import os
 import time
-import random
-import urllib
 import hashlib
-import hmac
 import itertools
-import logging
+import json
 import numbers
 import datetime
-import urlparse
 import pkgutil
+from collections import defaultdict
+from collections.abc import Iterable
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Literal
+from typing import NewType
+from typing import overload
+from urllib.parse import urlencode, urljoin
 
-import json
 import arrow
 from pyramid.threadlocal import get_current_request
-import pytz
-import requests
 import sqlalchemy as sa
 import sqlalchemy.orm
+from ada_url import URL
+from prometheus_client import Histogram
+from psycopg2.errorcodes import SERIALIZATION_FAILURE
+from pyramid.response import Response
 from sqlalchemy.exc import OperationalError
 from web.template import Template
 
 import libweasyl.constants
 from libweasyl.cache import region
-from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET, get_sysname
+from libweasyl.legacy import UNIXTIME_OFFSET as _UNIXTIME_OFFSET
 from libweasyl.models.tables import metadata as meta
-from libweasyl import html, text, ratings, security, staff
+from libweasyl.text import slug_for
+from libweasyl.text import summarize
+from libweasyl import text, ratings, staff
 
+from weasyl import cards
 from weasyl import config
 from weasyl import errorcode
 from weasyl import macro
-from weasyl.config import config_obj, config_read_setting, config_read_bool
+from weasyl import metrics
+from weasyl import turnstile
+from weasyl.config import config_obj, config_read_setting
 from weasyl.error import WeasylError
-from weasyl.macro import MACRO_SUPPORT_ADDRESS
+from weasyl.forms import parse_sysname
+from weasyl.forms import parse_sysname_list
+from weasyl.users import Username
 
 
 _shush_pyflakes = [sqlalchemy.orm]
@@ -60,8 +74,16 @@ def record_timing(func):
 
 _sqlalchemy_url = config_obj.get('sqlalchemy', 'url')
 if config._in_test:
-    _sqlalchemy_url += '_test'
-engine = meta.bind = sa.create_engine(_sqlalchemy_url, max_overflow=25, pool_size=10)
+    _sqlalchemy_url = os.environ["WEASYL_TEST_SQLALCHEMY_URL"]
+engine = meta.bind = sa.create_engine(
+    _sqlalchemy_url,
+    pool_use_lifo=True,
+    pool_size=2,
+    connect_args={
+        'options': '-c TimeZone=UTC',
+    },
+)
+sessionmaker_future = sa.orm.sessionmaker(bind=engine, expire_on_commit=False)
 sessionmaker = sa.orm.scoped_session(sa.orm.sessionmaker(bind=engine, autocommit=True))
 
 
@@ -72,19 +94,11 @@ def connect():
     request = get_current_request()
     if request is not None:
         return request.pg_connection
-    # If there's no threadlocal request, we're probably operating in a cron task or the like.
+    # If there's no threadlocal request, this could be… a manual query?
     # Return a connection from the pool. n.b. this means that multiple calls could get different
     # connections.
     # TODO(hyena): Does this clean up correctly? There's no registered 'close()' call.
     return sessionmaker()
-
-
-def log_exc(**kwargs):
-    """
-    Logs an exception. This is essentially a wrapper around the current request's log_exc.
-    It's provided for compatibility for methods that depended on web.ctx.log_exc().
-    """
-    return get_current_request().log_exc(**kwargs)
 
 
 def execute(statement, argv=None):
@@ -98,7 +112,7 @@ def execute(statement, argv=None):
         argv = tuple(argv)
 
         for x in argv:
-            if type(x) not in (int, long):
+            if type(x) is not int:
                 raise TypeError("can't use %r as define.execute() parameter" % (x,))
 
         statement %= argv
@@ -109,16 +123,6 @@ def execute(statement, argv=None):
         return query.fetchall()
     else:
         query.close()
-
-
-def column(results):
-    """
-    Get a list of values from a single-column ResultProxy.
-    """
-    return [x for x, in results]
-
-
-_PG_SERIALIZATION_FAILURE = u'40001'
 
 
 def serializable_retry(action, limit=16):
@@ -134,8 +138,12 @@ def serializable_retry(action, limit=16):
                 with db.begin():
                     return action(db)
             except OperationalError as e:
-                if i == limit or e.orig.pgcode != _PG_SERIALIZATION_FAILURE:
+                if i == limit or e.orig.pgcode != SERIALIZATION_FAILURE:
                     raise
+
+
+def _sysname_for_stored_username(s: str) -> str:
+    return Username.from_stored(s).sysname
 
 
 with open(os.path.join(macro.MACRO_APP_ROOT, "version.txt")) as f:
@@ -155,45 +163,45 @@ def _compile(template_name):
 
     if template is None or reload_templates:
         _template_cache[template_name] = template = Template(
-            pkgutil.get_data(__name__, 'templates/' + template_name),
+            pkgutil.get_data(__name__, 'templates/' + template_name).decode('utf-8'),
             filename=template_name,
+            filter=html.escape,
             globals={
-                "STR": str,
-                "LOGIN": get_sysname,
-                "TOKEN": get_token,
-                "CSRF": _get_csrf_input,
+                "LOGIN": _sysname_for_stored_username,
                 "USER_TYPE": user_type,
-                "DATE": convert_date,
-                "ISO8601_DATE": iso8601_date,
-                "TIME": _convert_time,
-                "LOCAL_ARROW": local_arrow,
+                "ARROW": get_arrow,
+                "LOCAL_TIME": _get_local_time_html,
                 "PRICE": text_price_amount,
                 "SYMBOL": text_price_symbol,
                 "TITLE": titlebar,
                 "RENDER": render,
                 "COMPILE": _compile,
-                "CAPTCHA": _captcha_public,
                 "MARKDOWN": text.markdown,
                 "MARKDOWN_EXCERPT": text.markdown_excerpt,
                 "SUMMARIZE": summarize,
                 "SHA": CURRENT_SHA,
                 "NOW": get_time,
-                "THUMB": thumb_for_sub,
-                "WEBP_THUMB": webp_thumb_for_sub,
+
+                "CARD_WIDTHS": cards.get_widths,
+                "get_card_viewer": get_card_viewer,
+
                 "M": macro,
                 "R": ratings,
-                "SLUG": text.slug_for,
+                "SLUG": slug_for,
                 "QUERY_STRING": query_string,
-                "INLINE_JSON": html.inline_json,
+                "ORIGIN": ORIGIN,
                 "PATH": _get_path,
                 "arrow": arrow,
                 "constants": libweasyl.constants,
-                "getattr": getattr,
                 "json": json,
-                "sorted": sorted,
                 "staff": staff,
+                "turnstile": turnstile,
                 "resource_path": get_resource_path,
-            })
+
+                "DEFAULT_LOGIN_FORM": DEFAULT_LOGIN_FORM,
+            },
+            builtins=builtins,
+        )
 
     return template
 
@@ -203,7 +211,7 @@ def render(template_name, argv=()):
     Renders a template and returns the resulting HTML.
     """
     template = _compile(template_name)
-    return unicode(template(*argv))
+    return template.render(*argv)
 
 
 def titlebar(title, backtext=None, backlink=None):
@@ -221,57 +229,11 @@ def errorpage(userid, code=None, links=None, request_id=None, **extras):
     return errorpage_html(userid, text.markdown(code), links, request_id, **extras)
 
 
-def webpage(userid, template, argv=None, options=None, **extras):
-    if argv is None:
-        argv = []
-
-    if options is None:
-        options = []
-
+def webpage(userid, template, argv=(), options=(), **extras):
     page = common_page_start(userid, options=options, **extras)
     page.append(render(template, argv))
 
     return common_page_end(userid, page, options=options)
-
-
-def _captcha_section():
-    request = get_current_request()
-    host = request.environ.get('HTTP_HOST', '').partition(':')[0]
-    return 'recaptcha-' + host
-
-
-def _captcha_public():
-    """
-    Returns the reCAPTCHA public key, or None if CAPTCHA verification
-    is disabled.
-    """
-    if config_read_bool("captcha_disable_verification"):
-        return None
-
-    return config_obj.get(_captcha_section(), 'public_key')
-
-
-def captcha_verify(captcha_response):
-    if config_read_bool("captcha_disable_verification"):
-        return True
-    if not captcha_response:
-        return False
-
-    data = dict(
-        secret=config_obj.get(_captcha_section(), 'private_key'),
-        response=captcha_response,
-        remoteip=get_address())
-    response = http_post('https://www.google.com/recaptcha/api/siteverify', data=data)
-    captcha_validation_result = response.json()
-    return captcha_validation_result['success']
-
-
-def get_weasyl_session():
-    """
-    Gets the weasyl_session for the current request. Most code shouldn't have to use this.
-    """
-    # TODO: This method is inelegant. Remove this logic after updating login.signin().
-    return get_current_request().weasyl_session
 
 
 def get_userid():
@@ -281,56 +243,41 @@ def get_userid():
     return get_current_request().userid
 
 
-def is_csrf_valid(request, token):
-    expected = request.weasyl_session.csrf_token
-    return expected is not None and hmac.compare_digest(str(token), str(expected))
+ORIGIN = config_obj.get('general', 'origin')
 
 
-def get_token():
-    from weasyl import api
-
-    request = get_current_request()
-
-    if api.is_api_user(request):
-        return ''
-
-    # allow error pages with $:{TOKEN()} in the template to be rendered even
-    # when the error occurred before the session middleware set a session
-    if not hasattr(request, 'weasyl_session'):
-        return security.generate_key(20)
-
-    sess = request.weasyl_session
-    if sess.csrf_token is None:
-        sess.csrf_token = security.generate_key(64)
-        sess.save = True
-    return sess.csrf_token
+def is_csrf_valid(request):
+    return request.headers.get('origin') == ORIGIN
 
 
-def _get_csrf_input():
-    return '<input type="hidden" name="token" value="%s" />' % (get_token(),)
+def path_redirect(path_qs: str) -> str:
+    """
+    Return an absolute URL for an internal redirect within the application’s origin.
+    """
+    return ORIGIN + path_qs
 
 
-@region.cache_on_arguments(namespace='v3')
+@region.cache_on_arguments(namespace='v4')
 def _get_all_config(userid):
     """
     Queries for, and returns, common user configuration settings.
 
     :param userid: The userid to query.
     :return: A dict(), containing the following keys/values:
-      force_password_reset: Boolean. Is the user required to change their password?
       is_banned: Boolean. Is the user currently banned?
       is_suspended: Boolean. Is the user currently suspended?
       is_vouched_for: Boolean. Is the user vouched for?
       profile_configuration: CharSettings/string. Configuration options in the profile.
       jsonb_settings: JSON/dict. Profile settings set via jsonb_settings.
+      premium: Boolean. Is the user a premium user?
     """
     row = engine.execute("""
-        SELECT lo.force_password_reset,
-               EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
+        SELECT EXISTS (SELECT FROM permaban WHERE permaban.userid = %(userid)s) AS is_banned,
                EXISTS (SELECT FROM suspension WHERE suspension.userid = %(userid)s) AS is_suspended,
                lo.voucher IS NOT NULL AS is_vouched_for,
                pr.config AS profile_configuration,
-               pr.jsonb_settings
+               pr.jsonb_settings,
+               pr.premium
         FROM login lo INNER JOIN profile pr USING (userid)
         WHERE userid = %(userid)s
     """, userid=userid).first()
@@ -346,9 +293,9 @@ def get_config(userid):
 
 
 def get_login_settings(userid):
-    """ Returns a Boolean three-tuple in the form of (force_password_reset, is_banned, is_suspended)"""
+    """ Returns a Boolean pair in the form of (is_banned, is_suspended)"""
     r = _get_all_config(userid)
-    return r['force_password_reset'], r['is_banned'], r['is_suspended']
+    return r['is_banned'], r['is_suspended']
 
 
 def is_vouched_for(userid):
@@ -369,45 +316,28 @@ def get_profile_settings(userid):
     return ProfileSettings(jsonb)
 
 
-def get_rating(userid):
+def get_config_rating(userid: int) -> ratings.Rating:
+    config = get_config(userid)
+    if 'p' in config:
+        return ratings.EXPLICIT
+    elif 'a' in config:
+        return ratings.MATURE
+    else:
+        return ratings.GENERAL
+
+
+def get_rating_obj(userid: int) -> ratings.Rating:
     if not userid:
-        return ratings.GENERAL.code
+        return ratings.GENERAL
 
     if is_sfw_mode():
-        profile_settings = get_profile_settings(userid)
+        return ratings.GENERAL
 
-        # if no explicit max SFW rating picked assume general as a safe default
-        return profile_settings.max_sfw_rating
-
-    config = get_config(userid)
-    if 'p' in config:
-        return ratings.EXPLICIT.code
-    elif 'a' in config:
-        return ratings.MATURE.code
-    else:
-        return ratings.GENERAL.code
+    return get_config_rating(userid)
 
 
-# this method is used specifically for the settings page, where
-# the max sfw/nsfw rating need to be displayed separately
-def get_config_rating(userid):
-    """
-    Retrieve the sfw-mode and regular-mode ratings separately
-    :param userid: the user to retrieve ratings for
-    :return: a tuple of (max_rating, max_sfw_rating)
-    """
-    config = get_config(userid)
-
-    if 'p' in config:
-        max_rating = ratings.EXPLICIT.code
-    elif 'a' in config:
-        max_rating = ratings.MATURE.code
-    else:
-        max_rating = ratings.GENERAL.code
-
-    profile_settings = get_profile_settings(userid)
-    sfw_rating = profile_settings.max_sfw_rating
-    return max_rating, sfw_rating
+def get_rating(userid: int) -> int:
+    return get_rating_obj(userid).code
 
 
 def is_sfw_mode():
@@ -418,31 +348,48 @@ def is_sfw_mode():
     return get_current_request().cookies.get('sfwmode', "nsfw") == "sfw"
 
 
-def get_premium(userid):
+def get_premium(userid: int) -> bool:
     if not userid:
         return False
 
-    config = get_config(userid)
-    return "d" in config
+    return _get_all_config(userid)["premium"]
 
 
-@region.cache_on_arguments()
+@region.cache_on_arguments(should_cache_fn=bool)
 @record_timing
-def _get_display_name(userid):
+def _get_display_name(userid: int) -> str | None:
     """
-    Return the display name assiciated with `userid`; if no such user exists,
+    Return the display name associated with `userid`; if no such user exists,
     return None.
     """
     return engine.scalar("SELECT username FROM profile WHERE userid = %(user)s", user=userid)
 
 
-def get_display_name(userid):
-    if not userid:
-        return None
-    return _get_display_name(userid)
+def get_display_name(userid: int) -> str:
+    username = _get_display_name(userid)
+
+    if username is None:
+        raise WeasylError("Unexpected")
+
+    return username
 
 
-def get_int(target):
+def try_get_username(userid: int) -> Username | None:
+    username = _get_display_name(userid)
+    return Username.from_stored(username) if username is not None else None
+
+
+def get_username(userid: int) -> Username:
+    return Username.from_stored(get_display_name(userid))
+
+
+username_invalidate = _get_display_name.invalidate
+"""
+Invalidate the cached username for a user.
+"""
+
+
+def get_int(target) -> int:
     if target is None:
         return 0
 
@@ -461,16 +408,6 @@ def get_targetid(*argv):
             return i
 
 
-def get_search_tag(target):
-    target = "".join(i for i in target if ord(i) < 128)
-    target = target.replace(" ", "_")
-    target = "".join(i for i in target if i.isalnum() or i in "_")
-    target = target.strip("_")
-    target = "_".join(i for i in target.split("_") if i)
-
-    return target.lower()
-
-
 def get_time():
     """
     Returns the current unixtime.
@@ -486,7 +423,7 @@ def get_timestamp():
 
 
 def _get_hash_path(charid):
-    id_hash = hashlib.sha1(str(charid)).hexdigest()
+    id_hash = hashlib.sha1(b"%i" % (charid,)).hexdigest()
     return "/".join([id_hash[i:i + 2] for i in range(0, 11, 2)]) + "/"
 
 
@@ -494,27 +431,59 @@ def get_character_directory(charid):
     return macro.MACRO_SYS_CHAR_PATH + _get_hash_path(charid)
 
 
-def get_userids(usernames):
-    sysnames = [get_sysname(username) for username in usernames]
-
+@region.cache_multi_on_arguments(should_cache_fn=bool)
+def _get_userids(*sysnames):
     result = engine.execute(
         "SELECT login_name, userid FROM login WHERE login_name = ANY (%(names)s)"
         " UNION ALL SELECT alias_name, userid FROM useralias WHERE alias_name = ANY (%(names)s)"
         " UNION ALL SELECT login_name, userid FROM username_history WHERE active AND login_name = ANY (%(names)s)",
-        names=[sysname for sysname in sysnames if sysname],
+        names=list(sysnames),
     )
 
     sysname_userid = dict(result.fetchall())
 
-    return {username: sysname_userid.get(sysname, 0) for sysname, username in zip(sysnames, usernames)}
+    return [sysname_userid.get(sysname, 0) for sysname in sysnames]
 
 
-def get_userid_list(target):
-    usernames = target.split(";")
-    return [userid for userid in get_userids(usernames).itervalues() if userid != 0]
+def get_userids(usernames: Iterable[str]) -> Mapping[str, int]:
+    ret: dict[str, int] = {}
+    lookup_usernames: list[str] = []
+    sysnames: list[str] = []
+
+    for username in usernames:
+        sysname = parse_sysname(username)
+
+        if sysname is not None:
+            lookup_usernames.append(username)
+            sysnames.append(sysname)
+        else:
+            ret[username] = 0
+
+    ret.update(zip(lookup_usernames, _get_userids(*sysnames)))
+
+    return ret
 
 
-def get_ownerid(submitid=None, charid=None, journalid=None):
+def get_userid_list(target: str) -> list[int]:
+    return [userid for userid in get_userids(parse_sysname_list(target)).values() if userid != 0]
+
+
+@overload
+def get_ownerid(*, submitid: int) -> int | None:
+    ...
+
+
+@overload
+def get_ownerid(*, charid: int) -> int | None:
+    ...
+
+
+@overload
+def get_ownerid(*, journalid: int) -> int | None:
+    ...
+
+
+def get_ownerid(*, submitid=None, charid=None, journalid=None):
     if submitid:
         return engine.scalar("SELECT userid FROM submission WHERE submitid = %(id)s", id=submitid)
     if charid:
@@ -522,14 +491,7 @@ def get_ownerid(submitid=None, charid=None, journalid=None):
     if journalid:
         return engine.scalar("SELECT userid FROM journal WHERE journalid = %(id)s", id=journalid)
 
-
-def get_random_set(target, count):
-    """
-    Returns the specified number of unique items chosen at random from the target
-    list. If more items are specified than the list contains, the full contents
-    of the list will be returned in a randomized order.
-    """
-    return random.sample(target, min(count, len(target)))
+    return None
 
 
 def get_address():
@@ -538,14 +500,14 @@ def get_address():
 
 
 def _get_path():
-    return get_current_request().path_url
+    return get_current_request().path_qs
 
 
-def text_price_amount(target):
-    return "%.2f" % (float(target) / 100.0)
+def text_price_amount(target: int | float) -> str:
+    return f"{target / 100:.2f}"
 
 
-def text_price_symbol(target):
+def text_price_symbol(target: str) -> str:
     from weasyl.commishinfo import CURRENCY_CHARMAP
     for c in target:
         if c in CURRENCY_CHARMAP:
@@ -553,105 +515,69 @@ def text_price_symbol(target):
     return CURRENCY_CHARMAP[''].symbol
 
 
-def text_first_line(target, strip=False):
+HttpUrl = NewType("HttpUrl", URL)
+
+
+def text_fix_url(s: str) -> HttpUrl | None:
     """
-    Return the first line of text; if `strip` is True, return all but the first
-    line of text.
+    Normalize a user-provided external web link to a URL that always uses `http:` or `https:` (`https:` is assumed when no explicit protocol is provided). The result is safe to use as the `href` attribute of a link in the same sense as `libweasyl.defang`. This also normalizes the domain name to lowercase and Punycode.
+
+    Disallows some weird enough URLs that probably don’t have legitimate uses, indicating a misinterpretation compared to user intent:
+    - URLs containing credentials (`https://username:password@…/`)
+    - URLs with fully-qualified domain names (`https://example.com./`)
+    - URLs with single-component domain names (`https://example/`)
     """
-    first_line, _, rest = target.partition("\n")
-
-    if strip:
-        return rest
-    else:
-        return first_line
-
-
-def text_fix_url(target):
-    if target.startswith(("http://", "https://")):
-        return target
-
-    return "http://" + target
-
-
-def local_arrow(dt):
-    tz = get_current_request().weasyl_session.timezone
-    return arrow.Arrow.fromdatetime(tz.localtime(dt))
-
-
-def convert_to_localtime(target):
-    tz = get_current_request().weasyl_session.timezone
-    if isinstance(target, arrow.Arrow):
-        return tz.localtime(target.datetime)
-    elif isinstance(target, datetime.datetime):
-        return tz.localtime(target)
-    else:
-        target = int(get_time() if target is None else target) - _UNIXTIME_OFFSET
-        return tz.localtime_from_timestamp(target)
-
-
-def convert_date(target=None):
-    """
-    Returns the date in the format 1 January 1970. If no target is passed, the
-    current date is returned.
-    """
-    dt = convert_to_localtime(target)
-    result = dt.strftime("%d %B %Y")
-    return result[1:] if result and result[0] == "0" else result
-
-
-def iso8601_date(target):
-    """
-    Converts a Weasyl timestamp to an ISO 8601 date (yyyy-mm-dd).
-
-    NB: Target is offset by _UNIXTIME_OFFSET
-
-    :param target: The target Weasyl timestamp to convert.
-    :return: An ISO 8601 string representing the date of `target`.
-    """
-    date = datetime.datetime.utcfromtimestamp(target - _UNIXTIME_OFFSET)
-    return arrow.get(date).format("YYYY-MM-DD")
-
-
-def _convert_time(target=None):
-    """
-    Returns the time in the format 16:00:00. If no target is passed, the
-    current time is returned.
-    """
-    dt = convert_to_localtime(target)
-    config = get_config(get_userid())
-    if '2' in config:
-        return dt.strftime("%I:%M:%S %p %Z")
-    else:
-        return dt.strftime("%H:%M:%S %Z")
-
-
-def convert_unixdate(day, month, year):
-    """
-    Returns the unixtime corresponding to the beginning of the specified date; if
-    the date is not valid, None is returned.
-    """
-    day, month, year = (get_int(i) for i in [day, month, year])
+    s = s.strip()
 
     try:
-        ret = int(time.mktime(datetime.date(year, month, day).timetuple()))
+        url = URL(s)
     except ValueError:
-        return None
-    # range of a postgres integer
-    if ret > 2147483647 or ret < -2147483648:
-        return None
-    return ret
+        try:
+            url = URL("https://" + s)
+        except ValueError:
+            return None
+
+    if (
+        url.protocol in ["http:", "https:"]
+        and not url.username
+        and not url.password
+        and "." in url.hostname
+        and not url.hostname.endswith(".")
+    ):
+        return HttpUrl(url)
+
+    return None
 
 
-def convert_age(target):
-    return (get_time() - target) // 31556926
-
-
-def age_in_years(birthdate):
+def get_arrow(unixtime):
     """
-    Determines an age in years based off of the given arrow.Arrow birthdate
-    and the current date.
+    Get an `Arrow` from a Weasyl timestamp, time-zone-aware `datetime`, or `Arrow`.
     """
-    now = arrow.now()
+    if isinstance(unixtime, (int, float)):
+        unixtime -= _UNIXTIME_OFFSET
+    elif not isinstance(unixtime, (arrow.Arrow, datetime.datetime)) or unixtime.tzinfo is None:
+        raise ValueError("unixtime must be supported numeric or datetime")  # pragma: no cover
+
+    return arrow.get(unixtime)
+
+
+def _get_local_time_html(target, template):
+    target = get_arrow(target)
+    date_text = target.format("MMMM D, YYYY")
+    time_text = target.format("HH:mm:ss ZZZ")
+    content = template.format(
+        date=f'<span class="local-time-date">{date_text}</span>',
+        time=f'<span class="local-time-time">{time_text}</span>',
+        date_text=date_text,
+    )
+    return f'<time datetime="{iso8601(target)}"><local-time data-timestamp="{target.int_timestamp}">{content}</local-time></time>'
+
+
+def age_in_years(birthdate: datetime.date) -> int:
+    """
+    Calculate an age in years based on the given birthdate and the current UTC date.
+    """
+    now = arrow.utcnow()
     is_upcoming = (now.month, now.day) < (birthdate.month, birthdate.day)
 
     return now.year - birthdate.year - int(is_upcoming)
@@ -660,8 +586,6 @@ def age_in_years(birthdate):
 def user_type(userid):
     if userid in staff.DIRECTORS:
         return "director"
-    if userid in staff.TECHNICAL:
-        return "tech"
     if userid in staff.ADMINS:
         return "admin"
     if userid in staff.MODS:
@@ -672,11 +596,99 @@ def user_type(userid):
     return None
 
 
-@region.cache_on_arguments(expiration_time=180)
-@record_timing
-def _page_header_info(userid):
-    messages = engine.scalar(
+def _posts_count_query_basic(table):
+    return (
+        f"SELECT '{table}' AS post_type, rating, friends_only, count(*) FROM {table}"
+        " WHERE userid = %(userid)s"
+        " AND NOT hidden"
+        " GROUP BY rating, friends_only"
+    )
+
+
+_POSTS_COUNT_QUERY = " UNION ALL ".join((
+    _posts_count_query_basic("submission"),
+    _posts_count_query_basic("journal"),
+    _posts_count_query_basic("character"),
+    (
+        "SELECT 'collection' AS post_type, rating, friends_only, count(*)"
+        " FROM collection INNER JOIN submission USING (submitid)"
+        " WHERE collection.userid = %(userid)s"
+        " AND NOT hidden"
+        " AND collection.settings !~ '[pr]'"
+        " GROUP BY rating, friends_only"
+    ),
+))
+
+
+@dataclass(frozen=True, slots=True)
+class PostsCountKey:
+    post_type: Literal["submission", "journal", "character", "collection"]
+    rating: Literal[10, 30, 40]
+
+
+@region.cache_on_arguments()
+def cached_posts_count(userid):
+    return [*map(dict, engine.execute(_POSTS_COUNT_QUERY, userid=userid))]
+
+
+def cached_posts_count_invalidate_multi(userids):
+    namespace = None
+    cache_keys = [*map(region.function_key_generator(namespace, cached_posts_count), userids)]
+    region.delete_multi(cache_keys)
+
+
+def posts_count(userid, *, friends: bool):
+    result = defaultdict(int)
+
+    for row in cached_posts_count(userid):
+        if friends or not row["friends_only"]:
+            key = PostsCountKey(
+                post_type=row["post_type"],
+                rating=row["rating"],
+            )
+            result[key] += row["count"]
+
+    return result
+
+
+def private_messages_unread_count(userid: int) -> int:
+    return engine.scalar(
         "SELECT COUNT(*) FROM message WHERE otherid = %(user)s AND settings ~ 'u'", user=userid)
+
+
+@region.cache_on_arguments()
+def get_last_read_updateid(userid: int) -> int | None:
+    return engine.scalar("""
+        SELECT last_read_updateid
+        FROM login
+        WHERE userid = %(user)s
+    """, user=userid)
+
+
+@region.cache_on_arguments()
+def get_updateids() -> list[int]:
+    results = engine.execute("""
+        SELECT updateid
+        FROM siteupdate
+        ORDER BY updateid DESC
+    """).fetchall()
+
+    return [result.updateid for result in results]
+
+
+def site_update_unread_count(userid: int) -> int:
+    return [*get_updateids(), None].index(get_last_read_updateid(userid))
+
+
+notification_count_time = metrics.CachedMetric(Histogram("weasyl_notification_count_fetch_seconds", "notification counts fetch time", ["cached"]))
+
+
+@metrics.separate_timing
+@notification_count_time.cached
+@region.cache_on_arguments(expiration_time=180)
+@notification_count_time.uncached
+def _page_header_info(userid):
+    messages = private_messages_unread_count(userid)
     result = [messages, 0, 0, 0, 0]
 
     counts = engine.execute(
@@ -701,22 +713,58 @@ def _page_header_info(userid):
     return result
 
 
+def page_header_info_invalidate_multi(userids):
+    namespace = None
+    cache_keys = [*map(region.function_key_generator(namespace, _page_header_info), userids)]
+    region.delete_multi(cache_keys)
+
+
+def _get_max_post_rating(userid: int) -> int:
+    return max((key.rating for key, count in posts_count(userid, friends=True).items() if count), default=ratings.GENERAL.code)
+
+
+def _is_sfw_locked(userid: int) -> bool:
+    """
+    Determine whether SFW mode has no effect for the specified user.
+
+    If the standard rating preference is General and the user has no posts above that rating, SFW mode has no effect.
+    """
+    config_rating = get_config_rating(userid)
+
+    if config_rating > ratings.GENERAL:
+        return False
+
+    max_post_rating = _get_max_post_rating(userid)
+    return max_post_rating is not None and max_post_rating <= config_rating.code
+
+
 def page_header_info(userid):
     from weasyl import media
-    sfw = get_current_request().cookies.get('sfwmode', 'nsfw')
+    sfw = get_current_request().cookies.get('sfwmode', 'nsfw') == 'sfw'
+    notification_counts = _page_header_info(userid)
+    unread_updates = site_update_unread_count(userid)
     return {
-        "welcome": _page_header_info(userid),
+        "welcome": notification_counts,
+        "unread_updates": unread_updates,
+        "updateids": get_updateids(),
         "userid": userid,
-        "username": get_display_name(userid),
+        "username": get_username(userid),
         "user_media": media.get_user_media(userid),
         "sfw": sfw,
+        "sfw_locked": _is_sfw_locked(userid),
     }
 
 
-def common_page_start(userid, options=None, **extended_options):
-    if options is None:
-        options = []
+@dataclass(frozen=True, slots=True)
+class LoginForm:
+    username: str
+    sfw: bool
 
+
+DEFAULT_LOGIN_FORM = LoginForm(username="", sfw=False)
+
+
+def common_page_start(userid, options=(), **extended_options):
     userdata = None
     if userid:
         userdata = page_header_info(userid)
@@ -727,7 +775,7 @@ def common_page_start(userid, options=None, **extended_options):
     return [data]
 
 
-def common_page_end(userid, page, options=None):
+def common_page_end(userid, page, options=()):
     data = render("common/page_end.html", (options,))
     page.append(data)
     return "".join(page)
@@ -741,10 +789,8 @@ def common_status_check(userid):
     if not userid:
         return None
 
-    reset_password, is_banned, is_suspended = get_login_settings(userid)
+    is_banned, is_suspended = get_login_settings(userid)
 
-    if reset_password:
-        return "resetpassword"
     if is_banned:
         return "banned"
     if is_suspended:
@@ -758,69 +804,74 @@ def common_status_page(userid, status):
     Raise the redirect to the script returned by common_status_check() or render
     the appropriate site status error page.
     """
-    if status == "resetpassword":
-        return webpage(userid, "force/resetpassword.html")
-    elif status in ('banned', 'suspended'):
-        from weasyl import moderation, login
+    assert status in ('banned', 'suspended')
 
-        login.signout(get_current_request())
-        if status == 'banned':
-            reason = moderation.get_ban_reason(userid)
-            return errorpage(
-                userid,
-                "Your account has been permanently banned and you are no longer allowed "
-                "to sign in.\n\n%s\n\nIf you believe this ban is in error, please "
-                "contact %s for assistance." % (reason, MACRO_SUPPORT_ADDRESS))
+    from weasyl import moderation, login
 
-        elif status == 'suspended':
-            suspension = moderation.get_suspension(userid)
-            return errorpage(
-                userid,
-                "Your account has been temporarily suspended and you are not allowed to "
-                "be logged in at this time.\n\n%s\n\nThis suspension will be lifted on "
-                "%s.\n\nIf you believe this suspension is in error, please contact "
-                "%s for assistance." % (suspension.reason, convert_date(suspension.release), MACRO_SUPPORT_ADDRESS))
+    if status == 'banned':
+        message = moderation.get_ban_message(userid)
+    elif status == 'suspended':
+        message = moderation.get_suspension_message(userid)
+
+    login.signout(get_current_request())
+
+    response = Response(errorpage(userid, message))
+    response.delete_cookie('WZL')
+    response.delete_cookie('sfwmode')
+    return response
 
 
-_content_types = {
-    'submit': 110,
-    'char': 120,
-    'journal': 130,
-    'profile': 210,
+def shows_statistics(*, viewer: int, target: int) -> bool:
+    return "i" not in get_config(target) or viewer in staff.MODS
+
+
+Viewable = Literal["submissions", "characters", "journals", "users"]
+
+_content_types: Mapping[Viewable, tuple[int, str, str]] = {
+    'submissions': (110, 'submission', 'submitid'),
+    'characters': (120, 'character', 'charid'),
+    'journals': (130, 'journal', 'journalid'),
+    'users': (210, 'profile', 'userid'),
 }
 
 
-def common_view_content(userid, targetid, feature):
+def common_view_content(
+    userid: int,
+    targetid: int,
+    feature: Viewable,
+) -> int | None:
     """
-    Return True if a record was successfully inserted into the views table
-    and the page view statistic incremented, else False.
+    Records a page view, returning the updated view count, or `None` if it didn’t change.
     """
-    if feature == "profile" and targetid == userid:
-        return
+    typeid, table, pk = _content_types[feature]
 
-    typeid = _content_types.get(feature, 0)
+    if feature == "users":
+        if targetid == userid:
+            return None
+    elif userid and get_ownerid(**{pk: targetid}) == userid:
+        return None
+
     if userid:
         viewer = 'user:%d' % (userid,)
     else:
         viewer = get_address()
+
+    engine.execute("DELETE FROM views WHERE viewed_at < now() - INTERVAL '15 minutes'")
 
     result = engine.execute(
         'INSERT INTO views (viewer, targetid, type) VALUES (%(viewer)s, %(targetid)s, %(type)s) ON CONFLICT DO NOTHING',
         viewer=viewer, targetid=targetid, type=typeid)
 
     if result.rowcount == 0:
-        return False
+        return None
 
-    if feature == "submit":
-        engine.execute("UPDATE submission SET page_views = page_views + 1 WHERE submitid = %(id)s", id=targetid)
-    elif feature == "char":
-        engine.execute("UPDATE character SET page_views = page_views + 1 WHERE charid = %(id)s", id=targetid)
-    elif feature == "journal":
-        engine.execute("UPDATE journal SET page_views = page_views + 1 WHERE journalid = %(id)s", id=targetid)
-    elif feature == "profile":
-        engine.execute("UPDATE profile SET page_views = page_views + 1 WHERE userid = %(id)s", id=targetid)
-
-    return True
+    return engine.scalar(
+        f"UPDATE {table}"
+        " SET page_views = page_views + 1"
+        f" WHERE {pk} = %(id)s"
+        " RETURNING page_views",
+        id=targetid,
+    )
 
 
 def append_to_log(logname, **parameters):
@@ -841,6 +892,7 @@ _CHARACTER_SETTINGS_TYPE_EXTENSIONS = {
     "J": ".jpg",
     "P": ".png",
     "G": ".gif",
+    "W": ".webp",
     "T": ".txt",
     "H": ".htm",
     "M": ".mp3",
@@ -914,7 +966,7 @@ def cdnify_url(url):
     if not cdn_root:
         return url
 
-    return urlparse.urljoin(cdn_root, url)
+    return urljoin(cdn_root, url)
 
 
 def get_resource_path(resource):
@@ -953,39 +1005,11 @@ def absolutify_url(url):
     if cdn_root and url.startswith(cdn_root):
         return url
 
-    return urlparse.urljoin(get_current_request().application_url, url)
-
-
-def user_is_twitterbot():
-    return get_current_request().environ.get('HTTP_USER_AGENT', '').startswith('Twitterbot')
-
-
-def summarize(s, max_length=200):
-    if len(s) > max_length:
-        return s[:max_length - 1].rstrip() + u'\N{HORIZONTAL ELLIPSIS}'
-    return s
+    return urljoin(get_current_request().application_url, url)
 
 
 def clamp(val, lower_bound, upper_bound):
     return min(max(val, lower_bound), upper_bound)
-
-
-def timezones():
-    ct = datetime.datetime.now(pytz.utc)
-    timezones_by_country = [
-        (pytz.country_names[cc], [
-            (int(ct.astimezone(pytz.timezone(tzname)).strftime("%z")), tzname)
-            for tzname in timezones
-        ])
-        for cc, timezones in pytz.country_timezones.iteritems()]
-    timezones_by_country.sort()
-    ret = []
-    for country, timezones in timezones_by_country:
-        ret.append(('- %s -' % (country,), None))
-        ret.extend(
-            ("[UTC%+05d] %s" % (offset, tzname.replace('_', ' ')), tzname)
-            for offset, tzname in timezones)
-    return ret
 
 
 def query_string(query):
@@ -994,36 +1018,11 @@ def query_string(query):
     for key, value in query.items():
         if isinstance(value, (tuple, list, set)):
             for subvalue in value:
-                if isinstance(subvalue, unicode):
-                    pairs.append((key, subvalue.encode("utf-8")))
-                else:
-                    pairs.append((key, subvalue))
-        elif isinstance(value, unicode):
-            pairs.append((key, value.encode("utf-8")))
+                pairs.append((key, subvalue))
         elif value:
             pairs.append((key, value))
 
-    return urllib.urlencode(pairs)
-
-
-def _requests_wrapper(func_name):
-    func = getattr(requests, func_name)
-
-    def wrapper(*a, **kw):
-        request = get_current_request()
-        try:
-            return func(*a, **kw)
-        except Exception as e:
-            request.log_exc(level=logging.DEBUG)
-            w = WeasylError('httpError')
-            w.error_suffix = 'The original error was: %s' % (e,)
-            raise w
-
-    return wrapper
-
-
-http_get = _requests_wrapper('get')
-http_post = _requests_wrapper('post')
+    return urlencode(pairs)
 
 
 def metric(*a, **kw):
@@ -1031,86 +1030,28 @@ def metric(*a, **kw):
 
 
 def iso8601(unixtime):
-    if isinstance(unixtime, arrow.Arrow) or isinstance(unixtime, datetime.datetime):
-        return unixtime.isoformat().partition('.')[0] + 'Z'
-    else:
-        return datetime.datetime.utcfromtimestamp(unixtime - _UNIXTIME_OFFSET).isoformat() + 'Z'
+    return (
+        get_arrow(unixtime)
+        .isoformat(timespec='seconds')
+        .replace('+00:00', 'Z')
+    )
 
 
 def parse_iso8601(s):
-    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').timestamp + _UNIXTIME_OFFSET
+    return arrow.Arrow.strptime(s, '%Y-%m-%dT%H:%M:%SZ').int_timestamp + _UNIXTIME_OFFSET
 
 
-def paginate(results, backid, nextid, limit, key):
-    at_start = at_end = False
-    # if neither value is specified, we're definitely at the start
-    if not backid and not nextid:
-        at_start = True
-
-    # if we were cut short...
-    if len(results) <= limit:
-        if backid:
-            # if moving backward we're at the start
-            at_start = True
-        else:
-            # if moving forward we're at the end
-            at_end = True
-    elif backid:
-        # delete extraneous rows from the front if we're moving backward
-        del results[:-limit]
-    else:
-        # or from the back if we're moving forward
-        del results[limit:]
-
-    return (
-        None if at_start or not results else results[0][key],
-        None if at_end or not results else results[-1][key])
+_default_thumbs = cards.get_default_thumbnails(get_resource_path)
 
 
-def thumb_for_sub(submission):
+def get_card_viewer() -> cards.Viewer:
     """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb.
+    Gets the card-viewing experience (thumbnail preferences, essentially) for the current user.
     """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    if (profile_settings.disable_custom_thumbs and
-            submission.get('subtype', 9999) < 2000 and
-            submission['userid'] != user_id):
-        thumb_key = 'thumbnail-generated'
-    else:
-        thumb_key = 'thumbnail-custom' if 'thumbnail-custom' in submission['sub_media'] else 'thumbnail-generated'
-
-    return submission['sub_media'][thumb_key][0]
-
-
-def webp_thumb_for_sub(submission):
-    """
-    Given a submission dict containing sub_media, sub_type and userid,
-    returns the appropriate WebP media item to use as a thumbnail.
-
-    Params:
-        submission: The submission.
-
-    Returns:
-        The sub media to use as a thumb, or None.
-    """
-    user_id = get_userid()
-    profile_settings = get_profile_settings(user_id)
-    disable_custom_thumb = (
-        profile_settings.disable_custom_thumbs and
-        submission.get('subtype', 9999) < 2000 and
-        submission['userid'] != user_id
+    userid = get_userid()
+    profile_settings = get_profile_settings(userid)
+    return cards.Viewer(
+        userid=userid,
+        disable_custom_thumbs=profile_settings.disable_custom_thumbs,
+        default_thumbs=_default_thumbs,
     )
-
-    if not disable_custom_thumb and 'thumbnail-custom' in submission['sub_media']:
-        return None
-
-    thumbnail_generated_webp = submission['sub_media'].get('thumbnail-generated-webp')
-    return thumbnail_generated_webp and thumbnail_generated_webp[0]

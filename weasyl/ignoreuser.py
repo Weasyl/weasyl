@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from libweasyl import staff
 from libweasyl.cache import region
 
@@ -23,10 +21,11 @@ def check(userid, otherid):
 
 @region.cache_on_arguments()
 @d.record_timing
-def cached_list_ignoring(userid):
-    return d.column(d.engine.execute(
+def cached_list_ignoring(userid: int) -> list[int]:
+    return d.engine.execute(
         "SELECT otherid FROM ignoreuser WHERE userid = %(user)s",
-        user=userid))
+        user=userid,
+    ).scalars().all()
 
 
 def select(userid):
@@ -44,7 +43,7 @@ def select(userid):
     } for ignored, username in results]
 
 
-def insert(userid, ignore):
+def insert(userid: int, ignore: list[int]) -> None:
     if not ignore:
         return
 
@@ -73,11 +72,8 @@ def insert(userid, ignore):
 
     cached_list_ignoring.invalidate(userid)
 
-    from weasyl import index
-    index.template_fields.invalidate(userid)
 
-
-def remove(userid, ignore):
+def remove(userid: int, ignore: list[int]) -> None:
     if not ignore:
         return
 
@@ -86,6 +82,3 @@ def remove(userid, ignore):
 
     if result.rowcount:
         cached_list_ignoring.invalidate(userid)
-
-        from weasyl import index
-        index.template_fields.invalidate(userid)

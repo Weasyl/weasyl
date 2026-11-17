@@ -1,0 +1,16 @@
+.pages-layout-split {
+    display: flex;
+
+    > [rel=next] {
+        margin-left: auto;
+    }
+}
+
+// XXX: temporary hack for private message list
+.pages-layout-left {
+    float: left;
+}
+
+.pages-vpad {
+    margin-top: 16px;
+}

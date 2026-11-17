@@ -1,7 +1,7 @@
-$def with (profile, userinfo, relationship, myself, shouts, feature)
+$def with (profile, userinfo, relationship, myself, shouts, feature, post_counts_by_type)
 <div id="shouts-stage" class="stage">
   $:{RENDER("common/user_tools.html", [profile, userinfo, relationship])}
-  $:{RENDER("common/user_tabs.html", [profile['username'], feature, profile['show_favorites_tab']])}
+  $:{RENDER("common/user_tabs.html", [profile['username'], feature, profile['show_favorites_tab'], post_counts_by_type])}
 </div>
 <div id="shouts-content" class="content">
   $if feature == "staffnotes":
@@ -10,8 +10,8 @@ $def with (profile, userinfo, relationship, myself, shouts, feature)
       $# open reports should come first in the list
       <strong>Open:</strong>
       <em>${"0" if 'Open' not in userinfo['reportstats'] else userinfo['reportstats']['Open']}</em> |
-      $for closuretype, reportcount in userinfo['reportstats'].iteritems():
-        $if closuretype is not 'Open':
+      $for closuretype, reportcount in userinfo['reportstats'].items():
+        $if closuretype != 'Open':
           <strong>${closuretype}:</strong>
           <em>${reportcount}</em> |
       <strong>Total:</strong>

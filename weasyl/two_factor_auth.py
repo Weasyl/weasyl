@@ -1,11 +1,9 @@
 """
 Module for handling 2FA-related functions.
 """
-from __future__ import absolute_import, unicode_literals
-
 import re
 import string
-import urllib
+from urllib.parse import quote as urlquote
 
 import bcrypt
 from cryptography.fernet import Fernet
@@ -37,7 +35,7 @@ def _encrypt_totp_secret(totp_secret):
     """
     key = config.config_read_setting(setting='secret_key', section='two_factor_auth')
     f = Fernet(key)
-    return f.encrypt(bytes(totp_secret))
+    return f.encrypt(totp_secret.encode('ascii')).decode('ascii')
 
 
 def _decrypt_totp_secret(totp_secret):
@@ -51,7 +49,7 @@ def _decrypt_totp_secret(totp_secret):
     """
     key = config.config_read_setting(setting='secret_key', section='two_factor_auth')
     f = Fernet(key)
-    return f.decrypt(bytes(totp_secret))
+    return f.decrypt(totp_secret.encode('ascii')).decode('ascii')
 
 
 def init(userid):
@@ -97,7 +95,7 @@ def generate_tfa_qrcode(userid, tfa_secret):
     qr_xml = qr.to_svg_str(4)
     # We only care about the content in the <svg> tags; strip '\n' to permit re.search to work
     qr_svg_only = re.search(r"<svg.*<\/svg>", qr_xml.replace('\n', '')).group(0)
-    return urllib.quote(qr_svg_only)
+    return urlquote(qr_svg_only)
 
 
 def init_verify_tfa(tfa_secret, tfa_response):
@@ -256,7 +254,7 @@ def store_recovery_codes(userid, recovery_codes):
             return False
 
     # Store the recovery codes securely by hashing them with bcrypt
-    hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)) for code in codes]
+    hashed_codes = [bcrypt.hashpw(code.encode('utf-8'), bcrypt.gensalt(rounds=BCRYPT_WORK_FACTOR)).decode('ascii') for code in codes]
 
     # If above checks have passed, clear current recovery codes for `userid` and store new ones
     d.engine.execute("""

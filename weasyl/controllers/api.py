@@ -1,20 +1,22 @@
-from __future__ import absolute_import
+from functools import wraps
 
 from pyramid.httpexceptions import HTTPForbidden
 from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 from pyramid.response import Response
-from pyramid.view import view_config
 
 from libweasyl.text import markdown, slug_for
 from libweasyl import ratings
 
 from weasyl.controllers.decorators import token_checked
+from weasyl.controllers.profile import resolve_avatar
 from weasyl.error import WeasylError
+from weasyl.pagination import page_from_compat
+from weasyl.users import Username
 from weasyl import define as d, macro as m
 from weasyl import (
     api, character, collection, commishinfo, favorite, folder,
-    index, journal, media, message, profile, submission)
+    index, journal, message, profile, searchtag, submission)
 
 
 _ERROR_UNEXPECTED = {
@@ -49,6 +51,7 @@ _CONTENT_IDS = {
 
 
 def api_method(view_callable):
+    @wraps(view_callable)
     def wrapper(request):
         try:
             return view_callable(request)
@@ -75,6 +78,7 @@ def api_login_required(view_callable):
     Like decorators.login_required, but returning json on an error.
     """
     # TODO: If we replace the regular @login_required checks on POSTs with a tween, what do about this?
+    @wraps(view_callable)
     def inner(request):
         if request.userid == 0:
             raise HTTPUnauthorized(
@@ -85,22 +89,18 @@ def api_login_required(view_callable):
     return inner
 
 
-@view_config(route_name='useravatar', renderer='json')
 @api_method
 def api_useravatar_(request):
-    form = request.web_input(username="")
-    userid = profile.resolve_by_login(d.get_sysname(form.username))
+    username = request.GET.get("username")
+    if username is None:
+        raise HTTPUnprocessableEntity(json=_ERROR_UNEXPECTED)
 
-    if userid:
-        media_items = media.get_user_media(userid)
-        return {
-            "avatar": d.absolutify_url(media_items['avatar'][0]['display_url']),
-        }
-
-    raise WeasylError('userRecordMissing')
+    display_url = resolve_avatar(username)
+    return {
+        "avatar": d.absolutify_url(display_url),
+    }
 
 
-@view_config(route_name='whoami', renderer='json')
 @api_login_required
 def api_whoami_(request):
     return {
@@ -109,7 +109,6 @@ def api_whoami_(request):
     }
 
 
-@view_config(route_name='version', renderer='json')
 @api_method
 def api_version_(request):
     format = request.matchdict.get("format", ".json")
@@ -134,8 +133,11 @@ def tidy_submission(submission):
     if contype:
         submission['type'] = m.CONTYPE_PARSABLE_MAP[contype]
     submission['rating'] = ratings.CODE_TO_NAME[submission['rating']]
-    submission['owner'] = submission.pop('username')
-    submission['owner_login'] = d.get_sysname(submission['owner'])
+
+    username = Username.from_stored(submission.pop('username'))
+    submission['owner'] = username.display
+    submission['owner_login'] = username.sysname
+
     submission['media'] = submission.pop('sub_media')
     submitid = 0
     if 'submitid' in submission:
@@ -151,7 +153,6 @@ def tidy_submission(submission):
             "/%s/%d/%s" % (linktype, submitid, slug_for(submission['title'])))
 
 
-@view_config(route_name='api_frontpage', renderer='json')
 @api_method
 def api_frontpage_(request):
     form = request.web_input(since=None, count=0)
@@ -166,19 +167,25 @@ def api_frontpage_(request):
         count = min(count or 100, 100)
 
     submissions = index.filter_submissions(request.userid, index.recent_submissions())
+    all_tagids: set[int] = set()
     ret = []
 
     for e, sub in enumerate(submissions, start=1):
-        if (since is not None and since >= sub['unixtime']) or (count and e > count):
+        if (since is not None and since >= sub['unixtime']) or e > count:
             break
 
         tidy_submission(sub)
         ret.append(sub)
+        all_tagids.update(sub['tags'])
+
+    tag_names = searchtag.get_names(*all_tagids)
+
+    for sub in ret:
+        sub['tags'] = sorted(tag_names[tagid] for tagid in sub['tags'])
 
     return ret
 
 
-@view_config(route_name='api_submission_view', renderer='json')
 @api_method
 def api_submission_view_(request):
     form = request.web_input(anyway='', increment_views='')
@@ -187,7 +194,6 @@ def api_submission_view_(request):
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-@view_config(route_name='api_journal_view', renderer='json')
 @api_method
 def api_journal_view_(request):
     form = request.web_input(anyway='', increment_views='')
@@ -196,7 +202,6 @@ def api_journal_view_(request):
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-@view_config(route_name='api_character_view', renderer='json')
 @api_method
 def api_character_view_(request):
     form = request.web_input(anyway='', increment_views='')
@@ -205,14 +210,13 @@ def api_character_view_(request):
         anyway=bool(form.anyway), increment_views=bool(form.increment_views))
 
 
-@view_config(route_name='api_user_view', renderer='json')
 @api_method
 def api_user_view_(request):
     # Helper functions for this view.
-    def convert_commission_price(value, options):
+    def convert_commission_price(value: int, options: str) -> str:
         return d.text_price_symbol(options) + d.text_price_amount(value)
 
-    def convert_commission_setting(target):
+    def convert_commission_setting(target: str) -> str | None:
         if target == "o":
             return "open"
         elif target == "s":
@@ -225,71 +229,60 @@ def api_user_view_(request):
             return None
 
     userid = request.userid
-    otherid = profile.resolve_by_login(d.get_sysname(request.matchdict['login']))
+    otherid = profile.resolve_by_username(request.matchdict['login'])
     user = profile.select_profile(otherid)
 
     rating = d.get_rating(userid)
     o_config = user.pop('config')
     o_settings = user.pop('settings')
 
-    if not otherid and "h" in o_config:
+    if not d.is_vouched_for(otherid):
         raise HTTPForbidden(json={
             "error": {
-                "code": 200,
-                "text": "Profile hidden from unlogged users.",
+                "code": 201,
+                "text": "Unverified accounts are hidden to reduce spam.",
             },
         })
 
-    user.pop('userid', None)
-    user.pop('commish_slots', None)
+    if not userid and "h" in o_config:
+        raise HTTPForbidden(json={
+            "error": {
+                "code": 200,
+                "text": "Profile hidden from guests.",
+            },
+        })
+
+    del user['userid']
 
     user['created_at'] = d.iso8601(user.pop('unixtime'))
     user['media'] = api.tidy_all_media(user.pop('user_media'))
-    user['login_name'] = d.get_sysname(user['username'])
+    user['login_name'] = Username.from_stored(user['username']).sysname
     user['profile_text'] = markdown(user['profile_text'])
 
     user['folders'] = folder.select_list(otherid)
 
-    commissions = {
-        "details": None,
-        "price_classes": None,
+    commission_info = commishinfo.select(otherid)
+    user['commission_info'] = {
+        "details": commission_info.content,
+        "price_classes": [
+            {
+                "title": class_.title,
+                "prices": [
+                    {
+                        "title": price.title,
+                        "price_min": convert_commission_price(price.amount_min, price.settings),
+                        "price_max": convert_commission_price(price.amount_max, price.settings) if price.amount_max else None,
+                        "price_type": "additional" if "a" in price.settings else "base",
+                    }
+                    for price in class_.prices
+                ],
+            }
+            for class_ in commission_info.classes
+        ],
         "commissions": convert_commission_setting(o_settings[0]),
         "trades": convert_commission_setting(o_settings[1]),
         "requests": convert_commission_setting(o_settings[2])
     }
-
-    commission_list = commishinfo.select_list(otherid)
-    if commission_list:
-        commissions['details'] = commission_list['content']
-
-        if len(commission_list['class']) > 0:
-            classes = list()
-            for cclass in commission_list['class']:
-                commission_class = {
-                    "title": cclass['title']
-                }
-
-                if len(commission_list['price']) > 0:
-                    prices = list()
-                    for cprice in (i for i in commission_list['price'] if i['classid'] == cclass['classid']):
-                        if 'a' in cprice['settings']:
-                            ptype = 'additional'
-                        else:
-                            ptype = 'base'
-
-                        price = {
-                            "title": cprice['title'],
-                            "price_min": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                            "price_max": convert_commission_price(cprice['amount_min'], cprice['settings']),
-                            'price_type': ptype
-                        }
-                        prices.append(price)
-                    commission_class['prices'] = prices
-
-                classes.append(commission_class)
-            commissions['price_classes'] = classes
-
-    user['commission_info'] = commissions
 
     user['relationship'] = profile.select_relation(userid, otherid) if userid else None
 
@@ -302,13 +295,12 @@ def api_user_view_(request):
         more_submissions = 'characters'
         featured = None
     else:
-        submissions = submission.select_list(userid, rating, 11, otherid=otherid, profile_page_filter=True)
+        submissions = submission.select_list(userid, rating, limit=11, otherid=otherid, profile_page_filter=True)
         more_submissions = 'submissions'
         featured = submission.select_featured(userid, otherid, rating)
 
-    if submissions:
-        for sub in submissions:
-            tidy_submission(sub)
+    for sub in submissions:
+        tidy_submission(sub)
 
     user['recent_submissions'] = submissions
     user['recent_type'] = more_submissions
@@ -319,27 +311,24 @@ def api_user_view_(request):
     user['featured_submission'] = featured
 
     statistics, show_statistics = profile.select_statistics(otherid)
-    if statistics:
-        statistics.pop('staff_notes')
+    del statistics['staff_notes']
     user['statistics'] = statistics if show_statistics else None
 
-    user_info = profile.select_userinfo(otherid)
-    if user_info:
-        if not user_info['show_age']:
-            user_info['age'] = None
-        user_info.pop('show_age', None)
-        user_info.pop('birthday', None)
-        user_info['location'] = user_info.pop('country', None)
+    user_info = profile.select_userinfo(otherid, config=o_config)
+    if not user_info['show_age']:
+        user_info['age'] = None
+    del user_info['show_age']
+    del user_info['birthday']
+    user_info['location'] = user_info.pop('country')
     user['user_info'] = user_info
     user['link'] = d.absolutify_url("/~" + user['login_name'])
 
     return user
 
 
-@view_config(route_name='api_user_gallery', renderer='json')
 @api_method
 def api_user_gallery_(request):
-    userid = profile.resolve_by_login(d.get_sysname(request.matchdict['login']))
+    userid = profile.resolve_by_username(request.matchdict['login'])
     if not userid:
         raise WeasylError('userRecordMissing')
 
@@ -357,10 +346,10 @@ def api_user_gallery_(request):
     else:
         count = min(count or 100, 100)
 
-    submissions = submission.select_list(
-        request.userid, d.get_rating(request.userid), count + 1,
-        otherid=userid, folderid=folderid, backid=backid, nextid=nextid)
-    backid, nextid = d.paginate(submissions, backid, nextid, count, 'submitid')
+    page = page_from_compat(backid=backid, nextid=nextid)
+    submissions, prev_page, next_page = submission.select_page(
+        request.userid, rating=d.get_rating(request.userid), limit=count,
+        otherid=userid, folderid=folderid, page=page)
 
     ret = []
     for sub in submissions:
@@ -370,12 +359,39 @@ def api_user_gallery_(request):
         ret.append(sub)
 
     return {
-        'backid': backid, 'nextid': nextid,
+        'backid': None if prev_page is None else prev_page.backid,
+        'nextid': None if next_page is None else next_page.nextid,
         'submissions': ret,
     }
 
 
-@view_config(route_name='api_messages_submissions', renderer='json')
+# deprecated: use `weasyl.pagination`, which has better types and folds in the reversing step
+def _paginate(results, backid: int, nextid: int, limit: int, key: str) -> tuple[int | None, int | None]:
+    at_start = at_end = False
+    # if neither value is specified, we're definitely at the start
+    if not backid and not nextid:
+        at_start = True
+
+    # if we were cut short...
+    if len(results) <= limit:
+        if backid:
+            # if moving backward we're at the start
+            at_start = True
+        else:
+            # if moving forward we're at the end
+            at_end = True
+    elif backid:
+        # delete extraneous rows from the front if we're moving backward
+        del results[:-limit]
+    else:
+        # or from the back if we're moving forward
+        del results[limit:]
+
+    return (
+        None if at_start or not results else results[0][key],
+        None if at_end or not results else results[-1][key])
+
+
 @api_login_required
 @api_method
 def api_messages_submissions_(request):
@@ -390,29 +406,32 @@ def api_messages_submissions_(request):
         count = min(count or 100, 100)
 
     submissions = message.select_submissions(
-        request.userid, count + 1, include_tags=True, backtime=backtime, nexttime=nexttime)
-    backtime, nexttime = d.paginate(submissions, backtime, nexttime, count, 'unixtime')
+        request.userid,
+        limit=count + 1,
+        include_tags=True,
+        backtime=backtime,
+        nexttime=nexttime,
+    )
+    backtime, nexttime = _paginate(submissions, backtime, nexttime, count, 'unixtime')
 
-    ret = []
     for sub in submissions:
         tidy_submission(sub)
-        ret.append(sub)
 
     return {
         'backtime': backtime, 'nexttime': nexttime,
-        'submissions': ret,
+        'submissions': submissions,
     }
 
 
-@view_config(route_name='api_messages_summary', renderer='json')
 @api_login_required
 @api_method
 def api_messages_summary_(request):
     counts = d._page_header_info(request.userid)
+    site_updates = d.site_update_unread_count(request.userid)
     return {
         'unread_notes': counts[0],
         'comments': counts[1],
-        'notifications': counts[2],
+        'notifications': counts[2] + site_updates,
         'submissions': counts[3],
         'journals': counts[4],
     }
@@ -421,7 +440,6 @@ def api_messages_summary_(request):
 # TODO(hyena): It's probable that token_checked won't return json from these. Consider writing an api_token_checked.
 
 
-@view_config(route_name='api_favorite', request_method='POST', renderer='json')
 @api_login_required
 @api_method
 @token_checked
@@ -434,7 +452,6 @@ def api_favorite_(request):
     }
 
 
-@view_config(route_name='api_unfavorite', request_method='POST', renderer='json')
 @api_login_required
 @api_method
 @token_checked

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from weasyl.test import db_utils
@@ -7,7 +5,7 @@ from weasyl import useralias
 from weasyl import define as d
 
 
-test_alias = "test_alias"
+test_alias = "testalias"
 
 
 @pytest.mark.usefixtures('db')

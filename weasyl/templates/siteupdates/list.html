@@ -1,0 +1,44 @@
+$def with (request, updates, can_post, last_read_updateid)
+$:{TITLE("Site Updates")}
+
+<div class="content">
+  $if can_post:
+    <div class="form site-update-actions">
+      <a class="button" href="/site-updates/new">Submit new site update...</a>
+    </div>
+
+  <div class="constrained text-post-list">
+    $ last_created = None
+    $for update in updates:
+      $ created = ARROW(update['unixtime'])
+      <div is="date-group-header" class="text-post-group-header"
+        $if last_created is not None:
+          data-compare="${last_created.int_timestamp},${created.int_timestamp}"
+        >
+        $:{LOCAL_TIME(created, '{date}')}
+      </div>
+
+      <article class="text-post-item text-post-item-with-byline">
+        <div class="text-post-text">
+          <header>
+            <h4 class="text-post-title">
+              <a href="${request.route_path('site_update', update_id=update['updateid'])}">${update['title']}</a>
+              <span class="text-post-actions">
+                $if can_post:
+                  <a class="text-post-edit" href="${request.route_path('site_update_edit', update_id=update['updateid'])}">Edit</a>
+                $if last_read_updateid is not None and update['updateid'] > last_read_updateid:
+                  <span class="text-post-new">New</span>
+              </span>
+            </h4>
+            <p class="text-post-byline"><i>by</i> <a class="username" rel="author" href="/~${LOGIN(update['username'])}"><img class="text-post-image" src="${update['user_media']['avatar'][0]['display_url']}" alt=""> ${update['username']}</a></p>
+          </header>
+
+          <p class="text-post-excerpt">${MARKDOWN_EXCERPT(update['content'])}</p>
+        </div>
+      </article>
+      $ last_created = created
+
+    $if not updates:
+      <p>No site updates to show.</p>
+  </div>
+</div>

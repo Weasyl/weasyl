@@ -1,0 +1,18 @@
+$def with (journal)
+
+$def rating_span(r):
+  $if r == R.MATURE.code: <span class="rating mature"> (rated Mature)</span>
+  $elif r == R.EXPLICIT.code: <span class="rating explicit"> (rated Explicit)</span>
+
+<article class="text-post-item text-post-item-with-byline">
+  <div class="text-post-text content-like">
+    <header>
+      <h4 class="text-post-title">
+        <a href="${journal.href}">${journal.title}</a>$:{rating_span(journal.rating)}
+      </h4>
+      <p class="text-post-byline"><i>by</i> <a class="username" rel="author" href="/~${journal.username.sysname}"><img class="text-post-image" src="${journal.avatar.file['display_url']}" alt=""> ${journal.username.display}</a></p>
+    </header>
+
+    <p class="text-post-excerpt">${MARKDOWN_EXCERPT(journal.content)}</p>
+  </div>
+</article>

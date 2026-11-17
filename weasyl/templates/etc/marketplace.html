@@ -103,9 +103,9 @@ $code:
 
       <div style="padding-top: 1.4em;" class="pad-left pad-right">
         $if previndex is not None:
-          <a class="button" href="/marketplace?${QUERY_STRING(dict(form, o=previndex))}" rel="prev">Back</a>
+          <a class="button" href="/marketplace?${QUERY_STRING(dict(form.asdict(), o=previndex))}" rel="prev">Back</a>
         $if nextindex is not None:
-          <a class="button" style="float:right" href="/marketplace?${QUERY_STRING(dict(form, o=nextindex))}" rel="next">Next</a>
+          <a class="button" style="float:right" href="/marketplace?${QUERY_STRING(dict(form.asdict(), o=nextindex))}" rel="next">Next</a>
       </div>
 
     $else:

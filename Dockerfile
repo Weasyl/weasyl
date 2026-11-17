@@ -233,7 +233,7 @@ COPY --link assets assets
 CMD pytest -x libweasyl.test libweasyl.models.test weasyl.test
 STOPSIGNAL SIGINT
 
-FROM docker.io/library/alpine:3.22 AS flake8
+FROM docker.io/library/alpine:3.24 AS flake8
 RUN --mount=type=cache,id=apk,target=/var/cache/apk,sharing=locked \
     ln -s /var/cache/apk /etc/apk/cache && apk upgrade && apk add \
     py3-flake8

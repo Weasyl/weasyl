@@ -173,7 +173,7 @@ services:
       POSTGRES_USER: weasyl
       POSTGRES_DB: weasyl
     volumes:
-      - database:/var/lib/postgresql/data
+      - database:/var/lib/postgresql
       - type: tmpfs
         target: /run/postgresql
       - type: tmpfs
@@ -193,7 +193,7 @@ services:
       POSTGRES_INITDB_ARGS: --no-sync
     volumes:
       - type: tmpfs
-        target: /var/lib/postgresql/data
+        target: /var/lib/postgresql
       - type: tmpfs
         target: /run/postgresql
       - type: tmpfs

@@ -406,7 +406,7 @@ def _log_request(request, *, request_id=None):
             r'(WZL="?)([\w\-]+)',
             _redact_match,
             env["HTTP_COOKIE"],
-            re.ASCII,
+            flags=re.ASCII,
         )
 
     # don't log API keys or OAuth tokens
@@ -418,7 +418,7 @@ def _log_request(request, *, request_id=None):
             r'((?:Bearer )?)([\w\-]+)',
             _redact_match,
             env["HTTP_AUTHORIZATION"],
-            re.ASCII,
+            flags=re.ASCII,
         )
 
     print(repr(env))
